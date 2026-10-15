@@ -276,6 +276,9 @@ pub fn NativeLocalEffectReviewerBinding::authenticate_resolution(
 /// apply; current Reviewer and original Client read are rechecked at admission.
 /// This remains private until the actual Host attestation installation supplies
 /// its trusted keys. Public callers cannot choose Host attestation authority.
+// Operational admission still requires the original authenticated Host
+// attestation supplier; exporting this private seam would bypass that boundary.
+#warnings("-unused_value")
 fn NativeLocalAuthenticatedEffectReviewer::admit_original_resolution(
   self : NativeLocalAuthenticatedEffectReviewer,
   verified_wire : String,

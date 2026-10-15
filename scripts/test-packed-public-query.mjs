@@ -11,6 +11,9 @@ import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
 import {graphPublicHostCases, graphPublicHostPattern} from './fixtures/graph-host-cases.mjs';
+import {validatePackedPublicQueryArguments} from './packed-public-query-options.mjs';
+
+validatePackedPublicQueryArguments(process.argv.slice(2));
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
@@ -28,6 +31,7 @@ function run(command, args, cwd = root, env = environment,
 }
 console.log(`Packed public-query evidence: ${directory}`);
 console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
+  'scripts/distinct-join-order-source-input.test.mjs',
   'scripts/public-query-profiles.test.mjs', 'scripts/packed-query-transports.test.mjs'],
   repository).trimEnd());
 const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
@@ -104,6 +108,8 @@ for (const [source, destination] of [
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-following.program.json', 'analytic-frame-parameter.reversed-following.program.json'],
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-preceding.program.json', 'analytic-frame-parameter.reversed-preceding.program.json'],
   ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
+  ['scripts/fixtures/distinct-join-order-source-input.mjs', 'distinct-join-order-source-input.mjs'],
+  ['scripts/fixtures/distinct-join-order-inventory.mjs', 'distinct-join-order-inventory.mjs'],
   ['scripts/fixtures/typed-json-literal-input.mjs', 'typed-json-literal-input.mjs'],
   ['scripts/fixtures/public-query-profiles.mjs', 'public-query-profiles.mjs'],
   ['scripts/fixtures/order-aggregate-expression-source-input.mjs', 'order-aggregate-expression-source-input.mjs'],
@@ -282,6 +288,9 @@ if (environment.NODE_EXTRA_CA_CERTS) {
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: runtimeCaPath};
+if (process.argv.includes('--distinct-join-order-only')) {
+  runtimeEnvironment.ACTQL_TEST_DISTINCT_JOIN_ORDER_ONLY = '1';
+}
 if (process.argv.includes('--time-series-primary-only')) {
   runtimeEnvironment.ACTQL_TEST_TIME_SERIES_PRIMARY_ONLY = '1';
 }
@@ -780,6 +789,7 @@ const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--vector-scalar-only', '--window-group-only', '--sequence-source-only', '--ranking-fusion-only', '--temporal-join-only', '--time-series-primary-only', '--carrier-continuation-only', '--lag-only', '--event-dedupe-only', '--row-watermark-only', '--aggregate-filter-only', '--grouped-rows-boundary-only', '--positive-limit-only', '--hex-integer-only', '--unpivot-multicolumn-only', '--unpivot-row-label-only', '--from-unpivot-only', '--pipe-pivot-only', '--pipe-unpivot-only', '--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-graft-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
+  '--distinct-join-order-only',
   '--right-join-only',
   '--full-join-scope-only',
   '--join-star-only',
@@ -952,6 +962,7 @@ if (process.argv.includes('--time-series-primary-only') ||
   return;
 }
 if (process.argv.includes('--vector-scalar-only')) return;
+if (process.argv.includes('--distinct-join-order-only')) return;
 if (process.argv.includes('--window-group-only')) return;
 if (process.argv.includes('--sequence-source-only')) return;
 if (process.argv.includes('--temporal-join-only')) return;

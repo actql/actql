@@ -178,6 +178,9 @@ fn read_epoch_custody(
 ///|
 /// Establish custody only in an explicitly admitted fresh journal. A caller
 /// must not call this to repair a missing record in an existing journal.
+// The standalone fresh-journal initializer is exercised by epoch/journal WBs.
+// Installed initialization uses the atomic *_in_transaction entry instead.
+#warnings("-unused_value")
 fn initialize_native_client_epoch_authority(
   database : @sqlite.Database,
   crypto : @crypto.Library,
