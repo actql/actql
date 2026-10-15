@@ -159,13 +159,16 @@ fn read_holder_effect_host_text(
   trim_newline? : Bool = false,
 ) -> String? {
   guard holder_effect_host_read_scope_current(scope) else { return None }
+  // A Site representation reservation is not an allocator-backed Native read
+  // context. The existing physical Owner must find the installer's original
+  // active context; absence must not fall back to the stock Root constructor.
   match
-    @bounded_files.read_bounded_text_file_with_custody(
+    @bounded_files.read_bounded_text_file_in_current_read_context_with_custody(
       root,
       name,
       limit,
+      scope.profile.diagnostic_ceiling,
       trim_newline~,
-      diagnostic_ceiling=Some(scope.profile.diagnostic_ceiling),
     ) {
     Ok(text) =>
       if holder_effect_host_read_scope_current(scope) {
