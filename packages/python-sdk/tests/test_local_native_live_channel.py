@@ -294,11 +294,11 @@ class OriginalLiveChannelTests(unittest.TestCase):
     def test_same_owner_baseline_capacities_preserve_int64_without_deriving_quota(self):
         f = ChannelFixture(self)
         original = f.take()
-        before = list(f.supplier.events) if hasattr(f.supplier, 'events') else None
+        before = [call for call in f.supplier.calls if call[0] != 'launch_current']
         self.assertEqual(original.capacities(), (16777216, 2**53 + 1))
         self.assertEqual([e for e in f.events if e[:2] == ('operate', 9)],
                          [('operate', 9, 101, 301, 401)])
-        if before is not None: self.assertEqual(f.supplier.events, before)
+        self.assertEqual([call for call in f.supplier.calls if call[0] != 'launch_current'], before)
 
     def test_capacity_refusal_retains_same_original_without_zero_fallback(self):
         f = ChannelFixture(self)
