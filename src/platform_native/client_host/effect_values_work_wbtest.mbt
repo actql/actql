@@ -1,0 +1,324 @@
+///|
+// Public pinned contract bodies supplied by the bounded matching-target guard.
+// These are test inputs, not an installation, authority or funding supplier.
+fn effect_values_work_test_bodies() -> (String, String, String?) {
+  (
+    @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap(),
+    @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap(),
+    @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT"),
+  )
+}
+
+///|
+fn effect_values_work_test_original(
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+) -> (@host.ClientEffectRunMaterials, @strategy.CapturedEffectRunDAG) {
+  let prepared = @host.client_effect_compilation_owner(allowed.compilation)
+  let issued = @host.issue_prepared_client_effect_normalization_materials(
+    allowed,
+    definition,
+    @host.issue_prepared_client_effect_normalization(prepared).unwrap(),
+    request=Some(request),
+  ).unwrap()
+  let materials = @host.bind_prepared_client_effect_original_materials(
+    allowed,
+    definition,
+    issued,
+    request=Some(request),
+  ).unwrap()
+  let bound = @host.bind_client_effect_compiled_run(
+    prepared, allowed, definition,
+  ).unwrap()
+  let (registry, values, fragment) = effect_values_work_test_bodies()
+  // An explicit Core test Ledger for this fresh Run, not normal Host funding.
+  let capacity = @local.client_effect_local_ledger_limits(
+    prepared,
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  let captured = @host.open_prepared_source_free_client_effect_run(
+    bound, capacity,
+  ).unwrap()
+  (materials, captured)
+}
+
+///|
+fn effect_values_work_test_stop(
+  captured : @strategy.CapturedEffectRunDAG,
+) -> Unit {
+  stop_unstarted_values_setup(@strategy.captured_effect_run_dag(captured))
+}
+
+///|
+test "Native original source-free Effect Work claims and computes once on the same Run and retains capture custody" {
+  let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
+    "effect-values-original-once",
+  )
+  let (materials, captured) = effect_values_work_test_original(
+    request, allowed, definition,
+  )
+  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let work = open_native_client_effect_values_work(
+    journal,
+    request,
+    materials,
+    captured,
+    registry,
+    values,
+    fragment,
+    None,
+    64,
+    1000,
+    () => "2026-10-15T00:00:00.000Z",
+    () => true,
+  ).unwrap()
+  assert_true(physical_equal(work.run_for_capture().unwrap(), captured))
+  let dag = @strategy.captured_effect_run_dag(captured)
+  assert_true(@strategy.captured_task_completed(dag, 0))
+  let record = journal.retained(request).unwrap().unwrap()
+  assert_true(record.physical_start_claimed)
+  assert_false(record.cancellation_requested)
+  assert_true(record.checkpoint is None)
+  let pins = @strategy.pin_captured_effect_sources(captured, 1).unwrap()
+  assert_eq(@strategy.captured_effect_inputs_count(pins), 1)
+  let input = @strategy.captured_effect_input_at(pins, 0).unwrap()
+  assert_true(
+    @strategy.captured_any_result_borrow_matches_managed(
+      @strategy.captured_effect_input_borrow(input),
+      work.execution.completed_output(),
+    ),
+  )
+  let original_body = run_record_body(record).unwrap()
+  let repeat = open_native_client_effect_values_work(
+    journal,
+    request,
+    materials,
+    captured,
+    registry,
+    values,
+    fragment,
+    None,
+    64,
+    1000,
+    () => "2026-10-15T00:00:00.000Z",
+    () => true,
+  ).unwrap_err()
+  assert_true(
+    native_client_effect_values_work_failure_issue(repeat)
+    is Start(NeedsOriginalReconciliation),
+  )
+  assert_true(repeat.close())
+  assert_eq(
+    run_record_body(journal.retained(request).unwrap().unwrap()).unwrap(),
+    original_body,
+  )
+  assert_true(@strategy.release_captured_effect_inputs(pins))
+  assert_true(work.close())
+  assert_true(work.close())
+  assert_true(work.run_for_capture() is Err(Unavailable))
+  assert_eq(work.usage().held_bytes, 0L)
+  assert_eq(work.usage().reserved_execution_bytes, 0L)
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native Effect Values refuses missing normalization and expired original before any start" {
+  for missing in [true, false] {
+    let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
+      "effect-values-original-refusal-" + missing.to_string(),
+    )
+    let (original, captured) = effect_values_work_test_original(
+      request, allowed, definition,
+    )
+    let materials = if missing {
+      { ..original, normalization: None, }
+    } else {
+      original
+    }
+    let (registry, values, fragment) = effect_values_work_test_bodies()
+    let failure = open_native_client_effect_values_work(
+      journal,
+      request,
+      materials,
+      captured,
+      registry,
+      values,
+      fragment,
+      None,
+      64,
+      1000,
+      () => "2099-01-01T00:00:00.000Z",
+      () => true,
+    ).unwrap_err()
+    assert_true(
+      if missing {
+        native_client_effect_values_work_failure_issue(failure)
+        is Normalization(MissingOriginalJournal)
+      } else {
+        native_client_effect_values_work_failure_issue(failure)
+        is OriginalRunNotCurrent
+      },
+    )
+    assert_true(failure.close())
+    assert_false(
+      journal.retained(request).unwrap().unwrap().physical_start_claimed,
+    )
+    assert_eq(
+      @resources.ledger_usage(
+        @strategy.captured_dag_ledger(
+          @strategy.captured_effect_run_dag(captured),
+        ),
+      ).attempts,
+      0,
+    )
+    effect_values_work_test_stop(captured)
+    database.close_checked().unwrap()
+  }
+}
+
+///|
+test "Native Effect Values refuses foreign opaque Run without stopping or claiming either original" {
+  let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
+    "effect-values-foreign-first",
+  )
+  let (second, other_journal, other_request, other_allowed, other_definition) = accepted_effect_work_fixture(
+    "effect-values-foreign-second",
+  )
+  let (materials, captured) = effect_values_work_test_original(
+    request, allowed, definition,
+  )
+  let (_, foreign) = effect_values_work_test_original(
+    other_request, other_allowed, other_definition,
+  )
+  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let failure = open_native_client_effect_values_work(
+    journal,
+    request,
+    materials,
+    foreign,
+    registry,
+    values,
+    fragment,
+    None,
+    64,
+    1000,
+    () => "2026-10-15T00:00:00.000Z",
+    () => true,
+  ).unwrap_err()
+  assert_true(
+    native_client_effect_values_work_failure_issue(failure) is Configuration,
+  )
+  assert_true(failure.close())
+  assert_false(
+    journal.retained(request).unwrap().unwrap().physical_start_claimed,
+  )
+  assert_false(
+    other_journal.retained(other_request).unwrap().unwrap().physical_start_claimed,
+  )
+  for run in [captured, foreign] {
+    let dag = @strategy.captured_effect_run_dag(run)
+    assert_eq(@strategy.next_captured_task(dag), Some(0))
+    assert_true(@strategy.captured_dag_strategy(dag) is None)
+    effect_values_work_test_stop(run)
+  }
+  database.close_checked().unwrap()
+  second.close_checked().unwrap()
+}
+
+///|
+test "Native Effect Values rechecks cancellation admitted by its clock callback before Compute" {
+  let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
+    "effect-values-clock-cancel",
+  )
+  let (materials, captured) = effect_values_work_test_original(
+    request, allowed, definition,
+  )
+  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let failure = open_native_client_effect_values_work(
+    journal,
+    request,
+    materials,
+    captured,
+    registry,
+    values,
+    fragment,
+    None,
+    64,
+    1000,
+    () => {
+      journal
+      .transaction(() => {
+        let record = journal.retained(request).unwrap().unwrap()
+        journal.save({ ..record, cancellation_requested: true, }).map(_ => ())
+      })
+      .unwrap()
+      "2026-10-15T00:00:00.000Z"
+    },
+    () => true,
+  ).unwrap_err()
+  assert_true(
+    native_client_effect_values_work_failure_issue(failure) is Start(_),
+  )
+  assert_true(failure.close())
+  assert_eq(
+    @resources.ledger_usage(
+      @strategy.captured_dag_ledger(@strategy.captured_effect_run_dag(captured)),
+    ).attempts,
+    0,
+  )
+  assert_true(
+    journal.retained(request).unwrap().unwrap().cancellation_requested,
+  )
+  effect_values_work_test_stop(captured)
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native Effect Values uses adopted current Submit independently of Source read and refuses denial" {
+  for submit in [false, true] {
+    let (host, request, allowed, definition, _) = local_effect_source_authority_fixture(
+      "effect-values-real-authority-" + submit.to_string(),
+      submit,
+      false,
+    )
+    let (materials, captured) = effect_values_work_test_original(
+      request, allowed, definition,
+    )
+    let (registry, values, fragment) = effect_values_work_test_bodies()
+    let opened = host.open_effect_values_work(
+      epoch_test_crypto(),
+      "operator",
+      "cli",
+      request,
+      materials,
+      captured,
+      registry,
+      values,
+      fragment,
+      None,
+      64,
+      1000,
+      () => "2026-10-15T00:00:00.000Z",
+    )
+    if submit {
+      let work = opened.unwrap()
+      assert_true(physical_equal(work.run_for_capture().unwrap(), captured))
+      host.close().unwrap()
+      assert_true(work.run_for_capture() is Err(_))
+      assert_true(work.close())
+    } else {
+      let failure = opened.unwrap_err()
+      assert_true(
+        native_client_effect_values_work_failure_issue(failure)
+        is Journal(AuthorizationDenied),
+      )
+      assert_true(failure.close())
+      effect_values_work_test_stop(captured)
+      host.close().unwrap()
+    }
+  }
+}
