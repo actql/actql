@@ -23,7 +23,30 @@
 #include <sys/xattr.h>
 #endif
 
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+#include "scoped_read.h"
+// The original Core backed-read use and current backing scope must already
+// be validated by the installed Native Domain before this physical entrance.
+// Outside a selected read scope these hooks use the original allocator.
+#define malloc actql_native_file_scoped_allocate
+#define calloc actql_native_file_scoped_callocate
+#define free actql_native_file_scoped_free
+static char *actql_filesystem_scoped_strdup(const char *text) {
+  size_t length = strlen(text);
+  if (length == SIZE_MAX) return NULL;
+  char *copy = malloc(length + 1);
+  if (copy != NULL) memcpy(copy, text, length + 1);
+  return copy;
+}
+#define strdup actql_filesystem_scoped_strdup
+#define ACTQL_FILESYSTEM_READ_CONTEXT_FIELDS \
+  actql_read_context *read_context; bool read_context_user;
+#else
+#define ACTQL_FILESYSTEM_READ_CONTEXT_FIELDS
+#endif
+
 typedef struct {
+  ACTQL_FILESYSTEM_READ_CONTEXT_FIELDS
   int fd;
   int32_t diagnostic_ceiling;
   char *error;
@@ -75,6 +98,7 @@ typedef struct {
 } actql_native_filesystem_writer;
 
 typedef struct {
+  ACTQL_FILESYSTEM_READ_CONTEXT_FIELDS
   actql_native_filesystem_root *root;
   int fd;
   char *error;
@@ -2603,3 +2627,33 @@ void *actql_native_filesystem_open_child_root(
   }
   return child;
 }
+
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+#include "filesystem_read_context.inc"
+#endif
+
+/* This entrance borrows only the existing Domain's active current context.
+ * Stock/unselected callers refuse before any Root allocation or descriptor
+ * access. The status and original Root output are separate physical facts;
+ * a failed constructor output remains original cleanup custody. */
+MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_scoped_open_current_root(
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling,
+  actql_native_filesystem_root **output
+) {
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  if (output == NULL || *output != NULL || diagnostic_ceiling <= 0)
+    return ACTQL_OWNED_INVALID;
+  actql_read_context *context = actql_bootstrap_current_read_context();
+  if (context == NULL) return ACTQL_OWNED_INVALID;
+  return actql_native_filesystem_scoped_open_root(
+    context, path, length, diagnostic_ceiling, output);
+#else
+  (void)path;
+  (void)length;
+  (void)diagnostic_ceiling;
+  (void)output;
+  return -1; /* ACTQL_OWNED_INVALID; no active scoped provider was selected. */
+#endif
+}
+
+#include "filesystem_scoped_acquisition.inc"
