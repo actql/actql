@@ -777,6 +777,10 @@ pub fn client_native_product_census_at(ClientNativeProductCensus, Int) -> Client
 
 pub fn client_native_product_census_count(ClientNativeProductCensus) -> Int
 
+pub fn client_native_product_identity(String, String, String, String, String, String) -> Result[ClientNativeProductIdentity, ClientNativeLocalRuntimeIssue]
+
+pub fn client_native_product_identity_wire(ClientNativeProductIdentity) -> String
+
 pub fn client_native_product_members_at(ClientNativeProductMembers, Int) -> ClientNativeProductMember?
 
 pub fn client_native_product_members_count(ClientNativeProductMembers) -> Int
@@ -1702,6 +1706,8 @@ pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
 
 pub fn read_client_local_runtime_successor_metadata(Bytes) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue]
+
+pub fn read_client_native_product_identity(String) -> Result[ClientNativeProductIdentity, ClientNativeLocalRuntimeIssue]
 
 pub fn[E] read_client_retained_run_journal(ClientRequestIdentity, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientRetainedRunJournalRow?, ClientRunJournalAppendIssue[E]]
 
@@ -2897,6 +2903,8 @@ pub(all) struct ClientNativeProductCensusMember {
   name : String
   kind : ClientNativeProductCensusKind
 } derive(Eq, @debug.Debug)
+
+type ClientNativeProductIdentity
 
 pub(all) struct ClientNativeProductMember {
   path : String

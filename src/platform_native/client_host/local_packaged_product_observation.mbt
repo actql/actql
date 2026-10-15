@@ -5,6 +5,10 @@
 priv struct NativeLocalPackagedProductObservation {
   placement : @host.ClientNativeProductPlacement
   directories : Array[(@filesystem.Root, @host.ClientNativeProductPart, String)]
+  launcher_descriptor_sha256 : String
+  platform_descriptor_sha256 : String
+  mut native_image_sha256 : String?
+  mut launcher_image_sha256 : String?
 }
 
 ///|
@@ -243,6 +247,16 @@ fn local_product_capture_part(
         allow_empty=true,
       ),
     )
+    // These exact formal entry paths have just passed mode/bytes/hash/current
+    // checks. A generic package census alone is not a verified CLI image.
+    if entry.mode == 0o755 {
+      if part == @host.PlatformProduct &&
+        entry.path == "bin/actql-native-client" {
+        product.native_image_sha256 = Some(entry.sha256)
+      } else if part == @host.LauncherProduct && entry.path == "bin/actql.mjs" {
+        product.launcher_image_sha256 = Some(entry.sha256)
+      }
+    }
   }
 }
 
@@ -298,7 +312,14 @@ pub fn NativeLocalPackagedRuntime::observe_product_members(
         launcher, platform_members, launcher_root, platform_root,
       ).map_err(_ => InvalidManifest)
       |> local_runtime_result
-    let product = { placement, directories: [], }
+    let product = {
+      placement,
+      directories: [],
+      launcher_descriptor_sha256,
+      platform_descriptor_sha256,
+      native_image_sha256: None,
+      launcher_image_sha256: None,
+    }
     let declared = @host.client_native_local_runtime_members(manifest)
     local_product_capture_part(
       self,
