@@ -46,6 +46,8 @@ pub fn lookup_buffer(BufferPool, Int) -> BufferSlot?
 
 pub fn open_pool(Int64, Int, Int) -> Result[BufferPool, BufferIssue]
 
+pub fn open_pool_on_imported_vm_capacity(@physical_resources.ImportedChildLedger, @physical_resources.Ledger, @physical_resources.SharedCapacity, Int64, Int, Int) -> Result[BufferPool, BufferIssue]
+
 pub fn open_pool_on_ledger(@physical_resources.Ledger, Int64, Int, Int) -> Result[BufferPool, BufferIssue]
 
 pub fn reserve_buffer(BufferPool, Int, Int64, () -> Bool) -> Result[BufferSlot, BufferIssue]
@@ -91,6 +93,10 @@ pub(all) enum BufferIssue {
 pub struct BufferPool {
   ledger : @physical_resources.Ledger
   capacity : @physical_resources.SharedCapacity
+  backing : PoolBacking
+  total_bytes : Int64
+  mut allocated_bytes : Int64
+  mut copy_reserved_bytes : Int64
   max_slots : Int
   max_wire_bytes : Int
   mut next_serial : Int
@@ -103,7 +109,10 @@ pub struct BufferPool {
 pub struct BufferSlot {
   owner : BufferPool
   serial : Int
-  allocation : @physical_resources.SharedAllocation
+  mut allocation : @physical_resources.SharedAllocation?
+  mut copy_capacity : @physical_resources.SharedCapacity?
+  accounted_bytes : Int64
+  mut published : Bool
   wire_length : Int
   cleanup : () -> Bool
   mut output_only : Bool
@@ -117,6 +126,8 @@ pub struct BufferSlot {
 }
 
 type OriginalWorkspaceRead[T]
+
+type PoolBacking
 
 type WorkspaceBacking
 
