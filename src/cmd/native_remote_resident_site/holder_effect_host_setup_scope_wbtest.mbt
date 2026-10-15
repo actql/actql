@@ -694,7 +694,9 @@ test "setup reservation refuses absent invalid or uncovered profile without bind
   // the original Site admits 150 bytes, so a 151-byte reservation must refuse.
   assert_true(
     reserve_holder_effect_host_setup_scope(
-      site, Some({ ..profile, setup_retained_bytes: 151L, }), 1024L,
+      site,
+      Some({ ..profile, setup_retained_bytes: 151L, }),
+      1024L,
     )
     is None,
   )

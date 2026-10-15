@@ -75,7 +75,7 @@ test "parent installation refusal leaves the original Host before acquisition" {
   let original = host_read_domain_test_slot("parent-refused.slot")
   let (host, allocation) = host_read_parent_test_host(original)
   let site = host_setup_test_site(1)
-  let scope = begin_holder_effect_host_setup_scope(
+  let scope = begin_holder_effect_host_preparation_scope(
     site,
     Some(host_setup_test_profile()),
     1024L,
@@ -91,7 +91,7 @@ test "parent installation refusal leaves the original Host before acquisition" {
   )
   assert_true(scope.read_parent is None)
   host.require_current(original).unwrap()
-  assert_true(leave_holder_effect_host_read_scope(scope))
+  assert_false(leave_holder_effect_host_read_scope(scope))
   assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
   host.try_close(original).unwrap()
   let (operation, _) = take_holder_effect_host_caller_reservation(scope)
@@ -107,7 +107,7 @@ test "foreign FD mapping keeps the exact partial parent through cleanup" {
     @env.get_env_var("ACTQL_TEST_HOST_READ_FOREIGN_FD").unwrap(),
   )
   let site = host_setup_test_site(1)
-  let scope = begin_holder_effect_host_setup_scope(
+  let scope = begin_holder_effect_host_preparation_scope(
     site,
     Some(host_setup_test_profile()),
     1024L,
@@ -140,7 +140,7 @@ test "foreign FD mapping keeps the exact partial parent through cleanup" {
     physical_equal(scope.read_parent.unwrap().loan.unwrap(), original_loan),
   )
   assert_eq(@site.site_status(site)[7], 120L)
-  assert_true(leave_holder_effect_host_read_scope(scope))
+  assert_false(leave_holder_effect_host_read_scope(scope))
   assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
   assert_true(scope.read_parent is None)
   assert_eq(host.usage().reserved_execution_bytes, 0L)
@@ -157,7 +157,7 @@ test "failed read context closes domain and original parent before Site reservat
     @env.get_env_var("ACTQL_TEST_HOST_READ_DOMAIN_FD").unwrap(),
   )
   let site = host_setup_test_site(1)
-  let scope = begin_holder_effect_host_setup_scope(
+  let scope = begin_holder_effect_host_preparation_scope(
     site,
     Some(host_setup_test_profile()),
     1024L,
@@ -207,7 +207,7 @@ test "parent Host close waits for the same outstanding borrow and retries once r
     @env.get_env_var("ACTQL_TEST_HOST_READ_DOMAIN_FD").unwrap(),
   )
   let site = host_setup_test_site(1)
-  let scope = begin_holder_effect_host_setup_scope(
+  let scope = begin_holder_effect_host_preparation_scope(
     site,
     Some(host_setup_test_profile()),
     1024L,
@@ -249,7 +249,7 @@ test "current callback cannot replace the retained original parent before acquis
     @env.get_env_var("ACTQL_TEST_HOST_READ_DOMAIN_FD").unwrap(),
   )
   let site = host_setup_test_site(1)
-  let scope = begin_holder_effect_host_setup_scope(
+  let scope = begin_holder_effect_host_preparation_scope(
     site,
     Some(host_setup_test_profile()),
     1024L,
@@ -274,7 +274,7 @@ test "current callback cannot replace the retained original parent before acquis
   // this is not a replacement supplier or a physical close acknowledgement.
   scope.read_parent = Some(parent)
   scope.preparation_binding = Some(() => true)
-  assert_true(leave_holder_effect_host_read_scope(scope))
+  assert_false(leave_holder_effect_host_read_scope(scope))
   assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
   assert_true(scope.read_parent is None)
   let (operation, _) = take_holder_effect_host_caller_reservation(scope)

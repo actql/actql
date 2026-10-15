@@ -1,4 +1,24 @@
 ///|
+/// Physical installation fixtures expose only origin/capacity preparation.
+/// Unlike the arithmetic lifecycle adapter, they install no synthetic full
+/// current callback before the original Native read context has been entered.
+fn begin_holder_effect_host_preparation_scope(
+  site : @site.ExecutionSite,
+  profile : HolderEffectHostSetupProfile?,
+  original_catalog_record_limit : Int64,
+  prepared : () -> Bool,
+) -> HolderEffectHostSetupScope? {
+  guard reserve_holder_effect_host_setup_scope(
+      site, profile, original_catalog_record_limit,
+    )
+    is Some(scope) else {
+    return None
+  }
+  scope.preparation_binding = Some(prepared)
+  Some(scope)
+}
+
+///|
 fn host_read_domain_test_slot(name : String) -> @slot.NativeExecutorSlot raise {
   let root = @env.get_env_var("ACTQL_TEST_HOST_READ_DOMAIN_ROOT").unwrap()
   let slot = @slot.open_native_executor_slot(root + "/" + name).unwrap()
@@ -126,7 +146,7 @@ fn host_read_domain_test_retire(
 test "missing original read installation retains Site reservation without selecting a substitute" {
   let slot = host_read_domain_test_slot("read-missing.slot")
   let site = host_setup_test_site(1)
-  let scope = begin_holder_effect_host_setup_scope(
+  let scope = begin_holder_effect_host_preparation_scope(
     site,
     Some(host_setup_test_profile()),
     1024L,
@@ -136,7 +156,7 @@ test "missing original read installation retains Site reservation without select
   assert_false(install_holder_effect_host_read_domain(scope, slot, None))
   assert_true(scope.read_domain is None)
   assert_eq(@site.site_status(site), before)
-  assert_true(leave_holder_effect_host_read_scope(scope))
+  assert_false(leave_holder_effect_host_read_scope(scope))
   assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
   let (retained, _) = take_holder_effect_host_caller_reservation(scope)
   assert_true(@site.settle_site_operation(retained.unwrap()))
@@ -147,7 +167,7 @@ test "missing original read installation retains Site reservation without select
 test "read installation callback retirement cannot return a current Site scope" {
   let slot = host_read_domain_test_slot("read-reentrant.slot")
   let site = host_setup_test_site(1)
-  let scope = begin_holder_effect_host_setup_scope(
+  let scope = begin_holder_effect_host_preparation_scope(
     site,
     Some(host_setup_test_profile()),
     1024L,
@@ -178,7 +198,7 @@ test "read installation callback retirement cannot return a current Site scope" 
 test "stock runtime read initialization failure keeps the exact installed domain through cleanup" {
   let slot = host_read_domain_test_slot("read-stock.slot")
   let site = host_setup_test_site(1)
-  let scope = begin_holder_effect_host_setup_scope(
+  let scope = begin_holder_effect_host_preparation_scope(
     site,
     Some(host_setup_test_profile()),
     1024L,
@@ -229,7 +249,7 @@ test "foreign original Slot cannot adopt or close another installed read domain"
   let original_slot = host_read_domain_test_slot("read-original.slot")
   let foreign_slot = host_read_domain_test_slot("read-foreign.slot")
   let site = host_setup_test_site(1)
-  let scope = begin_holder_effect_host_setup_scope(
+  let scope = begin_holder_effect_host_preparation_scope(
     site,
     Some(host_setup_test_profile()),
     1024L,
@@ -250,7 +270,7 @@ test "foreign original Slot cannot adopt or close another installed read domain"
   host.require_backed_domain_current(original_slot, domain, operation).unwrap()
   host.close_backed_domain(original_slot, domain, operation).unwrap()
   close_parent()
-  assert_true(leave_holder_effect_host_read_scope(scope))
+  assert_false(leave_holder_effect_host_read_scope(scope))
   assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
   let (retained, _) = take_holder_effect_host_caller_reservation(scope)
   assert_true(@site.settle_site_operation(retained.unwrap()))
