@@ -235,8 +235,8 @@ Run run_…
   match the declared type is `schema_invalid`; it is never passed on as a
   partly typed value.
 - By default, failed rows are returned alongside successful ones, so the
-  Program decides what to do with them. A strict mode fails the whole step
-  instead. Failures are never replaced with defaults.
+  Program decides what to do with them. `ON FAILURE FAIL` on the `INFER`
+  step fails the whole step instead. Failures are never replaced with defaults.
 - Only transient failures — rate limits, timeouts, provider errors — are
   retried, within fixed bounds. Refusals and invalid responses are not
   retried, and nothing is retried silently.

@@ -14,14 +14,22 @@ npm install -g actql
 
 ## 1. The project
 
-Create an empty directory with six files. Everything the Run uses is in these
-files, so copying them gives the same result on any machine.
+Let the CLI create the project:
+
+```sh
+actql init --template churn-risk-mock churn-risk
+cd churn-risk
+```
+
+`init` writes six files and a `.actql` directory for the Host's state.
+Everything the Run uses is in these files, so the same result comes out on
+any machine — and you can create them by hand just as well. In order:
 
 `actql.config.json` tells the CLI where state and definitions live. The mock
 profile replaces every Connector and the LLM with stand-ins that answer from
-the fixture files named under `mock`. Under the mock profile, and only there,
-the Host uses a built-in policy: reads and model calls are allowed, and every
-write waits for approval. It never applies to real connections:
+the fixture files named under `mock`. There is no policy file: a Local Host's
+standard policy runs reads and model calls on the connections and tasks you
+configured, and holds every write for approval:
 
 ```json
 {
@@ -125,6 +133,7 @@ JOIN snowflake.usage_30d AS u ON a.id = u.account_id
 |> INFER `model-task:churn-risk.v1`
      INPUT (notes, active_users, trend) AS risk
 |> WHERE risk.outcome = 'ok' AND risk.value.level = 'high'
+|> RESULT updates
 |> EFFECT UPDATE salesforce.Account
      ID id SET (
        Churn_Risk__c = risk.value.level,
@@ -133,7 +142,8 @@ JOIN snowflake.usage_30d AS u ON a.id = u.account_id
 ```
 
 Read it top to bottom: join accounts with usage, ask the model about each
-account, keep the high-risk ones, write the risk back. `INFER` needs one row
+account, keep the high-risk ones, publish them as the Result `updates`, write
+the risk back. `INFER` needs one row
 per account. `id` is the key of `salesforce.accounts` and `account_id` the key
 of `snowflake.usage_30d`, so each `id` appears once after the join; `check`
 proves this from the declared keys, and refuses the Program if it could not. The same files are in
@@ -279,11 +289,17 @@ Run run_…
   Effect   update  (Salesforce Account)   2 items
     Acme Corp     applied
     Globex Inc    applied
+  Results  updates  2 rows
+
+$ actql result run_… --result updates --format jsonl
+{"id":"001Acme","notes":"Evaluating a competitor; usage down since June.","active_users":4,"trend":"down","risk":{"outcome":"ok","value":{"level":"high","reason":"falling usage and a competitor evaluation"}}}
+{"id":"001Globex","notes":"Several support tickets about the new pricing.","active_users":12,"trend":"flat","risk":{"outcome":"ok","value":{"level":"high","reason":"support tickets about pricing"}}}
 ```
 
 Approving continues the same Run: the data already read and the model's
 answers are reused, not fetched again. `status` shows the outcome of each
-write. To refuse instead, use `actql reject ckpt_…`; the Run ends `cancelled`
+write, and `result` reads the `updates` Result the Program published — the
+rows the write was made from. To refuse instead, use `actql reject ckpt_…`; the Run ends `cancelled`
 with nothing written.
 
 ## 6. The same from your application
