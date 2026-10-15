@@ -117,7 +117,10 @@ foreign current, live-statement close, adapter heap aliases, and lost COMMIT rep
 The latter uses the existing test-only reply fault and an exec counter; it is
 not a real transport failure or durable filesystem/restart acceptance. All
 SQLite databases in this fixture are new in-memory databases, never old Runs or
-journals. The fixture-only Mach-O interpose fails one original provider `mprotect(PROT_NONE)`
+journals. A fixture-only dylib (not a provider or product dependency) holds both the
+fault state and the Mach-O interpose. The initial main-executable-only injection
+did not affect the provider and is retained as failed diagnostic evidence.
+The dylib interpose fails one original provider `mprotect(PROT_NONE)`
 for the selected 32-page heap. It checks the real physical-error return, retained
 same context/Library and exactly two retirement syscall attempts; no second
 shutdown, replacement allocation, module close or success ACK occurs on the

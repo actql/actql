@@ -155,16 +155,16 @@ int main(int argc, char **argv) {
     } else if (!strcmp(name, "retirement-retry")) {
         void *bytes = actql_sqlite_component_allocate(37);
         assert(bytes != NULL && actql_sqlite_component_free(bytes) == 0);
-        retirement_fault_armed = 1;
+        actql_fixture_retirement_arm();
         assert(actql_sqlite_component_close() == ACTQL_SQLITE_COMPONENT_FAILED);
-        assert(retirement_calls == 1 && !retirement_fault_armed);
+        assert(actql_fixture_retirement_calls() == 1 && !actql_fixture_retirement_armed());
         assert(actql_sqlite_component_allocate(1) == NULL);
         leave(value);
         assert(actql_read_context_release_after_owner_ack(value.context) == 0);
         assert(actql_read_context_try_close(&value.context) == ACTQL_OWNED_BUSY);
         enter(value);
-        assert(actql_sqlite_component_close() == 0 && retirement_calls == 2);
-        assert(actql_sqlite_component_close() == 0 && retirement_calls == 2);
+        assert(actql_sqlite_component_close() == 0 && actql_fixture_retirement_calls() == 2);
+        assert(actql_sqlite_component_close() == 0 && actql_fixture_retirement_calls() == 2);
         leave(value);
         assert(actql_read_context_try_close(&value.context) == 0);
         assert(actql_native_owned_try_close(&value.lease) == 0);
