@@ -301,6 +301,7 @@ fn bounded_row_comparison_step_with(
   presence? : ((Int, Int) -> Result[Bool, OrderingIssue])? = None,
   complete_values? : Bool = false,
   workspace? : RowWorkspace? = None,
+  positional_at? : (Int) -> Int = _ => 0,
 ) -> Result[Int?, OrderingIssue] {
   if terms < 0 || terms > orders.length() {
     return Err(InvalidInput)
@@ -354,7 +355,12 @@ fn bounded_row_comparison_step_with(
   guard left is Some(left) && right is Some(right) else {
     return Err(InvalidInput)
   }
-  if complete_values && !(left is Text(_) && right is Text(_)) {
+  let positional_count = positional_at(cursor.term)
+  if positional_count > 1 &&
+    !(left is Captured(@admitted.Object(_)) &&
+      right is Captured(@admitted.Object(_))) { return Err(InvalidInput) }
+  if (complete_values || positional_count > 1) &&
+    !(left is Text(_) && right is Text(_)) {
     // The private whole-row order uses the same complete-value domain as Set.
     // Recursive admitted values retain their cursor, roots and reservation
     // across merge and adjacent-row polls; this is not an authored sort key.
@@ -369,7 +375,7 @@ fn bounded_row_comparison_step_with(
         _ => false
       }) {
       guard workspace is Some(workspace) else { return Err(InvalidInput) }
-      match start_complete_tree_comparison(a, b, control, workspace) {
+      match start_complete_tree_comparison(a, b, control, workspace, positional_count~) {
         Ok(tree) => cursor.tree = Some(tree)
         Err(issue) => return Err(issue)
       }
@@ -529,6 +535,14 @@ fn bounded_row_comparison_step(
     },
     complete_values=state.distinct && !state.dedupe,
     workspace=Some(state.workspace),
+    positional_at=term => {
+      match state.sort_kernel {
+        Some(kernel) => @lower.kernel_sort_term_positional_count(
+          kernel, term - state.partition_terms,
+        )
+        None => 0
+      }
+    },
   )
 }
 
