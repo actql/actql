@@ -384,6 +384,38 @@ fn open_checked_local_host(
     Ok(value) => value
     Err(_) => return None
   }
+  configure_client_local_run(
+    run, graph, compute_sequences, first_compute, task_count, max_rows, values, execution,
+    measurement, retained_bytes, execution_bytes, retained_output, fixed_ms, per_row_ms,
+    per_wire_byte_ms, per_pair_ms, provider_factory,
+  )
+}
+
+///|
+// Shared installed Local configuration on the exact already-open Run. The
+// Pure and Effect entrypoints retain their own original preparation/admission;
+// this helper neither opens a Run/Ledger nor grants execution authority.
+fn configure_client_local_run(
+  run : @strategy.CapturedDAG,
+  graph : @strategy.CheckedDAG,
+  compute_sequences : Array[@execution.GeneratedSequence],
+  first_compute : Int,
+  task_count : Int,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  retained_output : Bool,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  provider_factory : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows,
