@@ -26,14 +26,15 @@ async function fixture(t, metadata = {maxWireBytes: 1024, maxLedgerEntries: 8},
   });
   const park = original.operation.parkOriginalResources();
   const acquisition = original.operation.originalMetadataAcquisition(park);
-  const keyId = `sha256:${'2'.repeat(64)}`;
+  const key = Buffer.alloc(32, 7);
+  const keyId = sha(key);
   const ledger = {version, prepare_attempt_id: 'model-meta',
     request_cid: original.runDefinition.identity, key_id: keyId, holdings: []};
   const path = join(state, 'attempts', 'model-meta.json');
   const before = Buffer.from(JSON.stringify(ledger));
   await writeFile(path, before);
   const evidence = openContinuationEvidence({stateDirectory: state,
-    key: Buffer.alloc(32, 7), keyId, contractControl: control,
+    key, keyId, contractControl: control,
     preparation: () => ({status: 'run_created', runStatus: 'needs_reconciliation'}),
     isTerminalRunOutcome: () => false});
   let successful = false;
