@@ -6,6 +6,7 @@ from dataclasses import replace
 import os
 from pathlib import Path
 import pickle
+import stat
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -25,7 +26,7 @@ from test_local_worker_channel import Control
 
 
 class ChannelFixture:
-    def __init__(self, test):
+    def __init__(self, test, *, before_process=None, spawn=True):
         previous = getattr(test, '_live_channel_fixture', None)
         if previous is not None:
             previous._cleanup.close()
@@ -43,6 +44,7 @@ class ChannelFixture:
         self.supplier.ledger = self.host
         self.funding = case.prepare()
         self.slot = OriginalWorkerSlot(self.funding, Path('/installed/slot'))
+        if before_process is not None: before_process(self)
         self.process = OriginalWorkerProcess(self.funding, self.slot,
             executable=Path('/installed/python'), executable_image=Path('/installed/python'),
             executable_link=None, executable_bytes=8192, executable_sha256='a' * 64,
@@ -53,13 +55,14 @@ class ChannelFixture:
                 ('OriginalWorkerSlot.close', {}),
                 ('os.pipe', {'side_effect': [(11, 12), (13, 14), (15, 16)]}),
                 ('os.posix_spawn', {'return_value': 4321}),
-                ('fcntl.fcntl', {'side_effect': iter(range(21, 27))}),
+                ('fcntl.fcntl', {'side_effect': iter([30, *range(21, 27)])}),
+                ('os.fstat', {'return_value': SimpleNamespace(st_mode=stat.S_IFREG | 0o600, st_uid=os.geteuid(), st_size=65536, st_dev=2, st_ino=3)}),
                 ('os.close', {})):
             module = 'actql_sdk._local_worker_process.' if name.startswith(('OriginalWorkerProcess', 'os.')) else 'actql_sdk._local_worker_slot.'
             self._cleanup.enter_context(patch(module + name, **options))
         self.channel = OriginalWorkerPipeChannel(self.funding, self.process, Control())
         self.pipe = self.channel._pipe
-        self.process.spawn()
+        if spawn: self.process.spawn()
         self.events, self.facts = [], {}
         self.prepare_issue = 0
         self.issues = {}
