@@ -53,6 +53,13 @@ extern "C" fn library_diagnostic_ceiling_ffi(library : Library) -> Int = "actql_
 extern "C" fn database_diagnostic_ceiling_ffi(database : Database) -> Int = "actql_native_sqlite_database_diagnostic_ceiling"
 
 ///|
+#borrow(database)
+extern "C" fn database_current_component_matches_heap_ffi(
+  database : Database,
+  expected_heap_bytes : Int64,
+) -> Bool = "actql_native_sqlite_database_current_component_matches_heap"
+
+///|
 #borrow(library, path)
 extern "C" fn open_database_ffi(
   library : Library,
@@ -522,6 +529,22 @@ pub fn Database::diagnostic_ceiling(self : Database) -> Int? {
   } else {
     None
   }
+}
+
+///|
+/// Match this Database's original successful component heap selection under
+/// its still-open Library and same physical process/read context. The expected
+/// quantity comes from the trusted installer's original selection; do not infer
+/// it from a row limit, diagnostic ceiling or current arena size. This performs
+/// no SQL or managed allocation and proves neither permission, available
+/// capacity, whole-Host funding nor cleanup acknowledgement. Callers still
+/// validate the original Host/component/source/recipe and current authority
+/// before and after use; matching a quantity is not Library identity.
+pub fn Database::current_component_matches_heap(
+  self : Database,
+  expected_heap_bytes : Int64,
+) -> Bool {
+  database_current_component_matches_heap_ffi(self, expected_heap_bytes)
 }
 
 ///|

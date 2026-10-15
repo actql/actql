@@ -26,6 +26,7 @@ fn host_setup_test_profile() -> HolderEffectHostSetupProfile {
   {
     read_ceiling: 32,
     catalog_read_ceiling: 1024L,
+    catalog_sqlite_heap_bytes: 4096L,
     diagnostic_ceiling: 8,
     setup_retained_bytes: 120L,
     current_retained_bytes: 30L,
@@ -67,6 +68,28 @@ test "current catalog ceiling is independent and cannot raise the original Store
   assert_true(holder_effect_host_catalog_read_limit(None, 1024L) is None)
   let invalid = { ..profile, catalog_read_ceiling: 0L, }
   assert_true(holder_effect_host_catalog_read_limit(Some(invalid), 1L) is None)
+}
+
+///|
+test "invalid original component selection refuses before binding reads or reservation" {
+  let site = host_setup_test_site(1)
+  let checks = Ref(0)
+  let before = @site.site_status(site)
+  for heap in [-1L, 0L, 4095L, 2147483648L] {
+    let invalid = {
+      ..host_setup_test_profile(),
+      catalog_sqlite_heap_bytes: heap,
+    }
+    assert_true(
+      begin_holder_effect_host_setup_scope(site, Some(invalid), 1024L, () => {
+        checks.val += 1
+        true
+      })
+      is None,
+    )
+    assert_eq(checks.val, 0)
+    assert_eq(@site.site_status(site), before)
+  }
 }
 
 ///|

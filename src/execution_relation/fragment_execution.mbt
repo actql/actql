@@ -363,7 +363,11 @@ fn attach_fragment_budgets(
               guard @schema.lookup(schema, name) is Some(contract) else {
                 return Err(FragmentContext(i, KernelMismatch))
               }
-              if !supported_comparison(contract, contract) {
+              if !supported_comparison(contract, contract) &&
+                !(sorting &&
+                !contract.nullable &&
+                contract.shape is @contract.Object(_) &&
+                @lower.kernel_sort_term_positional_count(kernel, j) > 1) {
                 return Err(UnsupportedRowComparison(i, name))
               }
             }

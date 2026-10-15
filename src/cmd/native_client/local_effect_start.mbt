@@ -11,6 +11,24 @@ priv struct LocalEffectFirstCompilation {
 }
 
 ///|
+fn local_effect_request_identity(
+  preparation : @local_host.NativeClientSubmittedPreparation,
+  scope : String,
+  request_id : String,
+) -> @run_host.ClientRequestIdentity raise ClientStop {
+  guard @local_host.native_client_submitted_preparation(preparation)
+    is EffectComputation(prepared) else {
+    stop("LocalEffectPreparationRequired")
+  }
+  @run_host.prepare_client_effect_request_identity(
+    prepared,
+    scope,
+    request_id,
+    @run_host.source_free_caller_input_intent_cid(),
+  ).unwrap_or_else(() => stop("LocalEffectRequestIdentityUnavailable"))
+}
+
+///|
 // Preserve the existing Open(issue, cleanup) variant intact. Converting this
 // error to a CLI string would lose the failed acquisition's retry handle.
 priv enum LocalEffectSourcePrefixIssue {
@@ -79,12 +97,7 @@ fn local_effect_first_compilation(
   let definition = @run_host.issue_client_effect_run_definition(
     allowed, namespace_id, request_id, now, until,
   ).unwrap_or_else(() => stop("LocalEffectRunDefinitionNotReady"))
-  let request = @run_host.prepare_client_effect_request_identity(
-    prepared,
-    scope,
-    request_id,
-    @run_host.source_free_caller_input_intent_cid(),
-  ).unwrap_or_else(() => stop("LocalEffectRequestIdentityUnavailable"))
+  let request = local_effect_request_identity(preparation, scope, request_id)
   let issued = @run_host.issue_prepared_client_effect_normalization_materials(
     allowed,
     definition,
@@ -106,6 +119,8 @@ fn local_effect_first_compilation(
 }
 
 ///|
+// None means only an authenticated retained acceptance requiring lookup. Every
+// unavailable/unsupported/refused condition raises; None is never a retry permit.
 // Called by the actual CLI Effect preparation branch. It has no journal accept,
 // physical Source open, approval, grant issuance or Provider side effect.
 fn local_effect_prepare_start(
@@ -116,11 +131,64 @@ fn local_effect_prepare_start(
   reference : @local_host.NativeClientSubmissionReference,
   run : LocalRunInstallation,
   scope : String,
-) -> LocalEffectFirstCompilation raise ClientStop {
+) -> LocalEffectFirstCompilation? raise ClientStop {
+  local_effect_prepare_start_with_clocks(
+    host,
+    settings,
+    crypto,
+    preparation,
+    reference,
+    run,
+    scope,
+    local_utc_now,
+    () => @env.now().to_double(),
+  )
+}
+
+///|
+// Same trusted CLI clock ports, made explicit for controlled Source tests.
+// No public option, new clock source or execution authority is introduced.
+fn local_effect_prepare_start_with_clocks(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  preparation : @local_host.NativeClientSubmittedPreparation,
+  reference : @local_host.NativeClientSubmissionReference,
+  installed : LocalRunInstallation,
+  scope : String,
+  utc_now : () -> String,
+  epoch_now : () -> Double,
+) -> LocalEffectFirstCompilation? raise ClientStop {
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
   }
-  let now = local_utc_now()
+  let request_id = @local_host.native_client_submission_request_id(reference)
+  let request = local_effect_request_identity(preparation, scope, request_id)
+  let observed_at = utc_now()
+  // The existing Owner looks up this exact request before issuing a Policy.
+  // A concurrent accepted request selects its saved original, not this clock.
+  let (run, now) = match local_run_policy_binding(host, settings, crypto) {
+    None => (installed, observed_at)
+    Some(binding) =>
+      match
+        binding.prepare_submission_policy(
+          reference,
+          preparation,
+          request,
+          observed_at,
+          epoch_now(),
+        ) {
+        Ok(Accepted(_)) => {
+          if !local_submit_allowed(host, settings, crypto, scope) {
+            stop("LocalSubmissionAuthorizationDenied")
+          }
+          return None
+        }
+        Ok(Pending(retention, issued_at)) =>
+          ({ ..installed, retention, }, issued_at)
+        Err(_) => stop("LocalRunPolicyPreparationUnavailable")
+      }
+  }
   if !@publication.result_retention_intervals_valid(run.retention) ||
     !(@publication.result_retention_interval_state(run.retention, now)
     is Ok("available")) {
@@ -134,19 +202,37 @@ fn local_effect_prepare_start(
     scope,
     local_host_result(host.configuration()).configuration_cid(),
     run.namespace_id,
-    @local_host.native_client_submission_request_id(reference),
+    request_id,
     now,
     run_text(retention, "available_until"),
   )
-  if !@source_owner.resident_effect_source_compute_shape_supported(
-      original.bound,
+  // This existing Owner only checks the exact installed Values/normalization
+  // profile. Its derived limits are not backing, a Ledger or a start permit.
+  let values_supported = match run.source_free {
+    Some(values) =>
+      @local_values.client_effect_local_ledger_limits(
+        original.materials.prepared,
+        values.registry_body,
+        values.values_body,
+        values.fragment_body,
+        values.ordered_body,
+      )
+      is Some(_)
+    None => false
+  }
+  if original.request != request ||
+    (
+      !values_supported &&
+      !@source_owner.resident_effect_source_compute_shape_supported(
+        original.bound,
+      )
     ) {
     stop("LocalEffectSourceExecutionProfileNotSupported")
   }
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
   }
-  original
+  Some(original)
 }
 
 ///|

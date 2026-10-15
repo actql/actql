@@ -7,6 +7,9 @@ priv struct HolderEffectHostSetupProfile {
   // The reviewed current-read composition covers this caller ceiling. SQLite
   // also preserves the original Store limit; neither quantity is permission.
   catalog_read_ceiling : Int64
+  // Exact original selected SQLite component heap, not a diagnostic/row bound.
+  // This observation does not establish the simultaneous funding envelope.
+  catalog_sqlite_heap_bytes : Int64
   // Independent physical diagnostic bound, not inferred from Account body size.
   diagnostic_ceiling : Int
   setup_retained_bytes : Int64
@@ -88,6 +91,8 @@ fn holder_effect_host_setup_profile_valid(
   profile.read_ceiling > 0 &&
   profile.read_ceiling <= 1000000 &&
   profile.catalog_read_ceiling > 0L &&
+  profile.catalog_sqlite_heap_bytes >= 4096L &&
+  profile.catalog_sqlite_heap_bytes <= 2147483647L &&
   profile.setup_retained_bytes > 0L &&
   profile.current_retained_bytes > 0L &&
   profile.caller_retained_bytes >= profile.current_retained_bytes &&

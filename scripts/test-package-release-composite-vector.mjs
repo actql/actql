@@ -8,6 +8,7 @@ import {tmpdir} from 'node:os';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
+import {qualifyCompositeReleaseSource} from './composite-release-source-qualification.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {releaseCompositeVectorFixturePaths, releaseCompositeVectorEnvironment} from './release-composite-vector-fixtures.mjs';
@@ -25,7 +26,7 @@ assert.deepEqual(manifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 
 assert.ok(!resolve(receiptPath).startsWith(directory + '/'), 'Keep the original RC unchanged');
 const source = checkoutState(repository);
 assert(source.clean, 'Release ranking fixture requires clean committed source');
-assert.equal(manifest.sourceSha, source.revision, 'Use the exact same clean producer/consumer source');
+const sourceQualification = qualifyCompositeReleaseSource(repository, manifest.sourceSha);
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-release-composite-vector-',
   label: 'Installed composite Vectors identity acceptance'});
 const root = scratch.path, fixtureDigests = {}, audits = [];
@@ -69,7 +70,7 @@ finally {
   owner.close();
   await registry.close();
   await writeFile(receiptPath, JSON.stringify({artifactSourceSha: manifest.sourceSha,
-    fixtureSourceSha: source.revision, consumerDirectory: root, fixtureDigests,
+    fixtureSourceSha: source.revision, sourceQualification, consumerDirectory: root, fixtureDigests,
     artifacts: manifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity})),
     audits, processReceipt: owner.report(), complete: primary === undefined,
     primaryError: primary?.message, publicPublication: false}, null, 2) + '\n', {flag: 'wx'});

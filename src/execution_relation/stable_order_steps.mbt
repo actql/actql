@@ -9,6 +9,7 @@ priv struct StableOrderExecution[T] {
   baseline : Int
   count : Int
   comparison : BoundedRowComparison
+  positional_at : (Int) -> Int
   mut phase : Int
   mut cursor : Int
   mut source : Array[Int]
@@ -30,12 +31,14 @@ fn[T : IndexedRows] start_stable_order(
   order : Array[ColumnOrder],
   control : ControlBudget,
   workspace : RowWorkspace,
+  positional_at? : (Int) -> Int = _ => 0,
 ) -> StableOrderExecution[T] {
   {
     table,
     order,
     control,
     workspace,
+    positional_at,
     baseline: workspace.live,
     count: table.row_count(),
     comparison: {
@@ -68,6 +71,10 @@ fn[T : IndexedRows] start_stable_order(
 fn[T] close_stable_order(state : StableOrderExecution[T]) -> Unit {
   if state.closed {
     return
+  }
+  if state.comparison.tree is Some(tree) {
+    close_complete_tree_comparison(tree)
+    state.comparison.tree = None
   }
   state.source = []
   state.target = []
@@ -201,6 +208,8 @@ fn[T : IndexedRows] advance_stable_order_impl(
             s.source[s.left],
             s.source[s.right],
             s.order.length(),
+            positional_at=s.positional_at,
+            workspace=Some(s.workspace),
           ) {
           Err(issue) => return Err(issue)
           Ok(None) => return Ok(None)
