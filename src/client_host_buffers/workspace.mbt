@@ -55,7 +55,7 @@ pub fn borrow_workspace(
   physical_cleanup : () -> Bool,
 ) -> Result[WorkspaceLoan, BufferIssue] {
   @resources.borrow_shared_capacity(capacity, allocation)
-  .map_err(Resource)
+  .map_err(issue => Resource(issue))
   .map(borrow => {
     capacity,
     backing: BorrowedAllocation(borrow),

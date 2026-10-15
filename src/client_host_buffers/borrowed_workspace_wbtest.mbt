@@ -142,5 +142,7 @@ test "borrowed workspace does not manufacture a read control placement allowance
   @resources.stop_funded_read(claim).unwrap()
   @resources.settle_funded_read(claim, true).unwrap()
   close_workspace(owned).unwrap()
-  @resources.finish_funded_read_inventory(claim, origin, true).unwrap()
+  assert_true(
+    @resources.finish_funded_read_inventory(claim, origin, true).unwrap(),
+  )
 }
