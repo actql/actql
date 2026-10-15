@@ -40,6 +40,38 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(
   if domain.read_attempted {
     return Err(Bootstrap(AlreadyConsumed))
   }
+  match self.borrow_backed_domain_read_use(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  domain.read_attempted = true
+  let status = prepare_read_context_ffi(domain.physical)
+  if status != 0 {
+    return Err(Bootstrap(Physical(status)))
+  }
+  self.require_backed_read_context_current(original, domain, child)
+}
+
+///|
+/// Accounting use only. Do not create a parent physical read context in a
+/// payload that must be lent to another process. The original C provider
+/// correctly excludes that borrow while a parent read context exists.
+fn[T, C] NativeHostBootstrap::borrow_backed_domain_read_use(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.require_domain_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !domain.transferred {
+    return Err(Bootstrap(Unavailable))
+  }
+  if domain.read_use is Some(_) || domain.read_retired {
+    return Err(Bootstrap(AlreadyConsumed))
+  }
   let loan = domain.view.loan
   let read_use = match
     @resources.borrow_backed_execution_read_use(
@@ -54,12 +86,7 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(
   // Publish original custody BEFORE any physical context allocation. Failure
   // keeps this same domain and use; caller must close, never acquire again.
   domain.read_use = Some(read_use)
-  domain.read_attempted = true
-  let status = prepare_read_context_ffi(domain.physical)
-  if status != 0 {
-    return Err(Bootstrap(Physical(status)))
-  }
-  self.require_backed_read_context_current(original, domain, child)
+  Ok(())
 }
 
 ///|
@@ -158,6 +185,11 @@ pub fn[T, C] NativeHostBootstrap::enter_backed_read_cleanup(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  // A live child may hold only the Common use. Its own physical read context
+  // and aliases retire in the child; this parent has no C cleanup frame.
+  if !domain.read_attempted || domain.read_retired {
+    return Err(Bootstrap(Unavailable))
+  }
   let loan = domain.view.loan
   match
     @resources.stop_backed_execution_read_use(
@@ -190,6 +222,9 @@ pub fn[T, C] NativeHostBootstrap::leave_backed_read_context(
   match self.original_read_carrier(original, domain, child) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if !domain.read_attempted || domain.read_retired {
+    return Err(Bootstrap(Unavailable))
   }
   let status = leave_read_context_ffi(domain.physical)
   if status != 0 {
@@ -227,10 +262,14 @@ pub fn[T, C] NativeHostBootstrap::close_backed_read_context(
     Ok(_) => ()
   }
   if !domain.read_retired {
-    let status = close_read_context_ffi(domain.physical)
-    if status != 0 {
-      return Err(Bootstrap(Physical(status)))
+    if domain.read_attempted {
+      let status = close_read_context_ffi(domain.physical)
+      if status != 0 {
+        return Err(Bootstrap(Physical(status)))
+      }
     }
+    // With no local attempt this proves only no parent context acquisition.
+    // It cannot acknowledge a child VM, channel, FD or escaped child alias.
     domain.read_retired = true
   }
   match
