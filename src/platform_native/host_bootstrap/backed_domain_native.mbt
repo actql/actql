@@ -44,6 +44,9 @@ struct NativeBackedExecutionDomain[T, C] {
   mut read_use : @resources.BackedExecutionReadUse[NativeHostBootstrap[T], C]?
   mut read_attempted : Bool
   mut read_retired : Bool
+  // Same original physical channel carrier, registered before capture/admit.
+  mut live_channel : NativeBackedLiveChannel[T, C]?
+  mut live_channel_attempted : Bool
 }
 
 ///|
@@ -121,6 +124,8 @@ pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(
     read_use: None,
     read_attempted: false,
     read_retired: false,
+    live_channel: None,
+    live_channel_attempted: false,
   }
   view.domain = Some(domain)
   let status = domain_status_ffi(physical)
@@ -151,6 +156,27 @@ fn[T, C] NativeHostBootstrap::require_domain_current(
     return Err(Bootstrap(Physical(status)))
   }
   Ok(())
+}
+
+///|
+/// Identity-only original carrier, also valid during its existing cleanup.
+/// This observes no physical retirement, fresh permission or returned loan.
+fn[T, C] NativeHostBootstrap::original_domain_carrier(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  if !physical_equal(self.supplier.original, original) ||
+    !physical_equal(domain.view.loan.region.owner, self) ||
+    !physical_equal(domain.view.loan.child, child) ||
+    domain.closed ||
+    domain.view.closed ||
+    !(domain.view.domain is Some(selected) && physical_equal(selected, domain)) {
+    Err(Bootstrap(ForeignOriginal))
+  } else {
+    Ok(())
+  }
 }
 
 ///|
@@ -241,6 +267,9 @@ pub fn[T, C] NativeHostBootstrap::close_backed_domain(
   }
   if !(domain.view.domain is Some(selected) && physical_equal(selected, domain)) {
     return Err(Bootstrap(ForeignOriginal))
+  }
+  if domain.live_channel is Some(_) {
+    return Err(Accounting(@resources.CleanupPending))
   }
   if domain.read_use is Some(_) {
     match self.close_backed_read_context(original, domain, child) {
