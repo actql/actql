@@ -7,9 +7,8 @@ test "CLI original Effect capture uses the actual Native Work caller without a s
     LocalHostSettings,
     @local_crypto.Library,
     @local_host.NativeClientSubmissionReference,
-    @run_host.ClientRequestIdentity,
+    LocalEffectPreparedStart,
     @local_host.NativeClientEffectSourceWork,
-    LocalRunInstallation,
     @source_owner.ResidentSourceComputeConfiguration,
   ) -> Result[
     @source_owner.ResidentLocalEffectCaptureContext,
