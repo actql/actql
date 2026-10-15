@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {setImmediate as turn} from 'node:timers/promises';
 import {createInstalledOpenAIChatRegistration} from './_internal/installed-openai-chat.mjs';
-import {installModelProviders} from '../../adapters/host-node/installed-model.mjs';
+import {installFixtureModelProviders as installModelProviders} from './original-materials.fixture.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {createInferIoNotification} from '../../adapters/host-node/infer-io-notification.mjs';
 import {createInstalledUndiciOpenAIChatRegistration} from './index.mjs';
