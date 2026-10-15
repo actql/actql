@@ -12,9 +12,10 @@ priv struct LocalPackagedRuntime {
 ///|
 fn local_product_operation(operation : String) -> Bool {
   [
-    "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "new-submission",
-    "lookup-submission", "checkpoint-state", "lookup-preparation-grant", "lookup-preparation-raw",
-    "lookup-cancellation", "cancel", "delivery-attempt", "read", "start", "aql",
+    "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "explain",
+    "new-submission", "lookup-submission", "checkpoint-state", "lookup-preparation-grant",
+    "lookup-preparation-raw", "lookup-cancellation", "cancel", "delivery-attempt",
+    "read", "start", "aql", "run", "status",
   ].contains(operation)
 }
 
@@ -254,8 +255,15 @@ fn execute_native_local_packaged_operation(
     }
     matches.values["config-root"] = [configuration_root]
     matches.values["config-file"] = ["config.json"]
-    if operation == "check" {
-      execute_native_local(matches)
+    if operation == "check" || operation == "explain" {
+      let observation = execute_native_local(matches)
+      // Static metadata discloses only the same selected originals. Recheck
+      // their existing custody and current package before returning the copy.
+      local_host_result(session.stage_configuration())
+      if !local_product_runtime_current(runtime) {
+        stop("PackagedLocalRuntimeChanged")
+      }
+      observation
     } else {
       let (_, child) = matches.subcommand.unwrap()
       execute_native_local_adoption(

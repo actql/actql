@@ -1542,29 +1542,79 @@ prefix Result can require bounded retention and is not a cost-free alias.
 
 ## INFER KEEP source projection
 
-The adopted INFER Pipe form has mandatory `ITEM KEY`, `INPUT`, and result
-`AS` clauses, with optional `KEEP`. The contract name is carried unchanged
+The adopted INFER Pipe form requires `INPUT` and result `AS` clauses, with
+optional `ITEM KEY` and `KEEP`. The contract name is carried unchanged
 to ordinary `infer.contract` resolution in the same Check Environment;
 backticks can delimit a complete existing reference such as
 `model-task:risk-score.v1`. Parsing a name does not resolve a ModelTask, select
 a newer version, or authorize model egress. An empty INPUT is checked against
 the resolved closed input contract, not treated as permission to omit fields.
 
+Each INPUT entry is either `name = expression` or a single same-name identifier:
+`INPUT (notes)` is equivalent to `INPUT (notes = notes)`. Explicit and shorthand
+entries may be mixed. Shorthand uses the ordinary binding identifier role, so
+reserved words require backticks; explicit assignment keys retain their closed
+ModelTask schema-key role. Dotted references and other expressions require an
+explicit assignment. Both forms keep the original expression source ranges and
+use the same closed input contract checks, including missing, extra, duplicate,
+ambiguous, unknown and wrong-type fields. Shorthand sends no additional field.
+
 KEEP accepts column references, optional output aliases, and known-schema
 `*` or range `.*`. Expansion retains visible declaration order, and explicit
 items retain authored order. Calculations belong in SELECT or EXTEND.
-Duplicate output names, a collision with the result AS name, unresolved
-references, and repeated ITEM KEY value slots are rejected. The common checker
-still proves the complete non-null scalar candidate key; specifying ITEM KEY
-never supplies that proof. Only INPUT mappings are sent to the model.
+A collision with the result AS name, unresolved references, repeated explicit
+output names, and repeated ITEM KEY value slots are rejected. Admitted positional
+unnamed and duplicate-display occurrences retain their separate physical slots,
+original order, types and provenance. The common checker still proves the
+complete non-null scalar candidate key; specifying ITEM KEY never supplies that
+proof. Only INPUT mappings are sent to the model.
+
+When ITEM KEY is omitted, the original checked prefix must establish exactly
+one eligible non-null scalar tuple through the existing Common INFER checker.
+Its CheckedInfer witness and ordered bindings supply the completed key; aliases,
+composite tuples, foreign or stale witnesses, and multiple candidates keep the
+common checker's existing rules and refusals. No row samples, row numbers,
+implicit DISTINCT, or canonical-order choice establish a key. An explicit
+ITEM KEY retains exact tuple checking. ASSERT UNIQUE BY remains available and
+its runtime guard must succeed before Model dispatch.
+
+Omitted-key completion retains the last authored name bound to each selected
+physical value slot. A RENAME or same-slot alias names that same original key;
+SET binds its replacement to a different value slot and never retargets the
+earlier key's name, value or type. An older surviving range name cannot override
+a newer name authored for that original slot. Real projection/remapping follows
+the existing slot correspondence; a reused physical spelling is not an earlier
+slot generation. Retaining a hidden key label does not restore a column or range
+to SQL lookup or visibility.
+
+The original Common-proven values, types, ordered composite components and their
+selected names are fixed when INFER adopts the tuple. Later column edits do not
+rewrite that information; retention and recovery reuse the same emitted tuple
+and captured correspondence rather than resolving names again. Key names are
+identity-bearing parts of the ordinary Program and result-object projection,
+not cosmetic display metadata or a new capture format. Retaining the original
+Program preserves that projection with its existing capture correspondence.
+Identical normalized key metadata preserves
+explicit/default identity, while a different authored key name can change a CID.
+Conflicting or ambiguous output names, including the existing reserved result
+roles, cause the existing typed refusal; completion never invents a replacement
+name or chooses a different candidate key. Explicit ITEM KEY keeps its authored
+tuple and existing name semantics.
 
 The new visible scope consists of KEEP columns followed by one result object:
-`input_key` (named fields in the authored key tuple), `outcome`, and `value`.
-Omitted KEEP produces only that object. Prior range aliases cannot recover
-omitted input fields. KEEP is a checked one-to-one correspondence with the
+`input_key` (named fields in the completed or explicitly authored key tuple),
+`outcome`, and `value`.
+Omitted KEEP is exactly KEEP (*): all visible input columns retain their order
+and layout, followed by the result object. Explicit KEEP remains an authored
+subset; a later SELECT can retain only the result object. Prior range aliases
+cannot recover omitted input fields. KEEP is a checked one-to-one correspondence with the
 same retained input producer, not a new read or a row-position join. The common
 infer output remains flat keys, outcome and value. Ordinary join and object
 projection construct the surface shape without changing its capture format.
+The original producer is retained once, with no refetch or second Model
+invocation. Its simultaneous holding and join-back consume the existing budgets.
+The default applies only when compiling new text; stored Programs, signed
+identities and old Runs are not reinterpreted.
 
 Success value is the existing non-null closed ModelTask output object, retaining
 each field's nullability. Non-success value is typed NULL, and outcomes retain
@@ -1585,11 +1635,22 @@ explicitly named candidate Relation or typed Vectors. Each side independently
 admits an optional complete KEY/VECTOR pair: `QUERY KEY (...) VECTOR ...` or
 `CANDIDATE KEY (...) VECTOR ...`. A missing half is a syntax error; absence is
 retained in the typed AST, never an empty key list or a fabricated vector field.
-Relation operands require their explicit pair. Typed Vectors may omit it and
-use their existing identity and component roles; an explicit pair must restate
-those exact roles and cannot replace identity. The candidate operand alias,
-METRIC, positive safe-integer literal K, and result AS are mandatory. Metrics are the existing exact cosine, dot and negative-distance
-l2 contracts. K is per query, not a search-work or memory ceiling.
+Typed Vectors may omit the pair and retain their admitted identity and component
+roles. An explicit pair must restate those roles. Relation sides use the existing
+Common nearest completion: the sole known vector field in a closed field set,
+and a sole eligible proven string key from that exact input target. Missing or
+ambiguous evidence refuses. Numeric and composite implicit-key completion is a
+current Common gap, not a permanent language restriction. No spelling or observed
+row value is key evidence.
+
+`USING expression` supplies the query vector without a QUERY role pair. The
+ordinary expression owner evaluates it against the current query scope; a typed
+Vectors input can only restate its admitted component role. USING and QUERY
+VECTOR cannot both supply that expression. An omitted candidate alias is its
+final producer-name component; an explicit AS remains authoritative. Omitted
+METRIC selects exact cosine. Explicit cosine, dot and negative-distance l2
+remain authoritative. Positive safe-integer literal K and the final result AS
+are mandatory. K is per query, not a search-work or memory ceiling.
 
 KEY references resolve independently within each side. Named key objects use
 the resolved input column names; quoting and case-insensitive lookup do not
@@ -1603,13 +1664,21 @@ Wildcards expand known columns in declaration order; `*` expands query columns
 then candidate columns and still rejects duplicates. Each explicit item retains
 its authored position. The output contains KEEP columns followed by the result
 closed object: query_key and candidate_key (named objects), score and rank.
-Omitted KEEP yields only that result object. Old input aliases cannot recover
-omitted columns. Query values repeat for each retained candidate match; no
+Omitted KEEP retains all visible query columns in their declaration order,
+followed by the named hit. Explicit `KEEP (*)` still expands both scopes and is
+not the query-only default. Old input aliases cannot recover omitted columns. Query values repeat for each retained candidate match; no
 match produces no row. Query-key-only uniqueness is never inferred after KNN.
 
 Lowering retains each source producer once, uses the existing rows-to-Vectors
 bridges and nearest operation, then common many-to-one joins for KEEP and
-ordinary object projection. Explicit candidate selection cannot be replaced
+ordinary object projection. If the candidate declares an unambiguously resolved `body` column,
+its actual value and type are projected as `hit.body` through that same retained
+candidate correspondence. It is neither the query row nor a flattened query
+column, and cannot replace query_key, candidate_key, score or rank. Other
+candidate payload columns remain available through explicit KEEP. A missing
+body is not manufactured; ordinary property checking rejects its reference.
+These defaults affect newly compiled text only; saved Programs, identities and
+Runs retain their original meaning. Explicit candidate selection cannot be replaced
 by the filtered query Relation. Shared sources retain one capture boundary
 covering both demands under the ordinary grant and capacity checks. No read
 permission, synthetic ID, output key witness, implicit sort, retry or alternate
@@ -1630,8 +1699,8 @@ remain an UnsupportedNearest gap in the scalar-id Program bridge. Ordinary
 Relation Pipe operations retain their scopes, predicates and limits
 before a typed candidate; the same admitted candidate metadata reaches the
 existing Relation lowerer. Typed set heads use the common script dispatcher
-with the existing outer set owner, and KEEP-free typed operands do not create
-unused row bridges. JOIN continuations bind their candidate through the same
+with the existing outer set owner, and row bridges are retained only for the actual query default, explicit KEEP,
+or candidate body demand. JOIN continuations bind their candidate through the same
 WITH input owner and pass its admitted Carrier to the existing Pipe compiler;
 qualified query roles continue to resolve through the actual JOIN row scope.
 Composite Relation conversion remains an implementation gap, not a permanent
@@ -2268,21 +2337,59 @@ The terminal update spelling is:
 ```
 
 EFFECT is a declaration after the query's row operations, not another row
-operation. It must be terminal and is not admitted in WITH bodies. The
-explicit RESULT name resolves to its actual retained Stage Result port; a step
-alias or undeclared Result is rejected. A preceding terminal RESULT stays
-terminal and does not gain an implicit default export. This first update surface
-requires one nonempty SET list. Values are direct Result fields or scalar
-literals; computed values must be produced by an earlier EXTEND or SELECT.
-Duplicate target fields are rejected. Literal strings retain their original
-Unicode and CR/LF values through the ordinary string decoder.
+operation. It must be terminal and is not admitted in WITH bodies. Its
+name may be omitted for this single terminal UPDATE: `EFFECT UPDATE`
+lowers with the fixed Program-local name `aql_update_effect`. An explicit name
+is preserved exactly and remains identity-bearing; an invalid empty name is
+not omission. The omitted form and explicit `aql_update_effect` form normalize
+identically under the same bindings and output contract, independently of
+whitespace or source offsets. Another terminal Effect or a mixed COMMAND
+postlude is rejected, including one using the same completed name. This does
+not introduce implicit naming for multiple Effects.
 
-Lowering emits the existing Stage update Effect with the authored target,
-MappingRef, Result, ID field and SET values. Existing checker, Mapping, planner,
-preview, approval, capture and cleanup owners remain authoritative. No approval
-policy is authored in this surface, and syntax admission does not authorize
-execution. Complete Effect-language coverage remains a separate implementation
-obligation.
+`FROM RESULT name` may be omitted. Omission consumes the current checked
+Relation, after its authored row operations, through a closed stage-local private
+Result. The explicit form selects its actual retained producer, even when a
+later filter, rename, projection or Stage continuation has changed the current
+Relation. A step alias or undeclared Result is not an explicit Result selection.
+No Source or Model is acquired again to prepare either input.
+
+SET requires one nonempty assignment list. Its values may use the existing pure
+typed SQL expressions. All assignments see the same selected input snapshot;
+a target assignment is not a binding for another assignment. Computed values
+lower through the ordinary Relation derive/select owners before the private
+Result is captured. The Effect receives only evaluated fields or literals,
+never an expression to evaluate at dispatch. Nested property access, successful
+INFER refinement, NULL and absence, CASE demand, numeric admission and work and
+capacity limits retain their existing meaning. Duplicate target fields,
+unresolved or ambiguous references and unavailable functions are rejected.
+Literal strings retain their original Unicode and CR/LF values through the
+ordinary string decoder. The existing explicit FROM RESULT form containing only
+direct fields or scalar literals keeps its original lowering and identity.
+
+A generated UPDATE Result contains only its selector and SET fields. It is not
+an exported Named Result, and its private helper columns do not widen an
+authored public Result. With no authored public RESULT, the Program-root
+`results` map is empty and no unused full-row default Stage Result is created.
+An authored terminal RESULT remains public without an additional default
+export. An authored nonterminal RESULT retains the existing public primary tail
+export as well as the authored Result, including across an INFER continuation.
+Public inventory, describe, read and inspect do not grant access to private
+capture payloads or helper columns. Plan/Debug projections keep their separate
+capabilities and current-authority rules. Effect-only completion is Run status
+and receipts with zero Named Results; no read result is fabricated.
+
+The private capture uses the existing Stage Result and `effect.update.from.result`
+contracts, never Table `table_inputs`. Its expanded private-output Program has
+the same identity as this normalized spelling; an explicitly public RESULT has
+different observables and identity. Existing checker, Mapping, planner, preview,
+approval, durable capture and cleanup owners remain authoritative. Preparation
+failure produces no partial Preview or write. Approval and restart consume the
+same sealed values without reevaluation or repeated acquisition, Model work or
+confirmed Effects. Syntax admission does not establish those runtime outcomes
+or authorize execution. TARGET and MAPPING remain the explicit static forms
+shown above. COMMAND, STORE, create and upsert do not gain implicit inputs or
+expression evaluation from this UPDATE spelling.
 
 ### COMMAND postludes
 

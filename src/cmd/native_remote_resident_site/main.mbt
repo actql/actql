@@ -301,6 +301,8 @@ fn retained_transfer_code(
 /// options: runtime bundle Store, active runtime, Site and dispatch journal.
 priv struct SiteEnvironment {
   bundles : @bundle.NativeRuntimeBundleStore
+  // The exact immutable limit supplied to this Store, not a later CLI value.
+  runtime_catalog_record_bytes : Int64
   active_runtime : @bundle.NativeActiveRuntimeBinding
   process_hold_id : String
   site : @site.ExecutionSite
@@ -351,10 +353,15 @@ fn open_control_environment(
 fn open_site_environment(
   matches : @argparse.Matches,
   process_hold_id : String,
-) -> SiteEnvironment raise CommandStop {
+) -> Result[SiteEnvironment, SiteEnvironmentOpenCustody] raise CommandStop {
   let max_file_bytes = required_int64(matches, "max-file-bytes")
   let max_record_bytes = required_int64(matches, "max-record-bytes")
   let max_bytes = required_int64(matches, "max-bytes")
+  let site_key = required(matches, "site-key")
+  let site_generation = required_int(matches, "site-generation")
+  let max_operations = required_int(matches, "max-operations")
+  let max_transfers = required_int(matches, "max-transfers")
+  let journal_path = required(matches, "journal")
   let target = required(matches, "target-triple")
   let component_cid = required(matches, "component-cid")
   let loaded_component_cid = match
@@ -382,7 +389,7 @@ fn open_site_environment(
     max_file_bytes,
   )
   let bundles = match
-    @bundle.open_runtime_bundle_store(
+    @bundle.open_runtime_bundle_store_with_custody(
       sqlite_library,
       signature_library,
       required(matches, "runtime-root"),
@@ -400,75 +407,128 @@ fn open_site_environment(
       max_record_bytes,
     ) {
     Ok(value) => value
-    Err(issue) =>
-      stop("runtime bundle Store open failed: " + bundle_issue_code(issue))
+    Err(RefusedBeforeAcquisition(issue)) =>
+      return Err(
+        site_environment_open_custody(
+          "runtime bundle Store open refused: " + bundle_issue_code(issue),
+          process_hold_id,
+        ),
+      )
+    Err(CleanupRequired(original)) =>
+      return Err(
+        site_environment_open_custody(
+          "runtime bundle Store open failed: " +
+          bundle_issue_code(original.issue()),
+          process_hold_id,
+          failed_bundle=Some(original),
+        ),
+      )
   }
   let active = match bundles.active() {
     Ok(Some(value)) => value
-    _ => {
-      ignore(bundles.close())
-      stop("active runtime bundle is missing")
-    }
+    _ =>
+      return Err(
+        site_environment_open_custody(
+          "active runtime bundle is missing",
+          process_hold_id,
+          bundles=Some(bundles),
+        ),
+      )
   }
   let active_runtime = match
-    bundles.acquire_active_component(
+    bundles.acquire_active_component_with_custody(
       loaded_component_cid, target, process_hold_id,
     ) {
     Ok(value) => value
-    Err(_) => {
-      ignore(bundles.close())
-      stop("active runtime component verification failed")
-    }
+    Err(RefusedBeforeHolding(_)) =>
+      return Err(
+        site_environment_open_custody(
+          "active runtime component verification refused",
+          process_hold_id,
+          bundles=Some(bundles),
+        ),
+      )
+    Err(HoldingUnconfirmed(_)) =>
+      // Retain may have committed before its response was lost. Missing
+      // holding is not a release ACK for this original attempt.
+      return Err(
+        site_environment_open_custody(
+          "active runtime component verification failed",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+        ),
+      )
   }
   let site = match
     @site.create_site(
-      required(matches, "site-key"),
-      required_int(matches, "site-generation"),
+      site_key,
+      site_generation,
       active.runtime_bundle_cid,
-      required_int(matches, "max-operations"),
-      required_int(matches, "max-transfers"),
+      max_operations,
+      max_transfers,
       max_bytes,
       max_bytes,
     ) {
     Some(value) => value
-    None => {
-      ignore(bundles.release(process_hold_id))
-      ignore(bundles.close())
-      stop("invalid execution Site")
-    }
+    None =>
+      return Err(
+        site_environment_open_custody(
+          "invalid execution Site",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+        ),
+      )
   }
   let control = match
     @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
     Ok(value) => value
-    Err(_) => {
-      ignore(bundles.release(process_hold_id))
-      ignore(bundles.close())
-      stop("invalid dispatch journal binding")
-    }
+    Err(_) =>
+      return Err(
+        site_environment_open_custody(
+          "invalid dispatch journal binding",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+        ),
+      )
   }
   let journal = match
-    @journal.open_journal(
-      sqlite_library,
-      required(matches, "journal"),
-      max_record_bytes,
-      control,
+    @journal.open_journal_with_custody(
+      sqlite_library, journal_path, max_record_bytes, control,
     ) {
     Ok(value) => value
-    Err(_) => {
-      ignore(bundles.release(process_hold_id))
-      ignore(bundles.close())
-      stop("dispatch journal open failed")
-    }
+    Err(RefusedBeforeAcquisition(_)) =>
+      return Err(
+        site_environment_open_custody(
+          "dispatch journal open refused",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+        ),
+      )
+    Err(CleanupRequired(original)) =>
+      return Err(
+        site_environment_open_custody(
+          "dispatch journal open failed",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+          failed_journal=Some(original),
+        ),
+      )
   }
-  {
+  Ok({
     bundles,
+    runtime_catalog_record_bytes: max_record_bytes,
     active_runtime,
     process_hold_id,
     site,
     journal,
     runtime_bundle_cid: active.runtime_bundle_cid,
     sqlite_library,
-  }
+  })
 }
 
 ///|
@@ -749,70 +809,6 @@ priv struct RunningHolder {
 }
 
 ///|
-/// Report the holder's durable record to the Coordinator after it ended. A
-/// lost report is retried on the next pass; the journal keeps the record.
-fn settle_holder(
-  holder : RunningHolder,
-  environment : ControlEnvironment,
-  client : @http.Client,
-  observation_url : String,
-) -> Bool {
-  guard fresh_journal(environment) is Some(journal) else {
-    report("observation-pending", [
-      ("attempt", holder.attempt),
-      ("reason", "journal-open"),
-    ])
-    return false
-  }
-  let observed = @client.acknowledge_status(
-    journal,
-    client,
-    observation_url,
-    holder.request,
-  )
-  ignore(journal.close())
-  match observed {
-    Ok(Some(record)) => {
-      report("holder-settled", [
-        ("attempt", holder.attempt),
-        ("request_cid", @remote.dispatch_request_identity(holder.request)),
-        ("revision", @remote.dispatch_record_revision(record).to_string()),
-      ])
-      true
-    }
-    Ok(None) => {
-      report("holder-settled", [("attempt", holder.attempt)])
-      true
-    }
-    Err(issue) => {
-      report("observation-pending", [
-        ("attempt", holder.attempt),
-        ("reason", client_code(issue)),
-      ])
-      false
-    }
-  }
-}
-
-///|
-/// Whether an ended holder left its attempt startable. A record that cannot
-/// be read counts as startable: starting again is safe, because a holder
-/// claims before it executes and a record that can no longer start is not
-/// claimed.
-fn holder_left_startable(
-  environment : ControlEnvironment,
-  request : @remote.DispatchRequest,
-) -> Bool {
-  guard fresh_journal(environment) is Some(journal) else { return true }
-  let record = journal.require(request)
-  ignore(journal.close())
-  match record {
-    Ok(value) => @remote.remote_runtime_record_startable(value)
-    Err(_) => true
-  }
-}
-
-///|
 /// Acceptance evidence only: while `failures` is positive, a reclaim pass is
 /// reported as skipped and the count goes down.
 fn skip_reclaim(failures : Ref[Int]) -> Bool {
@@ -974,78 +970,25 @@ priv struct StoppedReleaseRecovery {
   mut recorded_source : @publication.RecordedRunPublication?
   mut recorded_consumer : (String, String)?
   mut completed_input_producer : (String, String)?
+  mut terminal_close : StoppedRecoveryTerminalClose
 }
 
 ///|
 /// Cleanup never acquires an execution component or a new runtime holding.
-/// The saved Site binding and signed installed bundle remain authoritative;
-/// a newer maintenance executable is not authority to run the old component.
+/// The saved Site binding and signed installed bundle remain authoritative.
+/// A failure is rendered only after the existing lifetime has retired its
+/// original partial constructors and inherited Slot with checked ACKs.
 fn open_release_recovery(
   matches : @argparse.Matches,
   slot : @slot.NativeExecutorSlot,
   identity : String,
 ) -> StoppedReleaseRecovery raise CommandStop {
-  let environment = open_control_environment(matches)
-  guard fresh_journal(environment) is Some(journal) else {
-    stop("release recovery journal unavailable")
-  }
-  let signature_library = match
-    @signature.load_library(required(matches, "crypto-library")) {
-    Ok(value) => value
-    Err(_) => stop("signature library load failed")
-  }
-  let public_key = load_text(
-    required(matches, "bundle-public-key-root"),
-    required(matches, "bundle-public-key-file"),
-    required_int64(matches, "max-file-bytes"),
-  )
-  let bundles = match
-    @bundle.open_runtime_bundle_store(
-      environment.sqlite_library,
-      signature_library,
-      required(matches, "runtime-root"),
-      [
-        {
-          issuer_authority: required(matches, "bundle-issuer"),
-          key_id: required(matches, "bundle-key-id"),
-          public_key_pem: public_key,
-        },
-      ],
-      required(matches, "target-triple"),
-      environment.max_bytes,
-      64,
-      1024,
-      environment.max_record_bytes,
-    ) {
-    Ok(value) => value
-    Err(_) => stop("release recovery bundle Store unavailable")
-  }
-  match bundles.inspect(environment.runtime_bundle_cid) {
-    Ok(Some(_)) => ()
-    _ => {
-      ignore(journal.close())
-      ignore(bundles.close())
-      stop("release recovery saved bundle unavailable")
+  match open_release_recovery_with_custody(matches, slot, identity) {
+    Ok(owner) => owner
+    Err(original) => {
+      finish_failed_release_recovery_open(original)
+      stop(original.failure)
     }
-  }
-  {
-    slot,
-    environment,
-    bundles,
-    journal,
-    request_identity: identity,
-    bundle_closed: false,
-    transfer_journal: None,
-    physical_cleanup: None,
-    physical_cleanup_done: false,
-    release_failure_hook: {
-      remaining: required_int(matches, "holder-release-failures"),
-      attempts: 0,
-    },
-    retained_input: false,
-    recorded_source: None,
-    recorded_consumer: None,
-    completed_input_producer: None,
   }
 }
 
@@ -1097,15 +1040,31 @@ fn recover_stopped_release(
         ignore(slot.close())
         return false
       }
-      // Failure to initialize terminates this control process; no cleanup
-      // transition is written and the durable claim remains for recovery.
-      let value = open_release_recovery(matches, slot, identity)
+      let value = match
+        open_release_recovery_with_custody(matches, slot, identity) {
+        Ok(owner) => owner
+        Err(original) => {
+          // Keep all other controller responsibilities on this same stack.
+          // Only checked retirement of this failed preparation permits return;
+          // it does not confirm the original Run's release or retry execution.
+          finish_failed_release_recovery_open(original)
+          report("release-recovery-preparation-failed", [
+            ("request_cid", identity),
+          ])
+          return false
+        }
+      }
       retained.val = Some(value)
       value
     }
   }
   if owner.request_identity != identity {
     return false
+  }
+  if !(owner.terminal_close is RecoveryTerminalOpen) {
+    // The common Owner already selected its terminal cleanup action. Retrying
+    // a partial close must not read through its retiring/closed journal.
+    return retry_stopped_recovery_terminal_close(owner, retained)
   }
   let record = match owner.journal.require(request) {
     Ok(value) => value
@@ -1248,14 +1207,8 @@ fn recover_stopped_release(
     }
     match @remote.remote_runtime_step_action_code(step) {
       4 => {
-        if !owner.journal.close() {
-          stop("release recovery journal close unconfirmed")
-        }
-        if !owner.slot.close() {
-          stop("release recovery slot close unconfirmed")
-        }
-        retained.val = None
-        return true
+        owner.terminal_close = RecoveryTerminalJournal
+        return retry_stopped_recovery_terminal_close(owner, retained)
       }
       1 | 2 => {
         // SettleThenPersist is valid here only because the exact physical
@@ -1294,6 +1247,16 @@ fn accepted_request(
   guard fresh_journal(environment) is Some(journal) else { return None }
   let envelope = journal.dispatch_envelope(attempt)
   ignore(journal.close())
+  admit_accepted_request_envelope(envelope, attempt)
+}
+
+///|
+/// Existing wire admission and exact attempt check, shared by controller and
+/// the legacy one-shot recovery reader. This grants no start or cleanup ACK.
+fn admit_accepted_request_envelope(
+  envelope : Result[String?, @journal.NativeRemoteJournalIssue],
+  attempt : String,
+) -> @remote.DispatchRequest? {
   match envelope {
     Ok(Some(body)) =>
       match @remote.admit_remote_poll_dispatch_json(body) {
@@ -1374,15 +1337,23 @@ fn queue_completed_retained_holder(
 ///|
 fn replay_output_reports(
   environment : ControlEnvironment,
+  retained : Ref[ControlReplayJournalCustody?],
   client : @http.Client,
   url : String,
-  next : Map[String, UInt64],
+  next : Ref[UInt64],
   backoff_ms : Int,
   cursor_owner : Ref[String],
   delegation : @resident.ResidentSiteDelegation,
   checkpoint : (String) -> Unit,
 ) -> Unit {
-  guard fresh_journal(environment) is Some(journal) else { return }
+  // A class-wide pacing hint has constant size. The original journal/cursor
+  // owns every report; a deadline never drops or reissues that responsibility.
+  if @env.now() < next.val {
+    return
+  }
+  guard open_control_replay_journal(environment, retained) is Some(journal) else {
+    return
+  }
   let mut cursor = cursor_owner.val
   // One report per pass; rotate the cursor so retries cannot starve poll,
   // release, or another report even when requests outlast the backoff.
@@ -1394,17 +1365,14 @@ fn replay_output_reports(
         if state is Some(@remote.RemoteOutputReportReply::Accepted) {
           continue
         }
-        if next.get(key) is Some(deadline) && @env.now() < deadline {
-          continue
-        }
-        next.set(key, @env.now() + backoff_ms.to_uint64())
+        next.val = @env.now() + backoff_ms.to_uint64()
         let result = @remote.remote_output_report_custody_result(custody)
         if state is Some(@remote.RemoteOutputReportReply::Refused(reason)) {
           report("output-report-attention", [
             ("report_cid", @remote.remote_output_result_identity(result)),
             ("reason", reason),
           ])
-          continue
+          break
         }
         if state is Some(@remote.RemoteOutputReportReply::Retry(reason)) {
           report("output-report-retry", [
@@ -1449,7 +1417,7 @@ fn replay_output_reports(
                 ("reason", "scope-mismatch-encode"),
               ])
           }
-          continue
+          break
         }
         match
           @client.acknowledge_retained_output_report(
@@ -1487,7 +1455,7 @@ fn replay_output_reports(
       }
     }
   }
-  if !journal.close() {
+  if !retry_control_replay_journal_cleanup(retained) {
     report("output-report-recovery-pending", [("reason", "journal-close")])
   }
 }
@@ -1500,16 +1468,22 @@ fn replay_output_reports(
 fn reconcile_saved_cancellation(
   matches : @argparse.Matches,
   environment : ControlEnvironment,
+  retained : Ref[ControlReplayJournalCustody?],
   client : @http.Client,
   url : String,
   cursor : Ref[String],
-  next : Map[String, UInt64],
+  next : Ref[UInt64],
   backoff_ms : Int,
   delegation : @resident.ResidentSiteDelegation,
   recovery : Ref[StoppedReleaseRecovery?],
   close_failures : Ref[Int],
 ) -> Unit raise CommandStop {
-  guard fresh_journal(environment) is Some(journal) else { return }
+  if @env.now() < next.val {
+    return
+  }
+  guard open_control_replay_journal(environment, retained) is Some(journal) else {
+    return
+  }
   let recovered = journal.recover_after(cursor.val)
   match recovered {
     Ok(Some((key, record))) => {
@@ -1517,7 +1491,13 @@ fn reconcile_saved_cancellation(
       let request = @remote.dispatch_record_request(record)
       let pending = journal.cancellation_requested(request)
       let already_released = @remote.remote_runtime_record_released(record)
-      ignore(journal.close())
+      // Cleanup the original reader before entering the existing stopped
+      // execution recovery. A failed close retains that reader and must not
+      // be replaced by a second journal or an inferred cleanup ACK.
+      guard retry_control_replay_journal_cleanup(retained) else {
+        report("cancel-recovery-pending", [("reason", "original-journal-close")])
+        return
+      }
       guard pending is Ok(true) else { return }
       let identity = @remote.dispatch_request_identity(request)
       if @resident.check_resident_dispatch_delegation(
@@ -1532,16 +1512,15 @@ fn reconcile_saved_cancellation(
         ])
         return
       }
-      if next.get(identity) is Some(deadline) && @env.now() < deadline {
-        return
-      }
-      next.set(identity, @env.now() + backoff_ms.to_uint64())
+      next.val = @env.now() + backoff_ms.to_uint64()
       if !already_released &&
         !recover_stopped_release(matches, request, recovery, close_failures) {
         report("cancel-cleanup-pending", [("request_cid", identity)])
         return
       }
-      guard fresh_journal(environment) is Some(current) else { return }
+      guard open_control_replay_journal(environment, retained) is Some(current) else {
+        return
+      }
       match @client.acknowledge_status(current, client, url, request) {
         Ok(_) => report("cancel-reconciled", [("request_cid", identity)])
         Err(issue) =>
@@ -1550,14 +1529,22 @@ fn reconcile_saved_cancellation(
             ("reason", client_code(issue)),
           ])
       }
-      ignore(current.close())
+      if !retry_control_replay_journal_cleanup(retained) {
+        report("cancel-recovery-pending", [
+          ("reason", "original-report-journal-close"),
+        ])
+      }
     }
     Ok(None) => {
       cursor.val = ""
-      ignore(journal.close())
+      if !retry_control_replay_journal_cleanup(retained) {
+        report("cancel-recovery-pending", [("reason", "original-journal-close")])
+      }
     }
     Err(_) => {
-      ignore(journal.close())
+      if !retry_control_replay_journal_cleanup(retained) {
+        report("cancel-recovery-pending", [("reason", "original-journal-close")])
+      }
       report("cancel-recovery-pending", [("reason", "journal-read")])
     }
   }
@@ -1628,10 +1615,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     val: required_int(matches, "release-recovery-close-failures"),
   }
   let mut holder : RunningHolder? = None
-  // Holder records not yet reported. They are kept and retried, never
-  // dropped, and do not hold back new work; a query answered from the
-  // journal for the same dispatch reports them too.
-  let unsettled : Array[RunningHolder] = []
+  // The original ended executor keeps its existing admission until report,
+  // Channel and descendant-stop facts are independently confirmed. No new
+  // holder starts while that responsibility is pending.
+  let unsettled : Array[EndedHolderResponsibility] = []
   let mut backoff_ms = 0
   let mut next_start_ms : UInt64 = 0
   // Output intents of holders that are gone are looked for at startup and
@@ -1646,12 +1633,13 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     val: required_int(matches, "control-reclaim-failures"),
   }
   let cancel_cursor : Ref[String] = { val: "", }
-  let next_cancel_report : Map[String, UInt64] = Map([])
+  let next_cancel_report : Ref[UInt64] = Ref(0UL)
   let mut polls = 0
   let mut holders = 0
-  let next_output_report : Map[String, UInt64] = Map([])
+  let replay_journal : Ref[ControlReplayJournalCustody?] = Ref(None)
+  let next_output_report : Ref[UInt64] = Ref(0UL)
   let report_cursor : Ref[String] = { val: "", }
-  let next_checkpoint_report : Map[String, UInt64] = Map([])
+  let next_checkpoint_report : Ref[UInt64] = Ref(0UL)
   let checkpoint_report_cursor : Ref[String] = { val: "", }
   let report_kill_at = required(matches, "control-report-kill-at")
   let report_checkpoint = fn(point : String) {
@@ -1661,37 +1649,56 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
   }
   while !@slot.native_termination_requested() {
+    // Retiring owns the original Store/Slot. Neither another constructor nor
+    // a poll/start/reclaim may bypass it. The existing loop supplies pacing.
+    match pending_custody {
+      Some(Retiring(original)) => {
+        pending_custody = advance_control_bundle_custody_cleanup(original)
+        @slot.native_wait_milliseconds(max_backoff_ms)
+        continue
+      }
+      Some(Unconfirmed(_)) => {
+        // No Store action is retried from a generic failure. Preserve the
+        // original duty for terminal handoff/Owner reconciliation.
+        @slot.native_wait_milliseconds(max_backoff_ms)
+        continue
+      }
+      _ => ()
+    }
+    // A failed replay constructor/close owns this same original handle. Do not
+    // poll, dispatch, or open another journal until its checked cleanup ACK.
+    if !retry_control_replay_journal_cleanup(replay_journal) {
+      report("replay-journal-cleanup-pending", [])
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
+    }
     replay_output_reports(
-      environment, client, observation_url, next_output_report, max_backoff_ms, report_cursor,
-      site_delegation, report_checkpoint,
+      environment, replay_journal, client, observation_url, next_output_report, max_backoff_ms,
+      report_cursor, site_delegation, report_checkpoint,
     )
     replay_effect_checkpoint_reports(
-      environment, client, observation_url, next_checkpoint_report, max_backoff_ms,
-      checkpoint_report_cursor, site_delegation, report_checkpoint,
+      environment, replay_journal, client, observation_url, next_checkpoint_report,
+      max_backoff_ms, checkpoint_report_cursor, site_delegation, report_checkpoint,
     )
+    if replay_journal.val is Some(_) {
+      // The original remains reachable through terminal handoff if stopped.
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
+    }
     // A finished holder's durable record is reported before new work.
     match holder {
       Some(current) =>
         match current.child.wait(false) {
           Ok(Some(_)) => {
-            ignore(current.channel.close())
             holder = None
             // Physical child exit is separate from the Coordinator's ACK of
             // its durable status (which may be unavailable or already read).
             report("holder-exited", [("attempt", current.attempt)])
             // A holder that died may have left output intents behind.
             reclaim_due = true
-            // A holder that ended without claiming (its setup failed) left
-            // the attempt startable: it stays queued and starts again after
-            // the error backoff. Only a record that can no longer start is
-            // reported and leaves the queue.
-            if holder_left_startable(environment, current.request) {
-              report("holder-unclaimed", [("attempt", current.attempt)])
-              next_start_ms = @env.now() + max_backoff_ms.to_uint64()
-            } else {
-              ignore(queue.remove(current.attempt))
-              unsettled.push(current)
-            }
+            // Do not classify an unreadable journal as safe to start again,
+            // or discard physical custody merely because a status is reported.
+            unsettled.push(retain_ended_holder(current))
           }
           Ok(None) =>
             if @env.now() >= current.next_report_ms {
@@ -1705,7 +1712,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
               // report, approval or execution permission. Reuse the existing
               // progress-report interval instead of an additional retry timer.
               ignore(current.channel.send("effect-review"))
-              match fresh_journal(environment) {
+              match open_control_replay_journal(environment, replay_journal) {
                 Some(journal) => {
                   match journal.require(current.request) {
                     Ok(record) =>
@@ -1732,7 +1739,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                       }
                     Err(_) => ()
                   }
-                  ignore(journal.close())
+                  close_control_replay_journal(replay_journal)
                 }
                 None =>
                   report("observation-pending", [
@@ -1745,18 +1752,36 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         }
       None => ()
     }
-    // Unreported records are retried with the error backoff, not on every
-    // pass.
+    if replay_journal.val is Some(_) {
+      // Even a live holder's report ACK is independent of its reader cleanup.
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
+    }
+    // Back off status transport while preserving exact original journals on
+    // failed close. Report ACK and physical cleanup never substitute each other.
     let still_unsettled = unsettled.filter(current => {
-      if @env.now() < current.next_report_ms {
+      if @env.now() >= current.original.next_report_ms {
+        observe_ended_holder(current, environment, client, observation_url)
+        current.original.next_report_ms = @env.now() +
+          max_backoff_ms.to_uint64()
+      }
+      if orphan_store is Some(_) ||
+        reclaim_due ||
+        orphan_reconciliation ||
+        recovery.val is Some(_) ||
+        pending_custody is Some(_) ||
+        !ended_holder_can_leave_window(current, slot) {
         return true
       }
-      if settle_holder(current, environment, client, observation_url) {
-        false
+      if current.startability is Some(true) {
+        // Same queued attempt, not a new Run/attempt. Its next start still goes
+        // through the existing current dispatch read and durable claim Owner.
+        report("holder-unclaimed", [("attempt", current.original.attempt)])
+        next_start_ms = @env.now() + max_backoff_ms.to_uint64()
       } else {
-        current.next_report_ms = @env.now() + max_backoff_ms.to_uint64()
-        true
+        ignore(queue.remove(current.original.attempt))
       }
+      false
     })
     unsettled.clear()
     unsettled.append(still_unsettled)
@@ -1801,14 +1826,23 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       !reclaim_due &&
       !orphan_reconciliation {
       reconcile_saved_cancellation(
-        matches, environment, client, observation_url, cancel_cursor, next_cancel_report,
-        max_backoff_ms, site_delegation, recovery, recovery_close_failures,
+        matches, environment, replay_journal, client, observation_url, cancel_cursor,
+        next_cancel_report, max_backoff_ms, site_delegation, recovery, recovery_close_failures,
       )
+    }
+    if replay_journal.val is Some(_) {
+      // Cancellation observation shares the same retained Journal lifetime.
+      // Do not accept/start another operation while its handle is unretired.
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
     }
     // No holder starts while this process still has the slot for a Store
     // it could not close yet.
     if holder is None &&
+      unsettled.is_empty() &&
       orphan_store is None &&
+      !reclaim_due &&
+      !orphan_reconciliation &&
       recovery.val is None &&
       pending_custody is None &&
       @env.now() >= next_start_ms {
@@ -1822,7 +1856,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         Some(attempt) =>
           // The exact request is read and checked before a holder starts, so
           // nothing is left to fail between the spawn and its tracking.
-          match accepted_request(environment, attempt, envelope_read_failures) {
+          match
+            accepted_control_request(
+              environment, replay_journal, attempt, envelope_read_failures,
+            ) {
             None => {
               report("holder-request-unavailable", [("attempt", attempt)])
               @slot.native_wait_milliseconds(min_backoff_ms)
@@ -1870,6 +1907,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         None => ()
       }
     }
+    if replay_journal.val is Some(_) {
+      // A pre-start envelope reader still owns cleanup. Its queued attempt
+      // remains reserved; neither a Bundle operation nor poll may bypass it.
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
+    }
     // A delivered context cannot be dropped merely because a holder owns the
     // Store. Retain this one exact request until the original slot is free.
     match pending_custody {
@@ -1885,39 +1928,28 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             }
           }
           if slot.try_acquire() == Ok(true) {
-            let result = try {
+            let original = try {
               match custody_configuration {
                 Some(configuration) =>
                   control_bundle_custody_response(
-                    matches, environment, delivery, configuration,
+                    matches, environment, delivery, configuration, slot,
                   )
-                None => Err("scope-not-configured")
+                None =>
+                  control_bundle_custody_cleanup(
+                    delivery,
+                    slot,
+                    BundleCustodyRejected("scope-not-configured"),
+                  )
               }
             } catch {
-              CommandStop(reason) => {
-                ignore(slot.close())
-                stop(reason)
-              }
+              CommandStop(reason) =>
+                control_bundle_custody_cleanup(
+                  delivery,
+                  slot,
+                  BundleCustodyRejected(reason),
+                )
             }
-            if !slot.close() {
-              stop("Bundle custody executor slot close unconfirmed")
-            }
-            match result {
-              Ok(response) => {
-                let pending = match
-                  @agent.prepare_native_bundle_custody_pending_report(
-                    delivery, response,
-                  ) {
-                  Ok(value) => value
-                  Err(_) => stop("Bundle custody response identity mismatch")
-                }
-                pending_custody = Some(Responding(pending))
-              }
-              Err(reason) => {
-                report("bundle-custody-unconfirmed", [("reason", reason)])
-                pending_custody = None
-              }
-            }
+            pending_custody = Some(Retiring(original))
           }
         }
         @slot.native_wait_milliseconds(max_backoff_ms)
@@ -1945,6 +1977,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         }
         continue
       }
+      Some(Retiring(_)) | Some(Unconfirmed(_)) => continue
       None => ()
     }
     if max_polls > 0 && polls >= max_polls {
@@ -1965,7 +1998,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       Ok(None) => Ok(None)
       Err(issue) => Err(issue)
     }
-    guard fresh_journal(environment) is Some(journal) else {
+    guard open_control_replay_journal(environment, replay_journal)
+      is Some(journal) else {
       // Nothing is lost: the operation is served again on a later poll.
       report("journal-unavailable", [])
       @slot.native_wait_milliseconds(max_backoff_ms)
@@ -2007,7 +2041,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
               }
             None => report("consumer-unavailable", [("reason", "materials")])
           }
-          ignore(journal.close())
+          close_control_replay_journal(replay_journal)
           continue
         }
         match
@@ -2058,7 +2092,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                   @slot.native_kill_self()
                 }
                 match @remote.dispatch_request_attempt_identity(request) {
-                  Ok(attempt) => ignore(queue.remove(attempt))
+                  Ok(attempt) =>
+                    // Cancellation intent does not retire an ended executor's
+                    // physical/channel responsibility or its admission.
+                    if !unsettled.any(value => value.original.attempt == attempt) {
+                      ignore(queue.remove(attempt))
+                    }
                   Err(_) => ()
                 }
                 let codes = @remote.dispatch_record_state_codes(record)
@@ -2110,11 +2149,16 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           @client.acknowledge_status(journal, client, observation_url, request) {
           Ok(Some(record)) => {
             let identity = @remote.dispatch_request_identity(request)
-            let remaining = unsettled.filter(current => {
-              @remote.dispatch_request_identity(current.request) != identity
-            })
-            unsettled.clear()
-            unsettled.append(remaining)
+            for current in unsettled {
+              if @remote.dispatch_request_identity(current.original.request) ==
+                identity {
+                current.report_evidence = OriginalStatusAcknowledged
+                current.startability = Some(
+                  @remote.remote_runtime_record_startable(record),
+                )
+              }
+            }
+            // A late Query report never removes physical/channel custody.
             report("query", [
               ("request_cid", identity),
               ("revision", @remote.dispatch_record_revision(record).to_string()),
@@ -2134,7 +2178,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           )
           is Err(_) {
           report("release-failed", [("reason", "scope-mismatch")])
-          ignore(journal.close())
+          close_control_replay_journal(replay_journal)
           continue
         }
         // A live holder owns this output: it releases it and then ends.
@@ -2146,7 +2190,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           } else {
             report("release-unrelayed", [("request_cid", identity)])
           }
-          ignore(journal.close())
+          close_control_replay_journal(replay_journal)
           continue
         }
         // Save the authenticated release before waiting for orphan payload
@@ -2161,7 +2205,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
               Ok(values) => if !values.is_empty() { reclaim_due = true }
               Err(_) => {
                 report("release-failed", [("reason", "journal")])
-                ignore(journal.close())
+                close_control_replay_journal(replay_journal)
                 continue
               }
             }
@@ -2170,7 +2214,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Err(@resident_host.OutputUnavailable) => ()
           Err(issue) => {
             report("release-failed", [("reason", output_code(issue))])
-            ignore(journal.close())
+            close_control_replay_journal(replay_journal)
             continue
           }
         }
@@ -2190,6 +2234,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             }
             _ => false
           }) {
+          guard retry_control_replay_journal_cleanup(replay_journal) else {
+            report("release-failed", [("reason", "original-journal-close")])
+            continue
+          }
           if recover_stopped_release(
               matches, request, recovery, recovery_close_failures,
             ) {
@@ -2200,9 +2248,14 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         // view has already restored this dispatch and cannot admit its newer
         // cleanup revision. Report only from a new exact durable view, as the
         // cancellation recovery path does; do not relax reconstruction.
-        guard fresh_journal(environment) is Some(current) else {
+        guard retry_control_replay_journal_cleanup(replay_journal) else {
+          report("release-failed", [("reason", "original-journal-close")])
+          continue
+        }
+        guard open_control_replay_journal(environment, replay_journal)
+          is Some(current) else {
           report("release-failed", [("reason", "journal")])
-          ignore(journal.close())
+          close_control_replay_journal(replay_journal)
           continue
         }
         match
@@ -2214,7 +2267,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Err(issue) =>
             report("release-failed", [("reason", client_code(issue))])
         }
-        ignore(current.close())
+        close_control_replay_journal(replay_journal)
       }
       Ok(Some(@remote.RetainedPlan(input))) => {
         backoff_ms = 0
@@ -2432,7 +2485,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         @slot.native_wait_milliseconds(backoff_ms)
       }
     }
-    ignore(journal.close())
+    close_control_replay_journal(replay_journal)
   }
   if pending_custody is Some(_) {
     report("bundle-custody-unknown-on-stop", [])
@@ -2444,7 +2497,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   while holder is Some(current) && waited < shutdown_wait_ms {
     match current.child.wait(false) {
       Ok(Some(_)) => {
-        ignore(settle_holder(current, environment, client, observation_url))
+        unsettled.push(retain_ended_holder(current))
         holder = None
       }
       _ => {
@@ -2454,7 +2507,23 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
   }
   for current in unsettled {
-    ignore(settle_holder(current, environment, client, observation_url))
+    observe_ended_holder(current, environment, client, observation_url)
+  }
+  // Neither report ACK nor child exit discards physical responsibility at the
+  // terminal controller boundary. Keep it in the existing lifetime shell.
+  if !unsettled.is_empty() ||
+    holder is Some(_) ||
+    orphan_store is Some(_) ||
+    recovery.val is Some(_) ||
+    pending_custody is Some(_) ||
+    replay_journal.val is Some(_) {
+    slot = retain_control_ended_holder_lifetime(
+      unsettled, holder, environment, client, observation_url, slot, slot_path, orphan_store,
+      recovery, matches, recovery_close_failures, pending_custody, replay_journal,
+    )
+    holder = None
+    orphan_store = None
+    pending_custody = None
   }
   if holder is Some(current) {
     report("holder-still-running", [("attempt", current.attempt)])
@@ -4119,13 +4188,17 @@ fn run_holder(
       stop("holder saved completion unavailable")
     }
   }
-  let environment = open_site_environment(
-    matches,
-    // The actual exclusive slot confirms the old process has stopped. The
-    // journal selects its exact holding; retain is idempotent and Runtime
-    // returns this holding only after its physical cleanup completes.
-     process_hold_identity,
-  )
+  let environment = match
+    open_site_environment(
+      matches,
+      // The actual exclusive slot confirms the old process has stopped. The
+      // journal selects its exact holding; retain is idempotent and Runtime
+      // returns this holding only after its physical cleanup completes.
+       process_hold_identity,
+    ) {
+    Ok(value) => value
+    Err(original) => return finish_failed_site_environment_open(original, slot)
+  }
   // The installed runtime must be the one the Site delegates.
   let (registration, revision, strategy) = @bundle.native_active_runtime_connector_scope(
     environment.active_runtime,
@@ -4293,16 +4366,21 @@ fn run_holder(
     _ => (false, false)
   }
   ignore(
-    load_holder_effect_host_operator(matches, resources, environment, () => {
-      slot.verify_current_hold() == Ok(())
-    }),
+    load_holder_effect_host_operator(matches, resources, environment, slot),
   ) catch {
     CommandStop(issue) => {
-      if proven_unstarted {
-        let operation = finish_holder_cleanup_lifetime(
+      if proven_unstarted ||
+        (
+          resources.effect_host_setup.val is Some(scope) &&
+          scope.read_domain is Some(_)
+        ) {
+        // A failed installed read may still own an active context/aliases.
+        // Return it through the existing cleanup lifetime before any restore
+        // or execution. Saved Run/Journal facts are not reclassified or erased.
+        let (operation, failure) = finish_holder_cleanup_lifetime(
           resources, environment, slot, issue,
         )
-        return HolderCommandFailed(operation, issue)
+        return HolderCommandFailed(operation, failure)
       }
       // Deny evidence access while retaining the original journal and passing
       // existing work to its normal restoration/unknown/cleanup Owners. This
@@ -4504,7 +4582,7 @@ fn run_holder(
     }
   }
   let failure = "execute exited with " + code.to_string()
-  let operation = finish_holder_cleanup_lifetime(
+  let (operation, failure) = finish_holder_cleanup_lifetime(
     resources, environment, slot, failure,
   )
   if code != 0 {
@@ -4769,12 +4847,7 @@ fn recover_output_command(
   }
   // Reuse the maintenance owner: it verifies saved custody without selecting
   // an executor or claiming that this tool is the original runtime component.
-  let owner = open_release_recovery(matches, slot, expected) catch {
-    CommandStop(issue) => {
-      ignore(slot.close())
-      stop(issue)
-    }
-  }
+  let owner = open_release_recovery(matches, slot, expected)
   let resources = open_holder_output_resources(
     matches,
     environment.sqlite_library,

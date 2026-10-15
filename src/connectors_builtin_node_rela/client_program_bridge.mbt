@@ -303,6 +303,14 @@ pub fn client_program_uses_graph_carrier(
 }
 
 ///|
+#export_name("clientProgramRequiresTaskCompilation")
+pub fn client_program_requires_task_compilation(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Bool {
+  @publication_host.prepared_client_requires_task_compilation(prepared)
+}
+
+///|
 #export_name("clientProgramSemanticsCid")
 pub fn client_program_semantics_cid(
   prepared : @publication_host.PreparedClientProgram,
@@ -1553,6 +1561,21 @@ pub fn client_program_task_static_plan_view(
     max_nodes,
     max_depth,
     inspect_installed=true,
+  )
+}
+
+///|
+// Static declaration metadata only: no Run admission or normalization capture.
+#export_name("clientProgramEffectfulStaticPlanView")
+pub fn client_program_effectful_static_plan_view(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compiled : @publication_host.ClientEffectCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientEffectfulStaticPlanIssue] {
+  @publication_host.client_effectful_static_plan_view(
+    prepared, compiled, max_bytes, max_nodes, max_depth,
   )
 }
 

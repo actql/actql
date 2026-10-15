@@ -2084,6 +2084,8 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
+    // Data-only private retention parser; no resource/custody/current grant.
+    privateContinuationRetentionShape: moon.clientProgramPrivateContinuationRetentionShape,
     admit(name, completeWire, limits) {
       return inspect(checked(moon.strategyPublicationAdmit(
         name,
@@ -2251,16 +2253,18 @@ function publicationControl(moon) {
       'RunHostInspectRejected');
     },
     readCheckedClientStaticPlan(checkedProgram, kind, limits) {
-      if (!['values', 'tasks'].includes(kind) ||
+      if (!['values', 'tasks', 'effects'].includes(kind) ||
           !Number.isSafeInteger(limits?.maxWireBytes) || limits.maxWireBytes < 1 ||
           !Number.isSafeInteger(limits?.maxNodes) || limits.maxNodes < 1 ||
           !Number.isSafeInteger(limits?.maxDepth) || limits.maxDepth < 1) {
         throw new TypeError('InvalidClientStaticPlanRequest');
       }
-      const compile = kind === 'values' ? moon.clientProgramCompileLocalValues
-        : moon.clientProgramCompileLocalTasks;
-      const project = kind === 'values' ? moon.clientProgramValuesStaticPlanView
-        : moon.clientProgramTaskStaticPlanView;
+      const compile = kind === 'effects' ? moon.clientProgramCompileLocalEffects
+        : kind === 'values' ? moon.clientProgramCompileLocalValues
+          : moon.clientProgramCompileLocalTasks;
+      const project = kind === 'effects' ? moon.clientProgramEffectfulStaticPlanView
+        : kind === 'values' ? moon.clientProgramValuesStaticPlanView
+          : moon.clientProgramTaskStaticPlanView;
       if (typeof compile !== 'function' || typeof project !== 'function') {
         throw Object.assign(new Error('ClientOperationUnavailable'),
           {code: 'ClientOperationUnavailable'});
@@ -2903,6 +2907,17 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBeginInferOriginalReadScope(value,
         token(definition), graph, inferQuantityCapacity(quantityCapacity), bootstrapRetainedBytes,
         bootstrapExecutionBytes, maxReservations, maxHoldings, maxDelegations));
+    },
+    checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          typeof moon.clientProgramInferOriginalReadScopeLive !== 'function') {
+        throw new TypeError('InferTrustedRuntimeScopeUnavailable');
+      }
+      // This lifetime observation neither exposes a Ledger nor substitutes
+      // for allocation/current authority/egress or confirmed park invalidation.
+      return moon.clientProgramInferOriginalReadScopeLive(scope, value,
+        token(definition), graph) === true;
     },
     prepareCheckedClientInferNodeReadLayout(compiled, definition, graph, scope,
       {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}) {

@@ -58,8 +58,12 @@ def verify(core_receipt: Path, expected_source: str) -> dict[str, Any]:
     library = runtime / 'darwin-aarch64/_libwasmtime.dylib'
     _read_file(library, maximum=recipe.runtime_library_bytes,
                expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
+    provider = library.parent / 'libactql_native_control.dylib'
+    _read_file(provider, maximum=recipe.provider_library_bytes,
+               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
     return {'source': source, 'module': module, 'module_sha256': digest,
-        'core_receipt_sha256': receipt_hash, 'recipe': recipe, 'runtime_library': library}
+        'core_receipt_sha256': receipt_hash, 'recipe': recipe, 'runtime_library': library,
+        'provider_library': provider}
 
 
 def compile_image(core_receipt: Path, expected_source: str, destination: Path) -> dict[str, object]:
@@ -76,6 +80,8 @@ def compile_image(core_receipt: Path, expected_source: str, destination: Path) -
         raise ValueError('Image compiler loaded a different runtime library')
     _read_file(library, maximum=recipe.runtime_library_bytes,
                expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
+    _read_file(original['provider_library'], maximum=recipe.provider_library_bytes,
+               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
     config = pool = engine = module = None
     try:
         config = wasmtime.Config()
@@ -114,6 +120,7 @@ def compile_image(core_receipt: Path, expected_source: str, destination: Path) -
         'module_sha256': original['module_sha256'], 'core_abi': LOCAL_CORE_ABI,
         'wasmtime_version': WASMTIME_VERSION,
         'runtime_library_sha256': recipe.runtime_library_sha256,
+        'provider_library_sha256': recipe.provider_library_sha256,
         'engine_sha256': hashlib.sha256(recipe.engine_body).hexdigest(),
         'image': str(image.resolve()), 'image_sha256': image_hash,
         'compiled': True, 'runtime_executed': False, 'public_local_acceptance': False}

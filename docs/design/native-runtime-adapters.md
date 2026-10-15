@@ -184,23 +184,27 @@ catalog reservation until directory synchronization succeeds, including when
 retry observes that a prior unlink already removed the name.
 
 The command receives library paths, target scope, authority material, and
-capacity limits explicitly. A versioned trust configuration may name multiple
+capacity limits explicitly. The required `--trust-config-name` selects one
+versioned trust configuration below `--authority-root`. It may name multiple
 public keys and independently mark each key as eligible for new bundle
 admission. A normally rotated key can therefore remain available to verify
 records already accepted into the durable catalog without authorizing another
 install or adoption. Omitting the key removes historical verification too;
 that is a stronger trust revocation and can make the Store intentionally
-unopenable until an operator supplies the required audit key. The legacy
-single-key options remain an explicit configuration in which that one key is
-eligible for admission.
+unopenable until an operator supplies the required audit key. A single-key
+installation uses the same configuration with one authority and an explicit
+`admit_new_bundles` value. The retired `--issuer-authority`, `--key-id`, and
+`--public-key-name` options are rejected by argument parsing before a Store is
+opened; no default admission policy is synthesized from them.
 
 The trust configuration has version
 `actql-native-runtime-bundle-trust/0.1` and contains a bounded `authorities`
 array. Each closed entry contains `issuer_authority`, `key_id`,
 `public_key_name`, and `admit_new_bundles`. The install command separately
-names the signature key in the signed envelope. Duplicate authority/key pairs,
-unknown fields, unbounded inputs, and a signature from a verification-only key
-are rejected before component output is created.
+requires `--signature-key-id` to name the signature key in the signed envelope.
+It does not infer that key from the trust configuration or another option.
+Duplicate authority/key pairs, unknown fields, unbounded inputs, and a signature
+from a verification-only key are rejected before component output is created.
 
 This explicit input makes the selected deployment dependencies observable and
 prevents a hidden Node fallback. Public-key, trust, manifest, and signature

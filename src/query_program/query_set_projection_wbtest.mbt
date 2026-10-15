@@ -52,6 +52,8 @@ test "set alignment composes evaluated column aliases and retains strict boundar
       generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
       model_tasks: None,
       parameter_names: None,
+      infer_labels: false,
+      infer_budget: { remaining_work: mapping_limits().max_expression_work, },
     }
     let parsed = @wire.admit(
       @source.parse_json(text, mapping_limits().source.source).unwrap(),
@@ -114,6 +116,8 @@ test "implicit set alignment preserves its receiver and rejects extra operations
       generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
       model_tasks: None,
       parameter_names: None,
+      infer_labels: false,
+      infer_budget: { remaining_work: mapping_limits().max_expression_work, },
     }
     let parsed = @wire.admit(
       @source.parse_json(text, mapping_limits().source.source).unwrap(),
@@ -167,6 +171,8 @@ test "set result binding preserves bounded arguments and excludes shared steps" 
       generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
       model_tasks: None,
       parameter_names: None,
+      infer_labels: false,
+      infer_budget: { remaining_work: mapping_limits().max_expression_work, },
     }
     let parsed = @wire.admit(
       @source.parse_json(text, mapping_limits().source.source).unwrap(),

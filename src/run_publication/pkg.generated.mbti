@@ -926,6 +926,10 @@ pub fn validate_effectful_publication_commit_with_result_evidence(PublicationCon
 
 pub fn validate_local_result_artifact_evidence(String, PublicationContract, ResultOrderingEvidence, PublicationContract) -> Result[Unit, ResultArtifactEvidenceIssue]
 
+pub fn validate_original_interactive_run_evidence(PublicationContract, RunEvidenceValue, RunEvidenceValue) -> Result[Unit, RunControlReadIssue]
+
+pub fn validate_original_succeeded_run_state(PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
+
 pub fn validate_publication_record_transition(PublicationContract?, PublicationContract, Bool) -> Result[Unit, PublicationTransitionIssue]
 
 pub fn validate_result_artifact_evidence(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract) -> Result[Unit, ResultArtifactEvidenceIssue]

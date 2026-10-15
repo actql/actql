@@ -156,10 +156,10 @@ pub(all) struct PivotClause {
 
 ///|
 pub(all) struct UpdateEffectClause {
-  name : NamePart
+  name : NamePart?
   target : String
   mapping : NamePart
-  result : NamePart
+  result : NamePart?
   id : NamePart
   set : Array[(NamePart, Expression)]
 }
@@ -176,10 +176,12 @@ pub(all) struct TableEffectClause {
 ///|
 pub(all) struct InferClause {
   contract : NamePart
-  keys : Array[Array[NamePart]]
+  keys : Array[Array[NamePart]]?
   inputs : Array[(NamePart, Expression)]
   keep : Array[KeepItem]
   name : NamePart
+  // Diagnostic custody only; never part of the lowered Program identity.
+  origin : @origin.Origin?
 }
 
 ///|
@@ -192,6 +194,8 @@ pub(all) struct NearestRolePair {
 pub(all) struct NearestClause {
   relation : Array[NamePart]
   candidate_alias : NamePart
+  candidate_alias_explicit : Bool
+  query_vector : Expression?
   query_roles : NearestRolePair?
   candidate_roles : NearestRolePair?
   metric : String
@@ -503,7 +507,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
       Some(
         Infer({
           ..clause,
-          keys: clause.keys.map(path => path.copy()),
+          keys: clause.keys.map(keys => keys.map(path => path.copy())),
           inputs: clause.inputs.copy(),
           keep: clause.keep.map(item => { ..item, path: item.path.copy(), }),
         }),
@@ -3430,30 +3434,60 @@ fn QueryParser::symbol(
 fn QueryParser::infer_clause(
   self : QueryParser,
 ) -> InferClause raise QueryAbort {
+  let origin = token_origin(self.source, self.index)
   self.keyword("INFER")
   let contract = self.name()
-  self.keyword("ITEM")
-  self.keyword("KEY")
-  self.symbol(40)
-  let keys : Array[Array[NamePart]] = []
-  while true {
-    self.node()
-    keys.push(self.path())
-    if self.peek().value != Symbol(44) {
-      break
+  let keys = if self.has("ITEM") {
+    self.keyword("ITEM")
+    self.keyword("KEY")
+    self.symbol(40)
+    let keys : Array[Array[NamePart]] = []
+    while true {
+      self.node()
+      keys.push(self.path())
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
     }
-    ignore(self.advance())
+    self.symbol(41)
+    Some(keys)
+  } else {
+    None
   }
-  self.symbol(41)
   self.keyword("INPUT")
   self.symbol(40)
   let inputs : Array[(NamePart, Expression)] = []
   if self.peek().value != Symbol(41) {
     while true {
       self.node()
-      let name = self.name()
-      self.symbol(61)
-      inputs.push((name, self.expression()))
+      if token_at(self.source, self.index + 1)
+        .map(token => token.value == Symbol(61))
+        .unwrap_or(false) {
+        // The left side is a closed ModelTask schema key, not a binding.
+        let name = self.name()
+        self.symbol(61)
+        inputs.push((name, self.expression()))
+      } else {
+        let token = self.peek()
+        if token.value is Word(value) && query_reserved_word(value) {
+          raise QueryAbort(
+            "Reserved identifier requires backticks",
+            token.start,
+          )
+        }
+        // Parse the original reference so its UTF-8 origin and expression
+        // limits are the same as an authored assignment's right side.
+        let expression = self.expression()
+        guard expression_node(expression, expression_root(expression)).unwrap().kind
+          is Reference([name]) else {
+          raise QueryAbort(
+            "INFER INPUT shorthand requires one identifier; use name = expression",
+            token.start,
+          )
+        }
+        inputs.push((name, expression))
+      }
       if self.peek().value != Symbol(44) {
         break
       }
@@ -3461,9 +3495,15 @@ fn QueryParser::infer_clause(
     }
   }
   self.symbol(41)
-  let keep = self.keep_clause()
+  // The text default is exactly the existing wildcard projection. The machine
+  // infer body and stored Programs retain their independent output contract.
+  let keep = if self.has("KEEP") {
+    self.keep_clause()
+  } else {
+    [{ path: [], wildcard: true, name: None, }]
+  }
   self.keyword("AS")
-  { contract, keys, inputs, keep, name: self.name(), }
+  { contract, keys, inputs, keep, name: self.name(), origin, }
 }
 
 ///|
@@ -3535,8 +3575,25 @@ fn QueryParser::nearest_clause(
 ) -> NearestClause raise QueryAbort {
   self.keyword("NEAREST")
   let relation = self.resolve_producer(self.path())
-  self.keyword("AS")
-  let candidate_alias = self.name()
+  let candidate_alias_explicit = self.has("AS")
+  let candidate_alias = if candidate_alias_explicit {
+    self.keyword("AS")
+    self.name()
+  } else {
+    relation.last().unwrap()
+  }
+  let query_vector = if self.has("USING") {
+    self.keyword("USING")
+    Some(self.expression())
+  } else {
+    None
+  }
+  if query_vector is Some(_) && self.has("QUERY") {
+    raise QueryAbort(
+      "USING and QUERY VECTOR cannot both supply the query vector",
+      self.peek().start,
+    )
+  }
   let query_roles = if self.has("QUERY") {
     self.keyword("QUERY")
     let keys = self.nearest_keys()
@@ -3553,12 +3610,17 @@ fn QueryParser::nearest_clause(
   } else {
     None
   }
-  self.keyword("METRIC")
-  let metric_start = self.peek().start
-  let metric = self.name()
-  if metric.quoted ||
-    !["COSINE", "DOT", "L2"].contains(ascii_upper(metric.value)) {
-    raise QueryAbort("NEAREST metric must be cosine, dot or l2", metric_start)
+  let metric = if self.has("METRIC") {
+    self.keyword("METRIC")
+    let metric_start = self.peek().start
+    let metric = self.name()
+    if metric.quoted ||
+      !["COSINE", "DOT", "L2"].contains(ascii_upper(metric.value)) {
+      raise QueryAbort("NEAREST metric must be cosine, dot or l2", metric_start)
+    }
+    metric.value.to_lower()
+  } else {
+    "cosine"
   }
   self.keyword("K")
   let k = self.safe_integer(false)
@@ -3567,9 +3629,11 @@ fn QueryParser::nearest_clause(
   {
     relation,
     candidate_alias,
+    candidate_alias_explicit,
+    query_vector,
     query_roles,
     candidate_roles,
-    metric: metric.value.to_lower(),
+    metric,
     k,
     keep,
     name: self.name(),
@@ -3734,7 +3798,15 @@ fn QueryParser::update_effect_clause(
   self : QueryParser,
 ) -> UpdateEffectClause raise QueryAbort {
   self.keyword("EFFECT")
-  let name = self.name()
+  // UPDATE remains a valid explicit Effect name in EFFECT UPDATE UPDATE.
+  let name = if self.has("UPDATE") &&
+    !token_at(self.source, self.index + 1)
+    .map(token => keyword(token, "UPDATE"))
+    .unwrap_or(false) {
+    None
+  } else {
+    Some(self.name())
+  }
   self.keyword("UPDATE")
   self.keyword("TARGET")
   let target = self.expression()
@@ -3749,9 +3821,13 @@ fn QueryParser::update_effect_clause(
   }
   self.keyword("MAPPING")
   let mapping = self.name()
-  self.keyword("FROM")
-  self.keyword("RESULT")
-  let result = self.name()
+  let result = if self.has("FROM") {
+    self.keyword("FROM")
+    self.keyword("RESULT")
+    Some(self.name())
+  } else {
+    None
+  }
   self.keyword("ID")
   let id = self.name()
   self.keyword("SET")

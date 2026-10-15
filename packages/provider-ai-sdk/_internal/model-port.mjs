@@ -1,7 +1,7 @@
 import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
-  cancelSdkPreparation, cleanupSdkPreparation,
-  retireSdkDecodedResult} from './intercepted-request.mjs';
+  cancelSdkPreparation, cleanupSdkPreparation, progressSdkOriginalIoCleanup,
+  retireSdkDecodedResult, sdkOriginalIoObservationAvailable} from './intercepted-request.mjs';
 
 // Private source integration only: not an exported package installation API.
 // All records, SDK/request/response buffers and Promise overlaps must be funded
@@ -54,6 +54,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
   let plan;
   let call;
   let response;
+  let selectedResponse;
   let saving;
   let reconciling;
   let reconciliationPending = false;
@@ -67,12 +68,15 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
   const wake = () => {
     try { notify(); } catch { /* Wake is not execution or persistence evidence. */ }
   };
-  const poll = () => {
+  const pollResponse = () => {
     // Only the unused SDK projection is dropped. Saved/raw observations and
     // the same Store/Entry cleanup obligation remain owned independently.
     if (!retired && preparation !== undefined) retireSdkDecodedResult(preparation);
     if (response !== undefined && failure === undefined && !startUnknown) {
-      try { return selectSaved(moon, response, checked); }
+      try {
+        if (selectedResponse === undefined) selectedResponse = selectSaved(moon, response, checked);
+        return selectedResponse;
+      }
       catch (error) {
         // Late binding loss does not erase saved raw custody or recreate Entry.
         // Retain the primary failure and let the original Model hold Unknown.
@@ -102,6 +106,23 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
       ? moon.clientProgramModelPhysicalUnknown()
       : moon.clientProgramModelPhysicalPending();
   };
+  const poll = () => {
+    let io;
+    if (!retired && preparation !== undefined) {
+      try { io = progressSdkOriginalIoCleanup(preparation); }
+      catch { /* Neither failure nor cancellation is a quiescence ACK. */ }
+    }
+    const observed = pollResponse();
+    // Only this installed raw-only physical mode with an actual original
+    // cleanup port reports the separate fact. Generic/native stay unsupported.
+    // SDK true is DATA: the same Common callback still checks Call/Entry/Plan/
+    // attempt/reservation before admitting its own internal nominal observation.
+    if (responseMode === 'raw-only' && io !== undefined &&
+        typeof moon.clientProgramModelPhysicalIoObservation === 'function') {
+      return moon.clientProgramModelPhysicalIoObservation(call, io === true, observed);
+    }
+    return observed;
+  };
   const cancel = () => {
     if (retired) {
       throw Object.assign(new TypeError('ForeignSdkPreparation'), {code: 'ForeignSdkPreparation'});
@@ -111,6 +132,10 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
   const cleanup = () => {
     if (retired) return true;
     if (preparation !== undefined) retireSdkDecodedResult(preparation);
+    if (preparation !== undefined) {
+      try { progressSdkOriginalIoCleanup(preparation); }
+      catch { /* Full original cleanup must still settle this duty. */ }
+    }
     if (saving !== undefined || reconciliationPending) return false;
     // Every attempted raw save retains its original port until cleanup,
     // including a successful save's local aliases. This does not erase the
@@ -126,6 +151,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
       catch { return false; }
     }
     response = undefined;
+    selectedResponse = undefined;
     reconciled = undefined;
     reconciling = undefined;
     call = undefined;
@@ -196,6 +222,10 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     preparationTerminal = true;
     try {
       prepareSdkTransport(preparation, {fetch, responseLimits, observeAt, responseMode});
+      if (responseMode === 'raw-only' && sdkOriginalIoObservationAvailable(preparation) &&
+          typeof moon.clientProgramModelPhysicalIoObservation !== 'function') {
+        throw new TypeError('OriginalSdkPhysicalIoObservationUnavailable');
+      }
       plan = checked(preparePlan(moon, request, BigInt(original.requestBytes),
         quantities, profile, installation, start));
     } catch { return [true, undefined]; }

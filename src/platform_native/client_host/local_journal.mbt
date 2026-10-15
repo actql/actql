@@ -10,6 +10,7 @@ struct NativeLocalHostConnection {
   adoption_body : Bytes
   adoption_cid : String
   ownership : @filesystem.NativeFileOwnership
+  mut worker_provisioning_attempt : NativeLocalWorkerProvisioningAttempt?
   mut packaged_runtime : NativeLocalRuntimeBinding?
   mut closed : Bool
   mut database_closed : Bool
@@ -277,6 +278,7 @@ fn NativeLocalAdoptionSession::bind_journal(
     database_closed: false,
     session_closed: false,
     packaged_runtime: None,
+    worker_provisioning_attempt: None,
   }
   match connected.check_binding() {
     Ok(_) => Ok(connected)
@@ -318,7 +320,10 @@ pub fn NativeLocalHostConnection::check_binding(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match self.session.stage_configuration() {
+  // The immediately preceding actual original check is staging's entry fence.
+  // Staging keeps its original terminal check, and every Common/current caller
+  // still invokes this complete binding fence before and after its own work.
+  match self.session.stage_configuration_after_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }

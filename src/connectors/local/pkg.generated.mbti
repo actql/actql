@@ -194,11 +194,7 @@ pub fn[E] prepare_local_module_materializing_compute(LocalComputeModule, Int, @c
 
 pub fn start_guarded_supplied_relation(@execution_relation.GeneratedSequence, @execution_relation.SuppliedRelationRead, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]
 
-pub fn start_managed_provider(ManagedProvider, @execution_relation.GeneratedSequence, Array[@execution_relation.ProducerRead], Int, Int) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]
-
 pub fn start_managed_provider_with_execution(ManagedProvider, @execution_relation.GeneratedSequence, Array[@execution_relation.ProducerRead], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]
-
-pub fn start_managed_provider_with_inputs(ManagedProvider, @execution_relation.GeneratedSequence, Array[ManagedProviderInput], Int, Int) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]
 
 pub fn start_managed_provider_with_inputs_and_execution(ManagedProvider, @execution_relation.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution_relation.SequenceExecutionLimits, numeric? : @execution_relation.NumericAggregateExecution?) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]
 
@@ -223,6 +219,8 @@ pub(all) enum LocalBoundedRelationCheck {
 
 pub(all) enum LocalBoundedTemporalRelationCheck {
   TimeSeries
+  CalendarSeries
+  CalendarBucket
   IntervalJoin
   AsOfJoin
   SequenceMatch

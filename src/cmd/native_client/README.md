@@ -48,6 +48,51 @@ above or complete approval and other recovery profiles. Run this through the
 existing heavy guard after preparing a clean-source Native CLI RC with the
 existing artifact/release producers.
 
+## Static Local explanation in current source
+
+The source-level `explain` command accepts the same `--program-file`, explicit
+`--format`, separate parameter values and declarations as Local `check`.
+It uses the same selected Check Environment and original prepared computation,
+then returns the existing compiler-owned PlanView for effect-free input or the
+separate closed `actql-effectful-static-plan-view/0.1` for checked Effect input.
+`--json` emits that closed value directly; human output states that no Run was
+admitted.
+
+This connection covers source-free computation. The Effect envelope retains the
+original computation Plan/map and declared unit/member facts; that component is
+not a full physical Effect DAG. Mapping targets, Command Resource kinds and
+Result/Table inputs remain declarations. Actual targets/values and current
+permission/gates/approval stay unknown; sealed Preview is unavailable. Contract
+minimum none/required/not-represented is distinct from current permission.
+Source acquisition and executable Effect normalization remain unavailable here.
+The view reports static observation, zero Provider I/O and unknown quantities,
+with Inspect and durable controls unavailable. It neither runs the Program nor issues authority,
+opens a Result or creates a Submission. Remote mode refuses the command before
+opening connection or input files. The packaged route retains explicit trust
+adoption and the original selected configuration, rechecking existing original
+custody and the current package after projection before returning metadata.
+
+These statements describe current Native source tests, not a new installed
+cohort. The accepted installed baseline above retains its original digest and
+does not gain `explain` until a matching formal artifact passes external
+installation acceptance.
+
+## Original Local run entry in current source
+
+The source-level `run` command delegates once to the existing Local `aql`
+intake. It requires the same explicit format, original Submission reference
+file and operation-attempt ID; optional nonce and separate parameters retain
+that Owner's existing meanings. Submitted content still has `kind: aql` and
+passes the existing lookup-first acceptance and execution path. This command
+creates no substitute identity, automatic retry or new execution model.
+
+JSON output preserves the existing Owner response exactly. Human output labels
+it as the original Submission response; acceptance or exit status alone is not
+Run completion. Remote mode refuses this Local entry before reading connection
+or input files. The installed baseline keeps its original `aql` command until a
+matching formal artifact passes external installation acceptance; source tests
+for `run` do not extend that installed cohort's evidence.
+
 ## Explicit Local Host adoption
 
 `adopt`, `connect` and `new-submission` in explicit Local mode connect the

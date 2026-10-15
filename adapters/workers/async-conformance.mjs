@@ -2,7 +2,7 @@ import {instantiate as instantiateFixture} from '../../_build/workers/modules/fi
 import {numericProbeContribution} from '../reference-compute-node/async-probe.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {withScopedStrategy} from './invocation.mjs';
+import {withScopedStrategy} from '../host-common/scoped-strategy.mjs';
 import {phaseAudit} from './phase-audit.mjs';
 
 export async function runAsyncCase({mode = 'complete'} = {}) {

@@ -8,11 +8,69 @@ from pathlib import Path
 import subprocess
 import tarfile
 import tempfile
+import tomllib
+
+
+PROVIDER_SOURCES = (
+    'owned_capacity.c', 'owned_capacity.h', 'owned_image.c', 'owned_region.h',
+    'owned_region.inc', 'owned_domain_borrow.h', 'owned_domain_borrow.inc',
+)
+RUST_COPIES = {
+    'owned_heap.rs': 'crates/c-api/artifact/src/actql_owned_heap.rs',
+    'owned_abi.rs': 'crates/c-api/artifact/src/actql_owned_abi.rs',
+    'owned_build.rs': 'crates/c-api/artifact/actql_owned_build.rs',
+}
+
+
+def verify_provider_recipe(record: dict[str, object], candidate: Path) -> None:
+    """Bind one external provider; copied C sources must not create another."""
+    provider = record['provider_source_inputs']
+    if (type(provider) is not list or any(type(item) is not dict for item in provider)
+            or [item.get('source') for item in provider] != list(PROVIDER_SOURCES)
+            or any(set(item) != {'source', 'sha256'} for item in provider)):
+        raise ValueError('Invalid same-provider source closure')
+    copies = record['copy_before_patch']
+    if (type(copies) is not list or any(type(item) is not dict for item in copies)
+            or len(copies) != len(RUST_COPIES)
+            or any(set(item) != {'source', 'target', 'sha256'} for item in copies)
+            or {item['source']: item['target'] for item in copies} != RUST_COPIES):
+        raise ValueError('Only original Rust forwarders/build may be copied')
+    for item in provider + copies:
+        if hashlib.sha256((candidate / item['source']).read_bytes()).hexdigest() != item['sha256']:
+            raise ValueError('Original provider/copy source digest mismatch')
+    if record['native_provider_link'] != {
+        'kind': 'dynamic-original-provider', 'file': 'libactql_native_control.dylib',
+        'build_directory_env': 'ACTQL_OWNED_PROVIDER_DIR',
+        'runtime_resolution': '@loader_path', 'provider_artifact': None,
+        'build_executed': False, 'installed_acceptance': False,
+    }:
+        raise ValueError('Invalid unadopted original-provider link')
+
+
+def verify_linked_workspace(root: Path, original: dict[str, bytes]) -> None:
+    """Check the applied source recipe, not compiled symbol/loader behavior."""
+    if (root / 'crates/c-api/build.rs').read_bytes() != original['crates/c-api/build.rs']:
+        raise ValueError('C API build must not compile a second provider')
+    for name, relay in [
+        ('crates/c-api/Cargo.toml', ['wasmtime/actql-owned-capacity']),
+        ('crates/c-api/artifact/Cargo.toml', ['wasmtime-c-api/actql-owned-capacity']),
+        ('crates/wasmtime/Cargo.toml', []),
+    ]:
+        before = tomllib.loads(original[name].decode())
+        after = tomllib.loads((root / name).read_text())
+        if after['features'].pop('actql-owned-capacity', None) != relay:
+            raise ValueError('Original owned-capacity feature relay changed')
+        if name == 'crates/c-api/artifact/Cargo.toml':
+            if after['package'].pop('build', None) != 'actql_owned_build.rs':
+                raise ValueError('Missing same-provider artifact build entry')
+        if after != before:
+            raise ValueError('Unrelated original Cargo inputs changed')
 
 
 def verify(workspace: Path, wasmtime_crate: Path, c_api_crate: Path) -> dict[str, object]:
     candidate = Path(__file__).resolve().parent
     record = json.loads((candidate / 'workspace-build-inputs.json').read_text())
+    verify_provider_recipe(record, candidate)
     for path, name in [(wasmtime_crate, 'actql-e-wasmtime38.crate'),
                        (c_api_crate, 'actql-e-wasmtime-c-api-38.crate')]:
         if hashlib.sha256(path.read_bytes()).hexdigest() != record['source_archives'][name]:
@@ -60,6 +118,10 @@ def verify(workspace: Path, wasmtime_crate: Path, c_api_crate: Path) -> dict[str
         )
         if result.returncode != 0:
             raise ValueError('Artifact source patch applicability failure: ' + result.stderr)
+        subprocess.run(['git', 'apply', '--unidiff-zero',
+                        str(candidate / 'wasmtime-owned-artifact-review.patch')],
+                       cwd=root, capture_output=True, text=True, timeout=10, check=True)
+        verify_linked_workspace(root, sources)
         mmap_result = subprocess.run(
             ['git', 'apply', '--check', '--unidiff-zero',
              str(candidate / 'wasmtime-mmap-review.patch')],
@@ -70,7 +132,8 @@ def verify(workspace: Path, wasmtime_crate: Path, c_api_crate: Path) -> dict[str
     return {
         'verified_upstream_inputs': len(sources),
         'verified_source_copies': len(record['copy_before_patch']),
-        'applicable_artifact_patch_files': 5,
+        'verified_provider_sources': len(PROVIDER_SOURCES),
+        'applicable_artifact_patch_files': 4,
         'applicable_mmap_patch_files': 1,
         'compiler_executed': 0,
         'engine_executed': 0,

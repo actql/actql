@@ -28,7 +28,13 @@ source-free profile. The launcher submits no Program or business operation.
 
 Use **Read Plan** for SQL/AQL-text or Program JSON. For an existing Run, paste
 its original complete Run reference JSON and optionally a Named Result name.
-The viewer calls public `plan`, `attach`/`inspect` and Result `describe` only.
+Use **Read saved Run Plan** to read the immutable map captured at that Run's
+original admission. This calls `attach` and `Run.plan()` for the complete
+original reference; it does not compile today's Program or create a replacement
+Run. Missing legacy evidence or unsupported Hosts stay unavailable. The saved
+map is static and is not a live progress overlay or an atomic Run snapshot.
+
+The viewer calls public `plan`, `attach`/`inspect`/`Run.plan` and Result `describe` only.
 It preserves original logical occurrences/ports and non-atomic Run observations;
 missing source origins and unsupported controls are shown as unavailable.
 Result description is metadata, not payload delivery or success evidence.
@@ -80,6 +86,10 @@ Only admitted built assets are served: at most 32 assets and 2 MiB in total.
 The launcher reads its own package-relative frozen inventory, checks every
 length and SHA-256, refuses symlinks/duplicate/traversing paths, and then lets
 the Gateway copy the finite Map at admission. No workspace path is served.
+The optional Flow view includes the pinned ELK.js layout Worker in this same
+inventory and serves it under the same-origin `worker-src 'self'` policy. List
+remains the default; a layout failure preserves List and does not start/retry a
+Run. See [third-party notices](THIRD_PARTY_NOTICES.md).
 Normal prepack builds the SPA and inventory; installation runs no compiler,
 Vite server, downloader or lifecycle hook.
 

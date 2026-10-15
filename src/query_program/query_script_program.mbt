@@ -87,6 +87,7 @@ fn lower_script_relation(
         retained.unwrap_or([]),
         known~,
         current=Some(graph),
+        continuation=Some((context, sources)),
       )
     }
     if script_has_graph_rows(query) {
@@ -326,6 +327,7 @@ fn lower_script_relation_term(
     retained~,
     parameter_declarations=context.parameter_declarations,
     initial_scope=script_input_scope(
+      construction,
       sources,
       input.name,
       query_range_name(query),
@@ -333,8 +335,20 @@ fn lower_script_relation_term(
     preserved_scope=preserved,
     value_table_scope=if retain_value_table { Some(value_scope) } else { None },
     prefix_steps=steps.copy(),
+    reserved_bindings=reserved,
     prefix_context=Some(context),
     positional_set_output~,
+    checked_nearest_prefix=Some(nodes => {
+      script_nearest_prefix_pipeline(
+        construction, query, context, sources, nodes, limits,
+      )
+    }),
+    checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
+      script_infer_prefix_check(
+        construction, query, context, sources, nodes, producer, limits, visible,
+        authored_aliases,
+      )
+    }),
   )
   steps.append(body)
   let name = if body.is_empty() && carry_ranges {
@@ -417,12 +431,15 @@ fn compile_query_script_with_source(
     generated,
     model_tasks: context.model_tasks,
     parameter_names,
+    infer_labels: query_has_omitted_infer(@query.script_query(script)),
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let steps : Array[@builder.Node] = []
     let sources : ScriptSources = {
       declarations: [],
       stages: [],
+      prior_stages: [],
       bound: Map([]),
       unshared: unshared_script_sources(script, context.inputs),
       ranges: Map([]),
@@ -465,6 +482,8 @@ fn compile_query_script_with_source(
     let stages : Array[@builder.Node] = []
     let stage_arrays : Array[Array[@builder.Node]] = []
     let exports : Array[(String, (String, String))] = []
+    let prior_results : Array[(String, String, RetainedResult)] = []
+    let mut continuation_input : (String, String, String)? = None
     while true {
       let input_name = pipe_physical_name(
         reserved, "aql_script_continuation_input_",
@@ -518,6 +537,7 @@ fn compile_query_script_with_source(
           retained,
           known=stage_known,
           current=resolved_graph,
+          continuation=Some((stage_context, stage_sources)),
         )
       } else {
         lower_script_relation(
@@ -540,6 +560,80 @@ fn compile_query_script_with_source(
       if split is Some(_) &&
         (retained.length() != 1 || !retained[0].carrier_complete) {
         raise Abort(UnsupportedEffect)
+      }
+      if @query.terminal_effect(current) is Some(clause) &&
+        !retained.any(result => result.update is Some(_)) {
+        let selected = match clause.result {
+          Some(name) =>
+            retained.filter(result => {
+              result.update is None &&
+              same_name({ value: result.name, quoted: false, }, name)
+            })
+          None => []
+        }
+        let earlier = match clause.result {
+          Some(name) =>
+            prior_results.filter(entry => {
+              same_name({ value: entry.2.name, quoted: false, }, name)
+            })
+          None => []
+        }
+        if clause.result is Some(_) && selected.length() + earlier.length() != 1 {
+          raise Abort(UnsupportedEffect)
+        }
+        // Leave the original direct-field/literal explicit Result spelling
+        // unchanged. New computed and cross-Stage forms use a private branch.
+        if clause.result is None ||
+          !clause.set.all(pair => update_direct_value(pair.1)) ||
+          !earlier.is_empty() {
+          let (producer, fields) = if selected.get(0) is Some(selected) {
+            (selected.from, selected.fields)
+          } else if earlier.get(0) is Some((stage, port, selected)) {
+            let input = if continuation_input
+              is Some((from_stage, from_port, input)) &&
+              from_stage == stage &&
+              from_port == port {
+              input
+            } else {
+              let input = pipe_physical_name(
+                reserved + stage_sources.declarations.map(pair => pair.0),
+                "aql_update_source_",
+              )
+              reserved.push(input)
+              stage_sources.declarations.push(
+                (
+                  input,
+                  construction.object([
+                    (
+                      "result",
+                      construction.object([
+                        ("stage", construction.text(stage)),
+                        ("result", construction.text(port)),
+                      ]),
+                    ),
+                  ]),
+                ),
+              )
+              input
+            }
+            (input, selected.fields)
+          } else {
+            // Non-Pipe final carriers use their completed visible Relation.
+            (result.name, result.visible_fields)
+          }
+          let (capture, body) = lower_update_capture(
+            construction,
+            clause,
+            producer,
+            fields.map(field => (field, field)),
+            [],
+            fields,
+            limits.max_expression_work,
+            reserved_bindings=reserved,
+          )
+          retained.push(capture)
+          stage_steps.append(body.map(entries => construction.object(entries)))
+        }
       }
       let table_effect = @query.terminal_table_effect(current)
       let stage_entries = [
@@ -564,6 +658,7 @@ fn compile_query_script_with_source(
                 ),
               ]),
               retained,
+              keep_default=!prior_results.is_empty(),
             )
           },
         ),
@@ -640,10 +735,11 @@ fn compile_query_script_with_source(
       stages.push(construction.object(stage_entries))
       stage_arrays.push(stage_steps)
       for
-        (name, port) in retained_result_exports(stage_context, retained).unwrap_or([
-            (stage_context.result_name, stage_context.stage_result),
-          ],
-        ) {
+        (name, port) in retained_result_exports(
+          stage_context,
+          retained,
+          keep_default=!prior_results.is_empty(),
+        ).unwrap_or([(stage_context.result_name, stage_context.stage_result)]) {
         if table_effect is Some(_) && retained.is_empty() {
           continue
         }
@@ -651,6 +747,21 @@ fn compile_query_script_with_source(
           raise Abort(DuplicateOutput)
         }
         exports.push((name, (stage_context.stage_id, port)))
+      }
+      for result in retained {
+        if result.update is None {
+          prior_results.push(
+            (
+              stage_context.stage_id,
+              if result.terminal {
+                stage_context.stage_result
+              } else {
+                retained_result_port(stage_context.stage_result, result.port)
+              },
+              result,
+            ),
+          )
+        }
       }
       guard split is Some((_, continuation)) else { break }
       // The same Program imports the retained checked producer through the
@@ -668,6 +779,7 @@ fn compile_query_script_with_source(
       stage_sources = {
         declarations: [(input_name, reference)],
         stages: sources.stages,
+        prior_stages: stages.copy(),
         bound: Map([]),
         unshared: [],
         ranges: Map([]),
@@ -701,6 +813,9 @@ fn compile_query_script_with_source(
       }
       reserved.push(input_name)
       reserved.push(next_stage)
+      continuation_input = Some(
+        (stage_context.stage_id, stage_context.stage_result, input_name),
+      )
       stage_context = { ..context, stage_id: next_stage, captured_stage: None, }
       stage_steps = []
       query = continuation

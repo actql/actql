@@ -27,6 +27,7 @@ import {
 }
 
 import {
+  "actql/actql/local_veca_provider" @nearest_provider,
   "actql/actql/decode_core" @decode,
   "actql/actql/source_value" @source,
   "actql/actql/check_environment" @environment,

@@ -1,6 +1,8 @@
 supported_targets = "native"
 
 import {
+  "actql/actql/platform_native/installed_arena_control" @arena,
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
   "actql/actql/run_publication_host" @host,
   "actql/actql/client_local_host" @local,
   "actql/actql/connectors_builtin" @builtin,

@@ -1,8 +1,7 @@
-import {validWirePlanViewShape} from '@actql/client-wire';
+import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';
 
-export class ExplorerReadError extends Error {
-  constructor(code) { super(code); this.code = code; }
-}
+import {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
+export {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
 
 const refuse = code => { throw new ExplorerReadError(code); };
 const freeze = value => {
@@ -13,13 +12,23 @@ const freeze = value => {
   return value;
 };
 
-// Presentation limits refuse a complete view; they never silently page/truncate
-// a map while preserving its complete identity. Public reads retain Host limits.
-export const graphViewLimits = Object.freeze({steps: 256, ports: 1024});
-
 // Accept an SDK-admitted static view, not a compiler/preparation handle or a
 // permission. This model references original identities; it has no new self-CID.
 export function planReadModel(view) {
+  if (view?.version === 'actql-effectful-static-plan-view/0.1') {
+    if (!validWireEffectfulStaticPlanViewShape(view) ||
+        view.program_definition_cid !== view.computation.plan_view.logical_map.program_definition_cid) {
+      refuse('ExplorerInvalidPlan');
+    }
+    const computation = planReadModel(view.computation.plan_view);
+    // Declared Effects have no graph edges or resolved physical observations.
+    return freeze({...computation, effectful: {
+      scope: 'computation_component', parameterValuesCid: view.parameter_values_cid,
+      checkEnvironmentCid: view.check_environment_cid, unitId: view.effect_set.unit_id,
+      members: structuredClone(view.effect_set.members),
+      observations: structuredClone(view.observations),
+    }});
+  }
   const steps = view?.logical_map?.steps;
   if (!Array.isArray(steps) || steps.length > graphViewLimits.steps) {
     refuse('ExplorerMapLimit');
@@ -134,6 +143,25 @@ export async function readExistingRun(client, ref, ticket) {
     if (typeof run.inspect !== 'function') refuse('ExplorerCapabilityUnavailable');
     return run.inspect(projectionLimits);
   });
+}
+
+// Read the original immutable map retained for this exact admitted Run. Missing
+// legacy evidence stays unavailable; static planning is never a repair path.
+export async function readExistingRunPlan(client, ref, ticket) {
+  const original = Object.freeze({...ref});
+  if (!validRunRef(original)) refuse('ExplorerInvalidRunPlan');
+  const run = await currentRead(ticket, () => client.attach(original));
+  const view = await currentRead(ticket, () => {
+    if (typeof run.plan !== 'function') refuse('ExplorerCapabilityUnavailable');
+    return run.plan(projectionLimits);
+  });
+  if (!validWireRunPlanViewShape(view) ||
+      view.run_ref.namespaceId !== original.namespaceId ||
+      view.run_ref.authorityScopeCid !== original.authorityScopeCid ||
+      view.run_ref.runDefinitionCid !== original.runDefinitionCid) {
+    refuse('ExplorerInvalidRunPlan');
+  }
+  return freeze({runRef: original, plan: planReadModel(view.plan_view)});
 }
 
 // Metadata only: no payload read attempt/grant/open is allocated. A later

@@ -16,6 +16,7 @@ import {
   "actql/actql/program_check" @checked,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/parameter_references" @parameters,
   "actql/actql/parameter_binding" @parameter,

@@ -5,3 +5,11 @@ test "non-native targets reject the native SQLite capability" {
     fail("non-native target accepted the native SQLite capability")
   }
 }
+
+///|
+test "non-native original claim lookup never supplies claim history" {
+  let database : Database = { unsupported: (), }
+  assert_true(
+    database.lookup_claim_ordinal("grant", "original") is Err(UnsupportedTarget),
+  )
+}

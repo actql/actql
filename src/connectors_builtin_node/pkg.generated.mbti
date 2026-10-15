@@ -237,6 +237,8 @@ pub fn client_program_bind_infer_original_preparation(@client_infer_host.Executi
 
 pub fn client_program_bind_infer_physical_preflight(@client_infer_host.Execution, (@model_execution.ModelRequest) -> @model_execution.ModelRequestPreflight?) -> Result[Unit, @client_infer_host.Issue]
 
+pub fn client_program_bind_infer_physical_preflight_current(@client_infer_host.Execution, (@model_execution.ModelRequest) -> @model_execution.ModelRequestPreflight?, () -> Bool) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_bind_infer_quantity_capacity(@client_infer_host.Execution, Int64, Int64, Int64, Int64, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]
 
 pub fn client_program_bind_infer_run(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
@@ -747,6 +749,8 @@ pub fn client_program_effect_table_source_artifact_preview_binding(@run_publicat
 
 pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, @run_publication_host.ClientEffectMemberDescriptorIssue]
 
+pub fn client_program_effectful_static_plan_view(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientEffectfulStaticPlanIssue]
+
 pub fn client_program_encode_model_original_resource_document(String, String, String, String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
@@ -903,6 +907,8 @@ pub fn client_program_infer_original_parked_read_capacity_available(@client_infe
 
 pub fn client_program_infer_original_preparation_available(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Bool
 
+pub fn client_program_infer_original_read_scope_live(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Bool
+
 pub fn client_program_infer_original_resource_origin_field(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, String) -> Result[String, @run_publication_host.ClientModelOriginalOriginIssue]
 
 pub fn client_program_infer_outcomes_accepted(@model_execution.ModelOutcomeRead) -> Bool
@@ -1018,6 +1024,8 @@ pub fn client_program_installed_composed_infer_plan_graph(@run_publication_host.
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
+
+pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
@@ -1391,6 +1399,8 @@ pub fn client_program_model_physical_call_for_request(@model_execution.ModelCall
 
 pub fn client_program_model_physical_evidence_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, String, String, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_model_physical_io_observation(@model_execution.ModelPhysicalCall, Bool, @model_execution.ModelPhysicalCallPoll) -> @model_execution.ModelPhysicalCallPoll
+
 pub fn client_program_model_physical_pending() -> @model_execution.ModelPhysicalCallPoll
 
 pub fn client_program_model_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
@@ -1420,6 +1430,8 @@ pub fn client_program_model_request_input_frame_bounded(@model_execution.ModelRe
 pub fn client_program_model_request_preflight(() -> (Bool, @model_execution.ModelPhysicalRequestPlan?), () -> Bool) -> @model_execution.ModelRequestPreflight
 
 pub fn client_program_model_response(@model_execution.ModelRequest, String, String, String, Int64, Int64, String) -> @model_execution.ModelResponse?
+
+pub fn client_program_model_response_profile_transport_matches(@check_environment.ModelResponseProfile, Int, Int, Int, Int, Int) -> Bool
 
 pub fn client_program_model_scoped_private_holding_cid(@run_publication.PublicationContract, String, String, String, String, Int, String, String) -> String?
 
@@ -1560,6 +1572,8 @@ pub fn client_program_prepare_serialization_captured_ledger(@run_publication_hos
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
+
+pub fn client_program_private_continuation_retention_shape(Bytes, String, Int, Int) -> String
 
 pub fn client_program_project_http_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, String, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
 
@@ -1783,6 +1797,8 @@ pub fn client_program_row_source_issue_source_evidence(@client_row_source_host.R
 
 pub fn client_program_row_source_listing_complete(@client_row_source_host.RowRun) -> Bool
 
+pub fn client_program_row_source_listing_report_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_row_source_original_read(@client_row_source_host.RowSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
 pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
@@ -1800,6 +1816,8 @@ pub fn client_program_row_source_retain_captured_task(@client_row_source_host.Ro
 pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_start_listing_accounted(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 

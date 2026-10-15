@@ -78,6 +78,8 @@ struct NativeRuntimeBundleStore {
   mut closed : Bool
   mut retiring : Bool
   mut retention_initialized : Bool
+  mut component_reader : @filesystem.Reader?
+  mut component_open_failure : @filesystem.NativeReaderOpenFailure?
 }
 
 ///|
@@ -1177,7 +1179,9 @@ fn require_open(
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
   if store.closed {
     Err(Closed)
-  } else if store.retiring {
+  } else if store.retiring ||
+    store.component_reader is Some(_) ||
+    store.component_open_failure is Some(_) {
     Err(CleanupPending)
   } else {
     Ok(())
@@ -1296,6 +1300,35 @@ fn open_runtime_bundle_store_with_authorities(
   max_owners : Int,
   max_record_bytes : Int64,
 ) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue] {
+  match
+    open_runtime_bundle_store_with_authorities_and_custody(
+      sqlite_library, signature_library, root_path, authorities, admission_authorities,
+      target_triple, capacity_bytes, max_bundles, max_owners, max_record_bytes,
+    ) {
+    Ok(value) => Ok(value)
+    Err(RefusedBeforeAcquisition(issue)) => Err(issue)
+    Err(CleanupRequired(original)) => {
+      // Legacy issue-only callers cannot receive pending custody. Actual Host
+      // preparation uses the explicit original-custody port instead.
+      ignore(original.retry_cleanup())
+      Err(original.issue())
+    }
+  }
+}
+
+///|
+fn open_runtime_bundle_store_with_authorities_and_custody(
+  sqlite_library : @sqlite.Library,
+  signature_library : @signature.Library,
+  root_path : String,
+  authorities : Array[NativeRuntimeBundleAuthority],
+  admission_authorities : Array[NativeRuntimeBundleAuthority],
+  target_triple : String,
+  capacity_bytes : Int64,
+  max_bundles : Int,
+  max_owners : Int,
+  max_record_bytes : Int64,
+) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreOpenError] {
   if root_path.is_empty() ||
     !valid_authority_set(authorities) ||
     admission_authorities.length() > authorities.length() ||
@@ -1308,26 +1341,51 @@ fn open_runtime_bundle_store_with_authorities(
     max_owners > 100000 ||
     max_record_bytes < 1024L ||
     max_record_bytes > 16777216L {
-    return Err(InvalidConfiguration)
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
   }
-  let root = match @filesystem.open_root(root_path) {
+  let root = match @filesystem.open_root_with_custody(root_path) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(original) =>
+      return Err(
+        CleanupRequired(
+          bundle_store_open_failure(
+            Filesystem(original.issue()),
+            failed_root=Some(original),
+          ),
+        ),
+      )
   }
-  let lock = match root.acquire_lock(".actql-runtime-bundle.lock") {
+  let lock = match
+    root.acquire_lock_with_custody(".actql-runtime-bundle.lock") {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(original) =>
+      return Err(
+        CleanupRequired(
+          bundle_store_open_failure(
+            Filesystem(original.issue()),
+            root=Some(root),
+            failed_lock=Some(original),
+          ),
+        ),
+      )
   }
   let database = match
-    sqlite_library.open_database(
+    sqlite_library.open_database_with_custody(
       root_path + "/.actql-runtime-bundle.sqlite3",
       max_record_bytes,
     ) {
     Ok(value) => value
-    Err(issue) => {
-      ignore(lock.close())
-      return Err(Database(issue))
-    }
+    Err(original) =>
+      return Err(
+        CleanupRequired(
+          bundle_store_open_failure(
+            Database(original.issue()),
+            root=Some(root),
+            lock=Some(lock),
+            failed_database=Some(original),
+          ),
+        ),
+      )
   }
   let store = {
     root,
@@ -1346,6 +1404,8 @@ fn open_runtime_bundle_store_with_authorities(
     closed: false,
     retiring: false,
     retention_initialized: false,
+    component_reader: None,
+    component_open_failure: None,
   }
   match database.read("runtime_bundle", "catalog") {
     Ok(value) =>
@@ -1354,29 +1414,47 @@ fn open_runtime_bundle_store_with_authorities(
           store.retention_initialized = catalog.catalog_incarnation is Some(_)
           Ok(store)
         }
-        Err(issue) => {
-          database.close()
-          ignore(lock.close())
-          Err(issue)
-        }
+        Err(issue) =>
+          Err(
+            CleanupRequired(
+              bundle_store_open_failure(
+                issue,
+                root=Some(root),
+                lock=Some(lock),
+                database=Some(database),
+              ),
+            ),
+          )
       }
     Err(@sqlite.NotFound) => {
       let incarnation = match new_catalog_incarnation(signature_library) {
         Ok(value) => value
-        Err(issue) => {
-          database.close()
-          ignore(lock.close())
-          return Err(issue)
-        }
+        Err(issue) =>
+          return Err(
+            CleanupRequired(
+              bundle_store_open_failure(
+                issue,
+                root=Some(root),
+                lock=Some(lock),
+                database=Some(database),
+              ),
+            ),
+          )
       }
       let initial = match
         initial_catalog_bytes(incarnation, store.max_record_bytes) {
         Ok(value) => value
-        Err(issue) => {
-          database.close()
-          ignore(lock.close())
-          return Err(issue)
-        }
+        Err(issue) =>
+          return Err(
+            CleanupRequired(
+              bundle_store_open_failure(
+                issue,
+                root=Some(root),
+                lock=Some(lock),
+                database=Some(database),
+              ),
+            ),
+          )
       }
       match database.insert("runtime_bundle", "catalog", initial) {
         Ok(_) => {
@@ -1392,30 +1470,54 @@ fn open_runtime_bundle_store_with_authorities(
                     is Some(_)
                   Ok(store)
                 }
-                Err(issue) => {
-                  database.close()
-                  ignore(lock.close())
-                  Err(issue)
-                }
+                Err(issue) =>
+                  Err(
+                    CleanupRequired(
+                      bundle_store_open_failure(
+                        issue,
+                        root=Some(root),
+                        lock=Some(lock),
+                        database=Some(database),
+                      ),
+                    ),
+                  )
               }
-            Err(issue) => {
-              database.close()
-              ignore(lock.close())
-              Err(Database(issue))
-            }
+            Err(issue) =>
+              Err(
+                CleanupRequired(
+                  bundle_store_open_failure(
+                    Database(issue),
+                    root=Some(root),
+                    lock=Some(lock),
+                    database=Some(database),
+                  ),
+                ),
+              )
           }
-        Err(issue) => {
-          database.close()
-          ignore(lock.close())
-          Err(Database(issue))
-        }
+        Err(issue) =>
+          Err(
+            CleanupRequired(
+              bundle_store_open_failure(
+                Database(issue),
+                root=Some(root),
+                lock=Some(lock),
+                database=Some(database),
+              ),
+            ),
+          )
       }
     }
-    Err(issue) => {
-      database.close()
-      ignore(lock.close())
-      Err(Database(issue))
-    }
+    Err(issue) =>
+      Err(
+        CleanupRequired(
+          bundle_store_open_failure(
+            Database(issue),
+            root=Some(root),
+            lock=Some(lock),
+            database=Some(database),
+          ),
+        ),
+      )
   }
 }
 
@@ -1491,24 +1593,29 @@ fn verify_component(
     return Err(ComponentMismatch)
   }
   let reader = match
-    filesystem_result(
-      store.root.open_reader(entry.artifact_name, entry.generation),
-    ) {
+    store.root.open_reader_with_custody(entry.artifact_name, entry.generation) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(original) => {
+      store.component_open_failure = Some(original)
+      return Err(Filesystem(original.issue()))
+    }
   }
   let mut total = 0L
   for component in @bundle.bundle_manifest_components_projection(entry.manifest) {
     let expected_component_bytes : Int64 = @string.from_str(component[2]) catch {
       _ => {
-        ignore(reader.close())
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(ComponentMismatch)
       }
     }
     let hash = match store.signature_library.sha256_hasher() {
       Ok(value) => value
       Err(issue) => {
-        ignore(reader.close())
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(Signature(issue))
       }
     }
@@ -1518,59 +1625,69 @@ fn verify_component(
       let chunk = match filesystem_result(reader.next(limit)) {
         Ok(value) => value
         Err(issue) => {
-          ignore(reader.close())
+          ignore(
+            close_bundle_component_reader(store, original_reader=Some(reader)),
+          )
           return Err(issue)
         }
       }
       if chunk.bytes.is_empty() || chunk.bytes.length().to_int64() > remaining {
-        ignore(reader.close())
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(ComponentMismatch)
       }
       match hash.update(chunk.bytes) {
         Ok(_) => ()
         Err(issue) => {
-          ignore(reader.close())
+          ignore(
+            close_bundle_component_reader(store, original_reader=Some(reader)),
+          )
           return Err(Signature(issue))
         }
       }
       remaining = remaining - chunk.bytes.length().to_int64()
       total = total + chunk.bytes.length().to_int64()
       if chunk.eof && remaining > 0L {
-        ignore(reader.close())
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(ComponentMismatch)
       }
     }
     let digest = match hash.finish_hex() {
       Ok(value) => value
       Err(issue) => {
-        ignore(reader.close())
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(Signature(issue))
       }
     }
     if "sha256:" + digest != component[1] {
-      ignore(reader.close())
+      ignore(close_bundle_component_reader(store, original_reader=Some(reader)))
       return Err(ComponentMismatch)
     }
   }
   let terminal = match filesystem_result(reader.next(1)) {
     Ok(value) => value
     Err(issue) => {
-      ignore(reader.close())
+      ignore(close_bundle_component_reader(store, original_reader=Some(reader)))
       return Err(issue)
     }
   }
   if !terminal.eof || !terminal.bytes.is_empty() {
-    ignore(reader.close())
+    ignore(close_bundle_component_reader(store, original_reader=Some(reader)))
     return Err(ComponentMismatch)
   }
   match filesystem_result(reader.finish()) {
     Ok(_) => ()
     Err(issue) => {
-      ignore(reader.close())
+      ignore(close_bundle_component_reader(store, original_reader=Some(reader)))
       return Err(issue)
     }
   }
-  match filesystem_result(reader.close()) {
+  match close_bundle_component_reader(store, original_reader=Some(reader)) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -2514,20 +2631,41 @@ pub fn NativeRuntimeBundleStore::acquire_active_component(
   observed_target_triple : String,
   process_hold_id : String,
 ) -> Result[NativeActiveRuntimeBinding, NativeRuntimeBundleStoreIssue] {
+  match
+    self.acquire_active_component_with_custody(
+      observed_component_cid, observed_target_triple, process_hold_id,
+    ) {
+    Ok(value) => Ok(value)
+    Err(RefusedBeforeHolding(issue)) | Err(HoldingUnconfirmed(issue)) =>
+      Err(issue)
+  }
+}
+
+///|
+pub fn NativeRuntimeBundleStore::acquire_active_component_with_custody(
+  self : NativeRuntimeBundleStore,
+  observed_component_cid : String,
+  observed_target_triple : String,
+  process_hold_id : String,
+) -> Result[NativeActiveRuntimeBinding, NativeRuntimeBundleProcessAcquireError] {
   if !bounded(process_hold_id, 512) {
-    return Err(InvalidConfiguration)
+    return Err(RefusedBeforeHolding(InvalidConfiguration))
   }
   let binding = match
     self.bind_active_component(
       observed_component_cid, observed_target_triple, process_hold_id,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(RefusedBeforeHolding(issue))
   }
   match
-    self.retain(binding.runtime_bundle_cid, process_hold_id, "runtime-process") {
+    self.retain_with_acquisition_stage(
+      binding.runtime_bundle_cid,
+      process_hold_id,
+      "runtime-process",
+    ) {
     Ok(_) => Ok(binding)
-    Err(issue) => Err(issue)
+    Err(original) => Err(original)
   }
 }
 
@@ -3016,14 +3154,28 @@ pub fn NativeRuntimeBundleStore::retain(
   hold_id : String,
   kind : String,
 ) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue] {
+  match self.retain_with_acquisition_stage(runtime_bundle_cid, hold_id, kind) {
+    Ok(value) => Ok(value)
+    Err(RefusedBeforeHolding(issue)) | Err(HoldingUnconfirmed(issue)) =>
+      Err(issue)
+  }
+}
+
+///|
+fn NativeRuntimeBundleStore::retain_with_acquisition_stage(
+  self : NativeRuntimeBundleStore,
+  runtime_bundle_cid : String,
+  hold_id : String,
+  kind : String,
+) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleProcessAcquireError] {
   if !bounded(hold_id, 512) ||
     !bounded(kind, 512) ||
     hold_id.has_prefix("workspace-set:") {
-    return Err(InvalidConfiguration)
+    return Err(RefusedBeforeHolding(InvalidConfiguration))
   }
   let current = match load_catalog(self) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(RefusedBeforeHolding(issue))
   }
   for entry in current.entries {
     for hold in entry.holds {
@@ -3031,12 +3183,12 @@ pub fn NativeRuntimeBundleStore::retain(
         if entry_cid(entry) == runtime_bundle_cid && hold.kind == kind {
           return Ok(snapshot(entry))
         }
-        return Err(HoldCollision)
+        return Err(RefusedBeforeHolding(HoldCollision))
       }
     }
   }
   guard entry_index(current, runtime_bundle_cid) is Some(index) else {
-    return Err(MissingBundle)
+    return Err(RefusedBeforeHolding(MissingBundle))
   }
   let entry = current.entries[index]
   let transition = match
@@ -3048,24 +3200,24 @@ pub fn NativeRuntimeBundleStore::retain(
       ),
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(RefusedBeforeHolding(issue))
   }
   let holds = entry.holds.copy()
   holds.push({ hold_id, kind, binding_body: None, })
   let replacement = match
     after_transition(entry, transition, holds, entry.reclaim_pending) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(RefusedBeforeHolding(issue))
   }
   let entries = replace_entry(current.entries, index, replacement)
   let next = with_catalog_revision(current, active_cid(current), entries)
   match persist_catalog(self, current, next) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(HoldingUnconfirmed(issue))
   }
   match bundle_result(@bundle.commit_bundle_transition(transition, true)) {
     Ok(_) => Ok(snapshot(replacement))
-    Err(issue) => Err(issue)
+    Err(issue) => Err(HoldingUnconfirmed(issue))
   }
 }
 
@@ -3076,6 +3228,13 @@ pub fn NativeRuntimeBundleStore::release(
 ) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
   if !bounded(hold_id, 512) || hold_id.has_prefix("workspace-set:") {
     return Err(InvalidConfiguration)
+  }
+  // Cleanup of the same verification Reader precedes release's catalog read.
+  // Otherwise its pending I/O fence would also prevent the release needed to
+  // reach close_checked. This retires no durable holding by itself.
+  match close_bundle_component_reader(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let current = match load_catalog(self) {
     Ok(value) => value
@@ -3331,6 +3490,10 @@ pub fn NativeRuntimeBundleStore::close_checked(
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
   if self.closed {
     return Ok(())
+  }
+  match close_bundle_component_reader(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   if !self.active_installers.is_empty() {
     return Err(CleanupPending)

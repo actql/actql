@@ -29,6 +29,8 @@ test "typed NEAREST retains ordered composite identities without rebuilding vect
     generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
     model_tasks: None,
     parameter_names: None,
+    infer_labels: false,
+    infer_budget: { remaining_work: mapping_limits().max_expression_work, },
   }
   let visible = [("a", "a"), ("b", "b"), ("embedding", "embedding")]
   let candidate : Input = {
@@ -52,7 +54,7 @@ test "typed NEAREST retains ordered composite identities without rebuilding vect
     query_typed=Some((vectors, "query_vectors")),
     candidate_typed=Some(vectors),
   )
-  assert_eq(fields, ["hit"])
+  assert_eq(fields, ["a", "b", "embedding", "hit"])
   let source = @builder.finish(
     builder,
     construction.array(steps.map(step => construction.object(step))),
@@ -61,7 +63,12 @@ test "typed NEAREST retains ordered composite identities without rebuilding vect
   for i in 0..<steps.length() {
     let step = @wire.open_object(@wire.element_at(cursor, i).unwrap()).unwrap()
     assert_true(@wire.lookup(step, "to_vectors") is None)
-    assert_true(@wire.lookup(step, "vectors") is None)
+    if @wire.lookup(step, "vectors") is Some(_) {
+      assert_eq(
+        @wire.text(@wire.lookup(step, "from").unwrap()),
+        Ok("query_vectors"),
+      )
+    }
   }
   let nearest_steps = @wire.elements(cursor)
     .unwrap()

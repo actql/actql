@@ -49,6 +49,7 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
       | Where(_)
       | Distinct
       | AssertUnique(_)
+      | Infer(_)
       | Set(_)
       | Drop(_)
       | Rename(_)

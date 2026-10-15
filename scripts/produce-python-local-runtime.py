@@ -123,7 +123,7 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
     selected = _recipe_from_original(original, source_sha=source,
         package_version=sdk['version'], module_sha256=digest)
     require(set(image) == {'source_sha', 'module_sha256', 'core_abi', 'wasmtime_version',
-        'runtime_library_sha256', 'engine_sha256', 'image', 'image_sha256',
+        'runtime_library_sha256', 'provider_library_sha256', 'engine_sha256', 'image', 'image_sha256',
         'compiled', 'runtime_executed', 'public_local_acceptance'},
         'Select the original compiled-image production receipt')
     engine_hash = hashlib.sha256(selected.engine_body).hexdigest()
@@ -131,6 +131,7 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
         and type(image['core_abi']) is int and image['core_abi'] == LOCAL_CORE_ABI
         and image['wasmtime_version'] == WASMTIME_VERSION
         and image['runtime_library_sha256'] == selected.runtime_library_sha256
+        and image['provider_library_sha256'] == selected.provider_library_sha256
         and image['engine_sha256'] == engine_hash and image['compiled'] is True
         and image['runtime_executed'] is False and image['public_local_acceptance'] is False,
         'Compiled image receipt does not match the selected original recipe')
@@ -147,6 +148,7 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
         'module_sha256': digest, 'core_abi': LOCAL_CORE_ABI,
         'wasmtime_version': WASMTIME_VERSION,
         'runtime_library_sha256': selected.runtime_library_sha256,
+        'provider_library_sha256': selected.provider_library_sha256,
         'platform': 'darwin-arm64', 'engine_body': json.loads(selected.engine_body),
         'engine_sha256': engine_hash, **image_item}
     body = {'source_sha': source, 'package_version': sdk['version'], 'platform': 'darwin-arm64',

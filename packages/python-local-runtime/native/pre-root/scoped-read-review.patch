@@ -1,0 +1,432 @@
+--- a/owned_capacity.c
++++ b/owned_capacity.c
+@@ -13,12 +13,17 @@
+ #include <sys/stat.h>
+ 
+ /* An extent is a physical allocator record, not a Run or capacity decision. */
++struct actql_read_context;
+ struct extent {
+     size_t pages;
+     bool retired;
+     bool sealed;
+     size_t external_readers;
+     bool external_writer;
++    /* Derived physical layout; not covered by an old numerical profile. */
++    struct actql_read_context *read_context;
++    pid_t read_process;
++    bool read_released;
+ };
+ 
+ struct actql_owned_capacity {
+@@ -38,6 +43,7 @@
+     bool transferred;
+     bool closing;
+     size_t active_scopes;
++    size_t read_context_count;
+     atomic_flag lock;
+     struct extent extents[];
+ };
+@@ -343,6 +349,9 @@
+     if (lease->active_scopes != 0) {
+         return ACTQL_OWNED_BUSY;
+     }
++    /* Retained read users still need their original allocation scope for
++     * physical cleanup. Logical Host closing remains enforced by its Owner. */
++    if (lease->read_context_count != 0) return ACTQL_OWNED_BUSY;
+     lease->closing = true;
+     for (size_t i = lease->control_pages; i < lease->page_count; i++) {
+         if (lease->extents[i].pages == 0) continue;
+@@ -383,3 +392,6 @@
+  * domain borrow uses only its original interior relative allocator records. */
+ #include "owned_region.inc"
+ #include "owned_domain_borrow.inc"
++
++/* Private selected read allocator preparation, same physical provider. */
++#include "scoped_read.inc"
+--- a/moonbit_runtime.h
++++ b/moonbit_runtime.h
+@@ -190,8 +190,18 @@
+ void *mi_malloc(size_t size);
+ #endif
+ void mi_free(void *ptr);
++#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
++/* Derived selected-runtime hook. Original control allocations outside a funded
++ * read call retain mi_malloc/mi_free. Managed aliases free through provenance
++ * after leaving that call. This flag alone never supplies a funded context. */
++void *actql_native_moon_scoped_allocate(size_t size);
++void actql_native_moon_scoped_free(void *pointer);
++#define MOONBIT_MALLOC_RAW actql_native_moon_scoped_allocate
++#define MOONBIT_FREE_RAW actql_native_moon_scoped_free
++#else
+ #define MOONBIT_MALLOC_RAW mi_malloc
+ #define MOONBIT_FREE_RAW mi_free
++#endif
+ 
+ #elif MOONBIT_ALLOCATOR == MOONBIT_ALLOCATOR_SYSTEM
+ 
+--- a/owned_region.inc
++++ b/owned_region.inc
+@@ -349,6 +349,7 @@
+         return ACTQL_OWNED_IMAGE_MISMATCH;
+     lock_capacity(lease);
+     if (!lease->transferred || lease->closing || lease->active_scopes != 0 ||
++        lease->read_context_count != 0 ||
+         lease->domain_borrow_attempted ||
+         atomic_load_explicit(&lease->domain_borrower_pid, memory_order_relaxed) != 0) {
+         unlock_capacity(lease);
+--- /dev/null
++++ b/scoped_read.h
+@@ -0,0 +1,23 @@
++#ifndef ACTQL_PRIVATE_SCOPED_READ_H
++#define ACTQL_PRIVATE_SCOPED_READ_H
++#include <stddef.h>
++#include "owned_capacity.h"
++/* Physical custody only. The existing Core supplier must first validate the
++ * original same-Ledger loan and backing borrow. DATA cannot issue this loan. */
++typedef struct actql_read_context actql_read_context;
++int actql_read_context_create(actql_owned_capacity *, actql_read_context **);
++int actql_read_context_retain(actql_read_context *);
++int actql_read_context_release_after_owner_ack(actql_read_context *);
++int actql_read_context_enter(actql_read_context *);
++/* Original stopped read-use only; no fresh user or read permission. */
++int actql_read_context_enter_cleanup(actql_read_context *);
++int actql_read_context_leave(actql_read_context *);
++int actql_read_context_try_close(actql_read_context **);
++/* Existing managed allocations retain their original free route after leave.
++ * These are private runtime hooks, not user-facing allocation operations. */
++void *actql_native_moon_scoped_allocate(size_t);
++void actql_native_moon_scoped_free(void *);
++void *actql_native_file_scoped_allocate(size_t);
++void *actql_native_file_scoped_callocate(size_t, size_t);
++void actql_native_file_scoped_free(void *);
++#endif
+--- /dev/null
++++ b/scoped_read.inc
+@@ -0,0 +1,327 @@
++/* DESIGN / EXACT-DIFF PREPARATION ONLY. Not compiled or selected by a producer.
++ * Included once by the ORIGINAL owned_capacity.c. This is physical provenance
++ * inside that provider, not a new quota, permission registry or cleanup Owner. */
++#include "scoped_read.h"
++#include <stdlib.h>
++#include <malloc/malloc.h>
++
++/* Pinned libmoonbitrun.o exposes mimalloc217 and this public v2 ABI. */
++extern bool mi_is_in_heap_region(const void *);
++
++extern void *mi_malloc(size_t);
++extern void mi_free(void *);
++extern void moonbit_panic(void);
++
++struct actql_read_context {
++    actql_owned_capacity *lease;
++    struct actql_read_context *next;
++    pid_t process;
++    size_t users;
++    size_t active;
++    bool closing;
++};
++
++/* Only contexts already retained in their original allocator are indexed.
++ * No heap allocation, pointer serialization, independent provider or authority
++ * lookup is introduced. A context allocation itself prevents lease retirement.
++ * Lock order: context index -> original capacity. No inverse acquisition. */
++static atomic_flag read_context_lock = ATOMIC_FLAG_INIT;
++static actql_read_context *read_contexts;
++static _Atomic pid_t read_process;
++static _Thread_local actql_read_context *read_current;
++static _Thread_local size_t read_depth;
++
++static bool lock_read_contexts(void) {
++    pid_t process = getpid();
++    pid_t origin = atomic_load_explicit(&read_process, memory_order_acquire);
++    if (origin == 0) {
++        atomic_compare_exchange_strong_explicit(&read_process, &origin, process,
++            memory_order_acq_rel, memory_order_acquire);
++        origin = atomic_load_explicit(&read_process, memory_order_acquire);
++    }
++    /* Reject before touching a possibly inherited locked flag after fork. */
++    if (origin != process) return false;
++    while (atomic_flag_test_and_set_explicit(&read_context_lock,
++                                            memory_order_acquire)) {}
++    return true;
++}
++static void unlock_read_contexts(void) {
++    atomic_flag_clear_explicit(&read_context_lock, memory_order_release);
++}
++static bool known_read_context(actql_read_context *context) {
++    if (read_process != getpid()) return false;
++    for (actql_read_context *item = read_contexts; item; item = item->next)
++        if (item == context) return true;
++    return false;
++}
++
++int actql_read_context_create(actql_owned_capacity *lease,
++                             actql_read_context **slot) {
++    if (lease == NULL || slot == NULL || *slot != NULL || read_current != NULL ||
++        actql_native_owned_current() != lease) return ACTQL_OWNED_INVALID;
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    if (read_process != 0 && read_process != getpid()) {
++        unlock_read_contexts();
++        return ACTQL_OWNED_INVALID; /* No inherited-context adoption after fork. */
++    }
++    lock_capacity(lease);
++    bool current = lease->transferred && !lease->closing && !foreign_domain_process(lease) &&
++                   lease->read_context_count != SIZE_MAX;
++    unlock_capacity(lease);
++    if (!current) { unlock_read_contexts(); return ACTQL_OWNED_INVALID; }
++    void *memory = NULL;
++    int status = actql_native_owned_allocate(lease, sizeof(actql_read_context),
++                                             _Alignof(actql_read_context), &memory);
++    if (status != ACTQL_OWNED_OK) {
++        unlock_read_contexts();
++        return status;
++    }
++    actql_read_context *context = memory;
++    context->lease = lease;
++    context->next = read_contexts;
++    context->process = getpid();
++    context->users = context->active = 0;
++    lock_capacity(lease);
++    bool usable = !lease->closing && !foreign_domain_process(lease);
++    lease->read_context_count++;
++    unlock_capacity(lease);
++    context->closing = !usable;
++    /* Publish the original partial carrier before later operations can fail. */
++    *slot = context;
++    read_contexts = context;
++    atomic_store_explicit(&read_process, getpid(), memory_order_release);
++    unlock_read_contexts();
++    return usable ? ACTQL_OWNED_OK : ACTQL_OWNED_BUSY;
++}
++
++int actql_read_context_retain(actql_read_context *context) {
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    int status = ACTQL_OWNED_INVALID;
++    if (known_read_context(context) && !context->closing &&
++        context->users != SIZE_MAX) {
++        lock_capacity(context->lease);
++        bool current = context->lease->transferred && !context->lease->closing &&
++                       !foreign_domain_process(context->lease);
++        unlock_capacity(context->lease);
++        if (current) { context->users++; status = ACTQL_OWNED_OK; }
++    }
++    unlock_read_contexts();
++    return status;
++}
++
++/* Only the original Root/Reader Owner calls this after actual stop/close ACK.
++ * No Bool, process exit, cancellation request or successful read supplies ACK. */
++int actql_read_context_release_after_owner_ack(actql_read_context *context) {
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    int status = ACTQL_OWNED_INVALID;
++    if (known_read_context(context) && context->users != 0) {
++        context->users--;
++        status = ACTQL_OWNED_OK;
++    }
++    unlock_read_contexts();
++    return status;
++}
++
++static int enter_read_context(actql_read_context *context, bool cleanup) {
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    int status = ACTQL_OWNED_INVALID;
++    if (known_read_context(context) &&
++        ((!context->closing && context->users != 0) ||
++         (cleanup && context->closing && context->users == 0) ||
++         (cleanup && !context->closing && read_current == context && read_depth != 0)) &&
++        context->active != SIZE_MAX &&
++        (read_current == NULL || read_current == context) && read_depth != SIZE_MAX &&
++        actql_native_owned_current() == context->lease) {
++        lock_capacity(context->lease);
++        bool current = !context->lease->closing && context->lease->transferred &&
++                       !foreign_domain_process(context->lease);
++        unlock_capacity(context->lease);
++        if (current) {
++            read_current = context;
++            read_depth++;
++            context->active++;
++            status = ACTQL_OWNED_OK;
++        }
++    }
++    unlock_read_contexts();
++    return status;
++}
++
++int actql_read_context_enter(actql_read_context *context) {
++    return enter_read_context(context, false);
++}
++/* Only the existing nominal Owner's stopped read-use enters this path. It
++ * borrows the SAME context/lease while its last aliases or retirement retry
++ * retain custody. It issues no user and cannot reopen an ordinary read. */
++int actql_read_context_enter_cleanup(actql_read_context *context) {
++    return enter_read_context(context, true);
++}
++
++int actql_read_context_leave(actql_read_context *context) {
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    int status = ACTQL_OWNED_INVALID;
++    if (known_read_context(context) && read_current == context &&
++        read_depth != 0 && context->active != 0) {
++        context->active--;
++        if (--read_depth == 0) read_current = NULL;
++        status = ACTQL_OWNED_OK;
++    }
++    unlock_read_contexts();
++    return status;
++}
++
++static void *allocate_read_bytes(size_t bytes) {
++    void *output = NULL;
++    if (!lock_read_contexts()) return NULL;
++    actql_read_context *context = read_current;
++    /* Closing cannot begin during an active ordinary frame. A closing active
++     * frame can therefore only be the original cleanup entry above. */
++    if (known_read_context(context) && read_depth != 0 &&
++        context->active != 0 && actql_native_owned_current() == context->lease &&
++        actql_native_owned_allocate(context->lease, bytes ? bytes : 1,
++                                    _Alignof(max_align_t), &output) == ACTQL_OWNED_OK) {
++        lock_capacity(context->lease);
++        size_t start;
++        if (!allocation_start(context->lease, output, &start)) {
++            /* This would violate the same-provider allocator's own postcondition.
++             * Do not substitute a system allocation or detach the original lease. */
++            unlock_capacity(context->lease);
++            unlock_read_contexts();
++            moonbit_panic();
++            return NULL;
++        }
++        context->lease->extents[start].read_context = context;
++        context->lease->extents[start].read_process = getpid();
++        context->lease->extents[start].read_released = false;
++        unlock_capacity(context->lease);
++    }
++    unlock_read_contexts();
++    return output;
++}
++
++/* Return 1 only for a pointer OUTSIDE all registered selected arenas. That is
++ * an original non-target allocation, not allocation fallback. Interior/foreign
++ * selected pointers refuse; pending cleanup remains in the same extent table. */
++static int release_read_bytes(void *pointer, bool managed) {
++    if (pointer == NULL) return 1;
++    pid_t origin = atomic_load_explicit(&read_process, memory_order_acquire);
++    if (origin != 0 && origin != getpid()) {
++        /* Never lock/dereference or re-adopt an inherited read context. Classify
++         * only against the ORIGINAL allocator, before the index PID guard.
++         * Both APIs safely reject addresses outside their own heap domain.
++         * This is not permission to free a selected arena or reset its index. */
++        if (managed) return mi_is_in_heap_region(pointer) ? 1 : ACTQL_OWNED_INVALID;
++        /* Our non-target file path uses default malloc/calloc, not arbitrary
++         * caller-installed zones. The allocator adapter uses the SDK zone size
++         * operation: zero means the pointer is outside that original zone.
++         * Do not use malloc_zone_from_ptr: its documented precondition already
++         * requires a malloc pointer, which cannot classify an arena pointer. */
++        malloc_zone_t *zone = malloc_default_zone();
++        return zone != NULL && zone->size != NULL && zone->size(zone, pointer) != 0
++            ? 1 : ACTQL_OWNED_INVALID;
++    }
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    if (read_process != 0 && read_process != getpid()) {
++        unlock_read_contexts();
++        return ACTQL_OWNED_INVALID;
++    }
++    int status = 1;
++    for (actql_read_context *context = read_contexts; context; context = context->next) {
++        actql_owned_capacity *lease = context->lease;
++        uintptr_t value = (uintptr_t)pointer, base = (uintptr_t)lease;
++        if (value < base || value - base >= lease->length) continue;
++        status = ACTQL_OWNED_INVALID;
++        lock_capacity(lease);
++        size_t start;
++        bool selected = allocation_start(lease, pointer, &start) &&
++            lease->extents[start].read_context == context &&
++            lease->extents[start].read_process == getpid() && !lease->extents[start].read_released;
++        if (selected) lease->extents[start].read_released = true;
++        unlock_capacity(lease);
++        if (!selected) continue;
++        status = actql_native_owned_retire(lease, pointer);
++        break;
++    }
++    unlock_read_contexts();
++    return status;
++}
++
++int actql_read_context_try_close(actql_read_context **slot) {
++    if (slot == NULL) return ACTQL_OWNED_INVALID;
++    if (*slot == NULL) return ACTQL_OWNED_OK;
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    actql_read_context *context = *slot;
++    if (!known_read_context(context)) {
++        unlock_read_contexts();
++        return ACTQL_OWNED_INVALID;
++    }
++    /* Root/Reader's original Owner already denies new work while closing.
++     * Do not fence the retained physical scope before those same users can
++     * perform their pending close/diagnostic calls and return the real ACK. */
++    if (context->users != 0 || context->active != 0) {
++        unlock_read_contexts();
++        return ACTQL_OWNED_BUSY;
++    }
++    context->closing = true;
++    actql_owned_capacity *lease = context->lease;
++    /* No new retry queue: inspect and retry only the original allocator's
++     * existing released extents. Live aliases keep their original reservation. */
++    for (size_t index = lease->control_pages; index < lease->page_count; index++) {
++        lock_capacity(lease);
++        bool selected = lease->extents[index].read_context == context &&
++                        lease->extents[index].read_process == getpid();
++        bool released = selected && lease->extents[index].read_released;
++        unlock_capacity(lease);
++        if (!selected) continue;
++        if (!released) { unlock_read_contexts(); return ACTQL_OWNED_BUSY; }
++        int status = actql_native_owned_retire(lease,
++            (unsigned char *)lease + index * lease->page_size);
++        if (status != ACTQL_OWNED_OK) { unlock_read_contexts(); return status; }
++    }
++    actql_read_context **link = &read_contexts;
++    while (*link != context) link = &(*link)->next;
++    actql_read_context *next = context->next;
++    *link = next;
++    int status = actql_native_owned_retire(lease, context);
++    if (status == ACTQL_OWNED_OK) {
++        *slot = NULL;
++        lock_capacity(lease);
++        lease->read_context_count--;
++        unlock_capacity(lease);
++    } else {
++        /* Original retirement failed: the context page is still accessible.
++         * Keep the same closing carrier; no second acquire or replacement. */
++        context->next = read_contexts;
++        read_contexts = context;
++    }
++    unlock_read_contexts();
++    return status;
++}
++
++void *actql_native_moon_scoped_allocate(size_t bytes) {
++    if (read_current == NULL) return mi_malloc(bytes); /* Original control path. */
++    void *result = allocate_read_bytes(bytes);
++    if (result == NULL) moonbit_panic(); /* Existing fail-stop, never fallback. */
++    return result;
++}
++void actql_native_moon_scoped_free(void *pointer) {
++    int status = release_read_bytes(pointer, true);
++    if (status == 1) mi_free(pointer); /* Original non-target allocator. */
++    else if (status != ACTQL_OWNED_OK && status != ACTQL_OWNED_BUSY &&
++             status != ACTQL_OWNED_PHYSICAL_FAILURE) moonbit_panic();
++    /* BUSY/physical failure stays read_released in the original extent table. */
++}
++void *actql_native_file_scoped_allocate(size_t bytes) {
++    return read_current == NULL ? malloc(bytes) : allocate_read_bytes(bytes);
++}
++void *actql_native_file_scoped_callocate(size_t count, size_t bytes) {
++    if (read_current == NULL) return calloc(count, bytes);
++    if (bytes && count > SIZE_MAX / bytes) return NULL;
++    return allocate_read_bytes(count * bytes); /* Original arena is zeroed. */
++}
++void actql_native_file_scoped_free(void *pointer) {
++    int status = release_read_bytes(pointer, false);
++    if (status == 1) free(pointer);
++    else if (status != ACTQL_OWNED_OK && status != ACTQL_OWNED_BUSY &&
++             status != ACTQL_OWNED_PHYSICAL_FAILURE) moonbit_panic();
++}

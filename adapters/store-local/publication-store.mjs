@@ -79,6 +79,124 @@ const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 
+// Keep this comparison workspace synchronous and dedicated: a short wire
+// must not borrow an unrelated Buffer pool backing across the Store phase.
+// Compare encoded bytes, not decoded replacement text or normalized strings.
+const exactUtf8WireMatches = (bytes, wire) => {
+  const length = Buffer.byteLength(wire, 'utf8');
+  if (bytes.byteLength !== length) return false;
+  const expected = Buffer.allocUnsafeSlow(length);
+  expected.write(wire, 0, length, 'utf8');
+  return bytes.equals(expected);
+};
+
+// The existing Store's synchronous encoding phase. Only its complete envelope
+// crosses into writer/FD/ACK waits; crypto and Base64 segment temporaries do not
+// belong to that async frame. This retires references, not capacity, physical
+// GC, a pending writer or the original borrowed input's independent custody.
+function encodePrivateEvidenceEnvelope(input, isWire, key, aad, maximum) {
+  // The caller already checked the complete encrypted extent. A short wire
+  // must not borrow a larger shared pool backing for this encoding lifetime.
+  // Keep its exact UTF-8 snapshot; the original String and codec controls are
+  // still separate funded components, not released by this extent check.
+  const bytes = isWire ? Buffer.allocUnsafeSlow(Buffer.byteLength(input, 'utf8')) : input;
+  if (isWire) bytes.write(input, 0, bytes.byteLength, 'utf8');
+  const nonce = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', key, nonce);
+  cipher.setAAD(aad);
+  const encrypted = cipher.update(bytes);
+  const final = cipher.final();
+  const ciphertext = final.byteLength === 0 ? encrypted
+    : Buffer.concat([encrypted, final]);
+  // Every variable segment is Base64 ASCII. Preserve the historical field
+  // order and bytes without a second complete JSON String/envelope backing.
+  const segments = [
+    '{"version":"actql-private-publication-evidence/0.1","nonce":"',
+    nonce.toString('base64'),
+    '","tag":"',
+    cipher.getAuthTag().toString('base64'),
+    '","ciphertext":"',
+    ciphertext.toString('base64'),
+    '"}',
+  ];
+  const envelopeBytes = segments.reduce((total, segment) => total + segment.length, 0);
+  if (!Number.isSafeInteger(envelopeBytes) || envelopeBytes > maximum) {
+    fail('PublicationObjectLimit');
+  }
+  const envelope = Buffer.alloc(envelopeBytes);
+  let envelopeOffset = 0;
+  for (const segment of segments) {
+    envelopeOffset += envelope.write(segment, envelopeOffset, 'ascii');
+  }
+  if (envelopeOffset !== envelopeBytes) fail('PublicationPrivateEvidenceCorrupt');
+  return envelope;
+}
+
+// Recovery facade of the SAME Store writer, not another cleanup/capacity
+// owner. A failed private preparation has no prepared object to return yet.
+// Keep its original reservation/FD/custody reachable, and expose only cleanup.
+function retainPrivateWriterCleanup(writer) {
+  let original = writer;
+  let flight;
+  const pending = () => {
+    if (original === undefined) return false;
+    const state = original.status();
+    return state.reservationHeld || state.custodyPending || state.cleanupPending;
+  };
+  const release = () => {
+    if (flight !== undefined) return flight;
+    if (!pending()) {
+      original = undefined;
+      return Promise.resolve(false);
+    }
+    const actual = original;
+    flight = Promise.resolve().then(() => actual.cancel()).then(result => {
+      if (pending()) fail('PublicationPrivateWriterCleanupPending');
+      // An escaped retired facade must not keep the original writer/Store
+      // graph after the actual same cleanup has settled its responsibilities.
+      original = undefined;
+      return result;
+    }).finally(() => { flight = undefined; });
+    return flight;
+  };
+  const cleanup = Object.freeze({
+    status: () => Object.freeze({pending: pending()}),
+    release,
+    async retry() { await release(); return cleanup.status(); },
+  });
+  return cleanup;
+}
+
+// A bounded view of the two original private-preparation duties: descriptor
+// writer cleanup and the already prepared content. The same child owners
+// perform retirement; this facade cannot write, commit or return their loans.
+function retainPrivateRawCleanup(descriptor, content) {
+  let originals = [descriptor, content];
+  let flight;
+  const pending = () => originals?.some(handle => handle.status().pending) === true;
+  const release = () => {
+    if (flight !== undefined) return flight;
+    if (originals === undefined) return Promise.resolve(false);
+    flight = Promise.resolve().then(async () => {
+      for (const handle of originals) {
+        if (handle.status().pending) await handle.release();
+      }
+      if (pending()) fail('PublicationPrivateWriterCleanupPending');
+      // Clear both references after their actual retirement, including on an
+      // escaped facade. A false or thrown child release keeps the same pair.
+      originals = undefined;
+      return true;
+    }).finally(() => { flight = undefined; });
+    return flight;
+  };
+  const cleanup = Object.freeze({
+    status: () => Object.freeze({pending: pending()}),
+    release,
+    async retry() { await release(); return cleanup.status(); },
+  });
+  return cleanup;
+}
+
 async function syncDirectoryPath(path) {
   const directory = await open(path, constants.O_RDONLY);
   try { await directory.sync(); }
@@ -808,6 +926,9 @@ export async function openLocalPublicationStore(
   let metadataRetentionBusy = Promise.resolve();
   const activeResultReaders = new Map();
   const activePhysicalHoldingReaders = new Map();
+  // Same Store lifetime only, not another capacity grant or semantic authority.
+  // Keep the original read/failed-close custody until that exact FD closes.
+  const activeSemanticReaders = new Set();
   const pendingResultDeletions = new Map();
   const pendingMetadataDeletions = new Map();
   const pendingPhysicalHoldingDeletions = new Map();
@@ -1216,21 +1337,27 @@ export async function openLocalPublicationStore(
 
   const verifyObject = async cid => {
     const path = objectPath(cid);
-    let state;
-    try { state = await lstat(path); }
-    catch (error) {
-      if (error?.code === 'ENOENT') fail('PublicationObjectMissing');
-      throw error;
-    }
-    if (!state.isFile() || !quantity(state.size) ||
-        state.size > configuration.maxObjectBytes) {
-      fail('InvalidPublicationStoreObject');
-    }
-    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
-      constants.O_NONBLOCK);
-    const hash = createHash('sha256');
-    let bytes = 0;
+    active();
+    // Borrow the same Store's existing private reader-duty collection. The
+    // verifier owns its FD independently of an enclosing semantic/Result read.
+    const reader = {cleanup: undefined, failure: undefined};
+    activeSemanticReaders.add(reader);
+    let handle, readFailure, readFailed = false;
     try {
+      let state;
+      try { state = await lstat(path); }
+      catch (error) {
+        if (error?.code === 'ENOENT') fail('PublicationObjectMissing');
+        throw error;
+      }
+      if (!state.isFile() || !quantity(state.size) ||
+          state.size > configuration.maxObjectBytes) {
+        fail('InvalidPublicationStoreObject');
+      }
+      handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+        constants.O_NONBLOCK);
+      const hash = createHash('sha256');
+      let bytes = 0;
       const before = await handle.stat();
       if (!before.isFile() || !quantity(before.size) ||
           before.size > configuration.maxObjectBytes ||
@@ -1238,7 +1365,11 @@ export async function openLocalPublicationStore(
           before.size !== state.size || before.mtimeMs !== state.mtimeMs) {
         fail('InvalidPublicationStoreObject');
       }
-      const stream = handle.createReadStream({autoClose: false});
+      // This same-FD verifier keeps one explicit overflow-probe byte so growth
+      // is still refused before hashing it. Fund W+1 acquisition separately;
+      // neither the accepted W nor a later clamp pays for that sentinel.
+      const stream = handle.createReadStream({autoClose: false,
+        end: before.size, highWaterMark: Math.min(65536, before.size + 1)});
       for await (const chunk of stream) {
         // Reject growth before charging this chunk to the hash/accepted byte
         // inventory. The received chunk and stream backing remain a separate
@@ -1258,8 +1389,59 @@ export async function openLocalPublicationStore(
         fail('PublicationObjectCorrupt');
       }
       return Object.freeze({cid, bytes});
+    } catch (error) {
+      readFailure = error;
+      readFailed = true;
+      throw error;
     } finally {
-      await handle.close();
+      if (handle === undefined) {
+        activeSemanticReaders.delete(reader); // No original FD was acquired.
+      } else {
+        try {
+          if (await handle.close() === false) fail('PublicationStoreCleanupPending');
+          activeSemanticReaders.delete(reader);
+        } catch (closeFailure) {
+          // Keep the original FD/primary inside this Store before decorating
+          // an outward failure. Retry only close; never verify or open again.
+          let original = handle, flight;
+          const status = () => Object.freeze({pending: original !== undefined});
+          const cleanup = Object.freeze({status, retry() {
+            if (flight !== undefined) return flight;
+            if (original === undefined) return Promise.resolve(status());
+            flight = Promise.resolve().then(async () => {
+              if (await original.close() === false) fail('PublicationStoreCleanupPending');
+              original = undefined;
+              activeSemanticReaders.delete(reader);
+              reader.cleanup = reader.failure = undefined;
+              return status();
+            }).finally(() => { flight = undefined; });
+            return flight;
+          }});
+          const primary = readFailed ? readFailure : closeFailure;
+          reader.cleanup = cleanup;
+          reader.failure = primary;
+          let failure;
+          try {
+            failure = primary !== null && typeof primary === 'object' &&
+              Object.isExtensible(primary) && primary.cleanupHandle === undefined &&
+              ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+                const field = Object.getOwnPropertyDescriptor(primary, name);
+                return field === undefined || field.writable === true;
+              })
+              ? primary : new Error('PublicationStoreCleanupPending', {cause: primary});
+            failure.cleanupHandle = cleanup;
+            failure.cleanupPending = true;
+            failure.cleanupError = closeFailure;
+          } catch {
+            failure = new Error('PublicationStoreCleanupPending', {cause: primary});
+            failure.cleanupHandle = cleanup;
+            failure.cleanupPending = true;
+            failure.cleanupError = closeFailure;
+          }
+          reader.failure = failure;
+          throw failure;
+        }
+      }
     }
   };
 
@@ -2088,29 +2270,43 @@ export async function openLocalPublicationStore(
 
   const readSemanticBytes = async cid => {
     const path = contractPath(cid);
+    active();
+    // This is the original read duty in the same Store lifetime. Keep its
+    // private failure reachable even when a public ingress redacts the Error.
+    const reader = {cleanup: undefined, failure: undefined};
+    activeSemanticReaders.add(reader);
     let handle;
     try { handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW); }
     catch (error) {
+      activeSemanticReaders.delete(reader); // No original FD was acquired.
       if (error?.code === 'ENOENT') fail('PublicationContractMissing');
       throw error;
     }
+    let readFailure, readFailed = false;
     try {
       const before = await handle.stat();
-      if (!before.isFile() || before.size > configuration.maxObjectBytes) {
+      if (!before.isFile() || !quantity(before.size) ||
+          before.size > configuration.maxObjectBytes) {
         fail('InvalidPublicationContractObject');
       }
-      const chunks = [];
+      // The original FD extent bounds both acquisition and the private output
+      // before copying. A small contract must not acquire a default64KiB
+      // stream backing or return an unrelated pooled backing.
+      const bytes = Buffer.allocUnsafeSlow(before.size);
       const hash = createHash('sha256');
       let size = 0;
-      const stream = handle.createReadStream({autoClose: false});
-      for await (const chunk of stream) {
-        if (chunk.byteLength > before.size - size ||
-            chunk.byteLength > configuration.maxObjectBytes - size) {
-          fail('PublicationContractCorrupt');
+      if (before.size > 0) {
+        const stream = handle.createReadStream({autoClose: false,
+          end: before.size - 1, highWaterMark: Math.min(65536, before.size)});
+        for await (const chunk of stream) {
+          if (chunk.byteLength > before.size - size ||
+              chunk.byteLength > configuration.maxObjectBytes - size) {
+            fail('PublicationContractCorrupt');
+          }
+          chunk.copy(bytes, size);
+          hash.update(chunk);
+          size += chunk.byteLength;
         }
-        chunks.push(chunk);
-        hash.update(chunk);
-        size += chunk.byteLength;
       }
       const after = await handle.stat();
       const physicalCid = `sha256:${hash.digest('hex')}`;
@@ -2122,9 +2318,58 @@ export async function openLocalPublicationStore(
         fail('PublicationContractCorrupt');
       }
       await verifyObject(physicalCid);
-      return Buffer.concat(chunks, size);
+      return bytes;
+    } catch (error) {
+      readFailure = error;
+      readFailed = true;
+      throw error;
     } finally {
-      await handle.close();
+      try {
+        if (await handle.close() === false) fail('PublicationSemanticReaderCleanupPending');
+        activeSemanticReaders.delete(reader);
+      } catch (closeFailure) {
+        // Preserve this same original FD and primary failure. Cleanup retries
+        // close only: never reopen, reread, or release the Store on rejection.
+        let original = handle, flight;
+        const status = () => Object.freeze({pending: original !== undefined});
+        const cleanup = Object.freeze({status, retry() {
+          if (flight !== undefined) return flight;
+          if (original === undefined) return Promise.resolve(status());
+          flight = Promise.resolve().then(async () => {
+            if (await original.close() === false) fail('PublicationSemanticReaderCleanupPending');
+            original = undefined;
+            activeSemanticReaders.delete(reader);
+            reader.cleanup = reader.failure = undefined;
+            return status();
+          }).finally(() => { flight = undefined; });
+          return flight;
+        }});
+        const primary = readFailed ? readFailure : closeFailure;
+        // Own the duty before inspecting/decorating the outward Error. An
+        // ordinary extensible Error can already have a readonly cleanup field.
+        reader.cleanup = cleanup;
+        reader.failure = primary;
+        let failure;
+        try {
+          failure = primary !== null && typeof primary === 'object' &&
+            Object.isExtensible(primary) && primary.cleanupHandle === undefined &&
+            ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+              const field = Object.getOwnPropertyDescriptor(primary, name);
+              return field === undefined || field.writable === true;
+            })
+            ? primary : new Error('PublicationSemanticReaderCleanupPending', {cause: primary});
+          failure.cleanupHandle = cleanup;
+          failure.cleanupPending = true;
+          failure.cleanupError = closeFailure;
+        } catch {
+          failure = new Error('PublicationSemanticReaderCleanupPending', {cause: primary});
+          failure.cleanupHandle = cleanup;
+          failure.cleanupPending = true;
+          failure.cleanupError = closeFailure;
+        }
+        reader.failure = failure;
+        throw failure;
+      }
     }
   };
 
@@ -2136,10 +2381,15 @@ export async function openLocalPublicationStore(
     holding?.namespace === 'publication-private' ||
     (holding?.namespace === 'local-continuation-private' &&
       localContinuationEvidenceNames.includes(name));
-  const privateEvidenceAad = (name, semanticCid) => Buffer.from(
-    `actql-private-publication-evidence/0.1\0${name}\0${semanticCid}`,
-    'utf8',
-  );
+  const privateEvidenceAad = (name, semanticCid) => {
+    const text = `actql-private-publication-evidence/0.1\0${name}\0${semanticCid}`;
+    // Preserve the exact historical preimage without borrowing a larger pool
+    // slab through crypto/read/cleanup. String/control and crypto scratch are
+    // still separate original-envelope costs; exact extent is not a grant.
+    const bytes = Buffer.allocUnsafeSlow(Buffer.byteLength(text, 'utf8'));
+    bytes.write(text, 0, bytes.byteLength, 'utf8');
+    return bytes;
+  };
   const privateEvidenceKey = () => {
     if (configuration.privateEvidenceKey === undefined) {
       fail('PublicationPrivateEvidenceKeyUnavailable');
@@ -2152,8 +2402,15 @@ export async function openLocalPublicationStore(
           .test(value)) {
       fail('PublicationPrivateEvidenceCorrupt');
     }
-    const decoded = Buffer.from(value, 'base64');
-    if ((bytes !== undefined && decoded.byteLength !== bytes) ||
+    // The bounded envelope and strict alphabet above fix the decoded extent.
+    // Noncanonical padding bits still fail the same round-trip check below.
+    // Keep nonce/tag/ciphertext on dedicated backings, not shared pool slices.
+    const length = value.length / 4 * 3 - (value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0);
+    if (bytes !== undefined && length !== bytes) {
+      fail('PublicationPrivateEvidenceCorrupt');
+    }
+    const decoded = Buffer.allocUnsafeSlow(length);
+    if (decoded.write(value, 0, length, 'base64') !== length ||
         decoded.toString('base64') !== value) {
       fail('PublicationPrivateEvidenceCorrupt');
     }
@@ -2168,7 +2425,11 @@ export async function openLocalPublicationStore(
     }
     cidHex(semanticCid);
     cidHex(holdingCid);
-    const key = Buffer.from(privateEvidenceKey());
+    // This private getter reads the same immutable Store configuration with
+    // no await/caller callback between size validation and copying. Do not add
+    // an original-key alias to the async reader frame; only its copy escapes.
+    const key = Buffer.allocUnsafeSlow(privateEvidenceKey().byteLength);
+    key.set(privateEvidenceKey());
     try {
       const holding = await inspectPhysicalHolding(holdingCid);
       if (!privateEvidenceHolding(holding, name) ||
@@ -2248,41 +2509,8 @@ export async function openLocalPublicationStore(
         3 * Math.floor((configuration.maxObjectBytes - 128) / 4)) {
       fail('PublicationObjectLimit');
     }
-    const bytes = isWire ? Buffer.from(input, 'utf8') : input;
-    const nonce = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', key, nonce);
-    cipher.setAAD(privateEvidenceAad(name, semanticCid));
-    const encrypted = cipher.update(bytes);
-    const final = cipher.final();
-    // Reuse the complete owned block when final produced no additional bytes.
-    // Do not retain a second full ciphertext solely for concatenating empty
-    // output. Preserve the original concatenation for a nonempty final block.
-    const ciphertext = final.byteLength === 0 ? encrypted
-      : Buffer.concat([encrypted, final]);
-    // Every variable segment is Base64 ASCII. Preserve the exact original
-    // JSON field order and bytes without retaining a second complete envelope
-    // String alongside its UTF-8 Buffer. The segments and ciphertext still
-    // have their own simultaneous lifetimes; this is not capacity admission.
-    const segments = [
-      '{"version":"actql-private-publication-evidence/0.1","nonce":"',
-      nonce.toString('base64'),
-      '","tag":"',
-      cipher.getAuthTag().toString('base64'),
-      '","ciphertext":"',
-      ciphertext.toString('base64'),
-      '"}',
-    ];
-    const envelopeBytes = segments.reduce((total, segment) => total + segment.length, 0);
-    if (!Number.isSafeInteger(envelopeBytes) ||
-        envelopeBytes > configuration.maxObjectBytes) {
-      fail('PublicationObjectLimit');
-    }
-    const envelope = Buffer.alloc(envelopeBytes);
-    let envelopeOffset = 0;
-    for (const segment of segments) {
-      envelopeOffset += envelope.write(segment, envelopeOffset, 'ascii');
-    }
-    if (envelopeOffset !== envelopeBytes) fail('PublicationPrivateEvidenceCorrupt');
+    const envelope = encodePrivateEvidenceEnvelope(input, isWire, key,
+      privateEvidenceAad(name, semanticCid), configuration.maxObjectBytes);
     const writer = createPreparedObjectWriter(envelope.byteLength);
     try {
       await writer.append(envelope);
@@ -2292,11 +2520,22 @@ export async function openLocalPublicationStore(
         bytes: stored.bytes, prepared: stored.prepared,
       });
     } catch (error) {
+      let cleanupFailure;
       try { await writer.cancel(); }
-      catch (cleanupError) {
-        error.cleanupFailure = cleanupError;
+      catch (cleanupError) { cleanupFailure = cleanupError; }
+      const state = writer.status();
+      const pending = state.reservationHeld || state.custodyPending || state.cleanupPending;
+      if (!pending && cleanupFailure === undefined) throw error;
+      const failure = error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) ? error
+        : new PublicationStoreError(error?.code ??
+          'PublicationPrivateEvidencePreparationFailed', error);
+      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
+      if (pending) {
+        failure.cleanupPending = true;
+        failure.cleanupHandle = retainPrivateWriterCleanup(writer);
       }
-      throw error;
+      throw failure;
     }
   };
   const preparePrivateEvidenceBytes = (name, bytes, semanticCid) =>
@@ -2349,6 +2588,7 @@ export async function openLocalPublicationStore(
       );
       return Object.freeze([descriptor, content]);
     } catch (error) {
+      const descriptorCleanup = error?.cleanupPending === true ? error.cleanupHandle : undefined;
       let cleanupFailure;
       let cleanupPending;
       try {
@@ -2367,9 +2607,17 @@ export async function openLocalPublicationStore(
         Object.isExtensible(error) ? error
         : new PublicationStoreError(error?.code ??
           'PublicationModelRawEvidencePreparationFailed', error);
-      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
+      if (cleanupFailure !== undefined) {
+        if (failure.cleanupFailure === undefined) failure.cleanupFailure = cleanupFailure;
+        else failure.contentCleanupFailure = cleanupFailure;
+      }
       failure.cleanupPending = true;
-      failure.cleanupHandle = content.prepared;
+      // This error comes from the same closed private Store preparation, not
+      // a packet/caller-provided handle. Do not replace its still-owned
+      // descriptor writer with only the earlier content's cleanup reference.
+      failure.cleanupHandle = descriptorCleanup === undefined
+        ? content.prepared
+        : retainPrivateRawCleanup(descriptorCleanup, content.prepared);
       throw failure;
     }
   };
@@ -2382,10 +2630,9 @@ export async function openLocalPublicationStore(
         record.manifest_cid !== binding.semanticCid || record.objects.length !== 2) {
       fail('PublicationPrivateEvidenceUnavailable');
     }
-    const descriptor = await readPrivateEvidenceObject(
+    if (!exactUtf8WireMatches(await readPrivateEvidenceObject(
       'model_raw_descriptor', binding.semanticCid, binding.holdingCid, 0, 2,
-    );
-    if (!descriptor.equals(Buffer.from(binding.wire, 'utf8'))) {
+    ), binding.wire)) {
       fail('PublicationPrivateEvidenceConflict');
     }
     const bytes = await readPrivateEvidenceObject(
@@ -2427,8 +2674,7 @@ export async function openLocalPublicationStore(
       return Object.freeze({...original});
     });
     for (const original of expected) {
-      const stored = await readSemanticBytes(original.cid);
-      if (!stored.equals(Buffer.from(original.wire, 'utf8'))) {
+      if (!exactUtf8WireMatches(await readSemanticBytes(original.cid), original.wire)) {
         fail('PublicationModelRawOriginalMismatch');
       }
     }
@@ -3733,14 +3979,23 @@ export async function openLocalPublicationStore(
     let readFailed = false;
     try {
       const before = await handle.stat();
-      if (!before.isFile() || before.size > configuration.maxObjectBytes) {
+      if (!before.isFile() || !quantity(before.size) ||
+          before.size > configuration.maxObjectBytes) {
         fail('InvalidPublicationStoreObject');
       }
-      const stream = handle.createReadStream({autoClose: false});
-      for await (const chunk of stream) {
-        hash.update(chunk);
-        await accept(chunk);
-        bytes += chunk.byteLength;
+      // Bound this original FD's acquisition before allocating a stream,
+      // rather than relying on a later byte/hash check or its default HWM.
+      // A growing file cannot expand this read; the final version check still
+      // rejects it. Empty objects retain stat/hash/close without a data stream.
+      if (before.size > 0) {
+        const stream = handle.createReadStream({autoClose: false,
+          end: before.size - 1, highWaterMark: Math.min(65536, before.size)});
+        for await (const chunk of stream) {
+          if (chunk.byteLength > before.size - bytes) fail('PublicationObjectCorrupt');
+          hash.update(chunk);
+          await accept(chunk);
+          bytes += chunk.byteLength;
+        }
       }
       const after = await handle.stat();
       if (!after.isFile() || before.dev !== after.dev ||
@@ -5810,11 +6065,27 @@ export async function openLocalPublicationStore(
           'PublicationStoreCleanupPending',
         ));
       }
+      // An unsettled read still owns its FD; close must not interrupt it.
+      for (const reader of activeSemanticReaders) {
+        if (reader.cleanup === undefined) {
+          return Promise.reject(new PublicationStoreError(
+            'PublicationStoreCleanupPending',
+          ));
+        }
+      }
       // Refuse new Store work once retirement starts, but do not report closed
       // or erase the original key until the SAME ownership confirms release.
-      // A failed/false release retains this Owner for close-only retry.
+      // A redacted control-read error cannot drive private cleanup. The same
+      // Store retains that original duty and drains close only, never read/send.
       closeRequested = true;
-      closeFlight = Promise.resolve().then(() => ownership.release()).then(released => {
+      closeFlight = Promise.resolve().then(async () => {
+        for (const reader of activeSemanticReaders) {
+          try { await reader.cleanup.retry(); }
+          catch { fail('PublicationStoreCleanupPending'); }
+        }
+        if (activeSemanticReaders.size !== 0) fail('PublicationStoreCleanupPending');
+        return ownership.release();
+      }).then(released => {
         if (released !== true) fail('PublicationStoreOwnershipLost');
         closed = true;
         configuration.privateEvidenceKey?.fill(0);

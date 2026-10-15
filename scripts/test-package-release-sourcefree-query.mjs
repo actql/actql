@@ -19,10 +19,10 @@ import {selectInstalledSourcefreeQuerySuite, releaseSourcefreeFixturePaths, sour
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, receiptPath, ...extra] = process.argv.slice(2);
 assert(input && receiptPath && (extra.length === 0 ||
-  extra.length === 1 && ['--sequence-only', '--time-series-only', '--temporal-join-only'].includes(extra[0])) && isAbsolute(receiptPath),
-  'usage: test-package-release-sourcefree-query.mjs <fixed-RC> <new-absolute-receipt.json> [--sequence-only|--time-series-only|--temporal-join-only]');
+  extra.length === 1 && ['--sequence-only', '--time-series-only', '--temporal-join-only', '--aql-format-only', '--calendar-only'].includes(extra[0])) && isAbsolute(receiptPath),
+  'usage: test-package-release-sourcefree-query.mjs <fixed-RC> <new-absolute-receipt.json> [--sequence-only|--time-series-only|--temporal-join-only|--aql-format-only|--calendar-only]');
 const suite = extra.length === 0 ? 'in-unnest' :
-  {'--sequence-only': 'sequence', '--time-series-only': 'time-series', '--temporal-join-only': 'temporal-join'}[extra[0]];
+  {'--sequence-only': 'sequence', '--time-series-only': 'time-series', '--temporal-join-only': 'temporal-join', '--aql-format-only': 'aql-format', '--calendar-only': 'calendar'}[extra[0]];
 const freshProcessReread = sourcefreeSuiteRequiresReread(suite);
 const directory = resolve(input), manifest = await verifyPackageRelease(directory);
 assert.deepEqual(manifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node']);

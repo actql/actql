@@ -15,7 +15,7 @@ import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOp
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol,
   validOwnerObservations, ownerObservationLimits} from
   '@actql/client-wire';
-import {validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '@actql/client-wire';
+import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, bytesCid, canonicalJson, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {formatOperationExplanation} from './operation-formats.mjs';
@@ -2354,7 +2354,7 @@ async function connectSelected(selected, port) {
         }
         if (outcome.checkObservation !== undefined) {
           checkObservation = outcome.checkObservation;
-          if (!(body.kind === 'program' || body.kind === 'aql' && ['sql', 'aql-text'].includes(body.input.format)) ||
+          if (!(body.kind === 'program' || body.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(body.input.format)) ||
               !bindCheckObservation(checkObservation, {kind: body.kind, input: body.input, parameters: body.parameters})) {
             fail('InvalidHostSubmissionCheckObservation');
           }
@@ -2415,7 +2415,7 @@ async function connectSelected(selected, port) {
       return Promise.reject(new ClientError('InvalidAqlDocument'));
     }
     if (options.parameterDeclarations !== undefined &&
-        !['aql-text', 'sql'].includes(options.format)) {
+        !['aql', 'aql-text', 'sql'].includes(options.format)) {
       return Promise.reject(new ClientError('InvalidAqlDocument'));
     }
     return submit('aql', {text, format: options.format,
@@ -2541,10 +2541,13 @@ async function connectSelected(selected, port) {
       }
       const response = await exchange('plan', body, options.signal);
       const view = detachResponse(captureResponse(await responseValue(response)));
-      if (!validWirePlanViewShape(view)) fail('InvalidClientHostPlanView');
-      const map = view.logical_map;
+      const effectful = validWireEffectfulStaticPlanViewShape(view);
+      if (!effectful && !validWirePlanViewShape(view)) fail('InvalidClientHostPlanView');
+      const component = effectful ? view.computation.plan_view : view;
+      const map = component.logical_map;
       const {self_cid: observed, ...preimage} = map;
-      if (map.compiled_plan_cid !== view.compiled_plan_cid ||
+      if (map.compiled_plan_cid !== component.compiled_plan_cid ||
+          effectful && map.program_definition_cid !== view.program_definition_cid ||
           await contentCid(preimage) !== observed) fail('InvalidClientHostPlanView');
       return freezeInput(view);
     },

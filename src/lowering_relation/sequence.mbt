@@ -13,6 +13,7 @@ pub enum PreparedStep {
   CompletedProducerBoundary(Int)
   ValuesStep(PreparedValues)
   TimeSeriesStep(PreparedTimeSeries)
+  CalendarStep(PreparedCalendar)
   WindowStep(PreparedWindow)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
@@ -55,6 +56,7 @@ pub(all) enum SequenceIssue {
   SequenceLimit
   ValuesFailure(Int, ValuesIssue)
   TimeSeriesFailure(Int, TimeSeriesIssue)
+  CalendarFailure(Int, CalendarIssue)
   WindowFailure(Int, WindowIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
@@ -657,6 +659,32 @@ fn prepare_sequence_count(
         }
         TimeSeriesStep(prepared)
       }
+      CalendarValue(_) => {
+        let (prepared, used_bindings, used_names, used_work) = match
+          prepare_calendar_node(
+            owner,
+            i,
+            max_rows=rows,
+            max_cells=cells,
+            max_bindings=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(CalendarFailure(i, issue))
+        }
+        if calendar_row_bound(prepared) is Some(count) {
+          rows -= count
+          cells -= count * 2
+        }
+        bindings -= used_bindings
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
+        }
+        CalendarStep(prepared)
+      }
       RowWindow(_) => {
         let (prepared, used_names, used_bindings, used_work) = match
           prepare_window(
@@ -764,6 +792,7 @@ pub fn emit_sequence_node(
     | CompletedProducerBoundary(_) => raise @encode.InvalidStructure
     ValuesStep(v) => emit_values_node(v, out)
     TimeSeriesStep(v) => emit_time_series_node(v, out)
+    CalendarStep(v) => emit_calendar_node(v, out)
     WindowStep(v) => emit_window_node(v, out)
     JoinStep(v) => emit_join_kernel(v, out)
     IntervalJoinStep(v) => emit_interval_join(v, out)

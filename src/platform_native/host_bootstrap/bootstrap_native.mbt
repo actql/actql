@@ -6,7 +6,20 @@ priv type Extent
 
 ///|
 #borrow(recipe)
-extern "C" fn acquire_ffi(bytes : Int64, generation : Int64, recipe : Bytes) -> Backing = "actql_bootstrap_acquire"
+extern "C" fn acquire_ffi(
+  bytes : Int64,
+  generation : Int64,
+  recipe : Bytes,
+) -> Backing = "actql_bootstrap_acquire"
+
+///|
+#borrow(recipe)
+extern "C" fn acquire_fd_ffi(
+  fd : Int,
+  bytes : Int64,
+  generation : Int64,
+  recipe : Bytes,
+) -> Backing = "actql_bootstrap_acquire_fd"
 
 ///|
 #borrow(backing)
@@ -22,7 +35,11 @@ extern "C" fn rounded_bytes_ffi(backing : Backing, bytes : Int64) -> Int64 = "ac
 
 ///|
 #borrow(backing, recipe)
-extern "C" fn claim_ffi(backing : Backing, generation : Int64, recipe : Bytes) -> Int = "actql_bootstrap_claim"
+extern "C" fn claim_ffi(
+  backing : Backing,
+  generation : Int64,
+  recipe : Bytes,
+) -> Int = "actql_bootstrap_claim"
 
 ///|
 #borrow(backing)
@@ -39,6 +56,14 @@ extern "C" fn retire_ffi(backing : Backing, extent : Extent) -> Int = "actql_boo
 ///|
 #borrow(backing)
 extern "C" fn close_ffi(backing : Backing) -> Int = "actql_bootstrap_close"
+
+///|
+#borrow(backing)
+extern "C" fn enter_scope_ffi(backing : Backing) -> Int = "actql_bootstrap_enter_scope"
+
+///|
+#borrow(backing)
+extern "C" fn leave_scope_ffi(backing : Backing) -> Int = "actql_bootstrap_leave_scope"
 
 ///|
 pub(all) enum NativeBootstrapIssue {
@@ -79,14 +104,26 @@ pub fn[T] prepare_installed_arena_supplier(
   limits : @resources.LedgerLimits,
   control_envelope_bytes : Int64,
 ) -> Result[NativeInstalledArenaSupplier[T], NativeBootstrapIssue] {
-  if source.length() != 40 || recipe.length() != 32 || generation <= 0L ||
-    bytes <= 0L || limits.execution_bytes != bytes ||
-    limits.retained_bytes != 0L || limits.attempts < 1 ||
+  if source.length() != 40 ||
+    recipe.length() != 32 ||
+    generation <= 0L ||
+    bytes <= 0L ||
+    limits.execution_bytes != bytes ||
+    limits.retained_bytes != 0L ||
+    limits.attempts < 1 ||
     control_envelope_bytes <= 0L {
     return Err(Unavailable)
   }
-  Ok({ original, source, recipe: recipe.copy(), generation, bytes, limits,
-    control_envelope_bytes, consumed: false, })
+  Ok({
+    original,
+    source,
+    recipe,
+    generation,
+    bytes,
+    limits,
+    control_envelope_bytes,
+    consumed: false,
+  })
 }
 
 ///|
@@ -118,11 +155,40 @@ pub fn[T] NativeInstalledArenaSupplier::acquire(
   self : NativeInstalledArenaSupplier[T],
   original : T,
 ) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue] {
+  self.acquire_original(original, None)
+}
+
+///|
+/// Trusted supplier's borrowed physical FD, not a byte/identity grant. Its
+/// descriptor lifetime and overhead remain with that original physical caller;
+/// Host cleanup acknowledges this mapping only, never FD close or worker stop.
+pub fn[T] NativeInstalledArenaSupplier::acquire_fd(
+  self : NativeInstalledArenaSupplier[T],
+  original : T,
+  fd : Int,
+) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue] {
+  if fd < 0 {
+    return Err(Unavailable)
+  }
+  self.acquire_original(original, Some(fd))
+}
+
+///|
+fn[T] NativeInstalledArenaSupplier::acquire_original(
+  self : NativeInstalledArenaSupplier[T],
+  original : T,
+  fd : Int?,
+) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue] {
   if !physical_equal(original, self.original) {
     return Err(ForeignOriginal)
   }
   if self.consumed {
     return Err(AlreadyConsumed)
+  }
+  // Keep the installer's original finite control precondition at acquisition.
+  // This declaration does not fund the independent loader, VM or read domains.
+  if self.control_envelope_bytes <= 0L {
+    return Err(Unavailable)
   }
   self.consumed = true
   let ledger = match @resources.create_ledger(self.limits) {
@@ -133,11 +199,22 @@ pub fn[T] NativeInstalledArenaSupplier::acquire(
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
-  let backing = acquire_ffi(self.bytes, self.generation, self.recipe)
+  let backing = match fd {
+    None => acquire_ffi(self.bytes, self.generation, self.recipe)
+    Some(fd) => acquire_fd_ffi(fd, self.bytes, self.generation, self.recipe)
+  }
   let host : NativeHostBootstrap[T] = {
-    supplier: self, ledger, capacity, backing, control: None,
-    children: [], delegations: [], claimed: false, closing: false,
-    physical_closed: false, closed: false,
+    supplier: self,
+    ledger,
+    capacity,
+    backing,
+    control: None,
+    children: [],
+    delegations: [],
+    claimed: false,
+    closing: false,
+    physical_closed: false,
+    closed: false,
   }
   let status = status_ffi(backing)
   if status != 0 {
@@ -171,6 +248,23 @@ fn[T] NativeHostBootstrap::check_original(
 }
 
 ///|
+/// Original arena availability only. This is not a VM/Run/publisher permission.
+/// An installed non-test wrapper keeps this exact Host and its original anchor.
+pub fn[T] NativeHostBootstrap::require_current(
+  self : NativeHostBootstrap[T],
+  original : T,
+) -> Result[Unit, NativeBootstrapIssue] {
+  match self.check_original(original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !self.claimed {
+    return Err(Unavailable)
+  }
+  Ok(())
+}
+
+///|
 /// One transfer to this original installed Host. A copied reference shares this
 /// consumed state; matching source/recipe data cannot create another supplier.
 pub fn[T] NativeHostBootstrap::claim(
@@ -184,7 +278,8 @@ pub fn[T] NativeHostBootstrap::claim(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if source != self.supplier.source || recipe != self.supplier.recipe ||
+  if source != self.supplier.source ||
+    recipe != self.supplier.recipe ||
     generation != self.supplier.generation {
     return Err(ForeignOriginal)
   }
@@ -235,13 +330,18 @@ pub fn[T] NativeHostBootstrap::allocate(
   if rounded <= 0L {
     return Err(Unavailable)
   }
-  let allocation = match @resources.allocate_shared_capacity(self.capacity, rounded) {
+  let allocation = match
+    @resources.allocate_shared_capacity(self.capacity, rounded) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
   let extent = allocate_ffi(self.backing, rounded)
   let child : NativeBootstrapAllocation[T] = {
-    owner: self, allocation, extent, physical_retired: false, released: false,
+    owner: self,
+    allocation,
+    extent,
+    physical_retired: false,
+    released: false,
   }
   self.children.push(child)
   let status = extent_status_ffi(extent)
@@ -265,6 +365,13 @@ pub fn[T] NativeHostBootstrap::retire(
   }
   if child.released {
     return Ok(())
+  }
+  // A backing borrower can be using this extent even without a child-specific
+  // reader. Do not physically retire it behind that original caller.
+  if self.control is Some(control) {
+    if @resources.shared_allocation_usage(control).readers != 0 {
+      return Err(ReadersPending)
+    }
   }
   match @resources.retire_shared_capacity(child.allocation) {
     Err(issue) => return Err(Resource(issue))
@@ -291,7 +398,89 @@ pub fn[T] NativeHostBootstrap::retire(
 struct NativeBootstrapBorrow[T] {
   owner : NativeHostBootstrap[T]
   borrow : @resources.SharedBorrow
+  mut scopes : Int64
   mut returned : Bool
+}
+
+///|
+/// Lend the original control allocation while a physical caller uses this same
+/// backing. This creates no extent, second transfer or VM execution grant.
+pub fn[T] NativeHostBootstrap::borrow_backing(
+  self : NativeHostBootstrap[T],
+  original : T,
+) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue] {
+  match self.require_current(original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.control is Some(control) else { return Err(Unavailable) }
+  match @resources.borrow_shared_capacity(self.capacity, control) {
+    Err(issue) => Err(Resource(issue))
+    Ok(borrow) => Ok({ owner: self, borrow, scopes: 0L, returned: false, })
+  }
+}
+
+///|
+/// Current execution use is refused once closing starts. Returning the original
+/// borrow for cleanup still uses return_borrow, including after close refusal.
+pub fn[T] NativeHostBootstrap::require_borrow_current(
+  self : NativeHostBootstrap[T],
+  original : T,
+  borrow : NativeBootstrapBorrow[T],
+) -> Result[Unit, NativeBootstrapIssue] {
+  if !physical_equal(borrow.owner, self) {
+    return Err(ForeignOriginal)
+  }
+  if borrow.returned {
+    return Err(AlreadyConsumed)
+  }
+  self.require_current(original)
+}
+
+///|
+/// Enter the one original physical allocator through this current Owner loan.
+/// The scope carries no raw pointer, VM permission or second capacity claim.
+pub fn[T] NativeHostBootstrap::enter_borrow_scope(
+  self : NativeHostBootstrap[T],
+  original : T,
+  borrow : NativeBootstrapBorrow[T],
+) -> Result[Unit, NativeBootstrapIssue] {
+  match self.require_borrow_current(original, borrow) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if borrow.scopes == 9223372036854775807L {
+    return Err(Unavailable)
+  }
+  let status = enter_scope_ffi(self.backing)
+  if status != 0 {
+    return Err(Physical(status))
+  }
+  borrow.scopes = borrow.scopes + 1L
+  Ok(())
+}
+
+///|
+/// Cleanup may leave after closing begins. Failed physical leave keeps the
+/// original loan/use count; it cannot be replaced by a logical return ACK.
+pub fn[T] NativeHostBootstrap::leave_borrow_scope(
+  self : NativeHostBootstrap[T],
+  original : T,
+  borrow : NativeBootstrapBorrow[T],
+) -> Result[Unit, NativeBootstrapIssue] {
+  if !physical_equal(self.supplier.original, original) ||
+    !physical_equal(borrow.owner, self) {
+    return Err(ForeignOriginal)
+  }
+  if borrow.returned || borrow.scopes == 0L {
+    return Err(AlreadyConsumed)
+  }
+  let status = leave_scope_ffi(self.backing)
+  if status != 0 {
+    return Err(Physical(status))
+  }
+  borrow.scopes = borrow.scopes - 1L
+  Ok(())
 }
 
 ///|
@@ -309,7 +498,7 @@ pub fn[T] NativeHostBootstrap::borrow(
   }
   match @resources.borrow_shared_capacity(self.capacity, child.allocation) {
     Err(issue) => Err(Resource(issue))
-    Ok(borrow) => Ok({ owner: self, borrow, returned: false, })
+    Ok(borrow) => Ok({ owner: self, borrow, scopes: 0L, returned: false, })
   }
 }
 
@@ -327,6 +516,9 @@ pub fn[T] NativeHostBootstrap::return_borrow(
   }
   if borrow.returned {
     return Err(AlreadyConsumed)
+  }
+  if borrow.scopes != 0L {
+    return Err(ReadersPending)
   }
   match @resources.return_shared_capacity(borrow.borrow) {
     Err(issue) => return Err(Resource(issue))
@@ -354,13 +546,19 @@ pub fn[T] NativeHostBootstrap::delegate(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !self.claimed || limits.retained_bytes != 0L || limits.execution_bytes != 0L {
+  if !self.claimed ||
+    limits.retained_bytes != 0L ||
+    limits.execution_bytes != 0L {
     return Err(Unavailable)
   }
   match @resources.reserve_execution_delegation(self.ledger, limits, 0L, 0L) {
     Err(issue) => Err(Resource(issue))
     Ok(delegation) => {
-      let child : NativeBootstrapDelegation[T] = { owner: self, delegation, settled: false, }
+      let child : NativeBootstrapDelegation[T] = {
+        owner: self,
+        delegation,
+        settled: false,
+      }
       self.delegations.push(child)
       Ok(child)
     }
@@ -381,7 +579,8 @@ pub fn[T] NativeHostBootstrap::report(
   if !physical_equal(child.owner, self) || child.settled {
     return Err(ForeignOriginal)
   }
-  match @resources.report_execution_delegation(self.ledger, child.delegation, usage) {
+  match
+    @resources.report_execution_delegation(self.ledger, child.delegation, usage) {
     Err(issue) => Err(Resource(issue))
     Ok(_) => Ok(())
   }
@@ -405,6 +604,13 @@ pub fn[T] NativeHostBootstrap::try_close(
     match @resources.close_shared_capacity(self.capacity) {
       Err(issue) => return Err(Resource(issue))
       Ok(_) => self.closing = true
+    }
+  }
+  // A caller borrowing the backing can still be using its child extents.
+  // Preserve all original physical custody until it returns the same loan.
+  if self.control is Some(control) {
+    if @resources.shared_allocation_usage(control).readers != 0 {
+      return Err(ReadersPending)
     }
   }
   for child in self.children {
@@ -432,7 +638,12 @@ pub fn[T] NativeHostBootstrap::try_close(
   }
   for child in self.delegations {
     if !child.settled {
-      match @resources.settle_execution_delegation(self.ledger, child.delegation, None) {
+      match
+        @resources.settle_execution_delegation(
+          self.ledger,
+          child.delegation,
+          None,
+        ) {
         Err(issue) => return Err(Resource(issue))
         Ok(_) => child.settled = true
       }
@@ -448,11 +659,15 @@ pub fn[T] NativeHostBootstrap::try_close(
 }
 
 ///|
-pub fn[T] NativeHostBootstrap::usage(self : NativeHostBootstrap[T]) -> @resources.LedgerUsage {
+pub fn[T] NativeHostBootstrap::usage(
+  self : NativeHostBootstrap[T],
+) -> @resources.LedgerUsage {
   @resources.ledger_usage(self.ledger)
 }
 
 ///|
-pub fn[T] NativeHostBootstrap::capacity_usage(self : NativeHostBootstrap[T]) -> @resources.SharedCapacityUsage {
+pub fn[T] NativeHostBootstrap::capacity_usage(
+  self : NativeHostBootstrap[T],
+) -> @resources.SharedCapacityUsage {
   @resources.shared_capacity_usage(self.capacity)
 }

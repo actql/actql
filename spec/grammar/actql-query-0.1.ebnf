@@ -202,8 +202,8 @@ result_operator = "RESULT", identifier ;
 assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
 terminal_effect = terminal_update | [ "EFFECT", identifier ], table_create ;
 table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
-terminal_update = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
-                  "MAPPING", identifier, "FROM", "RESULT", identifier,
+terminal_update = "EFFECT", [ identifier ], "UPDATE", "TARGET", query_string,
+                  "MAPPING", identifier, [ "FROM", "RESULT", identifier ],
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
 (* Pipe WHERE permits supported inline window calls in its predicate. *)
 pipe_where_clause = "WHERE", expression ;
@@ -234,10 +234,13 @@ unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
                    unpivot_input, { ",", unpivot_input }, ")", ")", [ source_alias ] ;
 unpivot_column_set = identifier | "(", identifier, { ",", identifier }, ")" ;
 unpivot_input = unpivot_column_set, [ [ "AS" ], ( query_string | integer ) ] ;
-infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
-                 path, { ",", path }, ")", "INPUT", "(",
-                 [ assignment, { ",", assignment } ], ")",
+infer_operator = "INFER", identifier, [ "ITEM", "KEY", "(",
+                 path, { ",", path }, ")" ], "INPUT", "(",
+                 [ infer_input, { ",", infer_input } ], ")",
                  [ keep_clause ], "AS", identifier ;
+(* Shorthand is one ordinary binding identifier, quoted when reserved. The
+   assignment key keeps its closed ModelTask schema-key role. *)
+infer_input = assignment | identifier ;
 (* Options are static scalar values, with bound Parameters only for row/byte
    guards. Common profile checking owns mandatory options, domains and defaults. *)
 serialize_operator = "SERIALIZE", "FORMAT", ( "CSV" | "JSONL" ),
@@ -247,9 +250,9 @@ serialize_operator = "SERIALIZE", "FORMAT", ( "CSV" | "JSONL" ),
 serialize_option = ( "name" | "header" | "null_marker" | "field_delimiter"
                    | "encoding" | "line_ending" | "max_rows" | "max_bytes" ),
                    "=", expression ;
-nearest_operator = "NEAREST", path, "AS", identifier,
-                   [ "QUERY", nearest_role_pair ],
-                   [ "CANDIDATE", nearest_role_pair ], "METRIC", metric,
+nearest_operator = "NEAREST", path, [ "AS", identifier ],
+                   [ "USING", expression | "QUERY", nearest_role_pair ],
+                   [ "CANDIDATE", nearest_role_pair ], [ "METRIC", metric ],
                    "K", integer, [ keep_clause ], "AS", identifier ;
 nearest_role_pair = "KEY", "(", path, { ",", path }, ")", "VECTOR", expression ;
 metric        = "cosine" | "dot" | "l2" ;

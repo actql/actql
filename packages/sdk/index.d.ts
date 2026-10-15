@@ -10,7 +10,7 @@ import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, W
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
   WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix,
-  WirePlanView, WireRunView, WireRunPlanView} from
+  WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -68,7 +68,7 @@ export declare function explainCheckFailure(error: unknown,
   options?: CheckExplanationOptions): CheckFailureExplanation | undefined;
 /** Detached input actually submitted by this call; no Host document revision. */
 export type CheckFailureInput = Readonly<{scope: 'template_only' | 'bound_input'; parameters?: unknown}> &
-  (Readonly<{kind: 'text'; text: string; format: 'sql' | 'aql-text'; parameterDeclarations?: unknown}> |
+  (Readonly<{kind: 'text'; text: string; format: 'sql' | 'aql' | 'aql-text'; parameterDeclarations?: unknown}> |
     Readonly<{kind: 'program'; program: Readonly<Record<string, unknown>>}>);
 /** Explicit access only; copied/foreign errors cannot recover the original input. */
 export declare function getCheckFailureInput(error: unknown): CheckFailureInput | undefined;
@@ -114,7 +114,7 @@ export type CheckSupplementationDecision = Readonly<{kind: 'more_checks'}> |
 export type CheckScopeOptions = Readonly<{scope: 'template_only'; parameters?: never}> |
   Readonly<{scope: 'bound_input'; parameters?: Record<string, unknown> | null}>;
 export type CheckTextOptions = CheckScopeOptions & Readonly<{
-  format: 'aql-text' | 'sql'; parameterDeclarations?: Record<string, unknown>; signal?: AbortSignal;
+  format: 'aql' | 'aql-text' | 'sql'; parameterDeclarations?: Record<string, unknown>; signal?: AbortSignal;
 }>;
 export type TextCheckOptions = CheckTextOptions & Readonly<{kind: 'text'}>;
 export type ProgramCheckOptions = CheckScopeOptions & Readonly<{
@@ -599,7 +599,7 @@ export interface Client {
     parameters?: QueryParameters;
     maxWireBytes?: number; maxNodes?: number; maxDepth?: number;
     signal?: AbortSignal;
-  }): Promise<WirePlanView>;
+  }): Promise<WirePlanView | WireEffectfulStaticPlanView>;
   start(program: Record<string, unknown>, options?: SubmissionOptions): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,

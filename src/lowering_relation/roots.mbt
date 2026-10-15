@@ -170,6 +170,7 @@ pub fn prepare_kernel_roots(
   match step {
     ValuesStep(_)
     | TimeSeriesStep(_)
+    | CalendarStep(_)
     | WindowStep(_)
     | JoinStep(_)
     | IntervalJoinStep(_)
@@ -247,6 +248,7 @@ fn prepare_root_range(
     let bindings = match sequence.steps[step_index] {
       ValuesStep(_)
       | TimeSeriesStep(_)
+      | CalendarStep(_)
       | WindowStep(_)
       | JoinStep(_)
       | IntervalJoinStep(_)

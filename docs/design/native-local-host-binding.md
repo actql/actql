@@ -709,3 +709,74 @@ exempt `node_modules` generally or admit unknown metadata, packages or symlinks.
 Path classification alone establishes neither physical containment nor support
 for every npm layout. Formal staging, Native physical census and installed
 consumer acceptance are separate from this pure descriptor connection.
+
+The Common runtime metadata Owner reads the same closed formal inventory as the
+Node producer: exact source/platform/package labels, ordered unique ASCII paths,
+integer byte counts/modes and digests, with only the descriptor's own exact root
+path excluded. It rejects alternate bytes and exposes bounded indexed members,
+not a mutable inventory array. These literal comparisons and intake checks do
+not issue a physical witness, compatibility, workspace funding or authority.
+
+## Original package-file observations
+
+The filesystem Owner can capture an opaque transient observation of one regular
+file relative to its existing opened Root. Only actual stat can construct it;
+public generation fields, hashes and copied metadata cannot. The observation
+keeps the same Root/name, original device/inode/size, mode, UID/GID/link count and
+mtime/ctime. It detects mode changes and same-size modifications that the
+legacy three-field generation does not describe.
+
+Reads still use the existing Reader constructor and failure-custody carrier.
+The observation compares the actual opened Reader and current named file to the
+same original facts before returning it and after bounded consumption. A failed
+comparison closes the original Reader once; missing close ACK keeps that Reader
+in its existing failure carrier. No replacement stat or reader repairs it.
+The package observation is distinct from private credential installation
+projection; the latter's 0700/ACL checks, original wire and restore are unchanged.
+
+This is physical metadata, not named Root restoration, content digest, current
+Account authorization, compatibility or a complete package witness. The existing
+product caller must separately perform those checks and account for retained
+observation memory before capture. Syntax/descriptor fit does not supply funding.
+The intended product integration replaces generation-only witness storage rather
+than simultaneously retaining both representations; its holding/ARC evidence
+must be checked at that connection. No new numeric profile is admitted here.
+
+## Original named-directory observations
+
+The existing Root can also capture a transient opaque observation of its actual
+opened directory, including device/inode, mode and UID/GID. Only the path already
+retained by that Root is used to compare the named directory. A bounded no-follow
+descriptor walk rejects aliases, replacement or changed original metadata; it
+does not replace the Root, accept another caller path or restore a missing
+historical original from fresh stat.
+
+Each temporary directory descriptor is closed once with an observed result.
+If close is unconfirmed, the same Root retains the namespace-cleanup fact and
+refuses subsequent physical observations. Closing its ordinary directory fd
+does not confirm those temporary descriptors' retirement. The consumed/unknown
+fd is never reopened or closed again through a potentially reused number.
+These facts compose with that Root's existing census and Reader custody.
+
+This additive package namespace check does not weaken or reuse the private
+credential projection's 0700/ACL eligibility, wire or restore. It is not Account
+permission, compatibility, a grant or admission of any package contents. Full
+product verification still separately checks every exact file observation,
+descriptor/digest and bounded member census before and after current authority.
+Path-walk scratch and simultaneous directory observations remain subject to the
+existing caller's workspace/lifetime accounting, not inferred from path bounds.
+
+## Descriptor-derived directory inputs
+
+The Common packaging metadata Owner projects one exact payload directory from
+the closed product descriptor. The root includes exactly one regular descriptor
+file, and every declared child directory must contain a declared file. A path
+cannot denote both a file and a directory. Immediate names use ASCII order,
+independently of full-path order or Core String ordering. Indexed read-only
+entries hide the retained array; construction still requires caller workspace.
+
+This is the expected set for the existing physical census, not an observation
+or funding claim. Unknown parents and unlisted empty directories are refused.
+Only the root descriptor path is self-hash-excluded; the same basename below
+a directory is an ordinary declared member. Exact selected npm dependency
+placement remains separate and does not exempt arbitrary node_modules content.

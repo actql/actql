@@ -195,6 +195,16 @@ extern "C" fn database_claim_ordinal_ffi(
 ) -> Int = "actql_native_sqlite_database_claim_ordinal"
 
 ///|
+#borrow(database, scope, key)
+extern "C" fn database_lookup_claim_ordinal_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+) -> Int = "actql_native_sqlite_database_lookup_claim_ordinal"
+
+///|
 #borrow(database, scope)
 extern "C" fn database_capacity_usage_ffi(
   database : Database,
@@ -320,7 +330,9 @@ fn sqlite_open_result_with_custody(
     Ok(database)
   } else {
     Err({
-      original_issue: DatabaseOpen(decode_diagnostic(database_error_ffi(database))),
+      original_issue: DatabaseOpen(
+        decode_diagnostic(database_error_ffi(database)),
+      ),
       database: Some(database),
     })
   }
@@ -790,6 +802,42 @@ pub fn Database::claim_ordinal(
       Fresh(ordinal) | Retained(ordinal) => ordinal
     }
   })
+}
+
+///|
+/// Read an already stored claim without assigning an ordinal, reserving
+/// capacity or changing the caller's transaction. Absence is not evidence of
+/// nonexecution or permission to claim again. The caller separately checks the
+/// original grant/use binding, current authority, expiry and cleanup custody.
+pub fn Database::lookup_claim_ordinal(
+  self : Database,
+  scope : String,
+  key : String,
+) -> Result[Int64?, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  match
+    database_lookup_claim_ordinal_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+    ) {
+    0 => {
+      let ordinal = database_result_revision_ffi(self)
+      if ordinal <= 0L {
+        Err(Physical("invalid original claim ordinal"))
+      } else {
+        Ok(Some(ordinal))
+      }
+    }
+    1 => Ok(None)
+    code => Err(operation_issue(self, code))
+  }
 }
 
 ///|

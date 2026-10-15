@@ -4,6 +4,9 @@
 /// These are heap/control/backing charges; no stack/RSS/baseline claim is made.
 priv struct HolderEffectHostSetupProfile {
   read_ceiling : Int
+  // The reviewed current-read composition must cover this Store wire limit.
+  // It does not select a new Store limit, Account permission or a byte grant.
+  catalog_read_ceiling : Int64
   // Independent physical diagnostic bound, not inferred from Account body size.
   diagnostic_ceiling : Int
   setup_retained_bytes : Int64
@@ -27,6 +30,7 @@ priv struct HolderEffectHostSetupScope {
   site : @site.ExecutionSite
   profile : HolderEffectHostSetupProfile
   mut current_binding : (() -> Bool)?
+  mut read_domain : HolderEffectHostReadDomain?
   mut caller_operation : @site.SiteOperation?
   mut operation : @site.SiteOperation?
   mut holding : @site.SiteHolding?
@@ -63,6 +67,7 @@ fn holder_effect_host_setup_profile_valid(
   profile.diagnostic_ceiling > 0 &&
   profile.read_ceiling > 0 &&
   profile.read_ceiling <= 1000000 &&
+  profile.catalog_read_ceiling > 0L &&
   profile.setup_retained_bytes > 0L &&
   profile.current_retained_bytes > 0L &&
   profile.caller_retained_bytes >= profile.current_retained_bytes &&
@@ -77,13 +82,33 @@ fn holder_effect_host_setup_profile_valid(
 }
 
 ///|
-fn begin_holder_effect_host_setup_scope(
+/// Bind the current catalog read to the original Store constructor's limit
+/// before reserving or invoking its signature/generation/holding verifier.
+/// The caller retains that same Store; no candidate/current row supplies this
+/// immutable quantity, and every existing current check still runs.
+fn holder_effect_host_catalog_representation_ready(
+  profile : HolderEffectHostSetupProfile?,
+  original_record_limit : Int64,
+) -> Bool {
+  match profile {
+    Some(selected) =>
+      holder_effect_host_setup_profile_valid(selected) &&
+      original_record_limit > 0L &&
+      original_record_limit <= selected.catalog_read_ceiling
+    None => false
+  }
+}
+
+///|
+fn reserve_holder_effect_host_setup_scope(
   site : @site.ExecutionSite,
   profile : HolderEffectHostSetupProfile?,
-  current_binding : () -> Bool,
+  original_catalog_record_limit : Int64,
 ) -> HolderEffectHostSetupScope? {
   guard profile is Some(selected) &&
-    holder_effect_host_setup_profile_valid(selected) else {
+    holder_effect_host_catalog_representation_ready(
+      profile, original_catalog_record_limit,
+    ) else {
     return None
   }
   // Reserve before the fallible physical binding checks. Selection of bytes
@@ -99,7 +124,8 @@ fn begin_holder_effect_host_setup_scope(
   let scope : HolderEffectHostSetupScope = {
     site,
     profile: selected,
-    current_binding: Some(current_binding),
+    current_binding: None,
+    read_domain: None,
     caller_operation: Some(operation),
     operation: Some(operation),
     holding: None,
@@ -108,15 +134,14 @@ fn begin_holder_effect_host_setup_scope(
     cleanup: None,
     retiring: false,
   }
-  if !current_binding() {
-    ignore(@site.settle_site_operation(operation))
-    return None
-  }
+  // The caller must retain this scope before allocating binding callbacks.
+  // An absent binding authorizes no read; a failed later current fence must
+  // return through the same caller retirement, never drop this reservation.
   Some(scope)
 }
 
 ///|
-fn holder_effect_host_read_scope_current(
+fn holder_effect_host_read_scope_bound(
   scope : HolderEffectHostSetupScope,
 ) -> Bool {
   !scope.retiring &&
@@ -125,9 +150,27 @@ fn holder_effect_host_read_scope_current(
   scope.operation is Some(operation) &&
   scope.caller_operation is Some(caller) &&
   physical_equal(operation, caller) &&
-  @site.site_operation_available(operation) &&
-  scope.current_binding is Some(current) &&
-  current()
+  @site.site_operation_available(operation)
+}
+
+///|
+fn holder_effect_host_read_scope_current(
+  scope : HolderEffectHostSetupScope,
+) -> Bool {
+  guard holder_effect_host_read_scope_bound(scope) &&
+    scope.current_binding is Some(current) &&
+    current() else {
+    return false
+  }
+  // Current callbacks may retire the original scope reentrantly. Check its
+  // actual handles only after that callback, before any physical read.
+  holder_effect_host_read_scope_bound(scope) &&
+  scope.current_binding is Some(actual) &&
+  physical_equal(actual, current) &&
+  (match scope.read_domain {
+    Some(read) => holder_effect_host_read_domain_current(read)
+    None => true
+  })
 }
 
 ///|
@@ -166,7 +209,16 @@ fn enter_holder_effect_host_read_scope(
   }
   scope.operation = Some(operation)
   scope.depth = 1
+  if scope.read_domain is Some(read) &&
+    !enter_holder_effect_host_read_domain(read) {
+    scope.depth = 0
+    scope.operation = None
+    return false
+  }
   if !holder_effect_host_read_scope_current(scope) {
+    if scope.read_domain is Some(read) {
+      ignore(leave_holder_effect_host_read_domain(read))
+    }
     scope.depth = 0
     scope.operation = None
     return false
@@ -183,6 +235,11 @@ fn leave_holder_effect_host_read_scope(
   }
   let current = holder_effect_host_read_scope_current(scope)
   scope.depth -= 1
+  if scope.depth == 0 &&
+    scope.read_domain is Some(read) &&
+    !leave_holder_effect_host_read_domain(read) {
+    return false
+  }
   if scope.depth == 0 && scope.pending is None {
     guard scope.operation is Some(operation) &&
       scope.caller_operation is Some(caller) &&
@@ -324,9 +381,13 @@ fn prepare_holder_effect_host_scope_retirement(
   if scope.depth > 0 {
     return false
   }
-  if scope.pending is Some(failure) {
-    guard failure.retry_cleanup() is Ok(_) else { return false }
-    scope.pending = None
+  if scope.read_domain is Some(read) &&
+    !leave_holder_effect_host_read_domain(read) {
+    return false
+  }
+  guard retry_holder_effect_host_read_failure(scope) &&
+    close_holder_effect_host_read_domain(scope) else {
+    return false
   }
   if scope.operation is Some(operation) {
     guard scope.caller_operation is Some(caller) &&
@@ -390,8 +451,12 @@ fn detach_holder_effect_host_setup(resources : HolderOutputResources) -> Bool {
     None =>
       match resources.effect_host_setup.val {
         Some(scope) => {
-          guard retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach else {
-            return false
+          match retire_holder_effect_host_scope(scope) {
+            HostSetupReadyToDetach => ()
+            HostSetupScopePending(pending) => {
+              resources.effect_host_setup.val = Some(pending)
+              return false
+            }
           }
           Some(scope)
         }

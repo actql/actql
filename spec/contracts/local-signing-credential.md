@@ -25,7 +25,17 @@ For the initial Client Local profile, `request_cid` is the original
 `ClientRequestIdentity`'s IntentFingerprint, read through
 `client_request_intent_cid`. `request_scope_cid` is the LogicalRequestScope CID
 of that same original request, read through `client_request_scope_cid`. Retain
-and authenticate the original Submission scope separately. Matching intent
+and authenticate the original Submission scope separately. For this profile,
+`submission_scope_cid` is `native_client_submission_request_id` of the reference
+read from the authenticated retained Submission and its original Run admission.
+The existing `actql-submission-identity/0.1` CID binds the original epoch CID and
+caller nonce. Neither the shared epoch CID, authority scope, logical request
+scope nor a new reference-wrapper hash can replace it. The reference getter is
+identity only; existing epoch/journal authentication and current request, Run,
+Checkpoint and control-revision checks remain mandatory around the read.
+Expired-epoch history inspection is not new-start or signing permission.
+Missing or foreign retained admission remains unavailable; an incoming
+reference's matching CID cannot repair or replace it. Matching intent
 under another logical scope denotes another request; changing intent under
 the same logical scope is a conflict. `ClientSubmittedIntent` binds submitted
 `kind/input/parameters` content and is a different identity; its CID, a Provider
@@ -96,3 +106,34 @@ return authorization. Lost claim/ACK remains unresolved until the existing
 journal establishes its original outcome; failed cleanup retains the same
 Owner, retry handle and reservation. This metadata contract introduces no
 parallel Grant issuer, Store, Ledger, Scheduler or Recovery Owner.
+
+
+## Native original history read
+
+The new Native Signing history-only path requires current original-Client
+RunRead and the purpose-specific current Reviewer resolve and original key
+custody. The retained operation, Client request intent, logical request scope,
+authenticated Submission identity, original Run, key configuration/generation
+and issuer installation originals must agree. The issuer may be a different
+principal from the Reviewer and original Client. Existing issuer configuration,
+generation and custody requirements remain current; an issuer `issue` decision
+is not read permission. This finite path adds no `credential/<issuer>:read`
+Account tuple and does not install HostAttestation authorization.
+
+History returns only an already saved original claim/outcome or exact signature.
+It cannot reread secret key bytes for signing, claim an ordinal, sign again,
+renew expiry, issue another grant or interpret missing/Unknown history as
+unsent. Read authority does not authorize using an expired grant or admitting a
+Resolution: those operations retain their independent current, expiry and
+Checkpoint checks. Require current before and after the read; missing,
+foreign, replaced or unverified original custody stays unavailable.
+
+The existing Native private grant journal may retain a Signing original as a
+closed `grant`/`intent`/`signing_purpose` alternative. The purpose must match the
+already admitted Signing grant. Resume and Preparation private packets and all
+public grant/use bytes and CIDs remain unchanged. The existing logical-request
+reservation bucket is separate from the Signing grant's public Submission
+identity; counters, per-request byte/object ceilings and original epoch/Run
+joins are not changed by this additional typed alternative. Packet parsing and
+custody inspection do not install an operational issuer, history authorization,
+claim, signature or use permission.

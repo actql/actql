@@ -26,6 +26,7 @@ pub(all) struct ClientRunJournalEncoding {
 pub fn client_run_journal_row_body(
   record : ClientRunJournalEncoding,
   local_run_policy_originals? : String? = None,
+  run_observation_originals? : String? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
   let request = match client_request_identity_record_wire(record.request) {
     Ok(value) => value
@@ -75,6 +76,10 @@ pub fn client_run_journal_row_body(
       writer,
       @publication.publication_contract_json(record.definition),
     )
+    if run_observation_originals is Some(originals) {
+      @encode.key(writer, "run_observation_originals")
+      @encode.string_value(writer, originals)
+    }
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-native-client-run-row/0.1")
     @encode.end_object(writer)
@@ -92,11 +97,16 @@ pub fn client_submitted_intent_journal_row_body(
   reference_wire : String,
   intent : ClientSubmittedIntent,
   run_admission? : (ClientRequestIdentity, String, Int64)? = None,
+  run_state_original? : String? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
   let wire = client_submitted_intent_wire(intent)
   // This physical profile is explicitly finite. Capacity does not classify
   // the caller's Program as invalid or provide permission to retry it.
   if @utf8.encode(wire).length() > 65536 {
+    return Err(CapacityExceeded)
+  }
+  if run_state_original is Some(original) &&
+    (run_admission is None || @utf8.encode(original).length() > 131072) {
     return Err(CapacityExceeded)
   }
   try {
@@ -124,11 +134,16 @@ pub fn client_submitted_intent_journal_row_body(
       @encode.key(writer, "run_admission")
       @encode.string_value(writer, wire)
     }
+    if run_state_original is Some(original) {
+      @encode.key(writer, "run_state_original")
+      @encode.string_value(writer, original)
+    }
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-native-client-submitted-intent-row/0.1")
     @encode.end_object(writer)
     Ok(@utf8.encode(@encode.finish(writer)))
   } catch {
+    @encode.OutputLimit => Err(CapacityExceeded)
     _ => Err(Encoding)
   }
 }

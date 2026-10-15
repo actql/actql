@@ -1,6 +1,7 @@
 import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
-import {createOriginalUndiciFetch} from './original-undici-transport.mjs';
+import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits} from './original-undici-transport.mjs';
+import {snapshotOpenAIOriginalMaterials,admitOpenAIOriginalMaterials} from './original-materials.mjs';
 
 const issue = code => { throw Object.assign(new TypeError(code), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -24,6 +25,17 @@ function snapshotData(value, keys, code) {
   return Object.freeze(Object.fromEntries(entries));
 }
 const frozen = value => value!==null && typeof value==='object' && Object.isFrozen(value);
+const assertRuntime = moon => {
+  if (!['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
+    'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider',
+    'clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
+    'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
+    'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown',
+    'clientProgramModelPhysicalSavedChat',
+    'clientProgramModelResponseProfileTransportMatches'].every(name=>typeof moon?.[name]==='function')) {
+    issue('OpenAIOriginalRuntimeUnavailable');
+  }
+};
 
 // Private trusted-installation consumer, not a profile/grant factory. The Host
 // supplies already retained declaration originals; opaque Owners are borrowed,
@@ -41,8 +53,45 @@ export function createInstalledUndiciOpenAIChatRegistration(config) {
 
 function installedChatRegistration(config, originalUndici) {
   const keys='apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
-  config=snapshotData(config,originalUndici ? keys.replace(',fetch', '') : keys,
+  const materialMode = config!==null && typeof config==='object' && Object.hasOwn(config,'originalMaterials');
+  const selectedKeys = materialMode ? keys.replace(',originalReadInstallation',',originalMaterials')
+    .replace(',rawCaptureSelection','') : keys;
+  config=snapshotData(config,originalUndici ? selectedKeys.replace(',fetch', '')
+    .replace(',projectionLimits',',physicalAcquisitionLimits,projectionLimits') : selectedKeys,
     'InvalidInstalledOpenAIChatConfiguration');
+  if (originalUndici) config=Object.freeze({...config,
+    physicalAcquisitionLimits:fixedOriginalAcquisitionLimits(config.physicalAcquisitionLimits)});
+  if (materialMode) {
+    let materials=snapshotOpenAIOriginalMaterials(config.originalMaterials);
+    const {originalMaterials:unused,...source}=config;void unused;
+    let retained=Object.freeze({...source,
+      projectionLimits:snapshotData(source.projectionLimits,
+        'maxBytes,maxDepth,maxFrames,maxNodes,maxWork','InvalidInstalledOpenAIChatProjection'),
+      requestLimits:snapshotData(source.requestLimits,
+        'maxBytes,maxHeaderBytes,maxHeaders','InvalidInstalledOpenAIChatRequestLimits'),
+      responseLimits:fixedInferResponseLimits(source.responseLimits),
+    });
+    let entered = false;
+    // One registration callback belongs to one actual Host installation. The
+    // actual runtime is received here, never imported or reconstructed by a
+    // consumer. Refuse another installation even if it shares that module.
+    return moon => {
+      if (entered) issue('OpenAIOriginalInstallationReused');
+      assertRuntime(moon);
+      // A failed admission is not a reason to move this original callback to
+      // another Host or allocate another set of reader results from it.
+      entered=true;
+      const originals=admitOpenAIOriginalMaterials(moon,materials);
+      const register=installedChatRegistration({...retained,...originals},originalUndici);
+      const entries=register(moon);
+      // Admission/assembler overlap remains funded until it ends here. The
+      // Host retains the actual entries; this spent loader need not retain a
+      // second snapshot of their original material wires or selector config.
+      materials=undefined;
+      retained=undefined;
+      return entries;
+    };
+  }
   const {providerId,modelSelector,modelId,baseURL,taskCid,promptCid,outputSchemaCid,
     promptPayloadWire,apiKey,fetch,observeAt,observeEgress}=config;
   if (![providerId,modelSelector,modelId,baseURL,apiKey].every(text) ||
@@ -82,7 +131,8 @@ function installedChatRegistration(config, originalUndici) {
   }
   const installation=raw.installation;
   const sdk=installation.sdk;
-  if (original.nodeInstallation.layout.response_profile!==raw.profile ||
+  if (raw.profile===undefined || raw.profile===null ||
+      original.nodeInstallation.layout.response_profile!==raw.profile ||
       original.nodeInstallation.probability!==undefined || raw.probability!==undefined ||
       installation.endpoint!==endpoint.href || installation.http_method!=='POST' ||
       installation.streaming!==false || installation.completion_basis!=='generation_finish' ||
@@ -103,17 +153,20 @@ function installedChatRegistration(config, originalUndici) {
   // A missing/mismatched original selection above refuses before constructing
   // even this physical selector. The per-call Client remains later original
   // SDK preparation, after its existing same-Ledger funding and before Entry.
-  const physicalFetch=originalUndici ? createOriginalUndiciFetch({
-    endpoint:endpoint.href,requestLimits,responseLimits}) : fetch;
+  let physicalFetch;
   return moon => {
-    if (!['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
-      'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider',
-      'clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
-      'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
-      'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown',
-      'clientProgramModelPhysicalSavedChat'].every(name=>typeof moon?.[name]==='function')) {
-      issue('OpenAIOriginalRuntimeUnavailable');
+    assertRuntime(moon);
+    if (moon.clientProgramModelResponseProfileTransportMatches(raw.profile,
+      requestLimits.maxBytes,responseLimits.maxBytes,responseLimits.maxChunkBytes,
+      responseLimits.maxChunks,responseLimits.maxHeaderBytes)!==true) {
+      issue('OpenAIOriginalTransportLimitsMismatch');
     }
+    // The actual callback runtime checks the admitted profile BEFORE even the
+    // physical selector is built. The existing Host envelope still must fund
+    // this selector and all later Client/SDK allocations; matching is no grant.
+    physicalFetch??=originalUndici ? createOriginalUndiciFetch({
+      endpoint:endpoint.href,requestLimits,responseLimits,
+      physicalAcquisitionLimits:config.physicalAcquisitionLimits}) : fetch;
     return [Object.freeze({providerId,entryPersistence:'async',
       bindingOriginals:bindings,originalReadInstallation:original,
       rawCaptureSelection:raw,quantityCapacity:quantities,observeEgress,

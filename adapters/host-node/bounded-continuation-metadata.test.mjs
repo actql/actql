@@ -3,8 +3,16 @@ import {mkdtemp, mkdir, open, writeFile, symlink, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {readContinuationLedgerBounded} from './bounded-continuation-metadata.mjs';
+import {readContinuationLedgerBounded as readBounded} from './bounded-continuation-metadata.mjs';
 import {readBoundedLocalMetadata} from '../store-local/publication-store.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
+
+// The matching installed parser is real Core, not a shape/authority double.
+// Prepare this single runtime before this focused Node selection.
+const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+const control = runtimeCore(moon).publicationControl;
+const readContinuationLedgerBounded = (path, id, limits, signal) =>
+  readBounded(path, id, limits, signal, control);
 
 // Hand-written metadata vector, not obtained from the product writer, a Store
 // issuer, current journal or Model. Shape validity is not resource authority.
@@ -31,6 +39,56 @@ test('bounded continuation metadata exact wire fit and one-short use the shared 
   await assert.rejects(readContinuationLedgerBounded(path, 'original-run',
     {maxWireBytes: 272, maxLedgerEntries: 0}), {code: 'InvalidPublicationStoreObject'});
   assert.deepEqual(await readBoundedLocalMetadata(path, 273), Buffer.from(text));
+});
+
+test('private retention alone rejects decoded duplicate keys instead of native last-wins', async t => {
+  const {path} = await fixture(t);
+  const entry = JSON.stringify(held);
+  const wires = [
+    text.replace('"holdings":[]', '"holdings":[null],"holdings":[]'),
+    text.replace('"holdings":[]', '"holdings":[],"holdings":[]'),
+    text.replace('"holdings":[]', '"\\u0068oldings":[],"holdings":[]'),
+    text.replace('"holdings":[]', `"holdings":[${entry.replace('"state":"held"', '"state":"retired","state":"held"')}]`),
+  ];
+  for (const wire of wires) {
+    // Independent legacy/public JSON control. It is NOT the new reader's
+    // expectation generator: the normative refusal is fixed below.
+    const old = JSON.parse(wire);
+    assert.deepEqual(old.holdings, wire.includes('"state"') ? [held] : []);
+    await writeFile(path, wire);
+    await assert.rejects(readContinuationLedgerBounded(path, 'original-run',
+      {maxWireBytes: 2048, maxLedgerEntries: 1}), {code: 'InvalidContinuationLedger'});
+    assert.equal(await import('node:fs/promises').then(fs => fs.readFile(path, 'utf8')), wire);
+  }
+  assert.deepEqual(JSON.parse('{"x":1,"x":2}'), {x: 2});
+});
+
+test('malformed trees never enter native metadata materialization', async t => {
+  const {path} = await fixture(t);
+  const parse = JSON.parse;
+  let materializations = 0;
+  JSON.parse = function(...args) { materializations++; return Reflect.apply(parse, this, args); };
+  t.after(() => { JSON.parse = parse; });
+  for (const wire of ['['.repeat(8192) + ']'.repeat(8192),
+    '[' + '0,'.repeat(8000) + '0]',
+    '[{' + Array.from({length: 100}, (_, i) => `"p${i}":0`).join(',') + '},{"p0":0}]']) {
+    await writeFile(path, wire);
+    await assert.rejects(readContinuationLedgerBounded(path, 'original-run',
+      {maxWireBytes: 16384, maxLedgerEntries: 40}), {code: 'InvalidContinuationLedger'});
+  }
+  assert.equal(materializations, 0);
+});
+
+test('missing installed private parser refuses before I/O without a JSON fallback', async () => {
+  await assert.rejects(readBounded('/not-an-original-path', 'original-run',
+    {maxWireBytes: 273, maxLedgerEntries: 0}), {code: 'ContinuationMetadataUnavailable'});
+});
+
+test('Core Int derivation preserves large safe-integer Host ceilings for a small actual record', async t => {
+  const {path} = await fixture(t);
+  const value = await readContinuationLedgerBounded(path, 'original-run',
+    {maxWireBytes: Number.MAX_SAFE_INTEGER, maxLedgerEntries: Number.MAX_SAFE_INTEGER});
+  assert.deepEqual(value, JSON.parse(text));
 });
 
 test('bounded continuation metadata separates actual entry count from encrypted object limits', async t => {

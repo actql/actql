@@ -90,7 +90,7 @@ fn prepare_admitted_output_with_schema(
 }
 
 ///|
-fn prepare_bounded_admitted_output(
+pub fn prepare_bounded_admitted_output(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
   max_rows : Int,
@@ -137,7 +137,7 @@ fn advance_admitted_output_reclamation(output : AdmittedOutput) -> Bool {
 /// Only the stopped kernel knows whether its sealed result was accepted.
 /// Until acceptance it retains the buffer, including failed completion and
 /// a common-session cancellation racing the final kernel response.
-fn reclaim_bounded_admitted_output(
+pub fn reclaim_bounded_admitted_output(
   output : AdmittedOutput,
   accepted : Bool,
 ) -> Bool {
