@@ -117,6 +117,9 @@ with scope._physical_scope():
     untouched = C.c_void_p()
     assert product.identity(C.c_void_p(1), C.byref(untouched)) == -1
     assert untouched.value is None
+    for call in (runtime_functions.current, runtime_functions.close):
+        assert call(C.c_void_p(1), C.byref(untouched)) == -1
+        assert untouched.value is None
     domain = _OriginalDomainCustody._prepare_original(host, scope, fd, domains,
         size=7168 * page, work=2, attempts=2, holdings=1, transfer=3,
         retained=32 * page, execution=6144 * page)

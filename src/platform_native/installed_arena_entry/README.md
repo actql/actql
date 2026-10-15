@@ -272,3 +272,24 @@ Malformed manifest capture also tests the existing constructor's automatic
 cleanup: an ACK returns Refused with no Runtime; only failed cleanup would
 retain Pending. Lost physical responses and cleanup failure are separately
 covered by Python slot counters, not asserted as injected DLL successes here.
+
+### Same Runtime product metadata transport
+
+Nine typed roots retain the existing whole-product observation and six-field
+identity projection on that same Runtime. Operations4/5 preserve the original
+Host/read/Runtime and all existing issue tags. The C shim requires the same
+provider's raw control-frame clear observation before allocating input copies
+or invoking either operation. It checks nominal originals before Python reads
+metadata, and drops only reply data after matching those originals again.
+Metadata is bounded to4096 exact UTF-16 units; it is not a current release,
+adoption, permission, provisioning, capacity or cleanup witness.
+
+The Python driver uses a separate persistent reply slot on the existing
+Runtime, not another cleanup Owner. A lost call/drop response or invalid reply
+keeps the same sticky Unknown and original loan. Ordinary Runtime calls cannot
+retire a pending product reply. Known pre-FFI busy/thread/process refusals do not
+poison the original, and known Native issues preserve the original Runtime for
+its existing cleanup. The private physical fixture observes synthetic package
+members under the complete D diagnostic profile above; those files are never
+loaded or adopted as an installed release. Actual C, DLL and Python source
+qualifications must be retained separately from source-stage tests.
