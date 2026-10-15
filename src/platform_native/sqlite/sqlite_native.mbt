@@ -125,6 +125,22 @@ extern "C" fn database_read_ffi(
 
 ///|
 #borrow(database, scope, key)
+extern "C" fn database_read_header_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+) -> Int = "actql_native_sqlite_database_read_header"
+
+///|
+#borrow(database)
+extern "C" fn database_result_header_body_bytes_ffi(
+  database : Database,
+) -> Int64 = "actql_native_sqlite_database_result_header_body_bytes"
+
+///|
+#borrow(database, scope, key)
 extern "C" fn database_read_with_body_limit_ffi(
   database : Database,
   scope : Bytes,
@@ -195,6 +211,10 @@ extern "C" fn database_remove_exact_ffi(
 
 ///|
 #borrow(database)
+extern "C" fn database_begin_deferred_ffi(database : Database) -> Int = "actql_native_sqlite_database_begin_deferred"
+
+///|
+#borrow(database)
 extern "C" fn database_begin_immediate_ffi(database : Database) -> Int = "actql_native_sqlite_database_begin_immediate"
 
 ///|
@@ -246,6 +266,18 @@ extern "C" fn database_release_capacity_ffi(
 
 ///|
 #borrow(database, scope, key)
+extern "C" fn database_release_capacity_in_transaction_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+) -> Int = "actql_native_sqlite_database_release_capacity_in_transaction"
+
+///|
+#borrow(database, scope, key)
 extern "C" fn database_claim_ordinal_ffi(
   database : Database,
   scope : Bytes,
@@ -275,6 +307,36 @@ extern "C" fn database_lookup_claim_ordinal_ffi(
   key : Bytes,
   key_length : Int,
 ) -> Int = "actql_native_sqlite_database_lookup_claim_ordinal"
+
+///|
+#borrow(database, scope, key)
+extern "C" fn database_read_capacity_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+) -> Int = "actql_native_sqlite_database_read_capacity"
+
+///|
+#borrow(database)
+extern "C" fn database_usage_ffi(database : Database) -> Int = "actql_native_sqlite_database_usage"
+
+///|
+#borrow(database)
+extern "C" fn database_result_record_count_ffi(database : Database) -> Int64 = "actql_native_sqlite_database_result_record_count"
+
+///|
+#borrow(database)
+extern "C" fn database_result_record_body_bytes_ffi(
+  database : Database,
+) -> Int64 = "actql_native_sqlite_database_result_record_body_bytes"
+
+///|
+#borrow(database)
+extern "C" fn database_result_reservation_count_ffi(
+  database : Database,
+) -> Int64 = "actql_native_sqlite_database_result_reservation_count"
 
 ///|
 #borrow(database, scope)
@@ -669,6 +731,36 @@ pub fn Database::read(
 }
 
 ///|
+/// Observe revision and byte length without allocating a copy of the body.
+/// Original row validation/bound remain; missing and SQL failure are distinct.
+pub fn Database::read_header(
+  self : Database,
+  scope : String,
+  key : String,
+) -> Result[NativeJournalHeader, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  let code = database_read_header_ffi(
+    self,
+    scope_bytes,
+    scope_bytes.length(),
+    key_bytes,
+    key_bytes.length(),
+  )
+  if code == 0 {
+    Ok({
+      revision: database_result_revision_ffi(self),
+      body_bytes: database_result_header_body_bytes_ffi(self),
+    })
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
 /// Apply an additional body ceiling before the C readback and MoonBytes copies.
 /// The database's original body bound and validation still apply. This neither
 /// reserves backing nor authorizes access; SQLite row/statement/cache backing
@@ -911,6 +1003,20 @@ pub fn Database::remove_exact(
 }
 
 ///|
+/// Start a deferred physical snapshot on this same connection, without a
+/// write or COMMIT. The caller must explicitly stop the original transaction.
+pub fn Database::begin_deferred(
+  self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  let code = database_begin_deferred_ffi(self)
+  if code == 0 {
+    Ok(())
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
 /// Begin one physical SQLite transaction for an adapter operation that must
 /// install several already prepared records atomically.
 pub fn Database::begin_immediate(
@@ -1061,6 +1167,35 @@ pub fn Database::release_capacity(
   reserved_bytes : Int64,
   reserved_objects : Int64,
 ) -> Result[Bool, NativeSqliteIssue] {
+  self.release_capacity_transaction(
+    scope, key, reserved_bytes, reserved_objects, false,
+  )
+}
+
+///|
+/// Release the exact original reservation in the caller's active transaction.
+/// Never commits, rolls back or supplies a physical cleanup/admission ACK.
+pub fn Database::release_capacity_in_transaction(
+  self : Database,
+  scope : String,
+  key : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+) -> Result[Bool, NativeSqliteIssue] {
+  self.release_capacity_transaction(
+    scope, key, reserved_bytes, reserved_objects, true,
+  )
+}
+
+///|
+fn Database::release_capacity_transaction(
+  self : Database,
+  scope : String,
+  key : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+  caller_transaction : Bool,
+) -> Result[Bool, NativeSqliteIssue] {
   let scope_bytes = @utf8.encode(scope)
   let key_bytes = @utf8.encode(key)
   if !valid_name(scope_bytes) || !valid_name(key_bytes) {
@@ -1069,8 +1204,13 @@ pub fn Database::release_capacity(
   if reserved_bytes < 0L || reserved_objects < 0L {
     return Err(InvalidLimit)
   }
+  let release = if caller_transaction {
+    database_release_capacity_in_transaction_ffi
+  } else {
+    database_release_capacity_ffi
+  }
   match
-    database_release_capacity_ffi(
+    release(
       self,
       scope_bytes,
       scope_bytes.length(),
@@ -1219,6 +1359,55 @@ fn Database::claim_ordinal_owned(
       }
     }
     code => Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Lookup only: neither a missing reservation nor its retained amounts permit
+/// another reserve, physical launch, release or mutation.
+pub fn Database::read_capacity(
+  self : Database,
+  scope : String,
+  key : String,
+) -> Result[NativeCapacityUsage, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  let code = database_read_capacity_ffi(
+    self,
+    scope_bytes,
+    scope_bytes.length(),
+    key_bytes,
+    key_bytes.length(),
+  )
+  if code == 0 {
+    Ok({
+      reserved_bytes: database_result_capacity_bytes_ffi(self),
+      reserved_objects: database_result_capacity_objects_ffi(self),
+    })
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Physical totals only, in the same connection's current SQLite view. A
+/// caller-owned transaction may include uncommitted rows; this is no durable
+/// publication fact and never completes the caller's transaction.
+pub fn Database::database_usage(
+  self : Database,
+) -> Result[NativeDatabaseUsage, NativeSqliteIssue] {
+  let code = database_usage_ffi(self)
+  if code == 0 {
+    Ok({
+      record_count: database_result_record_count_ffi(self),
+      body_bytes: database_result_record_body_bytes_ffi(self),
+      reservation_count: database_result_reservation_count_ffi(self),
+    })
+  } else {
+    Err(operation_issue(self, code))
   }
 }
 

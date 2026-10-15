@@ -38,7 +38,7 @@ test "empty stored row differs from no row and original post-call fence stays se
     stage: 2,
     issue: None,
     after: Some(Domain(@bootstrap.Bootstrap(@bootstrap.Closing))),
-    value: Some(DatabaseRow({ key: "original", revision: 0L, body: b"", })),
+    value: Some(DatabaseRow("original", 0L, b"")),
   }
   assert_eq(reply.has_row(), 1)
   assert_eq(reply.body(), b"")
@@ -84,6 +84,302 @@ test "transaction selector is closed before existing callback and empty cleanup 
   assert_eq(reply.stage_tag(), 3)
   assert_eq(reply.issue_family(), 0)
   assert_true(database.closed && !library.closed && !domain.closed)
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+}
+
+///|
+test "scan refuses unavailable and foreign originals before callback and keeps cursor data distinct" {
+  let host = domain_test_host()
+  let other = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for caller in [host, other] {
+    let reply = scan_installed_sqlite_database_reply(
+      caller, database, "original", "", 64L,
+    )
+    assert_eq(reply.operation_tag(), 12)
+    assert_eq(reply.stage_tag(), 0)
+    assert_true(reply.issue_family() != 0)
+    assert_eq(reply.has_row(), 0)
+    assert_eq(reply.row_key_bytes(), b"")
+    assert_true(physical_equal(reply.original_host(), host))
+    assert_true(
+      reply.original_database() is Some(value) &&
+      physical_equal(value, database),
+    )
+  }
+  host.close_sqlite_database(database).unwrap()
+  let closed = scan_installed_sqlite_database_reply(
+    host, database, "original", "", 64L,
+  )
+  assert_true(closed.issue_family() != 0)
+  assert_eq(closed.has_row(), 0)
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+  other.try_close().unwrap()
+}
+
+///|
+test "bounded scan row preserves exact decomposed key binary body and separate postcheck refusal" {
+  let host = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  let reply : InstalledArenaSqliteDatabaseReply = {
+    operation: 12,
+    host,
+    library,
+    original: Some(database),
+    stage: 2,
+    issue: None,
+    after: Some(Domain(@bootstrap.Bootstrap(@bootstrap.Closing))),
+    value: Some(DatabaseRow("e\u0301/😀", 7L, b"\x00\xff\r\n")),
+  }
+  assert_eq(reply.operation_tag(), 12)
+  assert_eq(reply.has_row(), 1)
+  assert_eq(reply.row_key_bytes(), b"e\xcc\x81/\xf0\x9f\x98\x80")
+  assert_eq(reply.body(), b"\x00\xff\r\n")
+  assert_eq(reply.revision(), 7L)
+  assert_eq(reply.after_issue_family(), 4)
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+}
+
+///|
+test "capacity callbacks preserve original refusal and never supply change or usage facts" {
+  let host = domain_test_host()
+  let other = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for caller in [host, other] {
+    for
+      reply in [
+        reserve_installed_sqlite_capacity_reply(
+          caller, database, "original", "one", 8L, 1L, 64L, 2L,
+        ),
+        observe_installed_sqlite_capacity_reply(caller, database, "original"),
+        release_installed_sqlite_capacity_reply(
+          caller, database, "original", "one", 8L, 1L,
+        ),
+      ] {
+      assert_true(reply.operation_tag() >= 13 && reply.operation_tag() <= 15)
+      assert_eq(reply.stage_tag(), 0)
+      assert_true(reply.issue_family() != 0)
+      assert_eq(reply.capacity_changed(), -1)
+      assert_eq(reply.reserved_bytes(), -1L)
+      assert_eq(reply.reserved_objects(), -1L)
+      assert_eq(reply.has_row(), 0)
+      assert_true(physical_equal(reply.original_host(), host))
+    }
+  }
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+  other.try_close().unwrap()
+}
+
+///|
+test "capacity physical observations distinguish unchanged zero absent and postcheck refusal" {
+  let host = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for
+    value in [
+      CapacityChanged(false),
+      CapacityChanged(true),
+      CapacityUsage(0L, 0L),
+      CapacityUsage(8L, 1L),
+    ] {
+    let reply : InstalledArenaSqliteDatabaseReply = {
+      operation: 14,
+      host,
+      library,
+      original: Some(database),
+      stage: 2,
+      issue: None,
+      after: Some(Domain(@bootstrap.Bootstrap(@bootstrap.Closing))),
+      value: Some(value),
+    }
+    assert_eq(reply.stage_tag(), 2)
+    assert_eq(reply.after_issue_family(), 4)
+    assert_eq(reply.has_row(), 0)
+    match value {
+      CapacityChanged(changed) => {
+        assert_eq(reply.capacity_changed(), if changed { 1 } else { 0 })
+        assert_eq(reply.reserved_bytes(), -1L)
+      }
+      CapacityUsage(bytes, objects) => {
+        assert_eq(reply.capacity_changed(), -1)
+        assert_eq(reply.reserved_bytes(), bytes)
+        assert_eq(reply.reserved_objects(), objects)
+      }
+      _ => fail("unexpected independent capacity fixture")
+    }
+  }
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+}
+
+///|
+test "metadata refuses unavailable and foreign originals without supplying zero or inactive" {
+  let host = domain_test_host()
+  let other = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for caller in [host, other] {
+    for
+      reply in [
+        read_installed_sqlite_capacity_reply(
+          caller, database, "original", "one",
+        ),
+        observe_installed_sqlite_database_usage_reply(caller, database),
+        observe_installed_sqlite_transaction_state_reply(caller, database),
+      ] {
+      assert_true(reply.operation_tag() >= 16 && reply.operation_tag() <= 18)
+      assert_eq(reply.stage_tag(), 0)
+      assert_true(reply.issue_family() != 0)
+      assert_eq(reply.reserved_bytes(), -1L)
+      assert_eq(reply.record_count(), -1L)
+      assert_eq(reply.record_body_bytes(), -1L)
+      assert_eq(reply.reservation_count(), -1L)
+      assert_eq(reply.transaction_active(), -1)
+      assert_true(physical_equal(reply.original_host(), host))
+    }
+  }
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+  other.try_close().unwrap()
+}
+
+///|
+test "metadata zero and inactive are data with a separate original postcheck refusal" {
+  let host = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for
+    value in [
+      DatabaseUsage(0L, 0L, 0L),
+      DatabaseUsage(3L, 8L, 2L),
+      DatabaseTransactionState(false),
+      DatabaseTransactionState(true),
+    ] {
+    let reply : InstalledArenaSqliteDatabaseReply = {
+      operation: 17,
+      host,
+      library,
+      original: Some(database),
+      stage: 2,
+      issue: None,
+      after: Some(Domain(@bootstrap.Bootstrap(@bootstrap.Closing))),
+      value: Some(value),
+    }
+    assert_eq(reply.stage_tag(), 2)
+    assert_eq(reply.after_issue_family(), 4)
+    assert_eq(reply.has_row(), 0)
+    assert_eq(reply.reserved_bytes(), -1L)
+    match value {
+      DatabaseUsage(records, bytes, reservations) => {
+        assert_eq(reply.record_count(), records)
+        assert_eq(reply.record_body_bytes(), bytes)
+        assert_eq(reply.reservation_count(), reservations)
+        assert_eq(reply.transaction_active(), -1)
+      }
+      DatabaseTransactionState(active) => {
+        assert_eq(reply.transaction_active(), if active { 1 } else { 0 })
+        assert_eq(reply.record_count(), -1L)
+      }
+      _ => fail("unexpected independent metadata fixture")
+    }
+  }
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+}
+
+///|
+test "row header zero length remains distinct from no header and does not project row bytes" {
+  let host = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  let reply : InstalledArenaSqliteDatabaseReply = {
+    operation: 19,
+    host,
+    library,
+    original: Some(database),
+    stage: 2,
+    issue: None,
+    after: None,
+    value: Some(DatabaseHeader(7L, 0L)),
+  }
+  assert_eq(reply.operation_tag(), 19)
+  assert_eq(reply.has_header(), 1)
+  assert_eq(reply.has_row(), 0)
+  assert_eq(reply.revision(), 7L)
+  assert_eq(reply.header_body_bytes(), 0L)
+  assert_eq(reply.body(), b"")
+  let missing = read_installed_sqlite_header_reply(host, database, "原", "row")
+  assert_eq(missing.stage_tag(), 0)
+  assert_eq(missing.has_header(), 0)
+  assert_eq(missing.header_body_bytes(), -1L)
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+}
+
+///|
+test "unavailable original refuses before bounded reservation callback and normal read" {
+  let host = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for bound in [0L, 1L, 1024L, 1025L] {
+    let reply = reserve_installed_sqlite_bounded_capacity_reply(
+      host, database, "原", "key", 1L, 1L, 64L, 2L, bound,
+    )
+    assert_eq(reply.operation_tag(), 21)
+    assert_eq(reply.stage_tag(), 0)
+    assert_eq(reply.issue_family(), 1)
+    assert_eq(reply.capacity_changed(), -1)
+  }
+  let refused = begin_installed_sqlite_read_reply(host, database)
+  assert_eq(refused.operation_tag(), 20)
+  assert_eq(refused.stage_tag(), 0)
+  assert_true(refused.issue_family() != 0)
+  host.close_sqlite_database(database).unwrap()
   host.close_sqlite_library(library).unwrap()
   host.close_domain_after_owner_ack(domain).unwrap()
   host.try_close().unwrap()

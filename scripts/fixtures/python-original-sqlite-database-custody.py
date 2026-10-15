@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 import tempfile
 
-from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions
+from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions, _OriginalControlError
 from actql_sdk._local_native_backing_custody import _OriginalBackingCustody, _OriginalBackingFunctions
 from actql_sdk._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainFunctions, _OriginalDomainReadFunctions
 from actql_sdk._local_native_sqlite import _OriginalSqliteCustody, _OriginalSqliteFunctions
@@ -20,7 +20,7 @@ from actql_sdk._local_worker_slot import _OriginalDescriptor
 
 plan = json.loads(Path(sys.argv[1]).read_bytes())
 case = sys.argv[2]
-assert case in ('rows-and-cas', 'restore-same-file', 'lost-commit', 'lost-begin', 'partial-open')
+assert case in ('rows-and-cas', 'restore-same-file', 'lost-commit', 'lost-begin', 'partial-open', 'scan-order-and-bounds', 'scan-copy-current', 'capacity-same-transaction', 'capacity-lost-commit', 'metadata-same-view', 'metadata-lost-commit')
 for item in plan['files']:
     raw = Path(item['path']).read_bytes()
     assert len(raw) == item['bytes'] and hashlib.sha256(raw).hexdigest() == item['sha256'], item['path']
@@ -106,6 +106,158 @@ if case == 'rows-and-cas':
 elif case == 'restore-same-file':
     row('e\u0301/😀', b'updated'); row('empty', b'')
     assert transactions == []
+elif case in ('capacity-same-transaction', 'capacity-lost-commit'):
+    def usage(expected_bytes, expected_objects, *, unconfirmed=False):
+        fact=(db.lookup_unconfirmed_capacity_usage if unconfirmed else db.capacity_usage)('capacity/原')
+        assert (fact.reserved_bytes,fact.reserved_objects)==(expected_bytes,expected_objects),fact
+        observations.append({'reserved_bytes':fact.reserved_bytes,'reserved_objects':fact.reserved_objects})
+    def refuse(action, family):
+        try: action()
+        except _OriginalDatabaseError as error:
+            assert not error.unknown and error.fact.issue_family==family,error.fact
+        else: raise AssertionError('Original capacity refusal was lost')
+    usage(0,0)
+    refuse(lambda:db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2),20)
+    refuse(lambda:db.release_capacity_in_transaction('capacity/原','e\u0301',8,1),20)
+    db.transaction(7)
+    assert db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2).capacity_changed is True
+    assert db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2).capacity_changed is False
+    refuse(lambda:db.reserve_capacity_in_transaction('capacity/原','other',60,1,64,2),19)
+    db.insert('sdk/原','capacity-row',b'private')
+    usage(8,1)
+    db.transaction(9)
+    usage(0,0)
+    refuse(lambda:db.read_into('sdk/原','capacity-row',bytearray(4096)),15)
+    db.transaction(7)
+    assert db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2).capacity_changed is True
+    db.insert('sdk/原','capacity-row',b'committed')
+    if case=='capacity-lost-commit':
+        def lost_commit(host_slot, original, operation, reply):
+            code=transaction(host_slot,original,operation,reply)
+            assert operation==8 and code==0 and reply._obj.value is not None
+            raise OSError('Injected after original capacity+row COMMIT publication')
+        database.calls['transaction_into']=lost_commit
+        try:db.transaction(8)
+        except _OriginalDatabaseError as error:
+            original_error=error;assert error.unknown
+        else:raise AssertionError('Lost original capacity COMMIT accepted')
+        usage(8,1,unconfirmed=True)
+        row('capacity-row',b'committed',unconfirmed=True)
+        usage(8,1,unconfirmed=True)
+        for action in (lambda:db.transaction(8),lambda:db.reserve_capacity_in_transaction('capacity/原','other',1,0,64,2),lambda:db.release_capacity_in_transaction('capacity/原','e\u0301',8,1)):
+            try:action()
+            except _OriginalDatabaseError as error:assert error is original_error
+            else:raise AssertionError('Unknown capacity operation was replayed')
+        assert transactions.count(8)==1 and db._write_unknown is original_error
+    else:
+        db.transaction(8);usage(8,1)
+        db.transaction(7)
+        refuse(lambda:db.release_capacity_in_transaction('capacity/原','e\u0301',9,1),16)
+        assert db.release_capacity_in_transaction('capacity/原','e\u0301',8,1).capacity_changed is True
+        assert db.compare_exchange('sdk/原','capacity-row',0,b'private-retirement').revision==1
+        usage(0,0);db.transaction(9)
+        usage(8,1);row('capacity-row',b'committed')
+        db.transaction(7)
+        assert db.release_capacity_in_transaction('capacity/原','e\u0301',8,1).capacity_changed is True
+        assert db.compare_exchange('sdk/原','capacity-row',0,b'retired').revision==1
+        db.transaction(8);usage(0,0);row('capacity-row',b'retired')
+        db.transaction(7)
+        assert db.release_capacity_in_transaction('capacity/原','e\u0301',8,1).capacity_changed is False
+        db.transaction(9)
+elif case in ('metadata-same-view', 'metadata-lost-commit'):
+    def totals(expected, *, unconfirmed=False):
+        fact = (db.lookup_unconfirmed_database_usage if unconfirmed else db.database_usage)()
+        actual = (fact.record_count, fact.record_body_bytes, fact.reservation_count)
+        assert actual == expected, (actual, expected, fact)
+        observations.append({'metadata_totals':actual})
+    def exact(key, expected, *, unconfirmed=False):
+        fact = (db.lookup_unconfirmed_capacity if unconfirmed else db.read_capacity)('capacity/原', key)
+        assert (fact.reserved_bytes, fact.reserved_objects) == expected, fact
+        observations.append({'original_reservation':key, 'bytes':fact.reserved_bytes, 'objects':fact.reserved_objects})
+    totals((0,0,0))
+    assert db.transaction_state().transaction_active is False
+    try:db.read_capacity('capacity/原','absent')
+    except _OriginalDatabaseError as error:assert not error.unknown and error.fact.issue_family==15 and error.fact.reserved_bytes is None
+    else:raise AssertionError('Missing original reservation fabricated as zero')
+    db.transaction(7)
+    assert db.transaction_state().transaction_active is True
+    db.reserve_capacity_in_transaction('capacity/原','zero',0,0,64,2)
+    db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2)
+    db.insert('sdk/原','same',b'\xe9\x9b\xaa\0\n')
+    db.insert('other','same',b'abc')
+    db.insert('other','empty',b'')
+    totals((3,8,2));exact('zero',(0,0));exact('e\u0301',(8,1))
+    db.transaction(9)
+    totals((0,0,0))
+    assert db.transaction_state().transaction_active is False
+    db.transaction(7)
+    db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2)
+    db.insert('sdk/原','metadata-row',b'saved')
+    if case=='metadata-lost-commit':
+        def lost_metadata_commit(host_slot,original,operation,reply):
+            code=transaction(host_slot,original,operation,reply)
+            assert operation==8 and code==0 and reply._obj.value is not None
+            raise OSError('Injected after original metadata COMMIT publication')
+        database.calls['transaction_into']=lost_metadata_commit
+        try:db.transaction(8)
+        except _OriginalDatabaseError as error:original_error=error;assert error.unknown
+        else:raise AssertionError('Lost original COMMIT accepted')
+        assert db.lookup_unconfirmed_transaction_state().transaction_active is False
+        totals((1,5,1),unconfirmed=True);exact('e\u0301',(8,1),unconfirmed=True)
+        row('metadata-row',b'saved',unconfirmed=True)
+        assert db._write_unknown is original_error
+        for action in (db.database_usage,db.transaction_state,lambda:db.transaction(7)):
+            try:action()
+            except _OriginalDatabaseError as error:assert error is original_error
+            else:raise AssertionError('Original Unknown replaced or operation resent')
+    else:
+        db.transaction(8)
+        totals((1,5,1));exact('e\u0301',(8,1))
+        assert db.transaction_state().transaction_active is False
+        row('metadata-row',b'saved')
+elif case in ('scan-order-and-bounds', 'scan-copy-current'):
+    db.transaction(7)
+    for key, body in [('A', b'large'), ('e\u0301/😀', b''), ('é', b'\0\xff')]:
+        assert db.insert('sdk/原', key, body).revision == 0
+    db.transaction(8)
+    key_output = bytearray(512)
+    try: db.scan_after_into('sdk/原', '', key_output, bytearray(4))
+    except _OriginalDatabaseError as error:
+        assert not error.unknown and error.fact.issue_family == 18
+        assert key_output == bytearray(512)
+    else: raise AssertionError('Scan skipped or copied oversized original row')
+    cursor = ''
+    for expected_key, expected_body in [('A', b'large'), ('e\u0301/😀', b''), ('é', b'\0\xff')]:
+        body_output = bytearray(len(expected_body))
+        fact, key_length, body_length = db.scan_after_into('sdk/原', cursor, key_output, body_output)
+        assert bytes(key_output[:key_length]) == expected_key.encode('utf-8')
+        assert bytes(body_output[:body_length]) == expected_body
+        assert fact.operation == 12 and fact.revision == 0
+        observations.append({'key_hex':bytes(key_output[:key_length]).hex(), 'bytes':body_length})
+        cursor = expected_key
+    try: db.scan_after_into('sdk/原', cursor, key_output, bytearray())
+    except _OriginalDatabaseError as error: assert not error.unknown and error.fact.issue_family == 15
+    else: raise AssertionError('End of original query was fabricated as a row')
+    if case == 'scan-copy-current':
+        scope_bytes = 'sdk/原'.encode('utf-16-le')
+        scope = (C.c_uint16*(len(scope_bytes)//2)).from_buffer_copy(scope_bytes)
+        with domain._read_scope(read):
+            assert database.calls['scan_utf16_into'](db._host, db._original, scope,
+                len(scope_bytes)//2, None, 0, 4096, C.byref(db._reply)) == 0
+            assert database.calls['operation'](db._reply) == 12
+        try: host.close()
+        except _OriginalControlError as error: assert not error.unknown and error.fact.issue_family == 5
+        else: raise AssertionError('Host closed with retained scan row')
+        with domain._read_scope(read, cleanup=True):
+            buffer = (C.c_ubyte*512)()
+            for name in ('copy_key', 'copy_row'):
+                size = C.c_int64(-1)
+                code = database.calls[name](db._reply, db._host, db._native_library,
+                    db._original, buffer, 512, C.byref(size))
+                assert code != 0 and size.value == -1 and bytes(buffer) == bytes(512)
+                observations.append({'closed_copy':name, 'status':code, 'length':size.value})
+            assert database.calls['drop_reply'](C.byref(db._reply), db._host,
+                db._native_library, db._original) == 0 and db._reply.value is None
 elif case in ('lost-commit', 'lost-begin'):
     loss = 8 if case == 'lost-commit' else 7
     if loss == 8:
@@ -132,6 +284,11 @@ elif case in ('lost-commit', 'lost-begin'):
         except _OriginalDatabaseError as error:
             assert not error.unknown and error.fact.issue_family == 20
         else: raise AssertionError('Active transaction accepted as committed lookup')
+        assert db.lookup_unconfirmed_transaction_state().transaction_active is True
+        for action in (lambda:db.lookup_unconfirmed_capacity('capacity/原','absent'), db.lookup_unconfirmed_database_usage):
+            try:action()
+            except _OriginalDatabaseError as error:assert not error.unknown and error.fact.issue_family==20
+            else:raise AssertionError('Private metadata accepted as committed lookup')
     assert db._write_unknown is original_error and transactions.count(loss) == 1
 elif case != 'partial-open':
     raise AssertionError('Unselected case')

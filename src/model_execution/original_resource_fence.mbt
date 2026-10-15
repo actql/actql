@@ -32,10 +32,10 @@ pub fn model_original_park_candidate(
     !state.accepted &&
     !state.stop_requested &&
     !@bounded.session_stopped(execution.session) &&
-    state.phase is DispatchSlot &&
-    state.entering is None &&
-    state.pending_response is None &&
-    state.settlement_pending is None &&
+    state.progress.phase is DispatchSlot &&
+    state.progress.entry is None &&
+    state.progress.call is None &&
+    state.progress.settlement is None &&
     state.request is None &&
     state.output_uses == 0 &&
     state.source is Provider(_) &&

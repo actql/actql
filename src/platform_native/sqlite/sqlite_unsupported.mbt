@@ -263,6 +263,17 @@ pub fn Database::release_capacity(
 }
 
 ///|
+pub fn Database::release_capacity_in_transaction(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _reserved_bytes : Int64,
+  _reserved_objects : Int64,
+) -> Result[Bool, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::claim_ordinal(
   _self : Database,
   scope : String,
@@ -351,5 +362,37 @@ pub fn Database::scan_after_with_body_limit(
   _after_key : String,
   _max_body_bytes : Int64,
 ) -> Result[NativeJournalEntry, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::read_capacity(
+  _self : Database,
+  _scope : String,
+  _key : String,
+) -> Result[NativeCapacityUsage, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::database_usage(
+  _self : Database,
+) -> Result[NativeDatabaseUsage, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::read_header(
+  _self : Database,
+  _scope : String,
+  _key : String,
+) -> Result[NativeJournalHeader, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::begin_deferred(
+  _self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }

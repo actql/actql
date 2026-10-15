@@ -1,0 +1,147 @@
+{
+  "source": "3ac6cc013d877588dccb497db53c80ce8141a4ff",
+  "sourceClean": true,
+  "base": "6f5e518e1dbfb85b4c158fed43d300742eb6ecf2",
+  "tests": {
+    "run": "run-OETzqH",
+    "actual": 19,
+    "passed": 19,
+    "failed": 0,
+    "outerSeconds": 60,
+    "childSeconds": 30,
+    "graceSeconds": 5,
+    "jobs": 1
+  },
+  "preparation": {
+    "run": "run-ALNhpO",
+    "execution": false,
+    "outerSeconds": 180,
+    "graceSeconds": 5,
+    "jobs": 1
+  },
+  "apiAndReadOnlyFormat": {
+    "run": "run-HrgSnL",
+    "affectedPackages": [
+      "pipeline_typing",
+      "lowering_relation"
+    ],
+    "formattedFiles": 10,
+    "exit": 0
+  },
+  "installed": {
+    "artifactSource": "6f5e518e1dbfb85b4c158fed43d300742eb6ecf2",
+    "run": "run-HXPbke",
+    "completedNormal": 0,
+    "completedRefusal": 0,
+    "firstJSONFailedBothTransports": true,
+    "newRepairSourcePublicExecutions": 0,
+    "declaredCasesPerTransport": {
+      "normal": 5,
+      "refusal": 2
+    }
+  },
+  "inputFiles": [
+    {
+      "path": "reviews/2026-10-16-composite-installed-ledger/prepared-checks.mjs",
+      "sha256": "a38dfd556a78bf805c2793fd0ee5533eb97eb400e0b2cf5b6514af183e65ae3d"
+    },
+    {
+      "path": "src/execution_relation/bounded_binding_rows.mbt",
+      "sha256": "5affc0acd9e995b345f15185dc30d06885bb6804cafc9d652fb8cae6e4a48ccd"
+    },
+    {
+      "path": "src/execution_relation/complete_tree_comparison.mbt",
+      "sha256": "6eb5424503d60a89645943973ce5233ac3870966e242c0c31b3f9738bfcba14d"
+    },
+    {
+      "path": "src/execution_relation/fragment_execution.mbt",
+      "sha256": "0cd2319b00ed58b6c2c78f353f4862e5ba93b8cae2e14166f2c7191297d9f5e2"
+    },
+    {
+      "path": "src/execution_relation/positional_identity_order_wbtest.mbt",
+      "sha256": "b521279da622232b54b8315860f15a86960c27408b5c38c5e2830abe27bece74"
+    },
+    {
+      "path": "src/execution_relation/sort_rows.mbt",
+      "sha256": "4202cffff444169e4df5f42081c5a03a2b7b62c000fa1d8c6d414667cc111b2d"
+    },
+    {
+      "path": "src/execution_relation/stable_order.mbt",
+      "sha256": "5f18277d5931e340d6c2f2cb62bf6b6fe10f279d5ea9c7d5c6e72247045be1b5"
+    },
+    {
+      "path": "src/execution_relation/stable_order_steps.mbt",
+      "sha256": "ce5a67d9c5841526bc62f7f047ccf6b673a988488e0176caa21c8a448c91783d"
+    },
+    {
+      "path": "src/lowering_relation/pkg.generated.mbti",
+      "sha256": "1733e32481d72953f72a60a37db0145f91101b718eb5380f64531467e4bf9a88"
+    },
+    {
+      "path": "src/lowering_relation/sort_terms.mbt",
+      "sha256": "10058f630700f24886b8ec142c895a20d6e01b8bafd83dd611ba025182b19ac1"
+    },
+    {
+      "path": "src/pipeline_typing/pkg.generated.mbti",
+      "sha256": "b2b40337ec2c87284404547dd79f726632a67d986234d7dcc4135206114dafb4"
+    },
+    {
+      "path": "src/pipeline_typing/sort_completion.mbt",
+      "sha256": "0e42735a400c0022b7e5d70114fea3f67509b9a1819c629cc462378d635c17bd"
+    },
+    {
+      "path": "src/query_integration/composite_installed_ledger_wbtest.mbt",
+      "sha256": "0b3f4f2caf7c049b248adb0a5174d9988e0ff2d88312eed6239d744d9bd87f46"
+    }
+  ],
+  "retainedEvidence": [
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-13d635d5-counter.log",
+      "sha256": "436cfae9c063e8ae8f7e5b56f2d5031bde1e6d4635ce149ad617571ede12e5c0"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-397a010e-counter.log",
+      "sha256": "717e056a311141f379aa12fe92f3b1d8d606fc2b7def86253045c136da44b799"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-e8273849-comparison.log",
+      "sha256": "d7ea2032cb51bf459078aec2953db841f772b5277793292c14c5f4ce72ea54fb"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-b841ed4b-comparison.log",
+      "sha256": "acd2ebcb3b064c79cc3205f4f31165e788a641252dfdc4c5de936722b7b27b16"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-0bba0399-comparison.log",
+      "sha256": "a1d22706d937bc9540182f11cc3128ee095f697c78884425d92fd2937791d3e4"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-52f70bb5-comparison.log",
+      "sha256": "40a245e0856cf9fdded665ede1599a8b54eadd9995d27263aa23e7c34247ee80"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-9672cc6d-verify.log",
+      "sha256": "2eaa1603498f8ff8f93a00321c7e209e8a66db4a0128758f82c6c80bd181b7e8"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-3ac6cc01-prepare-final.log",
+      "sha256": "0b7893ddf813a4b06a27364f9eb2aa926522f80003880fc811ed561953ecd7ad"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-3ac6cc01-final.log",
+      "sha256": "3c9bec5a04442082e64abb8940e832db1b690bc517d86b0332125a1a586cc1f7"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-ledger-3ac6cc01-verify.log",
+      "sha256": "9c4dd6572a956fe9b672a7818119cbb32c6951ee4dd6cc75534f9518d5ae8e88"
+    },
+    {
+      "workspacePath": "reviews/2026-10-15-b-real-cross-connector-route/composite-order-3ac6cc01-closure.json",
+      "sha256": "131bfa02af33ebbb46fd74fd27f9214c9f8103498a14cd52d102d7cb1b449fdd"
+    }
+  ],
+  "unchangedOriginalFixtureFiles": [
+    "scripts/fixtures/composite-vector-source-input.mjs",
+    "scripts/fixtures/composite-vector-installed-source.mjs"
+  ]
+}

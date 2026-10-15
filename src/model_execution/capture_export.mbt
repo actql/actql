@@ -84,7 +84,7 @@ pub fn start_model_call_settlement_export(
     return Err(issue)
   }
   guard model_call_settlement_slot(value) is Some(slot) &&
-    value.owner.state.outcomes.get(slot) is Some(outcome) &&
+    model_outcome_at(value.owner.state, slot) is Some(outcome) &&
     value.owner.state.output_uses < 2147483647 else {
     return Err(OutputIdentity)
   }

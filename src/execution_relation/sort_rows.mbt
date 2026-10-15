@@ -81,7 +81,10 @@ fn[T : RelationRows] evaluate_sort_selection(
     guard ordinals.get(name) is Some(column) else { return Err(InvalidRows) }
     order.push({ column, descending, nulls_first, })
   }
-  let indices = match stable_order_indices(input, order, control, workspace) {
+  let indices = match
+    stable_order_indices(input, order, control, workspace, positional_at=term => {
+      @lower.kernel_sort_term_positional_count(kernel, term)
+    }) {
     Ok(indices) => indices
     Err(issue) => return Err(ordering_row_issue(issue))
   }

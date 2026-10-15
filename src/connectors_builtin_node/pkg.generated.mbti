@@ -921,6 +921,8 @@ pub fn client_program_infer_outcomes_count(@model_execution.ModelOutcomeRead) ->
 
 pub fn client_program_infer_outcomes_outcome(@model_execution.ModelOutcomeRead, Int) -> String?
 
+pub fn client_program_infer_outcomes_slot_at(@model_execution.ModelOutcomeRead, Int) -> Int?
+
 pub fn client_program_infer_output_use(@client_infer_host.OutputUse) -> @execution_relation.CompletedOutput?
 
 pub fn client_program_infer_physical_observation_facts(@model_execution.ModelPhysicalObservation) -> (Int, String, String, String)
