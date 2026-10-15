@@ -19,7 +19,7 @@ from actql_sdk._local_native_sqlite_database import _OriginalDatabaseCustody, _O
 from actql_sdk._local_worker_slot import _OriginalDescriptor
 from actql_sdk._local_native_store import _open_original_native_store
 from actql_sdk._local_files import LocalFileRoot
-from actql_sdk._local_storage import LocalByteStore, ByteWrite, StoredBytes, LocalStorageCommitUnknown
+from actql_sdk._local_storage import LocalByteStore, ByteWrite, ByteFence, StoredBytes, LocalStorageCommitUnknown
 
 plan = json.loads(Path(sys.argv[1]).read_bytes())
 case = sys.argv[2]
@@ -68,6 +68,8 @@ key = store.namespaced_key('sdk/原', 'e\u0301/😀')
 assert store.compare_exchange(key, None, b'\0\xff\r\n') == 0
 assert store.read(key) == StoredBytes(0, b'\0\xff\r\n')
 assert store.compare_exchange(key, 9, b'wrong') is None
+assert store.compare_exchange('original-epoch', None, b'fixed-epoch') == 0
+fences = (ByteFence('original-epoch', 0, b'fixed-epoch'),)
 write = ByteWrite(key, 0, b'original-next')
 actual_transaction = database.calls['transaction_into']
 commits = []
@@ -80,13 +82,13 @@ def lose_commit(host_slot, original, operation, reply):
     return code
 database.calls['transaction_into'] = lose_commit
 try:
-    store.compare_exchange_many_fenced((write,), (), current=lambda: None)
+    store.compare_exchange_many_fenced((write,), fences, current=lambda: None)
 except LocalStorageCommitUnknown as error:
     assert error.cleanup_store is store
 else:
     raise AssertionError('Lost COMMIT ACK accepted')
 assert commits == [1]
-observed = store.read_exchange_many_fenced((write,), (), current=lambda: None)
+observed = store.read_exchange_many_fenced((write,), fences, current=lambda: None)
 assert observed == (StoredBytes(1, b'original-next'),)
 assert commits == [1] and store._physical._original._write_unknown is not None
 try:
