@@ -40,7 +40,7 @@ test('a built viewer closes its server without closing, cancelling or submitting
     body: JSON.stringify({bootstrap: bootstrap.bootstrap})});
   const admitted = await session.json(); assert.equal(session.status, 200);
   assert.deepEqual(admitted.capabilities, {plan: false, run: true, resultMetadata: true,
-    resultPayload: false, control: false, sample: false, cancellation: false});
+    resultPayload: false, control: false, sample: false, cancellation: false,checkpointList:false,checkpointReview:false});
   await gateway.close(); assert.deepEqual(calls, []);
   await assert.rejects(fetch(gateway.origin));
 });

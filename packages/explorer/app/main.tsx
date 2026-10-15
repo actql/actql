@@ -1,6 +1,8 @@
+import type {CheckpointSummary} from '@actql/sdk';
+import type {CheckpointPageModel,ReviewObservation} from '@actql/explorer-ui/checkpoint-review';
 import {useEffect, useMemo, useRef, useState, type FormEvent} from 'react';
 import {createRoot} from 'react-dom/client';
-import {PlanExplorer, RunInspector, CancellationPanel} from '@actql/explorer-ui/plan-explorer';
+import {PlanExplorer, RunInspector, CancellationPanel, CheckpointPanel} from '@actql/explorer-ui/plan-explorer';
 import type {OriginalCancellation, CancellationObservation} from '@actql/explorer-ui/plan-explorer';
 import {validCancellationRef, validOperationAttemptRef} from '@actql/client-wire';
 import type {WireCancellationLookup} from '@actql/client-wire';
@@ -26,11 +28,16 @@ function App() {
   const [cancellationObservation, showCancellation] = useState<CancellationObservation|null>(null);
   const [cancellationHistory, showCancellationHistory] = useState<WireCancellationLookup|null>(null);
   const [savedCancellation, confirmSavedCancellation] = useState(false);
+  const [checkpointPage,showCheckpointPage]=useState<CheckpointPageModel|null>(null);
+  const [review,showReview]=useState<ReviewObservation|null>(null);
+  const [checkpointCapabilities,setCheckpointCapabilities]=useState({list:false,read:false});
+  const reviewSelection=useRef(0);
   const cancelSent = useRef(false);
   const epoch = useRef(0);
   const runSelection = useRef(0);
   const invalidate = () => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); enableCancellation(false); busy(false);
     showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showLauncherProgram(false);
+    reviewSelection.current++;showCheckpointPage(null);showReview(null);setCheckpointCapabilities({list:false,read:false});
     showCancellationHistory(null);showCancellation(originalCancellation && cancelSent.current
       ? {state:'unknown',original:originalCancellation} : null);showError('');};
   const perform = async (action: () => Promise<void>) => {
@@ -55,6 +62,7 @@ function App() {
     void perform(async () => {
       const selected = epoch.current;
       const capabilities = await source.connect(token);
+      setCheckpointCapabilities({list:capabilities.checkpointList,read:capabilities.checkpointReview});
       enableCancellation(capabilities.cancellation); connect(true);
       const view = await source.launchView();
       if (epoch.current !== selected) return;
@@ -123,6 +131,12 @@ function App() {
       keepCancellation(saved);cancelSent.current=true;showCancellation({state:'unknown',original:saved});
     } catch {showError('Invalid original cancellation reference. No Host operation was requested.');}
   };
+  const listCheckpoints=()=>{const selected=++reviewSelection.current,scope=epoch.current;setFollow(false);
+    void perform(async()=>{showCheckpointPage(null);showReview(null);const value=await source.checkpoints();
+      if(epoch.current===scope&&selected===reviewSelection.current)showCheckpointPage(value);});};
+  const readReview=(checkpoint:CheckpointSummary)=>{const selected=++reviewSelection.current,scope=epoch.current;setFollow(false);
+    void perform(async()=>{showReview(null);const value=await source.reviewCheckpoint(checkpoint);
+      if(epoch.current===scope&&selected===reviewSelection.current)showReview(value);});};
   return <main><header><p>LOCAL PRESENTATION · EXPLICIT OWNER OPERATIONS</p><h1>ActQL Explorer</h1>
     <p>Static Plan, existing Run observations and Named Result metadata.</p>
     <p>Pause, step, resume, Samples, Result payloads and physical/source-origin projections are unavailable. Cancellation is available only with the launcher’s explicit opt-in and current Host permission.</p></header>
@@ -157,6 +171,9 @@ function App() {
           : follow ? 'Following authorized read-only observations; no execution is started.' : 'Showing the last explicit read.'}</p>
         <RunInspector model={run}/></>}
       {result !== undefined && <><h3>Named Result metadata</h3><pre>{JSON.stringify(result, null, 2)}</pre></>}</section>
+    <CheckpointPanel page={checkpointPage} review={review} pending={pending}
+      canList={connected&&checkpointCapabilities.list} canRead={connected&&checkpointCapabilities.read}
+      onList={listCheckpoints} onRead={readReview}/>
     {(cancellationEnabled || originalCancellation) && <section>
       {!originalCancellation && <form onSubmit={importCancellation}>
         <label>Saved original cancellation JSON (lookup only)<textarea name="original" maxLength={8192} required/></label>

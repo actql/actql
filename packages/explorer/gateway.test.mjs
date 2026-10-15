@@ -366,7 +366,7 @@ test('browser holds CSRF only in memory, discards old replies/401 and never retr
         assert(!url.includes('secret')); assert(!Object.hasOwn(options.headers, 'Authorization'));
         if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
           scopeEpoch: calls, expiresAt: 200, capabilities: {plan: false, run: true,
-            resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false}});
+            resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false,checkpointList:false,checkpointReview:false}});
         await wait;
         return failed ? Response.json({error: 'old'}, {status: 401}) :
           Response.json({scopeEpoch: 1, data: {secret: 'old-scope'}});
@@ -391,7 +391,7 @@ test('browser launch metadata validates shape and discards a delayed old-scope r
       calls++;
       if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
         scopeEpoch: calls, expiresAt: 200, capabilities: {plan: false, run: true,
-          resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false}});
+          resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false,checkpointList:false,checkpointReview:false}});
       await wait; return Response.json({scopeEpoch: 1, data: {kind: 'run', ref}});
     }});
   await source.connect('bootstrap');
@@ -407,7 +407,7 @@ test('browser refuses a forged launch response without using it or requesting a 
       calls++;
       if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
         scopeEpoch: 1, expiresAt: 200, capabilities: {plan: false, run: true,
-          resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false}});
+          resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false,checkpointList:false,checkpointReview:false}});
       return Response.json({scopeEpoch: 1, data: {kind: 'run', ref, start: true}});
     }});
   await source.connect('bootstrap');

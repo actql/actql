@@ -1,3 +1,4 @@
+import {readWaitingCheckpoints,readCheckpointReview} from '@actql/explorer-ui/checkpoint-review';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {Hono} from 'hono';
 import {serve} from '@hono/node-server';
@@ -90,7 +91,7 @@ function safeReadError(error) {
     'ExplorerSessionExpired', 'ExplorerBootstrapRefused', 'ExplorerSessionRefused',
     'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerReplyLimit',
     'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerMapLimit',
-    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidCancellation'].includes(error?.code)) {
+    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidCancellation','ExplorerInvalidCheckpointReview'].includes(error?.code)) {
     return {code: error.code, status: error.status ?? 409};
   }
   // Never serialize Host messages, bodies, URLs, stack traces or credentials.
@@ -159,7 +160,7 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     c.header('Set-Cookie', `${cookieName}=${session.value}; Path=/api; HttpOnly; SameSite=Strict; Max-Age=${Math.ceil(sessionMs / 1000)}`);
     return c.json({csrf: session.csrf, scopeEpoch, expiresAt: session.expiresAt,
       capabilities: {plan: typeof client.plan === 'function', run: true,
-        resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: allowCancellation}});
+        resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: allowCancellation, checkpointList:typeof client.checkpoints==='function', checkpointReview:typeof client.reviewCheckpoint==='function'}});
   });
   app.post('/api/:group/:kind', async c => {
     const selected = session;
@@ -230,6 +231,12 @@ export function createExplorerGateway({client, origin, assets = new Map(),
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRunPlan(client, body.ref, ticket);
           break;
+        case 'checkpoints':
+          if(!exact(body,[]))fail('ExplorerInvalidRequest');
+          data=await readWaitingCheckpoints(client,ticket);break;
+        case 'checkpoint-review':
+          if(!exact(body,['checkpoint']))fail('ExplorerInvalidRequest');
+          data=await readCheckpointReview(client,body.checkpoint,ticket);break;
         case 'result':
           if (!exact(body, ['ref', 'name']) || !validRunRef(body.ref) ||
               typeof body.name !== 'string' || body.name.length === 0 || body.name.length > 1024) {

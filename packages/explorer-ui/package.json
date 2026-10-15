@@ -32,6 +32,10 @@
     "./cancellation": {
       "types": "./cancellation.d.ts",
       "default": "./cancellation.mjs"
+    },
+    "./checkpoint-review": {
+      "types": "./checkpoint-review.d.ts",
+      "default": "./checkpoint-review.mjs"
     }
   },
   "files": [
@@ -49,7 +53,10 @@
     "cancellation-panel.d.ts",
     "cancellation-types.d.ts",
     "cancellation.mjs",
-    "cancellation.d.ts"
+    "cancellation.d.ts",
+    "checkpoint-review.mjs",
+    "checkpoint-review.d.ts",
+    "checkpoint-panel.d.ts"
   ],
   "scripts": {
     "build": "vite build --config vite.config.mts",
