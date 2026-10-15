@@ -823,6 +823,19 @@ fn verify_captured_private_table_input(
     @strategy.captured_effect_preview_inputs_available(captured_preview),
   )
   assert_true(
+    @strategy.captured_effect_preview_inputs_retained(captured_preview),
+  )
+  // External material availability is deliberately not a retention grant.
+  // The final fence reads original capture/pin state, not that callback.
+  available.val = false
+  assert_false(
+    @strategy.captured_effect_preview_inputs_available(captured_preview),
+  )
+  assert_true(
+    @strategy.captured_effect_preview_inputs_retained(captured_preview),
+  )
+  available.val = true
+  assert_true(
     @strategy.captured_effect_preview_input_at(captured_preview, 0) is None,
   )
   assert_true(
@@ -896,6 +909,10 @@ fn verify_captured_private_table_input(
   @execution.cancel_completed_result_relation_export(out_preparation) |> ignore
   @execution.cancel_completed_result_relation_export(ordinary_preparation)
   |> ignore
+  assert_true(@strategy.release_captured_table_input_borrow(borrow))
+  assert_false(
+    @strategy.captured_effect_preview_inputs_retained(captured_preview),
+  )
   assert_true(@strategy.release_captured_effect_inputs(inputs))
   assert_false(@strategy.release_captured_effect_inputs(inputs))
   assert_false(@strategy.captured_effect_inputs_share_view(inputs, 0, 0))
@@ -907,6 +924,9 @@ fn verify_captured_private_table_input(
   )
   assert_false(
     @strategy.captured_effect_preview_inputs_available(captured_preview),
+  )
+  assert_false(
+    @strategy.captured_effect_preview_inputs_retained(captured_preview),
   )
   assert_false(
     @publication_host.client_table_preview_input_available(table_preview),

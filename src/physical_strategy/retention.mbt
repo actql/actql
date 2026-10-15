@@ -487,6 +487,19 @@ pub fn captured_any_result_borrow_available(
 }
 
 ///|
+/// Read only this original consumer's explicit retention state. In particular,
+/// do not call the installed material's availability callback at a final fence.
+fn captured_any_result_borrow_retained(
+  borrow : CapturedAnyResultBorrow,
+) -> Bool {
+  match borrow.kind {
+    Cells(value) => value.pin.live
+    Resident(value) => value.pin.live
+    Source(value) => value.live
+  }
+}
+
+///|
 /// A live Result pin belongs to one exact captured Run, independently of CIDs.
 pub fn captured_any_result_borrow_matches_run(
   borrow : CapturedAnyResultBorrow,
