@@ -104,6 +104,11 @@ for (const route of ['generic','original-undici']) {
     globalThis.URL=class extends OriginalURL {constructor(...args){urls++;super(...args);}};
     Buffer.byteLength=(...args)=>{encodings++;return Reflect.apply(originalByteLength,Buffer,args);};
     try {
+      const {originalStringLimits:removed,...missing}=config;void removed;
+      const {fetch:unused,...selectedMissing}=missing;void unused;
+      assert.throws(()=>route==='generic'?createInstalledOpenAIChatRegistration(missing):
+        createInstalledUndiciOpenAIChatRegistration({...selectedMissing,physicalAcquisitionLimits}),
+      {code:'OpenAIOriginalStringLimitsUnavailable'});
       for(const [name,limit] of [['apiKey',12],['baseURL',26],['modelId',12]]) {
         const candidate={...config,[name]:'x'.repeat(limit+1)};
         const {fetch:unused,...selected}=candidate;void unused;
