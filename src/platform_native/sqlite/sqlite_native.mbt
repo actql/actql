@@ -239,6 +239,18 @@ extern "C" fn database_release_capacity_ffi(
 
 ///|
 #borrow(database, scope, key)
+extern "C" fn database_release_capacity_in_transaction_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+) -> Int = "actql_native_sqlite_database_release_capacity_in_transaction"
+
+///|
+#borrow(database, scope, key)
 extern "C" fn database_claim_ordinal_ffi(
   database : Database,
   scope : Bytes,
@@ -1038,6 +1050,35 @@ pub fn Database::release_capacity(
   reserved_bytes : Int64,
   reserved_objects : Int64,
 ) -> Result[Bool, NativeSqliteIssue] {
+  self.release_capacity_transaction(
+    scope, key, reserved_bytes, reserved_objects, false,
+  )
+}
+
+///|
+/// Release the exact original reservation in the caller's active transaction.
+/// Never commits, rolls back or supplies a physical cleanup/admission ACK.
+pub fn Database::release_capacity_in_transaction(
+  self : Database,
+  scope : String,
+  key : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+) -> Result[Bool, NativeSqliteIssue] {
+  self.release_capacity_transaction(
+    scope, key, reserved_bytes, reserved_objects, true,
+  )
+}
+
+///|
+fn Database::release_capacity_transaction(
+  self : Database,
+  scope : String,
+  key : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+  caller_transaction : Bool,
+) -> Result[Bool, NativeSqliteIssue] {
   let scope_bytes = @utf8.encode(scope)
   let key_bytes = @utf8.encode(key)
   if !valid_name(scope_bytes) || !valid_name(key_bytes) {
@@ -1046,8 +1087,13 @@ pub fn Database::release_capacity(
   if reserved_bytes < 0L || reserved_objects < 0L {
     return Err(InvalidLimit)
   }
+  let release = if caller_transaction {
+    database_release_capacity_in_transaction_ffi
+  } else {
+    database_release_capacity_ffi
+  }
   match
-    database_release_capacity_ffi(
+    release(
       self,
       scope_bytes,
       scope_bytes.length(),
