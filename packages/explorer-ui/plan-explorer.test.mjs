@@ -75,3 +75,17 @@ test('different supplied scopes and Plans render only their own data', () => {
   assert(html.includes('current only')); assert(!html.includes('&lt;script&gt;'));
   assert.equal(old.nodes[0].names[0], 'e\u0301\r\n<script>alert(1)</script>');
 });
+
+test('Effectful React view labels declarations and unknown observations without invented controls', async () => {
+  const {effectfulStaticPlan} = await import('../../scripts/fixtures/effectful-static-plan-vectors.mjs');
+  const {planReadModel} = await import('./read-model.mjs');
+  const html = renderToStaticMarkup(createElement(PlanExplorer,
+    {model: planReadModel(effectfulStaticPlan), scopeKey: 'static-effect'}));
+  for (const text of ['Computation component', 'Declared Effects', 'connector://crm/account',
+    'Current permission: unknown', 'Sealed Preview: unavailable', 'human-only', 'Not represented does not mean none']) {
+    assert.ok(html.includes(text), text);
+  }
+  assert.ok(!html.includes('>Approve<'));
+  assert.ok(!html.includes('>Run<'));
+  assert.ok(!html.includes('>Pause<'));
+});

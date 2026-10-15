@@ -1565,6 +1565,21 @@ pub fn client_program_task_static_plan_view(
 }
 
 ///|
+// Static declaration metadata only: no Run admission or normalization capture.
+#export_name("clientProgramEffectfulStaticPlanView")
+pub fn client_program_effectful_static_plan_view(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compiled : @publication_host.ClientEffectCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientEffectfulStaticPlanIssue] {
+  @publication_host.client_effectful_static_plan_view(
+    prepared, compiled, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramCurrentRunView")
 pub fn client_program_current_run_view(
   run : @publication.PublicationContract,
