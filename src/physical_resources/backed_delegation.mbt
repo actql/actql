@@ -284,7 +284,8 @@ fn[P, C] backed_child_current(
   (SharedCapacity, SharedBorrow, ExecutionDelegation),
   BackedExecutionIssue,
 ] {
-  match check_backed_execution_delegation_current(region, provider, child, ticket) {
+  match
+    check_backed_execution_delegation_current(region, provider, child, ticket) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -307,7 +308,8 @@ pub fn[P, C] backed_execution_delegation_description(
   (BackedExecutionExtent, BackedExecutionAccess, LedgerLimits),
   BackedExecutionIssue,
 ] {
-  match check_backed_execution_delegation_current(region, provider, child, ticket) {
+  match
+    check_backed_execution_delegation_current(region, provider, child, ticket) {
     Err(issue) => Err(issue)
     Ok(_) => Ok((ticket.extent, ticket.access, ticket.limits))
   }

@@ -26,12 +26,13 @@ test "backed current-only rejects foreign provider child copied ticket and regio
   let before = ledger_usage(ledger)
   let copied : BackedExecutionDelegation[Ref[Int], Ref[Int]] = { ..ticket, }
   let (_, _, _, other_provider, other_region) = backed_test_region()
-  for (selected_region, selected_provider, selected_child, selected_ticket) in [
-    (region, Ref(1), child, ticket),
-    (region, provider, Ref(2), ticket),
-    (region, provider, child, copied),
-    (other_region, other_provider, child, ticket),
-  ] {
+  for
+    (selected_region, selected_provider, selected_child, selected_ticket) in [
+      (region, Ref(1), child, ticket),
+      (region, provider, Ref(2), ticket),
+      (region, provider, child, copied),
+      (other_region, other_provider, child, ticket),
+    ] {
     assert_eq(
       check_backed_execution_delegation_current(
         selected_region, selected_provider, selected_child, selected_ticket,
@@ -52,8 +53,14 @@ test "backed current-only preserves entered cleanup during graceful closing and 
   check_backed_execution_delegation_current(region, provider, child, ticket).unwrap()
   assert_true(
     reserve_backed_execution_delegation(
-      region, provider, Ref(3), backed_test_extent(), ExclusiveWrite,
-      backed_test_limits(), 0L, 0L,
+      region,
+      provider,
+      Ref(3),
+      backed_test_extent(),
+      ExclusiveWrite,
+      backed_test_limits(),
+      0L,
+      0L,
     )
     is Err(RegionClosing),
   )
