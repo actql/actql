@@ -3,7 +3,12 @@ fn worker_provisioning_test_host(
   name : String,
   allow : Bool,
 ) -> NativeLocalHostConnection {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(parent_path).unwrap()
+  // Each independently adopted Host owns a different original lock namespace.
+  parent.create_directory(name + ".fixture").unwrap() |> ignore
+  parent.close().unwrap()
+  let path = parent_path + "/" + name + ".fixture"
   let root = @filesystem.open_private_root(path).unwrap()
   let account = if allow {
     b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"original-worker\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"local\"]},\"resource\":{\"any_of\":[\"worker\"]},\"operation\":{\"any_of\":[\"provision\",\"read\"]},\"exclusions\":[]}]}"
@@ -13,6 +18,7 @@ fn worker_provisioning_test_host(
   let writer = root.create_writer(name + ".account.stage", 4096L).unwrap()
   writer.append(account).unwrap()
   writer.seal(name + ".account.json").unwrap() |> ignore
+  root.close().unwrap()
   begin_native_local_host_adoption(
     path,
     name + ".host",
@@ -34,7 +40,8 @@ fn worker_provisioning_test_host(
 
 ///|
 fn worker_provisioning_reopen(name : String) -> NativeLocalHostConnection {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    "/" + name + ".fixture"
   begin_native_local_host_adoption(
     path,
     name + ".host",
