@@ -38,7 +38,7 @@ test "empty stored row differs from no row and original post-call fence stays se
     stage: 2,
     issue: None,
     after: Some(Domain(@bootstrap.Bootstrap(@bootstrap.Closing))),
-    value: Some(DatabaseRow({ key: "original", revision: 0L, body: b"", })),
+    value: Some(DatabaseRow("original", 0L, b"")),
   }
   assert_eq(reply.has_row(), 1)
   assert_eq(reply.body(), b"")
@@ -141,9 +141,7 @@ test "bounded scan row preserves exact decomposed key binary body and separate p
     stage: 2,
     issue: None,
     after: Some(Domain(@bootstrap.Bootstrap(@bootstrap.Closing))),
-    value: Some(
-      DatabaseRow({ key: "e\u0301/😀", revision: 7L, body: b"\x00\xff\r\n", }),
-    ),
+    value: Some(DatabaseRow("e\u0301/😀", 7L, b"\x00\xff\r\n")),
   }
   assert_eq(reply.operation_tag(), 12)
   assert_eq(reply.has_row(), 1)

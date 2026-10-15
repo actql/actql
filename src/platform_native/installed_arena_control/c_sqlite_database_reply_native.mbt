@@ -4,7 +4,9 @@
 priv enum SqliteDatabaseReplyValue {
   DatabaseUnit
   DatabaseRevision(Int64)
-  DatabaseRow(@sqlite.NativeJournalEntry)
+  // Keep original row fields directly: an extra NativeJournalEntry wrapper
+  // would remain live through the same funded post-call current check.
+  DatabaseRow(String, Int64, Bytes)
 }
 
 ///|
@@ -146,8 +148,7 @@ pub fn read_installed_sqlite_database_reply(
       }
     }
     match database.read_with_body_limit(scope, key, max_body_bytes) {
-      Ok(value) =>
-        Ok(DatabaseRow({ key, revision: value.revision, body: value.body, }))
+      Ok(value) => Ok(DatabaseRow(key, value.revision, value.body))
       Err(issue) => Err(issue)
     }
   })
@@ -176,7 +177,7 @@ pub fn scan_installed_sqlite_database_reply(
     }
     match
       database.scan_after_with_body_limit(scope, after_key, max_body_bytes) {
-      Ok(value) => Ok(DatabaseRow(value))
+      Ok(value) => Ok(DatabaseRow(value.key, value.revision, value.body))
       Err(issue) => Err(issue)
     }
   })
@@ -357,7 +358,7 @@ pub fn InstalledArenaSqliteDatabaseReply::after_issue_family(
 pub fn InstalledArenaSqliteDatabaseReply::has_row(
   self : InstalledArenaSqliteDatabaseReply,
 ) -> Int {
-  if self.value is Some(DatabaseRow(_)) {
+  if self.value is Some(DatabaseRow(_, _, _)) {
     1
   } else {
     0
@@ -370,7 +371,7 @@ pub fn InstalledArenaSqliteDatabaseReply::revision(
 ) -> Int64 {
   match self.value {
     Some(DatabaseRevision(value)) => value
-    Some(DatabaseRow(value)) => value.revision
+    Some(DatabaseRow(_, revision, _)) => revision
     _ => -1L
   }
 }
@@ -380,7 +381,7 @@ pub fn InstalledArenaSqliteDatabaseReply::body(
   self : InstalledArenaSqliteDatabaseReply,
 ) -> Bytes {
   match self.value {
-    Some(DatabaseRow(value)) => value.body
+    Some(DatabaseRow(_, _, body)) => body
     _ => b""
   }
 }
@@ -401,7 +402,7 @@ pub fn InstalledArenaSqliteDatabaseReply::row_key_bytes(
   self : InstalledArenaSqliteDatabaseReply,
 ) -> Bytes {
   match self.value {
-    Some(DatabaseRow(value)) => @utf8.encode(value.key)
+    Some(DatabaseRow(key, _, _)) => @utf8.encode(key)
     _ => b""
   }
 }
