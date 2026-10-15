@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {machineCid} from '../../scripts/actql-spec-family.mjs';
+import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+test('Graph compilation expectation is derived from the normative AoA preimage, not compiled output', async () => {
+  const expected = JSON.parse(await readFile(new URL('./independent-expected.json', import.meta.url)));
+  const bytes = await readFile('spec/contracts/actql-aoa.json');
+  assert.equal(hash(bytes), expected.sourceSha256);
+  const wire = canonicalText(JSON.parse(bytes));
+  assert.equal(hash(wire), expected.canonicalPreimageSha256);
+  assert.equal(await readFile(new URL('./aoa-contract.preimage.json', import.meta.url), 'utf8'), wire + '\n');
+  assert.equal(machineCid(JSON.parse(wire)), expected.expectedContractCid);
+  assert.notEqual(expected.expectedContractCid, expected.oldContractCid);
+  const current = await readFile('src/query_integration/graph_plan_wbtest.mbt', 'utf8');
+  const old = await readFile(new URL('./preimages/graph_plan_wbtest.mbt', import.meta.url), 'utf8');
+  assert.equal(current, old.replace(expected.oldContractCid, expected.expectedContractCid));
+});
