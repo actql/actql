@@ -14,6 +14,7 @@ pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, Nativ
 
 // Types and methods
 type Database
+pub fn Database::begin_deferred(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::begin_immediate(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::capacity_usage(Self, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
 pub fn Database::claim_ordinal(Self, String, String, Int64) -> Result[Int64, NativeSqliteIssue]
@@ -31,6 +32,7 @@ pub fn Database::inspection_status(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::lookup_claim_ordinal(Self, String, String) -> Result[Int64?, NativeSqliteIssue]
 pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
 pub fn Database::read_capacity(Self, String, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
+pub fn Database::read_header(Self, String, String) -> Result[NativeJournalHeader, NativeSqliteIssue]
 pub fn Database::read_with_body_limit(Self, String, String, Int64) -> Result[NativeJournalValue, NativeSqliteIssue]
 pub fn Database::release_capacity(Self, String, String, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
 pub fn Database::release_capacity_in_transaction(Self, String, String, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
@@ -70,6 +72,11 @@ pub(all) struct NativeJournalEntry {
   key : String
   revision : Int64
   body : Bytes
+}
+
+pub(all) struct NativeJournalHeader {
+  revision : Int64
+  body_bytes : Int64
 }
 
 pub(all) struct NativeJournalValue {

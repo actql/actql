@@ -93,6 +93,7 @@ typedef struct {
   unsigned char *result_key;
   int32_t result_key_length;
   int64_t result_revision;
+  int64_t result_header_body_bytes;
   int64_t result_capacity_bytes;
   int64_t result_capacity_objects;
   int64_t result_record_count;
@@ -226,6 +227,7 @@ static void actql_retire_result_storage(actql_native_sqlite_database *database) 
   database->result_body_length = 0;
   database->result_key_length = 0;
   database->result_revision = 0;
+  database->result_header_body_bytes = 0;
   database->result_capacity_bytes = 0;
   database->result_capacity_objects = 0;
   database->result_record_count = 0;
@@ -1043,6 +1045,62 @@ static int32_t actql_database_read(
   return result;
 }
 
+// Header lookup does not call column_blob or allocate an adapter/Moon body
+// copy. The original database's body ceiling and row validation still apply.
+int32_t actql_native_sqlite_database_read_header(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length
+) {
+  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  actql_clear_result(database);
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(database->database,
+    "SELECT revision, length(body), typeof(body) = 'blob' FROM actql_records "
+    "WHERE namespace = ?1 AND record_key = ?2", -1, &statement, NULL);
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare journal header failed");
+    return actql_operation_code(code);
+  }
+  int32_t result = actql_bind_key(database, statement, 1, namespace_bytes,
+    namespace_length, 2, key, key_length);
+  int64_t revision = 0, length = 0;
+  if (result == 0) {
+    code = database->library->step(statement);
+    if (code == SQLITE_DONE) result = 1;
+    else if (code != SQLITE_ROW) {
+      actql_database_error(database, "read journal header failed");
+      result = actql_operation_code(code);
+    } else {
+      revision = (int64_t)database->library->column_int64(statement, 0);
+      length = (int64_t)database->library->column_int64(statement, 1);
+      int64_t blob = (int64_t)database->library->column_int64(statement, 2);
+      if (revision < 0 || length < 0 || length > database->max_body_bytes ||
+          length > INT32_MAX || blob != 1) {
+        actql_replace_error_for(database->library, &database->error,
+          database->diagnostic_ceiling, "invalid stored journal header");
+        result = -1;
+      }
+    }
+  }
+  int finalized = database->library->finalize(statement);
+  if (finalized != SQLITE_OK) {
+    actql_database_error(database, "finalize journal header failed");
+    return actql_operation_code(finalized);
+  }
+  if (result == 0) {
+    database->result_revision = revision;
+    database->result_header_body_bytes = length;
+  }
+  return result;
+}
+
+int64_t actql_native_sqlite_database_result_header_body_bytes(
+  actql_native_sqlite_database *database
+) {
+  return database == NULL || !actql_library_current(database->library) ? 0 : database->result_header_body_bytes;
+}
+
 int32_t actql_native_sqlite_database_read(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
@@ -1409,6 +1467,17 @@ int32_t actql_native_sqlite_test_remove_journal_record(
     database->library->changes64(database->database) == 1;
   int finalized = database->library->finalize(statement);
   return removed && finalized == SQLITE_OK;
+}
+
+// A deferred physical snapshot, matching the existing byte-store BEGIN.
+// It neither writes nor commits a row and must retain its original stop ACK.
+int32_t actql_native_sqlite_database_begin_deferred(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  actql_clear_result(database);
+  int code = actql_exec(database, "BEGIN");
+  return code == SQLITE_OK ? 0 : actql_operation_code(code);
 }
 
 int32_t actql_native_sqlite_database_begin_immediate(

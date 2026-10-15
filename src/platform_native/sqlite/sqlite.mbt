@@ -53,6 +53,14 @@ pub(all) struct NativeJournalEntry {
 }
 
 ///|
+/// Original row metadata only. No payload is copied; a header does not prove
+/// body equality, inventory completeness, publication or a durable COMMIT.
+pub(all) struct NativeJournalHeader {
+  revision : Int64
+  body_bytes : Int64
+}
+
+///|
 /// Physical connection state only. Autocommit is not a particular COMMIT ACK,
 /// durable content validation, Run outcome or permission to send another write.
 pub(all) enum NativeSqliteTransactionState {
