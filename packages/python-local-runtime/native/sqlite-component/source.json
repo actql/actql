@@ -29,21 +29,26 @@
     "SQLITE_EXTERN=",
     "SQLITE_OMIT_AUTOINIT=1",
     "SQLITE_ZERO_MALLOC=1",
+    "SQLITE_ENABLE_MEMSYS5=1",
     "SQLITE_OMIT_LOAD_EXTENSION=1",
     "SQLITE_THREADSAFE=1"
   ],
   "local": {
     "component.c": {
-      "bytes": 9346,
-      "sha256": "2929f071416b5e416c7c7e2e311e31289ca2092507848eb679f16938abbca15b"
+      "bytes": 10215,
+      "sha256": "e99579788588ea34144f80af8069c0ee08bdc69b835c363387e229a182218eee"
     },
     "component.h": {
-      "bytes": 1218,
-      "sha256": "ff4324c283c15ad08d110c301f7164513318e15ff1e15f87f7dd048d255ace87"
+      "bytes": 1628,
+      "sha256": "7adee8a4f85828a0bcc81f9a8c666fd82bfa035bbb0cfc7358367d44aca3609d"
     },
     "NOTICE": {
       "bytes": 545,
       "sha256": "7470606d6821be3d1b3e72b7c993aa1d52e8ddb7c42be5b15728ce78a4b8041f"
+    },
+    "api.h": {
+      "bytes": 1771,
+      "sha256": "2f8a05af656dbf23360b871588d054b7cb8d6bf4779567eb9eff73ce18f88863"
     }
   },
   "provider_inputs": {
@@ -58,6 +63,22 @@
     "packages/python-local-runtime/native/pre-root/scoped-read-source.json": {
       "bytes": 7134,
       "sha256": "54b458af4b144bbed152e01ba4689c655a3f285950b54ac0c44538db7e1a34b1"
+    },
+    "packages/python-local-runtime/native/pre-root/owned_capacity.h": {
+      "bytes": 2784,
+      "sha256": "e57bce1f377b8e5a0172da263e59153c20fe97970fb8783cac5986eb78c9b448"
     }
+  },
+  "memory": {
+    "implementation": "upstream-memsys5",
+    "heap_extents": 1,
+    "minimum_block_bytes": 16,
+    "heap_selection": "explicit-private-caller-partition-of-original-domain",
+    "null_heap": "reject-before-config",
+    "stock_fallback": false,
+    "implicit_growth": false,
+    "fixture_domain_host_pages": 64,
+    "fixture_heap_host_pages": 32,
+    "normal_profile": null
   }
 }

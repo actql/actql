@@ -76,8 +76,8 @@ import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
   forgetInferTrustedRuntimeView, associateInferTrustedStartupView,
   requireInferTrustedStartupView, borrowInferTrustedStartupView,
   forgetInferTrustedStartupView, bindInferTrustedStore,
-  checkInferTrustedStore, bindInferTrustedSdkStaticModules,
-  checkInferTrustedSdkStaticModules} from './infer-trusted-runtime-view.mjs';
+  checkInferTrustedStore, selectedInferTrustedStoreDimensions, bindInferTrustedSdkStaticModules,
+  checkInferTrustedSdkStaticModules, checkInferTrustedSdkEagerModules} from './infer-trusted-runtime-view.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
@@ -239,6 +239,7 @@ async function openInstalledHost(originalInstallation) {
   let modelRuntimeClosing = false;
   let modelRuntimeView;
   let modelRuntimeStartupView;
+  let modelSdkStaticOriginals;
   let modelProviders;
   let store;
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
@@ -272,6 +273,16 @@ async function openInstalledHost(originalInstallation) {
     assertModelRuntime();
     bindInferTrustedSdkStaticModules(modelRuntimeView, runtimeOriginals(), originals);
     checkInferTrustedSdkStaticModules(modelRuntimeView, runtimeOriginals(), originals);
+    modelSdkStaticOriginals ??= originals;
+    // One private same-Host function, not a new closure at every current check.
+    // Old static-only selections remain legal until a supplier explicitly
+    // requires the distinct exact eager startup responsibility.
+    return requireModelSdkEagerStartup;
+  }
+  function requireModelSdkEagerStartup() {
+    assertModelRuntime();
+    checkInferTrustedSdkEagerModules(modelRuntimeView, runtimeOriginals(),
+      modelSdkStaticOriginals);
   }
   function retireModelRuntime() {
     if (modelRuntimeView !== undefined) {
@@ -282,6 +293,7 @@ async function openInstalledHost(originalInstallation) {
     }
     modelRuntimeStartupView = undefined;
     modelRuntimeView = undefined;
+    modelSdkStaticOriginals = undefined;
     // Drop the installer's borrowed configuration/callback and table links
     // only at the same final cleanup boundary. This is NOT process/native ACK.
     originalInstallation = undefined;
@@ -1169,6 +1181,15 @@ async function openInstalledHost(originalInstallation) {
                 rawCaptureBinder, admittedProvider);
             },
           originalReadInstallation: physical.originalReadInstallation,
+          // Private actual installation predicate for the closed role supplier.
+          // Neither registration DATA nor an eager flag can provide it.
+          requireEagerSdkStartup: physical.requireEagerSdkStartup,
+          // DATA from the actual opened Store already bound by this Host,
+          // never a dimension packet from the Provider or public request.
+          // The normal supplier/current resource admission is still separate.
+          originalStorageDimensions: physical.originalReadInstallation === undefined
+            ? undefined : selectedInferTrustedStoreDimensions(modelRuntimeView,
+              runtimeOriginals(), store, publicationStoreModule),
           rawCaptureSelection: physical.rawCaptureSelection,
           entryPersistence: physical.entryPersistence,
           reconcileResponse: physical.reconcileResponse,
