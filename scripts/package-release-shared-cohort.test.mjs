@@ -10,13 +10,16 @@ const four = JSON.parse(await readFile(new URL('../release/client-cohort.json', 
 const six = JSON.parse(await readFile(new URL('../release/explorer-cohort.json', import.meta.url)));
 const git = (root, ...args) => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).trim();
 
-// Actual npm prepack/staging with tiny synthetic payloads; no Moon, Host,
+// Actual npm prepack/staging with tiny synthetic payloads; no compiler, Host,
 // Source or product runtime. Counters establish that shared prepack ran once.
 test('normal six-package prepack supplies an independently verified exact four-package cohort', async t => {
   const scratch = await mkdtemp(join(tmpdir(), 'actql-shared-release-control-'));
   t.after(() => rm(scratch, {recursive: true, force: true}));
   const repository = join(scratch, 'repository'); await mkdir(repository);
   await mkdir(join(repository, 'release'));
+  await mkdir(join(repository, 'scripts'));
+  await copyFile(new URL('./package-release.mjs', import.meta.url),
+    join(repository, 'scripts/package-release.mjs'));
   await writeFile(join(repository, '.gitignore'), 'prepack.calls\n');
   await writeFile(join(repository, 'package.json'), '{"private":true}\n');
   await writeFile(join(repository, 'count.mjs'),
