@@ -188,6 +188,13 @@ fn select_model_window_progress(
       return Ok(true)
     }
   }
+  // No new frame is entered after stop. If the last original frame just
+  // retired, let the same bounded kernel observe its pending stop instead of
+  // waiting forever for I/O from an unentered later Slot. Existing live-call
+  // polling below still retains a physical Pending/Unknown responsibility.
+  if state.stop_requested {
+    return Ok(true)
+  }
   if window.next_slot == count &&
     window.outcomes.length() == count &&
     !window.frames.any(frame => frame is Some(_)) {
