@@ -175,6 +175,83 @@ fn original_host(
 }
 
 ///|
+/// Code roots only. Read the matching regular emission's prototypes and RC
+/// before implementing a shim; no guessed callback layout is installed here.
+extern "C" fn register_original_live_channel_roots(
+  prepare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      Int,
+      Int,
+      Int,
+      Int64,
+    ) -> @control.InstalledArenaLiveChannelReply,
+  ],
+  bind_vm : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      @bootstrap.NativeBackedLiveChannel[
+        @control.InstalledArenaHost,
+        @control.InstalledArenaDomain,
+      ],
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaLiveChannelReply,
+  ],
+  operate : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      @bootstrap.NativeBackedLiveChannel[
+        @control.InstalledArenaHost,
+        @control.InstalledArenaDomain,
+      ],
+      Int,
+    ) -> @control.InstalledArenaLiveChannelReply,
+  ],
+  report : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      @bootstrap.NativeBackedLiveChannel[
+        @control.InstalledArenaHost,
+        @control.InstalledArenaDomain,
+      ],
+      Int,
+      Int,
+      Int,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaLiveChannelReply,
+  ],
+  original_host : FuncRef[
+    (@control.InstalledArenaLiveChannelReply) -> @control.InstalledArenaHost,
+  ],
+  original_domain : FuncRef[
+    (@control.InstalledArenaLiveChannelReply) -> @control.InstalledArenaDomain,
+  ],
+  original_channel : FuncRef[
+    (@control.InstalledArenaLiveChannelReply) -> @bootstrap.NativeBackedLiveChannel[
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+    ]?,
+  ],
+  operation : FuncRef[(@control.InstalledArenaLiveChannelReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaLiveChannelReply) -> Int],
+  state : FuncRef[(@control.InstalledArenaLiveChannelReply) -> Int],
+  limit : FuncRef[(@control.InstalledArenaLiveChannelReply, Int) -> Int64],
+  description : FuncRef[(@control.InstalledArenaLiveChannelReply) -> String],
+) -> Unit = "actql_native_control_register_live_channel_roots"
+
+///|
 fn operation_tag(reply : @control.InstalledArenaReply) -> Int {
   reply.operation_tag()
 }
@@ -193,6 +270,51 @@ fn description(reply : @control.InstalledArenaReply) -> String {
 /// This initializes code references only. Registration is not supplier adoption,
 /// original arena acquisition, Root creation, Run admission or VM permission.
 fn main {
+  register_original_live_channel_roots(
+    fn(host, domain, pid, read_fd, write_fd, nonce) {
+      @control.prepare_installed_arena_live_channel_reply(
+        host, domain, pid, read_fd, write_fd, nonce,
+      )
+    },
+    fn(host, domain, channel, nonce, offset, bytes) {
+      @control.bind_installed_arena_live_channel_reply(
+        host, domain, channel, nonce, offset, bytes,
+      )
+    },
+    fn(host, domain, channel, operation) {
+      @control.operate_installed_arena_live_channel_reply(
+        host, domain, channel, operation,
+      )
+    },
+    fn(
+      host,
+      domain,
+      channel,
+      planning,
+      attempts,
+      holdings,
+      transferred,
+      uncertain,
+      reserved_transfer,
+      held,
+      reserved_retention,
+      reserved_execution,
+      peak_retention,
+    ) {
+      @control.report_installed_arena_live_channel_reply(
+        host, domain, channel, planning, attempts, holdings, transferred, uncertain,
+        reserved_transfer, held, reserved_retention, reserved_execution, peak_retention,
+      )
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_domain() },
+    fn(reply) { reply.original_channel() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+    fn(reply) { reply.state_tag() },
+    fn(reply, ordinal) { reply.limit(ordinal) },
+    fn(reply) { reply.issue_description() },
+  )
   register_original_worker_selection_roots(
     fn(host) { @control.installed_arena_worker_selection_reply(host) },
     fn(host, selection) {
