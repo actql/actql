@@ -205,3 +205,31 @@ test('dependent private Table members retain distinct equal-valued declarations 
       }
     }});
 });
+
+
+test('source-free private Table dependency control preserves the original no-import issuer', async t => {
+  await exerciseEffectSourceSet(t, {privateTableInput: true,
+    async onCompletedTableRun({moon, checkedHost, options}) {
+      const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, 64));
+      let sources;
+      try {
+        sources = await preparePinnedEffectSourceSet({...options, inputs,
+          maxGroupingWork: (2 + 64) * 2});
+        assert.equal(sources.members.length, 2);
+        assert.equal(sources.members[0].payload, sources.members[1].payload);
+        const payload = sources.members[0].payload;
+        assert.equal(payload.summary.rowCount, 2);
+        assert.deepEqual(payload.summary.fields, ['id']);
+        assert.deepEqual(JSON.parse(payload.localResultArtifact.derivationWire).input_relation_cids, []);
+        assert.equal(JSON.parse(payload.localResultDefinition.wire).version,
+          'actql-local-table-input-definition/0.1');
+        assert.equal(payload.dependencyBodies, undefined,
+          'the ordinary source-free path does not fabricate an import inventory');
+      } finally {
+        for (const payload of sources?.payloads ?? []) {
+          if (payload.prepared.status().pending) await payload.prepared.release();
+        }
+        assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
+      }
+    }});
+});

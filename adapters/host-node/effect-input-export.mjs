@@ -372,6 +372,7 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
   }
   // Complete each original Unit before any of its consumers. Table entries
   // are never considered public Result import producers.
+  selected.sort((left, right) => left.unitIndex - right.unitIndex);
   const orderedUnits = [...units.entries()].sort((left, right) => left[0] - right[0]);
   if (memberIndexes.size !== memberCount) {
     throw new TypeError('IncompleteEffectDependencyMembers');
@@ -430,8 +431,9 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
             inputs, unitIndex, index, remaining));
           let producer;
           for (const entry of selected) {
-            if (entry.tableInput || entry.unitIndex >= unitIndex) continue;
+            if (entry.unitIndex >= unitIndex) break;
             spend();
+            if (entry.tableInput) continue;
             if (moon.clientProgramEffectResultImportMatches(
               captured, inputs, unitIndex, entry.result)) {
               producer = entry;
