@@ -59,9 +59,10 @@ stock text/diagnostic/result malloc paths are therefore **still unconnected**
 until that subsequent Library unit uses this port. Managed MoonBit Bytes and
 Root/Reader/FD/WAL/loader/control allocations remain separate responsibilities.
 
-The independent C fixture uses an original 64-host-page provider and tests nine
+The independent C fixture uses an original 64-host-page provider and tests ten
 cases: missing current, one binding, concurrent binding, retained alias/close, resize failure,
-exhaustion, foreign current, fork refusal and integer boundaries. These establish
+exhaustion, initialization exhaustion/partial cleanup, foreign current, fork
+refusal and integer boundaries. These establish
 only the component memory-method boundary when actually executed. Source-stage
 mutation tests establish no Native execution. No Engine/VM/worker/wheel/SELECT1
 or whole-process funding follows from either check. The existing 100M fuel,

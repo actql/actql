@@ -60,6 +60,21 @@ int main(int argc, char **argv) {
         assert(actql_sqlite_component_allocate(8) == NULL);
     }
     enter(value);
+    if (!strcmp(name, "initialization-exhaustion")) {
+        void *held[64] = {0}; size_t count = 0;
+        while (count < 64 && (held[count] = actql_native_file_scoped_allocate(1)) != NULL)
+            count++;
+        assert(count > 0 && count < 64);
+        assert(actql_sqlite_component_bind(value.context) == ACTQL_SQLITE_COMPONENT_FAILED);
+        assert(actql_sqlite_component_allocate(1) == NULL);
+        for (size_t i = 0; i < count; i++) actql_native_file_scoped_free(held[i]);
+        /* Returned capacity never authorizes another initialization attempt. */
+        assert(actql_sqlite_component_bind(value.context) == ACTQL_SQLITE_COMPONENT_INVALID);
+        assert(actql_sqlite_component_close() == 0);
+        leave(value); finish(&value);
+        printf("{\"case\":\"%s\",\"pass\":true,\"host_pages\":64,\"database_operations\":0}\n", name);
+        return 0;
+    }
     if (!strcmp(name, "concurrent-binding")) {
         pthread_t workers[2];
         bind_argument arguments[2] = {{value, 99}, {value, 99}};
