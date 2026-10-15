@@ -55,12 +55,26 @@ test "invalid original Site selection refuses before executable Library or Store
   // return the original Site refusal before executable identity or dlopen.
   for (generation, operations) in [("-1", "4"), ("4", "0")] {
     let matches = command().parse(argv=[
-      "--site-key", "site-before-store", "--site-generation", generation, "--runtime-bundle-cid",
-      "original-configured-runtime", "--max-operations", operations, "--journal",
-      "/unavailable/original-journal", "--target-triple", "aarch64-apple-darwin",
-      "--component-cid", "deliberately-not-the-test-executable", "--sqlite-library",
-      "/unavailable/original-sqlite", "--crypto-library", "/unavailable/original-crypto",
-      "--runtime-root", "/unavailable/original-store", "run",
+      "--site-key",
+      "site-before-store",
+      "--site-generation=" + generation,
+      "--runtime-bundle-cid",
+      "original-configured-runtime",
+      "--max-operations",
+      operations,
+      "--journal",
+      "/unavailable/original-journal",
+      "--target-triple",
+      "aarch64-apple-darwin",
+      "--component-cid",
+      "deliberately-not-the-test-executable",
+      "--sqlite-library",
+      "/unavailable/original-sqlite",
+      "--crypto-library",
+      "/unavailable/original-crypto",
+      "--runtime-root",
+      "/unavailable/original-store",
+      "run",
     ])
     let original = match open_site_environment(matches, "original-process") {
       Err(original) => original
