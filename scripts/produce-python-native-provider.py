@@ -24,6 +24,7 @@ PACKAGES = frozenset('actql/actql/' + name for name in (
     'decode_core', 'sha256', 'encode_core', 'physical_resources',
     'platform_native/host_bootstrap', 'platform_native/installed_arena_control',
     'platform_native/installed_arena_entry',
+    'platform_native/filesystem', 'platform_native/sqlite',
 ))
 
 
@@ -32,6 +33,17 @@ def original(path: Path) -> dict[str, object]:
         raise ValueError('Original Native provider input is unavailable: ' + str(path))
     raw = path.read_bytes()
     return {'path': str(path), 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+
+
+def original_dependency(path: Path, sdk: Path) -> dict[str, object]:
+    # SDK aliases are compiler inputs, not source/provider discovery. Preserve
+    # the requested spelling and allow resolution only within this exact SDK.
+    if path.is_relative_to(sdk):
+        resolved = path.resolve(strict=True)
+        if not resolved.is_relative_to(sdk.resolve(strict=True)):
+            raise ValueError('Selected Native SDK dependency escapes original SDK')
+        return {'requested_path': str(path), **original(resolved)}
+    return original(path)
 
 
 def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
@@ -55,7 +67,7 @@ def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
             del parts[index:index + 2]
         parts[0] = str(moon_home / 'bin/moonc')
         commands.append(parts)
-    if (sum(c[1] == 'build-package' for c in commands) != 12
+    if (sum(c[1] == 'build-package' for c in commands) != 14
             or sum(c[1] == 'link-core' for c in commands) != 1):
         raise ValueError('Selected Native emission inventory changed')
     if {c[c.index('-pkg') + 1] for c in commands if c[1] == 'build-package'} != PACKAGES:
@@ -132,11 +144,13 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                                 'src/source_span', 'src/canonical_value', 'src/source_value',
                                 'src/decode_core', 'src/sha256', 'src/encode_core',
                                 'src/physical_resources', 'src/platform_native/host_bootstrap',
+                                'src/platform_native/filesystem', 'src/platform_native/sqlite',
                                 'src/platform_native/installed_arena_control', ENTRY))]
     inputs = source_inputs + [original(clang), original(sdk / 'SDKSettings.json'),
                               original(ROOT / 'toolchain.json'), original(ROOT / 'moon.mod'),
                               original(moon_home / 'installed.json')]
     for directory in (moon_home / 'include', moon_home / 'lib/runtime',
+                      ROOT / 'src/platform_native/filesystem', ROOT / 'src/platform_native/sqlite',
                       ROOT / 'packages/python-local-runtime/native/pre-root', ROOT / ENTRY):
         inputs += [original(path) for path in sorted(directory.rglob('*'))
                    if path.is_file() and path.suffix in ('.c', '.h', '.inc')]
@@ -157,10 +171,13 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         run(command)
     emitted = generated / 'native/debug/build/platform_native/installed_arena_entry/installed_arena_entry.c'
     c_sources = [(emitted, 'original'),
-                 (ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c', 'bootstrap')]
+                 (ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c', 'bootstrap'),
+                 (ROOT / 'src/platform_native/filesystem/filesystem_stub.c', 'filesystem'),
+                 (ROOT / 'src/platform_native/sqlite/sqlite_stub.c', 'sqlite')]
     c_sources += [(ROOT / ENTRY / (name + '.c'), name)
                   for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim',
-                               'worker_selection_shim', 'live_channel_shim')]
+                               'worker_selection_shim', 'live_channel_shim', 'sqlite_shim',
+                               'sqlite_database_shim')]
     runtime_source = allocator if allocator is not None else moon_home / 'lib/runtime'
     c_sources += [(runtime_source / (name + '.c'), 'runtime-' + name)
                   for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')]
@@ -182,7 +199,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             common += ['-Wno-unused-value', '-Dmain=actql_original_control_initialize',
                        '-include', str(ROOT / ENTRY / 'domain_read_shim.h'),
                        '-include', str(ROOT / ENTRY / 'worker_selection_shim.h'),
-                       '-include', str(ROOT / ENTRY / 'live_channel_shim.h')]
+                       '-include', str(ROOT / ENTRY / 'live_channel_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'sqlite_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'sqlite_database_shim.h')]
         elif name.startswith('runtime-'):
             common += ['-Wno-unused-value', '-DMOONBIT_ALLOW_STACKTRACE']
         else:
@@ -193,7 +212,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         run(command)
         objects.append(obj)
         dependency_paths = shlex.split(deps.read_text().replace('\\\n', ' '))[1:]
-        compiler_inputs += [original(Path(name)) for name in dependency_paths]
+        compiler_inputs += [original_dependency(Path(name), sdk) for name in dependency_paths]
         (destination / 'compiled-inputs.json').write_text(json.dumps(compiler_inputs, indent=2) + '\n')
     library = destination / LIBRARY
     link = [str(clang), '-isysroot', str(sdk), '-mmacosx-version-min=11.0',
@@ -216,7 +235,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             or run(['git', 'status', '--porcelain'], capture=True)):
         raise ValueError('Original Native provider source changed during build')
     record = {'source': source, 'target': 'aarch64-apple-darwin', 'deployment_target': '11.0',
-              'emission_build_packages': 12, 'emission_link_core': 1,
+              'emission_build_packages': 14, 'emission_link_core': 1,
               'diagnostic_debug_registry_omitted': True,
               'c_compile': len(objects), 'c_link': 1, 'emitted_c': original(emitted),
               'library': original(library), 'objects': [original(path) for path in objects],

@@ -187,10 +187,6 @@ static void actql_replace_error_for(
   *target = copy;
 }
 
-static inline void actql_replace_error(char **target, int32_t ceiling, const char *message) {
-  actql_replace_error_for(NULL, target, ceiling, message);
-}
-
 static char *actql_copy_text_for(actql_native_sqlite_library *library, moonbit_bytes_t bytes, int32_t length) {
   if (length < 0) return NULL;
   char *text = actql_adapter_allocate(library, (size_t)length + 1);
@@ -755,6 +751,20 @@ int32_t actql_native_sqlite_library_ready(
   actql_native_sqlite_library *library
 ) {
   return actql_library_available(library);
+}
+
+/* Original immutable selection only, not current/funding/cleanup permission.
+ * Keep legacy zero observable as unavailable for a finite-bound projection. */
+int32_t actql_native_sqlite_library_diagnostic_ceiling(
+  actql_native_sqlite_library *library
+) {
+  return library == NULL ? 0 : library->diagnostic_ceiling;
+}
+
+int32_t actql_native_sqlite_database_diagnostic_ceiling(
+  actql_native_sqlite_database *database
+) {
+  return database == NULL ? 0 : database->diagnostic_ceiling;
 }
 
 static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) {
@@ -1415,6 +1425,16 @@ void actql_native_sqlite_database_fence_transactions(
 int32_t actql_native_sqlite_database_transaction_fenced(
     actql_native_sqlite_database *database) {
   return database == NULL || !actql_library_current(database->library) || database->transaction_fenced;
+}
+
+// Observe the same opened connection. A failed observation is never the
+// autocommit/no-active result, and this does not clear an uncertainty fence.
+int32_t actql_native_sqlite_database_transaction_state(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened || database->database == NULL ||
+      !actql_database_library_available(database->library)) return -1;
+  return database->library->get_autocommit(database->database) ? 0 : 1;
 }
 
 int32_t actql_native_sqlite_database_commit(

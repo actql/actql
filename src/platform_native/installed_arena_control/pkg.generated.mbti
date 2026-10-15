@@ -3,6 +3,7 @@ package "actql/actql/platform_native/installed_arena_control"
 
 import {
   "actql/actql/physical_resources",
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/host_bootstrap",
   "actql/actql/platform_native/sqlite",
 }
@@ -24,6 +25,12 @@ pub fn close_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDoma
 
 pub fn close_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
 
+pub fn close_installed_arena_sqlite_reply(InstalledArenaHost, InstalledArenaSqliteLibrary) -> InstalledArenaSqliteReply
+
+pub fn close_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase) -> InstalledArenaSqliteDatabaseReply
+
+pub fn compare_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Int64, Bytes) -> InstalledArenaSqliteDatabaseReply
+
 pub fn current_installed_arena_backing_reply(InstalledArenaHost, InstalledArenaBackingBorrow) -> InstalledArenaBackingReply
 
 pub fn current_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
@@ -32,6 +39,8 @@ pub fn current_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDo
 
 pub fn current_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
 
+pub fn current_installed_arena_sqlite_reply(InstalledArenaHost, InstalledArenaSqliteLibrary) -> InstalledArenaSqliteReply
+
 pub fn current_installed_arena_worker_selection_reply(InstalledArenaHost, InstalledArenaWorkerSelection) -> InstalledArenaWorkerSelectionReply
 
 pub fn enter_installed_arena_backing_scope_reply(InstalledArenaHost, InstalledArenaBackingBorrow) -> InstalledArenaBackingReply
@@ -39,6 +48,12 @@ pub fn enter_installed_arena_backing_scope_reply(InstalledArenaHost, InstalledAr
 pub fn enter_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn enter_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
+
+pub fn fence_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase) -> InstalledArenaSqliteDatabaseReply
+
+pub fn initialize_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteLibrary, String, Int64, UInt64, UInt64) -> InstalledArenaSqliteDatabaseReply
+
+pub fn insert_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Bytes) -> InstalledArenaSqliteDatabaseReply
 
 pub fn installed_arena_worker_selection_reply(InstalledArenaHost) -> InstalledArenaWorkerSelectionReply
 
@@ -49,6 +64,8 @@ pub fn leave_installed_arena_backing_scope_reply(InstalledArenaHost, InstalledAr
 pub fn leave_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn leave_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
+
+pub fn observe_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase) -> InstalledArenaSqliteDatabaseReply
 
 pub fn operate_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int) -> InstalledArenaLiveChannelReply
 
@@ -64,11 +81,19 @@ pub fn prepare_installed_arena_live_channel_reply(InstalledArenaHost, InstalledA
 
 pub fn prepare_installed_arena_reply(String, Bytes, Int64, Int64, Int, Int, Int, Int64, Int64, Int64, Int64) -> InstalledArenaReply
 
+pub fn prepare_installed_arena_sqlite_reply(InstalledArenaHost, InstalledArenaDomain, String, Int64, Int) -> InstalledArenaSqliteReply
+
 pub fn project_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
+
+pub fn read_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Int64) -> InstalledArenaSqliteDatabaseReply
 
 pub fn report_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int, Int, Int, Int64, Int64, Int64, Int64, Int64, Int64, Int64) -> InstalledArenaLiveChannelReply
 
+pub fn restore_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteLibrary, String, Int64) -> InstalledArenaSqliteDatabaseReply
+
 pub fn return_installed_arena_backing_reply(InstalledArenaHost, InstalledArenaBackingBorrow) -> InstalledArenaBackingReply
+
+pub fn transaction_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, Int) -> InstalledArenaSqliteDatabaseReply
 
 pub fn transfer_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
@@ -140,8 +165,10 @@ pub fn InstalledArenaHost::allocate(Self, Int64) -> Result[InstalledArenaAllocat
 pub fn InstalledArenaHost::bind_live_channel_vm(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain], Int64, Int64, Int64) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::borrow(Self, InstalledArenaAllocation) -> Result[InstalledArenaBorrow, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::borrow_backing(Self) -> Result[InstalledArenaBackingBorrow, @host_bootstrap.NativeBootstrapIssue]
+pub fn[T] InstalledArenaHost::call_sqlite_database(Self, InstalledArenaSqliteDatabase, (@sqlite.Database) -> Result[T, @sqlite.NativeSqliteIssue]) -> InstalledArenaSqliteDatabaseCall[T]
 pub fn InstalledArenaHost::close_domain_after_owner_ack(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::close_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::close_sqlite_database(Self, InstalledArenaSqliteDatabase) -> Result[Unit, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::close_sqlite_library(Self, InstalledArenaSqliteLibrary) -> Result[Unit, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::current_sqlite_library(Self, InstalledArenaSqliteLibrary) -> Result[@sqlite.Library, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::delegate(Self, @physical_resources.LedgerLimits) -> Result[InstalledArenaDelegation, @host_bootstrap.NativeBootstrapIssue]
@@ -158,6 +185,7 @@ pub fn InstalledArenaHost::live_channel_state(Self, InstalledArenaDomain, @host_
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_live_channel(Self, InstalledArenaDomain, Int, Int, Int, Int64) -> Result[@host_bootstrap.NativeBackedLiveChannelAcquisition[Self, InstalledArenaDomain], @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::prepare_sqlite_database(Self, InstalledArenaSqliteLibrary, String, Int64, InstalledArenaSqliteDatabaseOpening) -> Result[InstalledArenaSqliteDatabaseAcquisition, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::prepare_sqlite_library(Self, InstalledArenaDomain, String, Int64, Int) -> Result[InstalledArenaSqliteAcquisition, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::project_domain_original(Self, InstalledArenaDomain) -> Result[(@host_bootstrap.NativePreparedDomainTransport, @physical_resources.BackedExecutionOriginalData), @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::project_prepared_domain(Self, InstalledArenaDomain) -> Result[@host_bootstrap.NativePreparedDomainTransport, @host_bootstrap.NativeBackedExecutionIssue]
@@ -204,12 +232,56 @@ pub(all) enum InstalledArenaSqliteAcquisition {
   PendingSqlite(InstalledArenaSqliteLibrary, InstalledArenaSqliteIssue)
 }
 
+type InstalledArenaSqliteDatabase
+
+pub(all) enum InstalledArenaSqliteDatabaseAcquisition {
+  ReadySqliteDatabase(InstalledArenaSqliteDatabase)
+  PendingSqliteDatabase(InstalledArenaSqliteDatabase, InstalledArenaSqliteIssue)
+}
+
+pub(all) enum InstalledArenaSqliteDatabaseCall[T] {
+  RefusedDatabaseCall(InstalledArenaSqliteIssue)
+  ObservedDatabaseCall(Result[T, @sqlite.NativeSqliteIssue], InstalledArenaSqliteIssue?)
+}
+
+pub(all) enum InstalledArenaSqliteDatabaseOpening {
+  ExistingSqliteDatabase
+  InitializeOwnedSqliteDatabase(@filesystem.NativeFileOwnership)
+}
+
+type InstalledArenaSqliteDatabaseReply
+pub fn InstalledArenaSqliteDatabaseReply::after_issue_family(Self) -> Int
+pub fn InstalledArenaSqliteDatabaseReply::body(Self) -> Bytes
+pub fn InstalledArenaSqliteDatabaseReply::body_bound(Self) -> Int64
+pub fn InstalledArenaSqliteDatabaseReply::has_row(Self) -> Int
+pub fn InstalledArenaSqliteDatabaseReply::issue_family(Self) -> Int
+pub fn InstalledArenaSqliteDatabaseReply::operation_tag(Self) -> Int
+pub fn InstalledArenaSqliteDatabaseReply::original_database(Self) -> InstalledArenaSqliteDatabase?
+pub fn InstalledArenaSqliteDatabaseReply::original_host(Self) -> InstalledArenaHost
+pub fn InstalledArenaSqliteDatabaseReply::original_library(Self) -> InstalledArenaSqliteLibrary
+pub fn InstalledArenaSqliteDatabaseReply::revision(Self) -> Int64
+pub fn InstalledArenaSqliteDatabaseReply::stage_tag(Self) -> Int
+
 pub(all) enum InstalledArenaSqliteIssue {
   Domain(@host_bootstrap.NativeBackedExecutionIssue)
   Library(@sqlite.NativeSqliteIssue)
 }
 
 type InstalledArenaSqliteLibrary
+
+pub(all) enum InstalledArenaSqliteOperation {
+  PrepareSqlite
+  ObserveSqlite
+  CloseSqlite
+} derive(Eq)
+
+type InstalledArenaSqliteReply
+pub fn InstalledArenaSqliteReply::issue_description(Self) -> String
+pub fn InstalledArenaSqliteReply::issue_family(Self) -> Int
+pub fn InstalledArenaSqliteReply::operation_tag(Self) -> Int
+pub fn InstalledArenaSqliteReply::original_domain(Self) -> InstalledArenaDomain
+pub fn InstalledArenaSqliteReply::original_host(Self) -> InstalledArenaHost
+pub fn InstalledArenaSqliteReply::original_library(Self) -> InstalledArenaSqliteLibrary?
 
 type InstalledArenaWorkerSelection
 pub fn InstalledArenaWorkerSelection::original_host(Self) -> InstalledArenaHost
