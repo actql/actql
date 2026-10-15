@@ -168,6 +168,38 @@ extern "C" fn register_original_worker_selection_roots(
 ) -> Unit = "actql_native_control_register_worker_selection_roots"
 
 ///|
+/// Code registration only. Actual regular emission must establish the callback
+/// prototypes and reference ownership before a private transport is linked.
+extern "C" fn register_original_sqlite_roots(
+  prepare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      String,
+      Int64,
+      Int,
+    ) -> @control.InstalledArenaSqliteReply,
+  ],
+  current : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLibrary) -> @control.InstalledArenaSqliteReply,
+  ],
+  close : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLibrary) -> @control.InstalledArenaSqliteReply,
+  ],
+  host : FuncRef[
+    (@control.InstalledArenaSqliteReply) -> @control.InstalledArenaHost,
+  ],
+  domain : FuncRef[
+    (@control.InstalledArenaSqliteReply) -> @control.InstalledArenaDomain,
+  ],
+  original : FuncRef[
+    (@control.InstalledArenaSqliteReply) -> @control.InstalledArenaSqliteLibrary?,
+  ],
+  operation : FuncRef[(@control.InstalledArenaSqliteReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaSqliteReply) -> Int],
+) -> Unit = "actql_native_control_register_sqlite_roots"
+
+///|
 fn original_host(
   reply : @control.InstalledArenaReply,
 ) -> @control.InstalledArenaHost? {
@@ -270,6 +302,24 @@ fn description(reply : @control.InstalledArenaReply) -> String {
 /// This initializes code references only. Registration is not supplier adoption,
 /// original arena acquisition, Root creation, Run admission or VM permission.
 fn main {
+  register_original_sqlite_roots(
+    fn(host, domain, path, heap, diagnostic) {
+      @control.prepare_installed_arena_sqlite_reply(
+        host, domain, path, heap, diagnostic,
+      )
+    },
+    fn(host, original) {
+      @control.current_installed_arena_sqlite_reply(host, original)
+    },
+    fn(host, original) {
+      @control.close_installed_arena_sqlite_reply(host, original)
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_domain() },
+    fn(reply) { reply.original_library() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+  )
   register_original_live_channel_roots(
     fn(host, domain, pid, read_fd, write_fd, nonce) {
       @control.prepare_installed_arena_live_channel_reply(

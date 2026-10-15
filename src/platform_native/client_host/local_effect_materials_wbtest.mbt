@@ -26,12 +26,12 @@ fn local_original_effect_material_fixture(
   if other_permissions {
     entries.push(
       (
-        #|{"entry_id":"submit","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["submit"]},"exclusions":[]}
+        #|{"entry_id":"read-source-and-result","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["connector://crm/main/r#v","result/answer"]},"operation":{"any_of":["read"]},"exclusions":[]}
       ),
     )
     entries.push(
       (
-        #|{"entry_id":"read-source-and-result","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["connector://crm/main/r#v","result/answer"]},"operation":{"any_of":["read"]},"exclusions":[]}
+        #|{"entry_id":"submit","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["submit"]},"exclusions":[]}
       ),
     )
   }
