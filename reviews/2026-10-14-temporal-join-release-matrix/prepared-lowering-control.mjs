@@ -5,13 +5,18 @@ import {isAbsolute} from 'node:path';
 const before = checkoutState(process.cwd());
 assert.equal(before.clean, true); assert.equal(before.revision, process.argv[2]);
 const mode = process.argv[3] ?? 'lowering';
-assert(['lowering', 'selected', 'append', 'pipeline', 'plan'].includes(mode));
+assert(['lowering', 'selected', 'append', 'pipeline', 'final', 'plan'].includes(mode));
 const args = ['--target', 'js', '-j', '1',
   mode === 'lowering' ? 'src/query_program/temporal_public_lowering_control_test.mbt'
     : mode === 'pipeline' ? 'src/execution_relation/temporal_public_pipeline_wbtest.mbt'
       : mode === 'append' ? 'src/execution_relation/temporal_append_projection_wbtest.mbt'
       : 'src/execution_relation/temporal_public_selected_interval_wbtest.mbt'];
-if (mode === 'pipeline') args.push(
+if (mode === 'final') args.splice(4, 1,
+  'src/query_syntax/temporal_public_identifier_fixture_test.mbt',
+  'src/query_program/temporal_public_lowering_control_test.mbt',
+  'src/execution_relation/temporal_public_selected_interval_wbtest.mbt',
+  'src/execution_relation/temporal_public_pipeline_wbtest.mbt');
+if (mode === 'pipeline' || mode === 'final') args.push(
   'src/execution_relation/temporal_append_projection_wbtest.mbt',
   'src/execution_relation/append_rows_wbtest.mbt');
 const code = `import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',${JSON.stringify(args)},{cwd:process.cwd(),timeout:240000});`;
