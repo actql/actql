@@ -1,0 +1,46 @@
+///|
+// Original checked Program/Run/Entry handles. Physical I/O, Store ACK and byte
+// allowances are existing deterministic fixtures, not normal public funding.
+// The accepted M2 window must permit the second eligible original Slot to
+// start while the first remains pending. This is not a JS transport fan-out.
+test "two original async Slots enter before the first response settles" {
+  let calls = Ref(0)
+  let polls = Ref(0)
+  let ready = Ref(false)
+  let released = Ref(false)
+  let cleanup_calls : Array[Bool] = []
+  let (active, prefix) = async_response_fixture(
+    calls,
+    polls,
+    Ref(0),
+    cleanup_calls,
+    ready,
+    released,
+    @model.PhysicalResponse(async_response_observation(None)),
+  )
+  guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
+    abort("original first Slot must await its original response")
+  }
+  assert_eq(
+    @model.prepared_model_call_count(prepared_call_set(active).unwrap()),
+    Some(2),
+  )
+  // Finite independent observation. Pending does not permit fabricated work,
+  // replacement calls or advancing another Run as a substitute for this one.
+  for _ in 0..<8 {
+    async_assert_wait(active, work)
+  }
+  let starts_before_first_response = calls.val
+  assert_true(polls.val > 0)
+  // Drain the same original fixture before reporting the unmet window. These
+  // doubles perform no network or persistence and retain no physical debt.
+  ready.val = true
+  released.val = true
+  async_io_stop_and_cleanup(active)
+  assert_eq(calls.val, starts_before_first_response)
+  assert_eq(
+    starts_before_first_response,
+    2,
+    msg="both eligible original Slots must start before either response completes",
+  )
+}
