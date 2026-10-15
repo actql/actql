@@ -39,6 +39,7 @@ from ._local_sdk_response import OriginalLocalSDKResponseStream
 from ._local_sdk_payload_reader import OriginalSDKPayloadReader, SDKPayloadReaderCleanupPending
 from ._local_work import OriginalLocalWork
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
+from ._local_native_store import _OriginalNativeStoreSelection
 from ._values import content_cid, wire_bytes
 
 _T = TypeVar('_T')
@@ -115,7 +116,8 @@ class InstalledLocalHost:
     """
 
     def __init__(self, core: LocalCore, directory: Path, *,
-                 now: Callable[[], int], observed_at: str, sdk_finite: bool = False) -> None:
+                 now: Callable[[], int], observed_at: str, sdk_finite: bool = False,
+                 _native_store: _OriginalNativeStoreSelection | None = None) -> None:
         if type(core) is not LocalCore or not callable(now):
             raise ValueError('Installed Local Host requires its original Core')
         self._original = self
@@ -178,7 +180,8 @@ class InstalledLocalHost:
         self._physical_work: list[OriginalLocalWork] = []
         try:
             self._installation = OriginalLocalInstallation(core, directory,
-                observed_at=observed_at, now=now, project_epoch=self._project_epoch, sdk_finite=sdk_finite)
+                observed_at=observed_at, now=now, project_epoch=self._project_epoch,
+                sdk_finite=sdk_finite, native_store=_native_store)
             # Exact original file bytes supply only a CID claim. Core validates
             # that claim and the policy body; it is not publisher authority.
             binding = self._installation.binding
