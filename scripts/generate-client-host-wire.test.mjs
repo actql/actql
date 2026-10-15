@@ -51,8 +51,10 @@ test('Native string predicates discard only payloads without text constraints', 
     type: 'string', minLength: 137, maxLength: 139,
   };
   const bounded = buildClientHostWire(changed, protocol);
-  assert.match(probeRule(bounded),
-    /guard value is String\(text\) else \{ return false \}\n  if text\.iter\(\)\.count\(\) < 137 \{ return false \}\n  if text\.length\(\) > 139 \{ return false \}/u);
+  assert.equal(probeRule(bounded),
+    '\n  guard value is String(text) else { return false }\n' +
+    '  if text.iter().count() < 137 {\n    return false\n  }\n' +
+    '  if text.length() > 139 {\n    return false\n  }\n  true\n}\n');
   assert.equal(bare.native, bounded.native,
     'an observation-only string rule cannot alter production guards');
   // Literal equality remains an independent check even when the redundant
