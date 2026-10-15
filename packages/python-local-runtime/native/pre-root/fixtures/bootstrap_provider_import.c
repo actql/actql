@@ -44,18 +44,23 @@ int main(void) {
         actql_bootstrap_leave_scope(parent) == 0 &&
         actql_bootstrap_control_scope_clear() == 1,
         "one owned leave is not an outer-frame ACK even with NULL valid read pointer");
+    int parent_enter = actql_bootstrap_enter_scope(parent);
     actql_bootstrap_extent *extent = actql_bootstrap_allocate(parent, 48 * page);
     actql_bootstrap_region *loan = actql_bootstrap_lend_region(parent, extent, 0, 48 * page, 1);
+    int parent_leave = actql_bootstrap_leave_scope(parent);
     actql_bootstrap_view *view = actql_bootstrap_map_region(parent, extent, loan, fd, 0, 48 * page);
     actql_bootstrap_domain *domain = actql_bootstrap_acquire_domain(view);
-    printf("domain-status:extent=%d loan=%d view=%d domain=%d match=%d wrong-parent=%d child=%d\n",
-        actql_bootstrap_extent_status(extent), actql_bootstrap_region_status(loan),
+    printf("domain-status:enter=%d leave=%d extent=%d loan=%d view=%d domain=%d match=%d wrong-parent=%d child=%d\n",
+        parent_enter, parent_leave, actql_bootstrap_extent_status(extent),
+        actql_bootstrap_region_status(loan),
         actql_bootstrap_view_status(view), actql_bootstrap_domain_status(domain),
         actql_native_owned_domain_matches_view(domain->lease, &view->view, getpid()),
         actql_native_owned_domain_matches_view(parent->lease, &view->view, getpid()),
         actql_native_owned_domain_has_child(domain->lease, getpid(), getpid() + 1));
     fflush(stdout);
-    require(actql_bootstrap_extent_status(extent) == 0 &&
+    require(parent_enter == 0 && parent_leave == 0 &&
+        actql_bootstrap_control_scope_clear() == 1 &&
+        actql_bootstrap_extent_status(extent) == 0 &&
         actql_bootstrap_region_status(loan) == 0 && actql_bootstrap_view_status(view) == 0 &&
         actql_bootstrap_domain_status(domain) == 0 &&
         actql_native_owned_domain_matches_view(domain->lease, &view->view, getpid()) == 0 &&
