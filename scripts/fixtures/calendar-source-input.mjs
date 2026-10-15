@@ -17,7 +17,8 @@ const seriesRows = [{start, end: '2000-01-02T00:00:00.000Z'},
 const seriesColumns = [{name: 'start', contract: timestamp}, {name: 'end', contract: timestamp}];
 const month = {start, end: '2000-02-01T00:00:00.000Z'};
 const bucketColumns = [...seriesColumns, {name: 'month', contract: {
-  type: 'object', nullable: false, fields: {start: timestamp, end: timestamp},
+  type: 'object', nullable: false, additional_properties: false,
+  fields: {start: timestamp, end: timestamp},
 }}];
 const generator = `calendar_series(start:'${start}',end:'${end}',unit:'day',timezone:'UTC')`;
 function control(bucket) {

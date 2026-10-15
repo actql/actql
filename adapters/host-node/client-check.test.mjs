@@ -33,6 +33,8 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createHostObservationConnection} from '../host-common/observation.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
+const {exerciseGraphArgumentChecks, graphArgumentCheckInventory} = await import(
+  '../../scripts/fixtures/graph-argument-check.mjs');
 const graphArgumentOriginCases = JSON.parse(await readFile(
   new URL('../../scripts/fixtures/graph-argument-origin-literals.json', import.meta.url), 'utf8')).cases;
 const scratch = join(repository, '_build', 'client-check');
@@ -819,6 +821,18 @@ for (const [entrance, open] of Object.entries(entrances)) {
       boundary.assertNoExecution();
     }
     client.assertNoExecution();
+  });
+
+  test(`${entrance}: Graph argument CHECK acceptance matrix`, async t => {
+    const denied = await open(t, configurations.denied);
+    const absent = await open(t, configurations.absent);
+    const completed = [];
+    await exerciseGraphArgumentChecks({denied, absent}, sdk, async id => {
+      denied.assertNoExecution();
+      absent.assertNoExecution();
+      completed.push(id);
+    });
+    assert.deepEqual(completed, graphArgumentCheckInventory);
   });
 
   test(`${entrance}: Graph diagnostic locations retain original argument occurrences`, async t => {

@@ -2406,8 +2406,13 @@ fn run_selected_nearest_provider(
       limits.guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider_with_inputs(
-    provider, generated, inputs, 10, 1000,
+  let execution = @local_connector.start_managed_provider_with_inputs_and_execution(
+    provider,
+    generated,
+    inputs,
+    10,
+    1000,
+    limits.local_execution,
   ).unwrap()
   let mut output = None
   while output is None {
@@ -2942,19 +2947,43 @@ test "registered VecA provider bounds row expressions and cancellation" {
       limits.guards,
     ).unwrap(),
   )
-  let compatibility = @local_connector.start_managed_provider(
+  // Row expressions must refuse these explicitly insufficient common limits.
+  let insufficient_limits : @execution.SequenceExecutionLimits = {
+    rows: {
+      max_rows: 10,
+      metadata_entries: 0,
+      retained_entries: 0,
+      operation_entries: 0,
+      input_values: {
+        max_nodes: 0,
+        max_text_bytes: 0,
+        max_depth: 0,
+        max_work: 0,
+      },
+      output_values: {
+        max_nodes: 0,
+        max_text_bytes: 0,
+        max_depth: 0,
+        max_work: 0,
+      },
+    },
+    max_work: 0,
+    max_frames: 0,
+  }
+  let insufficient = @local_connector.start_managed_provider_with_execution(
     provider,
     generated,
     [direct_vector_expression_read(owner, source, output)],
     10,
     1000,
+    insufficient_limits,
   ).unwrap()
   assert_true(
-    @local_connector.advance_managed_provider(compatibility, 1).unwrap()
+    @local_connector.advance_managed_provider(insufficient, 1).unwrap()
     is @local_connector.Failed(_),
   )
   assert_true(
-    @local_connector.cleanup_managed_provider(compatibility).unwrap_or(false),
+    @local_connector.cleanup_managed_provider(insufficient).unwrap_or(false),
   )
   let execution = @local_connector.start_managed_provider_with_execution(
     provider,
@@ -3543,8 +3572,13 @@ fn run_direct_ranking_provider(
       limits.guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider(
-    provider, generated, inputs, 10, 1000,
+  let execution = @local_connector.start_managed_provider_with_execution(
+    provider,
+    generated,
+    inputs,
+    10,
+    1000,
+    limits.local_execution,
   ).unwrap()
   let mut output = None
   while output is None {
@@ -3634,8 +3668,13 @@ test "ranking detects an in-flight input loss before completion" {
       limits.guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider(
-    provider, generated, inputs, 10, 1000,
+  let execution = @local_connector.start_managed_provider_with_execution(
+    provider,
+    generated,
+    inputs,
+    10,
+    1000,
+    limits.local_execution,
   ).unwrap()
   assert_true(
     @local_connector.advance_managed_provider(execution, 1).unwrap()
@@ -3714,8 +3753,13 @@ fn run_direct_nullable_ranking_provider(
       limits.guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider(
-    provider, generated, inputs, 10, 1000,
+  let execution = @local_connector.start_managed_provider_with_execution(
+    provider,
+    generated,
+    inputs,
+    10,
+    1000,
+    limits.local_execution,
   ).unwrap()
   let mut output = None
   while output is None {
@@ -3834,12 +3878,13 @@ test "registered VecA provider preserves supplied score authority" {
         limits.guards,
       ).unwrap(),
     )
-    let execution = @local_connector.start_managed_provider_with_inputs(
+    let execution = @local_connector.start_managed_provider_with_inputs_and_execution(
       provider,
       generated,
       inputs.map(@local_connector.managed_provider_supplied_relation_input),
       10,
       1000,
+      limits.local_execution,
     ).unwrap()
     let mut output = None
     while output is None {
@@ -3991,12 +4036,13 @@ test "registered VecA provider preserves supplied score authority" {
       @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
     )
 
-    let cancelled = @local_connector.start_managed_provider_with_inputs(
+    let cancelled = @local_connector.start_managed_provider_with_inputs_and_execution(
       provider,
       generated,
       inputs.map(@local_connector.managed_provider_supplied_relation_input),
       10,
       1000,
+      limits.local_execution,
     ).unwrap()
     assert_true(
       @local_connector.advance_managed_provider(cancelled, 1).unwrap()
@@ -4597,8 +4643,13 @@ fn run_direct_invalid_rrf(
       limits.guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider(
-    provider, generated, inputs, 10, 1000,
+  let execution = @local_connector.start_managed_provider_with_execution(
+    provider,
+    generated,
+    inputs,
+    10,
+    1000,
+    limits.local_execution,
   ).unwrap()
   let mut failed = false
   while !failed {
@@ -4669,8 +4720,13 @@ fn run_direct_nullable_rrf() -> Unit raise {
       limits.guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider(
-    provider, generated, inputs, 10, 1000,
+  let execution = @local_connector.start_managed_provider_with_execution(
+    provider,
+    generated,
+    inputs,
+    10,
+    1000,
+    limits.local_execution,
   ).unwrap()
   let mut output = None
   while output is None {
@@ -5593,8 +5649,13 @@ test "registered ranking provider enforces exact work and workspace" {
       4096L,
       capacity,
     )
-    let execution = @local_connector.start_managed_provider(
-      provider, generated, inputs, 10, 1000,
+    let execution = @local_connector.start_managed_provider_with_execution(
+      provider,
+      generated,
+      inputs,
+      10,
+      1000,
+      limits.local_execution,
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
@@ -5656,8 +5717,13 @@ fn run_direct_nearest_provider(
       limits.guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider_with_inputs(
-    provider, generated, inputs, 10, 1000,
+  let execution = @local_connector.start_managed_provider_with_inputs_and_execution(
+    provider,
+    generated,
+    inputs,
+    10,
+    1000,
+    limits.local_execution,
   ).unwrap()
   let mut output = None
   while output is None {
@@ -5700,8 +5766,13 @@ fn run_direct_invalid_nearest_provider(
       limits.guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider_with_inputs(
-    provider, generated, inputs, 10, 1000,
+  let execution = @local_connector.start_managed_provider_with_inputs_and_execution(
+    provider,
+    generated,
+    inputs,
+    10,
+    1000,
+    limits.local_execution,
   ).unwrap()
   let mut failed = false
   let mut polls = 0
@@ -6289,12 +6360,13 @@ test "registered Relation pool returns a standalone Vectors generation" {
         limits.guards,
       ).unwrap(),
     )
-    let execution = @local_connector.start_managed_provider_with_inputs(
+    let execution = @local_connector.start_managed_provider_with_inputs_and_execution(
       provider,
       generated,
       [@local_connector.managed_provider_relation_input(read)],
       10,
       1000,
+      limits.local_execution,
     ).unwrap()
     let mut material = None
     let mut charged = 0L
@@ -6363,12 +6435,13 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
       4096L,
       capacity,
     )
-    let execution = @local_connector.start_managed_provider_with_inputs(
+    let execution = @local_connector.start_managed_provider_with_inputs_and_execution(
       provider,
       generated,
       [@local_connector.managed_provider_relation_input(read)],
       10,
       1000,
+      limits.local_execution,
     ).unwrap()
     let mut charged = 0L
     let mut terminal = false
@@ -6427,12 +6500,13 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     4096L,
     capacity,
   )
-  let execution = @local_connector.start_managed_provider_with_inputs(
+  let execution = @local_connector.start_managed_provider_with_inputs_and_execution(
     provider,
     generated,
     [@local_connector.managed_provider_relation_input(foreign_read)],
     10,
     1000,
+    limits.local_execution,
   ).unwrap()
   assert_true(
     @local_connector.advance_managed_provider(execution, 1).unwrap()
@@ -6768,7 +6842,7 @@ test "registered VecA provider rejects reversed Vectors bindings" {
       limits.guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider_with_inputs(
+  let execution = @local_connector.start_managed_provider_with_inputs_and_execution(
     provider,
     generated,
     [
@@ -6777,6 +6851,7 @@ test "registered VecA provider rejects reversed Vectors bindings" {
     ],
     10,
     1000,
+    limits.local_execution,
   ).unwrap()
   assert_true(
     @local_connector.advance_managed_provider(execution, 1).unwrap()
