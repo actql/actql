@@ -80,6 +80,18 @@ test "Infer prefix compilation preserves the checked owner and pure limits" {
     abort("checked Infer fixture")
   }
   assert_eq(
+    @lower.node_infer_input_target(infer_output),
+    Some(@pipeline.Step(1)),
+  )
+  for index in [0, 1] {
+    assert_true(
+      @lower.node_infer_input_target(
+        @lower.node_at(@lower.bound_preparation(owner), index).unwrap(),
+      )
+      is None,
+    )
+  }
+  assert_eq(
     @lower.infer_output_binding(owner, 2, infer, @pipeline.Step(1)),
     Some(@lower.node_id(infer_output)),
   )
