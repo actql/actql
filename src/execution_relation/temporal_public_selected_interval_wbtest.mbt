@@ -128,14 +128,14 @@ test "original temporal operands complete through selected interval with exact s
     } else {
       prepare_producer_read(
         owner,
-        bind_completed_operation_input(owner, step, 0, left_owner, left_output).unwrap(),
+        bind_completed_input(owner, 0, left_owner, left_output).unwrap(),
         100,
         10000,
       ).unwrap()
     }
     let right = prepare_producer_read(
       owner,
-      bind_completed_operation_input(owner, step, 1, right_owner, right_output).unwrap(),
+      bind_completed_input(owner, 1, right_owner, right_output).unwrap(),
       100,
       10000,
     ).unwrap()
