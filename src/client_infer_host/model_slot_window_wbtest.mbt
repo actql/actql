@@ -18,13 +18,15 @@ test "two original async Slots enter before the first response settles" {
     released,
     @model.PhysicalResponse(async_response_observation(None)),
   )
-  guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
-    abort("original first Slot must await its original response")
-  }
+  // This preparation-only accessor must be read before the physical phase;
+  // the original handle is not reissued from a later in-flight state.
   assert_eq(
     @model.prepared_model_call_count(prepared_call_set(active).unwrap()),
     Some(2),
   )
+  guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
+    abort("original first Slot must await its original response")
+  }
   // Finite independent observation. Pending does not permit fabricated work,
   // replacement calls or advancing another Run as a substitute for this one.
   for _ in 0..<8 {
