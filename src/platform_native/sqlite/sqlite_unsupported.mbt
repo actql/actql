@@ -76,6 +76,14 @@ pub fn Database::diagnostic_ceiling(_self : Database) -> Int? {
 }
 
 ///|
+pub fn Database::current_component_matches_heap(
+  _self : Database,
+  _expected_heap_bytes : Int64,
+) -> Bool {
+  false
+}
+
+///|
 pub fn Library::open_database(
   _self : Library,
   path : String,
