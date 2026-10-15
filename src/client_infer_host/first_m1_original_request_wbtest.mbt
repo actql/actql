@@ -72,10 +72,18 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
     0,
   ).unwrap()
   let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
-  let active = original_funded_start_from_read(
+  let started = original_funded_start_from_read(
     prepared, 2, infer_fixture_registry, infer_fixture_values, provider, limits,
     compiled, definition, plan, read, 7L, 5L, 100L, 5L,
-  ).unwrap()
+  )
+  let active = match started {
+    Ok(value) => value
+    Err(OriginalCapacity(issue)) =>
+      abort("OriginalCapacity: " + @debug.to_string(issue))
+    Err(Input(issue)) => abort("Input: " + @debug.to_string(issue))
+    Err(Model(issue)) => abort("Model: " + @debug.to_string(issue))
+    Err(_) => abort("other original startup refusal")
+  }
   require_model_call_entry(active).unwrap()
   bind_quantity_capacity(active, quantities).unwrap()
   let egress = @publication_host.admit_prepared_client_infer_egress(
