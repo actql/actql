@@ -5,10 +5,11 @@ import {isAbsolute} from 'node:path';
 const before = checkoutState(process.cwd());
 assert.equal(before.clean, true); assert.equal(before.revision, process.argv[2]);
 const mode = process.argv[3] ?? 'lowering';
-assert(['lowering', 'selected', 'plan'].includes(mode));
+assert(['lowering', 'selected', 'append', 'plan'].includes(mode));
 const args = ['--target', 'js', '-j', '1',
   mode === 'lowering' ? 'src/query_program/temporal_public_lowering_control_test.mbt'
-    : 'src/execution_relation/temporal_public_selected_interval_wbtest.mbt'];
+    : mode === 'append' ? 'src/execution_relation/temporal_append_projection_wbtest.mbt'
+      : 'src/execution_relation/temporal_public_selected_interval_wbtest.mbt'];
 const code = `import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',${JSON.stringify(args)},{cwd:process.cwd(),timeout:240000});`;
 const planArgs = process.argv.slice(4);
 if (mode === 'plan') assert.equal(planArgs.length, 3);
