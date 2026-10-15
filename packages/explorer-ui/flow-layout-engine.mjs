@@ -84,4 +84,3 @@ export function layoutPositions(input, result) {
   }));
   return input.nodes.map(node => ({id: node.id, ...points.get(`node:${node.id}`)}));
 }
-
