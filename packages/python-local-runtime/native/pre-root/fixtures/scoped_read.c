@@ -322,7 +322,8 @@ static bool real_reader(const char *directory) {
     assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
     assert(actql_native_owned_enter(lease)==0);
     int32_t physical=-99;
-    assert(actql_native_filesystem_scoped_reader_next(reader,32,&physical)==0 && physical==1);
+    /* Original Reader::next maps 0 to a chunk and 1 to GenerationMismatch. */
+    assert(actql_native_filesystem_scoped_reader_next(reader,32,&physical)==0 && physical==0);
     moonbit_bytes_t chunk=NULL;
     assert(actql_native_filesystem_scoped_reader_chunk(reader,&chunk)==0);
     assert(Moonbit_array_length(chunk)==11 && memcmp(chunk,"alpha\nbeta\n",11)==0);
@@ -389,7 +390,7 @@ static bool real_child_root(const char *directory, bool missing) {
         assert(actql_native_filesystem_scoped_open_reader(child,name,6,actual.st_dev,actual.st_ino,actual.st_size,&reader)==0);
         moonbit_decref(name);
         assert(reader->read_context==context && reader->read_context_user && reader->ready);
-        assert(actql_native_filesystem_scoped_reader_next(reader,32,&physical)==0 && physical==1);
+        assert(actql_native_filesystem_scoped_reader_next(reader,32,&physical)==0 && physical==0);
         assert(actql_native_filesystem_scoped_reader_chunk(reader,&retained)==0);
         assert(Moonbit_array_length(retained)==11 && memcmp(retained,"alpha\nbeta\n",11)==0);
         assert(actql_native_filesystem_scoped_reader_close(reader,false,&physical)==0 && physical==0);
