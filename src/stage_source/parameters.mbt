@@ -146,8 +146,15 @@ pub fn collect_parameter_uses(
               }
             }
           }
-          let map_key = if kind == "command" { "input" } else { "set" }
-          if kind == "command" || kind == "update" || kind == "upsert" {
+          let map_key = match kind {
+            "command" => "input"
+            "create" => "values"
+            _ => "set"
+          }
+          if kind == "command" ||
+            kind == "update" ||
+            kind == "upsert" ||
+            kind == "create" {
             if @decode.lookup(view, map_key) is Some(values) {
               if @decode.object_length(values) is Some(n) {
                 parameter_spend(b, n)

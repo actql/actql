@@ -16,10 +16,13 @@ fn explicit_create_values_rules(
   required? : String = "[]",
   amount_nullable? : Bool = false,
   target_nullable? : Bool = true,
+  permission_fields? : String = "[\"Name\"]",
 ) -> Result[EffectMappingRules, EffectMappingRuleIssue] {
   let bindings = explicit_create_values_bindings(values, amount_nullable~).unwrap()
   let mappings = effect_mapping_shape_fixture_with_body(
-    "[{\"effect_kind\":\"create\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]}]",
+    "[{\"effect_kind\":\"create\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":" +
+    permission_fields +
+    "}]",
     required,
     "not_in_selected_input",
     target_nullable~,
@@ -144,7 +147,13 @@ test "explicit create literals use the same checked value and original rule" {
 
 ///|
 test "explicit create omission is not null or the original Mapping default" {
-  let rules = explicit_create_values_rules("{}").unwrap()
+  assert_eq(
+    effect_mapping_rule_issue_kind(
+      explicit_create_values_rules("{}").unwrap_err(),
+    ),
+    Permission(@environment.NoMatchingRule),
+  )
+  let rules = explicit_create_values_rules("{}", permission_fields="[]").unwrap()
   let terminal = effect_create_row_terminal_for_member(rules, 0, 0, 100)
     .unwrap()
     .unwrap()
