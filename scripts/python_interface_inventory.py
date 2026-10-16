@@ -138,6 +138,7 @@ def source_projects(root: Path, files=None) -> dict:
         if any(not directory.is_relative_to(root) for directory in directories):
             raise ValueError('Escaped Python distribution source')
         members = []
+        bindings = {}
         for name in files:
             if not name.endswith(('.py', '.pyi')):
                 continue
@@ -147,12 +148,64 @@ def source_projects(root: Path, files=None) -> dict:
                     raise ValueError('Escaped Python interface member')
                 raw = source_path.read_bytes()
                 members.append(name)
+                destinations = {source_path.relative_to(directory).as_posix()
+                                for directory in directories if source_path.is_relative_to(directory)}
+                if len(destinations) != 1:
+                    raise ValueError('Ambiguous Python distribution member: ' + name)
+                member = destinations.pop()
+                if member in bindings and bindings[member] != name:
+                    raise ValueError('Duplicate Python distribution member: ' + member)
+                bindings[member] = name
                 modules[name] = {'module': name, 'sha256': hashlib.sha256(raw).hexdigest(),
                                  **python_interface(raw.decode('utf-8'))}
         roots.append({'kind': 'python-wheel-source-candidate', 'name': project['name'], 'manifest': manifest,
-                      'entrances': sorted(members), 'scripts': project.get('scripts', {})})
+                      'entrances': sorted(members), 'scripts': project.get('scripts', {}),
+                      'bindings': bindings})
     return {'qualification': 'source-input-coverage-only', 'roots': roots,
             'modules': [modules[name] for name in sorted(modules)]}
+
+
+def wheel_source_correspondence(root: Path, wheel: Path, manifest: str, source: str,
+                                verified_components=None) -> dict:
+    """Compose RECORD with normal source discovery, after component validation.
+
+    The ordinary builder supplies only exact private members returned by its
+    existing runtime_wheel_components validator in this process. A prefix or
+    package name is never an exemption. This function does not validate engine
+    provenance or run Owner references; those remain separate required gates.
+    """
+    if re.fullmatch('[0-9a-f]{40}', source) is None:
+        raise ValueError('Invalid Python interface source identity')
+    projects = source_projects(root)
+    selected = [value for value in projects['roots'] if value['manifest'] == manifest]
+    if len(selected) != 1:
+        raise ValueError('Unknown Python wheel source manifest')
+    bindings = selected[0]['bindings']
+    actual = wheel_interfaces(wheel)
+    original_components = {} if verified_components is None else verified_components
+    seen = set()
+    component_names = set()
+    for module in actual['modules']:
+        member = module['module']
+        if member in original_components:
+            if member in bindings or module['sha256'] != original_components[member]:
+                raise ValueError('Changed verified Python component: ' + member)
+            component_names.add(member)
+            continue
+        if member not in bindings:
+            raise ValueError('Unbound authored wheel interface: ' + member)
+        path = bindings[member]
+        original = subprocess.check_output(['git', 'show', source + ':' + path], cwd=root)
+        if module['sha256'] != hashlib.sha256(original).hexdigest():
+            raise ValueError('Changed authored wheel interface: ' + member)
+        seen.add(member)
+    if component_names != set(original_components):
+        raise ValueError('Missing verified Python components')
+    if seen != set(bindings):
+        raise ValueError('Missing authored wheel interfaces')
+    return {'qualification': 'normal wheel RECORD/source correspondence; not runtime acceptance',
+            'manifest': manifest, 'source': source, 'authored_modules': len(seen),
+            'verified_component_modules': len(component_names)}
 
 
 def module_interfaces(root: Path, names) -> list:

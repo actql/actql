@@ -120,6 +120,15 @@ These are checkout build-tool requirements, not runtime install hooks for users.
 Normal staged release metadata still removes development prepack hooks. Native
 binary package staging retains its existing no-lifecycle-script policy.
 
+The ordinary Python wheel builder also checks the actual wheel RECORD and
+maps every authored Python member through the selected setuptools source
+directories to its committed Git original. A self-consistent RECORD cannot
+authorize a changed implementation, a missing module, or an additional helper.
+Private external runtime bindings retain the exact member/digest results of the
+existing runtime-component validator; neither a directory prefix nor a name
+grants that qualification. Source Owner coverage, component provenance, wheel
+correspondence and actual installed execution remain separate requirements.
+
 Runtime-dependent imports are never silently dropped. Lexical single-write
 references only provide candidate targets; the existing manifest/builder or
 installation Owner must map them to its actual dependency or artifact inventory.
