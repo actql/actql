@@ -79,6 +79,18 @@ for these along with the original acquisition and cleanup-pending lifetime.
 This entry does not adopt a normal funding profile or classify legacy unbound
 calls as same-acquisition evidence. No public wire, grant, retry or timeout changes.
 
+The private physical call can additionally carry the original Host's
+`currentBeforeSend` callback. It runs after the secret resolver await, receives
+no credential material, and refuses by throwing its original current-access
+failure. Its return value is not a grant. After that await, the same binding's
+retirement/material checks, cancellation check and original journal
+authorization run again; no await separates that final journal fence from
+constructing the request with the retained original secret. A denied or failed
+callback cannot turn into an unsent proof for an earlier attempt or bypass the
+original nominal use. Legacy omission remains compatible, not evidence that a
+call checked current Host policy across the resolver await. HubSpot account
+observation selects its already captured original current callback here.
+
 The real Owner cases in `https-credential-resource.test.mjs` cover separately
 counted identity/page operations, rotation before a page and across resolver or
 response awaits, revocation/expiry despite equal material, every generated scope
