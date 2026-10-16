@@ -184,10 +184,11 @@ test('malformed grant arguments do not consume the original entry', async t => {
   assert.equal(f.state.enter, 1); assert.equal(f.state.grants, 1);
 });
 
-for (const result of [false, Promise.resolve(), Promise.reject(new Error('test async current'))]) {
+for (const [name, result] of [['false', false], ['resolved', Promise.resolve()],
+  ['rejected', Promise.reject(new Error('test async current'))]]) {
   // Observe a deliberately rejected test promise even before its case starts.
   if (typeof result?.then === 'function') void result.catch(() => {});
-  test(`async or non-Unit target current refuses before credential issuance (${String(result)})`, async t => {
+  test(`async or non-Unit target current refuses before credential issuance (${name})`, async t => {
     const f = await fixture(t);
     assert.throws(() => f.site.admitCheckpointEffectTargetRead(f.issue({assertCurrent: () => result}), physical, operation), failure);
     assert.equal(f.state.grants, 0); assert.equal(f.state.enter, 0);

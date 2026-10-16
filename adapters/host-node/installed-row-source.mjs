@@ -259,7 +259,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
     admitCheckpointReadApproval(decision) {
       ensureOpen();
       const facts = checkpointApprovalFacts(decision);
-      if (facts === undefined || decision.action !== 'dispatch' ||
+      if (facts === undefined || facts.kind === 'effect_target' || decision.action !== 'dispatch' ||
           decision.basis !== 'resumed_approval' ||
           decision.boundary !== 'acquisition' ||
           decision.tuple?.connection !== connection ||
