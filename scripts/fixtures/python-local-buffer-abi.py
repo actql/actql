@@ -127,6 +127,21 @@ try:
     assert left.call('close_pool') == 0
     assert left.call('reserved') == 0
     assert left.call('reserve', 3, 4, 4) == -5
+    # Same i32 widths do not make start/count interchangeable. The independent
+    # bytes and callback count distinguish a rejected swap from real transfer.
+    chunk = right.call('reserve', 900, 3, sys.getsizeof(b'123'))
+    assert chunk > 0
+    right.inputs[900] = b'123'
+    before = right.reads
+    assert right.call('fill', chunk, 3, 0) == -6
+    assert right.reads == before
+    assert right.call('fill', chunk, 0, 3) == 0
+    assert right.reads == before + 3
+    assert right.call('seal', chunk) == 0
+    assert bytes(right.call('byte', chunk, n) for n in range(3)) == b'123'
+    right.cleanup_ready = True
+    assert right.call('close', chunk) == 0
+    right.cleanup_ready = False
     bad = right.call('reserve', 1, 4, sys.getsizeof(b'null'))
     right.inputs[1] = b'null'
     right.invalid_byte = True
@@ -145,4 +160,4 @@ finally:
 
 print(json.dumps({'success': True, 'module_sha256': hashlib.sha256(module).hexdigest(),
     'cases': ['exact_values', 'instance_identity', 'aggregate_capacity',
-              'borrow_retirement', 'uncompleted_source_compute_refusal', 'unconfigured_task_refusal', 'uncompleted_result_refusal', 'cleanup_retry', 'stale_handles', 'invalid_byte', 'pool_close']}))
+              'borrow_retirement', 'uncompleted_source_compute_refusal', 'unconfigured_task_refusal', 'uncompleted_result_refusal', 'cleanup_retry', 'stale_handles', 'invalid_byte', 'pool_close', 'same_width_chunk_position_count']}))

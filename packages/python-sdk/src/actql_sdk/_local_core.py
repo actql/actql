@@ -302,8 +302,7 @@ def _validate_core_module(wasmtime: Any, module: Any) -> None:
             not isinstance(exports[name], wasmtime.FuncType) or
             _signature(exports[name]) != signature
             for name, signature in expected.items()) or
-            any(name.startswith('actql_') and name not in expected
-                for name in exports)):
+            set(exports) != set(expected) | {'memory'}):
         raise ValueError('Unrecognized Local Core exports')
     memory = exports.get('memory')
     if (not isinstance(memory, wasmtime.MemoryType) or memory.is_64 or
