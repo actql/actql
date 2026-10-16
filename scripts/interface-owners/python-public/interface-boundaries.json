@@ -955,7 +955,8 @@
             "program",
             "submission_ref",
             "parameters",
-            "attempt_id"
+            "attempt_id",
+            "stop_before"
           ],
           "async": false
         },
@@ -968,7 +969,8 @@
             "submission_ref",
             "parameters",
             "parameter_declarations",
-            "attempt_id"
+            "attempt_id",
+            "stop_before"
           ],
           "async": false
         },
@@ -1322,7 +1324,8 @@
             "program",
             "submission_ref",
             "parameters",
-            "attempt_id"
+            "attempt_id",
+            "stop_before"
           ],
           "async": false
         },
@@ -1335,7 +1338,8 @@
             "submission_ref",
             "parameters",
             "parameter_declarations",
-            "attempt_id"
+            "attempt_id",
+            "stop_before"
           ],
           "async": false
         },
@@ -1686,7 +1690,7 @@
           "async": false
         }
       ],
-      "sha256": "9b010db0bc10809909af330f4d4407f89e979dea88c26adb7c3850c7c880beb9",
+      "sha256": "892e82901ecebefbe13860d0188344bd15408e0204d57e978e6e464787f85328",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2136,7 +2140,8 @@
             "input",
             "reference",
             "parameters",
-            "attempt_id"
+            "attempt_id",
+            "stop_before"
           ],
           "async": false
         },
@@ -2301,7 +2306,8 @@
             "program",
             "submission_ref",
             "parameters",
-            "attempt_id"
+            "attempt_id",
+            "stop_before"
           ],
           "async": false
         },
@@ -2314,7 +2320,8 @@
             "submission_ref",
             "parameters",
             "parameter_declarations",
-            "attempt_id"
+            "attempt_id",
+            "stop_before"
           ],
           "async": false
         },
@@ -2465,7 +2472,7 @@
           "async": false
         }
       ],
-      "sha256": "6b708e60604fa5cac5c90e6b9cb47c64c3a0e9a9fa8419ecf49201aec2a35292",
+      "sha256": "fcdc7807ed3b86b409ea120bd593fab5eade4a83ca698a4057a692634e959114",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
