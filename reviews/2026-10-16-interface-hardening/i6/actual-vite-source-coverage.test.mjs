@@ -2,15 +2,22 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {test} from 'node:test';
+import {build, resolveConfig} from 'vite';
 import {repositoryFiles} from '../../../scripts/distribution-interface-roots.mjs';
 import {viteInterfaceInventory} from '../../../scripts/vite-interface-inventory.mjs';
 
-test('normal OSS Vite builds expose their actual UI modules and Worker source assets without writing output', async () => {
+test('normal OSS Vite inputs include the library dependency, browser modules and Worker source assets', async () => {
   const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
   assert.equal(lock.packages['node_modules/vite'].version,
     JSON.parse(readFileSync('node_modules/vite/package.json', 'utf8')).version);
   const configs = repositoryFiles(process.cwd()).filter(path => /(?:^|\/)vite\.config\.[cm]?[jt]s$/u.test(path));
   assert(configs.length);
+  // The normal app resolves the normal workspace library export. Prepare that
+  // library with its unchanged production build, not an alias to unbuilt TSX.
+  for (const configFile of configs) {
+    const config = await resolveConfig({configFile, configLoader: 'native', logLevel: 'silent'}, 'build');
+    if (config.build.lib) await build({configFile, configLoader: 'native', logLevel: 'silent'});
+  }
   const result = await viteInterfaceInventory(process.cwd(), configs);
   for (const name of ['packages/explorer-ui/plan-explorer.tsx', 'packages/explorer/app/main.tsx',
     'packages/explorer-ui/flow-layout-worker.mjs', 'packages/explorer-ui/flow-layout-engine.mjs']) {
