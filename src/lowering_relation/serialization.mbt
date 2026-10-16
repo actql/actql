@@ -117,6 +117,26 @@ pub fn serialization_step(value : PreparedSerialization) -> Int {
 }
 
 ///|
+/// Exact prepared occurrence, not equal fields or an independently prepared
+/// barrier. This read-only predicate grants no acquisition or completion.
+pub fn serialization_matches_node(
+  value : PreparedSerialization,
+  node : PreparedNode,
+) -> Bool {
+  value.owner.prepared.nodes.get(value.step) is Some(original) &&
+  physical_equal(original, node) &&
+  node.payload is Serialize(checked) &&
+  physical_equal(value.checked, checked)
+}
+
+///|
+/// The original checked ORDER BY requires the shared internal sort. Runtime
+/// consumers do not need the checked operation to inspect this distinction.
+pub fn serialization_requires_sort(value : PreparedSerialization) -> Bool {
+  @pipeline.serialization_sort(value.checked) is Some(_)
+}
+
+///|
 pub fn serialization_checked(
   value : PreparedSerialization,
 ) -> @pipeline.CheckedSerialization {

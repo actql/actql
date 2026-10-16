@@ -2,6 +2,13 @@
 // Run: node scripts/generate-client-host-wire.mjs --write
 
 ///|
+fn wire_finite_number(number : Double) -> Bool {
+  !number.is_nan() &&
+  !number.is_inf() &&
+  number.reinterpret_as_uint64() != 0x8000000000000000UL
+}
+
+///|
 fn wire_rule_0(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "actql-submission-epoch/0.1") {
@@ -43,7 +50,8 @@ fn wire_rule_2(value : Json) -> Bool {
 ///|
 fn wire_rule_3(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -60,7 +68,8 @@ fn wire_rule_3(value : Json) -> Bool {
 ///|
 fn wire_rule_4(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -243,7 +252,8 @@ fn wire_rule_17(value : Json) -> Bool {
 ///|
 fn wire_rule_18(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -1458,7 +1468,8 @@ fn wire_rule_138(value : Json) -> Bool {
 ///|
 fn wire_rule_139(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -1719,7 +1730,8 @@ fn wire_rule_157(value : Json) -> Bool {
 ///|
 fn wire_rule_159(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -4538,6 +4550,9 @@ fn wire_rule_433(value : Json) -> Bool {
 ///|
 fn wire_rule_439(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 1.0) {
     return false
   }
@@ -4561,7 +4576,7 @@ fn wire_rule_438(value : Json) -> Bool {
 ///|
 fn wire_rule_442(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 1.0 {
@@ -4600,6 +4615,9 @@ fn wire_rule_437(value : Json) -> Bool {
 ///|
 fn wire_rule_445(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 2.0) {
     return false
   }
@@ -4623,7 +4641,7 @@ fn wire_rule_444(value : Json) -> Bool {
 ///|
 fn wire_rule_448(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 2.0 {
@@ -4662,6 +4680,9 @@ fn wire_rule_443(value : Json) -> Bool {
 ///|
 fn wire_rule_451(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 3.0) {
     return false
   }
@@ -4685,7 +4706,7 @@ fn wire_rule_450(value : Json) -> Bool {
 ///|
 fn wire_rule_454(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 3.0 {
@@ -4724,6 +4745,9 @@ fn wire_rule_449(value : Json) -> Bool {
 ///|
 fn wire_rule_457(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 4.0) {
     return false
   }
@@ -4747,7 +4771,7 @@ fn wire_rule_456(value : Json) -> Bool {
 ///|
 fn wire_rule_460(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 4.0 {
@@ -4786,6 +4810,9 @@ fn wire_rule_455(value : Json) -> Bool {
 ///|
 fn wire_rule_463(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 5.0) {
     return false
   }
@@ -4809,7 +4836,7 @@ fn wire_rule_462(value : Json) -> Bool {
 ///|
 fn wire_rule_466(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 5.0 {
@@ -4848,6 +4875,9 @@ fn wire_rule_461(value : Json) -> Bool {
 ///|
 fn wire_rule_469(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 6.0) {
     return false
   }
@@ -4871,7 +4901,7 @@ fn wire_rule_468(value : Json) -> Bool {
 ///|
 fn wire_rule_472(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 6.0 {
@@ -4910,6 +4940,9 @@ fn wire_rule_467(value : Json) -> Bool {
 ///|
 fn wire_rule_475(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 7.0) {
     return false
   }
@@ -4933,7 +4966,7 @@ fn wire_rule_474(value : Json) -> Bool {
 ///|
 fn wire_rule_478(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 7.0 {
@@ -4972,6 +5005,9 @@ fn wire_rule_473(value : Json) -> Bool {
 ///|
 fn wire_rule_481(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 8.0) {
     return false
   }
@@ -4995,7 +5031,7 @@ fn wire_rule_480(value : Json) -> Bool {
 ///|
 fn wire_rule_484(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 8.0 {
@@ -5034,6 +5070,9 @@ fn wire_rule_479(value : Json) -> Bool {
 ///|
 fn wire_rule_487(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 9.0) {
     return false
   }
@@ -5057,7 +5096,7 @@ fn wire_rule_486(value : Json) -> Bool {
 ///|
 fn wire_rule_490(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 9.0 {
@@ -5096,6 +5135,9 @@ fn wire_rule_485(value : Json) -> Bool {
 ///|
 fn wire_rule_493(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 10.0) {
     return false
   }
@@ -5119,7 +5161,7 @@ fn wire_rule_492(value : Json) -> Bool {
 ///|
 fn wire_rule_496(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 10.0 {
@@ -5158,6 +5200,9 @@ fn wire_rule_491(value : Json) -> Bool {
 ///|
 fn wire_rule_499(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 11.0) {
     return false
   }
@@ -5181,7 +5226,7 @@ fn wire_rule_498(value : Json) -> Bool {
 ///|
 fn wire_rule_502(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 11.0 {
@@ -5220,6 +5265,9 @@ fn wire_rule_497(value : Json) -> Bool {
 ///|
 fn wire_rule_505(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 12.0) {
     return false
   }
@@ -5243,7 +5291,7 @@ fn wire_rule_504(value : Json) -> Bool {
 ///|
 fn wire_rule_508(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 12.0 {
@@ -5282,6 +5330,9 @@ fn wire_rule_503(value : Json) -> Bool {
 ///|
 fn wire_rule_511(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 13.0) {
     return false
   }
@@ -5305,7 +5356,7 @@ fn wire_rule_510(value : Json) -> Bool {
 ///|
 fn wire_rule_514(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 13.0 {
@@ -5344,6 +5395,9 @@ fn wire_rule_509(value : Json) -> Bool {
 ///|
 fn wire_rule_517(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 14.0) {
     return false
   }
@@ -5367,7 +5421,7 @@ fn wire_rule_516(value : Json) -> Bool {
 ///|
 fn wire_rule_520(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 14.0 {
@@ -5406,6 +5460,9 @@ fn wire_rule_515(value : Json) -> Bool {
 ///|
 fn wire_rule_523(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 15.0) {
     return false
   }
@@ -5429,7 +5486,7 @@ fn wire_rule_522(value : Json) -> Bool {
 ///|
 fn wire_rule_526(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 15.0 {
@@ -5468,6 +5525,9 @@ fn wire_rule_521(value : Json) -> Bool {
 ///|
 fn wire_rule_529(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 16.0) {
     return false
   }
@@ -5491,7 +5551,7 @@ fn wire_rule_528(value : Json) -> Bool {
 ///|
 fn wire_rule_532(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 16.0 {
@@ -5530,6 +5590,9 @@ fn wire_rule_527(value : Json) -> Bool {
 ///|
 fn wire_rule_535(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 17.0) {
     return false
   }
@@ -5553,7 +5616,7 @@ fn wire_rule_534(value : Json) -> Bool {
 ///|
 fn wire_rule_538(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 17.0 {
@@ -5592,6 +5655,9 @@ fn wire_rule_533(value : Json) -> Bool {
 ///|
 fn wire_rule_541(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 18.0) {
     return false
   }
@@ -5615,7 +5681,7 @@ fn wire_rule_540(value : Json) -> Bool {
 ///|
 fn wire_rule_544(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 18.0 {
@@ -5654,6 +5720,9 @@ fn wire_rule_539(value : Json) -> Bool {
 ///|
 fn wire_rule_547(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 19.0) {
     return false
   }
@@ -5677,7 +5746,7 @@ fn wire_rule_546(value : Json) -> Bool {
 ///|
 fn wire_rule_550(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 19.0 {
@@ -5716,6 +5785,9 @@ fn wire_rule_545(value : Json) -> Bool {
 ///|
 fn wire_rule_553(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 20.0) {
     return false
   }
@@ -5739,7 +5811,7 @@ fn wire_rule_552(value : Json) -> Bool {
 ///|
 fn wire_rule_556(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 20.0 {
@@ -5778,6 +5850,9 @@ fn wire_rule_551(value : Json) -> Bool {
 ///|
 fn wire_rule_559(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 21.0) {
     return false
   }
@@ -5801,7 +5876,7 @@ fn wire_rule_558(value : Json) -> Bool {
 ///|
 fn wire_rule_562(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 21.0 {
@@ -5840,6 +5915,9 @@ fn wire_rule_557(value : Json) -> Bool {
 ///|
 fn wire_rule_565(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 22.0) {
     return false
   }
@@ -5863,7 +5941,7 @@ fn wire_rule_564(value : Json) -> Bool {
 ///|
 fn wire_rule_568(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 22.0 {
@@ -5902,6 +5980,9 @@ fn wire_rule_563(value : Json) -> Bool {
 ///|
 fn wire_rule_571(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 23.0) {
     return false
   }
@@ -5925,7 +6006,7 @@ fn wire_rule_570(value : Json) -> Bool {
 ///|
 fn wire_rule_574(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 23.0 {
@@ -5964,6 +6045,9 @@ fn wire_rule_569(value : Json) -> Bool {
 ///|
 fn wire_rule_577(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 24.0) {
     return false
   }
@@ -5987,7 +6071,7 @@ fn wire_rule_576(value : Json) -> Bool {
 ///|
 fn wire_rule_580(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 24.0 {
@@ -6026,6 +6110,9 @@ fn wire_rule_575(value : Json) -> Bool {
 ///|
 fn wire_rule_583(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 25.0) {
     return false
   }
@@ -6049,7 +6136,7 @@ fn wire_rule_582(value : Json) -> Bool {
 ///|
 fn wire_rule_586(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 25.0 {
@@ -6088,6 +6175,9 @@ fn wire_rule_581(value : Json) -> Bool {
 ///|
 fn wire_rule_589(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 26.0) {
     return false
   }
@@ -6111,7 +6201,7 @@ fn wire_rule_588(value : Json) -> Bool {
 ///|
 fn wire_rule_592(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 26.0 {
@@ -6150,6 +6240,9 @@ fn wire_rule_587(value : Json) -> Bool {
 ///|
 fn wire_rule_595(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 27.0) {
     return false
   }
@@ -6173,7 +6266,7 @@ fn wire_rule_594(value : Json) -> Bool {
 ///|
 fn wire_rule_598(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 27.0 {
@@ -6212,6 +6305,9 @@ fn wire_rule_593(value : Json) -> Bool {
 ///|
 fn wire_rule_601(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 28.0) {
     return false
   }
@@ -6235,7 +6331,7 @@ fn wire_rule_600(value : Json) -> Bool {
 ///|
 fn wire_rule_604(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 28.0 {
@@ -6274,6 +6370,9 @@ fn wire_rule_599(value : Json) -> Bool {
 ///|
 fn wire_rule_607(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 29.0) {
     return false
   }
@@ -6297,7 +6396,7 @@ fn wire_rule_606(value : Json) -> Bool {
 ///|
 fn wire_rule_610(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 29.0 {
@@ -6336,6 +6435,9 @@ fn wire_rule_605(value : Json) -> Bool {
 ///|
 fn wire_rule_613(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 30.0) {
     return false
   }
@@ -6359,7 +6461,7 @@ fn wire_rule_612(value : Json) -> Bool {
 ///|
 fn wire_rule_616(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 30.0 {
@@ -6398,6 +6500,9 @@ fn wire_rule_611(value : Json) -> Bool {
 ///|
 fn wire_rule_619(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 31.0) {
     return false
   }
@@ -6421,7 +6526,7 @@ fn wire_rule_618(value : Json) -> Bool {
 ///|
 fn wire_rule_622(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 31.0 {
@@ -6460,6 +6565,9 @@ fn wire_rule_617(value : Json) -> Bool {
 ///|
 fn wire_rule_625(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 32.0) {
     return false
   }
@@ -6483,7 +6591,7 @@ fn wire_rule_624(value : Json) -> Bool {
 ///|
 fn wire_rule_628(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 32.0 {
@@ -6522,6 +6630,9 @@ fn wire_rule_623(value : Json) -> Bool {
 ///|
 fn wire_rule_631(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 33.0) {
     return false
   }
@@ -6545,7 +6656,7 @@ fn wire_rule_630(value : Json) -> Bool {
 ///|
 fn wire_rule_634(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 33.0 {
@@ -6584,6 +6695,9 @@ fn wire_rule_629(value : Json) -> Bool {
 ///|
 fn wire_rule_637(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 34.0) {
     return false
   }
@@ -6607,7 +6721,7 @@ fn wire_rule_636(value : Json) -> Bool {
 ///|
 fn wire_rule_640(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 34.0 {
@@ -6646,6 +6760,9 @@ fn wire_rule_635(value : Json) -> Bool {
 ///|
 fn wire_rule_643(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 35.0) {
     return false
   }
@@ -6669,7 +6786,7 @@ fn wire_rule_642(value : Json) -> Bool {
 ///|
 fn wire_rule_646(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 35.0 {
@@ -6708,6 +6825,9 @@ fn wire_rule_641(value : Json) -> Bool {
 ///|
 fn wire_rule_649(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 36.0) {
     return false
   }
@@ -6731,7 +6851,7 @@ fn wire_rule_648(value : Json) -> Bool {
 ///|
 fn wire_rule_652(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 36.0 {
@@ -6770,6 +6890,9 @@ fn wire_rule_647(value : Json) -> Bool {
 ///|
 fn wire_rule_655(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 37.0) {
     return false
   }
@@ -6793,7 +6916,7 @@ fn wire_rule_654(value : Json) -> Bool {
 ///|
 fn wire_rule_658(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 37.0 {
@@ -6832,6 +6955,9 @@ fn wire_rule_653(value : Json) -> Bool {
 ///|
 fn wire_rule_661(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 38.0) {
     return false
   }
@@ -6855,7 +6981,7 @@ fn wire_rule_660(value : Json) -> Bool {
 ///|
 fn wire_rule_664(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   if number > 38.0 {
@@ -6903,7 +7029,8 @@ fn wire_rule_665(value : Json) -> Bool {
 ///|
 fn wire_rule_667(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -6920,7 +7047,8 @@ fn wire_rule_667(value : Json) -> Bool {
 ///|
 fn wire_rule_668(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -7106,7 +7234,8 @@ fn wire_rule_670(value : Json) -> Bool {
 ///|
 fn wire_rule_672(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -7393,7 +7522,8 @@ fn wire_rule_692(value : Json) -> Bool {
 ///|
 fn wire_rule_694(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -7689,7 +7819,7 @@ fn wire_rule_709(value : Json) -> Bool {
 ///|
 fn wire_rule_717(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number.is_nan() || number.is_inf() {
+  if !wire_finite_number(number) {
     return false
   }
   true
@@ -7792,7 +7922,8 @@ fn wire_rule_723(value : Json) -> Bool {
 ///|
 fn wire_rule_725(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -10166,7 +10297,8 @@ fn wire_rule_923(value : Json) -> Bool {
 ///|
 fn wire_rule_926(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -10481,7 +10613,8 @@ fn wire_held_shape(value : Json) -> Bool {
 ///|
 fn wire_rule_945(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false

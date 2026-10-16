@@ -15,6 +15,45 @@ installation, raw capture policies, canonical binding originals and finite
 quantities. Missing originals/runtime refuse before sending. Matching CIDs,
 configuration copies or positive byte declarations are not original admission.
 
+The selected Chat installation also supplies required closed `originalStringLimits`:
+`maxApiKeyCodeUnits`, `maxBaseURLCodeUnits`, and `maxModelIdCodeUnits`. Each is
+an explicit positive finite integer ceiling in JavaScript UTF-16 code units.
+The constructor snapshots them and the original primitive strings once, and
+checks length before input-dependent concatenation, URL construction, SDK
+preparation or encoding. Missing or excessive inputs refuse; no value is
+truncated, normalized or logged. These are separate from encoded request/header
+byte limits. They do not fund acquiring the original strings, their later
+URL/header/copy/Promise overlap, or establish a normal numerical profile. The
+same Host supplier/installation and its current generation retain that duty.
+
+The Chat entry privately projects the actual builder's OpenAI and ProviderUtils
+module namespaces and its original `createOpenAI` function to the existing Host
+installation. The entry accepts no caller replacement for those originals.
+This is reference DATA, not coverage, a loan, a profile or permission. Only the
+selected trusted Host's original startup/module responsibility may cover the
+fixed, input-independent module graph. The module-default environment read,
+per-call factories, lazy initialization, mutable caches, inputs, copies and
+Promises remain separate duties. Host/Scope retirement does not prove ESM
+cache or module storage reclamation. The new direct ProviderUtils dependency
+selects the already locked5.0.58 bytes; the changed root lock has a new Artifact
+identity, not the former lock CID. Host coverage/caller integration and complete
+phase supply are still required before normal use.
+
+The opt-in selected startup is delivered as an empty, preload-only package
+entry. In an installation containing `@actql/node`, select it before application
+imports with `node --require @actql/node/selected-infer-startup app.mjs`, or use
+the distinct eager recipe
+`node --no-lazy --require @actql/node/selected-infer-startup app.mjs`.
+Direct Local Host installations can select `@actql/local-node/selected-infer-startup`
+instead. These entries expose no original/issuer or runtime factory. Only the
+actual fixed package loader chain on the selected Node22.22.0/Darwin arm64
+runtime qualifies; late imports, other preceding preloads and `NODE_OPTIONS`
+remain unavailable. Existing absolute private-preload recipes are unchanged.
+This selection is neither a supported normal numerical profile nor permission
+to send. Managed startup controls, all per-call holdings and the four original
+resource reservations still need their existing supplier; arbitrary embedded
+processes cannot acquire startup history by importing this entry later.
+
 ```js
 import {createInstalledOpenAIChatRegistration} from '@actql/provider-ai-sdk';
 // Host integration skeleton, not a runnable live-provider example.
@@ -70,7 +109,8 @@ This entry selects the fixed private Undici transport after the same existing
 Host snapshots/profile/original-selection checks. It reuses the existing
 exclusive async registration, physical preflight and original Call cleanup;
 it does not implement another executor or synthesize normal funding. The old
-explicit generic-fetch assembler is unchanged. An extra fetch in the selected
+explicit generic-fetch transport behavior is unchanged; both Chat assemblers
+require the original-string declarations above. An extra fetch in the selected
 Undici options is rejected, not used as a fallback or endpoint override.
 
 `npm-shrinkwrap.json` preserves the exact existing SDK dependency lock closure

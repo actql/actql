@@ -5,12 +5,69 @@ import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {currentResourceFixture} from './model-current-resource.fixture.mjs';
-import {selectOriginalInferMetadataAcquisition, selectOriginalInferStoreBootstrapAcquisition} from './infer-operation.mjs';
+import {selectOriginalInferMetadataAcquisition, selectOriginalInferStoreBootstrapAcquisition,
+  selectOriginalInferResourceCodecAcquisition} from './infer-operation.mjs';
 
 const declared = () => ({metadata: {maxWireBytes: 512, maxLedgerEntries: 3},
   directory: {maxWireBytes: 512, maxDirectoryEntries: 4},
   retainedBytes: 7000n, workspaceBytes: 3000n});
 const unavailable = {code: 'InferOriginalMetadataAcquisitionUnavailable'};
+
+test('pre-park Store bootstrap borrows exact handed-off Scope without granting metadata or a park', async () => {
+  const f = await currentResourceFixture(moon, runtimeCore(moon).publicationControl,
+    'prepark-bootstrap', {metadataAcquisition: declared(),
+      storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 22}});
+  const handle = f.operation.originalStoreBootstrapAcquisition();
+  assert.strictEqual(f.operation.originalStoreBootstrapAcquisition(), handle);
+  assert.equal(handle.kind, 'original-infer-store-bootstrap-acquisition');
+  const selected = selectOriginalInferStoreBootstrapAcquisition(handle,
+    'model-prepark-bootstrap', f.runDefinition.identity);
+  assert.deepEqual(selected, {maxWireBytes: 4096, maxDirectoryEntries: 22});
+  assert.ok(Object.isFrozen(selected));
+  assert.throws(() => selectOriginalInferMetadataAcquisition(handle), unavailable);
+  assert.throws(() => selectOriginalInferResourceCodecAcquisition(handle), unavailable);
+  assert.throws(() => selectOriginalInferStoreBootstrapAcquisition(handle, 'model-foreign'), unavailable);
+  assert.throws(() => selectOriginalInferStoreBootstrapAcquisition(handle,
+    'model-prepark-bootstrap', 'sha256:' + '0'.repeat(64)), unavailable);
+  for (const copy of [{...handle}, selected, true, undefined]) {
+    assert.throws(() => selectOriginalInferStoreBootstrapAcquisition(copy), unavailable);
+  }
+  // The handle is not a park and cannot follow the later phase transition.
+  const park = f.operation.parkOriginalResources();
+  assert.strictEqual(f.operation.originalResourceParkCurrent(park), park);
+  assert.throws(() => selectOriginalInferStoreBootstrapAcquisition(handle), unavailable);
+  assert.throws(() => f.operation.originalStoreBootstrapAcquisition(), unavailable);
+  const parked = f.operation.originalMetadataAcquisition(park);
+  assert.notStrictEqual(parked, handle);
+  assert.equal(f.sends(), 0);
+  await assert.rejects(f.operation.close(), error => error.code === 'MoonBitHostFailure');
+  assert.equal(f.operation.cleanupPending(), true);
+});
+
+test('pre-park Store bootstrap refuses missing original shortage and cancellation without a new claim', async () => {
+  for (const [name, extra] of [
+    ['missing', {}],
+    ['retained', {metadataAcquisition: {...declared(), retainedBytes: 7001n}}],
+    ['workspace', {metadataAcquisition: {...declared(), workspaceBytes: 3001n}}],
+    ['bootstrap', {metadataAcquisition: declared(), storeBootstrap: undefined}],
+  ]) {
+    const options = {storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 22}, ...extra};
+    if (name === 'bootstrap') delete options.storeBootstrap;
+    const f = await currentResourceFixture(moon, runtimeCore(moon).publicationControl,
+      `prepark-${name}`, options);
+    assert.throws(() => f.operation.originalStoreBootstrapAcquisition(), unavailable);
+    assert.equal(f.sends(), 0);
+  }
+  const abort = new AbortController();
+  const f = await currentResourceFixture(moon, runtimeCore(moon).publicationControl,
+    'prepark-cancel', {metadataAcquisition: declared(),
+      storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 22}, signal: abort.signal});
+  const handle = f.operation.originalStoreBootstrapAcquisition();
+  abort.abort();
+  assert.throws(() => selectOriginalInferStoreBootstrapAcquisition(handle), unavailable);
+  assert.throws(() => f.operation.originalStoreBootstrapAcquisition(), unavailable);
+  assert.equal(f.sends(), 0);
+});
 
 test('installed original metadata supplier uses one nominal handle and immutable whole envelope', async () => {
   const source = declared();

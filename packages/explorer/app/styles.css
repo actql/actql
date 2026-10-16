@@ -4,6 +4,7 @@ main > header, main > section { margin-bottom: 24px; padding: 20px; background: 
 form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 16px 0; }
 label { display: grid; gap: 6px; }
 label:has(textarea) { width: 100%; }
+.actql-run-follow { display: flex; align-items: center; gap: 8px; }
 textarea { min-height: 100px; resize: vertical; }
 input, select, textarea, button { font: inherit; padding: 8px; border: 1px solid #7a8797; border-radius: 4px; }
 button { cursor: pointer; background: #edf2f7; }

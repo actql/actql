@@ -1,4 +1,71 @@
 ///|
+// Same exact finite permission set as policy_account_original, explicitly in
+// the existing Account Owner's canonical selector order. Never normalize a
+// caller's invalid Account or weaken that Owner to make this fixture succeed.
+let checkpoint_lookup_account : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"explicit-policy-operations\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"result/answer\",\"run\"]},\"operation\":{\"any_of\":[\"read\",\"submit\"]},\"exclusions\":[]}]}"
+
+///|
+// Two simultaneously live original Hosts must not contend on the same
+// local-adoption.lock. Only fixture state-parent placement changes; source
+// Account, limits, original scope and the production lock remain unchanged.
+fn checkpoint_lookup_host_fixture(
+  name : String,
+  existing? : Bool = false,
+) -> NativeLocalHostConnection raise {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let root = signing_grant_fixture_require(
+    @filesystem.open_private_root(path),
+    "checkpoint_fixture_source_root",
+  )
+  let parent = name + ".parent"
+  let account = name + ".account.json"
+  if !existing {
+    signing_grant_fixture_require(
+      root.create_directory(parent),
+      "checkpoint_fixture_private_parent",
+    )
+    |> ignore
+    let writer = signing_grant_fixture_require(
+      root.create_writer(name + ".stage", 4096L),
+      "checkpoint_fixture_account_writer",
+    )
+    signing_grant_fixture_require(
+      writer.append(checkpoint_lookup_account),
+      "checkpoint_fixture_account_append",
+    )
+    signing_grant_fixture_require(
+      writer.seal(account),
+      "checkpoint_fixture_account_seal",
+    )
+    |> ignore
+  }
+  signing_grant_fixture_require(root.close(), "checkpoint_fixture_source_close")
+  let crypto = epoch_test_crypto()
+  let adoption = signing_grant_fixture_require(
+    begin_native_local_host_adoption(
+      path + "/" + parent,
+      name + ".host",
+      path,
+      account,
+      "operator",
+      crypto,
+      existing_only=existing,
+    ),
+    "checkpoint_fixture_adoption",
+  )
+  signing_grant_fixture_require(
+    adoption.open_journal(
+      local_journal_test_library(),
+      crypto,
+      100.0,
+      8,
+      8388608L,
+    ),
+    "checkpoint_fixture_original_journal",
+  )
+}
+
+///|
 // Journal transaction fixture only: no Provider Preview, Effect execution or
 // physical CLI acceptance is represented by this sealed protocol artifact.
 fn local_checkpoint_lookup_fixture(
@@ -11,7 +78,7 @@ fn local_checkpoint_lookup_fixture(
   @host.ClientRequestIdentity,
   @checkpoint.SealedCheckpoint,
 ) raise {
-  let host = policy_host_fixture(name)
+  let host = checkpoint_lookup_host_fixture(name)
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
   let epoch = host.epoch.issue_epoch(scope, true, 1000.0).unwrap()
@@ -156,7 +223,7 @@ test "Native original Checkpoint metadata is readonly and survives authenticated
     )
   }
   host.close().unwrap()
-  let reopened = policy_host_fixture(name, existing=true)
+  let reopened = checkpoint_lookup_host_fixture(name, existing=true)
   let restored = local_checkpoint_lookup_call(reopened, reference, request)
     .unwrap()
     .unwrap()

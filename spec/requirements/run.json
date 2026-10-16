@@ -3,6 +3,39 @@
   "document_id": "actql.protocol.run",
   "requirements": [
     {
+      "requirement_id": "actql.protocol.run/original-update-selection-custody.run-definition-projection",
+      "statement_sha256": "30020f948ee1c55fd3e9382e30a19a55621b1e0234ccb2fc0be9d924fbb0af37",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-update-selection-custody",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-update-selection-custody.exact-run-binding",
+      "statement_sha256": "3c90d1fe1c45063a187f6dcc161f34751e1236050c81371c6f0039f25cf3b2bd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-update-selection-custody",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-update-selection-custody.before-capture-read",
+      "statement_sha256": "a39923a59d2a5090c705426cf6b2f89c8a4dcea9b70130160f09cbfdd5e32662",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-update-selection-custody",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/runtime-source-evidence.run-receipts-must-report-single-snapshot-or-independent-snapshots-reading-two-systems",
       "statement_sha256": "2159b902e8a46b553a86f168757e7b136c641f9b9beb537ed167349b4440c692",
       "status": "pending",
@@ -752,7 +785,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "c592492758d482f712a53a48db72df631b1e2f67a906007eff3651e6542def99",
+      "statement_sha256": "9f44228139ad4d4a6766f5de22588d785959dabbcff8a53c1ab0e8eacddc6f03",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

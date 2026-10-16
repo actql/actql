@@ -25,8 +25,14 @@ import {graphCompositionExpectations, graphResultDataPolicy,
   computationCustodySince} from './fixtures/graph-infer-effect-input.mjs';
 import {optionalEffectCases, optionalEffectFixtureFiles, optionalEffectExpectations} from
   './fixtures/two-source-optional-effect.mjs';
+import {admitCompositionRelease, compositionReleaseDirectory} from './composition-release-input.mjs';
+import {auditPackedPackages} from './packed-package-boundaries.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+const releaseDirectory = compositionReleaseDirectory(process.argv.slice(2));
+// Refuse a foreign, dirty or modified release before creating a Site or Run.
+const normalRelease = releaseDirectory === undefined ? undefined
+  : await admitCompositionRelease({repository, directory: releaseDirectory});
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 // Outside the checkout: nothing under it can fill in a missing file.
@@ -182,12 +188,18 @@ try {
   const sourceRevision = run('git', ['rev-parse', 'HEAD'], repository).trim();
   assert.match(sourceRevision, /^[0-9a-f]{40}$/u);
   console.log('packed source revision ' + sourceRevision);
-  const artifacts = [];
-  for (const name of ['client-wire', 'sdk', 'local-node', 'node']) {
-    await packedClientPackage({repository, name, destination: root,
-      pack: packageName => run('npm', ['pack', '--pack-destination', root,
-        '--json'], join(repository, 'packages', packageName))});
-    artifacts.push(join(root, `actql-${name}-0.0.0-development.tgz`));
+  const artifacts = normalRelease === undefined ? [] : normalRelease.archives;
+  if (normalRelease === undefined) {
+    for (const name of ['client-wire', 'sdk', 'local-node', 'node']) {
+      await packedClientPackage({repository, name, destination: root,
+        pack: packageName => run('npm', ['pack', '--pack-destination', root,
+          '--json'], join(repository, 'packages', packageName))});
+      artifacts.push(join(root, `actql-${name}-0.0.0-development.tgz`));
+    }
+  } else {
+    console.log('normal composition release ' + JSON.stringify({sourceSha: sourceRevision,
+      manifestSha256: normalRelease.manifestSha256,
+      packageVersion: normalRelease.manifest.cohort.packageVersion}));
   }
   console.log('packed package digests ' + JSON.stringify(
     await Promise.all(artifacts.map(async path => ({
@@ -199,6 +211,7 @@ try {
   run('npm', ['install', '--ignore-scripts', '--no-save', ...artifacts,
     await pinnedDuckDBPackage(repository)],
     root);
+  if (normalRelease !== undefined) auditPackedPackages(root, normalRelease.manifest.cohort.packages);
   assert((await readFile(join(root, 'node_modules/@actql/local-node',
     '_build/js/release/build/connectors/salesforce/host_node/host_node.js')))
     .byteLength > 0);
@@ -372,6 +385,10 @@ try {
       accountConfiguration: modelApprovalAccount}));
     await writeFile(join(root, 'model-approval-effect.json'), JSON.stringify({
       ...JSON.parse(await readFile(join(root, 'effect.json'), 'utf8')),
+      queryUpdateTargets: [
+        {name: 'crm.TestRecord', targetRef: 'connector://crm-main/Test_Record__c'},
+        {name: 'crm.OtherRecord', targetRef: 'connector://crm-main/Other_Record__c'},
+      ],
       accountConfigurationWire: modelApprovalAccount}));
   }
   const alternateSource = JSON.parse(await readFile(join(root,
@@ -1364,6 +1381,7 @@ try {
       const expectedReads = [2, 0, 0, 0, 0, 0];
       const expectedWriteCounts = [0, 0, 0, 0, 1, 1];
       const modelCalls = [];
+      const selectionOriginals = [];
       let sourceObservations;
       for (const [index, phase] of phases.entries()) {
         const output = (await runChild('effect-run.mjs', rceEnvironment,
@@ -1390,6 +1408,36 @@ try {
         effectWriteCounts.push(patches().length);
         assert.equal(patches().length, expectedWriteCounts[index],
           phase.step + ': only separate Effect approval permits writes');
+        const ref = JSON.parse(await readFile(join(root, 'effect-ref.json'), 'utf8'));
+        const database = new DatabaseSync(join(rceEnvironment.ACTQL_LOCAL_STATE_DIR,
+          'requests/client-requests.sqlite3'), {readOnly: true});
+        try {
+          const retained = database.prepare(`SELECT run_admission_evidence_json, run_definition_wire
+            FROM client_requests WHERE run_definition_cid = ?`).get(ref.runDefinitionCid);
+          assert.ok(retained, phase.step + ': the original Run remains in request custody');
+          const original = JSON.parse(retained.run_admission_evidence_json).updateTargetRunOriginal;
+          assert.equal(typeof original?.materialsWire, 'string');
+          const materials = JSON.parse(original.materialsWire);
+          assert.equal(typeof materials.effect_target_selections_json, 'string');
+          const selections = JSON.parse(materials.effect_target_selections_json);
+          assert.equal(selections.length, 1, 'Two aliases do not create two actual UPDATE occurrences');
+          assert(selections[0].target_ref === 'connector://crm-main/Test_Record__c',
+            'The selected UPDATE retains its original Test_Record target');
+          assert(selections[0].effect_id === 'save', 'The selected UPDATE retains its original save occurrence');
+          assert.equal(typeof materials.infer_execution_contract_json, 'string');
+          assert.ok(materials.infer_execution_contract_json.length > 0);
+          const definition = JSON.parse(retained.run_definition_wire);
+          const observation = {runDefinitionCid: ref.runDefinitionCid, selectionCount: selections.length,
+            selectionCid: definition.effect_target_selections_cid,
+            inferExecutionContractCid: materials.infer_execution_contract_cid};
+          for (const cid of [observation.selectionCid, observation.inferExecutionContractCid]) {
+            assert(typeof cid === 'string' && /^sha256:[a-f0-9]{64}$/u.test(cid),
+              'Original selection and Model contract identities must be CIDs');
+          }
+          if (selectionOriginals.length) assert.deepEqual(observation, selectionOriginals[0],
+            phase.step + ': reconstruction must retain the original selection and Model contract');
+          selectionOriginals.push(observation);
+        } finally { database.close(); }
       }
       assert.deepEqual(patches().map(item => ({id: item.path.split('/').at(-1),
         body: JSON.parse(item.body)})), expectedWrites);
@@ -1406,7 +1454,7 @@ try {
         requestId: submission.requestId, submissionRef: submission.submissionRef, ref, submittedFormat: submission.format,
         submittedProgramSha256: createHash('sha256').update(submission.document).digest('hex'),
         sourceReadSessions: sourceObservations.map(item => item.sourceReadSessions),
-        modelCalls, effectWriteCounts,
+        modelCalls, effectWriteCounts, selectionOriginals,
         modelCheckpointCid: JSON.parse(await readFile(join(root,
           'model-approval-checkpoint.json'), 'utf8')).checkpointCid,
         effectCheckpointCid: JSON.parse(await readFile(join(root,
@@ -2002,6 +2050,10 @@ try {
     console.log('packed composed Host + execution process termination at durable capture and approval passed');
   }
   console.log('packed public Client Read→Compute→Effect passed');
+  if (normalRelease !== undefined) {
+    await normalRelease.verifyUnchanged();
+    auditPackedPackages(root, normalRelease.manifest.cohort.packages);
+  }
   passed = true;
 } finally {
   await server.close();

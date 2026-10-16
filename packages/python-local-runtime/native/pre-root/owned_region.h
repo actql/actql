@@ -41,6 +41,14 @@ typedef struct actql_owned_extent_view {
     bool domain_borrowed;
 } actql_owned_extent_view;
 
+/* Same original physical comparison used by the existing Native channel.
+ * The view/material is not authority. These read-only observations do not lock
+ * or reset a possibly borrowed child's allocator or issue another binding. */
+int actql_native_owned_domain_matches_view(actql_owned_capacity *lease,
+    const actql_owned_extent_view *view, int64_t original_process);
+int actql_native_owned_domain_has_child(actql_owned_capacity *lease,
+    int64_t original_process, int64_t child_process);
+
 /* Borrow a trusted, exclusively initialized, exact-sized private regular FD.
  * This does not create/duplicate/close an FD or charge its physical overhead.
  * A failed acquisition may leave *out for the same original cleanup. */

@@ -18,6 +18,8 @@ import {createWindowGroupRows, createWindowGroupPageDriver, windowGroupSchemaWir
 import {createInstalledConnectorTable, installedConnectorForTable,
   loadInstalledConnectorModule} from '../adapters/host-node/installed-connectors.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
+import {windowGroupSourceSuccesses as originalSuccesses, windowGroupSourceRefusals as originalRefusals}
+  from '../reviews/2026-10-15-window-group-acquisition-control/preimages/window-group-source-input.mjs';
 import {auditWindowGroupTransport} from '../reviews/2026-10-14-window-group-release-matrix/public-audit.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -75,6 +77,31 @@ test('normal window selection retains all original nine normal and nine refusal 
   }
   for (const changed of [refusals.slice(1), [...refusals, refusals[0]], [...refusals].reverse()]) {
     assert.throws(() => selectReleaseWindowGroupCases({refusals: changed}));
+  }
+});
+test('JSON window controls retain the adopted exclusive scan/filter/select capture shape', () => {
+  const contract = JSON.parse(readFileSync(resolve(root,
+    'spec/contracts/actql-query-acquisition.json'), 'utf8'));
+  assert.equal(contract.scope, 'exclusive_finite_relation_scan_filter_select');
+  assert.equal(successes.length, originalSuccesses.length);
+  assert.deepEqual(refusals, originalRefusals);
+  for (const [index, current] of successes.entries()) {
+    const original = originalSuccesses[index];
+    if (current.format !== 'json') { assert.deepEqual(current, original); continue; }
+    const {text, ...expectation} = current;
+    const {text: previousText, ...originalExpectation} = original;
+    assert.deepEqual(expectation, originalExpectation);
+    const program = JSON.parse(text), oldProgram = JSON.parse(previousText);
+    assert.deepEqual(program.stages[0].steps, [
+      {from: 'remote', filter: {literal: true}, as: 'scanned'},
+      {from: 'scanned', select: ['amount', 'id'], as: 'captured'},
+    ]);
+    // Remove only the explicit identity filter to compare every original
+    // window, aggregate, projection, Result and limit with the old Program.
+    const restored = structuredClone(program);
+    restored.stages[0].steps.shift();
+    restored.stages[0].steps[0].from = 'remote';
+    assert.deepEqual(restored, oldProgram);
   }
 });
 test('the original nullable schema has no invented key or score facts', () => {

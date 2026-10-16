@@ -161,8 +161,8 @@ fn check_model_physical_start_current(
       Ok(_) => ()
     }
   }
-  guard model_slot_send_eligible(state, state.next_slot) &&
-    state.reservations.get(state.next_slot) is Some(reservation) &&
+  guard model_slot_send_eligible(state, state.progress.slot) &&
+    state.reservations.get(state.progress.slot) is Some(reservation) &&
     @resources.reservation_open(reservation) else {
     return Err(CallEntryRefused)
   }

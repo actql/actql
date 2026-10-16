@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/effect_program_binding" @effect_binding,
   "actql/actql/publication_payload" @payload,
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/execution_authorization" @authorization,
@@ -14,6 +15,7 @@ import {
   "moonbitlang/core/json",
   "actql/actql/run_publication" @publication,
   "actql/actql/program_check" @checked,
+  "actql/actql/query_program" @update_targets,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,

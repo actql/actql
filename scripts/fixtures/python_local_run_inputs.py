@@ -34,7 +34,12 @@ CONFIGURATION = {'account': encode(ACCOUNT).decode('utf-8'),
                  'resource': 'runs', 'operation': 'submit',
                  'authority_scope_cid': 'sha256:' + 'b' * 64,
                  'context_cid': 'sha256:' + 'a' * 64,
-                 'policy_cid': 'sha256:' + 'c' * 64, 'namespace': 'local'}
+                 'policy_cid': 'sha256:' + 'c' * 64, 'namespace': 'local',
+                 # Existing exact source-free ResultPolicy original, independently
+                 # pinned by the journal/read fixtures; not a permission grant.
+                 'source_free_result_policy': {
+                     'cid': 'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563',
+                     'body': '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}'}}
 REQUEST = {'caller_request_id': 'original-submission', 'run_id': 'original-run',
            'created_at': '2026-10-10T00:00:00.000Z',
            'valid_until': '2099-01-01T00:00:00.000Z'}

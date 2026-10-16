@@ -1,3 +1,4 @@
+import {runtimePair} from './compiler-binding.generated.mjs';
 import {prepareOriginalHttpChatRequest} from './original-chat-request.mjs';
 import {fixedInferResponseLimits, readBoundedInferResponse} from './bounded-response.mjs';
 
@@ -18,7 +19,8 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
       deferred && (typeof rawCaptureBinder !== 'function' || persistRaw !== undefined || cleanupRaw !== undefined) ||
       !deferred && (typeof persistRaw !== 'function' || typeof cleanupRaw !== 'function') ||
       signal !== undefined && !(signal instanceof AbortSignal)) fail('InvalidHTTPChatPhysicalPort');
-  if (!['clientProgramProjectHTTPChatRequest', 'clientProgramModelRequestPreflight',
+  if (!['clientProgramModelResponseProfileTransportMatches',
+    'clientProgramProjectHTTPChatRequest', 'clientProgramModelRequestPreflight',
     'clientProgramModelAsyncPhysicalRequestPlan', 'clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending', 'clientProgramModelPhysicalUnknown',
     'clientProgramModelPhysicalSavedChat'].every(name => typeof moon?.[name] === 'function')) {
@@ -44,6 +46,13 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
     return Object.freeze([pair[0], pair[1]]);
   }));
   responseLimits = fixedInferResponseLimits(responseLimits);
+  // Validate the selected physical ceilings against the original Common
+  // profile before allocating or registering a preparation. This is not a grant.
+  if (moon.clientProgramModelResponseProfileTransportMatches(profile,
+    maxRequestBytes, responseLimits.maxBytes, responseLimits.maxChunkBytes,
+    responseLimits.maxChunks, responseLimits.maxHeaderBytes) !== true) {
+    fail('HTTPChatOriginalTransportLimitsMismatch');
+  }
   let controller = new AbortController();
   let body;
   let init;
@@ -153,20 +162,20 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
     return call;
   };
   const advance = () => {
-    if (retired || terminal) return {_0: true, _1: plan};
+    if (retired || terminal) return runtimePair(true, plan);
     terminal = true;
-    if (controller.signal.aborted) return {_0: true, _1: undefined};
+    if (controller.signal.aborted) return runtimePair(true, undefined);
     try {
       body = prepareOriginalHttpChatRequest({moon, admittedProvider, request,
         modelId, taskCid, promptCid, outputSchemaCid, modelSelector, limits: projectionLimits}).body;
       const requestBytes = Buffer.byteLength(body);
-      if (body.length > maxRequestBytes || requestBytes > maxRequestBytes) return {_0: true, _1: undefined};
+      if (body.length > maxRequestBytes || requestBytes > maxRequestBytes) return runtimePair(true, undefined);
       init = Object.freeze({method: 'POST', body, headers, redirect: 'error', signal: controller.signal});
       plan = checked(moon.clientProgramModelAsyncPhysicalRequestPlan(request,
         BigInt(requestBytes), quantities.tokens, quantities.costUnits,
         quantities.durationMs, profile, installation, start));
     } catch { plan = undefined; }
-    return {_0: true, _1: plan};
+    return runtimePair(true, plan);
   };
   const preflight = moon.clientProgramModelRequestPreflight(advance, cleanup);
   if (deferred) {

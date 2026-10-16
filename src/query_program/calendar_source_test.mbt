@@ -283,22 +283,24 @@ test "Calendar source context retains the exact selection and rejects foreign Ca
     [],
     "fixture.calendar_source",
   ).unwrap()
-  // This is a real common preparation boundary, not an installed Run. The
-  // existing physical lowerer has no Calendar payload; keep that refusal
-  // separate from the now-connected source/checker and profile ownership.
-  assert_true(
-    @local_preparation.prepare_local_input(
-      @local_preparation.Aql(text),
-      environment,
-      None,
-      Some(local_context),
-      @publication_host.client_standard_program_preparation_limits(),
-    )
-    is Err(
-      Preparation(
-        @publication_host.Lowering({ kind: OperationNotImplemented, .. })
-      )
+  // The selected Calendar now has an existing common physical lowering.
+  // Preparation retains the original text; it starts no installed Run.
+  let material = @local_preparation.prepare_local_input_material(
+    @local_preparation.Aql(text),
+    environment,
+    None,
+    Some(local_context),
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  guard @local_preparation.local_prepared_original(material) is Aql(original) else {
+    fail("the common preparation must retain the authored Calendar text")
+  }
+  assert_eq(original, text)
+  assert_eq(
+    @publication_host.prepared_client_result_count(
+      @local_preparation.local_prepared_program(material),
     ),
+    1,
   )
   assert_true(
     @frontend.bind_query_context(

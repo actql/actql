@@ -1,9 +1,13 @@
+import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {Hono} from 'hono';
 import {serve} from '@hono/node-server';
 import {validRunRef} from '@actql/client-wire';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
   readStaticPlan} from '@actql/explorer-ui/read-model';
+import {copyExplorerLaunchInput} from './launch-input.mjs';
+import {requestExistingCancellation, lookupExistingCancellation} from './cancellation.mjs';
+import {readRunObservation} from '@actql/explorer-ui/run-observation';
 
 // These are presentation/transport ceilings, not new execution reservations.
 export const gatewayLimits = Object.freeze({bodyBytes: 65536, replyBytes: 262144,
@@ -87,7 +91,7 @@ function safeReadError(error) {
     'ExplorerSessionExpired', 'ExplorerBootstrapRefused', 'ExplorerSessionRefused',
     'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerReplyLimit',
     'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerMapLimit',
-    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan'].includes(error?.code)) {
+    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidCancellation','ExplorerInvalidCheckpointReview'].includes(error?.code)) {
     return {code: error.code, status: error.status ?? 409};
   }
   // Never serialize Host messages, bodies, URLs, stack traces or credentials.
@@ -101,16 +105,17 @@ function safeReadError(error) {
 /** Attach a borrowed, already-connected public SDK Client. No Host is opened. */
 export function createExplorerGateway({client, origin, assets = new Map(),
   now = Date.now, sessionMs = gatewayLimits.sessionMs,
-  bootstrapMs = gatewayLimits.bootstrapMs}) {
+  bootstrapMs = gatewayLimits.bootstrapMs, launchInput = null, allowCancellation = false}) {
   const address = new URL(origin);
   if (address.protocol !== 'http:' || address.hostname !== '127.0.0.1' ||
       !address.port || origin !== address.origin || address.username || address.password ||
-      typeof client?.attach !== 'function' || typeof now !== 'function' ||
+      typeof allowCancellation !== 'boolean' || typeof client?.attach !== 'function' || typeof now !== 'function' ||
       !Number.isSafeInteger(sessionMs) || sessionMs <= 0 || sessionMs > gatewayLimits.sessionMs ||
       !Number.isSafeInteger(bootstrapMs) || bootstrapMs <= 0 || bootstrapMs > gatewayLimits.bootstrapMs) {
     fail('ExplorerInvalidGateway');
   }
   const staticAssets = copiedAssets(assets), epoch = createReadEpoch();
+  const initialInput = copyExplorerLaunchInput(launchInput, gatewayLimits.bodyBytes);
   let closed = false, scopeEpoch = 0, session, bootstrap, inFlight = 0;
   const invalidate = () => {epoch.invalidate(); scopeEpoch++; session = undefined; bootstrap = undefined;};
   const assertSession = selected => {
@@ -155,9 +160,9 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     c.header('Set-Cookie', `${cookieName}=${session.value}; Path=/api; HttpOnly; SameSite=Strict; Max-Age=${Math.ceil(sessionMs / 1000)}`);
     return c.json({csrf: session.csrf, scopeEpoch, expiresAt: session.expiresAt,
       capabilities: {plan: typeof client.plan === 'function', run: true,
-        resultMetadata: true, resultPayload: false, control: false, sample: false}});
+        resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: allowCancellation, checkpointList:typeof client.checkpoints==='function', checkpointReview:typeof client.reviewCheckpoint==='function'}});
   });
-  app.post('/api/read/:kind', async c => {
+  app.post('/api/:group/:kind', async c => {
     const selected = session;
     assertSession(selected);
     // Duplicate cookies are refused; no ambiguous first/last interpretation.
@@ -171,13 +176,40 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     let timedOut = false, timer;
     const ticket = {assertCurrent() {
       originalTicket.assertCurrent();
+      assertSession(selected);
       if (timedOut) fail('ExplorerReadTimeout', 504);
     }};
     const read = (async () => {try {
       const body = await readJson(c.req.raw);
       assertSession(selected); ticket.assertCurrent();
       let data;
-      switch (c.req.param('kind')) {
+      const group=c.req.param('group'),kind=c.req.param('kind');
+      if (group==='control') {
+        if (!allowCancellation) fail('ExplorerCapabilityUnavailable',404);
+        if (kind==='cancel') {
+          if (!exact(body,['cancelRef','attemptRef'])) fail('ExplorerInvalidRequest');
+          data=await requestExistingCancellation(client,body,ticket);
+        } else if (kind==='lookup-cancellation') {
+          if (!exact(body,['cancelRef'])) fail('ExplorerInvalidRequest');
+          data=await lookupExistingCancellation(client,body.cancelRef,ticket);
+        } else fail('ExplorerCapabilityUnavailable',404);
+      } else if (group!=='read') fail('ExplorerCapabilityUnavailable',404);
+      else switch (kind) {
+        case 'launch':
+          if (!exact(body, [])) fail('ExplorerInvalidRequest');
+          // Return only the existing Owner's admitted projection, not the
+          // file's authoring text or a path into the launcher's filesystem.
+          if (initialInput === null) data = null;
+          else if (initialInput.kind === 'program') {
+            const input = initialInput.format === 'program'
+              ? JSON.parse(initialInput.text) : initialInput.text;
+            const options = initialInput.format === 'program'
+              ? {} : {format: initialInput.format};
+            data = {kind: 'program', plan: await readStaticPlan(client, input, options, ticket)};
+          } else {
+            data = {kind: 'run', originalPlan: await readExistingRunPlan(client, initialInput.ref, ticket)};
+          }
+          break;
         case 'plan':
           if (!exact(body, ['input'], ['options']) ||
               !(typeof body.input === 'string' || body.input !== null &&
@@ -192,10 +224,20 @@ export function createExplorerGateway({client, origin, assets = new Map(),
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRun(client, body.ref, ticket);
           break;
+        case 'observation':
+          if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
+          data = await readRunObservation(client, body.ref, ticket);
+          break;
         case 'run-plan':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRunPlan(client, body.ref, ticket);
           break;
+        case 'checkpoints':
+          if(!exact(body,[]))fail('ExplorerInvalidRequest');
+          data=await readWaitingCheckpoints(client,ticket);break;
+        case 'checkpoint-review':
+          if(!exact(body,['checkpoint']))fail('ExplorerInvalidRequest');
+          data=await readCheckpointReview(client,body.checkpoint,ticket);break;
         case 'result':
           if (!exact(body, ['ref', 'name']) || !validRunRef(body.ref) ||
               typeof body.name !== 'string' || body.name.length === 0 || body.name.length > 1024) {

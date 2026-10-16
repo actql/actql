@@ -8,26 +8,38 @@ import {checkoutState, packedNpmCache} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
+import {admitCompositionRelease} from './composition-release-input.mjs';
+import {sheetsPackedSelection, sheetsPackedFixturePaths} from './sheets-packed-cases.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const state = checkoutState(repository);
 if (!state.clean) throw new Error('Build inputs differ from HEAD');
+const selection = sheetsPackedSelection(process.argv.slice(2));
+// Existing admission checks source, normal prepack, archive bytes and modes.
+// A foreign release is refused before creating an installation, Site or Run.
+const normalRelease = selection.directory === undefined ? undefined
+  : await admitCompositionRelease({repository, directory: selection.directory});
 const directory = await withPackedQueryEvidence({
   scratch: join(repository, '..', '.codex-scratch'), revision: state.revision,
+  // A deliberately uncertain range request retains its installation/runtime
+  // alongside the original private Run/DB/key custody after test closure.
+  keepArtifacts: true,
 }, async ({root, recordTarball, run}) => {
   const environment = {...process.env, npm_config_cache: packedNpmCache(root)};
   delete environment.NODE_PATH;
   delete environment.ACTQL_LOCAL_SOURCE_PROFILE;
   delete environment.ACTQL_LOCAL_EFFECT_PROFILE;
   delete environment.ACTQL_PACKED_CLIENT_PACKAGES;
-  const producer = join(root, 'release');
+  const producer = normalRelease?.directory ?? join(root, 'release');
   // The existing release recipe runs normal producer prepack, then changes
   // metadata/license only and verifies all frozen runtime bytes and digests.
-  const recipe = join(repository, 'scripts/package-release.mjs');
-  run(process.execPath, [recipe, 'prepare', producer], {
-    cwd: repository, env: environment, timeout: 900_000,
-  });
-  run(process.execPath, [recipe, 'verify', producer], {cwd: repository, env: environment});
+  if (normalRelease === undefined) {
+    const recipe = join(repository, 'scripts/package-release.mjs');
+    run(process.execPath, [recipe, 'prepare', producer], {
+      cwd: repository, env: environment, timeout: 900_000,
+    });
+    run(process.execPath, [recipe, 'verify', producer], {cwd: repository, env: environment});
+  }
   const manifest = JSON.parse(await readFile(join(producer, 'release.json'), 'utf8'));
   assert.equal(manifest.sourceSha, state.revision);
   const names = manifest.cohort.packages;
@@ -35,6 +47,7 @@ const directory = await withPackedQueryEvidence({
   const archives = manifest.packages.map(item => join(producer, item.file));
   for (const archive of archives) recordTarball(archive);
   console.log('SHEETS_ARTIFACT_COHORT', JSON.stringify({sourceSha: manifest.sourceSha,
+    manifestSha256: normalRelease?.manifestSha256,
     cohort: manifest.cohort, toolchain: manifest.toolchain,
     recipeSha256: manifest.recipeSha256, cohortSha256: manifest.cohortSha256,
     generation: manifest.generation,
@@ -44,20 +57,18 @@ const directory = await withPackedQueryEvidence({
   run('npm', ['install', '--ignore-scripts', '--offline', '--no-save', '--no-audit', '--no-fund',
     ...archives], {cwd: root, env: environment});
   auditPackedPackages(root, names);
-  for (const path of [
-    'adapters/site-node/https-exchange-fixture.mjs',
-    ...['sheets-api.fixture.mjs', 'sheets-public-acceptance.fixture.mjs',
-      'sheets-replay.fixture.mjs', 'sheets-replay-packed.fixture.mjs',
-      'sheets-packed.fixture.mjs'].map(name => `adapters/connectors/sheets/test/${name}`),
-  ]) {
+  for (const path of sheetsPackedFixturePaths) {
     await mkdir(dirname(join(root, path)), {recursive: true});
     await copyFile(join(repository, path), join(root, path));
     assert.deepEqual(await readFile(join(root, path)), await readFile(join(repository, path)));
   }
-  const args = nodeTestArguments(['adapters/connectors/sheets/test/sheets-packed.fixture.mjs']);
+  const args = nodeTestArguments(selection.testArguments);
   const stdout = run(process.execPath, args, {cwd: root, env: environment, timeout: 180_000});
   const checked = assertTestExecution('node', process.execPath, args, {status: 0, stdout});
-  assert.equal(checked.counts.passed, 14);
-  console.log('PACKED_SHEETS_VERIFIED', JSON.stringify({revision: state.revision, counts: checked.counts}));
+  assert.equal(checked.counts.passed, selection.expectedTests);
+  await normalRelease?.verifyUnchanged();
+  assert.deepEqual(checkoutState(repository), state);
+  console.log('PACKED_SHEETS_VERIFIED', JSON.stringify({revision: state.revision,
+    rangeOnly: selection.rangeOnly, counts: checked.counts}));
 });
 console.log(`Packed Sheets evidence: ${directory}`);

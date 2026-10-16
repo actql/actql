@@ -1,0 +1,952 @@
+{
+  "source": "1807d19552ecb2aa390d4e2472c6d134a13c9179",
+  "qualification": "original connector generation and Owner references; normal artifact/target admission is separate",
+  "declarations": [
+    {
+      "module": "adapters/connectors-builtin/installations.generated.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "6d756d58b530699cc394895212cc82219264143af0bdecd70f91f2f00bb3fe36",
+      "exports": [
+        "installedConnectors"
+      ],
+      "operations": [
+        {
+          "name": "installedConnectors/installedConnectors",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#2",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#3",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#4",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#5",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#6",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#7",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#8",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#9",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#8",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#9",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../connectors/gcs/host/installed-gcs-source.mjs",
+        "../connectors/github/host/installed-github-effect.mjs",
+        "../connectors/github/host/installed-github-source.mjs",
+        "../connectors/local/host/installed-local-table.mjs",
+        "../connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+        "../connectors/salesforce/host/installed-salesforce-source.mjs",
+        "../connectors/sheets/host/installed-sheets.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "generated-binding",
+      "owner": "existing connector manifest / checked installation and strategy Owners",
+      "rationale": "Build-time projection of existing selected connector-owned manifests. Generated references do not admit an installation, grant authority, authorize execution or settle cleanup.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installedConnectors/installedConnectors",
+            "installedConnectors/installedConnectors/installedConnectors",
+            "installedConnectors/installedConnectors/installedConnectors#2",
+            "installedConnectors/installedConnectors/installedConnectors#3",
+            "installedConnectors/installedConnectors/installedConnectors#4",
+            "installedConnectors/installedConnectors/installedConnectors#5",
+            "installedConnectors/installedConnectors/installedConnectors#6",
+            "installedConnectors/installedConnectors/installedConnectors#7",
+            "installedConnectors/installedConnectors/installedConnectors#8",
+            "installedConnectors/installedConnectors/installedConnectors#9",
+            "installedConnectors/installedConnectors#2",
+            "installedConnectors/installedConnectors#3",
+            "installedConnectors/installedConnectors#4",
+            "installedConnectors/installedConnectors#5",
+            "installedConnectors/installedConnectors#6",
+            "installedConnectors/installedConnectors#7",
+            "installedConnectors/installedConnectors#8",
+            "installedConnectors/installedConnectors#9"
+          ],
+          "exports": [
+            "installedConnectors"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/connector-node-bundles.test.mjs",
+                "anchor": "Node installation touches only the configured module subset"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors-builtin/strategy.generated.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "9986e33ab7066485c353e025029fe02e00e830704d2ba70a37870f7da03f3f9f",
+      "exports": [
+        "installStrategyContributions"
+      ],
+      "operations": [
+        {
+          "name": "installStrategyContributions",
+          "parameters": [
+            "moon",
+            "setup",
+            "checked",
+            "options",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "loaders/loaders",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loaders/loaders/loaders",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "loaders/loaders/loaders#2",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "loaders/loaders/loaders#3",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "loaders/loaders#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loaders/loaders#3",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../connectors/duckdb/node/strategy-bundle.mjs",
+        "../host-node/installation.mjs",
+        "../local-node/strategy-bundle.mjs",
+        "../reference-compute-node/strategy-bundle.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "generated-binding",
+      "owner": "existing connector manifest / checked installation and strategy Owners",
+      "rationale": "Build-time projection of existing selected connector-owned manifests. Generated references do not admit an installation, grant authority, authorize execution or settle cleanup.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installStrategyContributions",
+            "loaders/loaders",
+            "loaders/loaders/loaders",
+            "loaders/loaders/loaders#2",
+            "loaders/loaders/loaders#3",
+            "loaders/loaders#2",
+            "loaders/loaders#3"
+          ],
+          "exports": [
+            "installStrategyContributions"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/connector-node-bundles.test.mjs",
+                "anchor": "Node installation touches only the configured module subset"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors-workers/strategy.generated.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "c71a4131e6e7742a289477bb20a4e7646ad7723bca5bbeacef8cfe017b3efee8",
+      "exports": [
+        "installStrategyContributions"
+      ],
+      "operations": [
+        {
+          "name": "installStrategyContributions",
+          "parameters": [
+            "moon",
+            "setup",
+            "checked",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installStrategyContributions/installStrategyContributions",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "installStrategyContributions/installStrategyContributions#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../local-node/strategy-bundle.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "generated-binding",
+      "owner": "existing connector manifest / checked installation and strategy Owners",
+      "rationale": "Build-time projection of existing selected connector-owned manifests. Generated references do not admit an installation, grant authority, authorize execution or settle cleanup.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installStrategyContributions",
+            "installStrategyContributions/installStrategyContributions",
+            "installStrategyContributions/installStrategyContributions#2"
+          ],
+          "exports": [
+            "installStrategyContributions"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "# "
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "// Installed Host bindings."
+              },
+              {
+                "path": "scripts/connector-node-bundles.mjs",
+                "anchor": "export function checkNodeAssembly"
+              },
+              {
+                "path": "adapters/host-node/installation.mjs",
+                "anchor": "export async function installSelectedContributions"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "The kernel and reservation authority stay in"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/connector-node-bundles.test.mjs",
+                "anchor": "Node installation touches only the configured module subset"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

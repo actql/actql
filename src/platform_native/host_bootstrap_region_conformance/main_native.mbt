@@ -28,6 +28,8 @@ fn main {
   let page = page_bytes()
   let bytes = 64L * page
   let original : RegionOriginal = { marker: 1, }
+  // The equal-valued copy remains foreign to the same original backing Owner.
+  let foreign_original : RegionOriginal = { marker: original.marker, }
   let source = "0123456789012345678901234567890123456789"
   let recipe = Bytes::make(32, 29)
   let supplier = @bootstrap.prepare_installed_arena_supplier(
@@ -60,14 +62,15 @@ fn main {
   require(
     count,
     host.usage().reserved_execution_bytes == bytes &&
-    host.capacity_usage().allocated == control + 4L * page,
+    host.capacity_usage().allocated == control + 4L * page &&
+    host.require_current(foreign_original) is Err(ForeignOriginal),
     "original shared backing is charged once",
   )
   let scope = host.borrow_backing(original).unwrap()
   host.enter_borrow_scope(original, scope).unwrap()
   let first : RegionChild = { marker: 1, }
   let second : RegionChild = { marker: 2, }
-  let foreign : RegionChild = { marker: 1, }
+  let foreign : RegionChild = { marker: first.marker, }
   let limits : @resources.LedgerLimits = {
     planning_work: 2,
     attempts: 1,

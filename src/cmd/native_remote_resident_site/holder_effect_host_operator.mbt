@@ -94,6 +94,7 @@ fn load_holder_effect_host_operator(
   setup_profile? : HolderEffectHostSetupProfile? = None,
   preparation? : HolderEffectPreparationCapacity? = None,
   read_installation? : HolderEffectHostReadInstallation? = None,
+  read_parent? : HolderEffectHostReadParentInstallation? = None,
 ) -> HolderEffectHostOperatorInstallation? raise CommandStop {
   let selected = match
     holder_effect_host_root(matches.values.get("effect-host-account-root")) {
@@ -117,23 +118,74 @@ fn load_holder_effect_host_operator(
   // capturing its Ref[scope] would create a scope/current-predicate cycle.
   let bundles = environment.bundles
   let active_runtime = environment.active_runtime
-  scope.current_binding = Some(
-    holder_effect_host_setup_binding(
-      environment.site,
-      resources.site_key,
-      resources.site_generation,
-      environment.runtime_bundle_cid,
+  // Use the same immutable selection admitted before reservation, and enforce
+  // it at the physical Store read on every current check, never just in a quote.
+  let catalog_read_limit = holder_effect_host_catalog_read_limit(
+    setup_profile,
+    environment.runtime_catalog_record_bytes,
+  ).unwrap()
+  let catalog_json_limits = scope.profile.catalog_json_limits
+  let catalog_diagnostic_ceiling = scope.profile.diagnostic_ceiling
+  let catalog_sqlite_heap_bytes = scope.profile.catalog_sqlite_heap_bytes
+  let site = environment.site
+  let site_key = resources.site_key
+  let site_generation = resources.site_generation
+  let runtime_bundle_cid = environment.runtime_bundle_cid
+  scope.preparation_binding = Some(() => {
+    holder_effect_host_setup_selection_current(
+      site,
+      site_key,
+      site_generation,
+      runtime_bundle_cid,
       () => slot.verify_current_hold() == Ok(()),
-      () => bundles.verify_active_component_binding(active_runtime) is Ok(_),
-    ),
-  )
-  if !holder_effect_host_read_scope_current(scope) {
+    )
+  })
+  if !holder_effect_host_read_scope_prepared(scope) {
     ignore(leave_holder_effect_host_read_scope(scope))
-    stop("Effect Host setup current binding unavailable")
+    stop("Effect Host setup original selection unavailable")
+  }
+  let read_installation = match (read_installation, read_parent) {
+    (Some(_), Some(_)) => {
+      ignore(leave_holder_effect_host_read_scope(scope))
+      stop("Effect Host original Native read installation ambiguous")
+    }
+    (None, Some(selected)) =>
+      prepare_holder_effect_host_read_parent(scope, slot, selected)
+    (value, None) => value
   }
   if !install_holder_effect_host_read_domain(scope, slot, read_installation) {
     ignore(leave_holder_effect_host_read_scope(scope))
     stop("Effect Host original Native read installation unavailable")
+  }
+  // Only the entered original domain may perform the first bounded Store
+  // revalidation. Its refusal may read that Store, but opens no Account/Provider.
+  if !install_holder_effect_host_store_current(
+      scope,
+      holder_effect_host_setup_binding(
+        site,
+        site_key,
+        site_generation,
+        runtime_bundle_cid,
+        () => slot.verify_current_hold() == Ok(()),
+        () => {
+          bundles.current_sqlite_component_matches_heap(
+            catalog_sqlite_heap_bytes,
+          ) &&
+          bundles.diagnostics_bounded_by(catalog_diagnostic_ceiling) &&
+          bundles.verify_active_component_binding_with_body_limit(
+            active_runtime,
+            catalog_read_limit,
+            json_limits=Some(catalog_json_limits),
+          )
+          is Ok(_) &&
+          bundles.current_sqlite_component_matches_heap(
+            catalog_sqlite_heap_bytes,
+          )
+        },
+      ),
+    ) {
+    ignore(leave_holder_effect_host_read_scope(scope))
+    stop("Effect Host setup current binding unavailable")
   }
   let installed = prepare_holder_effect_host_operator(
     root,
@@ -257,6 +309,7 @@ fn prepare_holder_effect_host_operator(
       // physical reads. The clamped value fits Int; candidate wire cannot raise it.
       read_ceiling=file_limit.to_int(),
       diagnostic_ceiling=Some(scope.profile.diagnostic_ceiling),
+      require_current_read_context=true,
       on_read_failure=Some(failure => {
         observe_holder_effect_host_read_failure(scope, failure)
       }),

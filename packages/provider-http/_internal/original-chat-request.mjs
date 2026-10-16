@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 // Private preparation consumer only. Common owns interpretation of the
 // original Task, mapped input and strict schema. No SDK or vendor fetch runs.
 export function prepareOriginalHttpChatRequest({moon, admittedProvider, request,
@@ -22,15 +23,15 @@ export function prepareOriginalHttpChatRequest({moon, admittedProvider, request,
   const [maxBytes, maxDepth, maxFrames, maxNodes, maxWork] = values;
   const projected = moon.clientProgramProjectHTTPChatRequest(admittedProvider,
     request, modelId, maxBytes, maxNodes, maxDepth, maxFrames, maxWork);
-  if (projected?.$tag !== 1) throw new TypeError('HTTPChatOriginalProjectionRefused');
-  const value = projected._0;
-  if (value._1 !== taskCid || value._2 !== promptCid ||
-      value._3 !== outputSchemaCid || value._4 !== modelSelector ||
-      typeof value._0 !== 'string') {
+  if (!runtimeIsOk(projected)) throw new TypeError('HTTPChatOriginalProjectionRefused');
+  const value = runtimeField(projected, 0);
+  if (runtimeField(value, 1) !== taskCid || runtimeField(value, 2) !== promptCid ||
+      runtimeField(value, 3) !== outputSchemaCid || runtimeField(value, 4) !== modelSelector ||
+      typeof runtimeField(value, 0) !== 'string') {
     throw new TypeError('HTTPChatOriginalBindingMismatch');
   }
   // This DATA view is neither nominal prepared transport nor permission.
   // Future physical preflight fixes headers/endpoint/egress separately and
   // uses the existing original Entry and saved-raw response Owner.
-  return Object.freeze({body: value._0});
+  return Object.freeze({body: runtimeField(value, 0)});
 }

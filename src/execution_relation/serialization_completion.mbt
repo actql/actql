@@ -10,7 +10,7 @@ pub fn prepare_retained_serialization_completion(
   let step = @lower.serialization_step(barrier)
   guard physical_equal(generated_sequence_owner(generated), owner) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.payload(node) is @lower.Serialize(_) else {
+    @lower.serialization_matches_node(barrier, node) else {
     return None
   }
   Some({
@@ -34,10 +34,7 @@ pub fn prepare_serialization_completion(
   let owner = @lower.serialization_owner(barrier)
   let step = @lower.serialization_step(barrier)
   let original = input.completion
-  let sorted = @pipeline.serialization_sort(
-      @lower.serialization_checked(barrier),
-    )
-    is Some(_)
+  let sorted = @lower.serialization_requires_sort(barrier)
   let exact_input = if sorted {
     completed_output_matches_serialization_sort(input, barrier) &&
     @lower.sequence_count(original.sequence) == step + 1
@@ -53,7 +50,7 @@ pub fn prepare_serialization_completion(
     physical_equal(@lower.sequence_owner(original.sequence), owner) &&
     exact_input &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.payload(node) is @lower.Serialize(_) else {
+    @lower.serialization_matches_node(barrier, node) else {
     return None
   }
   Some({
@@ -76,8 +73,7 @@ pub fn serialization_completed_producer_input(
   read : ProducerRead,
 ) -> CompletedOutput? {
   let owner = @lower.serialization_owner(barrier)
-  guard @pipeline.serialization_sort(@lower.serialization_checked(barrier))
-    is None &&
+  guard !@lower.serialization_requires_sort(barrier) &&
     producer_read_matches_operation_input(
       read,
       owner,

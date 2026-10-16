@@ -5,10 +5,10 @@ import {reviewedFunction} from './provider-construction-source-review.mjs';
 // analysis. Native correspondence must bind these roles to actual closures.
 const parameterBindings = ['state', 'used', 'cancelled', 'terminal', 'reclaimed', 'cleanup_index',
   'sequence', 'inputs', 'execution', 'measurement', 'numeric', 'family',
-  'max_value_bytes', 'count', 'reclaims_scratch', 'start_next'];
+  'max_value_bytes', 'count', 'reclaimed_prefix', 'start_next'];
 export const chainCaptureRoles = {
   startNext: ['state', 'used', 'sequence', 'execution', 'measurement', 'numeric', 'family', 'max_value_bytes', 'count'],
-  advance: ['state', 'used', 'cancelled', 'terminal', 'sequence', 'inputs', 'execution', 'max_value_bytes', 'count', 'reclaims_scratch', 'start_next'],
+  advance: ['state', 'used', 'cancelled', 'terminal', 'sequence', 'inputs', 'execution', 'max_value_bytes', 'count', 'reclaimed_prefix', 'start_next'],
   cancel: ['state', 'cancelled', 'terminal'],
   stopped: ['terminal'],
   cleanup: ['state', 'terminal', 'reclaimed', 'cleanup_index'],
@@ -39,6 +39,8 @@ export function checkChainSource(source) {
   assert(constructor.endsWith(tail), 'Changed state-returning owner construction');
   const parts = argumentsOf(constructor.slice(constructor.indexOf(middle) + middle.length, -tail.length));
   assert.equal(parts.length, 5, 'Changed managed parent callback count');
+  assert(constructor.includes('let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)'),
+    'Changed audited prefix capture');
   const bindings = [...new Set([...parameterBindings, ...[...constructor.matchAll(/^  let (\w+)(?:\s*:[^=\n]+)?\s*=/gm)].map(m => m[1])])];
   const callbacks = {startNext: constructor.slice(constructor.indexOf(open), constructor.indexOf(middle)),
     ...Object.fromEntries(['advance', 'cancel', 'stopped', 'cleanup', 'childWorkIssue'].map((name, i) => [name, parts[i]]))};

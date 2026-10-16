@@ -1,0 +1,1378 @@
+{
+  "source": "151d61d16f03f48ee817eeda2c20e6adb7cbabe6",
+  "qualification": "Reference-only primary responsibility projection of existing private physical-packaging metadata. No I/O is performed by this module, no new semantic contract/issuer/witness/permission is introduced, and test anchors are not fresh execution claims.",
+  "syntaxProjectionSha256": "54f9520b92e881df4f164cb7e7844e15ef50de81b30825c4674a04ca308d0251",
+  "limitations": [
+    "Declared bytes/mode/hash/source labels and expected root strings are comparison metadata only. Native same-OriginalRoot generation/current/closed inventory, trusted release selection, funding and same-TX successor remain independent existing Owner obligations.",
+    "No trusted generated binding qualification is supplied or implied. This source has no compiler representation field access."
+  ],
+  "declarations": [
+    {
+      "module": "packages/native-cli/lib/product-members.mjs",
+      "sha256": "6e7b8a1372ec23f2dfdbe83afac5df388b29df462fb41eea9379d6a13c938119",
+      "exports": [
+        "PRODUCT_MEMBERS_FILE",
+        "installedProductCensus",
+        "productMembersBody",
+        "productMembersCensus",
+        "readProductMembers",
+        "selectedPlatformPlacement"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "absolute/absolute/absolute",
+          "parameters": [
+            "v"
+          ],
+          "async": false
+        },
+        {
+          "name": "exact/exact",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedProductCensus",
+          "parameters": [
+            "launcher",
+            "platform",
+            "launcherRoot",
+            "platformRoot"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedProductCensus/installedProductCensus",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedProductCensus/installedProductCensus#2",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "parts/parts",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "productMembersBody",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "productMembersBody/files/files",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "productMembersCensus",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "productMembersCensus/productMembersCensus",
+          "parameters": [
+            "path",
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "productMembersCensus/productMembersCensus/productMembersCensus",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "productMembersCensus/productMembersCensus/productMembersCensus#2",
+          "parameters": [
+            "name",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "readProductMembers",
+          "parameters": [
+            "wire",
+            "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedPlatformPlacement",
+          "parameters": [
+            "launcherRoot",
+            "platformRoot",
+            "platform"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectors/selectors",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:assert/strict",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "D / existing formal packaging metadata facade, Common ProductMembers/Census/Placement and Native installation/physical Runtime Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "PRODUCT_MEMBERS_FILE"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "source labels need independent"
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('private member bytes match independent literal and digest"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These are not funding."
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "Caller workspace/backing must cover this metadata construction separately."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "No file is"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function observeMember("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('private member bytes match independent literal and digest"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "exact/exact"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const exact ="
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const exact ="
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const exact ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "source labels need independent"
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const exact ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const exact ="
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('closed inventory rejects unknown, duplicate, unsorted or malformed fields"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const exact ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These are not funding."
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "Caller workspace/backing must cover this metadata construction separately."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "No file is"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function observeMember("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('closed inventory rejects unknown, duplicate, unsorted or malformed fields"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "parts/parts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const parts ="
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "fn product_inventory_name("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const parts ="
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "fn product_inventory_name("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const parts ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "source labels need independent"
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const parts ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const parts ="
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('same-root finite paths cannot escape, recurse or conflict with file kinds"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const parts ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "assert(result.length <= 2)"
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "fn product_inventory_name("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "fn product_inventory_name("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "No file is"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function observeMember("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('same-root finite paths cannot escape, recurse or conflict with file kinds"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "selectors/selectors"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const selectors ="
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const selectors ="
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const selectors ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "source labels need independent"
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const selectors ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const selectors ="
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('reader preserves exact source, platform, package and canonical input"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const selectors ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These are not funding."
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "Caller workspace/backing must cover this metadata construction separately."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "No file is"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function observeMember("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('reader preserves exact source, platform, package and canonical input"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "productMembersBody",
+            "productMembersBody/files/files"
+          ],
+          "exports": [
+            "productMembersBody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersBody("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersBody("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersBody("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "source labels need independent"
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersBody("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersBody("
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('private member bytes match independent literal and digest"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersBody("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "assert(Buffer.byteLength(wire) <= 65536)"
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "assert(5 + value.files.length * 5 <= 8192)"
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "No file is"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function observeMember("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('private member bytes match independent literal and digest"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readProductMembers"
+          ],
+          "exports": [
+            "readProductMembers"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function readProductMembers("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function readProductMembers("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function readProductMembers("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "source labels need independent"
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function readProductMembers("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function readProductMembers("
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('reader preserves exact source, platform, package and canonical input"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function readProductMembers("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "assert(Buffer.byteLength(wire) <= 65536)"
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "assert(5 + value.files.length * 5 <= 8192)"
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_members.mbt",
+                "anchor": "pub fn admit_client_native_product_members("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "No file is"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function observeMember("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('reader preserves exact source, platform, package and canonical input"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "productMembersCensus",
+            "productMembersCensus/productMembersCensus",
+            "productMembersCensus/productMembersCensus/productMembersCensus",
+            "productMembersCensus/productMembersCensus/productMembersCensus#2"
+          ],
+          "exports": [
+            "productMembersCensus"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersCensus("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "pub fn client_native_product_census("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersCensus("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "pub fn client_native_product_census("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersCensus("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "source labels need independent"
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersCensus("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersCensus("
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('self exclusion is one exact root path but physical census still requires it"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function productMembersCensus("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These are not funding."
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "Caller workspace/backing must cover this metadata construction separately."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "pub fn client_native_product_census("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "No file is"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function observeMember("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('self exclusion is one exact root path but physical census still requires it"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "absolute/absolute",
+            "absolute/absolute/absolute"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const absolute ="
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const absolute ="
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const absolute ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These strings do not authenticate a Root"
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const absolute ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const absolute ="
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('placement does not permit foreign packages, arbitrary node_modules or path normalisation"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "const absolute ="
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These are not funding."
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "Caller workspace/backing must cover this metadata construction separately."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "not an exemption for arbitrary node_modules"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function stageCensus("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('placement does not permit foreign packages, arbitrary node_modules or path normalisation"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "selectedPlatformPlacement"
+          ],
+          "exports": [
+            "selectedPlatformPlacement"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function selectedPlatformPlacement("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function selectedPlatformPlacement("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function selectedPlatformPlacement("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These strings do not authenticate a Root"
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function selectedPlatformPlacement("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function selectedPlatformPlacement("
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('hoisted and nested selected optional platform placements remain distinct"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function selectedPlatformPlacement("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These are not funding."
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "Caller workspace/backing must cover this metadata construction separately."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "not an exemption for arbitrary node_modules"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function stageCensus("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('hoisted and nested selected optional platform placements remain distinct"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedProductCensus",
+            "installedProductCensus/installedProductCensus",
+            "installedProductCensus/installedProductCensus#2"
+          ],
+          "exports": [
+            "installedProductCensus"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function installedProductCensus("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "// Private formal-package metadata."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function installedProductCensus("
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function installedProductCensus("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These strings do not authenticate a Root"
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "ownership": {
+              "notApplicable": "These explicitly listed operations produce only JavaScript metadata/strings/arrays and open no file or physical Root. They retain no opaque resource claim, workspace, Reader or cleanup carrier. Original Root/Runtime/Reader lifetime and ACK responsibilities stay with their physical Owner."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function installedProductCensus("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "import assert from"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function installedProductCensus("
+              },
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('installed pair rejects foreign source platform role route and conflicting payload membership"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The listed synchronous metadata operations do not dispatch a Run, cancel/stop a producer, close a Root or settle an Unknown attempt. An assert failure is a metadata refusal, never a successful physical retirement ACK."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "export function installedProductCensus("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "These are not funding."
+              },
+              {
+                "path": "src/run_publication_host/client_native_product_census.mbt",
+                "anchor": "Caller workspace/backing must cover this metadata construction separately."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_native_product_placement.mbt",
+                "anchor": "pub fn prepare_client_native_product_placement("
+              },
+              {
+                "path": "packages/native-cli/lib/product-members.mjs",
+                "anchor": "not an exemption for arbitrary node_modules"
+              },
+              {
+                "path": "scripts/native-cli-product-members.mjs",
+                "anchor": "async function stageCensus("
+              },
+              {
+                "path": "src/platform_native/client_host/local_verified_product_identity.mbt",
+                "anchor": "pub fn NativeLocalPackagedRuntime::verified_product_identity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-product-members.test.mjs",
+                "anchor": "test('installed pair rejects foreign source platform role route and conflicting payload membership"
+              },
+              {
+                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "anchor": "independent Common descriptor vectors match the existing formal Node codec"
+              },
+              {
+                "path": "scripts/native-cli-common-product-census.test.mjs",
+                "anchor": "existing Node census agrees with independent Common root and child expectations"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

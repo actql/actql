@@ -5,6 +5,12 @@ type Library
 type Sha256Hasher
 
 ///|
+/// No installed Native Library fact exists on unsupported targets.
+pub fn Library::diagnostic_ceiling(_self : Library) -> Int? {
+  None
+}
+
+///|
 pub fn Library::random_bytes(
   _self : Library,
   _length : Int,

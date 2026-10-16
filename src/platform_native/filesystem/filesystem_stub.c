@@ -2605,6 +2605,9 @@ void *actql_native_filesystem_open_child_root(
   );
   memset(child, 0, sizeof(*child));
   child->fd = -1;
+  // Like the absolute Root constructor, no descriptor exists until openat
+  // succeeds. This is not inferred after a close attempt or lost response.
+  child->close_result = 1;
   child->diagnostic_ceiling = root == NULL ? 0 : root->diagnostic_ceiling;
   if (root == NULL || root->fd < 0) {
     actql_replace_bounded_error(&child->error, child->diagnostic_ceiling, "Store root is unavailable");
@@ -2626,6 +2629,7 @@ void *actql_native_filesystem_open_child_root(
     O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW
   );
   int open_error = errno;
+  if (child->fd >= 0) child->close_result = 0;
   if (root->custody_path != NULL &&
       strlen(root->custody_path) + (size_t)length + 1 <= 4096) {
     size_t size = strlen(root->custody_path) + (size_t)length + 2;

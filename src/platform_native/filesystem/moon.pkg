@@ -33,6 +33,7 @@ options(
     "private_file_projection_unsupported.mbt": [ "not", "native" ],
     "filesystem_unsupported.mbt": [ "not", "native" ],
     "filesystem_wbtest.mbt": [ "native" ],
+    "child_custody_native_wbtest.mbt": [ "native" ],
     "reader_custody_native_wbtest.mbt": [ "native" ],
     "open_failure_custody_native_wbtest.mbt": [ "native" ],
     "reader_kind_native_wbtest.mbt": [ "native" ],

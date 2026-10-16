@@ -1,0 +1,1054 @@
+[
+  {
+    "exports": [
+      "BooleanType",
+      "DoubleType",
+      "NestedField",
+      "PhysicalRefusal",
+      "Schema",
+      "StringType",
+      "arrow_schema",
+      "canonical_envelope",
+      "check_mapping",
+      "decode_physical",
+      "encode_rows",
+      "envelope_cid",
+      "hashlib",
+      "iceberg_schema",
+      "json",
+      "math",
+      "pa",
+      "physical_fields",
+      "seal",
+      "unicodedata",
+      "validate_value",
+      "version"
+    ],
+    "imports": [
+      "hashlib",
+      "importlib.metadata",
+      "json",
+      "math",
+      "pyarrow",
+      "pyiceberg.schema",
+      "pyiceberg.types",
+      "unicodedata"
+    ],
+    "module": "adapters/connectors/local/iceberg/physical.py",
+    "responsibilityFacet": "primary",
+    "operations": [
+      {
+        "async": false,
+        "name": "PhysicalRefusal",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "arrow_schema",
+        "parameters": [
+          "mapping"
+        ]
+      },
+      {
+        "async": false,
+        "name": "canonical_envelope",
+        "parameters": [
+          "value"
+        ]
+      },
+      {
+        "async": false,
+        "name": "check_mapping",
+        "parameters": [
+          "mapping"
+        ]
+      },
+      {
+        "async": false,
+        "name": "decode_physical",
+        "parameters": [
+          "mapping",
+          "table"
+        ]
+      },
+      {
+        "async": false,
+        "name": "encode_rows",
+        "parameters": [
+          "mapping",
+          "rows"
+        ]
+      },
+      {
+        "async": false,
+        "name": "envelope_cid",
+        "parameters": [
+          "value"
+        ]
+      },
+      {
+        "async": false,
+        "name": "iceberg_schema",
+        "parameters": [
+          "mapping"
+        ]
+      },
+      {
+        "async": false,
+        "name": "physical_fields",
+        "parameters": [
+          "mapping"
+        ]
+      },
+      {
+        "async": false,
+        "name": "seal",
+        "parameters": [
+          "value",
+          "field"
+        ]
+      },
+      {
+        "async": false,
+        "name": "validate_value",
+        "parameters": [
+          "column",
+          "value"
+        ]
+      }
+    ],
+    "sha256": "61bd71bbcf372995f55601db31a941b3bee8eb5cb926086118cef3283372ea93",
+    "role": "physical-io",
+    "owner": "Local Table physical data and managed-process adapter",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "PhysicalRefusal",
+          "arrow_schema",
+          "canonical_envelope",
+          "check_mapping",
+          "decode_physical",
+          "encode_rows",
+          "envelope_cid",
+          "iceberg_schema",
+          "physical_fields",
+          "seal",
+          "validate_value"
+        ],
+        "exports": [
+          "BooleanType",
+          "DoubleType",
+          "NestedField",
+          "PhysicalRefusal",
+          "Schema",
+          "StringType",
+          "arrow_schema",
+          "canonical_envelope",
+          "check_mapping",
+          "decode_physical",
+          "encode_rows",
+          "envelope_cid",
+          "hashlib",
+          "iceberg_schema",
+          "json",
+          "math",
+          "pa",
+          "physical_fields",
+          "seal",
+          "unicodedata",
+          "validate_value",
+          "version"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "## Data interface and materialization ownership"
+            },
+            {
+              "path": "spec/contracts/actql-local-table-iceberg.json",
+              "anchor": "\"operations\""
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "adapters/connectors/local/iceberg/physical.py",
+              "anchor": "def encode_rows"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Only flat Boolean"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/local/table/iceberg_storage_mapping.mbt",
+              "anchor": "schema_cid"
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "ForeignTablePhysicalPreparation"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/physical.py",
+              "anchor": "StorageMappingIdentity"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Borrowing an Arrow slice"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "original captured"
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "const preparations = new WeakMap"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "sequence != 0"
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "owned.attempted"
+            }
+          ],
+          "failure": [
+            {
+              "path": "adapters/connectors/local/iceberg/physical.py",
+              "anchor": "PhysicalFieldMissing"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "TablePhysicalUnknown"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Missing, malformed, foreign or unconfirmed responses"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "else if (error?.cleanupHandle)"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Cancellation and channel closure"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "MAX_BYTES ="
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "const frames ="
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "transport bounds"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "No new capacity coefficients"
+            }
+          ],
+          "extension": [
+            {
+              "path": "src/connectors/local/host-bundle.json",
+              "anchor": "\"assets\""
+            },
+            {
+              "path": "spec/contracts/actql-local-table-iceberg.json",
+              "anchor": "\"operations\""
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Unsupported types"
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/local/iceberg/data_channel_test.py",
+              "anchor": "class DataChannelTests"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/physical_test.py",
+              "anchor": "class PhysicalTests"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker_test.py",
+              "anchor": "class ProcessTests"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "exports": [
+      "ENVELOPE",
+      "MAX_BYTES",
+      "MAX_DEPTH",
+      "MAX_NODES",
+      "PROTOCOL",
+      "ProtocolRefusal",
+      "check_shape",
+      "dispatch",
+      "exact_keys",
+      "json",
+      "math",
+      "os",
+      "precheck_depth",
+      "read_exact",
+      "read_frame",
+      "reject_constant",
+      "serve",
+      "struct",
+      "unique_object",
+      "write_frame"
+    ],
+    "imports": [
+      "catalog",
+      "json",
+      "math",
+      "os",
+      "physical",
+      "struct"
+    ],
+    "module": "adapters/connectors/local/iceberg/process_worker.py",
+    "responsibilityFacet": "primary",
+    "operations": [
+      {
+        "async": false,
+        "name": "ProtocolRefusal",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "check_shape",
+        "parameters": [
+          "value",
+          "depth",
+          "count"
+        ]
+      },
+      {
+        "async": false,
+        "name": "dispatch",
+        "parameters": [
+          "body",
+          "catalog_factory"
+        ]
+      },
+      {
+        "async": false,
+        "name": "exact_keys",
+        "parameters": [
+          "value",
+          "keys"
+        ]
+      },
+      {
+        "async": false,
+        "name": "precheck_depth",
+        "parameters": [
+          "text"
+        ]
+      },
+      {
+        "async": false,
+        "name": "read_exact",
+        "parameters": [
+          "stream",
+          "length"
+        ]
+      },
+      {
+        "async": false,
+        "name": "read_frame",
+        "parameters": [
+          "stream"
+        ]
+      },
+      {
+        "async": false,
+        "name": "reject_constant",
+        "parameters": [
+          "_"
+        ]
+      },
+      {
+        "async": false,
+        "name": "serve",
+        "parameters": [
+          "stream",
+          "catalog_factory"
+        ]
+      },
+      {
+        "async": false,
+        "name": "serve/reply",
+        "parameters": [
+          "kind",
+          "sequence",
+          "body"
+        ]
+      },
+      {
+        "async": false,
+        "name": "unique_object",
+        "parameters": [
+          "pairs"
+        ]
+      },
+      {
+        "async": false,
+        "name": "write_frame",
+        "parameters": [
+          "stream",
+          "value"
+        ]
+      }
+    ],
+    "sha256": "0383cd098aa290804686bacc81d1e8079696c5cc498d37a1d85e9ff4343e6ac7",
+    "role": "physical-io",
+    "owner": "Local Table physical data and managed-process adapter",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "ProtocolRefusal",
+          "check_shape",
+          "dispatch",
+          "exact_keys",
+          "precheck_depth",
+          "read_exact",
+          "read_frame",
+          "reject_constant",
+          "serve",
+          "serve/reply",
+          "unique_object",
+          "write_frame"
+        ],
+        "exports": [
+          "ENVELOPE",
+          "MAX_BYTES",
+          "MAX_DEPTH",
+          "MAX_NODES",
+          "PROTOCOL",
+          "ProtocolRefusal",
+          "check_shape",
+          "dispatch",
+          "exact_keys",
+          "json",
+          "math",
+          "os",
+          "precheck_depth",
+          "read_exact",
+          "read_frame",
+          "reject_constant",
+          "serve",
+          "struct",
+          "unique_object",
+          "write_frame"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "## Data interface and materialization ownership"
+            },
+            {
+              "path": "spec/contracts/actql-local-table-iceberg.json",
+              "anchor": "\"operations\""
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "def read_frame"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Only flat Boolean"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/local/table/iceberg_storage_mapping.mbt",
+              "anchor": "schema_cid"
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "ForeignTablePhysicalPreparation"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/physical.py",
+              "anchor": "StorageMappingIdentity"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Borrowing an Arrow slice"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "original captured"
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "const preparations = new WeakMap"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "sequence != 0"
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "owned.attempted"
+            }
+          ],
+          "failure": [
+            {
+              "path": "adapters/connectors/local/iceberg/physical.py",
+              "anchor": "PhysicalFieldMissing"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "TablePhysicalUnknown"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Missing, malformed, foreign or unconfirmed responses"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "else if (error?.cleanupHandle)"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Cancellation and channel closure"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "MAX_BYTES ="
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "const frames ="
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "transport bounds"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "No new capacity coefficients"
+            }
+          ],
+          "extension": [
+            {
+              "path": "src/connectors/local/host-bundle.json",
+              "anchor": "\"assets\""
+            },
+            {
+              "path": "spec/contracts/actql-local-table-iceberg.json",
+              "anchor": "\"operations\""
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Unsupported types"
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/local/iceberg/data_channel_test.py",
+              "anchor": "class DataChannelTests"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/physical_test.py",
+              "anchor": "class PhysicalTests"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker_test.py",
+              "anchor": "class ProcessTests"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "adapters/connectors/local/host/iceberg-process.mjs",
+    "responsibilityFacet": "primary",
+    "sha256": "8153de6636474098d5fc3666fc29a906d3f6353c1dd521c355f9f2e2a2670c58",
+    "exports": [
+      "admitIcebergStorageMapping",
+      "createIcebergPhysicalBridge",
+      "issueIcebergStorageMapping",
+      "projectIcebergCommitResponse",
+      "supportsIcebergTableOperation"
+    ],
+    "operations": [
+      {
+        "name": "<anonymous>",
+        "parameters": [
+          "kinds"
+        ],
+        "async": false
+      },
+      {
+        "name": "admitIcebergStorageMapping",
+        "parameters": [
+          "control",
+          "mappingWire",
+          "limits"
+        ],
+        "async": false
+      },
+      {
+        "name": "cid/cid",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge",
+        "parameters": [
+          "python",
+          "run",
+          "catalog",
+          "implementation",
+          "entry"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/assertImplementation/assertImplementation",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:admitStorageMapping/init:admitStorageMapping",
+        "parameters": [
+          "values"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector",
+        "parameters": [
+          "selector"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector/init:checkReadSelector",
+        "parameters": [
+          "part"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:cleanup/init:cleanup",
+        "parameters": [
+          "prepared",
+          "signal"
+        ],
+        "async": true
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:execute/init:execute",
+        "parameters": [
+          "prepared",
+          "useCid",
+          "signal"
+        ],
+        "async": true
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:execute/init:execute/result/result",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:inspect/init:inspect",
+        "parameters": [
+          "prepared",
+          "signal"
+        ],
+        "async": true
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:issueStorageMapping/init:issueStorageMapping",
+        "parameters": [
+          "values"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:prepareWrite/init:prepareWrite",
+        "parameters": [
+          "operation",
+          "mapping",
+          "rows",
+          "reservation",
+          "schemaWire"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:projectCommitResponse/init:projectCommitResponse",
+        "parameters": [
+          "values"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:read/init:read",
+        "parameters": [
+          "receipt",
+          "mapping",
+          "signal"
+        ],
+        "async": true
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:reconcile/init:reconcile",
+        "parameters": [
+          "prepared",
+          "signal"
+        ],
+        "async": true
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:resolveGeneration/init:resolveGeneration",
+        "parameters": [
+          "selector",
+          "signal"
+        ],
+        "async": true
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:status/init:status",
+        "parameters": [
+          "prepared"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/bridge/init:supportsOperation/init:supportsOperation",
+        "parameters": [
+          "values"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/configuration/configuration",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/createIcebergPhysicalBridge",
+        "parameters": [
+          "key"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/createIcebergPhysicalBridge#2",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/invoke/invoke",
+        "parameters": [
+          "command",
+          "payload",
+          "signal",
+          "stopped"
+        ],
+        "async": true
+      },
+      {
+        "name": "createIcebergPhysicalBridge/own/own",
+        "parameters": [
+          "prepared"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/preflight/preflight",
+        "parameters": [
+          "command",
+          "payload"
+        ],
+        "async": false
+      },
+      {
+        "name": "createIcebergPhysicalBridge/reconcileOperation/reconcileOperation",
+        "parameters": [
+          "operation",
+          "signal"
+        ],
+        "async": false
+      },
+      {
+        "name": "fail/fail",
+        "parameters": [
+          "code"
+        ],
+        "async": false
+      },
+      {
+        "name": "issueIcebergStorageMapping",
+        "parameters": [
+          "control",
+          "artifact",
+          "limits"
+        ],
+        "async": false
+      },
+      {
+        "name": "keys/keys",
+        "parameters": [
+          "value",
+          "names"
+        ],
+        "async": false
+      },
+      {
+        "name": "projectIcebergCommitResponse",
+        "parameters": [
+          "control",
+          "responseWire",
+          "statusCode",
+          "limits"
+        ],
+        "async": false
+      },
+      {
+        "name": "snapshot/snapshot",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "supportsIcebergTableOperation",
+        "parameters": [
+          "action",
+          "kind"
+        ],
+        "async": false
+      }
+    ],
+    "imports": [
+      "../../../host-node/process-channel.mjs",
+      "../../../host-node/process-frames.mjs",
+      "node:crypto",
+      "node:fs",
+      "node:path"
+    ],
+    "compilerFields": [],
+    "unresolvedSyntax": [],
+    "role": "physical-io",
+    "owner": "Local Table physical data and managed-process adapter",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "<anonymous>",
+          "admitIcebergStorageMapping",
+          "cid/cid",
+          "createIcebergPhysicalBridge",
+          "createIcebergPhysicalBridge/assertImplementation/assertImplementation",
+          "createIcebergPhysicalBridge/bridge/init:admitStorageMapping/init:admitStorageMapping",
+          "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector",
+          "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector/init:checkReadSelector",
+          "createIcebergPhysicalBridge/bridge/init:cleanup/init:cleanup",
+          "createIcebergPhysicalBridge/bridge/init:execute/init:execute",
+          "createIcebergPhysicalBridge/bridge/init:execute/init:execute/result/result",
+          "createIcebergPhysicalBridge/bridge/init:inspect/init:inspect",
+          "createIcebergPhysicalBridge/bridge/init:issueStorageMapping/init:issueStorageMapping",
+          "createIcebergPhysicalBridge/bridge/init:prepareWrite/init:prepareWrite",
+          "createIcebergPhysicalBridge/bridge/init:projectCommitResponse/init:projectCommitResponse",
+          "createIcebergPhysicalBridge/bridge/init:read/init:read",
+          "createIcebergPhysicalBridge/bridge/init:reconcile/init:reconcile",
+          "createIcebergPhysicalBridge/bridge/init:resolveGeneration/init:resolveGeneration",
+          "createIcebergPhysicalBridge/bridge/init:status/init:status",
+          "createIcebergPhysicalBridge/bridge/init:supportsOperation/init:supportsOperation",
+          "createIcebergPhysicalBridge/configuration/configuration",
+          "createIcebergPhysicalBridge/createIcebergPhysicalBridge",
+          "createIcebergPhysicalBridge/createIcebergPhysicalBridge#2",
+          "createIcebergPhysicalBridge/invoke/invoke",
+          "createIcebergPhysicalBridge/own/own",
+          "createIcebergPhysicalBridge/preflight/preflight",
+          "createIcebergPhysicalBridge/reconcileOperation/reconcileOperation",
+          "fail/fail",
+          "issueIcebergStorageMapping",
+          "keys/keys",
+          "projectIcebergCommitResponse",
+          "snapshot/snapshot",
+          "supportsIcebergTableOperation"
+        ],
+        "exports": [
+          "admitIcebergStorageMapping",
+          "createIcebergPhysicalBridge",
+          "issueIcebergStorageMapping",
+          "projectIcebergCommitResponse",
+          "supportsIcebergTableOperation"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "## Data interface and materialization ownership"
+            },
+            {
+              "path": "spec/contracts/actql-local-table-iceberg.json",
+              "anchor": "\"operations\""
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "export function createIcebergPhysicalBridge"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Only flat Boolean"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/local/table/iceberg_storage_mapping.mbt",
+              "anchor": "schema_cid"
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "ForeignTablePhysicalPreparation"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/physical.py",
+              "anchor": "StorageMappingIdentity"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Borrowing an Arrow slice"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "original captured"
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "const preparations = new WeakMap"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "sequence != 0"
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "owned.attempted"
+            }
+          ],
+          "failure": [
+            {
+              "path": "adapters/connectors/local/iceberg/physical.py",
+              "anchor": "PhysicalFieldMissing"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "TablePhysicalUnknown"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Missing, malformed, foreign or unconfirmed responses"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "else if (error?.cleanupHandle)"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Cancellation and channel closure"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "MAX_BYTES ="
+            },
+            {
+              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "anchor": "const frames ="
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "transport bounds"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "No new capacity coefficients"
+            }
+          ],
+          "extension": [
+            {
+              "path": "src/connectors/local/host-bundle.json",
+              "anchor": "\"assets\""
+            },
+            {
+              "path": "spec/contracts/actql-local-table-iceberg.json",
+              "anchor": "\"operations\""
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/README.md",
+              "anchor": "Unsupported types"
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/local/iceberg/data_channel_test.py",
+              "anchor": "class DataChannelTests"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/physical_test.py",
+              "anchor": "class PhysicalTests"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker_test.py",
+              "anchor": "class ProcessTests"
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

@@ -5,6 +5,7 @@ import {mkdtemp, mkdir, readFile, rm, writeFile, copyFile} from 'node:fs/promise
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import './package-release-shared-cohort.test.mjs';
 import {admitCohort, releasePackageMetadata, stagePackage, publishedVersion,
   publicationPlan, verifyPackageRelease} from './package-release.mjs';
 import {publishPackageRelease} from './publish-package-release.mjs';

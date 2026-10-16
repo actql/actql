@@ -11,9 +11,12 @@
 // Salesforce's write driver (salesforce-write-driver.mjs) and this
 // connector's registered identity profile; this module keeps only the
 // installation: its profile, publication, restore and target-read inventory.
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {mkdir} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {refusedEffectPreparation} from
+  '../../../host-common/effect-preparation-result.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite, releaseSalesforceSite,
@@ -22,8 +25,11 @@ import {installSalesforceAuthorization, installedSalesforceSiteBinding,
 import {describeSalesforceGeneration, readPublicationFile,
   replacePublicationFile, restoreSalesforceGeneration,
   salesforceCheckEnvironment} from './salesforce-publication.mjs';
-import {createInstalledRowEffect} from
+import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
+  validateInstalledUpdateOwnerSelections} from
   '../../../host-node/installed-row-effect.mjs';
+import {assertUpdateTargetSelectionMembersCurrent} from
+  '../../../host-node/update-target-original-shape.mjs';
 import {installedConnectors} from
   '../../../connectors-builtin/installations.generated.mjs';
 import {salesforceRowEffectSite, salesforceWriteDriver} from
@@ -249,16 +255,16 @@ async function restoreGeneration({site, salesforceMoon, profile,
 function resolveMember(moon, prepared, installed, {stageIndex, effectId}) {
   const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
     prepared, stageIndex, effectId, limits.planWork));
-  const kind = descriptor._2;
+  const kind = runtimeField(descriptor, 2);
   const mapping = installed.mappings.find(candidate =>
-    candidate.mappingCid === descriptor._5 &&
-    candidate.mappingRef === descriptor._4);
+    candidate.mappingCid === runtimeField(descriptor, 5) &&
+    candidate.mappingRef === runtimeField(descriptor, 4));
   if (mapping === undefined || writeKinds.get(mapping.write.kind) !== kind ||
-      descriptor._6 === undefined) {
+      runtimeField(descriptor, 6) === undefined) {
     fail('SalesforceEffectMappingNotInstalled');
   }
-  return Object.freeze({stageIndex, effectId: descriptor._1,
-    memberIndex: descriptor._0, kind, mapping,
+  return Object.freeze({stageIndex, effectId: runtimeField(descriptor, 1),
+    memberIndex: runtimeField(descriptor, 0), kind, mapping,
     resource: mapping.write.resource,
     fields: Object.freeze(mapping.write.fields ??
       mapping.write.sources.map(source => source.target)),
@@ -393,13 +399,42 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
         mapping.mappingCid === mappingCid),
       nextOccurrence, siteBindingCid,
       generationCid: installed.generationCid, limits})});
-  const targetReadInventory = ({moon: runMoon, prepared, unit}) => {
+  const targetReadInventory = ({moon: runMoon, prepared, unit: providedUnit, compilation,
+    updateTargetSelections, assertUpdateSelectionCurrent}) => {
     if (runMoon !== moon) fail('InvalidInstalledEffectTargetInventory');
+    const unit = providedUnit ?? salesforceEffectUnit(moon, compilation);
+    const selections = validateInstalledUpdateOwnerSelections(rowEffect,
+      updateTargetSelections, prepared);
+    if (selections !== undefined) {
+      const updates = membersOf(moon, prepared, installed, unit)
+        .filter(member => member.kind === 'update');
+      try {
+        if (typeof assertUpdateSelectionCurrent !== 'function') throw new TypeError('MissingOriginalCurrent');
+        assertUpdateTargetSelectionMembersCurrent(selections, updates.map(member => {
+          const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
+            prepared, unit.stageIndex, member.effectId, limits.planWork));
+          return {stage_index: unit.stageIndex, effect_id: runtimeField(descriptor, 1),
+            target_ref: runtimeField(descriptor, 3), mapping_ref: runtimeField(descriptor, 4),
+            mapping_cid: runtimeField(descriptor, 5)};
+        }), prepared);
+      } catch {
+        throw refusedEffectPreparation(Object.assign(
+          new Error('InstalledRowEffectInstallationChanged'),
+          {code: 'InstalledRowEffectInstallationChanged'}));
+      }
+      const result = assertUpdateSelectionCurrent();
+      if (typeof result?.then === 'function') {
+        void Promise.resolve(result).catch(() => {});
+        throw refusedEffectPreparation(Object.assign(
+          new Error('InstalledRowEffectInstallationChanged'),
+          {code: 'InstalledRowEffectInstallationChanged'}));
+      }
+    }
     return salesforceEffectTargetReadInventory({moon, prepared, unit,
       installed, site, connectorId});
   };
 
-  return Object.freeze({
+  return retainInstalledRowEffectAdapter(rowEffect, Object.freeze({
     environmentWire: installed.environment.wire,
     generationCid: installed.generationCid,
     targetReadAuthorization: Object.freeze({accountConfiguration,
@@ -417,8 +452,8 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
       mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}))),
     effectSelectors: rowEffect.effectSelectors,
     targetReadInventory,
-    prepareCaptured: input => rowEffect.prepareCaptured(input),
-    prepareRecovered: input => rowEffect.prepareRecovered(input),
+    prepareCaptured: rowEffect.prepareCaptured,
+    prepareRecovered: rowEffect.prepareRecovered,
     close: () => site.close(),
-  });
+  }));
 }

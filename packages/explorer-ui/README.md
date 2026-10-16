@@ -92,3 +92,58 @@ The component tests exercise original-port refusals, bounded maps and actual
 React static rendering. They do not establish browser focus/Flow interaction,
 current-main Host end-to-end, Cloud installation or Full Explorer acceptance.
 
+## Current Run and Owner observations
+
+`@actql/explorer-ui/run-observation` exports `readRunObservation` and
+`runObservationModel`. They retain the exact original Run reference and use
+only existing `attach`, `Run.inspect` and one bounded `Run.observeOwners` page
+(32 entries per Owner, 65536 bytes per SDK reply). The existing Gateway reply
+ceiling still covers the combined presentation. A missing Owner API is
+unavailable; malformed, foreign and stale observations refuse. The Run view is
+copied into its smaller presentation before awaiting the separate Owner read.
+No sample payload, cursor value, new Run, wait, cancellation or Result read is
+issued by this projection.
+
+`RunInspector` is exported from the existing `plan-explorer` component entry.
+It shows current Run state, original identity, control revision, component
+provenance, exact/bound/estimate/unknown quantities and independent per-Result
+availability. Quantity values remain original decimal integer strings; there
+is no numeric rounding, currency conversion or inferred zero. Run cancellation
+acceptance, physical stop and cleanup pending stay separate. History preserves
+each Owner's returned ordering, snapshot CID and revision vector; it is not a
+global timeline and does not invent timestamps or complete-history coverage.
+
+The current backend has no additional logical-step quantities, INFER counters,
+elapsed/tokens/cost or sealed Preview projection. These remain unavailable;
+neither a physical unit nor a terminal Run paints every logical step complete.
+Null Plan bindings are not repaired from a separately read map or compilation.
+The component owns no polling, SDK connection, authentication or execution.
+The Local adapter offers explicit one-second read-only following of the same
+reference, stops on the first observed terminal state, and clears/discards old
+selection or session replies. Each refresh still passes the existing current
+SDK/Host and Gateway authorization. Cloud adapters can use this same component
+with their own authenticated reads.
+
+
+`CancellationPanel` renders Client-owned original cancellation references,
+separate invocation observations and original-operation history. Its explicit
+callbacks belong to the embedding adapter. The component has no Client,
+credentials, permission evaluator or retry loop. `./cancellation` supplies the
+pure reference/observation validation; Unknown is a presentation alternative,
+not a manufactured Client–Host cancellation-attempt wire or physical-stop ACK.
+
+## Checkpoint review reads
+
+The shared Checkpoint panel lists one authorized waiting Host page and explicitly
+reads the original Checkpoint's exact review projection through the public SDK.
+Listing, review reading and answering have separate current Host permissions.
+The list is independent of the selected Run; original subjects are displayed
+without a guessed Run/Logical Map join. A further cursor is retained only as an
+opaque indication and is not fetched automatically. A missing API is unavailable.
+
+Review bytes retain the Checkpoint CID and original review projection CID; the
+existing SDK verifies integrity. UTF-8 is escaped text, binary stays base64, and
+no parser invents a resolved target or Effect diff. Read refusal or scope change
+clears protected contents. This panel supplies no signer, answer, approval,
+execution, resume, new permission or durable state. It does not make the static
+Plan's unknown Preview an observed one.

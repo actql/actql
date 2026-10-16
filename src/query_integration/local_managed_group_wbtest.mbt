@@ -116,6 +116,7 @@ fn start_local_managed_test_task_operations(
           @resources.ClosedHolding => "closed holding"
           @resources.InvalidCharge => "invalid charge"
           @resources.ResourceParked => "resource parked"
+          @resources.ChildFundingUnavailable => "child funding unavailable"
         }),
       )
     Err(Execution(ActivationNotAuthorized)) =>

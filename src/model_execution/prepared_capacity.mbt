@@ -49,5 +49,11 @@ fn finish_prepared_model_capacity(
     state.prepared_capacity = None
     state.original_startup = None
   }
+  // Only our borrowed installation reference retires here. Do not close the
+  // shared Host admission or another Run's live IO/holding duties. A failed
+  // original cleanup/capacity settlement above preserves this exact reference.
+  if state.prepared_call_set is Some(prepared) {
+    prepared.io_access = None
+  }
   Ok(true)
 }

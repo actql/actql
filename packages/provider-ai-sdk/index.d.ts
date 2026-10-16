@@ -7,6 +7,11 @@ export type ProjectionLimits = Readonly<{
 export type RequestLimits = Readonly<{
   maxBytes: number; maxHeaderBytes: number; maxHeaders: number;
 }>;
+/** Selected Host originals, measured in JavaScript UTF-16 code units before
+ * URL/header/SDK construction. Not wire byte limits, funding or permission. */
+export type OriginalStringLimits = Readonly<{
+  maxApiKeyCodeUnits: number; maxBaseURLCodeUnits: number; maxModelIdCodeUnits: number;
+}>;
 export type ResponseLimits = Readonly<{
   maxBytes: number; maxChunkBytes: number; maxChunks: number;
   maxHeaderBytes: number; observedHeaders?: readonly string[];
@@ -69,6 +74,7 @@ export type OpenAIOriginalMaterials = Readonly<{
 export type OpenAIChatRegistrationOptions = Readonly<{
   providerId: string; modelSelector: string; modelId: string;
   baseURL: string; apiKey: string;
+  originalStringLimits: OriginalStringLimits;
   taskCid: Sha256Cid; promptCid: Sha256Cid; outputSchemaCid: Sha256Cid;
   promptPayloadWire: string;
   /** Already selected original Host/Run installation; never reconstructed

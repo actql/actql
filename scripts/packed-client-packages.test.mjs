@@ -7,6 +7,8 @@ import {appendFile, mkdir, mkdtemp, readFile, rm, writeFile} from
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import fsPromises from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {packClientPackages, packedClientPackage, pinnedDuckDBPackage} from
   './packed-client-packages.mjs';
 
@@ -120,6 +122,27 @@ test('a tarball changed after packing is refused', async t => {
   const {shared, reuse} = await fixture(t);
   await appendFile(join(shared, tarball('sdk')), 'tampered\n');
   await assert.rejects(reuse(), /changed after packing/u);
+});
+
+test('a shared copy with different destination bytes refuses before new lineage', async t => {
+  const {shared, destination, reuse} = await fixture(t);
+  const original = await readFile(join(shared, tarball('sdk')));
+  const copy = fsPromises.copyFile;
+  let copies = 0;
+  t.mock.method(fsPromises, 'copyFile', async (...args) => {
+    await copy(...args);
+    if (args[1] === join(destination, tarball('sdk'))) {
+      copies++;
+      // Model a source/copy race deterministically without changing the
+      // expected shared digest or adding a product-only test hook.
+      await appendFile(args[1], 'changed during copy\n');
+    }
+  });
+  syncBuiltinESMExports();
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+  await assert.rejects(reuse(), /changed while copying/u);
+  assert.equal(copies, 1);
+  assert.deepEqual(await readFile(join(shared, tarball('sdk'))), original);
 });
 
 test('no manifest is recorded from a dirty checkout or one changed while packing',

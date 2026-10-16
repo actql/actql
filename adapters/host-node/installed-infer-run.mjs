@@ -1,5 +1,6 @@
 // Installed physical composition of the checked Infer, original per-call
 // journal/custody and publication owners. No JS slot scheduler is introduced.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {projectInferEvidence} from './infer-evaluation-evidence.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {publishCompletedEffectFreeRun} from '../host-common/completed-run-publication.mjs';
@@ -108,7 +109,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     }
     if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
     const runId = JSON.parse(plan.runDefinition.wire).run_id;
-    const taskIndex = moon.clientProgramInferPlanBoundary(selected.graph)._0;
+    const taskIndex = runtimeField(moon.clientProgramInferPlanBoundary(selected.graph), 0);
     existingModel ??= modelController.discover(runId).find(record => record.inventory.taskIndex === taskIndex);
     if (replay && existingModel === undefined) throw new Error('InstalledInferOriginalInventoryMissing');
     if ((originalPreparation !== undefined || originalInstallation !== undefined) &&

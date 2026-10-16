@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
-import {calendarSourceSuccesses, calendarSourceArtifact, calendarSourceSelection,
+import {calendarSourceSuccesses, calendarSourceRefusals, calendarSourceArtifact, calendarSourceSelection,
   calendarSourceArtifactLimits} from './fixtures/calendar-source-input.mjs';
 
 const names = ['day-series', 'month-bucket'].flatMap(operation =>
   ['json', 'sql', 'aql-text'].map(format => `calendar-${operation}-${format}`));
 
-export function selectReleaseCalendarQueryCases({successes = calendarSourceSuccesses} = {}) {
+export function selectReleaseCalendarQueryCases({successes = calendarSourceSuccesses,
+  refusals = calendarSourceRefusals} = {}) {
   assert.deepEqual(successes.map(item => item.name), names);
+  assert.deepEqual(refusals.map(item => item.name),
+    ['json', 'sql', 'aql-text'].map(format => `calendar-null-unit-${format}`));
+  for (const item of refusals) assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
   for (const item of successes) {
     assert.equal(item.sourceReadCount, 0);
     assert.equal(item.sourceReadSessionCount, 0);
@@ -20,5 +24,5 @@ export function selectReleaseCalendarQueryCases({successes = calendarSourceSucce
     tableBytes: Buffer.from(calendarSourceArtifact.slice(0, -1)),
     limits: calendarSourceArtifactLimits, maxSelectionWork: 10000};
   return Object.freeze({successes: Object.freeze([...successes]),
-    refusals: Object.freeze([]), calendarArtifact});
+    refusals: Object.freeze([...refusals]), calendarArtifact});
 }

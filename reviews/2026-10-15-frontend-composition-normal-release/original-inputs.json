@@ -1,0 +1,26 @@
+{
+  "baseSource": "1bbc398cc74cdb0abd05d872bbcc6c402148131f",
+  "qualification": "Independent authored composition inputs and expected rows/schema/counters are byte-identical. Only release-package selection and installed package auditing change. Physical Host/Model/Effect execution remains unverified.",
+  "inputs": {
+    "scripts/fixtures/composed-infer-effect.program.template.json": {
+      "bytes": 5448,
+      "sha256": "a237c57f599314e296e9c9f2a48a39b089ce00d1417547091bfd5efac78523b1"
+    },
+    "scripts/fixtures/composed-infer-effect.aql.template": {
+      "bytes": 902,
+      "sha256": "bb2d4cad0716f700e04f8863ebeec3c8514c906a0cd9d6de05516d55fff926cd"
+    },
+    "scripts/fixtures/composed-infer-effect-null-assert.aql.template": {
+      "bytes": 939,
+      "sha256": "75ce15b61ea40392c830366e4677136aa3e92eca3dc17be65545e3784d89e570"
+    },
+    "scripts/fixtures/composed-infer-effect.expected.json": {
+      "bytes": 2468,
+      "sha256": "896464ef1be35dbf0e0e8a5cb168304224cdd37aaafc5681ac9e3655d4cc3cc6"
+    },
+    "scripts/fixtures/composed-infer-effect-input.mjs": {
+      "bytes": 9418,
+      "sha256": "c5958a85e5f9262d3595652c18c4c3f0c6ba420105b4688a6e1935e53bfff7ee"
+    }
+  }
+}

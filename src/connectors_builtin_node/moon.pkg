@@ -40,6 +40,7 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/check_environment",
   "actql/actql/program_check",
+  "actql/actql/effect_program_binding" @effect_binding,
   "actql/actql/stage_syntax",
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,

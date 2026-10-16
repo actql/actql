@@ -54,6 +54,8 @@ pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.
 
 pub fn bind_prepared_model_entry_persistence(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> ModelCallEntryPersistence?) -> Result[Unit, ModelExecutionIssue]
 
+pub fn bind_prepared_model_io_access(ModelPreparedCallSet, @physical_resources.ModelIoAccess) -> Result[Unit, ModelExecutionIssue]
+
 pub fn bind_prepared_model_observation(ModelPreparedCallSet, (ModelPhysicalObservation) -> Unit) -> Bool
 
 pub fn bind_prepared_model_scope(ModelPreparedCallSet, @run_publication.BoundModelInvocationScope) -> Result[Unit, ModelExecutionIssue]
@@ -171,6 +173,8 @@ pub fn model_outcomes_count(ModelOutcomeRead) -> Int?
 pub fn model_outcomes_invocation_evidence(ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn model_outcomes_outcome(ModelOutcomeRead, Int) -> String?
+
+pub fn model_outcomes_slot_at(ModelOutcomeRead, Int) -> Int?
 
 pub fn model_physical_call(ModelCallEntry, ModelPreparedCallSet, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
 
@@ -357,6 +361,7 @@ type ModelAttemptTrace
 
 pub struct ModelCallEntry {
   prepared : ModelPreparedCallSet
+  progress : ModelSlotProgress
   slot : Int
   trace : ModelAttemptTrace
   admission : @run_publication_host.ClientInferDispatchAdmission
@@ -380,6 +385,7 @@ pub struct ModelCallEntryPersistence {
 
 pub struct ModelCallSettlement {
   owner : ModelExecution
+  progress : ModelSlotProgress
   slot : Int
 }
 
@@ -487,6 +493,7 @@ pub(all) enum ModelExecutionIssue {
   Cancelled
   Deadline
   Ledger(@physical_resources.LedgerIssue)
+  IoAdmission(@physical_resources.ModelIoAdmissionIssue)
   Session(@bounded_execution.Issue)
   WorkLimit
   RequestLimit
@@ -631,6 +638,7 @@ pub(all) struct ModelPhysicalUsage {
 pub struct ModelPreparedCallSet {
   owner : ModelExecution
   mut scope : @run_publication.BoundModelInvocationScope?
+  mut io_access : @physical_resources.ModelIoAccess?
 }
 
 pub(all) struct ModelProvider {
@@ -725,6 +733,8 @@ pub(all) struct ModelSlotCapture {
   output_tokens : Int64?
   observed_at : String
 }
+
+type ModelSlotProgress
 
 pub struct ModelSlotReplayRead {
   storage : ModelSlotReplayStorage

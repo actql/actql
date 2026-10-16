@@ -8,11 +8,47 @@
 // unreadable or rejected file fails installation with the same runtime code.
 import {createHash} from 'node:crypto';
 import {readFile, stat} from 'node:fs/promises';
+import {openSync, readSync, closeSync} from 'node:fs';
 import {isAbsolute, resolve} from 'node:path';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 
 export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';
 const MAX_CONFIGURATION_BYTES = 1_000_000;
+
+// Physical observation only. Core admits/evaluates the returned original
+// bytes. The extra byte detects growth without an unbounded read or allocation.
+function observeAccountConfigurationWire(authorization) {
+  try {
+    let wire = authorization?.accountConfiguration;
+    if (authorization?.accountConfig !== undefined) {
+      if (wire !== undefined) return undefined;
+      const fd = openSync(authorization.accountConfig, 'r');
+      try {
+        const buffer = Buffer.alloc(MAX_CONFIGURATION_BYTES + 1);
+        let used = 0;
+        while (used < buffer.length) {
+          const read = readSync(fd, buffer, used, buffer.length - used, used);
+          if (read === 0) break;
+          used += read;
+        }
+        if (used > MAX_CONFIGURATION_BYTES) return undefined;
+        wire = new TextDecoder('utf-8', {fatal: true}).decode(buffer.subarray(0, used));
+      } finally { closeSync(fd); }
+    }
+    return typeof wire === 'string' && Buffer.byteLength(wire) <= MAX_CONFIGURATION_BYTES
+      ? wire : undefined;
+  } catch { return undefined; }
+}
+
+// Shared by the installed Model owner and Local account gate. This reads no
+// new identity or permit and preserves the existing Model Missing fallback.
+export function observeInstalledAccount(moon, authorization) {
+  try {
+    const wire = observeAccountConfigurationWire(authorization);
+    return wire === undefined ? moon.executionAuthorizationMissing()
+      : moon.executionAuthorizationAdmit(wire);
+  } catch { return moon.executionAuthorizationMissing(); }
+}
 
 const fail = (code, detail) => {
   throw Object.assign(new Error(code, {cause: detail}), {code});
@@ -118,7 +154,8 @@ export async function createLocalAuthorizationGate({
     fail(ACCOUNT_CONFIG_INVALID, 'ConflictingAccountConfiguration');
   }
   if (none(accountConfig) && none(accountConfiguration)) {
-    return createNodeAuthorizationGate({...options, context: context ??
+    return createNodeAuthorizationGate({...options, readConfiguration: undefined,
+      context: context ??
       localAuthorizationContext(principal, undefined)});
   }
   if (!none(accountConfiguration) && typeof accountConfiguration !== 'string') {
@@ -132,6 +169,10 @@ export async function createLocalAuthorizationGate({
       ...options,
       configuration: configuration.text,
       configurationCid: configuration.configurationCid,
+      // Retain the installation's resolved path, not a later cwd or caller
+      // property. A wire-backed gate owns its immutable admitted configuration.
+      readConfiguration: configuration.path === undefined ? undefined
+        : () => observeAccountConfigurationWire({accountConfig: configuration.path}),
       context: context ?? localAuthorizationContext(principal,
         configuration.accountId),
     });
@@ -163,3 +204,4 @@ export function sourceReadAccountConfiguration({connection, resource,
     }],
   });
 }
+

@@ -27,6 +27,14 @@ extern "C" fn acquire_current_root_ffi(
 
 ///|
 #borrow(root, name)
+extern "C" fn acquire_scoped_child_root_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+) -> ScopedReadAcquisition = "actql_native_filesystem_acquire_scoped_child_root"
+
+///|
+#borrow(root, name)
 extern "C" fn acquire_scoped_reader_ffi(
   root : Root,
   name : Bytes,
@@ -102,6 +110,43 @@ pub fn open_root_in_current_read_context_with_custody(
     Err({
       original_issue: RootOpen(decode_diagnostic_message(root_error_ffi(root))),
       root: Some(root),
+    })
+  }
+}
+
+///|
+/// The caller holds the same original Domain around the whole managed call.
+/// Every acquired child, including a failed open, retains its own context use
+/// until original cleanup acknowledges it. No legacy allocation is substituted.
+pub fn Root::open_child_with_custody(
+  self : Root,
+  name : String,
+) -> Result[Root, NativeRootOpenFailure] {
+  if !valid_object_name(name) {
+    return Err({ original_issue: InvalidName, root: None, })
+  }
+  if !root_read_available_ffi(self) {
+    return Err({ original_issue: scoped_read_refusal(-1), root: None, })
+  }
+  let encoded = @utf8.encode(name)
+  let (child, status) = if root_is_scoped_ffi(self) {
+    let result = acquire_scoped_child_root_ffi(self, encoded, encoded.length())
+    let status = acquisition_status_ffi(result)
+    guard acquisition_has_original_ffi(result) else {
+      return Err({ original_issue: scoped_read_refusal(status), root: None, })
+    }
+    (acquisition_root_ffi(result), status)
+  } else {
+    (open_child_root_ffi(self, encoded, encoded.length()), 0)
+  }
+  if status != 0 {
+    Err({ original_issue: scoped_read_refusal(status), root: Some(child), })
+  } else if root_ready_ffi(child) {
+    Ok(child)
+  } else {
+    Err({
+      original_issue: RootOpen(decode_diagnostic_message(root_error_ffi(child))),
+      root: Some(child),
     })
   }
 }

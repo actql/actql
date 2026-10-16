@@ -199,6 +199,15 @@ pub fn infer_inputs_usage(value : PreparedInferInputs) -> (Int, Int, Int, Int) {
 }
 
 ///|
+/// Read the original receiving target only for an already checked Infer node.
+/// This neither reconstructs its semantics nor proves producer completion,
+/// input binding, Model startup, physical capacity or dispatch authority.
+pub fn node_infer_input_target(node : PreparedNode) -> @pipeline.Target? {
+  guard node.payload is Infer(_) else { return None }
+  node_input_target(node, 0)
+}
+
+///|
 /// Check the acquisition's exact output binding without exposing a generic
 /// frontend payload to the execution engine. This does not execute Infer or
 /// authorize a model call.

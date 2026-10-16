@@ -34,12 +34,14 @@ export function assertEffectTargetReadBinding(binding, expected) {
 export async function effectTargetReadContinuation({checkpoints, runId,
   runDefinitionCid, unitId, declaredResults, submission, inventory,
   principalId, resume, signal, journalPort, effectTargetAuthority,
-  allowDefer = true, assertCurrent = () => {}}) {
+  allowDefer = true, assertCurrent = () => {}, assertOriginalCurrent}) {
   if (checkpoints === undefined) fail('EffectTargetCheckpointUnavailable');
   submission = JSON.parse(canonicalValueJson(submission, {dataKeys: true}));
   const bound = effectTargetReadInventory(inventory);
   const states = bound.targets.map(target => ({target}));
+  assertOriginalCurrent?.();
   const savedRecords = await checkpoints.inspectEffectTargetApprovals(runId, runDefinitionCid);
+  assertOriginalCurrent?.();
   let live = true;
   let ready = false;
   let pendingTarget;
@@ -78,6 +80,19 @@ export async function effectTargetReadContinuation({checkpoints, runId,
     if (!live) fail('EffectTargetReadOwnerClosed');
     signal?.throwIfAborted();
     assertCurrent();
+    if (assertOriginalCurrent !== undefined) {
+      for (const state of states) {
+        if (state.gate === undefined) continue;
+        if (typeof state.gate.assertCurrent !== 'function') {
+          fail('EffectTargetReadOwnerClosed');
+        }
+        const result = state.gate.assertCurrent();
+        if (typeof result?.then === 'function') {
+          void Promise.resolve(result).catch(() => {});
+          fail('EffectTargetReadOwnerClosed');
+        }
+      }
+    }
     resume?.assertCurrent();
   };
   const scopeCurrent = state => {
@@ -104,6 +119,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
   };
   try {
     for (const state of states) {
+      assertOriginalCurrent?.();
       state.gate = await checkpoints.effectTargetAuthorization({runId,
         runDefinitionCid, unitId, declaredResults, inventoryCid: bound.inventoryCid,
         target: state.target, continuation,
@@ -115,6 +131,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
         },
         ...(port === undefined ? {} : {journalPort: port}),
       });
+      assertOriginalCurrent?.();
     }
     for (const {view, continuation: saved} of savedRecords) {
       validate(saved);

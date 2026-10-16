@@ -1,6 +1,8 @@
 """Original native image extent custody; no image/allocator adoption or Run facts."""
 from __future__ import annotations
 
+from ._local_native_memory_abi import bind as bind_memory
+
 from ctypes import byref, c_int, c_size_t, c_ubyte, c_uint8, c_void_p, cast, POINTER
 import os
 from typing import Any
@@ -46,10 +48,7 @@ class _NativeImageHolding:
             raise ValueError('Original native image capture was already attempted')
         self._attempted = True
         image = self._image
-        capture = self._lease._library.actql_owned_capture_image_fd
-        capture.argtypes = [c_void_p, c_int, c_size_t, c_size_t,
-                            POINTER(c_ubyte), POINTER(c_void_p)]
-        capture.restype = c_int
+        capture = bind_memory(self._lease._library, 'actql_owned_capture_image_fd')
         digest = (c_ubyte * 32).from_buffer_copy(bytes.fromhex(image.sha256))
         # The original native function checks readonly/regular/size/EOF/digest
         # and same-FD metadata. No Python whole-file read or ctypes image copy.
@@ -121,9 +120,7 @@ class _NativeImageHolding:
         self._close_original_fd()
         if self._pointer.value is None:
             return
-        retire = self._lease._library.actql_owned_retire
-        retire.argtypes = [c_void_p, c_void_p]
-        retire.restype = c_int
+        retire = bind_memory(self._lease._library, 'actql_owned_retire')
         code = retire(self._lease._pointer, self._pointer)
         if type(code) is not int or code != 0:
             raise NativeImageError('retire', code if type(code) is int else None)

@@ -1,7 +1,10 @@
 ///|
 // Actual checked Run/Scope/read/Model request. Accounting amounts remain the
 // existing synthetic custody fixture; no SDK allocation or physical I/O occurs.
-fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
+fn first_m1_original_request_check(
+  projection_work : Int,
+  two_eligible? : Bool = false,
+) -> Unit raise {
   let environment = @publication_host.admit_client_check_environment(
     first_m1_current_environment,
     first_m1_current_environment_cid,
@@ -9,8 +12,16 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   assert_eq(first_m1_current_program, first_m1_input_program)
+  let program = if two_eligible {
+    first_m1_current_program.replace(
+      old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
+      new="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"hello\"}]",
+    )
+  } else {
+    first_m1_current_program
+  }
   let prepared = @publication_host.prepare_effect_free_client_program(
-    first_m1_current_program,
+    program,
     Json,
     environment,
     None,
@@ -24,6 +35,12 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
     { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
     100000,
   ).unwrap()
+  // This is the admitted original execution ceiling, not the observed row,
+  // Slot concurrency, quantity budget or a changed Host/Task limit.
+  assert_eq(
+    @environment.model_execution_ceiling(execution, @environment.TotalAttempts),
+    1L,
+  )
   let plan = @publication_host.issue_prepared_client_infer_plan_graph(
     prepared,
     2,
@@ -55,6 +72,8 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
   ).unwrap()
   let (compiled, definition) = original_input_capacity_run(prepared, plan)
   let limits = standard_limits()
+  assert_eq(limits.model.ledger.attempts, 100)
+  assert_eq(original_model_ledger_limits(plan, limits.model).attempts, 1)
   let quantities : @model.ModelQuantityCapacity = {
     limits: { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
     per_attempt: { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
@@ -98,6 +117,7 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
     Err(Model(issue)) => abort("Model: " + @debug.to_string(issue))
     Err(_) => abort("other original startup refusal")
   }
+  assert_eq(active.limits.model.ledger.attempts, 1)
   require_model_call_entry(active).unwrap()
   bind_quantity_capacity(active, quantities).unwrap()
   let egress = @publication_host.admit_prepared_client_infer_egress(
@@ -163,6 +183,38 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
       },
     })
   }).unwrap()
+  if two_eligible {
+    // Every eligible reservation precedes ALL physical preparation. Keep both
+    // actual rows/keys, but the second reserve fails before SDK cursor creation.
+    assert_true(
+      fixture_finish(active)
+      is Failed(Model(@model.Ledger(@resources.AttemptLimit)), ..),
+    )
+    let rows = active.rows.unwrap()
+    assert_eq(@relation.prepared_infer_rows_count(rows), 2)
+    for index in 0..<2 {
+      assert_true(@relation.prepared_infer_rows_key(rows, index, 0) is Some(_))
+      assert_true(
+        @relation.prepared_infer_rows_value(rows, index, 0) is Some(_),
+      )
+    }
+    assert_eq(starts.val, 0)
+    assert_eq(advances.val, 0)
+    let usage = @model.model_execution_resource_usage(active.model.unwrap())
+    assert_eq(usage.attempts, 1)
+    assert_true(usage.reserved_retention_bytes > 0L)
+    assert_true(usage.reserved_transfer_bytes > 0L)
+    assert_true(acquire_output(active) is None)
+    assert_true(cleanup(active).unwrap())
+    @publication_host.settle_client_model_read(read, true).unwrap()
+    assert_true(
+      @publication_host.finish_client_model_read_scope(
+        scope, compiled, definition, plan, true,
+      ).unwrap(),
+    )
+    assert_eq(starts.val, 0)
+    return
+  }
   let mut last = 0L
   for _ in 0..<2000 {
     guard advance(active, 1).unwrap() is Continue(work~) else {
@@ -175,6 +227,10 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
     }
   }
   assert_eq(starts.val, 1)
+  assert_eq(
+    @model.model_execution_resource_usage(active.model.unwrap()).attempts,
+    1,
+  )
   assert_true(original_matches.val)
   assert_true(advances.val > 0)
   assert_eq(observed.val, projection_work == 10000)
@@ -226,4 +282,9 @@ test "first M1 original Scope request reaches bounded Common projection before S
 ///|
 test "first M1 original Scope projection work refusal keeps same cleanup custody" {
   first_m1_original_request_check(13)
+}
+
+///|
+test "first M1 original cumulative attempt ceiling rejects two eligible rows before SDK preparation" {
+  first_m1_original_request_check(10000, two_eligible=true)
 }

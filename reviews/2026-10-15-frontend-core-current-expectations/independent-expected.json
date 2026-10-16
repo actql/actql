@@ -1,0 +1,9 @@
+{
+  "source": "7ff746027cb96e380a2114d68bf7318bee6d802c",
+  "input": "spec/contracts/actql-aoa.json",
+  "sourceSha256": "8f88f0aef536b5164a15ab5046727a34d8aba4836c8a4926ff05bd70aca7559c",
+  "canonicalPreimageSha256": "e98fc21c3b3e22d9023f95014c459e444a469c77eadaa04d5b448c1c2e34e766",
+  "expectedContractCid": "sha256:e98fc21c3b3e22d9023f95014c459e444a469c77eadaa04d5b448c1c2e34e766",
+  "oldContractCid": "sha256:5fd1c3389aea2156a0cc35ae3bf02ea655e9899f21946fe20ff5e02baf44bb89",
+  "derivation": "Existing canonical machine CID applied to normative AoA body, never compiled product output."
+}

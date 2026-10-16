@@ -23,7 +23,7 @@ const steps = mode === '--producer'
   ? [{name: 'Same-clean-source normal four-release-package producer', command: 'node',
     args: ['--input-type=module', '-e',
       "import {preparePackageRelease} from './scripts/package-release.mjs'; await preparePackageRelease({destination:process.argv[1]});", directory]}]
-  : [{name: 'Installed Calendar Local HTTPS original six independent source-free cases', command: 'node',
+  : [{name: 'Installed Calendar Local HTTPS original six cases, three typed refusals and fresh-process reread', command: 'node',
     args: ['scripts/test-package-release-sourcefree-query.mjs', directory, receipt, '--calendar-only'],
     env: {ACTQL_TEST_PRESERVE_SCRATCH: '1'}},
     {name:'Independent original Calendar rows ordered schema same request and quiet I/O audit',command:'node',args:['reviews/2026-10-15-calendar-host-installation/public-audit.mjs',receipt]}];

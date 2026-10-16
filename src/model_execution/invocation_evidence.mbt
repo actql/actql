@@ -300,9 +300,9 @@ fn accept_model_slot(
   input_key_cid : String,
   checked : @admitted.CheckedValue,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
-  state.observing_response = false
-  state.outcomes.push(Success(state.captures.length()))
-  if state.attempts.get(state.next_slot) is Some(trace) {
+  state.progress.observing_response = false
+  adopt_model_outcome(state, Success(state.captures.length()))
+  if state.attempts.get(state.progress.slot) is Some(trace) {
     trace.category = "ok"
     trace.failure = None
     trace.work = state.work
@@ -329,11 +329,11 @@ fn accept_model_slot(
     observed_at: observation.observed_at,
   })
   if state.durable_calls {
-    state.settlement_pending = Some(state.next_slot)
+    state.progress.settlement = Some(state.progress.slot)
   }
-  state.next_slot += 1
-  state.phase = DispatchSlot
-  if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
+  state.progress.slot += 1
+  state.progress.phase = DispatchSlot
+  if state.progress.slot == @relation.prepared_infer_rows_count(state.rows) {
     complete_model_slots(state)
   } else {
     @bounded.Continue(1, 1)
@@ -350,12 +350,13 @@ pub fn model_execution_invocation_evidence(
 ) -> @publication.RunEvidenceValue? {
   if (
       !execution.state.accepted &&
-      !(execution.state.durable_calls && slot < execution.state.next_slot)
+      !(execution.state.durable_calls &&
+      model_outcome_at(execution.state, slot) is Some(_))
     ) ||
     execution.state.reclaimed {
     None
   } else {
-    match execution.state.outcomes.get(slot) {
+    match model_outcome_at(execution.state, slot) {
       Some(Success(index)) => execution.state.invocation_evidence.get(index)
       _ => None
     }
@@ -366,5 +367,5 @@ pub fn model_execution_invocation_evidence(
 pub fn model_execution_sealing_observation(execution : ModelExecution) -> Bool {
   !execution.state.reclaimed &&
   !@bounded.session_stopped(execution.session) &&
-  execution.state.phase is PrepareEvidence(_)
+  execution.state.progress.phase is PrepareEvidence(_)
 }

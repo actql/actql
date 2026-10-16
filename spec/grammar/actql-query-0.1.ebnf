@@ -208,7 +208,8 @@ terminal_effect = terminal_update | terminal_insert | terminal_upsert
                 | [ "EFFECT", [ identifier ] ], table_create ;
 table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
 effect_prefix = "EFFECT", [ identifier ] ;
-record_target = path | "TARGET", query_string, "MAPPING", identifier ;
+record_target = path, [ "MAPPING", identifier ]
+              | "TARGET", query_string, "MAPPING", identifier ;
 effect_result = "FROM", "RESULT", identifier ;
 effect_set    = "SET", "(", assignment, { ",", assignment }, ")" ;
 terminal_update = effect_prefix, "UPDATE", record_target, [ effect_result ],

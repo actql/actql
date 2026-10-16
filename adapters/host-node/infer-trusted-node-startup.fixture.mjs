@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {Buffer} from 'node:buffer';
 import {Readable} from 'node:stream';
+import {TextDecoder as NodeTextDecoder} from 'node:util';
+import tls from 'node:tls';
 import {issueInferTrustedRuntimeView, requireInferTrustedStartupView,
   associateInferTrustedStartupView, borrowInferTrustedStartupView,
   forgetInferTrustedStartupView, forgetInferTrustedRuntimeView} from './infer-trusted-runtime-view.mjs';
@@ -13,9 +15,63 @@ const actual = source();
 const view = issueInferTrustedRuntimeView(actual);
 const mode = process.argv[2];
 const rejects = (run, code) => assert.throws(run, error => error.code === code);
-if (mode === 'absent') {
+if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unselected' ||
+    mode === 'codepoint-unselected' ||
+    mode === 'iterator-unselected') {
   assert.equal(associateInferTrustedStartupView(view, actual), undefined);
   rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedStartupUnavailable');
+  if (mode === 'promise-unselected') {
+    const descriptor = Object.getOwnPropertyDescriptor(Promise.prototype, 'then');
+    assert.equal(descriptor.writable, true);
+    assert.equal(descriptor.configurable, true);
+    const original = Promise.prototype.then;
+    try { Promise.prototype.then = () => undefined; }
+    finally { Promise.prototype.then = original; }
+  }
+  if (mode === 'string-unselected') {
+    const original = String.prototype.charCodeAt;
+    const descriptor = Object.getOwnPropertyDescriptor(String.prototype, 'charCodeAt');
+    assert.equal(descriptor.writable, true);
+    assert.equal(descriptor.configurable, true);
+    try {
+      String.prototype.charCodeAt = function(index) { return original.call(this, index); };
+      assert.notEqual(String.prototype.charCodeAt, original);
+      assert.equal('雪'.charCodeAt(0), 0x96ea);
+    } finally { String.prototype.charCodeAt = original; }
+  }
+  if (mode === 'codepoint-unselected') {
+    const constructor = globalThis.String;
+    const original = constructor.fromCodePoint;
+    assert.equal(Object.getOwnPropertyDescriptor(globalThis, 'String').writable, true);
+    assert.equal(Object.getOwnPropertyDescriptor(constructor, 'fromCodePoint').writable, true);
+    try {
+      constructor.fromCodePoint = (...points) => original(...points);
+      assert.notEqual(constructor.fromCodePoint, original);
+      assert.equal(constructor.fromCodePoint(0x96ea), '雪');
+      globalThis.String = function SelectedReplacement() {};
+      assert.notStrictEqual(globalThis.String, constructor);
+    } finally {
+      globalThis.String = constructor;
+      constructor.fromCodePoint = original;
+    }
+  }
+  if (mode === 'iterator-unselected') {
+    const make = Readable.prototype[Symbol.asyncIterator];
+    const prototype = Object.getPrototypeOf(Object.getPrototypeOf((async function* () {})()));
+    const next = prototype.next;
+    assert.equal(Object.getOwnPropertyDescriptor(Readable.prototype, Symbol.asyncIterator).writable, true);
+    assert.equal(Object.getOwnPropertyDescriptor(prototype, 'next').writable, true);
+    try {
+      Readable.prototype[Symbol.asyncIterator] = function() { return make.call(this); };
+      prototype.next = function(value) { return next.call(this, value); };
+      const received = [];
+      for await (const chunk of Readable.from(['original'])) received.push(chunk);
+      assert.deepEqual(received, ['original']);
+    } finally {
+      Readable.prototype[Symbol.asyncIterator] = make;
+      prototype.next = next;
+    }
+  }
 } else {
   assert.equal(associateInferTrustedStartupView(view, actual), view);
   requireInferTrustedStartupView(view, actual);
@@ -56,6 +112,191 @@ if (mode === 'absent') {
     requireInferTrustedStartupView(nextView, next);
     forgetInferTrustedStartupView(nextView, next.host, next.generation);
     forgetInferTrustedRuntimeView(nextView, next.host, next.generation);
+  } else if (mode === 'identity-index-lifetime') {
+    // Actual selected startup/index implementation, nominal Host/Scope refs.
+    // This observes membership and retirement, never backing size/shrink/ACK.
+    const other = {...actual, host: {}, generation: {}, installation: {}};
+    const otherView = issueInferTrustedRuntimeView(other);
+    assert.equal(associateInferTrustedStartupView(otherView, other), otherView);
+    const escaped = {...actual, installation: {}, transport() {}};
+    const escapedView = issueInferTrustedRuntimeView(escaped);
+    borrowInferTrustedStartupView(view, escapedView, actual, escaped);
+    requireInferTrustedStartupView(escapedView, escaped);
+    // Repeated Runs on the SAME Host do not invent new Host generations.
+    for (let index = 0; index < 3; index++) {
+      const scoped = {...actual, installation: {}, transport() {}};
+      const scopedView = issueInferTrustedRuntimeView(scoped);
+      borrowInferTrustedStartupView(view, scopedView, actual, scoped);
+      requireInferTrustedStartupView(scopedView, scoped);
+      requireInferTrustedStartupView(otherView, other);
+      rejects(() => requireInferTrustedStartupView(scopedView,
+        {...scoped, generation: other.generation}), 'InferTrustedRuntimeOriginalChanged');
+      forgetInferTrustedStartupView(scopedView, actual.host, actual.generation);
+      forgetInferTrustedRuntimeView(scopedView, actual.host, actual.generation);
+      rejects(() => requireInferTrustedStartupView(scopedView, scoped),
+        'InferTrustedRuntimeViewRetired');
+    }
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    rejects(() => requireInferTrustedStartupView(escapedView, escaped),
+      'InferTrustedStartupUnavailable');
+    // Retaining the original Host key does not permit generation reuse after
+    // association deletion. Another live Host keeps its independent duty.
+    rejects(() => associateInferTrustedStartupView(issueInferTrustedRuntimeView(actual), actual),
+      'InferTrustedStartupUnavailable');
+    requireInferTrustedStartupView(otherView, other);
+    rejects(() => requireInferTrustedStartupView({...otherView}, other),
+      'InferTrustedRuntimeViewUnavailable');
+    forgetInferTrustedStartupView(escapedView, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(escapedView, actual.host, actual.generation);
+    forgetInferTrustedStartupView(otherView, other.host, other.generation);
+    forgetInferTrustedRuntimeView(otherView, other.host, other.generation);
+  } else if (mode === 'tls-peer-originals') {
+    // Selected builtin JS only, not a handshake or certificate-size bound.
+    // The TLS adapter's original error retains this SAME peer graph. ActQL
+    // aliases, copied diagnostics and pending controls still require funding.
+    const cert = {subject: {CN: 'other.invalid'},
+      subjectaltname: 'DNS:other.invalid', issuerCertificate: {subject: {CN: 'issuer'}}};
+    const error = tls.checkServerIdentity('expected.invalid', cert);
+    assert.equal(error.code, 'ERR_TLS_CERT_ALTNAME_INVALID');
+    assert.equal(error.cert, cert);
+    assert.equal(error.cert.issuerCertificate, cert.issuerCertificate);
+    assert.equal(error.host, 'expected.invalid');
+    for (const [owner, name] of [[tls, 'connect'], [tls, 'checkServerIdentity'],
+      [tls.TLSSocket.prototype, 'getPeerCertificate']]) {
+      const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+      assert.equal(descriptor.writable, false, name);
+      assert.equal(descriptor.configurable, false, name);
+      assert.throws(() => { owner[name] = () => undefined; }, TypeError);
+    }
+    requireInferTrustedStartupView(view, actual);
+    rejects(() => requireInferTrustedStartupView(view, {...actual, transport() {}}),
+      'InferTrustedRuntimeOriginalChanged');
+    // Rechecking or retiring the view never acknowledges a TLS/socket close
+    // and cannot clear a still-borrowed original error or certificate graph.
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    assert.equal(error.cert, cert);
+    rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedRuntimeViewRetired');
+  } else if (mode === 'promise-originals') {
+    const original = Promise;
+    for (const [owner, name] of [[globalThis, 'Promise'], [original, 'resolve'],
+      [original, 'reject'], [original.prototype, 'then'],
+      [original.prototype, 'catch'], [original.prototype, 'finally'],
+      [original.prototype, 'constructor']]) {
+      const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+      assert.equal(descriptor.writable, false, name);
+      assert.equal(descriptor.configurable, false, name);
+      assert.throws(() => { owner[name] = () => undefined; }, TypeError);
+    }
+    const species = Object.getOwnPropertyDescriptor(original, Symbol.species);
+    assert.equal(typeof species.get, 'function');
+    assert.equal(species.set, undefined);
+    assert.equal(species.configurable, false);
+    assert.strictEqual(species.get.call(original), original);
+    assert.throws(() => Object.defineProperty(original, Symbol.species,
+      {get: () => class ForeignPromise extends original {}}), TypeError);
+    const value = Object.freeze({synthetic: 'same-original'});
+    const pending = original.resolve(value).then(result => result).finally(() => {});
+    assert.strictEqual(await pending, value);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    // Host retirement is not retirement of the process/module originals.
+    assert.equal(Object.getOwnPropertyDescriptor(original.prototype, 'then').writable, false);
+  } else if (mode === 'read-body-iterator') {
+    const make = Readable.prototype[Symbol.asyncIterator];
+    const prototype = Object.getPrototypeOf(Object.getPrototypeOf((async function* () {})()));
+    const next = prototype.next;
+    for (const [owner, name] of [[Readable.prototype, Symbol.asyncIterator], [prototype, 'next']]) {
+      const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+      assert.equal(descriptor.writable, false);
+      assert.equal(descriptor.configurable, false);
+      assert.throws(() => { owner[name] = () => undefined; }, TypeError);
+      assert.throws(() => Object.defineProperty(owner, name, {get: () => next}), TypeError);
+    }
+    const body = Readable.from(['original']);
+    assert.strictEqual(body[Symbol.asyncIterator], make);
+    const iterator = body[Symbol.asyncIterator]();
+    assert.strictEqual(iterator.next, next);
+    assert.deepEqual(await iterator.next(), {value: 'original', done: false});
+    assert.deepEqual(await iterator.next(), {value: undefined, done: true});
+    assert.equal(body.closed, true);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    assert.equal(Object.getOwnPropertyDescriptor(prototype, 'next').writable, false,
+      'Host-reference retirement is not generator/process retirement');
+  } else if (mode === 'builder-codepoint-originals') {
+    const constructor = globalThis.String;
+    const original = constructor.fromCodePoint;
+    for (const [owner, name] of [[globalThis, 'String'], [constructor, 'fromCodePoint']]) {
+      const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+      assert.equal(descriptor.writable, false);
+      assert.equal(descriptor.configurable, false);
+      assert.throws(() => { owner[name] = function ForeignPrimitive() {}; }, TypeError);
+      assert.throws(() => Object.defineProperty(owner, name, {get: () => original}), TypeError);
+    }
+    // Actual code-point semantics, not a heap/single-character-cache/GC proof.
+    assert.equal(constructor.fromCodePoint(0, 0x61, 0x301, 0x96ea, 0x1f600), '\0a\u0301雪😀');
+    assert.throws(() => constructor.fromCodePoint(0x110000), RangeError);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    assert.strictEqual(globalThis.String, constructor);
+    assert.strictEqual(constructor.fromCodePoint, original);
+    assert.equal(Object.getOwnPropertyDescriptor(constructor, 'fromCodePoint').writable, false,
+      'Retiring a Host view does not retire the selected runtime originals');
+  } else if (mode === 'read-string-charcode') {
+    // The actual emitted Common String.unsafe_char_at/UTF16 read uses this
+    // intrinsic method. This is primitive identity, not a heap/GC bound or
+    // proof that every String operation is covered by the selected supplier.
+    const original = String.prototype.charCodeAt;
+    const descriptor = Object.getOwnPropertyDescriptor(String.prototype, 'charCodeAt');
+    assert.equal(descriptor.writable, false);
+    assert.equal(descriptor.configurable, false);
+    assert.throws(() => {
+      String.prototype.charCodeAt = function(index) { return original.call(this, index); };
+    }, TypeError);
+    assert.throws(() => Object.defineProperty(String.prototype, 'charCodeAt',
+      {get: () => original}), TypeError);
+    const text = 'e\u0301\r\n雪😀';
+    assert.deepEqual(Array.from({length: text.length}, (_, index) => text.charCodeAt(index)),
+      [0x65, 0x301, 0x0d, 0x0a, 0x96ea, 0xd83d, 0xde00]);
+    assert.equal(Number.isNaN(text.charCodeAt(text.length)), true);
+    assert.strictEqual(String.prototype.charCodeAt, original);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    assert.equal(Object.getOwnPropertyDescriptor(String.prototype, 'charCodeAt').writable, false,
+      'Host-reference retirement is not native/module retirement');
+  } else if (['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray'].includes(mode)) {
+    assert.equal(globalThis.TextDecoder, NodeTextDecoder);
+    if (mode === 'read-decoder-global') {
+      assert.throws(() => Object.defineProperty(globalThis, 'TextDecoder', {
+        value: class ReplacementDecoder {},
+      }), TypeError);
+    } else if (mode === 'read-decoder-decode') {
+      assert.throws(() => {NodeTextDecoder.prototype.decode = () => '';}, TypeError);
+    } else {
+      assert.throws(() => {Buffer.prototype.subarray = () => Buffer.alloc(0);}, TypeError);
+    }
+    // The selected READ uses Buffer receivers and two distinct strict decoders.
+    // Views retain the same dedicated backing, not another byte allocation.
+    const bytes = Buffer.allocUnsafeSlow(7);
+    bytes.set([0xef, 0xbb, 0xbf, 0x61, 0xc3, 0xa9, 0x0a]);
+    const slice = bytes.subarray(3);
+    assert.equal(Object.getPrototypeOf(slice), Buffer.prototype);
+    assert.equal(slice.buffer, bytes.buffer);
+    const first = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+    const second = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+    assert.notEqual(first, second);
+    assert.equal(first.decode(bytes), '\ufeffa\u00e9\n');
+    assert.equal(second.decode(slice), 'a\u00e9\n');
+    assert.throws(() => first.decode(Buffer.from([0xff])), TypeError);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
   } else if (mode === 'mutation') {
     assert.throws(() => {Buffer.poolSize = 16384;}, TypeError);
     assert.throws(() => {Buffer.concat = () => Buffer.alloc(1);}, TypeError);

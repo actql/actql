@@ -6,14 +6,19 @@ existing Client–Host protocol. Explicit `--mode local` uses the existing Nativ
 Host, checker, journal and Store. Connecting to a Local Host over HTTPS is still
 Remote transport, not embedded Local execution.
 
-The fixed Darwin arm64 cohort from source
-`109564ef9a4f8241096292843b875d4c81fbb6f3` completed the source-free Local
-installed baseline on macOS 26.0 or newer: normal external installation,
-explicit trust adoption, SQL `SELECT 1 AS n`, the Named Result `[{"n":1}]`,
-fresh-process lookup of the same Submission/Run, delivery digest/release receipt,
-same-attempt reopen refusal and an explicitly new retained read. The eleven
-bounded cases passed, including two expected refusals. This is not full
-Source/Effect/approval/cancel/Debug or other-platform Local acceptance.
+The fixed Darwin arm64 private-integration cohort from source
+`eb2f8b3b0a096e8dd86548bffbc6bafb6e79fc20` completed seventeen Local CLI
+operations on macOS 26.0 or newer, including three expected refusals and no
+skips. After external installation and explicit trust adoption, it exercised
+`check`, source-free SQL `explain`, `run` with `SELECT 1 AS n`, fresh-process
+`status` by original reference and Run ID in JSON/human form, and the Named
+Result `[{"n":1}]` with digest/release evidence and an explicit retained reread.
+This is exact-cohort evidence, not acceptance of the latest main or complete
+Source/Model/Effect/approval/cancel/Debug and other-platform Local profiles.
+
+The earlier source `109564ef9a4f8241096292843b875d4c81fbb6f3` keeps its
+original eleven-case `aql`/Result evidence. Its binary and capabilities are not
+relabelled as the later cohort.
 
 Local initialization requires `actql --mode local adopt --json`; `connect`
 cannot silently adopt. Product defaults and bundled dependencies do not require

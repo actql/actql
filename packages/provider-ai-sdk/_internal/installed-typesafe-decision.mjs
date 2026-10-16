@@ -1,5 +1,7 @@
+import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createAdmittedTypeSafeDecisionPreflight} from './native-decision-preflight.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
+import {requireTypeSafeOriginalTransportLimits} from './typesafe-decision.mjs';
 
 const issue = code => {throw Object.assign(new TypeError(code), {code});};
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -74,6 +76,7 @@ export function createInstalledTypeSafeDecisionRegistration(config) {
       'clientProgramModelPhysicalCallForRequest', 'clientProgramModelPhysicalPending',
       'clientProgramModelPhysicalUnknown', 'clientProgramModelPhysicalSavedNativeDecision']
       .every(name => typeof moon?.[name] === 'function')) issue('TypeSafeOriginalRuntimeUnavailable');
+    requireTypeSafeOriginalTransportLimits(moon,raw.profile,requestLimits.maxBytes,responseLimits);
     return [Object.freeze({providerId, entryPersistence: 'async', bindingOriginals: bindings,
       originalReadInstallation: original, rawCaptureSelection: raw, quantityCapacity: quantities, observeEgress,
       validatePrompt: (task, selector, payload) => task === taskCid && selector === modelSelector && payload === promptPayloadWire,
@@ -87,7 +90,7 @@ export function createInstalledTypeSafeDecisionRegistration(config) {
           quantities: quantities.perAttempt, responseLimits,
           maxRequestBytes: requestLimits.maxBytes, maxHeaderBytes: requestLimits.maxHeaderBytes,
           maxHeaders: requestLimits.maxHeaders,
-          checked(value) {if (value?.$tag !== 1) issue('TypeSafeOriginalCommonRefused'); return value._0;},
+          checked(value) {if (!runtimeIsOk(value)) issue('TypeSafeOriginalCommonRefused'); return runtimeField(value, 0);},
         }).preflight;
       },
     })];

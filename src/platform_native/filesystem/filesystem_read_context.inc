@@ -54,6 +54,30 @@ static int actql_native_filesystem_scoped_open_root(
   return actql_read_context_leave(context);
 }
 
+static int actql_native_filesystem_scoped_open_child_root(
+  actql_native_filesystem_root *parent, moonbit_bytes_t name, int32_t length,
+  actql_native_filesystem_root **output
+) {
+  if (parent == NULL || !parent->read_context_user || parent->fd < 0 ||
+      output == NULL || *output != NULL ||
+      actql_bootstrap_current_read_context() != parent->read_context)
+    return ACTQL_OWNED_INVALID;
+  actql_read_context *context = parent->read_context;
+  int status = actql_read_context_retain(context);
+  if (status != ACTQL_OWNED_OK) return status;
+  status = actql_filesystem_context_begin(context);
+  if (status != ACTQL_OWNED_OK) {
+    int released = actql_read_context_release_after_owner_ack(context);
+    return released == ACTQL_OWNED_OK ? status : released;
+  }
+  actql_native_filesystem_root *child =
+    actql_native_filesystem_open_child_root(parent, name, length);
+  child->read_context = context;
+  child->read_context_user = true;
+  *output = child; // Failed opens retain their own original context user too.
+  return actql_read_context_leave(context);
+}
+
 int actql_native_filesystem_scoped_open_reader(
   actql_native_filesystem_root *root, moonbit_bytes_t name, int32_t length,
   uint64_t device, uint64_t inode, int64_t size,

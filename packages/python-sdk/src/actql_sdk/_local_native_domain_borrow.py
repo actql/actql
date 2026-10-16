@@ -6,6 +6,8 @@ before this private physical port. Material DATA is not that authorization.
 """
 from __future__ import annotations
 
+from ._local_native_memory_abi import bind as bind_memory
+
 from contextlib import contextmanager
 from collections.abc import Iterator
 from ctypes import Array, POINTER, byref, c_int, c_int64, c_size_t, c_ubyte, c_uint64, c_void_p, alignment, cast
@@ -28,38 +30,20 @@ class _OriginalDomainBorrowFunctions:
     """Only binds the selected original provider; never loads a DLL/fallback."""
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.size = library.actql_native_domain_borrow_storage_bytes
-        self.align = library.actql_native_domain_borrow_storage_alignment
-        for call in (self.size, self.align):
-            call.argtypes = []
-            call.restype = c_size_t
-        self.open = library.actql_native_domain_borrow_open
-        self.open.argtypes = [c_void_p, c_size_t, c_int, POINTER(c_ubyte), POINTER(c_int64)]
-        self.open.restype = c_int
-        self.status = library.actql_native_domain_borrow_status
-        self.enter = library.actql_native_domain_borrow_enter
-        self.leave = library.actql_native_domain_borrow_leave
-        self.close = library.actql_native_domain_borrow_close
-        for call in (self.status, self.enter, self.leave, self.close):
-            call.argtypes = [c_void_p]
-            call.restype = c_int
-        self.pointer = library.actql_native_domain_borrow_pointer
-        self.pointer.argtypes = [c_void_p, POINTER(c_void_p)]
-        self.pointer.restype = c_int
-        self.claim = library.actql_native_domain_borrow_claim_holding
-        self.close_holding = library.actql_native_domain_borrow_close_holding
-        for call in (self.claim, self.close_holding):
-            call.argtypes = [c_void_p, POINTER(c_void_p)]
-            call.restype = c_int
-        self.transfer = library.actql_native_domain_borrow_transfer_holding
-        self.transfer.argtypes = [c_void_p, c_void_p, c_uint64, POINTER(c_ubyte)]
-        self.transfer.restype = c_int
-        self.capacity = library.actql_native_domain_borrow_capacity
-        self.capacity.argtypes = [c_void_p, POINTER(c_uint64)]
-        self.capacity.restype = c_int
-        self.contains = library.actql_native_domain_borrow_contains_live_span
-        self.contains.argtypes = [c_void_p, c_void_p, c_size_t]
-        self.contains.restype = c_int
+        self.size = bind_memory(library, 'actql_native_domain_borrow_storage_bytes')
+        self.align = bind_memory(library, 'actql_native_domain_borrow_storage_alignment')
+        self.open = bind_memory(library, 'actql_native_domain_borrow_open')
+        self.status = bind_memory(library, 'actql_native_domain_borrow_status')
+        self.enter = bind_memory(library, 'actql_native_domain_borrow_enter')
+        self.leave = bind_memory(library, 'actql_native_domain_borrow_leave')
+        self.close = bind_memory(library, 'actql_native_domain_borrow_close')
+        self.pointer = bind_memory(library, 'actql_native_domain_borrow_pointer')
+        self.claim = bind_memory(library, 'actql_native_domain_borrow_claim_holding')
+        self.close_holding = bind_memory(library, 'actql_native_domain_borrow_close_holding')
+        self.transfer = bind_memory(library, 'actql_native_domain_borrow_transfer_holding')
+        self.capacity = bind_memory(library, 'actql_native_domain_borrow_capacity')
+        self.contains = bind_memory(library, 'actql_native_domain_borrow_contains_live_span')
+        self.span_offset = bind_memory(library, 'actql_native_domain_borrow_span_offset')
 
 
 class _OriginalDomainBorrow:
@@ -83,6 +67,7 @@ class _OriginalDomainBorrow:
     _unknown: _OriginalDomainBorrowError | None
     _unknown_carrier: _OriginalDomainBorrowError
     _holding_consumer: object | None
+    _child_control_original: object | None
 
     @classmethod
     def _map_original(cls, functions: _OriginalDomainBorrowFunctions,
@@ -111,6 +96,7 @@ class _OriginalDomainBorrow:
         borrow._busy, borrow._closed, borrow._closing = False, False, False
         borrow._unknown = None
         borrow._holding_consumer = None
+        borrow._child_control_original = None
         borrow._unknown_carrier = _OriginalDomainBorrowError(borrow, unknown=True)
         recipe, values = (c_ubyte * 32).from_buffer_copy(material.recipe), (c_int64 * 15)(*material.scalars)
         borrow._begin()
@@ -235,6 +221,31 @@ class _OriginalDomainBorrow:
     def _holding_identity(self, consumer: object) -> None:
         if self._holding_consumer is not consumer:
             raise ValueError('Foreign original child domain holding')
+
+    def _holding_span_offset(self, consumer: object, slot: c_void_p,
+                             address: c_void_p, length: int) -> int:
+        """Physical DATA from this same original; no caller supplies a VM fact."""
+        self._holding_identity(consumer)
+        if (self._closed or self._closing or type(slot) is not c_void_p
+                or slot.value is None or type(address) is not c_void_p or address.value is None
+                or type(length) is not int or not 0 < length <= 2**63 - 1):
+            raise ValueError('Original child span projection is unavailable')
+        self._begin()
+        try:
+            observed = c_uint64()
+            self._check_code(self._functions.span_offset(
+                self._pointer, slot, address, length, byref(observed)))
+            if (not 0 < observed.value <= 2**63 - 1
+                    or observed.value > self._material.scalars[7]
+                    or length > self._material.scalars[7] - observed.value):
+                raise self._mark_unknown()
+            return observed.value
+        except BaseException as error:
+            if isinstance(error, _OriginalDomainBorrowError):
+                raise
+            raise self._mark_unknown() from error
+        finally:
+            self._busy = False
 
     def _transfer_holding(self, consumer: object, slot: c_void_p, generation: int, recipe: bytes) -> None:
         self._holding_identity(consumer)

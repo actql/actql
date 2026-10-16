@@ -32,7 +32,25 @@ pub fn model_outcomes_count(read : ModelOutcomeRead) -> Int? {
   if read.released || read.owner.state.reclaimed {
     None
   } else {
-    Some(read.owner.state.outcomes.length())
+    Some(model_outcome_count(read.owner.state))
+  }
+}
+
+///|
+/// Logical Slot at an actually adopted observation position. Parallel arrival
+/// can be sparse after stop: count2 does not imply logical Slots0 and1.
+pub fn model_outcomes_slot_at(read : ModelOutcomeRead, index : Int) -> Int? {
+  if read.released || read.owner.state.reclaimed || index < 0 {
+    return None
+  }
+  match read.owner.state.slot_window {
+    Some(window) => window.adopted_slots.get(index)
+    None =>
+      if index < read.owner.state.outcomes.length() {
+        Some(index)
+      } else {
+        None
+      }
   }
 }
 
@@ -41,7 +59,7 @@ pub fn model_outcomes_outcome(read : ModelOutcomeRead, slot : Int) -> String? {
   if read.released || read.owner.state.reclaimed {
     None
   } else {
-    read.owner.state.outcomes.get(slot).map(adopted_model_slot_outcome)
+    model_outcome_at(read.owner.state, slot).map(adopted_model_slot_outcome)
   }
 }
 
@@ -53,7 +71,7 @@ pub fn model_outcomes_call_at(
   let state = read.owner.state
   guard !read.released &&
     !state.reclaimed &&
-    state.outcomes.get(slot) is Some(_) &&
+    model_outcome_at(state, slot) is Some(_) &&
     state.requests.get(slot) is Some(prepared) &&
     prepared.call is Some(call) &&
     prepared.request.slot == slot &&
@@ -70,7 +88,7 @@ pub fn model_outcomes_invocation_evidence(
 ) -> @publication.RunEvidenceValue? {
   guard !read.released &&
     !read.owner.state.reclaimed &&
-    read.owner.state.outcomes.get(slot) is Some(Success(index)) else {
+    model_outcome_at(read.owner.state, slot) is Some(Success(index)) else {
     return None
   }
   read.owner.state.invocation_evidence.get(index)

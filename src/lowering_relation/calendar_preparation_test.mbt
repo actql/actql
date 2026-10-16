@@ -46,6 +46,56 @@ fn calendar_preparation_owner(
 }
 
 ///|
+test "Calendar occurrence projection rejects foreign pipeline operation and step" {
+  let body =
+    #|[{"calendar_series":{"start":"2000-01-01T00:00:00.000Z","end":"2000-01-03T00:00:00.000Z","unit":"day","timezone":"UTC"},"as":"first"},{"calendar_series":{"start":"2000-01-01T00:00:00.000Z","end":"2000-01-03T00:00:00.000Z","unit":"day","timezone":"UTC"},"as":"second"}]
+  let owner = calendar_preparation_owner(body)
+  let foreign = calendar_preparation_owner(body)
+  let sequence = @lowering_relation.prepare_sequence(owner, {
+    ..sequence_limits(),
+    max_rows: 8,
+    max_cells: 16,
+  }).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(CalendarStep(first)) &&
+    @lowering_relation.sequence_step(sequence, 1) is Some(CalendarStep(second)) else {
+    fail("independent occurrences must retain their original calendars")
+  }
+  let pipeline = @lowering_relation.pipeline(
+    @lowering_relation.bound_preparation(owner),
+  )
+  let operation = @lowering_relation.calendar_checked(first)
+  assert_true(
+    @lowering_relation.calendar_matches_occurrence(
+      first, pipeline, 0, operation,
+    ),
+  )
+  for index in [-1, 1, 2] {
+    assert_false(
+      @lowering_relation.calendar_matches_occurrence(
+        first, pipeline, index, operation,
+      ),
+    )
+  }
+  assert_false(
+    @lowering_relation.calendar_matches_occurrence(
+      first,
+      @lowering_relation.pipeline(@lowering_relation.bound_preparation(foreign)),
+      0,
+      operation,
+    ),
+  )
+  assert_false(
+    @lowering_relation.calendar_matches_occurrence(
+      first,
+      pipeline,
+      0,
+      @lowering_relation.calendar_checked(second),
+    ),
+  )
+}
+
+///|
 test "Calendar sequence retains original selected profile bound range and schema" {
   let owner = calendar_preparation_owner(
     "[{\"calendar_series\":{\"start\":\"2000-01-01T00:00:00.000Z\",\"end\":\"2000-01-03T00:00:00.000Z\",\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"days\"}]",

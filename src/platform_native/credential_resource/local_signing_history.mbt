@@ -85,6 +85,54 @@ pub fn prepare_native_local_signing_history_candidate(
 }
 
 ///|
+/// History of the one-original-signature Local operation. Its retained grant
+/// selects the exact use; no caller ID, new ordinal or live use authorization
+/// is accepted. The generic multi-use history reader remains unchanged.
+pub fn prepare_native_local_original_signing_history_candidate(
+  database : @sqlite.Database,
+  grant : @credential.LocalSigningCredentialGrant,
+) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue] {
+  let scope = @credential.local_signing_credential_grant_scope(grant)
+  if scope.purpose != @credential.ReviewerProof {
+    return Err(Credential(@credential.CredentialGrantInactive))
+  }
+  let candidate = match
+    prepare_native_local_signing_history_candidate(
+      database,
+      grant,
+      scope.attempt_id,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let (cid, use_id, ordinal) = @credential.local_signing_credential_use_projection(
+    candidate.original_use,
+  )
+  if cid != @credential.local_signing_credential_grant_cid(grant) ||
+    use_id != scope.attempt_id ||
+    ordinal != 1 {
+    return Err(Journal(@sqlite.Collision))
+  }
+  // At most two rows per existing bucket distinguish the exact original from
+  // a legacy/foreign use or orphan outcome. Never enumerate an unbounded stream
+  // or repair a missing expected use from the other row.
+  for bucket in [use_scope(cid), outcome_scope(cid)] {
+    let first = match database.scan_after(bucket, "") {
+      Ok(row) if row.key == scope.attempt_id => row
+      Ok(_) => return Err(Journal(@sqlite.Collision))
+      Err(@sqlite.NotFound) => continue
+      Err(issue) => return Err(Journal(issue))
+    }
+    match database.scan_after(bucket, first.key) {
+      Err(@sqlite.NotFound) => ()
+      Ok(_) => return Err(Journal(@sqlite.Collision))
+      Err(issue) => return Err(Journal(issue))
+    }
+  }
+  Ok(candidate)
+}
+
+///|
 /// Original identity metadata only. This getter issues no read or use permit.
 pub fn NativeLocalSigningHistoryCandidate::original_use(
   self : NativeLocalSigningHistoryCandidate,

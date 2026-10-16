@@ -2,6 +2,43 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createExplorerGateway, gatewayLimits, startExplorerGateway} from './gateway.mjs';
 import {createExplorerBrowserSource} from './browser-source.mjs';
+import {gatewayLaunchPlanFixture} from './gateway-launch.fixture.mjs';
+import {observationRef, runObservationFixture, ownerObservationFixture}
+  from '../explorer-ui/run-observation.fixture.mjs';
+
+test('current observation endpoint reads only the same original Run and one Owner-local page', async () => {
+  const calls=[], original=observationRef();
+  const h=harness({client:{async attach(ref){calls.push(['attach',ref]);return {
+    inspect(limits){calls.push(['inspect',limits]);return runObservationFixture();},
+    observeOwners(limits){calls.push(['owners',limits]);return ownerObservationFixture();},
+    wait(){assert.fail('no execution wait');},cancel(){assert.fail('no control');},
+    result(){assert.fail('no Result open');},
+  };},start(){assert.fail('no Run start');}}});
+  assert.equal((await h.send('/api/read/observation',{ref:original})).status,401);
+  const session=await h.connect();
+  assert.equal((await h.read('observation',{ref:original,permission:true},session)).status,400);
+  assert.deepEqual(calls,[]);
+  const answer=await h.read('observation',{ref:original},session);assert.equal(answer.status,200);
+  const model=(await answer.json()).data;
+  assert.equal(model.run.status,'running');assert.equal(model.run.controlRevision,7);
+  assert.equal(model.histories.owners[0].snapshot.revision,3);
+  assert.equal(model.histories.owners[0].history.entries[1].state,'unknown');
+  assert.equal(model.logicalProgress.state,'unavailable');
+  assert.deepEqual(calls,[['attach',original],['inspect',{maxWireBytes:65536,maxNodes:10000,maxDepth:64}],
+    ['owners',{maxEntries:32,maxWireBytes:65536}]]);
+});
+test('foreign and delayed Owner replies cannot escape current observation scope', async () => {
+  const original=observationRef();let release;
+  const pending=new Promise(resolve=>release=resolve);
+  const h=harness({client:{attach:async()=>({inspect:async()=>runObservationFixture(),
+    observeOwners:async()=>pending})}});
+  const session=await h.connect(),answer=h.read('observation',{ref:original},session);
+  await tick();h.gateway.invalidateScope();release(ownerObservationFixture());
+  assert.notEqual((await answer).status,200);
+  const foreign=ownerObservationFixture();foreign.ref.namespaceId='foreign';
+  const f=harness({client:{attach:async()=>({inspect:async()=>runObservationFixture(),observeOwners:async()=>foreign})}});
+  assert.notEqual((await f.read('observation',{ref:original},await f.connect())).status,200);
+});
 
 const origin = 'http://127.0.0.1:43210';
 const ref = {namespaceId: 'original', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -36,6 +73,24 @@ function harness(options = {}) {
   return {gateway, send, connect, read, calls, client};
 }
 
+test('expired cancellation session cannot dispatch after original attach awaits', async () => {
+  let now = 1000, entered, release, cancellations = 0;
+  const attached = new Promise(resolve => {entered = resolve;});
+  const pendingAttach = new Promise(resolve => {release = resolve;});
+  const original = {cancelRef: {...ref, cancelId: 'expired-session-cancel', expectedRevision: 7},
+    attemptRef: {operation: 'cancel', attemptId: 'expired-session-attempt'}};
+  const h = harness({allowCancellation: true, now: () => now, sessionMs: 20,
+    client: {async attach(selected) {assert.deepEqual(selected, ref); entered(); return pendingAttach;}}});
+  const session = await h.connect();
+  const answer = h.send('/api/control/cancel', original,
+    {Cookie: session.cookie, 'X-Actql-CSRF': session.body.csrf});
+  await attached; now += 21;
+  release({async cancel() {cancellations++; return {kind: 'accepted', attemptRef: original.attemptRef,
+    cancellation: {kind: 'accepted', ref, cancelRef: original.cancelRef, revision: 8}};}});
+  assert.equal((await answer).status, 401);
+  assert.equal(cancellations, 0, 'Expired presentation session must refuse before Owner dispatch');
+});
+
 test('only exact loopback origins and finite TTLs can create a Gateway', () => {
   for (const rejected of ['http://localhost:43210', 'http://0.0.0.0:43210',
     'http://127.0.0.1:43210/', 'https://127.0.0.1:43210', 'http://user@127.0.0.1:43210']) {
@@ -43,6 +98,96 @@ test('only exact loopback origins and finite TTLs can create a Gateway', () => {
   }
   for (const sessionMs of [0, -1, '5', Infinity, gatewayLimits.sessionMs + 1]) {
     assert.throws(() => harness({sessionMs}), {code: 'ExplorerInvalidGateway'});
+  }
+});
+
+test('direct Program launch uses only the existing static Plan Owner after session and CSRF', async () => {
+  const input = {kind: 'program', text: 'SELECT 1 AS n', format: 'sql'}, calls = [];
+  const view = gatewayLaunchPlanFixture();
+  const h = harness({launchInput: input, client: {
+    attach() {assert.fail('Program launch does not attach or start a Run');},
+    async plan(text, options) {calls.push([text, options]); return view;},
+    start() {assert.fail('no new Run');}, submit() {assert.fail('no submission');},
+  }}); input.text = 'changed';
+  assert.equal((await h.send('/api/read/launch', {})).status, 401);
+  const session = await h.connect();
+  assert.equal((await h.read('launch', {}, session, {'X-Actql-CSRF': ''})).status, 403);
+  assert.equal((await h.read('launch', {start: true}, session)).status, 400);
+  assert.deepEqual(calls, []);
+  const answer = await h.read('launch', {}, session);
+  assert.equal(answer.status, 200);
+  assert.equal(answer.headers.get('cache-control'), 'no-store');
+  const data = (await answer.json()).data;
+  assert.deepEqual(Object.keys(data), ['kind', 'plan']);
+  assert.equal(data.kind, 'program');
+  assert.equal(data.plan.compiledPlanCid, view.compiled_plan_cid);
+  assert.equal(data.plan.logicalMapCid, view.logical_map.self_cid);
+  assert.deepEqual(calls, [['SELECT 1 AS n', {format: 'sql', maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  assert(!JSON.stringify(data).includes('SELECT 1 AS n'));
+  h.gateway.invalidateScope();
+  assert.equal((await h.read('launch', {}, session)).status, 401);
+  assert.equal(calls.length, 1);
+});
+
+test('direct AQL launch preserves canonical and legacy format through the existing Plan Owner', async () => {
+  for (const format of ['aql', 'aql-text']) {
+    const calls = [], view = gatewayLaunchPlanFixture();
+    const h = harness({launchInput: {kind: 'program', text: 'FROM rows', format}, client: {
+      attach() {assert.fail('no Run attach');},
+      async plan(text, options) {calls.push([text, options]); return view;},
+      submit() {assert.fail('no submit');}, start() {assert.fail('no start');},
+    }});
+    const session = await h.connect();
+    const reply = await h.read('launch', {}, session);
+    assert.equal(reply.status, 200);
+    assert.equal((await reply.json()).data.plan.compiledPlanCid, view.compiled_plan_cid);
+    assert.deepEqual(calls, [['FROM rows', {format, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  }
+});
+
+test('direct Run launch reads only the original saved map and never compiles a replacement', async () => {
+  const original = {...ref}, calls = [], view = gatewayLaunchPlanFixture();
+  const h = harness({launchInput: {kind: 'run', ref: original}, client: {
+    async attach(selected) {calls.push(['attach', selected]); return {
+      async plan() {calls.push(['run.plan']); return {
+        version: 'actql-run-plan-view/0.1', run_ref: {...ref}, plan_view: view};},
+    };}, plan() {assert.fail('no static replacement');}, start() {assert.fail('no new Run');},
+  }});
+  original.runDefinitionCid = `sha256:${'c'.repeat(64)}`;
+  const session = await h.connect();
+  const data = (await (await h.read('launch', {}, session)).json()).data;
+  assert.equal(data.kind, 'run'); assert.deepEqual(data.originalPlan.runRef, ref);
+  assert.equal(data.originalPlan.plan.logicalMapCid, view.logical_map.self_cid);
+  assert.deepEqual(calls, [['attach', ref], ['run.plan']]);
+  const empty = harness(), emptySession = await empty.connect();
+  assert.equal((await (await empty.read('launch', {}, emptySession)).json()).data, null);
+  assert.deepEqual(empty.calls, []);
+});
+
+test('launch refuses invalid authoring without disclosing the file text or Host diagnostic', async () => {
+  const secret = 'private-file-fixture-not-a-program'; let plans = 0;
+  const h = harness({launchInput: {kind: 'program', text: secret, format: 'program'}, client: {
+    attach() {assert.fail('no attach');}, plan() {plans++; assert.fail('invalid JSON is not admitted');},
+  }});
+  const session = await h.connect(), reply = await h.read('launch', {}, session);
+  assert.equal(reply.status, 502);
+  assert.deepEqual(await reply.json(), {error: 'ExplorerReadUnavailable'});
+  assert.equal(plans, 0);
+});
+
+test('launch keeps missing and foreign original Run maps unavailable with no compiler fallback', async () => {
+  for (const foreign of [false, true]) {
+    const calls = [], view = gatewayLaunchPlanFixture();
+    const h = harness({launchInput: {kind: 'run', ref}, client: {
+      async attach(selected) {calls.push(['attach', selected]); return foreign ? {
+        async plan() {calls.push(['run.plan']); return {version: 'actql-run-plan-view/0.1',
+          run_ref: {...ref, namespaceId: 'foreign'}, plan_view: view};},
+      } : {};}, plan() {assert.fail('old maps cannot be repaired');},
+    }});
+    const session = await h.connect(), reply = await h.read('launch', {}, session);
+    assert.equal(reply.status, 409);
+    assert.deepEqual(await reply.json(), {error: foreign ? 'ExplorerInvalidRunPlan' : 'ExplorerCapabilityUnavailable'});
+    assert.deepEqual(calls, foreign ? [['attach', ref], ['run.plan']] : [['attach', ref]]);
   }
 });
 
@@ -239,7 +384,7 @@ test('browser holds CSRF only in memory, discards old replies/401 and never retr
         assert(!url.includes('secret')); assert(!Object.hasOwn(options.headers, 'Authorization'));
         if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
           scopeEpoch: calls, expiresAt: 200, capabilities: {plan: false, run: true,
-            resultMetadata: true, resultPayload: false, control: false, sample: false}});
+            resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false,checkpointList:false,checkpointReview:false}});
         await wait;
         return failed ? Response.json({error: 'old'}, {status: 401}) :
           Response.json({scopeEpoch: 1, data: {secret: 'old-scope'}});
@@ -254,6 +399,38 @@ test('browser holds CSRF only in memory, discards old replies/401 and never retr
     await assert.rejects(source.inspect(ref), {code: 'ExplorerSessionExpired'});
     assert.equal(calls, 3);
   }
+});
+
+test('browser launch metadata validates shape and discards a delayed old-scope response', async () => {
+  let release, calls = 0;
+  const wait = new Promise(resolve => {release = resolve;});
+  const source = createExplorerBrowserSource({origin, now: () => 100,
+    async fetch(url) {
+      calls++;
+      if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
+        scopeEpoch: calls, expiresAt: 200, capabilities: {plan: false, run: true,
+          resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false,checkpointList:false,checkpointReview:false}});
+      await wait; return Response.json({scopeEpoch: 1, data: {kind: 'run', ref}});
+    }});
+  await source.connect('bootstrap');
+  const pending = source.launchView(); await source.connect('next'); release();
+  await assert.rejects(pending, {code: 'ExplorerStaleScope'});
+  assert.equal(calls, 3); source.close();
+});
+
+test('browser refuses a forged launch response without using it or requesting a replacement', async () => {
+  let calls = 0;
+  const source = createExplorerBrowserSource({origin, now: () => 100,
+    async fetch(url) {
+      calls++;
+      if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
+        scopeEpoch: 1, expiresAt: 200, capabilities: {plan: false, run: true,
+          resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false,checkpointList:false,checkpointReview:false}});
+      return Response.json({scopeEpoch: 1, data: {kind: 'run', ref, start: true}});
+    }});
+  await source.connect('bootstrap');
+  await assert.rejects(source.launchView(), {code: 'ExplorerInvalidReply'});
+  assert.equal(calls, 2); source.close();
 });
 
 test('presentation timeout retains each pending SDK slot until it actually settles', async t => {
@@ -286,4 +463,50 @@ test('body timeout cannot promote a valid JSON prefix to a complete request', as
   await tick(); t.mock.timers.tick(gatewayLimits.requestMs);
   assert.equal((await pending).status, 504);
   assert.deepEqual(h.calls, []);
+});
+
+test('cancellation is opt-in and passes only the immutable original to the existing SDK Owner',async()=>{
+  const cancelRef={...ref,cancelId:'exact-cancel',expectedRevision:4},attemptRef={operation:'cancel',attemptId:'exact-attempt'};
+  let cancels=0,lookups=0;
+  const client={async attach(r){assert.deepEqual(r,ref);return{
+    async cancel(options){cancels++;assert.deepEqual(options,{cancelId:'exact-cancel',expectedRevision:4,attemptId:'exact-attempt'});
+      return{kind:'accepted',attemptRef,cancellation:{kind:'accepted',ref,cancelRef,revision:5}};},
+    async lookupCancellation(saved){lookups++;assert.deepEqual(saved,cancelRef);return{kind:'unknown',cancelRef};},
+    status(){assert.fail('no status-based retry');},
+  };}};
+  const h=harness({client}),s=await h.connect();
+  assert.equal(s.body.capabilities.cancellation,false);
+  const headers={Cookie:s.cookie,'X-Actql-CSRF':s.body.csrf};
+  assert.equal((await h.send('/api/control/cancel',{cancelRef,attemptRef},headers)).status,404);assert.equal(cancels,0);
+  const enabled=harness({client,allowCancellation:true}),session=await enabled.connect();
+  assert.equal(session.body.capabilities.cancellation,true);
+  const auth={Cookie:session.cookie,'X-Actql-CSRF':session.body.csrf};
+  assert.equal((await enabled.send('/api/control/cancel',{cancelRef,attemptRef})).status,403);
+  assert.equal((await enabled.send('/api/control/cancel',{cancelRef,attemptRef,force:true},auth)).status,400);
+  assert.equal(cancels,0);
+  const result=await enabled.send('/api/control/cancel',{cancelRef,attemptRef},auth);assert.equal(result.status,200);
+  assert.equal((await result.json()).data.outcome.kind,'accepted');assert.equal(cancels,1);
+  const lookup=await enabled.send('/api/control/lookup-cancellation',{cancelRef},auth);
+  assert.equal((await lookup.json()).data.kind,'unknown');assert.equal(lookups,1);assert.equal(cancels,1);
+});
+
+test('browser cancellation keeps the original through lost Gateway ACK and uses only lookup afterward',async()=>{
+  const cancelRef={...ref,cancelId:'lost-ack',expectedRevision:4},attemptRef={operation:'cancel',attemptId:'lost-invocation'};
+  let requested=0,lookups=0;
+  const h=harness({allowCancellation:true,client:{async attach(){return{
+    async cancel(){requested++;return{kind:'accepted',attemptRef,cancellation:{ref,cancelRef,kind:'accepted',revision:5}};},
+    async lookupCancellation(){lookups++;return{kind:'found',cancellation:{ref,cancelRef,kind:'accepted',revision:5}};},
+  };}}});
+  let cookie;
+  const source=createExplorerBrowserSource({origin,fetch:async(url,options)=>{
+    const headers={...options.headers,Host:'127.0.0.1:43210',Origin:origin,...(cookie?{Cookie:cookie}:{})};
+    const response=await h.gateway.fetch(new Request(url,{...options,headers}));
+    if(response.headers.get('set-cookie'))cookie=response.headers.get('set-cookie').split(';')[0];
+    if(new URL(url).pathname==='/api/control/cancel')throw new Error('lost ACK');
+    return response;
+  }});
+  await source.connect(h.gateway.issueBootstrap().bootstrap);
+  const observation=await source.cancel({cancelRef,attemptRef});
+  assert.deepEqual(observation,{state:'unknown',original:{cancelRef,attemptRef}});assert.equal(requested,1);
+  const history=await source.lookupCancellation(cancelRef);assert.equal(history.kind,'found');assert.equal(lookups,1);assert.equal(requested,1);
 });

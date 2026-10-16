@@ -173,6 +173,11 @@ pub fn client_program_source_publication_valid(
   try {
     client_source_context(environment, publication, None) |> ignore
     client_table_write_publication(environment, publication) |> ignore
+    @source_publication.published_update_targets(environment, publication).unwrap_or_else(() => {
+        raise ClientSourceStop(Publication)
+      },
+    )
+    |> ignore
     true
   } catch {
     _ => false
@@ -245,8 +250,21 @@ fn client_program_lower_source(
   let table_writes = client_table_write_publication(environment, publication) catch {
     ClientSourceStop(issue) => return Err(SourcePreparation(issue))
   }
+  let update_targets = match
+    @source_publication.published_update_targets(environment, publication) {
+    Ok(value) => value
+    Err(_) => return Err(SourcePreparation(Publication))
+  }
+  // Both authored forms carry the same admitted publication into the ordinary
+  // checked Effect owner. Selection is retained material, never a permission.
   match
-    @source_frontend.lower(document, selected, Some(context), table_writes~) {
+    @source_frontend.lower(
+      document,
+      selected,
+      Some(context),
+      table_writes~,
+      update_targets~,
+    ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(SourcePreparation(Frontend(issue)))
   }
@@ -305,6 +323,7 @@ pub fn client_program_prepare_source_computation_with_parameters(
           supplied,
           evidence,
           client_program_effect_limits(),
+          update_targets=lowered.update_targets,
         ) {
         Ok(value) => value
         Err(issue) => return SourceEffect(EffectRejected(Preparation(issue)))

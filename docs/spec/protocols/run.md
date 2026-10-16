@@ -82,6 +82,38 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 - **Review projection** — the redacted, content-addressed view of sealed
   evidence presented for review and bound by the approval ([Review and receipt artifacts](#review-artifacts)).
 
+<a id="original-update-selection-custody"></a>
+
+#### Original UPDATE selection custody
+
+<!-- requirement-block: original-update-selection-custody.run-definition-projection -->
+The admitted Run Definition issuer MUST copy the optional
+`effect_target_selections_cid` from its admitted Compiled Plan automatically,
+including omission when absent. This field uses the existing Run Definition
+identity and self-CID exclusion. The caller supplies no separate selection
+flag, custody claim or projection argument, and the field grants no read or
+write authority.
+
+<!-- requirement-block: original-update-selection-custody.exact-run-binding -->
+Run binding and start MUST verify exact optional equality among the admitted
+Run Definition, its Compiled Plan, and the canonical selection array retained
+in the existing Executable Plan and original compilation material. Presence
+and absence are part of equality, so stripping a field or the whole original
+material envelope cannot downgrade a selection-bearing Run to a legacy Run.
+Legacy Runs without selection context retain their previous canonical bytes
+and identities.
+
+<!-- requirement-block: original-update-selection-custody.before-capture-read -->
+Restore, continuation and recovery MUST establish this binding before their
+first captured-material Store read, as well as before applicable target reads
+or Effect sends. A missing, replaced or mismatched original fails closed rather
+than reselecting aliases or accepting a newly reconstructed expectation. The
+admitted Run Definition supplies the independently retained expectation; the
+possibly missing compilation material does not define its own absence policy.
+Current installation-owner, grants, approval, lease, dispatch and
+unknown-outcome protections remain independent obligations. Source schema
+checks alone do not establish that these execution boundaries are verified.
+
 <a id="runtime-source-evidence"></a>
 
 #### Runtime source evidence
@@ -822,7 +854,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_review_projection sha256:6c1ee39379eb6a433bc555cbea5918dfb8d757ee12b7afa20de63fb34caad11e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_scope_approval sha256:ab7aa04f5afe9b7479ab2bc1ad078b2df41bde6248fd6eae1d0f88a94ffaa3de
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_authorization sha256:f3085180be28dfc3f7b6151adf56796255a257a73205fabf674be281a05e4ed9
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_definition sha256:62b4314c02685e9c685870abcc1eb690bff333e7e743ec81ae3ad87f7b3ac045
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_definition sha256:fa0af630d657a970ca5bba7fe82fa2adb97076dd9c8ae12ad8fdff87d52953b6
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_checkpoint sha256:2463a0ebef2f3b78f2603d934a4e4e85851a4afa956abcdedec641594c92f91c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_provider_binding sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_scope sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3

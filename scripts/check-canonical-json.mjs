@@ -211,6 +211,28 @@ function fixtures() {
     result.push({id: 'local Effect identity ' + item.id,
       value: item.preimage, cid: item.expected_cid});
   }
+  const effectSelections = read('portability/corpus/effect-target-selection.json');
+  assert.equal(effectSelections.version,
+    'actql-effect-target-selection-vectors/0.1');
+  for (const item of effectSelections.cases) {
+    result.push({id: 'original UPDATE selection ' + item.id,
+      value: item.preimage, cid: item.expected_cid,
+      text: item.expected_canonical_bytes});
+  }
+  for (const item of effectSelections.installation_owners) {
+    result.push({id: 'original UPDATE installed owner ' + item.id,
+      value: item.preimage, cid: item.expected_cid,
+      text: item.expected_canonical_bytes});
+  }
+  const selectionProjections = read(
+    'portability/corpus/effect-target-selection-projection.json');
+  assert.equal(selectionProjections.version,
+    'actql-effect-target-selection-projection-vectors/0.1');
+  for (const item of selectionProjections.cases) {
+    result.push({id: 'original UPDATE selection projection ' + item.id,
+      value: item.preimage, cid: item.expected_cid,
+      text: item.expected_canonical_bytes});
+  }
   assert.equal(localContracts.version, 'actql-local-contract-closure-vectors/0.1');
   for (const c of localContracts.cases) {
     result.push({id: 'local contract set ' + c.id, value: c.envelope, cid: c.expected_cid});

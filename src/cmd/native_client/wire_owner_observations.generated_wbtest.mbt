@@ -1503,7 +1503,8 @@ fn wire_rule_1099(value : Json) -> Bool {
 ///|
 fn wire_rule_1123(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -2139,7 +2140,8 @@ fn wire_rule_1149(value : Json) -> Bool {
 ///|
 fn wire_rule_1161(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -2535,7 +2537,7 @@ fn wire_rule_1191(value : Json) -> Bool {
     text == "window_group") {
     return false
   }
-  guard value is String(text) else { return false }
+  guard value is String(_) else { return false }
   true
 }
 
@@ -2556,7 +2558,7 @@ fn wire_rule_1195(value : Json) -> Bool {
   if !(text == "input" || text == "output") {
     return false
   }
-  guard value is String(text) else { return false }
+  guard value is String(_) else { return false }
   true
 }
 
@@ -2569,7 +2571,7 @@ fn wire_rule_1197(value : Json) -> Bool {
     text == "events") {
     return false
   }
-  guard value is String(text) else { return false }
+  guard value is String(_) else { return false }
   true
 }
 
@@ -2950,6 +2952,9 @@ fn wire_rule_1216(value : Json) -> Bool {
 ///|
 fn wire_rule_1217(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 0.0) {
     return false
   }
@@ -2962,7 +2967,7 @@ fn wire_rule_1221(value : Json) -> Bool {
   if !(text == "exact" || text == "bound" || text == "estimate") {
     return false
   }
-  guard value is String(text) else { return false }
+  guard value is String(_) else { return false }
   true
 }
 

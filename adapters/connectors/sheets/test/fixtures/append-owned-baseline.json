@@ -1,0 +1,16 @@
+{
+  "source": "02f9e53f29b4913d5c6e8276d2ac248800fe8173",
+  "moduleSha256": "5c891155f1c1629f4f333adbc75dc60472629584cc40986d283562d8b79d3c0d",
+  "origin": "https://sheets.example.test",
+  "spreadsheetId": "book",
+  "sheetId": 7,
+  "columns": [
+    {"name": "text", "type": "string", "nullable": false},
+    {"name": "number", "type": "number", "nullable": true},
+    {"name": "flag", "type": "boolean", "nullable": true}
+  ],
+  "value": {"text": "=é\r\n", "number": -2.5, "flag": false},
+  "path": "/v4/spreadsheets/book:batchUpdate",
+  "body": "{\"requests\":[{\"appendCells\":{\"sheetId\":7,\"rows\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"=é\\r\\n\"}},{\"userEnteredValue\":{\"numberValue\":-2.5}},{\"userEnteredValue\":{\"boolValue\":false}}]}],\"fields\":\"userEnteredValue\"}}]}",
+  "requestCid": "sha256:781fc348a15e612ff4b0bbec9d7309981e1b5151ccebcbc377c56cc47cab8d5a"
+}

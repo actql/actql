@@ -40,6 +40,9 @@ fn main {
   let count = Ref(0)
   let page = page_bytes()
   let original : DomainOriginal = { marker: 1, }
+  // Copy the actual metadata into a distinct reference. Equal data must not
+  // confer the original supplier's nominal custody.
+  let foreign_original : DomainOriginal = { marker: original.marker, }
   let source = "0123456789012345678901234567890123456789"
   let recipe = Bytes::make(32, 29)
   let supplier = @bootstrap.prepare_installed_arena_supplier(
@@ -71,7 +74,7 @@ fn main {
   let scope = host.borrow_backing(original).unwrap()
   host.enter_borrow_scope(original, scope).unwrap()
   let child : DomainChild = { marker: 1, }
-  let foreign : DomainChild = { marker: 1, }
+  let foreign : DomainChild = { marker: child.marker, }
   let loan = match
     host
     .lend_backed_region(
@@ -112,7 +115,8 @@ fn main {
   }
   require(
     count,
-    host.usage().reserved_execution_bytes == 64L * page,
+    host.usage().reserved_execution_bytes == 64L * page &&
+    host.require_current(foreign_original) is Err(ForeignOriginal),
     "domain suballocates one original backing reservation",
   )
   require(

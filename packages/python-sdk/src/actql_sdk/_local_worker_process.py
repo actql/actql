@@ -12,7 +12,11 @@ import hashlib
 import os
 from pathlib import Path
 import stat
-from threading import RLock
+from threading import RLock, current_thread
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainMaterial
 
 from ._local_distribution import _hex
 from ._local_worker_funding import OriginalWorkerFunding, LocalWorkerFundingUnavailable
@@ -87,6 +91,18 @@ class OriginalWorkerProcess:
         self._stdin: tuple[_OriginalDescriptor, _OriginalDescriptor] | None = None
         self._stdout: tuple[_OriginalDescriptor, _OriginalDescriptor] | None = None
         self._stderr: tuple[_OriginalDescriptor, _OriginalDescriptor] | None = None
+        self._native_domain: _OriginalDomainCustody | None = None
+        self._native_material: _OriginalDomainMaterial | None = None
+        self._native_source: _OriginalDescriptor | None = None
+        self._native_source_value: int | None = None
+        self._native_funding_originals: tuple[object | None, object | None, object | None, object | None] | None = None
+        self._native_duplicate: _OriginalDescriptor | None = None
+        self._native_duplicate_value: int | None = None
+        self._native_dup_unknown = False
+        self._native_metadata_retired = False
+        self._native_retirement_inflight = False
+        self._native_retirement_unknown: BaseException | None = None
+        self._spawn_syscall_attempted = False
         self._spawn_attempted = False
         self._pid: int | None = None
         self._exit: _OriginalChildExit | None = None
@@ -97,6 +113,14 @@ class OriginalWorkerProcess:
         self._parent_pipe_consumer: object | None = None
         self._parent_pipe_borrowed = False
         slot._bind_process(self)
+        # Exact Native funding has one original backing descriptor. Generic
+        # syscall-only diagnostics have no such domain and cannot supply it.
+        from ._local_native_domain_custody import _OriginalDomainCustody
+        if type(funding._physical) is _OriginalDomainCustody:
+            try:
+                self._bind_original_native_domain()
+            except BaseException as failure:
+                raise LocalWorkerProcessPending(self) from failure
 
     def __copy__(self) -> OriginalWorkerProcess:
         raise TypeError('Original Local worker process cannot be copied')
@@ -144,6 +168,158 @@ class OriginalWorkerProcess:
             # Returning a stopped Python I/O invocation is not worker stop,
             # independent resource cleanup or execution-delegation settlement.
             self._parent_pipe_borrowed = False
+
+    def _bind_original_native_domain(self) -> None:
+        from ._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainMaterialFunctions
+        domain, funding = self._funding._physical, self._funding
+        if (type(domain) is not _OriginalDomainCustody or funding._delegation is not domain
+                or funding._ledger is not domain._owner or domain._worker_process_original is not None):
+            raise LocalWorkerFundingUnavailable('Original Native domain process binding is unavailable')
+        # Publish the same partial process before any current/material callback.
+        self._native_domain = domain
+        self._native_source = domain._descriptor
+        self._native_source_value = domain._descriptor.value
+        self._native_funding_originals = (funding._physical, funding._ledger, funding._delegation, funding._durable)
+        domain._worker_process_original = self
+        self._funding.require_launch()
+        self._launchable()
+        self._require_native_identity()
+        material = domain._project_original_material(
+            _OriginalDomainMaterialFunctions(domain._functions.library))
+        self._require_native_identity()
+        self._native_material = material
+        self._funding.require_launch()
+        self._launchable()
+        self._require_native_identity()
+
+    def _require_native_identity(self) -> None:
+        domain, funding, descriptor = self._native_domain, self._funding, self._native_source
+        if domain is not None:
+            if domain._unknown is not None: raise domain._unknown
+            if domain._owner._unknown is not None: raise domain._owner._unknown
+        if (domain is None or descriptor is None or self._native_metadata_retired
+                or domain._worker_process_original is not self or domain._descriptor is not descriptor
+                or domain._closed or domain._unknown is not None
+                or domain._domain.value is None or domain._owner._closed
+                or domain._owner._unknown is not None
+                or domain._owner._process != os.getpid() or domain._owner._thread is not current_thread()
+                or self._native_funding_originals is None
+                or any(a is not b for a, b in zip(self._native_funding_originals,
+                    (funding._physical, funding._ledger, funding._delegation, funding._durable)))
+                or descriptor._original is not descriptor or descriptor.closed or descriptor.close_attempted
+                or type(descriptor.value) is not int or descriptor.value != self._native_source_value
+                or not 0 <= descriptor.value <= 2**31 - 1):
+            raise ValueError('Original Native domain or descriptor changed')
+
+    def _require_native_current(self) -> None:
+        self._launchable()
+        if self._native_domain is None:
+            from ._local_native_domain_custody import _OriginalDomainCustody
+            if type(self._funding._physical) is _OriginalDomainCustody:
+                raise LocalWorkerFundingUnavailable('Unbound original Native domain cannot launch')
+            return
+        self._require_native_identity()
+        if self._native_material is None:
+            raise ValueError('Original Native domain material is unavailable')
+        self._native_domain.current()
+        self._require_native_identity()
+        self._funding.require_launch()
+        self._launchable()
+        self._require_native_identity()
+        duplicate = self._native_duplicate
+        if duplicate is not None and not self._spawn_syscall_attempted:
+            if (duplicate._original is not duplicate or duplicate.closed or duplicate.close_attempted
+                    or self._native_dup_unknown or self._native_duplicate_value is None
+                    or type(duplicate.value) is not int or duplicate.value != self._native_duplicate_value):
+                raise ValueError('Original Native inherited descriptor changed before spawn')
+
+    def _duplicate_original_domain(self) -> None:
+        if self._native_domain is None:
+            return
+        self._require_native_current()
+        if self._native_duplicate is not None or self._native_dup_unknown:
+            raise ValueError('Original Native domain inheritance was already attempted')
+        assert self._native_source is not None and self._native_material is not None
+        descriptor = self._native_source
+        material = self._native_material
+        status = os.fstat(descriptor.value)
+        if (not stat.S_ISREG(status.st_mode) or status.st_uid != os.geteuid()
+                or status.st_mode & 0o077 or status.st_size != material.scalars[3]
+                or status.st_dev != material.scalars[1] or status.st_ino != material.scalars[2]):
+            raise ValueError('Original Native domain descriptor does not match the Owner material')
+        # Register its Unknown before duplication. A lost result cannot permit
+        # another FD acquisition or metadata retirement with a guessed close.
+        # Allocate and retain the output carrier/list slot before the syscall.
+        # Its closed -1 is confirmed unstarted until duplication is attempted;
+        # a lost/malformed return remains Unknown and is never closed as fd0/1.
+        duplicate = _OriginalDescriptor(-1)
+        duplicate.closed = True
+        self._native_duplicate = duplicate
+        self._descriptors.append(duplicate)
+        self._native_dup_unknown = True
+        duplicate.closed = False
+        value = fcntl.fcntl(descriptor.value, fcntl.F_DUPFD_CLOEXEC, 10)
+        if type(value) is not int or not 10 <= value <= 2**31 - 1:
+            raise RuntimeError('Original Native inherited descriptor is unknown')
+        duplicate.value = value
+        self._native_duplicate_value = value
+        self._native_dup_unknown = False
+        after = os.fstat(duplicate.value)
+        if any(getattr(after, name) != getattr(status, name)
+               for name in ('st_dev', 'st_ino', 'st_mode', 'st_uid', 'st_size')):
+            raise ValueError('Original Native domain duplicate changed')
+        self._require_native_current()
+
+    def _retire_native_metadata(self, proof: object) -> None:
+        from ._local_native_live_channel import _OriginalLiveChannelCustody
+        if (type(proof) is not _OriginalLiveChannelCustody or proof._original is not proof
+                or not proof._closed or proof._unknown is not None
+                or proof._process is not self or proof._domain is not self._native_domain
+                or proof._funding is not self._funding or not self._parent_closed
+                or self._native_domain is None or self._native_domain._live_channel_original is not proof
+                or proof._pipe._native_channel_original is not proof
+                or any(slot.value is not None for slot in
+                       (proof._host, proof._native_domain, proof._channel, proof._reply))
+                or self._native_dup_unknown):
+            raise ValueError('Original Native channel retirement is unconfirmed')
+        self._finish_native_metadata()
+
+    def _retire_unstarted_native_after_owner_ack(self, observation: object) -> None:
+        with self._lock:
+            self._nominal()
+            if self._native_retirement_unknown is not None:
+                raise LocalWorkerProcessPending(self) from self._native_retirement_unknown
+            if self._native_retirement_inflight:
+                raise RuntimeError('Original Native unstarted cleanup cannot reenter')
+            if (self._spawn_syscall_attempted or not self._parent_closed
+                    or self._native_dup_unknown or not self._funding._opaque(observation)):
+                raise ValueError('Original Native unstarted cleanup is unconfirmed')
+            self._require_native_identity()
+            self._funding._nominal()
+            assert self._native_funding_originals is not None
+            self._native_retirement_inflight = True
+            try:
+                self._funding._ack(self._funding._supplier.require_scoped_stop(
+                    *self._native_funding_originals, observation))
+                self._nominal()
+                self._require_native_identity()
+                if self._spawn_syscall_attempted or not self._parent_closed or self._native_dup_unknown:
+                    raise ValueError('Original Native cleanup observation changed')
+                self._finish_native_metadata()
+            except BaseException as failure:
+                # A lost/invalid Owner reply does not permit another adoption
+                # attempt or release this same original domain/FD responsibility.
+                self._native_retirement_unknown = failure
+                raise LocalWorkerProcessPending(self) from failure
+            finally:
+                self._native_retirement_inflight = False
+
+    def _finish_native_metadata(self) -> None:
+        # This is metadata retirement after the existing Owner's separate ACKs,
+        # not domain close, original FD close, delegation settlement or credit.
+        self._require_native_identity()
+        assert self._native_domain is not None
+        self._native_metadata_retired = True
 
     def _pipe(self) -> tuple[_OriginalDescriptor, _OriginalDescriptor]:
         read, write = os.pipe()
@@ -220,22 +396,30 @@ class OriginalWorkerProcess:
                 raise RuntimeError('Original worker spawn was already attempted')
             self._funding.require_launch()
             self._launchable()
+            self._require_native_current()
             self._spawn_attempted = True
             try:
                 # Same-FD nofollow/size/digest check; no PATH search or system
                 # interpreter fallback. Startup attestation is still required.
                 self._verify_executable()
+                self._duplicate_original_domain()
                 slot_action = self._slot.inheritance_action()
                 self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
                 actions: list[tuple[int, int] | tuple[int, int, int]] = [slot_action,
                     (os.POSIX_SPAWN_DUP2, self._stdin[0].value, 0),
                     (os.POSIX_SPAWN_DUP2, self._stdout[1].value, 1),
                     (os.POSIX_SPAWN_DUP2, self._stderr[1].value, 2)]
+                if self._native_duplicate is not None:
+                    # Lift to >=10 before fd3/stdin/stdout/stderr rewrites: the
+                    # original backing may itself occupy destination fd3/4.
+                    actions.append((os.POSIX_SPAWN_DUP2, self._native_duplicate.value, 4))
                 actions.extend((os.POSIX_SPAWN_CLOSE, value.value) for value in self._descriptors if not value.closed)
                 actions.append((os.POSIX_SPAWN_CLOSE, slot_action[1]))
                 self._funding.require_launch()
                 self._launchable()
                 self._verify_launch_original()
+                self._require_native_current()
+                self._spawn_syscall_attempted = True
                 pid = os.posix_spawn(str(self._executable),
                     (str(self._executable), '-I', '-m', 'actql_sdk._local_worker_entry'),
                     dict(self._environment), file_actions=actions, setpgroup=0)
@@ -246,6 +430,8 @@ class OriginalWorkerProcess:
                 if type(pid) is not int or pid <= 0:
                     self._wait_unknown = RuntimeError('Original child identity is unavailable')
                     raise RuntimeError('Original child identity is unavailable')
+                if self._native_duplicate is not None:
+                    self._native_duplicate.close()
                 self._stdin[0].close()
                 self._stdout[1].close()
                 self._stderr[1].close()
@@ -293,8 +479,15 @@ class OriginalWorkerProcess:
                 failure: BaseException | None = None
                 # Keep sticky Unknown descriptors, while retiring other original
                 # ends exactly once. A failed end must not strand the rest forever.
-                for value in reversed(self._descriptors):
+                originals = list(reversed(self._descriptors))
+                if (self._native_duplicate is not None
+                        and not any(value is self._native_duplicate for value in originals)):
+                    originals.insert(0, self._native_duplicate)
+                for value in originals:
                     try:
+                        if (value is self._native_duplicate and self._native_dup_unknown
+                                and self._native_duplicate_value is None):
+                            raise RuntimeError('Original Native descriptor acquisition remains unknown')
                         value.close()
                     except BaseException as caught:
                         if failure is None:

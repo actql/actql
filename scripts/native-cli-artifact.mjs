@@ -1,3 +1,4 @@
+import {checkInterfaceOwners} from './check-interface-owners.mjs';
 // Run under the existing heavy guard in a clean, platform-native checkout.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -40,6 +41,7 @@ export function inspectNativeAbi(binary, platform, execute = execFileSync) {
 export async function buildNativeCliArtifact(destination, {verbose = false, localRuntime} = {}) {
   assert.equal(typeof verbose, 'boolean', 'verbose must be an explicit Boolean');
   const source = checkoutState(repository); assert(source.clean, 'Native artifact requires clean source HEAD');
+  await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
   const pins = JSON.parse(await readFile(join(repository, 'toolchain.json'), 'utf8'));
   const moon = run('moon', ['version']).trim(), moonc = run('moonc', ['-v']).trim();
   assert(moon.includes(pins.moon)); assert(moonc.includes(pins.moonc));

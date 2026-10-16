@@ -52,7 +52,7 @@ test "original physical multiplicity keeps all rows but constructs only eligible
     let mut reached = false
     for _ in 0..<1000 {
       if eligible == 0 {
-        if active.state.phase is DispatchSlot {
+        if active.state.progress.phase is DispatchSlot {
           reached = true
           break
         }

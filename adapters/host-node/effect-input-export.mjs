@@ -1,3 +1,4 @@
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -40,11 +41,12 @@ export function preparePinnedEffectDependencyInventory({
   }
   for (const {payload} of sources.dependencies) {
     for (const body of payload.dependencyBodies) append(body);
+    const table = preparedEffectSourceOwners.get(payload)?.tableInput === true;
     for (const [kind, wire] of [
-      ['result_artifact', payload.localResultArtifact.wire],
-      ['derivation_evidence', payload.localResultArtifact.derivationWire],
-      ['ordering_evidence', payload.localResultArtifact.orderingWire],
-      ['local_result_definition', payload.localResultDefinition.wire],
+      [table ? 'table_input_artifact' : 'result_artifact', payload.localResultArtifact.wire],
+      [table ? 'table_input_derivation' : 'derivation_evidence', payload.localResultArtifact.derivationWire],
+      [table ? 'table_input_ordering' : 'ordering_evidence', payload.localResultArtifact.orderingWire],
+      [table ? 'local_table_input_definition' : 'local_result_definition', payload.localResultDefinition.wire],
       ['local_computation', payload.localInvocation.wire],
     ]) append({kind, wire});
     if (importedManifests.has(payload.localManifest.identity)) {
@@ -171,24 +173,21 @@ export async function preparePinnedEffectSourceSet({
   }
   const groups = [];
   const duplicateManifestMembers = new Set();
-  // A private source does not replace the ordinary Result namespace in its
-  // Unit Manifest. Keep the complete checked declarations, not a synthetic
-  // empty Result map or invented Effect member.
+  // Every source Unit Manifest covers all checked Result declarations, even
+  // when an ordinary Effect consumes only a subset. These extra exports use
+  // the retained capture; they are neither new Effect members nor source reads.
   const manifestResults = [];
-  if (Array.from({length: count}, (_, index) =>
-    moon.clientProgramEffectTableInputAt?.(inputs, index) !== undefined).some(Boolean)) {
-    const resultCount = moon.clientProgramEffectLocalResultCount(inputs);
-    if (!Number.isSafeInteger(resultCount) || resultCount < 0 || resultCount > 4096) {
-      throw new RangeError('EffectManifestResultLimit');
-    }
-    if (resultCount > remaining) throw new RangeError('EffectSourceGroupingLimit');
-    remaining -= resultCount;
-    for (let resultIndex = 0; resultIndex < resultCount; resultIndex++) {
-      const result = moon.clientProgramEffectLocalResultAt(inputs, resultIndex);
-      if (result === undefined) throw new TypeError('UnavailableEffectManifestResult');
-      manifestResults.push({resultIndex, result,
-        unitIndex: moon.clientProgramEffectLocalResultStage(result)});
-    }
+  const resultCount = moon.clientProgramEffectLocalResultCount(inputs);
+  if (!Number.isSafeInteger(resultCount) || resultCount < 0 || resultCount > 4096) {
+    throw new RangeError('EffectManifestResultLimit');
+  }
+  if (resultCount > remaining) throw new RangeError('EffectSourceGroupingLimit');
+  remaining -= resultCount;
+  for (let resultIndex = 0; resultIndex < resultCount; resultIndex++) {
+    const result = moon.clientProgramEffectLocalResultAt(inputs, resultIndex);
+    if (result === undefined) throw new TypeError('UnavailableEffectManifestResult');
+    manifestResults.push({resultIndex, result,
+      unitIndex: moon.clientProgramEffectLocalResultStage(result)});
   }
   const shares = (left, right) => {
     if (remaining === 0) throw new RangeError('EffectSourceGroupingLimit');
@@ -337,6 +336,45 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
     if (!units.has(unitIndex)) units.set(unitIndex, []);
     units.get(unitIndex).push(entry);
   }
+  // Private Table occurrences inhabit a separate namespace. Only the
+  // existing captured borrow proof can share one export across members.
+  const tables = [];
+  for (let member = 0; member < memberCount; member++) {
+    signal?.throwIfAborted();
+    spend();
+    const table = moon.clientProgramEffectTableInputAt(inputs, member);
+    if (table === undefined) continue;
+    if (memberIndexes.has(member)) throw new TypeError('DuplicateEffectDependencyMember');
+    let shared;
+    for (const entry of tables) {
+      spend();
+      if (moon.clientProgramEffectInputsShareView(inputs, entry.members[0], member)) {
+        shared = entry;
+        break;
+      }
+    }
+    if (shared === undefined) {
+      spend();
+      if (!moon.clientProgramEffectInputsShareView(inputs, member, member)) {
+        throw new TypeError('UnavailableEffectSource');
+      }
+      const unitIndex = moon.clientProgramEffectTableInputStage(table);
+      if (!Number.isSafeInteger(unitIndex) || unitIndex < 0) {
+        throw new TypeError('InvalidEffectDependencyOrder');
+      }
+      shared = {tableInput: true, unitIndex, members: []};
+      tables.push(shared);
+      selected.push(shared);
+      if (!units.has(unitIndex)) units.set(unitIndex, []);
+      units.get(unitIndex).push(shared);
+    }
+    memberIndexes.add(member);
+    shared.members.push(member);
+  }
+  // Complete each original Unit before any of its consumers. Table entries
+  // are never considered public Result import producers.
+  selected.sort((left, right) => left.unitIndex - right.unitIndex);
+  const orderedUnits = [...units.entries()].sort((left, right) => left[0] - right[0]);
   if (memberIndexes.size !== memberCount) {
     throw new TypeError('IncompleteEffectDependencyMembers');
   }
@@ -353,7 +391,7 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
   const dependencyText = {remaining: 16 * 1024 * 1024};
   let staticEntriesRemaining = 4096;
   try {
-    for (const [unitIndex, entries] of units) {
+    for (const [unitIndex, entries] of orderedUnits) {
       signal?.throwIfAborted();
       const staticBodies = Object.freeze(checked(
         moon.clientProgramEffectLocalStaticBodies(checkedOwner, unitIndex,
@@ -362,14 +400,14 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
           contractLimits.maxNodes, contractLimits.maxDepth),
       ).map(pair => {
         staticEntriesRemaining--;
-        const wire = moon.clientProgramEffectLocalDependencyBodyJson(pair._1);
+        const wire = moon.clientProgramEffectLocalDependencyBodyJson(runtimeField(pair, 1));
         const bytes = Buffer.byteLength(wire, 'utf8');
         if (bytes > dependencyText.remaining) {
           throw new RangeError('EffectDependencyBodyByteLimit');
         }
         dependencyText.remaining -= bytes;
-        return Object.freeze({kind: pair._0,
-          cid: moon.clientProgramEffectLocalDependencyBodyCid(pair._1), wire});
+        return Object.freeze({kind: runtimeField(pair, 0),
+          cid: moon.clientProgramEffectLocalDependencyBodyCid(runtimeField(pair, 1)), wire});
       }));
       const imports = moon.clientProgramEffectResultImportCount(
         checkedOwner, unitIndex);
@@ -396,6 +434,7 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
           for (const entry of selected) {
             if (entry.unitIndex >= unitIndex) break;
             spend();
+            if (entry.tableInput) continue;
             if (moon.clientProgramEffectResultImportMatches(
               captured, inputs, unitIndex, entry.result)) {
               producer = entry;
@@ -421,7 +460,7 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
           ...owned, memberIndex: entry.members[0],
           onProposalRow: proposes ? owned.onProposalRow : undefined,
           ...(proposes ? {proposalMemberIndexes: entry.members} : {}),
-        }, manifestSet, {resultIndex: entry.resultIndex, dependency,
+        }, manifestSet, {resultIndex: entry.resultIndex, tableInput: entry.tableInput, dependency,
           dependencyText, staticBodies});
         payloads.push(entry.payload);
       }
@@ -580,8 +619,8 @@ async function exportPinnedResult({
       const progress = checked(table
         ? moon.clientProgramEffectTableInputExportAdvance(preparation, advanceQuantum)
         : moon.clientProgramEffectInputExportAdvance(preparation, advanceQuantum));
-      if (progress._0) break;
-      if (progress._1 <= 0) {
+      if (runtimeField(progress, 0)) break;
+      if (runtimeField(progress, 1) <= 0) {
         throw new Error('EffectInputExportDidNotAdvance');
       }
       await yieldEventLoop(undefined, {signal});
@@ -599,14 +638,14 @@ async function exportPinnedResult({
           stream, rowLimits.maxNodes, rowLimits.maxDepth,
           rowLimits.maxUtf16Units));
         if (row === undefined) break;
-        await onCanonicalRow(row._0, row._2);
-        await onChunk(row._1);
+        await onCanonicalRow(runtimeField(row, 0), runtimeField(row, 2));
+        await onChunk(runtimeField(row, 1));
       }
     }
     signal?.throwIfAborted();
     const finished = checked(moon.clientProgramEffectInputExportFinish(stream));
-    receipt = finished._0;
-    await onChunk(finished._1);
+    receipt = runtimeField(finished, 0);
+    await onChunk(runtimeField(finished, 1));
     if (local && moon.clientProgramEffectLocalResultExportMatchesReceipt(
       inputs, exportOwner, receipt) !== true) {
       throw new TypeError('ForeignEffectLocalResultReceipt');
@@ -701,9 +740,9 @@ async function preparePinnedEffectSourcePayloadOwned({
     throw new TypeError('ForeignEffectProposalSource');
   }
   signal?.throwIfAborted();
-  const selectedResult = local === undefined ? undefined :
+  const selectedResult = local === undefined || local.tableInput ? undefined :
     moon.clientProgramEffectLocalResultAt(inputs, local.resultIndex);
-  const tableInput = local === undefined
+  const tableInput = local === undefined || local.tableInput
     ? moon.clientProgramEffectTableInputAt?.(inputs, memberIndex) : undefined;
   const table = tableInput !== undefined;
   if (table && (onProposalRow !== undefined ||
@@ -711,7 +750,7 @@ async function preparePinnedEffectSourcePayloadOwned({
       typeof control.issueEffectTableSourceArtifactFromExport !== 'function')) {
     throw new TypeError('InvalidPrivateTableSourceExport');
   }
-  const localDefinition = checked(local === undefined
+  const localDefinition = checked(local === undefined || table
     ? table ? moon.clientProgramIssueCapturedEffectTableInputLocalDefinition(
       checkedOwner, inputs, memberIndex,
       contractLimits.maxWireBytes, contractLimits.maxNodes, contractLimits.maxDepth)
@@ -730,7 +769,7 @@ async function preparePinnedEffectSourcePayloadOwned({
     wire: table ? moon.clientProgramLocalEffectTableDefinitionJson(localDefinition)
       : moon.clientProgramLocalEffectResultDefinitionJson(localDefinition),
   });
-  const unitIndex = local !== undefined
+  const unitIndex = local !== undefined && !table
     ? moon.clientProgramEffectLocalResultStage(selectedResult)
     : manifestSet === undefined ? undefined :
     table ? moon.clientProgramEffectTableInputStage(tableInput)
@@ -796,7 +835,7 @@ async function preparePinnedEffectSourcePayloadOwned({
     if (dependent) retainText('{"sort":"relation","value":}');
     const summary = await exportPinnedResult({
       moon, execution, inputs, memberIndex, limits, signal,
-      localResultIndex: local?.resultIndex,
+      localResultIndex: table ? undefined : local?.resultIndex,
       ...(onProposalRow === undefined ? {} : {
         canonicalRowLimits: {maxNodes: proposalBounds.maxNodes,
           maxDepth: proposalBounds.maxDepth,
@@ -812,8 +851,8 @@ async function preparePinnedEffectSourcePayloadOwned({
               proposalBounds.maxBytes, proposalBounds.maxNodes,
               proposalBounds.maxDepth));
             await onProposalRow(proposalMemberIndex, index,
-              Object.freeze({selectorWire: projected._0,
-                changesWire: projected._1}));
+              Object.freeze({selectorWire: runtimeField(projected, 0),
+                changesWire: runtimeField(projected, 1)}));
           }
         },
       }),
@@ -825,7 +864,11 @@ async function preparePinnedEffectSourcePayloadOwned({
               receipt)),
           });
         }
-        localResultArtifact = local === undefined
+        localResultArtifact = table && dependent
+          ? control.issueDependentLocalEffectTableArtifact(checkedOwner,
+            inputs, memberIndex, importing, local.dependency, localDefinition,
+            receipt, retention, localContext, contractLimits)
+          : local === undefined
           ? table ? control.issueSourceFreeLocalEffectTableArtifact(
             checkedOwner, inputs, memberIndex, importing, localDefinition,
             localInvocationToken, receipt, retention, localContext, contractLimits)
@@ -839,7 +882,7 @@ async function preparePinnedEffectSourcePayloadOwned({
           : control.issueDependentLocalEffectResultArtifact(checkedOwner,
             inputs, importing, local.dependency, localDefinition, receipt,
             retention, localContext, contractLimits);
-        if (local !== undefined) {
+        if (local !== undefined && !table) {
           if (memberIndex === undefined) return undefined;
           if (!moon.clientProgramEffectLocalResultMatchesMember(
             inputs, local.resultIndex, memberIndex)) {

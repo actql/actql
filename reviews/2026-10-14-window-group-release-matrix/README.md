@@ -2,9 +2,12 @@
 
 This prepares the existing F05 named `window_group` public completion unit for
 the normal four release packages. The original nine normal cases and nine
-refusals in `scripts/fixtures/window-group-source-input.mjs` remain unchanged.
-JSON, SQL and AQL-text controls retain their complete Programs, expression
-filters, DISTINCT option, window bounds, rows and ordered schemas. The default
+refusals in `scripts/fixtures/window-group-source-input.mjs` retain their inventory,
+rows and ordered schemas. The JSON capture wrapper now explicitly uses the
+adopted scan/filter/select acquisition shape; its former select-only Programs
+and failed installed cohort are retained separately. SQL and AQL-text are byte
+unchanged. Window/aggregate expressions, DISTINCT, bounds and projections are
+unchanged in all formats. The default
 release IN/UNNEST entry and submitted Sequence entry are not edited.
 
 ## Installed input and existing Owners
@@ -54,8 +57,13 @@ copies eight test-only modules outside `node_modules`. Same clean source,
 manifest/digests, retained failure/custody and ordinary prepack are required.
 No checkout runtime, private captured input or post-lowering correction is used.
 
-Real declaration restoration, installed Source/Host execution, Local/HTTPS
-nine-normal plus nine-refusal completion, and new public E2E remain unverified.
+At installed source `ef5606fe2a598fbb43e89ca53354088bd4c505fc`, the first
+JSON control was refused before Source I/O: its select-only capture is outside
+the adopted exclusive scan/filter/select profile. The original failure is
+preserved. A pure installed differential confirms `UnsupportedShape` for that
+Program and successful requirement preparation with an explicit literal-true
+filter. This does not execute window grouping. Corrected-control installed
+Local/HTTPS nine-normal plus nine-refusal completion remains unverified.
 No Moon/compiler, package producer or public consumer is run by the Node recipe.
 The existing Vector publication failure and optional Calendar runtime gap are
 separate unresolved boundaries, not claimed repaired by this preparation.

@@ -171,6 +171,8 @@ fn normalization_source_fixture(
     Err(Static(_)) => println("normalization Source fixture: Static")
     Err(Stage(_)) => println("normalization Source fixture: Stage")
     Err(Graph(_)) => println("normalization Source fixture: Graph")
+    Err(TargetSelection(_)) =>
+      println("normalization Source fixture: TargetSelection")
     Ok(_) => ()
   }
   prepared.unwrap()

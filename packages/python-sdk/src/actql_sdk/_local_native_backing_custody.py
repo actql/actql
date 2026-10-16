@@ -5,6 +5,8 @@ control assembly. No loader, raw lease transfer, provider close or Run Owner.
 """
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind as bind_native
+
 from collections.abc import Iterator
 from contextlib import contextmanager
 from ctypes import POINTER, byref, c_int, c_int32, c_void_p
@@ -30,33 +32,17 @@ class _OriginalBackingFunctions:
 
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.borrow = library.actql_backing_borrow_into
-        self.borrow.argtypes = [c_void_p, POINTER(c_void_p)]
-        self.borrow.restype = c_int
-        self.current = library.actql_backing_current_into
-        self.return_loan = library.actql_backing_return_into
-        self.enter_scope = library.actql_backing_enter_scope_into
-        self.leave_scope = library.actql_backing_leave_scope_into
-        for call in (self.current, self.return_loan, self.enter_scope, self.leave_scope):
-            call.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
-            call.restype = c_int
-        self.originals = library.actql_backing_originals_into
-        self.originals.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p)]
-        self.originals.restype = c_int
-        self.drop = library.actql_backing_drop_reply
-        self.drop.argtypes = [POINTER(c_void_p), c_void_p, c_void_p]
-        self.drop.restype = c_int
-        self.finish = library.actql_backing_finish_returned_data
-        self.finish.argtypes = [POINTER(c_void_p), POINTER(c_void_p), POINTER(c_void_p)]
-        self.finish.restype = c_int
-        self.refused = library.actql_backing_finish_refused_borrow
-        self.refused.argtypes = [POINTER(c_void_p), POINTER(c_void_p)]
-        self.refused.restype = c_int
-        self.operation = library.actql_backing_operation
-        self.issue = library.actql_backing_issue_family
-        for call in (self.operation, self.issue):
-            call.argtypes = [c_void_p]
-            call.restype = c_int32
+        self.borrow = bind_native(library, 'actql_backing_borrow_into')
+        self.current = bind_native(library, 'actql_backing_current_into')
+        self.return_loan = bind_native(library, 'actql_backing_return_into')
+        self.enter_scope = bind_native(library, 'actql_backing_enter_scope_into')
+        self.leave_scope = bind_native(library, 'actql_backing_leave_scope_into')
+        self.originals = bind_native(library, 'actql_backing_originals_into')
+        self.drop = bind_native(library, 'actql_backing_drop_reply')
+        self.finish = bind_native(library, 'actql_backing_finish_returned_data')
+        self.refused = bind_native(library, 'actql_backing_finish_refused_borrow')
+        self.operation = bind_native(library, 'actql_backing_operation')
+        self.issue = bind_native(library, 'actql_backing_issue_family')
 
 
 class _OriginalBackingCustody:

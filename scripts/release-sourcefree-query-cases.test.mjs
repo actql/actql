@@ -24,8 +24,7 @@ test('closed installed suites retain the old default and the complete original S
 test('custody and both process entries share the closed reread selection', () => {
   assert.equal(sourcefreeSuiteRequiresReread(), false);
   assert.equal(sourcefreeSuiteRequiresReread('in-unnest'), false);
-  assert.equal(sourcefreeSuiteRequiresReread('calendar'), false);
-  for (const suite of ['sequence', 'time-series', 'temporal-join']) {
+  for (const suite of ['sequence', 'time-series', 'temporal-join', 'calendar']) {
     assert.equal(sourcefreeSuiteRequiresReread(suite), true);
   }
   for (const suite of ['unknown', '--sequence-only', '']) {

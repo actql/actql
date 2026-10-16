@@ -84,25 +84,19 @@ fn local_packaged_runtime(
 fn local_packaged_runtime_from_physical(
   physical : @local_host.NativeLocalPackagedRuntime,
 ) -> LocalPackagedRuntime raise ClientStop {
-  try {
-    let manifest = physical
-      .manifest()
-      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-    let assets = physical
-      .assets()
-      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-    let (sqlite, crypto) = physical
-      .library_paths()
-      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-    { manifest, sqlite, crypto, assets, physical, }
-  } catch {
-    error => {
-      if physical.close() is Err(_) {
-        stop("PackagedLocalRuntimeCleanupPending")
-      }
-      raise error
-    }
-  }
+  errdefer (if physical.close() is Err(_) {
+    stop("PackagedLocalRuntimeCleanupPending")
+  })
+  let manifest = physical
+    .manifest()
+    .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+  let assets = physical
+    .assets()
+    .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+  let (sqlite, crypto) = physical
+    .library_paths()
+    .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+  { manifest, sqlite, crypto, assets, physical, }
 }
 
 ///|
@@ -122,15 +116,11 @@ fn execute_native_local_product(
     stop("PackagedLocalRuntimeUnavailable")
   })
   let runtime = local_packaged_runtime(context)
-  let reply = execute_native_local_packaged_operation(
-    matches, operation, runtime,
-  ) catch {
-    error => {
-      if runtime.physical.close() is Err(_) {
-        stop("PackagedLocalRuntimeCleanupPending")
-      }
-      raise error
-    }
+  let reply = {
+    errdefer (if runtime.physical.close() is Err(_) {
+      stop("PackagedLocalRuntimeCleanupPending")
+    })
+    execute_native_local_packaged_operation(matches, operation, runtime)
   }
   if runtime.physical.close() is Err(_) {
     stop("PackagedLocalRuntimeCleanupPending")
@@ -158,6 +148,21 @@ fn execute_native_local_packaged_operation(
   let parent = @local_filesystem.open_root(home).unwrap_or_else(() => {
     stop("LocalProductHomeUnavailable")
   })
+  local_product_with_owned_parent(parent, () => {
+    execute_native_local_packaged_with_parent(
+      matches, operation, runtime, home, parent,
+    )
+  })
+}
+
+///|
+fn execute_native_local_packaged_with_parent(
+  matches : @argparse.Matches,
+  operation : String,
+  runtime : LocalPackagedRuntime,
+  home : String,
+  parent : @local_filesystem.Root,
+) -> String raise ClientStop {
   ignore(
     parent
     .bootstrap_parent_ownership()
@@ -210,7 +215,8 @@ fn execute_native_local_packaged_operation(
       ),
     )
   }
-  let reply = try {
+  let reply = {
+    errdefer (if !session.close() { stop("LocalProductCleanupPending") })
     local_host_result(session.stage_configuration())
     let original_runtime_wire = text_file(
       configuration_root, "runtime.json", 65536L,
@@ -273,15 +279,29 @@ fn execute_native_local_packaged_operation(
         packaged_runtime=Some(runtime.physical),
       )
     }
-  } catch {
-    error => {
-      if !session.close() {
-        stop("LocalProductCleanupPending")
-      }
-      raise error
-    }
   }
   if !session.close() {
+    stop("LocalProductCleanupPending")
+  }
+  reply
+}
+
+///|
+// The HOME descriptor was opened by this CLI operation, independently of the
+// adoption session's Roots. Its own ACK is required after the original work
+// and session cleanup, including early refusal. This does not settle a read
+// claim, a WorkspaceLoan, child descriptor or another same-path Root.
+fn local_product_with_owned_parent(
+  parent : @local_filesystem.Root,
+  operation : () -> String raise ClientStop,
+) -> String raise ClientStop {
+  let reply = {
+    errdefer (if parent.close() is Err(_) {
+      stop("LocalProductCleanupPending")
+    })
+    operation()
+  }
+  if parent.close() is Err(_) {
     stop("LocalProductCleanupPending")
   }
   reply

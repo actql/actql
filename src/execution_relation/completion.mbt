@@ -431,11 +431,10 @@ pub fn completed_output_matches_serialization_sort(
     @lower.sequence_owner(output.completion.sequence),
     @lower.serialization_owner(barrier),
   ) &&
-  @lower.sequence_serialization_input_kernel(output.completion.sequence, step)
-  is Some(kernel) &&
-  @pipeline.serialization_sort(@lower.serialization_checked(barrier))
-  is Some(sort) &&
-  physical_equal(@lower.kernel_checked(kernel), sort)
+  @lower.sequence_matches_serialization_sort(
+    output.completion.sequence,
+    barrier,
+  )
 }
 
 ///|

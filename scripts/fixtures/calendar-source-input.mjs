@@ -43,3 +43,16 @@ export const calendarSourceSuccesses = [false, true].flatMap(bucket => {
     results: {answer: {rows, columns}}, sourceReadCount: 0, sourceReadSessionCount: 0,
   }));
 });
+
+// The existing Calendar unit selector is a non-null string in both the machine
+// operation and text signature. Preserve the valid inputs and change only that
+// authored selector for independent pre-admission refusal controls.
+const nullUnitProgram = control(false);
+nullUnitProgram.stages[0].steps[0].calendar_series.unit = null;
+const nullUnitText = `WITH days AS (calendar_series(start:'${start}',end:'${end}',unit:NULL,timezone:'UTC')) ` +
+  'SELECT start,`end` FROM days ORDER BY start';
+export const calendarSourceRefusals = ['json', 'sql', 'aql-text'].map(format => ({
+  name: `calendar-null-unit-${format}`, format,
+  text: format === 'json' ? JSON.stringify(nullUnitProgram) : nullUnitText,
+  expectedCode: 'ClientProgramInvalidInput',
+}));

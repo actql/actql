@@ -1,3 +1,4 @@
+import {registerPrivateTableDependencyTests} from './table-dependent-input.fixture.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import assert from 'node:assert/strict';import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
 import {mkdir, mkdtemp, open, readFile, readdir, rm} from 'node:fs/promises';
@@ -5829,7 +5830,7 @@ test('Effect source set shares exact owners and retains failed cleanup',
 // Python for the ordinary Host suite.
 export async function exerciseEffectSourceSet(t, {distinctResults = false,
   writeKind = 'store', empty = false, privateTableInput = false, sparseTableInput = false, onTablePreview, target,
-  mappingRef, minimumApproval, prepareCaptureResults = false, onCompletedTableRun} = {}) {
+  mappingRef, minimumApproval, prepareCaptureResults = false, onCompletedTableRun, transformDocument, dependencyPolicy} = {}) {
         assert.ok(onTablePreview === undefined || onCompletedTableRun === undefined,
           'Select a captured Preview or an unpinned completed Run, not both');
         const fixture = await effectFixture({writeKind, target, mappingRef,
@@ -5871,6 +5872,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             document.stages[0].results.rows);
           document.stages[0].effects.second.update.from.result = 'other';
         }
+        transformDocument?.(document);
         const preparation = moon.clientProgramPrepareEffectComputationWithParameters(
           JSON.stringify(document), 'json', fixture.environment, undefined, []);
         const prepared = moon.clientProgramEffectPreparationReady(preparation);
@@ -5896,7 +5898,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             consistency: 'no_external_sources', capture_started_at: null,
             capture_completed_at: null,
             replayability: {materialized: false,
-              availability_evidence_cids: []}, data_policy_cid: cid('d'),
+              availability_evidence_cids: []}, data_policy_cid: dependencyPolicy?.dataPolicy.cid ?? cid('d'),
           }), 100000, 10000, 64));
         const invocation = checked(moon.strategyIssueRunInvocation(
           evidence[0], observation, 100000, 10000, 64));
@@ -5944,8 +5946,8 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             }});
           },
         });
-        const retention = control.seal('result_retention_policy',
-          JSON.stringify({version: 'actql-result-retention-policy/0.1',
+        const retention = control[dependencyPolicy === undefined ? 'seal' : 'admit']('result_retention_policy',
+          dependencyPolicy?.retention.wire ?? JSON.stringify({version: 'actql-result-retention-policy/0.1',
             retention_contract_cid: cid('e'), effective_data_policy_cid: cid('d'),
             available_until: '2026-09-24T01:00:00.000Z',
             delete_by: '2026-09-24T02:00:00.000Z',
@@ -6784,3 +6786,5 @@ test('checked INFER barrier compiles within the original Effect Run', async () =
   assert.throws(() => checked(moon.clientProgramCompileLocalEffectsWithInfer(
     foreign, graph)), {code: 'MoonBitHostFailure'});
 });
+
+registerPrivateTableDependencyTests(exerciseEffectSourceSet);

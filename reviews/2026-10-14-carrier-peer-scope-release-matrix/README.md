@@ -17,7 +17,10 @@ Expected rows and complete column contracts are authored from the original
 independent Program/expected JSON and the existing nearest-keep schema. Dot/K2
 has first/a/1/rank1 and second/b/0/rank2. The nested WHERE keeps a only. The shared
 queries case has candidate q1, literal label `same` with its four-byte bound,
-score1 and rank1. Cosine has the original single neighbor a. No product output
+score1 and rank1. Cosine has the original single neighbor a. Its unchanged text
+omits KEEP, so the adopted query-only default additionally retains embedding,
+note and request_id in the declared canonical Source schema order. The explicit
+independent JSON Program still selects neighbor only. No product output
 is used to generate these expectations. These original texts declare no
 ORDER BY; compare an unordered multiset while keeping duplicates, named rank,
 keys, values and full schema column order exact.

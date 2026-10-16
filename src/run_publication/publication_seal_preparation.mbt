@@ -109,7 +109,7 @@ fn PublicationSealPreparation::shape(
     Ok(_) => ()
   }
   self.phase = Shape(
-    start_protocol_validation(value, root, generated_protocol_schema_nodes(), {
+    start_protocol_validation(value, root, protocol_schema_nodes(), {
       remaining,
       max_wire_bytes: self.max_wire_bytes,
       max_nodes,

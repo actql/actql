@@ -19,12 +19,14 @@ pub(all) enum ClientEffectComputationIssue {
   Static(@stage_results.EffectStaticCandidateIssue)
   Stage(ClientStageOwnerIssue)
   Graph(@strategy.GraphIssue)
+  TargetSelection(ClientEffectUpdateTargetIssue)
 }
 
 ///|
 /// The ordinary checked computation and its exact static Effect inventory
 /// share one Program owner. This is not an executable Effect Run or permit.
 struct PreparedClientEffectComputation {
+  target_selections : ClientEffectUpdateTargetSelections?
   mut normalization : ClientEffectNormalization?
   mut normalization_custody : ClientEffectNormalizationMaterialCustody?
   source : @syntax.Program
@@ -58,6 +60,7 @@ pub fn prepare_client_effect_computation(
   supplied : @decode.Cursor?,
   evidence : Array[@context.StageCapacityInput],
   limits : ClientEffectComputationLimits,
+  update_targets? : @update_targets.UpdateTargetPublication? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let parsed = match
     @syntax.parse(document, limits.program.checking.input, format~) {
@@ -65,7 +68,12 @@ pub fn prepare_client_effect_computation(
     Err(issue) => return Err(Syntax(issue))
   }
   prepare_parsed_client_effect_computation(
-    parsed, environment, supplied, evidence, limits,
+    parsed,
+    environment,
+    supplied,
+    evidence,
+    limits,
+    update_targets~,
   )
 }
 
@@ -79,6 +87,7 @@ pub fn prepare_parsed_client_effect_computation(
   supplied : @decode.Cursor?,
   evidence : Array[@context.StageCapacityInput],
   limits : ClientEffectComputationLimits,
+  update_targets? : @update_targets.UpdateTargetPublication? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let computation = match
     @checked.prepare_effect_computation_candidate(
@@ -111,6 +120,15 @@ pub fn prepare_parsed_client_effect_computation(
     Ok(value) => value
     Err(issue) => return Err(Static(issue))
   }
+  let target_selections = match
+    prepare_client_effect_target_selections(
+      candidate,
+      update_targets,
+      limits.max_mapping_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(TargetSelection(issue))
+  }
   let checked = @checked.effect_program_static_checked_computation(candidate)
   let owners = match prepare_client_stage_owners(checked, limits.program) {
     Ok(value) => value
@@ -132,6 +150,7 @@ pub fn prepare_parsed_client_effect_computation(
     Err(issue) => return Err(Graph(issue))
   }
   Ok({
+    target_selections,
     normalization: None,
     normalization_custody: None,
     source: parsed,
@@ -235,6 +254,12 @@ pub fn admit_prepared_client_effect_run_publication(
   @publication.RunPublicationAdmissionIssue,
 ] {
   let identity = prepared_client_effect_identity(value)
+  if @publication.publication_contract_effect_target_selections_cid(
+      compiled_plan,
+    ) !=
+    client_effect_target_selections_cid(value) {
+    return Err(@publication.RunAdmissionCheckedProgramMismatch)
+  }
   @publication.admit_checked_run_publication(
     template,
     prepared,
@@ -251,8 +276,9 @@ pub fn admit_prepared_client_effect_run_publication(
 /// Bind the prepared computation to its admitted exact Run. This preserves
 /// the Effect closure instead of passing only its graph to a source-free Host.
 pub(all) enum ClientEffectRunIssue {
-  Admission(@checked.EffectProgramRunIssue)
+  Admission(@effect_binding.EffectProgramRunIssue)
   Binding(@strategy.RunIssue)
+  TargetSelection
 }
 
 ///|
@@ -268,8 +294,14 @@ pub fn bind_prepared_client_effect_run(
   admission : @publication.RunPublicationAdmission,
   run_definition : @publication.PublicationContract,
 ) -> Result[PreparedClientEffectRun, ClientEffectRunIssue] {
+  if @publication.publication_contract_effect_target_selections_cid(
+      run_definition,
+    ) !=
+    client_effect_target_selections_cid(computation) {
+    return Err(TargetSelection)
+  }
   let owner = match
-    @checked.bind_effect_program_static_run(
+    @effect_binding.bind_effect_program_static_run(
       computation.candidate,
       admission,
       run_definition,

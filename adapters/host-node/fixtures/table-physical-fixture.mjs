@@ -23,9 +23,15 @@ const cid = digit => 'sha256:'+digit.repeat(64);
 const control = runtimeCore(moon).effectApplicationControl;
 const seal = (value, field) => ({...value, [field]: machineCid(value)});
 
-export async function tablePhysicalFixture(t, entry) {
+export async function tablePhysicalFixture(t, entry, {preserve = false} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-table-process-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
+  t.after(() => {
+    if (preserve || process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      t.diagnostic('Preserved Table fixture custody at ' + root);
+      return;
+    }
+    return rm(root, {recursive: true, force: true});
+  });
   const catalog = {database: join(root, 'catalog.db'), warehouse: join(root, 'warehouse'),
     catalogCid: cid('3'), limits: {bytes: 16777216, files: 256, operations: 32}};
   // Explicit Host installation setup. No operation or user data is written.

@@ -1,0 +1,720 @@
+{
+  "source": "09544d253400245c03331b7d2fff62db6d0c369d",
+  "qualification": "Existing Common UPDATE selection Owner references for three physical conversion/custody modules. The DATA codec is not a privileged compiler binding. No new semantic Owner or executed behavior claim.",
+  "declarations": [
+    {
+      "module": "adapters/host-node/update-target-original-shape.mjs",
+      "sha256": "9697216ba4147a378d8eb6e8339988f6ca3cf77cc8296d37d9dd3b47890fad76",
+      "exports": [
+        "assertUpdateTargetSelectionCurrent",
+        "assertUpdateTargetSelectionMembersCurrent",
+        "createUpdateTargetOriginalShapeControl",
+        "installationsShape",
+        "issueUpdateTargetInstallation",
+        "originalUpdateTargetSelectionsCid",
+        "retainUpdateTargetSelection",
+        "runUpdateSelectionCid",
+        "updateTargetOriginalDataEqual",
+        "updateTargetPreparedOriginalShape",
+        "updateTargetRunOriginalShape",
+        "updateTargetSelectionMatchesRun",
+        "updateTargetSelectionsCid"
+      ],
+      "operations": [
+        {
+          "name": "assertUpdateTargetSelectionCurrent",
+          "parameters": [
+            "selections",
+            "observations",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertUpdateTargetSelectionMembersCurrent",
+          "parameters": [
+            "selections",
+            "members",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createUpdateTargetOriginalShapeControl",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "createUpdateTargetOriginalShapeControl/createUpdateTargetOriginalShapeControl",
+          "parameters": [
+            "value",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "installationsShape",
+          "parameters": [
+            "values",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "issueUpdateTargetInstallation",
+          "parameters": [
+            "moon",
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalUpdateTargetSelectionsCid",
+          "parameters": [
+            "selections",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainUpdateTargetSelection",
+          "parameters": [
+            "moon",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "runUpdateSelectionCid",
+          "parameters": [
+            "runDefinition",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateTargetOriginalDataEqual",
+          "parameters": [
+            "moon",
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateTargetPreparedOriginalShape",
+          "parameters": [
+            "value",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateTargetRunOriginalShape",
+          "parameters": [
+            "value",
+            "evidence",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateTargetSelectionMatchesRun",
+          "parameters": [
+            "selections",
+            "prepared",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateTargetSelectionsCid",
+          "parameters": [
+            "selections",
+            "moon"
+          ],
+          "async": false
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Common UPDATE target selection Owner and original installed Effect/journal custody; bounded physical conversion only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertUpdateTargetSelectionCurrent",
+            "assertUpdateTargetSelectionMembersCurrent",
+            "createUpdateTargetOriginalShapeControl",
+            "createUpdateTargetOriginalShapeControl/createUpdateTargetOriginalShapeControl",
+            "installationsShape",
+            "invalid/invalid",
+            "issueUpdateTargetInstallation",
+            "originalUpdateTargetSelectionsCid",
+            "retainUpdateTargetSelection",
+            "runUpdateSelectionCid",
+            "updateTargetOriginalDataEqual",
+            "updateTargetPreparedOriginalShape",
+            "updateTargetRunOriginalShape",
+            "updateTargetSelectionMatchesRun",
+            "updateTargetSelectionsCid"
+          ],
+          "exports": [
+            "assertUpdateTargetSelectionCurrent",
+            "assertUpdateTargetSelectionMembersCurrent",
+            "createUpdateTargetOriginalShapeControl",
+            "installationsShape",
+            "issueUpdateTargetInstallation",
+            "originalUpdateTargetSelectionsCid",
+            "retainUpdateTargetSelection",
+            "runUpdateSelectionCid",
+            "updateTargetOriginalDataEqual",
+            "updateTargetPreparedOriginalShape",
+            "updateTargetRunOriginalShape",
+            "updateTargetSelectionMatchesRun",
+            "updateTargetSelectionsCid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/update-target-original-shape.mjs",
+                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/update-target-original-shape.mjs",
+                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/update-target-original-shape.mjs",
+                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/update-target-original-shape.mjs",
+                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/update-target-original-shape.mjs",
+                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/update-target-original-shape.mjs",
+                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/update-target-original-shape.mjs",
+                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/update-target-original-shape.mjs",
+                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/update-target-data.generated.mjs",
+      "sha256": "dcc9d0b8ea4a700b93d26db2f77ee40cc4f22eba450da0ceae2ee39ec62d2f17",
+      "exports": [
+        "encodeUpdateTargetData"
+      ],
+      "operations": [
+        {
+          "name": "encodeUpdateTargetData",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "encodeUpdateTargetData/copy/copy",
+          "parameters": [
+            "value",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "encodeUpdateTargetData/text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Common UPDATE target selection Owner and original installed Effect/journal custody; bounded physical conversion only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "encodeUpdateTargetData",
+            "encodeUpdateTargetData/copy/copy",
+            "encodeUpdateTargetData/text/text"
+          ],
+          "exports": [
+            "encodeUpdateTargetData"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/update-target-data.generated.mjs",
+                "anchor": "export function encodeUpdateTargetData(value) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/update-target-data.generated.mjs",
+                "anchor": "export function encodeUpdateTargetData(value) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/update-target-data.generated.mjs",
+                "anchor": "export function encodeUpdateTargetData(value) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/update-target-data.generated.mjs",
+                "anchor": "export function encodeUpdateTargetData(value) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/update-target-data.generated.mjs",
+                "anchor": "export function encodeUpdateTargetData(value) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/update-target-data.generated.mjs",
+                "anchor": "export function encodeUpdateTargetData(value) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/update-target-data.generated.mjs",
+                "anchor": "export function encodeUpdateTargetData(value) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/update-target-data.generated.mjs",
+                "anchor": "export function encodeUpdateTargetData(value) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-update-originals.mjs",
+      "sha256": "98a9bd1100fe84487fd5e250a05135d490e1af757f821dbd11ecd3eb883630ed",
+      "exports": [
+        "installUpdateTargetOriginals"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals",
+          "parameters": [
+            "moon",
+            "control",
+            "installedEffect",
+            "limits",
+            "features"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/bind/bind",
+          "parameters": [
+            "selections",
+            "installations"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/bind/bind/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/bind/bind/bind",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/capturePrepared/capturePrepared",
+          "parameters": [
+            "prepared",
+            "compilation"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/current/current",
+          "parameters": [
+            "selections"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/current/current/current",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/descriptors/descriptors",
+          "parameters": [
+            "selections"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/descriptors/descriptors/descriptors",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/init:captureRun/init:captureRun",
+          "parameters": [
+            "prepared",
+            "allowed",
+            "definition",
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/init:validatePrepared/init:validatePrepared",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/init:validateRun/init:validateRun",
+          "parameters": [
+            "prepared",
+            "compilation",
+            "evidence",
+            "runDefinition",
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/installUpdateTargetOriginals",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/restorePrepared/restorePrepared",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/restoreRun/restoreRun",
+          "parameters": [
+            "original",
+            "runDefinition",
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/same/same",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/selectionsOf/selectionsOf",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Common UPDATE target selection Owner and original installed Effect/journal custody; bounded physical conversion only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "installUpdateTargetOriginals",
+            "installUpdateTargetOriginals/bind/bind",
+            "installUpdateTargetOriginals/bind/bind/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent",
+            "installUpdateTargetOriginals/bind/bind/bind",
+            "installUpdateTargetOriginals/capturePrepared/capturePrepared",
+            "installUpdateTargetOriginals/current/current",
+            "installUpdateTargetOriginals/current/current/current",
+            "installUpdateTargetOriginals/descriptors/descriptors",
+            "installUpdateTargetOriginals/descriptors/descriptors/descriptors",
+            "installUpdateTargetOriginals/init:captureRun/init:captureRun",
+            "installUpdateTargetOriginals/init:validatePrepared/init:validatePrepared",
+            "installUpdateTargetOriginals/init:validateRun/init:validateRun",
+            "installUpdateTargetOriginals/installUpdateTargetOriginals",
+            "installUpdateTargetOriginals/restorePrepared/restorePrepared",
+            "installUpdateTargetOriginals/restoreRun/restoreRun",
+            "installUpdateTargetOriginals/same/same",
+            "installUpdateTargetOriginals/selectionsOf/selectionsOf"
+          ],
+          "exports": [
+            "installUpdateTargetOriginals"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-update-originals.mjs",
+                "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-update-originals.mjs",
+                "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-update-originals.mjs",
+                "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-update-originals.mjs",
+                "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-update-originals.mjs",
+                "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-update-originals.mjs",
+                "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-update-originals.mjs",
+                "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-update-originals.mjs",
+                "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

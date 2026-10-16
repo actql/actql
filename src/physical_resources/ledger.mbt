@@ -39,6 +39,9 @@ struct Ledger {
   // control envelope must be funded before registration; no ordinary caller
   // enables it, and it is not a separate accounting owner.
   mut original_inventory : LedgerOriginalInventory?
+  // Also resident on ordinary Ledgers. The existing installed envelope must
+  // cover this reference and any live imported-child controls before use.
+  mut imported_child : ImportedChildLedgerOrigin?
 }
 
 ///|
@@ -83,6 +86,7 @@ pub(all) enum LedgerIssue {
   CostLimit
   DurationLimit
   ResourceParked
+  ChildFundingUnavailable
 } derive(Eq, Debug)
 
 ///|
@@ -103,6 +107,7 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
     quantity_limits: None,
     next_capacity_serial: Some(-1),
     original_inventory: None,
+    imported_child: None,
     quantity_usage: {
       reserved: zero_quantities(),
       uncertain: zero_quantities(),
@@ -365,6 +370,9 @@ pub fn settle_completed_output_reservation(
   output_bytes : Int64,
   remaining_execution : Int64,
 ) -> Result[Unit, LedgerIssue] {
+  if imported_child_fixed_capacity(ledger, reservation) {
+    return Err(ChildFundingUnavailable)
+  }
   if !physical_equal(ledger, reservation.owner) {
     return Err(ForeignOwner)
   }
@@ -454,6 +462,9 @@ pub fn settle_execution_reservation(
   reservation : Reservation,
   remaining_execution? : Int64 = 0L,
 ) -> Result[Unit, LedgerIssue] {
+  if imported_child_fixed_capacity(ledger, reservation) {
+    return Err(ChildFundingUnavailable)
+  }
   match reservation_check(ledger, reservation) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -482,6 +493,9 @@ pub fn settle_reservation(
   ledger : Ledger,
   reservation : Reservation,
 ) -> Result[Unit, LedgerIssue] {
+  if imported_child_fixed_capacity(ledger, reservation) {
+    return Err(ChildFundingUnavailable)
+  }
   match reservation_check(ledger, reservation) {
     Err(issue) => return Err(issue)
     Ok(_) => ()

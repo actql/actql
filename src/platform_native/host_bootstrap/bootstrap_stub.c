@@ -5,6 +5,19 @@
 #include "moonbit.h"
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
+#include <stdatomic.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#if defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
+#if !defined(ACTQL_SCOPED_READ_ALLOCATOR) || defined(ACTQL_SCOPED_READ_PROVIDER)
+#error "Imported bootstrap requires one selected scoped provider, never its source copy"
+#endif
+#include "../../../packages/python-local-runtime/native/pre-root/owned_capacity.h"
+#include "../../../packages/python-local-runtime/native/pre-root/owned_region.h"
+#include "scoped_read.h"
+#else
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
 #ifndef ACTQL_SCOPED_READ_PROVIDER
 #error "A scoped read build requires its exact copied provider source"
@@ -18,6 +31,7 @@
 typedef struct actql_read_context actql_read_context;
 #endif
 #include "../../../packages/python-local-runtime/native/pre-root/owned_image.c"
+#endif
 
 typedef struct {
     actql_owned_capacity *lease;
@@ -74,17 +88,17 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_fd(int32_t fd, int64_t bytes,
 }
 
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_control_bytes(actql_bootstrap_backing *record) {
-    if (record->lease == NULL) return -1;
-    return (int64_t)(record->lease->control_pages * record->lease->page_size);
+    uint64_t bytes = 0;
+    return actql_native_owned_control_bytes(record->lease, &bytes) == ACTQL_OWNED_OK &&
+        bytes <= INT64_MAX ? (int64_t)bytes : -1;
 }
 
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_rounded_bytes(actql_bootstrap_backing *record,
                                                        int64_t bytes) {
     if (record->lease == NULL || bytes <= 0 || (uint64_t)bytes > SIZE_MAX) return -1;
-    size_t pages;
-    if (!round_pages((size_t)bytes, record->lease->page_size, &pages) ||
-        pages > record->lease->page_count) return -1;
-    return (int64_t)(pages * record->lease->page_size);
+    uint64_t rounded = 0;
+    return actql_native_owned_rounded_bytes(record->lease, (size_t)bytes, &rounded) == ACTQL_OWNED_OK &&
+        rounded <= INT64_MAX ? (int64_t)rounded : -1;
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_claim(actql_bootstrap_backing *record,
@@ -298,6 +312,8 @@ typedef struct {
 #endif
 } actql_bootstrap_domain;
 
+#include "live_channel.inc"
+
 MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_domain(actql_bootstrap_view *view) {
     actql_bootstrap_domain *record = moonbit_make_external_object(
         keep_physical_custody, sizeof(*record));
@@ -321,8 +337,7 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_domain_status(actql_bootstrap_domain 
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_transfer_domain(actql_bootstrap_domain *record) {
-    if (record->lease == NULL) return ACTQL_OWNED_INVALID;
-    return actql_native_owned_transfer(record->lease, record->lease->generation, record->lease->recipe);
+    return actql_native_owned_transfer_original_domain(record->lease);
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_domain(actql_bootstrap_domain *record) {
@@ -434,12 +449,7 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_read_context(
  * pointer transport, permission lookup or context adoption is introduced. */
 MOONBIT_FFI_EXPORT actql_read_context *actql_bootstrap_current_read_context(void) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
-    if (!lock_read_contexts()) return NULL;
-    actql_read_context *context = read_current;
-    bool current = known_read_context(context) && context->active != 0 &&
-        read_depth != 0 && actql_native_owned_current() == context->lease;
-    unlock_read_contexts();
-    return current ? context : NULL;
+    return actql_read_context_current();
 #else
     return NULL;
 #endif
@@ -464,5 +474,15 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_close_read_context(
 #else
     (void)record;
     return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* Whole current physical frame only. Leaving one nesting level is not this
+ * observation; valid-pointer NULL cannot substitute raw TLS/depth checks. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_control_scope_clear(void) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    return actql_read_context_control_scope_clear();
+#else
+    return actql_native_owned_control_scope_clear();
 #endif
 }

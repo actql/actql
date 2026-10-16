@@ -12,6 +12,7 @@ import sys
 import zipfile
 
 from python_release_cohort import read_cohort
+from python_interface_inventory import wheel_source_correspondence
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -75,7 +76,7 @@ def wheel_metadata(path: Path, name: str, version: str) -> None:
             raise ValueError('Python facade/SDK wheel contains a native engine')
 
 
-def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path) -> None:
+def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path) -> dict[str, str]:
     """Match the shipped resource bytes to the same verified original artifact."""
     with zipfile.ZipFile(wheel) as archive:
         for name in ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
@@ -113,6 +114,8 @@ def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path) -> None:
         if observed != {'actql_local_runtime/' + path.relative_to(package).as_posix() for path in expected
                         if path != package / 'WASMTIME-LICENSE'}:
             raise ValueError('Python runtime wheel private component inventory mismatch')
+        return {'actql_local_runtime/' + path.relative_to(package).as_posix(): sha256(path)
+                for path in expected if path.suffix in ('.py', '.pyi')}
 
 
 def sdk_runtime_binding(wheel: Path, original: bytes) -> None:
@@ -147,6 +150,11 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path,
         raise ValueError('Build Python wheels from committed clean source')
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     version = read_cohort(ROOT)
+    subprocess.run(['node', str(ROOT / 'scripts/check-interface-owners.mjs'),
+                    '--manifest', 'packages/python-product/pyproject.toml',
+                    '--manifest', 'packages/python-sdk/pyproject.toml',
+                    '--manifest', 'packages/python-local-runtime/pyproject.toml'],
+                   cwd=ROOT, check=True, timeout=60)
     spec = importlib.util.spec_from_file_location('python_runtime_recipe', ROOT / 'scripts/prepare-python-local-runtime.py')
     if spec is None or spec.loader is None:
         raise ValueError('Original Python runtime recipe is unavailable')
@@ -196,11 +204,14 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path,
             raise ValueError('Python cohort build did not create one wheel per package')
         wheel = created.pop()
         wheel_metadata(wheel, distribution, version)
+        verified_components = None
         if distribution == 'actql-sdk':
             sdk_runtime_binding(wheel, binding)
             sdk_host_capacity(wheel, capacity)
         if distribution == 'actql-local-runtime':
-            runtime_wheel_components(wheel, artifact, runtime)
+            verified_components = runtime_wheel_components(wheel, artifact, runtime)
+        wheel_source_correspondence(ROOT, wheel,
+            'packages/' + package + '/pyproject.toml', source, verified_components)
         records.append({'distribution': distribution, 'file': wheel.name,
                         'bytes': wheel.stat().st_size, 'sha256': sha256(wheel)})
     if (subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT)

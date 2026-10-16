@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {copyFile, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {checkoutState, packClientPackages} from './packed-client-packages.mjs';
+import {checkoutState, packClientPackages, packedClientPackage} from './packed-client-packages.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
@@ -126,10 +126,12 @@ export async function preparePackageRelease({repository = root, destination, coh
   // Unique output preserves previous RCs and makes accidental overwrite fail.
   await mkdir(destination);
   const originals = join(destination, 'development');
-  await packClientPackages({repository, destination: originals, names: cohort.packages, pack: name => {
-    run('npm', ['pack', '--json', '--pack-destination', originals, '--cache', join(destination, '.npm-cache')],
-      join(repository, 'packages', name));
-  }});
+  await packClientPackages({repository, destination: originals, names: cohort.packages,
+    pack: name => packedClientPackage({repository, name, destination: originals, pack: () => {
+      run('npm', ['pack', '--json', '--pack-destination', originals, '--cache', join(destination, '.npm-cache')],
+        join(repository, 'packages', name));
+    }}),
+  });
   const packages = [];
   for (const name of cohort.packages) {
     const original = JSON.parse(await readFile(join(repository, 'packages', name, 'package.json'), 'utf8'));

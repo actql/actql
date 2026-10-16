@@ -1,6 +1,7 @@
 // Shared private custody for the existing installed Model component. Local
 // and Effect-free Runs keep their own execution/publication owners; accepted
 // captures, attempt proofs and Store writes follow this same persistence path.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {preparePrivatePublicationHolding} from
@@ -31,6 +32,26 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   let cleanupFlight;
   let publicationCleanupFlight, publicationRetirementFlight;
   let publicationCleaned = false, publicationRetired = false;
+  let storedCaptureWireLimit;
+
+  // Same immutable original Store extent, before constructing its exporter.
+  // This scalar is not funding, persistence, currentness or a cleanup ACK.
+  // Cache a known zero as zero; absence/invalid DATA never defaults to1MiB.
+  function maximumStoredCaptureWire() {
+    if (storedCaptureWireLimit !== undefined) return storedCaptureWireLimit;
+    const select = store.privateEvidenceWireLimit;
+    if (typeof select !== 'function') {
+      throw Object.assign(new Error('InstalledInferCaptureStoreWireLimitUnavailable'),
+        {code: 'InstalledInferCaptureStoreWireLimitUnavailable'});
+    }
+    const limit = Reflect.apply(select, store, []);
+    if (!Number.isSafeInteger(limit) || limit < 0) {
+      throw Object.assign(new Error('InstalledInferCaptureStoreWireLimitUnavailable'),
+        {code: 'InstalledInferCaptureStoreWireLimitUnavailable'});
+    }
+    storedCaptureWireLimit = Math.min(1048576, limit);
+    return storedCaptureWireLimit;
+  }
 
   // Retire only this adapter's aliases after its existing physical/Core
   // cleanup succeeds. Durable Store originals and previously transferred
@@ -47,6 +68,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     sourceEvidence = undefined;
     publicationFor = undefined;
     faultInjection = undefined;
+    storedCaptureWireLimit = undefined;
     publicationRetired = true;
   }
   function retireAliases() {
@@ -216,6 +238,15 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     }
     for (let index = 0; index < attempts; index++) {
       const slot = operation.stoppedAttemptSlot?.(index) ?? index;
+      const entry = durableCalls ? modelEntryFor?.(slot) : undefined;
+      // This same custody already persisted AND acknowledged that exact
+      // attempt. A completed Model refuses the stopped-only usage reader;
+      // do not reopen it merely because publication was never acquired.
+      // Other/unknown attempts still retire their original reader below.
+      if (entry !== undefined) {
+        const acknowledgedAttempt = durableSettlements.get(slot);
+        if (acknowledgedAttempt !== undefined && acknowledgedAttempt === entry.attemptCid) continue;
+      }
       if (typeof operation.advanceStoppedAttemptUsage !== 'function') {
         throw new Error('InstalledInferRawUsageUnavailable');
       }
@@ -231,7 +262,6 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         await yieldEventLoop();
       }
       const proof = operation.attemptEvidence(slot);
-      const entry = durableCalls ? modelEntryFor?.(slot) : undefined;
       let terminalFailure = false;
       if (durableCalls) {
         const outcome = JSON.parse(moon.strategyRunEvidenceJson(
@@ -280,16 +310,17 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     }
     await holdAttachments(slot, current.entry);
     await holdEvidence('model_slot_capture', slot, operation.issuedSlotCapture(slot), current.entry);
-    const observation = operation.invocationEvidence(slot);
+    const observation = operation.invocationEvidenceView(control, slot);
     if (observation !== undefined) {
-      await holdEvidence('model_invocation_evidence', slot, observation, current.entry);
+      await hold('model_invocation_evidence', slot, observation.wire,
+        observation.identity, current.entry);
     }
     current.exporter ??= checked(moon.clientProgramStartInferCallSettlementExport(
-      current.settlement, 1048576, 1000000));
+      current.settlement, maximumStoredCaptureWire(), 1000000));
     while (!current.complete) {
       const progress = checked(moon.clientProgramAdvanceInferCaptureExport(current.exporter, 256));
-      current.wire += progress._1;
-      current.complete = progress._0;
+      current.wire += runtimeField(progress, 1);
+      current.complete = runtimeField(progress, 0);
       if (!current.complete) await yieldEventLoop();
     }
     await hold('model_capture_bundle', slot, current.wire,
@@ -301,11 +332,18 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     if (!['SavedSuccess', 'SavedFailure'].includes(observed?.state)) {
       throw new Error('InferSettlementNotDurable');
     }
-    durableSettlements.set(slot, current.entry.attemptCid);
     await faultInjection?.('infer_model_settlement_committed', {slot,
       scopeCid: current.entry.scopeCid, attemptCid: current.entry.attemptCid, state: observed.state});
     if (!checked(moon.clientProgramCleanupInferCaptureExport(current.exporter))) throw pending();
     operation.acknowledgeSettlement(current.settlement);
+    // Store observation alone is not this same Common settlement ACK.
+    // Failed cleanup/ACK must keep the stopped-reader responsibility above.
+    durableSettlements.set(slot, current.entry.attemptCid);
+    // Both original duties succeeded. Retire only this record's aliases even
+    // if its completed async frame remains reachable; Store/Core originals
+    // and a later terminal export retain their independent lifetimes.
+    current.exporter = undefined;
+    current.wire = '';
     settling = undefined;
     return observed;
   }
@@ -341,20 +379,20 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         checked(moon.clientProgramBindInferSlotCapture(capture, slot, adopted));
         await holdEvidence('model_slot_capture', slot, adopted);
       }
-      const evidence = operation.invocationEvidence(slot);
+      const evidence = operation.invocationEvidenceView(control, slot);
       if (evidence !== undefined) {
-        modelEvidence.push(control.admitRunEvidence('model_invocation_evidence',
-          moon.strategyRunEvidenceJson(evidence),
-          {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20}));
+        modelEvidence.push(evidence);
       }
     }
+    // captureOnly's whole bundle is not stored in this per-slot cell. Keep
+    // its existing bound; do not mistake a different Store's extent for it.
     exporter ??= checked(moon.clientProgramStartInferCaptureExport(capture,
-      1048576, 1000000));
+      captureOnly ? 1048576 : maximumStoredCaptureWire(), 1000000));
     while (!exportComplete) {
       const progress = checked(moon.clientProgramAdvanceInferCaptureExport(
         exporter, 256));
-      wire += progress._1;
-      if (progress._0) { exportComplete = true; break; }
+      wire += runtimeField(progress, 1);
+      if (runtimeField(progress, 0)) { exportComplete = true; break; }
       await yieldEventLoop();
     }
     if (captureOnly) {
@@ -374,8 +412,8 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
           maxWireBytes: 16384, maxWork: count + 2});
       }
       while (!issuanceComplete) {
-        issuanceComplete = checked(
-          moon.clientProgramAdvanceInferObservationIssuance(issuance, 1))._0;
+        issuanceComplete = runtimeField(checked(
+          moon.clientProgramAdvanceInferObservationIssuance(issuance, 1)), 0);
         await faultInjection?.('infer_observation_advanced', {
           complete: issuanceComplete,
         });

@@ -1,5 +1,13 @@
-import {createOpenAI} from '@ai-sdk/openai';
+import * as openai from '@ai-sdk/openai';
+import * as providerUtils from '@ai-sdk/provider-utils';
 import {interceptSdkRequest} from './intercepted-request.mjs';
+
+const createOpenAI=openai.createOpenAI;
+// The actual builder's module originals, never caller DATA, a source hash or
+// a numerical/dispatch grant. Existing Host custody selects their fixed static
+// graph responsibility. Per-call factories, lazy/mutable state and all inputs
+// remain separately funded; forgetting this borrowed shell is not module GC.
+export const openAIChatStaticOriginals=Object.freeze({openai,providerUtils,createOpenAI});
 
 // Private verified builder, never a caller's preconstructed model instance.
 // The Host obtains current secrets through its existing authorized mechanism;

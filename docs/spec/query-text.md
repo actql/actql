@@ -1544,6 +1544,12 @@ operator is `RESULT x`, the primary output references that same `x`; no second
 anonymous export is constructed. Otherwise the continuing Relation uses the
 existing configured primary export.
 
+A terminal `CREATE TABLE` or `CREATE OR REPLACE TABLE` is the explicit
+exception: only authored public Results are exported. Its final Relation feeds
+the existing private Table input, without another primary export. With no
+authored Result its public `results` map is empty. This exception does not change
+ordinary Relation queries or UPDATE's primary-tail rule.
+
 RESULT declarations belong at statement level (and adopted BRANCH bodies), not
 inside CTEs, derived queries or set operands. The separate adopted `RESULT(name)`
 source reference is not a declaration and has its own preceding-statement
@@ -2430,8 +2436,10 @@ the short forms below resolve to the same existing owners.
 The checker MUST resolve each short `conn.resource` or `conn.operation` form
 against the selected connection's published contracts, refusing unknown,
 ambiguous, type-incompatible or unauthorized bindings before acquisition.
-The author does not name a Mapping in the short form. Explicit long forms
-select among multiple published contracts without broadening their authority.
+The author does not name a Mapping in the short form; a published logical
+UPDATE target may carry an explicit `MAPPING` as described below. Explicit long
+forms select among multiple published contracts without broadening their
+authority.
 Normalization records the resolved target, contract and installation identity.
 
 The admitted terminal forms are:
@@ -2477,6 +2485,87 @@ fixed set and never re-evaluates WHERE to add newly matching records. A Connecto
 unable to fix identities and apply-time conditions refuses the form at check.
 A changed apply-time condition produces `failed` with `conflict`, not a refreshed
 Preview, automatic resend, or a silently omitted row.
+
+### Published logical UPDATE targets
+
+A terminal UPDATE can instead name a Host-published logical target, with an
+optional explicit Mapping:
+
+```aql
+|> EFFECT save UPDATE crm.records
+   FROM RESULT updates ID target_id SET (Name = next_name)
+```
+
+```aql
+|> EFFECT save UPDATE crm.records
+   MAPPING `mapping:published-reference.v1`
+   FROM RESULT updates ID target_id SET (Name = next_name)
+```
+
+The logical path contains at least two identifier components. It uses the
+published Relation-name rules: each unquoted component matches without ASCII
+case, while a quoted component requires exact spelling. It is not inferred
+from a Source alias, a query input, a Connector name or a Mapping's spelling.
+The explicit `TARGET 'uri' MAPPING identifier` form keeps its existing meaning
+and still requires MAPPING. The optional Effect name, selection of an explicit retained Result or the
+current Relation, ID field and nonempty pure typed SET list reuse the preceding
+UPDATE rules. Target resolution does not change input selection, expression
+preparation, the existing direct-field/literal identity guarantee, or the
+distinction between public Results and private capture.
+
+The trusted installed Effect profile publishes
+`queryUpdateTargets: [{name, targetRef}]`. Loading that profile produces an
+owned publication bound to its `installationBindingCid` and exact
+CheckEnvironment owner, together with `installationOwnerCid`, the canonical
+CID of the existing installed row-effect owner's `installationFacts` snapshot.
+The physical binding and complete owner identity remain distinct. A
+caller-authored object or an equal-CID foreign
+environment cannot replace that publication. This is a connection to the
+existing installation and Mapping owners, not a second target registry or a
+new static write Capability. A missing, duplicate or ambiguous logical binding
+is refused before a Program is issued.
+
+After resolving the target, omitted MAPPING requires exactly one installed,
+structurally valid Mapping for that exact target whose existing operation and
+identity contract supports UPDATE by ID. Candidate discovery considers the
+complete installed Mapping collection independently of the current grants and
+authored SET fields. It does not select the first candidate, rank names, use
+field compatibility to break a tie, or remove an unauthorized candidate to make
+another one unique. No candidate, multiple candidates, or an incomplete or
+invalid target Mapping declaration causes refusal. An explicit MAPPING retains
+its exact reference and must be installed, valid, UPDATE/ID-compatible and bound
+to the resolved target; it cannot redirect that target.
+
+Resolution emits the same concrete target and MappingRef in the ordinary Stage
+update Effect. Equivalent explicit-target and logical-target forms normalize
+to the same Program under the same environment, installation publication,
+Effect name, input-selection form, SET expressions and output contract. This
+preserves the identity distinction between an authored public Result and an
+omitted FROM RESULT using private capture. Target spelling is not extra Program
+meaning.
+The ordinary capability, type, ID, SET, current authority, preview, approval,
+read-denial and Effect checks still apply after selection. A logical publication
+does not make a write-only Resource readable or authorize acquisition or dispatch.
+
+Execution and recovery retain the original Stage/Effect occurrence, concrete
+target, Mapping reference and CID, Check Environment, physical installation
+binding and complete installed-owner CID in the existing compilation material.
+Equivalent full and short forms in the same selected context have equal
+selection bytes; alias spelling is excluded. Restoring a saved concrete Program
+and Check Environment uses those originals even if an alias was subsequently
+removed or changed. Current exact installed-owner, grants, approval, lease and
+dispatch fences still apply. Restore does not re-resolve aliases, reselect
+another candidate or resend an unknown outcome. Source
+admission and identity fixtures alone do not establish those public execution
+or recovery connections, which require separate acceptance evidence.
+
+Implementation boundary: installed alias metadata and pure frontend completion
+are separate from durable Run custody. Until coordinated activation of the
+existing Run owner's original-selection retention and rechecks, normal Host source preparation
+withholds the logical UPDATE publication. Logical UPDATE is therefore refused
+before Provider work on that path; the explicit TARGET/MAPPING path remains
+available under its existing checks. This fail-closed boundary is an outstanding
+implementation obligation, not a permanent restriction of the adopted syntax.
 
 ### COMMAND postludes
 
@@ -2547,6 +2636,12 @@ Lowering uses the existing store Effect and private Table capture. It preserves
 absence, explicit NULL and actual values without creating an implicit public
 Relation. A save-only checked Effect Program has `results: {}` under the common
 Effect-only Program contract; ordinary Named Results remain all-Required.
+When an earlier `RESULT name` precedes further row operations, that Result keeps
+its original rows and schema, while the private Table input consumes the final
+Relation. CREATE and REPLACE export exactly the authored public Results; they do
+not add the configured primary export for that private consumer. A terminal
+authored Result still names its retained Relation. Ordinary SQL and UPDATE keep
+their existing primary-tail behavior.
 Initial support is Relation create and same-schema whole-table replace using
 the installed writer's admitted types. Syntax does not authorize a write.
 Append/upsert, schema evolution, automatic Catalog observation and other Carrier

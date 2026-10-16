@@ -5,6 +5,8 @@ This adapter neither loads a DLL nor acquires/adopts an allocator or profile.
 """
 from __future__ import annotations
 
+from ._local_native_memory_abi import bind as bind_memory
+
 from ctypes import byref, c_int, c_void_p, c_uint64, c_ubyte, c_size_t, POINTER
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -12,6 +14,7 @@ from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ._local_native_domain_borrow import _OriginalDomainBorrow
+    from ._local_engine import _InstalledImageFileInput, _InstalledImageInput
 
 
 class NativeHoldingRetirementError(RuntimeError):
@@ -74,9 +77,7 @@ class _NativeHoldingLease:
         if (type(generation) is not int or not 0 < generation <= 2**64 - 1
                 or type(recipe) is not bytes or len(recipe) != 32):
             raise ValueError('Invalid original native holding acquisition context')
-        retire = library.actql_owned_try_close
-        retire.argtypes = [POINTER(c_void_p)]
-        retire.restype = c_int
+        retire = bind_memory(library, 'actql_owned_try_close')
         # Retain the same loaded library as long as its native pointer exists.
         self._library = library
         self._pointer = c_void_p(pointer.value)
@@ -140,17 +141,30 @@ class _NativeHoldingLease:
         if self._borrow is not None:
             self._borrow._transfer_holding(self, self._pointer, self._generation, self._recipe)
             return
-        transfer = self._library.actql_owned_transfer
-        transfer.argtypes = [c_void_p, c_uint64, POINTER(c_ubyte)]
-        transfer.restype = c_int
+        transfer = bind_memory(self._library, 'actql_owned_transfer')
         recipe = (c_ubyte * 32).from_buffer_copy(self._recipe)
         code = transfer(self._pointer, self._generation, recipe)
         if type(code) is not int or code != 0:
             raise NativeHoldingTransferError(code if type(code) is int else None)
 
-    def _verify_library(self, library: Any) -> None:
-        if library is not self._library:
+    def _verify_library(self, library: Any, *,
+                        _installed_image: _InstalledImageFileInput | _InstalledImageInput | None = None) -> None:
+        self._require_confirmed_retirement_state()
+        if library is self._library:
+            return
+        # Native control and Wasmtime are deliberately separate selected DLLs.
+        # Only an installed original image may use the same provider imported
+        # by that runtime. Raw diagnostics never obtain this from a name/Bool.
+        from ._local_engine import _InstalledImageFileInput, _verify_original_provider_link
+        if type(_installed_image) is not _InstalledImageFileInput:
             raise ValueError('Native Local holding and runtime library differ')
+        if self._pointer.value is None:
+            raise ValueError('Original native holding is retired')
+        original = self._library
+        _verify_original_provider_link(_installed_image, library, original)
+        self._require_confirmed_retirement_state()
+        if self._library is not original or self._pointer.value is None:
+            raise ValueError('Original native holding changed during provider verification')
 
     def _capacity_bytes(self) -> int:
         self._require_confirmed_retirement_state()
@@ -161,9 +175,7 @@ class _NativeHoldingLease:
             if not 0 < value <= 2**63 - 1:
                 raise NativeHoldingObservationError('capacity', None)
             return value
-        inspect = self._library.actql_owned_capacity_bytes
-        inspect.argtypes = [c_void_p, POINTER(c_uint64)]
-        inspect.restype = c_int
+        inspect = bind_memory(self._library, 'actql_owned_capacity_bytes')
         observed = c_uint64()
         code = inspect(self._pointer, byref(observed))
         if (type(code) is not int or code != 0
@@ -179,13 +191,19 @@ class _NativeHoldingLease:
             with self._scope():
                 self._borrow._holding_contains(self, address, length)
             return
-        contains = self._library.actql_owned_contains_live_span
-        contains.argtypes = [c_void_p, c_void_p, c_size_t]
-        contains.restype = c_int
+        contains = bind_memory(self._library, 'actql_owned_contains_live_span')
         with self._scope():
             code = contains(self._pointer, address, length)
         if type(code) is not int or code != 0:
             raise NativeHoldingObservationError('span', code if type(code) is int else None)
+
+    def _original_span_offset(self, address: c_void_p, length: int) -> int:
+        """Original borrowed payload only, never an address-based supplier."""
+        self._require_confirmed_retirement_state()
+        if self._borrow is None or not self._transfer_attempted or self._pointer.value is None:
+            raise ValueError('Original child domain span is unavailable')
+        with self._scope():
+            return self._borrow._holding_span_offset(self, self._pointer, address, length)
 
     @contextmanager
     def _scope(self) -> Iterator[None]:
@@ -197,11 +215,8 @@ class _NativeHoldingLease:
             with self._borrow._holding_scope(self):
                 yield
             return
-        enter = self._library.actql_owned_enter
-        leave = self._library.actql_owned_leave
-        for function in (enter, leave):
-            function.argtypes = [c_void_p]
-            function.restype = c_int
+        enter = bind_memory(self._library, 'actql_owned_enter')
+        leave = bind_memory(self._library, 'actql_owned_leave')
         code = enter(self._pointer)
         if type(code) is not int or code != 0:
             raise NativeHoldingScopeError('enter', code if type(code) is int else None)

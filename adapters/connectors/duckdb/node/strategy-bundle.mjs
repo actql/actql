@@ -1,5 +1,6 @@
 // DuckDB-specific execution and resident session lifetime. The common serial
 // driver never interprets this resource policy, tables, imports or SQL.
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {loadDuckDBNativeRuntime} from './native-runtime.mjs';
 
 import {preparedStrategyConfiguration} from './configuration.mjs';
@@ -18,7 +19,7 @@ const {host: {runStrategyHostCompute, runRetainedStrategyHostCompute,
 const managedSiteCapacity = value => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
-    ? [value._0, value._1]
+    ? [runtimeField(value, 0), runtimeField(value, 1)]
     : undefined;
 
 export function duckdbStrategyContribution(moon, setup, checked, configuration) {

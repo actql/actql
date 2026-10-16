@@ -614,10 +614,21 @@ fn NativeLocalCredentialIssuerBinding::append_grant_original_locked(
   if original.grant is SigningGrant(_) {
     return Err(AuthorizationDenied)
   }
+  self.append_owned_grant_original_locked(original, current, target~)
+}
+
+///|
+// Variant-specific opaque callers establish their own operational fence. This
+// is the same immutable append/counter/reservation Owner, not another issuer.
+fn NativeLocalCredentialIssuerBinding::append_owned_grant_original_locked(
+  self : NativeLocalCredentialIssuerBinding,
+  original : NativeLocalGrantOriginal,
+  current : () -> Result[Unit, NativeClientRunJournalIssue],
+  target? : NativeLocalPreparationOriginalTarget? = None,
+) -> Result[Unit, NativeClientRunJournalIssue] {
   if (original.grant is PreparationGrant(_)) != (target is Some(_)) {
     return Err(ChangedIntent)
   }
-  let scope = local_original_grant_facts(original.grant)
   let (count, revision, runs) = match
     self.host.local_grant_custody(self.crypto) {
     Ok(value) => value
@@ -661,6 +672,12 @@ fn NativeLocalCredentialIssuerBinding::append_grant_original_locked(
       cursor = row.key
     }
   }
+  if original.grant is SigningGrant(_) {
+    match self.host.same_signing_operation_locked(original) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   let key = match
     local_grant_original_key(
       self.crypto,
@@ -670,13 +687,14 @@ fn NativeLocalCredentialIssuerBinding::append_grant_original_locked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let (entries, bytes) = runs.get(scope.submission_scope_cid).unwrap_or((0, 0))
+  let reservation_scope = local_original_grant_reservation_scope(original)
+  let (entries, bytes) = runs.get(reservation_scope).unwrap_or((0, 0))
   // Reserve before encoding/copying the appended grant packet. Missing
   // reservations for existing originals refuse rather than being repaired.
   match
     self.host.database.reserve_capacity_in_transaction(
       "client_local_grant_originals",
-      scope.submission_scope_cid,
+      reservation_scope,
       65536L,
       1L,
       self.host.journal.max_records.to_int64() * 65536L,

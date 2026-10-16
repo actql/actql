@@ -13,6 +13,8 @@ fn begin_holder_effect_host_setup_scope(
     is Some(scope) else {
     return None
   }
+  // Arithmetic/lifecycle model only, not an installed physical read context.
+  scope.preparation_binding = Some(current_binding)
   scope.current_binding = Some(current_binding)
   Some(scope)
 }
@@ -24,6 +26,13 @@ fn host_setup_test_profile() -> HolderEffectHostSetupProfile {
   {
     read_ceiling: 32,
     catalog_read_ceiling: 1024L,
+    catalog_json_limits: {
+      max_nodes: 1024,
+      max_depth: 5,
+      max_string_bytes: 1024,
+      max_total_string_bytes: 1024,
+    },
+    catalog_sqlite_heap_bytes: 4096L,
     diagnostic_ceiling: 8,
     setup_retained_bytes: 120L,
     current_retained_bytes: 30L,
@@ -39,38 +48,63 @@ fn host_setup_test_profile() -> HolderEffectHostSetupProfile {
 }
 
 ///|
-test "current catalog has its own original envelope independent of Account ceiling" {
+test "current catalog ceiling is independent and cannot raise the original Store bound" {
   let profile = host_setup_test_profile()
-  // The existing fixture's Account ceiling is 32, independently from 1024
-  // selected catalog bytes. Neither quantity is a production numeric profile.
-  assert_true(
-    holder_effect_host_catalog_representation_ready(Some(profile), 1024L),
+  assert_eq(
+    holder_effect_host_catalog_read_limit(Some(profile), 1024L),
+    Some(1024L),
   )
-  assert_true(
-    holder_effect_host_catalog_representation_ready(Some(profile), 1023L),
+  assert_eq(
+    holder_effect_host_catalog_read_limit(Some(profile), 1023L),
+    Some(1023L),
   )
-  assert_false(
-    holder_effect_host_catalog_representation_ready(Some(profile), 1025L),
+  assert_eq(
+    holder_effect_host_catalog_read_limit(Some(profile), 1025L),
+    Some(1024L),
   )
-  for original in [0L, -1L, 9223372036854775807L] {
-    assert_false(
-      holder_effect_host_catalog_representation_ready(Some(profile), original),
+  assert_eq(
+    holder_effect_host_catalog_read_limit(Some(profile), 9223372036854775807L),
+    Some(1024L),
+  )
+  for original in [0L, -1L] {
+    assert_true(
+      holder_effect_host_catalog_read_limit(Some(profile), original) is None,
     )
   }
-  assert_false(holder_effect_host_catalog_representation_ready(None, 1024L))
+  assert_true(holder_effect_host_catalog_read_limit(None, 1024L) is None)
   let invalid = { ..profile, catalog_read_ceiling: 0L, }
-  assert_false(
-    holder_effect_host_catalog_representation_ready(Some(invalid), 1L),
-  )
+  assert_true(holder_effect_host_catalog_read_limit(Some(invalid), 1L) is None)
 }
 
 ///|
-test "uncovered current catalog refuses before binding reads or reservation" {
+test "invalid original component selection refuses before binding reads or reservation" {
+  let site = host_setup_test_site(1)
+  let checks = Ref(0)
+  let before = @site.site_status(site)
+  for heap in [-1L, 0L, 4095L, 2147483648L] {
+    let invalid = {
+      ..host_setup_test_profile(),
+      catalog_sqlite_heap_bytes: heap,
+    }
+    assert_true(
+      begin_holder_effect_host_setup_scope(site, Some(invalid), 1024L, () => {
+        checks.val += 1
+        true
+      })
+      is None,
+    )
+    assert_eq(checks.val, 0)
+    assert_eq(@site.site_status(site), before)
+  }
+}
+
+///|
+test "missing current catalog selection refuses before binding reads or reservation" {
   let site = host_setup_test_site(1)
   let profile = host_setup_test_profile()
   let checks = Ref(0)
   let before = @site.site_status(site)
-  let scope = begin_holder_effect_host_setup_scope(site, Some(profile), 1025L, () => {
+  let scope = begin_holder_effect_host_setup_scope(site, Some(profile), 0L, () => {
     checks.val += 1
     true
   })
@@ -684,8 +718,176 @@ test "setup reservation refuses absent invalid or uncovered profile without bind
     )
     assert_eq(@site.site_status(site), before)
   }
+  // A larger Store bound is capped by the selected ceiling, as the independent
+  // ceiling test above requires. Exercise actual uncovered Site capacity here:
+  // the original Site admits 150 bytes, so a 151-byte reservation must refuse.
   assert_true(
-    reserve_holder_effect_host_setup_scope(site, Some(profile), 1025L) is None,
+    reserve_holder_effect_host_setup_scope(
+      site,
+      Some({ ..profile, setup_retained_bytes: 151L, }),
+      1024L,
+    )
+    is None,
   )
   assert_eq(@site.site_status(site), before)
+}
+
+///|
+test "setup preparation preserves original reservation without publishing current or reading Store" {
+  let site = host_setup_test_site(1)
+  let scope = reserve_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+  ).unwrap()
+  let operation = scope.caller_operation.unwrap()
+  let before = @site.site_status(site)
+  let preparations = Ref(0)
+  scope.preparation_binding = Some(() => {
+    preparations.val += 1
+    holder_effect_host_setup_selection_current(site, "test", 1, "runtime", () => {
+      true
+    })
+  })
+  assert_true(holder_effect_host_read_scope_prepared(scope))
+  assert_eq(preparations.val, 1)
+  assert_true(scope.current_binding is None)
+  assert_false(holder_effect_host_read_scope_current(scope))
+  assert_eq(preparations.val, 1)
+  assert_true(scope.read_domain is None)
+  assert_eq(@site.site_status(site), before)
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_true(prepare_holder_effect_host_scope_retirement(scope))
+  let (retained, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(retained.unwrap(), operation))
+  assert_true(scope.preparation_binding is None)
+  assert_true(@site.settle_site_operation(operation))
+  assert_false(@site.settle_site_operation(operation))
+}
+
+///|
+test "setup preparation rejects foreign selection without a Store callback" {
+  for
+    (key, generation, runtime) in [
+      ("foreign", 1, "runtime"),
+      ("test", 2, "runtime"),
+      ("test", 1, "foreign"),
+    ] {
+    let site = host_setup_test_site(1)
+    let scope = reserve_holder_effect_host_setup_scope(
+      site,
+      Some(host_setup_test_profile()),
+      1024L,
+    ).unwrap()
+    let stores = Ref(0)
+    scope.current_binding = Some(() => {
+      stores.val += 1
+      true
+    })
+    scope.preparation_binding = Some(() => {
+      holder_effect_host_setup_selection_current(
+        site,
+        key,
+        generation,
+        runtime,
+        () => true,
+      )
+    })
+    assert_false(holder_effect_host_read_scope_prepared(scope))
+    assert_eq(stores.val, 0)
+    assert_eq(@site.site_status(site)[7], 120L)
+  }
+}
+
+///|
+test "setup preparation rechecks reentrant retirement and original operation identity" {
+  let site = host_setup_test_site(2)
+  let scope = reserve_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+  ).unwrap()
+  let original = scope.caller_operation.unwrap()
+  let replacement = @site.start_site_operation(site, 1L, 1L).unwrap()
+  scope.preparation_binding = Some(() => {
+    scope.operation = Some(replacement)
+    scope.caller_operation = Some(replacement)
+    true
+  })
+  assert_false(holder_effect_host_read_scope_prepared(scope))
+  // Restore fixture aliases only; neither operation has been acknowledged.
+  scope.operation = Some(original)
+  scope.caller_operation = Some(original)
+  scope.preparation_binding = Some(() => {
+    scope.retiring = true
+    true
+  })
+  assert_false(holder_effect_host_read_scope_prepared(scope))
+  assert_eq(@site.site_status(site)[7], 121L)
+  assert_true(@site.settle_site_operation(replacement))
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_true(prepare_holder_effect_host_scope_retirement(scope))
+  let (retained, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(retained.unwrap(), original))
+  assert_true(@site.settle_site_operation(original))
+}
+
+///|
+test "Store current refusal cannot perform another lookup during leave or nested read" {
+  let site = host_setup_test_site(1)
+  let stores = Ref(0)
+  // Callback/lifecycle model only: no physical Store, domain or Account is used.
+  let scope = begin_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+    () => {
+      stores.val += 1
+      false
+    },
+  ).unwrap()
+  let original = scope.caller_operation.unwrap()
+  assert_false(holder_effect_host_read_scope_current(scope))
+  assert_eq(stores.val, 1)
+  let accounts = Ref(0)
+  assert_false(
+    with_holder_effect_host_read_scope(scope, () => {
+      accounts.val += 1
+      true
+    }),
+  )
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_eq(stores.val, 1)
+  assert_eq(accounts.val, 0)
+  assert_eq(@site.site_status(site)[7], 120L)
+  assert_true(prepare_holder_effect_host_scope_retirement(scope))
+  let (retained, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(retained.unwrap(), original))
+  assert_true(@site.settle_site_operation(original))
+}
+
+///|
+test "nonpositive catalog decode selection refuses before reservation or current I/O" {
+  let site = host_setup_test_site(1)
+  let profile = host_setup_test_profile()
+  let checks = Ref(0)
+  let before = @site.site_status(site)
+  for
+    limits in [
+      { ..profile.catalog_json_limits, max_nodes: 0, },
+      { ..profile.catalog_json_limits, max_depth: -1, },
+      { ..profile.catalog_json_limits, max_string_bytes: 0, },
+      { ..profile.catalog_json_limits, max_total_string_bytes: -1, },
+    ] {
+    let invalid = { ..profile, catalog_json_limits: limits, }
+    assert_true(
+      begin_holder_effect_host_setup_scope(site, Some(invalid), 1024L, () => {
+        checks.val += 1
+        true
+      })
+      is None,
+    )
+    assert_eq(checks.val, 0)
+    assert_eq(@site.site_status(site), before)
+  }
 }

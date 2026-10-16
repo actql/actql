@@ -1,11 +1,12 @@
 // Physical stepping and custody for the existing MoonBit inference owner.
 // Run admission, model policy and private Store confirmation precede opening;
 // this adapter does not authorize dispatch or issue a public Run outcome.
+import {runtimeFailure, runtimeField, runtimeTriple} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,
-  selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
+  selectedInferOriginalPublicationCapacity, selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';
 import {originalModelRawTransportPersistenceMatches} from './infer-raw-capture.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
@@ -31,6 +32,14 @@ export function selectOriginalInferStoreBootstrapAcquisition(handle, ownerId, re
   const original = originalMetadataSources.get(handle)?.deref();
   if (original === undefined) metadataUnavailable();
   return original.current(ownerId, requestCid, 'store-bootstrap');
+}
+
+// Same original installation's existing Writer/decoder bound. Metadata wire
+// limits are a different role and cannot price or bound this resource body.
+export function selectOriginalInferResourceCodecAcquisition(handle, ownerId, requestCid) {
+  const original = originalMetadataSources.get(handle)?.deref();
+  if (original === undefined) metadataUnavailable();
+  return original.current(ownerId, requestCid, 'resource-state-codec');
 }
 
 // Validate the Node-to-Int boundary before entering the existing codec. These
@@ -85,6 +94,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let metadataControl = originalPreparation?.control;
   let metadataDefinition = originalPreparation?.runDefinition;
   let originalMetadata;
+  let originalStoreBootstrap;
   let originalPublicationCapacity;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined || keyedInput !== undefined ||
@@ -296,8 +306,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     try {
       if (runtimeDiagnostic !== undefined) {
         const facts = moon.clientProgramInferPhysicalObservationFacts(value);
-        runtimeDiagnostic({slot: facts._0, attemptCid: facts._1,
-          event: facts._2, outcome: facts._3});
+        runtimeDiagnostic({slot: runtimeField(facts, 0), attemptCid: runtimeField(facts, 1),
+          event: runtimeField(facts, 2), outcome: runtimeField(facts, 3)});
       }
     } catch { /* Optional diagnostics cannot authorize or block cleanup. */ }
     finally { runtimeCurrent(); }
@@ -331,6 +341,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       originalPreparedCallSet = undefined;
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);
       originalMetadata = undefined;
+      if (originalStoreBootstrap !== undefined) originalMetadataSources.delete(originalStoreBootstrap.handle);
+      originalStoreBootstrap = undefined;
       originalScope = undefined;
       // Escaped metadata methods must not keep the original installation/Run
       // after this same Core Owner acknowledges cleanup. Pending/failed
@@ -387,7 +399,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       }
       if (kind === 'failed') {
         // Preserve the existing typed cause without a new public classifier.
-        checked({$tag: 0, _0: moon.clientProgramInferExecutionPollIssue(poll)});
+        checked(runtimeFailure(moon.clientProgramInferExecutionPollIssue(poll)));
       }
       if (kind === 'stopped') {
         if (signal?.aborted) signal.throwIfAborted();
@@ -504,6 +516,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),
     invocationEvidence: slot => moon.clientProgramInferInvocationEvidence(active,
       slot),
+    invocationEvidenceView: (control, slot) => {
+      if (reclaimed) return undefined;
+      return control.inspectInferInvocationEvidence(moon, active, slot);
+    },
     evaluationRequest: slot => {
       if (reclaimed) return undefined;
       const physical = moon.clientProgramInferEvaluationRequest(active, slot);
@@ -520,7 +536,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // This reads authenticated original strings. A current preflight must
       // never rebuild missing historical provider input or context.
       if (saved === undefined || saved.typedInputWire !== moon.clientProgramModelRequestInputFrame(request)) return undefined;
-      return {_0: request, _1: saved.renderedInput, _2: saved.contextManifest};
+      return runtimeTriple(request, saved.renderedInput, saved.contextManifest);
     },
     preparedPhysicalRequest: (prepared, slot) => moon.clientProgramInferPreparedPhysicalRequest(prepared, slot),
     // The ordinary publication control owns compilation and contract tokens.
@@ -574,7 +590,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       }
       const poll = moon.clientProgramInferNodeReadStatePoll(
         moon.clientProgramAdvanceInferOriginalCurrentStateWriter(active, originalScope, park, writer, quantum));
-      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
+      return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2)});
     },
     finishOriginalCurrentStateWriter(park, writer) {
       if (closing || reclaimed || originalScope === undefined ||
@@ -609,7 +625,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (!codecInt(quantum, true)) throw new TypeError('InvalidInferOriginalCurrentDecodeQuantum');
       const poll = moon.clientProgramInferOriginalCurrentStateDecodePoll(
         moon.clientProgramAdvanceInferOriginalCurrentStateDecode(active, originalScope, park, decoder, quantum));
-      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2, document: poll._3});
+      return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2), document: runtimeField(poll, 3)});
     },
     cancelOriginalCurrentStateDecode: decoder => moon.clientProgramCancelInferOriginalCurrentStateDecode(decoder),
     retireOriginalCurrentStateDocument: document => moon.clientProgramRetireInferOriginalCurrentStateDocument(document),
@@ -623,7 +639,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (!codecInt(quantum, true)) throw new TypeError('InvalidInferOriginalCurrentComparisonQuantum');
       const poll = moon.clientProgramInferOriginalCurrentStateComparisonPoll(checked(
         moon.clientProgramAdvanceInferOriginalCurrentStateComparison(active, originalScope, park, comparison, quantum)));
-      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
+      return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2)});
     },
     cancelOriginalCurrentStateComparison: comparison => moon.clientProgramCancelInferOriginalCurrentStateComparison(comparison),
     advanceOriginalCurrentStateComparisonWithMatch(park, comparison, quantum) {
@@ -635,7 +651,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       const poll = moon.clientProgramInferOriginalCurrentStateMatchPoll(checked(
         moon.clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch(active, originalScope,
           park, comparison, quantum)));
-      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2, matched: poll._3});
+      return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2), matched: runtimeField(poll, 3)});
     },
     originalCurrentStateMatchCurrent(park, matched) {
       if (reclaimed || originalScope === undefined ||
@@ -665,6 +681,35 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return moon.clientProgramInferOriginalParkedReadCapacityAvailable(
         active, originalScope, park, retainedBytes, executionBytes);
     },
+    originalStoreBootstrapAcquisition() {
+      if (originalStoreBootstrap !== undefined) {
+        originalStoreBootstrap.current(undefined, undefined, 'store-bootstrap');
+        return originalStoreBootstrap.handle;
+      }
+      const selection = selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation);
+      const current = (ownerId, requestCid, role) => {
+        // This pre-park borrow is deliberately NOT a metadata/body/codec
+        // acquisition or a stable cut. Only the same original read reservation
+        // may cover the first Store observation while approval is pending.
+        if (role !== 'store-bootstrap' || reclaimed || closing || signal?.aborted ||
+            originalScope === undefined ||
+            typeof moon.clientProgramInferOriginalUnparkedReadCapacityAvailable !== 'function' ||
+            selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation) !== selection ||
+            !moon.clientProgramInferOriginalUnparkedReadCapacityAvailable(active, originalScope,
+              selection.retainedBytes, selection.workspaceBytes)) metadataUnavailable();
+        if (ownerId !== undefined && (typeof metadataControl?.runDefinitionRunId !== 'function' ||
+            ownerId !== `model-${metadataControl.runDefinitionRunId(metadataDefinition)}`) ||
+            requestCid !== undefined && requestCid !== metadataDefinition?.identity) metadataUnavailable();
+        return selectedInferOriginalStoreBootstrapLimits(metadataInstallation, metadataNodeInstallation);
+      };
+      // Same full envelope before allocating the extra record/handle. Physical
+      // clamps themselves neither reserve bytes nor issue permission.
+      current(undefined, undefined, 'store-bootstrap');
+      const handle = Object.freeze({kind: 'original-infer-store-bootstrap-acquisition'});
+      originalStoreBootstrap = {handle, current};
+      originalMetadataSources.set(handle, new WeakRef(originalStoreBootstrap));
+      return handle;
+    },
     originalMetadataAcquisition(park) {
       if (originalMetadata !== undefined) {
         if (originalMetadata.park !== park) metadataUnavailable();
@@ -685,6 +730,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
             requestCid !== undefined && requestCid !== metadataDefinition?.identity) metadataUnavailable();
         if (role === 'store-bootstrap') {
           return selectedInferOriginalStoreBootstrapLimits(metadataInstallation, metadataNodeInstallation);
+        }
+        if (role === 'resource-state-codec') {
+          return selectedInferOriginalCurrentStateCodec(metadataInstallation, metadataNodeInstallation);
         }
       };
       // Inspect the same token BEFORE allocating the retained record/handle or
@@ -752,8 +800,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       });
       return Object.freeze({preparedCallSet, input,
         inputArtifactWire: moon.strategyRunEvidenceJson(artifact),
-        slotWires: Object.freeze(slotWires), providerId: ids._0,
-        modelTaskCid: ids._1, fixedRequestCid: ids._2,
+        slotWires: Object.freeze(slotWires), providerId: runtimeField(ids, 0),
+        modelTaskCid: runtimeField(ids, 1), fixedRequestCid: runtimeField(ids, 2),
         unitId: moon.clientProgramInferCallScopeUnitId(active),
         callScopeSnapshotWire: checked(moon.clientProgramInferCallScopeSnapshot(active))});
     },
@@ -767,8 +815,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
             const originals = moon.clientProgramInferCallEntryOriginals(entry);
             if (originals === undefined) return false;
             return observation.enterCall(Object.freeze({entry,
-              slot: originals._0, callWire: originals._1,
-              attemptWire: originals._2, authorityWire: originals._3})) === true;
+              slot: runtimeField(originals, 0), callWire: runtimeField(originals, 1),
+              attemptWire: runtimeField(originals, 2), authorityWire: runtimeField(originals, 3)})) === true;
           }}),
     entryCurrent: (entry, preparedCallSet) =>
       moon.clientProgramInferCallEntryCurrent(entry, preparedCallSet),
@@ -798,8 +846,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
             const originals = moon.clientProgramInferCallEntryOriginals(entry);
             if (originals === undefined) return undefined;
             return observation.beginEntry(Object.freeze({entry,
-              slot: originals._0, callWire: originals._1,
-              attemptWire: originals._2, authorityWire: originals._3}));
+              slot: runtimeField(originals, 0), callWire: runtimeField(originals, 1),
+              attemptWire: runtimeField(originals, 2), authorityWire: runtimeField(originals, 3)}));
           }}),
     bindModelObservation: (preparedCallSet, observe) => {
       if (assertRuntimeCurrent !== undefined) {
@@ -814,7 +862,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         // must not escape into invoke, admission, accounting, or cleanup.
         try {
           const facts = moon.clientProgramInferPhysicalObservationFacts(value);
-          observe({slot: facts._0, attemptCid: facts._1, event: facts._2, outcome: facts._3});
+          observe({slot: runtimeField(facts, 0), attemptCid: runtimeField(facts, 1), event: runtimeField(facts, 2), outcome: runtimeField(facts, 3)});
         } catch { /* Optional observation has no execution authority. */ }
       });
     },
@@ -845,7 +893,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // work. Closing/AbortSignal alone cannot erase partial observations or
       // become a new dispatch authorization check for this cleanup duty.
       const progress = checked(moon.clientProgramAdvanceInferStoppedRawUsage(active, slot, quantum));
-      return Object.freeze({complete:progress._0,work:progress._1,issue:progress._2});
+      return Object.freeze({complete:runtimeField(progress, 0),work:runtimeField(progress, 1),issue:runtimeField(progress, 2)});
     },
     issuedAttachmentAdmission: slot => checked(moon.clientProgramIssueInferAttachmentAdmission(active, slot)),
     issuedSlotCapture: slot => checked(moon.clientProgramIssueInferSlotCapture(
@@ -1026,7 +1074,7 @@ export async function withNodeInferResult({moon, binding, result, consume,
       signal?.throwIfAborted();
       const progress = checked(moon.clientProgramInferPublicationAdvance(owner,
         quantum));
-      if (progress._0) break;
+      if (runtimeField(progress, 0)) break;
       await yieldEventLoop();
     }
     signal?.throwIfAborted();

@@ -112,6 +112,33 @@ fn read_local_policy_upgrade_original(
   host : NativeLocalHostConnection,
   row : @sqlite.NativeJournalValue,
 ) -> Result[NativeLocalPolicyUpgradeOriginal, NativeClientRunJournalIssue] {
+  read_local_policy_upgrade_original_with_runtime_dependency(host, row, (
+    scope,
+    _,
+  ) => {
+    match host.runtime_policy_pair(scope) {
+      Ok(Some(value)) => Ok(value)
+      _ => Err(CustodyLost)
+    }
+  })
+}
+
+///|
+// Same authenticated original decoder for the strict current path and the
+// finite successor's independently restored original pair. This callback is
+// private to the existing Owner and returns metadata, never permission. It is
+// reached only for a runtime alternative, after revision/HMAC/closed shape,
+// selected originals/profile and actual authority scope have been checked.
+// The borrowed authenticated body already belongs to this reader; no extra
+// saved wire or unchecked Record escapes across the dependency seam.
+fn read_local_policy_upgrade_original_with_runtime_dependency(
+  host : NativeLocalHostConnection,
+  row : @sqlite.NativeJournalValue,
+  runtime_dependency : (String, Bytes) -> Result[
+    @host.ClientNativeLocalScalarRuntimePair,
+    NativeClientRunJournalIssue,
+  ],
+) -> Result[NativeLocalPolicyUpgradeOriginal, NativeClientRunJournalIssue] {
   if row.revision != 0L {
     return Err(CustodyLost)
   }
@@ -183,9 +210,9 @@ fn read_local_policy_upgrade_original(
     Err(_) => return Err(CustodyLost)
   }
   let original = if runtime {
-    let pair = match host.runtime_policy_pair(scope) {
-      Ok(Some(value)) => value
-      _ => return Err(CustodyLost)
+    let pair = match runtime_dependency(scope, body) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
     match
       @host.admit_client_local_runtime_policy_upgrade(

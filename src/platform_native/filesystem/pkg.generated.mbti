@@ -119,6 +119,7 @@ pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, N
 pub fn Root::observe_directory(Self) -> Result[NativeDirectoryObservation, NativeFilesystemIssue]
 pub fn Root::observe_file(Self, String) -> Result[NativeFileObservation, NativeFilesystemIssue]
 pub fn Root::open_child(Self, String) -> Result[Self, NativeFilesystemIssue]
+pub fn Root::open_child_with_custody(Self, String) -> Result[Self, NativeRootOpenFailure]
 pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, NativeFilesystemIssue]
 pub fn Root::open_reader_with_custody(Self, String, NativeFileGeneration) -> Result[Reader, NativeReaderOpenFailure]
 pub fn Root::private_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]

@@ -20,10 +20,23 @@ import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 const cid = c => `sha256:${c.repeat(64)}`;
 const digest = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
 
-async function originalFixture(t, {unretained=false, retainState,
+async function originalFixture(t, {unretained=false, retainState, observeBinding,
+  observeDocument, observeOriginGuard, observeSaved, beforeRetireSaved,
   storeBootstrap={maxWireBytes: 4096, maxDirectoryEntries: 22}, currentStateCodec=codec()}={}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-original-resource-'));
-  const control = runtimeCore(moon).publicationControl;
+  const originalControl = runtimeCore(moon).publicationControl;
+  const control = observeDocument===undefined && observeOriginGuard===undefined ? originalControl
+    : Object.freeze({...originalControl,
+      readModelOriginalResourceDocument(...args) {
+        const document=Reflect.apply(originalControl.readModelOriginalResourceDocument,originalControl,args);
+        observeDocument?.(document);
+        return document;
+      },
+      checkCheckedClientInferOriginalParkedStorageOrigin(...args) {
+        const result=Reflect.apply(originalControl.checkCheckedClientInferOriginalParkedStorageOrigin,originalControl,args);
+        observeOriginGuard?.(args[5]);
+        return result;
+      }});
   const keys = generateKeyPairSync('ed25519');
   const account = moon.executionAuthorizationAdmit(canonicalText({
     version: 'actql-execution-account-config/0.1', account_id: 'local',
@@ -43,14 +56,39 @@ async function originalFixture(t, {unretained=false, retainState,
       reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: 'reviewer',
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}}});
-  const retains = [];
+  const retains = [], selectedRetains = [], selectedObservations = [], selectedBootstrapChecks = [];
   // Physical instrumentation only: the same actual CP/Store still admits,
   // saves and verifies bytes. This wrapper issues no receipt of its own.
   const cp = selectedCp = Object.freeze({...actualCp,
+    async observeModelOriginalStorageBindingSelected(args, acquisition) {
+      selectedObservations.push(acquisition);
+      const handle = await actualCp.observeModelOriginalStorageBindingSelected(args, acquisition);
+      await observeBinding?.();
+      return handle;
+    },
+    async modelOriginalStorageBindingBootstrapSelected(args, acquisition) {
+      selectedBootstrapChecks.push(acquisition);
+      return actualCp.modelOriginalStorageBindingBootstrapSelected(args, acquisition);
+    },
     async retainOriginalModelState(args) {
       retains.push(args);
       return retainState === undefined ? actualCp.retainOriginalModelState(args)
         : retainState(args, actualCp);
+    },
+    async retainOriginalModelStateSelected(args, acquisition) {
+      retains.push(args);
+      selectedRetains.push(acquisition);
+      return retainState === undefined ? actualCp.retainOriginalModelStateSelected(args, acquisition)
+        : retainState(args, actualCp, acquisition);
+    },
+    async confirmOriginalModelStateSavedSelected(...args) {
+      const saved = await Reflect.apply(actualCp.confirmOriginalModelStateSavedSelected, actualCp, args);
+      observeSaved?.(saved);
+      return saved;
+    },
+    retireOriginalModelStateSavedObservation(saved) {
+      beforeRetireSaved?.(saved);
+      return Reflect.apply(actualCp.retireOriginalModelStateSavedObservation, actualCp, [saved]);
     }});
   let closeFlight;
   const closeFixture = () => closeFlight ??= cp.close();
@@ -87,7 +125,8 @@ async function originalFixture(t, {unretained=false, retainState,
   const storageBinding = await cp.observeModelOriginalStorageBinding();
   const origin = await opened.originalResourceOrigin(storageBinding);
   if (unretained) return {root, cp, actualCp, closeFixture, selectedCp: value => {selectedCp = value;},
-    controller, f, opened, storageBinding, origin, observation, abort, retains};
+    controller, f, opened, storageBinding, origin, observation, abort, retains, selectedRetains,
+    selectedObservations, selectedBootstrapChecks};
   const park = f.operation.parkOriginalResourcesForStateWrite();
   const writer = f.operation.prepareOriginalCurrentStateWriter(park,
     {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 20});
@@ -107,12 +146,118 @@ const codec = () => ({quantum: 1, comparisonWork: 5,
     parse: {max_input_bytes: 10000, max_nodes: 1000, max_depth: 20},
     tree: {max_nodes: 1000, max_depth: 20, max_string_bytes: 10000, max_total_string_bytes: 10000}}});
 
+test('original saved observation retires after original children and before read settlement', async t=>{
+  let saved, retired=0;
+  const {cp,f,opened}=await originalFixture(t,{unretained:true,
+    observeSaved(value){saved=value;},
+    beforeRetireSaved(value){
+      assert.strictEqual(value,saved);
+      assert.equal(f.operation.cleanupPending(),false);
+      retired++;
+    }});
+  await opened.prepareOriginalResourcesForDispatch();
+  assert.ok(saved);
+  assert.strictEqual(cp.originalModelStateSavedObservationCurrent(saved),saved);
+  assert.equal(opened.close(),false,'Original Model child has not acknowledged cleanup');
+  assert.equal(retired,0);
+  assert.strictEqual(cp.originalModelStateSavedObservationCurrent(saved),saved);
+  await f.operation.close();
+  assert.equal(opened.cleanup(),true);
+  assert.equal(retired,1);
+  assert.throws(()=>cp.originalModelStateSavedFacts(saved),
+    {code:'OriginalModelStateSavedObservationRetired'});
+  assert.equal(opened.cleanup(),true);
+  assert.equal(retired,1,'Repeated original cleanup must not retire another observation');
+  const original=f.originalPreparation;
+  original.control.stopCheckedClientInferOriginalReadPreparation(f.compiled,
+    f.runDefinition,f.graph,f.scope,f.read);
+  original.control.settleCheckedClientInferOriginalReadPreparation(f.compiled,
+    f.runDefinition,f.graph,f.read,true);
+  assert.equal(original.control.finishCheckedClientInferOriginalReadScope(f.compiled,
+    f.runDefinition,f.graph,f.scope,true),true);
+  assert.equal(f.sends(),0);
+});
+
+test('original saved observation retirement failure keeps the same cleanup responsibility', async t=>{
+  const issue=Object.assign(new Error('OriginalObservationRetirementUnavailable'),
+    {code:'OriginalObservationRetirementUnavailable'});
+  let saved, reject=true, attempts=0;
+  const {cp,f,opened}=await originalFixture(t,{unretained:true,
+    observeSaved(value){saved=value;},
+    beforeRetireSaved(value){
+      assert.strictEqual(value,saved);
+      assert.equal(f.operation.cleanupPending(),false);
+      attempts++;
+      if(reject)throw issue;
+    }});
+  await opened.prepareOriginalResourcesForDispatch();
+  await f.operation.close();
+  assert.throws(()=>opened.cleanup(),error=>error===issue);
+  assert.equal(opened.cleanupPending(),true);
+  assert.equal(opened.token.available,true);
+  assert.strictEqual(cp.originalModelStateSavedObservationCurrent(saved),saved);
+  reject=false;
+  assert.equal(opened.cleanup(),true);
+  assert.equal(attempts,2);
+  assert.equal(opened.cleanup(),true);
+  assert.equal(attempts,2);
+  assert.throws(()=>cp.originalModelStateSavedFacts(saved),
+    {code:'OriginalModelStateSavedObservationRetired'});
+  const original=f.originalPreparation;
+  original.control.stopCheckedClientInferOriginalReadPreparation(f.compiled,
+    f.runDefinition,f.graph,f.scope,f.read);
+  original.control.settleCheckedClientInferOriginalReadPreparation(f.compiled,
+    f.runDefinition,f.graph,f.read,true);
+  assert.equal(original.control.finishCheckedClientInferOriginalReadScope(f.compiled,
+    f.runDefinition,f.graph,f.scope,true),true);
+  assert.equal(f.sends(),0);
+});
+
+test('original save caller retires transient origin document before saved-state await', async t=>{
+  assert.equal(typeof global.gc,'function','The selected lifetime counter requires --expose-gc');
+  let observed,originChecks=0,saves=0;
+  const f=await originalFixture(t,{unretained:true,
+    observeDocument(document){observed=new WeakRef(document);},
+    observeOriginGuard(document){
+      assert.strictEqual(observed.deref(),document,'The same live document must pass the actual original guard');
+      originChecks++;
+    },
+    async retainState(args,actual,acquisition){
+      saves++;
+      assert.equal(originChecks,1);
+      assert.ok(observed instanceof WeakRef);
+      // Let the previous task's temporary WeakRef dereference expire. This
+      // observes reachability of this one unused canonical tree, not bytes,
+      // immediate GC, Store cleanup or original reservation retirement.
+      for(let i=0;i<8;i++){
+        await new Promise(resolve=>setImmediate(resolve));
+        global.gc();
+      }
+      assert.equal(typeof observed.deref(),'undefined','Transient origin document remains rooted across Store save');
+      return actual.retainOriginalModelStateSelected(args,acquisition);
+    }});
+  const first=f.opened.prepareOriginalResourcesForDispatch();
+  assert.strictEqual(f.opened.prepareOriginalResourcesForDispatch(),first);
+  await first;
+  assert.equal(saves,1);
+  assert.equal(f.retains.length,1);
+  assert.equal(f.f.sends(),0);
+  assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'Unsent');
+});
+
 test('original dispatch caller completes actual save COMMIT and fence consume once without a Model send grant', async t=>{
-  const {root,cp,f,opened,retains}=await originalFixture(t,{unretained:true});
+  const {root,cp,f,opened,retains,selectedRetains,selectedObservations,selectedBootstrapChecks}=
+    await originalFixture(t,{unretained:true});
   const first=opened.prepareOriginalResourcesForDispatch();
   assert.strictEqual(opened.prepareOriginalResourcesForDispatch(),first);
   await first;
   assert.equal(retains.length,1);
+  assert.equal(selectedRetains.length,1,'first dispatch must use selected save, not ordinary Evidence');
+  assert.equal(selectedRetains[0]?.kind,'original-infer-metadata-acquisition');
+  assert.equal(selectedObservations.length,1,'first Store observation must use original selected bootstrap');
+  assert.equal(selectedObservations[0]?.kind,'original-infer-store-bootstrap-acquisition');
+  assert.deepEqual(selectedBootstrapChecks,selectedObservations);
+  assert.notStrictEqual(selectedRetains[0],selectedObservations[0]);
   assert.deepEqual(await originalFixtureStoreInventory(root),{root:18,objects:2,holdings:2,total:22});
   assert.deepEqual(JSON.parse(retains[0].bodyWire).cut.slots.map(slot=>slot.state),['Unsent']);
   assert.equal(cp.journal.readModelCalls(opened.inventory).slots[0].state,'Unsent');
@@ -120,10 +265,25 @@ test('original dispatch caller completes actual save COMMIT and fence consume on
   assert.equal(f.sends(),0);
 });
 
+test('original dispatch pre-park Store wait rechecks same operation before park and does not repeat on cancellation', async t=>{
+  let abort;
+  const f=await originalFixture(t,{unretained:true,async observeBinding(){abort.abort();}});
+  abort=f.abort;
+  const first=f.opened.prepareOriginalResourcesForDispatch();
+  await assert.rejects(first,{code:'InferOriginalMetadataAcquisitionUnavailable'});
+  assert.strictEqual(f.opened.prepareOriginalResourcesForDispatch(),first);
+  assert.equal(f.selectedObservations.length,1);
+  assert.equal(f.selectedBootstrapChecks.length,0);
+  assert.equal(f.retains.length,0);
+  assert.equal(f.f.sends(),0);
+  assert.equal(f.opened.token.available,true);
+});
+
 test('original dispatch caller retains failed physical save and does not repeat park or Store send', async t=>{
   const issue=Object.assign(new Error('OriginalStoreResponseLost'),{code:'OriginalStoreResponseLost'});
   const {root,cp,f,opened,retains}=await originalFixture(t,{unretained:true,
-    async retainState(args,actual){await actual.retainOriginalModelState(args);throw issue;}});
+    async retainState(args,actual,acquisition){
+      await actual.retainOriginalModelStateSelected(args,acquisition);throw issue;}});
   const first=opened.prepareOriginalResourcesForDispatch();
   await assert.rejects(first,error=>error===issue);
   assert.strictEqual(opened.prepareOriginalResourcesForDispatch(),first);
@@ -149,7 +309,9 @@ test('original dispatch caller preserves exact opening refusal after real save w
 });
 
 test('original dispatch caller keeps actual invalidation COMMIT loss parked and never blindly repeats',async t=>{
-  const {cp,f,opened,retains}=await originalFixture(t,{unretained:true});
+  let saved, retired=0;
+  const {cp,f,opened,retains}=await originalFixture(t,{unretained:true,
+    observeSaved(value){saved=value;}, beforeRetireSaved(){retired++;}});
   const originalExec=DatabaseSync.prototype.exec;
   let linked=false,losses=0;
   DatabaseSync.prototype.exec=function(sql,...args){
@@ -172,6 +334,9 @@ test('original dispatch caller keeps actual invalidation COMMIT loss parked and 
   assert.equal(opened.close(),false);
   assert.equal(opened.cleanupPending(),true);
   assert.equal(opened.token.available,true);
+  assert.ok(saved);
+  assert.strictEqual(cp.originalModelStateSavedObservationCurrent(saved),saved);
+  assert.equal(retired,0,'Unknown COMMIT is not observation retirement');
   assert.equal(cp.journal.readModelCalls(opened.inventory).slots[0].state,'Unsent');
   assert.equal(f.sends(),0);
 });
@@ -237,8 +402,8 @@ async function originalFixtureStoreInventory(root) {
 test('original save caller preserves lost Store response and never blindly saves or unpark retries', async t => {
   let historicalReceipt;
   const {cp, f, opened, storageBinding, origin, retains} = await originalFixture(t,
-    {unretained: true, async retainState(args, actual) {
-      historicalReceipt = await actual.retainOriginalModelState(args);
+    {unretained: true, async retainState(args, actual, acquisition) {
+      historicalReceipt = await actual.retainOriginalModelStateSelected(args, acquisition);
       throw Object.assign(Error('OriginalStoreResponseLost'), {code: 'OriginalStoreResponseLost'});
     }});
   const park = f.operation.parkOriginalResourcesForStateWrite();
@@ -268,8 +433,15 @@ test('original save caller preserves explicit eight and one-short21 Store refusa
     const promise = opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec);
     await assert.rejects(promise, {code: 'PublicationStoreBootstrapEntriesLimit'});
     assert.strictEqual(opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec), promise);
-    assert.equal(retains.length, 1, 'real save precedes a failed reopening; never relabel it unsaved');
-    assert.deepEqual(await originalFixtureStoreInventory(root), {root: 18, objects: 2, holdings: 2, total: 22});
+    assert.equal(retains.length, entries === 8 ? 0 : 1,
+      'the selected binding check refuses eight before save; a later refusal never retries the one save');
+    // With selected binding acquisition, eight refuses the first Store opening
+    // before entering the save API. Twenty-one admits the original20, saves the new
+    // object/holding, then refuses the exact22 readback. Do not confuse the
+    // different physical stages or widen either independent fixture ceiling.
+    assert.deepEqual(await originalFixtureStoreInventory(root), entries === 8
+      ? {root: 18, objects: 1, holdings: 1, total: 20}
+      : {root: 18, objects: 2, holdings: 2, total: 22});
     assert.strictEqual(f.operation.originalResourceParkCurrent(park), park);
     assert.equal(opened.token.available, true);
     assert.equal(opened.close(), false);
@@ -289,10 +461,13 @@ test('original save caller holds pending Store responsibility across close and c
   t.after(async () => {proceed(); if (promise !== undefined) await promise.catch(() => {});});
   let savedReceipt;
   const {cp, f, opened, storageBinding, origin, retains, abort} = await originalFixture(t,
-    {unretained: true, async retainState(args, actual) {
+    {unretained: true, async retainState(args, actual, acquisition) {
+      // Block the response after the actual selected write/recheck. Blocking
+      // before write and then bypassing currentness with ordinary save would
+      // not exercise a historical saved result arriving after cancellation.
+      savedReceipt = await actual.retainOriginalModelStateSelected(args, acquisition);
       markEntered();
       await blocked;
-      savedReceipt = await actual.retainOriginalModelState(args);
       return savedReceipt;
     }});
   const park = f.operation.parkOriginalResourcesForStateWrite();

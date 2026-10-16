@@ -1,37 +1,11 @@
 // Static ModelTask registration shares the installed checker composition.
 // This metadata is neither a provider registration nor an egress grant. The
 // common execution owner must separately admit dependencies and authority.
+import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
-import {openSync, readSync, closeSync} from 'node:fs';
-
-// Physical observation only: the common account reader/evaluator decides
-// authority. Bound reads even when the selected file grows during observation.
-export function observeInstalledModelAccount(moon, authorization) {
-  try {
-    let wire = authorization?.accountConfiguration;
-    if (authorization?.accountConfig !== undefined) {
-      if (wire !== undefined) return moon.executionAuthorizationMissing();
-      const fd = openSync(authorization.accountConfig, 'r');
-      try {
-        const buffer = Buffer.alloc(1000001);
-        let used = 0;
-        while (used < buffer.length) {
-          const read = readSync(fd, buffer, used, buffer.length - used, used);
-          if (read === 0) break;
-          used += read;
-        }
-        if (used > 1000000) return moon.executionAuthorizationMissing();
-        wire = new TextDecoder('utf-8', {fatal: true}).decode(buffer.subarray(0, used));
-      } finally { closeSync(fd); }
-    }
-    return typeof wire === 'string' && Buffer.byteLength(wire) <= 1000000
-      ? moon.executionAuthorizationAdmit(wire)
-      : moon.executionAuthorizationMissing();
-  } catch { return moon.executionAuthorizationMissing(); }
-}
 
 function checkInstallation(installation) {
   if (installation === null || typeof installation !== 'object' ||
@@ -142,7 +116,8 @@ function retainModelQuantityCapacity(capacity) {
 
 // Registration remains physical Host capability. The common admission owner
 // subsequently binds the selected callback to its exact Task and prompt.
-export function installModelProviders(moon, register, assertHostRuntime, assertNewHostRuntime = assertHostRuntime) {
+export function installModelProviders(moon, register, assertHostRuntime,
+  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals) {
   if (register === undefined) return new Map();
   if (typeof register !== 'function') {
     throw new TypeError('InvalidInstalledModelProviderRegistration');
@@ -164,7 +139,7 @@ export function installModelProviders(moon, register, assertHostRuntime, assertN
         Object.keys(entry).some(key => !['invoke', 'providerId', 'validatePrompt',
           'physicalPreflight', 'quantityCapacity', 'observeEgress',
           'bindingOriginals', 'reconcileResponse', 'entryPersistence',
-          'originalReadInstallation', 'rawCaptureSelection'].includes(key))) {
+          'originalReadInstallation', 'rawCaptureSelection', 'sdkStaticOriginals'].includes(key))) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
     }
     // Static registration values are read once before retention/Core calls.
@@ -180,6 +155,18 @@ export function installModelProviders(moon, register, assertHostRuntime, assertN
     const physicalPreflight = entry.physicalPreflight, observeEgress = entry.observeEgress;
     const originalReadSource = entry.originalReadInstallation, rawSource = entry.rawCaptureSelection;
     const bindingSource = entry.bindingOriginals, quantitySource = entry.quantityCapacity;
+    const sdkStaticOriginals = entry.sdkStaticOriginals;
+    let requireOriginalEagerStartup;
+    // The Host supplies this private connection, not registration DATA or a
+    // packet flag. Missing selected startup is Unavailable, never coverage.
+    if (sdkStaticOriginals !== undefined) {
+      if (typeof bindSdkStaticOriginals !== 'function') {
+        throw Object.assign(new TypeError('InferTrustedSdkStaticUnavailable'),
+          {code: 'InferTrustedSdkStaticUnavailable'});
+      }
+      const requireEager = bindSdkStaticOriginals(sdkStaticOriginals);
+      if (typeof requireEager === 'function') requireOriginalEagerStartup = requireEager;
+    }
     if (entryPersistence !== 'async' && typeof invoke !== 'function' ||
         typeof validatePrompt !== 'function' ||
         reconcileResponse !== undefined && typeof reconcileResponse !== 'function') {
@@ -215,6 +202,7 @@ export function installModelProviders(moon, register, assertHostRuntime, assertN
     let retained;
     const assertTrustedRuntime = assertHostRuntime === undefined ? undefined : () => {
       assertHostRuntime();
+      if (sdkStaticOriginals !== undefined) bindSdkStaticOriginals(sdkStaticOriginals);
       if (result.get(providerId) !== retained || retained.provider !== provider) {
         throw Object.assign(new Error('InferTrustedRuntimeOriginalChanged'),
           {code: 'InferTrustedRuntimeOriginalChanged'});
@@ -224,8 +212,16 @@ export function installModelProviders(moon, register, assertHostRuntime, assertN
       assertNewHostRuntime();
       assertTrustedRuntime();
     };
+    // The existing Host binder supplies this same-original check, not entry
+    // fields or a caller-authored Bool/CID. Preserve static-only registrations.
+    const requireEagerSdkStartup = requireOriginalEagerStartup === undefined ||
+      assertTrustedRuntime === undefined ? undefined : () => {
+      assertTrustedRuntime();
+      requireOriginalEagerStartup();
+      assertTrustedRuntime();
+    };
     retained = Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
-      assertTrustedRuntime, assertNewTrustedRuntime,
+      assertTrustedRuntime, assertNewTrustedRuntime, requireEagerSdkStartup,
       bindingOriginals,
       physicalPreflight,
       entryPersistence,
@@ -252,13 +248,13 @@ export function readInstalledModelDependencies(moon, execution, installation) {
     // by the common dependency owner; another role or a provider callback
     // cannot manufacture admission from a symbolic contract reference.
     return checked(moon.clientProgramReadInferModelDependenciesWithMedia(execution,
-      bodies.get(references._0), bodies.get(references._1), bodies.get(references._2),
-      media.filter(entry => bodies.has(entry._1)).map(entry =>
-        ({_0: entry._0, _1: bodies.get(entry._1)}))));
+      bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)), bodies.get(runtimeField(references, 2)),
+      media.filter(entry => bodies.has(runtimeField(entry, 1))).map(entry =>
+        (runtimePair(runtimeField(entry, 0), bodies.get(runtimeField(entry, 1)))))));
   }
   return checked(moon.clientProgramReadInferModelDependencies(execution,
-    bodies.get(references._0), bodies.get(references._1),
-    bodies.get(references._2)));
+    bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)),
+    bodies.get(runtimeField(references, 2))));
 }
 
 export function admitInstalledModelProvider(moon, execution, dependencies,
@@ -318,7 +314,7 @@ export function readInstalledModelExecution(moon, prepared, installation,
   occurrence) {
   const step = occurrence === undefined
     ? moon.clientProgramSelectedInferStep(prepared)
-    : moon.clientProgramInferOccurrenceCoordinates(occurrence)._2;
+    : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
   if (step === undefined) return undefined;
   const taskCid = occurrence === undefined
     ? moon.clientProgramInferModelTaskCid(prepared, step)
@@ -335,3 +331,4 @@ export function readInstalledModelExecution(moon, prepared, installation,
     : moon.clientProgramReadComposedInferModelExecution(occurrence,
       entry.bodyWire, entry.cid))});
 }
+

@@ -818,6 +818,77 @@ without one, the remaining quota is conservatively consumed rather than erased.
 This accounting contract is trusted Host wiring, not result evidence or an OS
 memory limit. It does not release separately owned Store files.
 
+Backed live-child projection stays in this same Resource Owner. Its opaque
+parent access binds the original region, provider, child, delegation ticket,
+read-use and one trusted physical channel/VM/FD/domain carrier. One private sticky
+bit on the existing ticket records a successful nonzero report across all ten
+usage fields, including reservations. Later zero reports cannot erase that
+history; failed and zero-only reports do not start it. Access issuance
+and child admission are each one-shot; a lost reply cannot reissue either or
+start a zero-based accounting view after usage was already reported. Copied,
+foreign, closing and retired originals cannot begin work. The projection's
+limits are DATA, while cumulative reports apply to the same parent ticket;
+neither is a launch, Source, Model or Store grant. No backing is reserved again.
+
+Cancellation and Unknown keep the same projection and read borrow. Entered
+cleanup can report known usage after logical closing. Only the trusted physical
+Owner's actual same-runtime retirement cuts the access/projection references;
+the separate read-use return and confirmed execution-domain stop settlement
+remain required. Cold unresolved DATA cannot supply live admission. A different
+runtime must bind its actual private channel and VM before bootstrap; scalar
+Wasm `open` and equal serialized limits do not establish inherited funding.
+Additional records, resident read-use flags, callbacks, transport/control and
+workspace overlap require the original envelope, not spare bytes or a default.
+
+The child-side `ImportedChildLedger` has two exclusive installed entrances. The
+fixed Host-import entrance is supported on the selected Wasm target. It retains
+a partial original before the one-shot parent admission; unsupported targets
+have no scalar/callback fallback for that import.
+Read all six original limits and the two actual funded VM/Host capacities, then
+recheck the same import before creating the bounded delegated accounting view.
+A nonce correlates that actual VM and is not authority. The original physical
+Host binds the channel, Store, VM memory, provider and FD/domain independently.
+
+The two prepaid capacities occupy disjoint negative capacity serials and do
+not consume another attempt or reserve parent backing again. They cannot be
+settled into spare child credit while that VM is still executing; their parent
+Owner retains actual retirement responsibility. Other child reservations remain
+bounded by the same delegated allowance. A single take transfers the Ledger and
+these exact capacities to the existing Root. An ordinary Ledger has no such
+import and retains its existing behavior, but its resident optional reference
+still belongs in the actual installed control envelope.
+
+The direct original entrance instead requires the same Resource Owner's opaque
+`BackedExecutionLiveProjection` and actual runtime original. It issues one
+partial frame and rechecks first-use history at start, including successful
+nonzero reservation reports made after frame preparation. No caller limit DATA
+or callback creates this entrance. Its one-shot take returns the same bounded
+child Ledger without pre-seeding VM/Host capacities. The first child reservation
+can therefore be its separately funded bootstrap, followed by the original
+inventory, owned workspace, descriptor and read. The existing two-capacity take
+refuses this branch, and the original-only take refuses the Wasm branch. The
+child's accounting reservation is not another parent backing reservation;
+physical placement and a complete original envelope remain Host duties.
+
+Both entrances retain their original cumulative reporting, logical-stop and
+failed/Unknown partial-state behavior. A direct frame's callbacks close over
+the same nominal parent and runtime, not a second accounting authority. The
+existing physical-owner retirement cuts these captures and the child-to-parent
+backreference only after its actual same-runtime ACK; it does not return the
+read borrow or settle the parent ticket. An escaped retired frame still holds
+its child accounting/debt and cannot start, reissue or restore authority.
+Its resident mode/issued flags, access-to-origin reference, frame, callbacks,
+captures, census and read/workspace overlap need the original funded inventory.
+No numerical profile, Native supplier, memory layout or permission is implied.
+
+Imported lifecycle observation distinguishes open from closing originals.
+Closing prevents new reservations/borrows but permits entered cleanup and
+accounting on the same lifetime. Negative or unknown currentness is sticky;
+restoring a visible scalar cannot reinstate the original. Reports contain the
+actual original Ledger snapshot, not caller-supplied usage. A lost report keeps
+that immutable snapshot and is not blindly resent. Logical stop is not VM,
+reader, FD, Socket or Store retirement; none of those debts are cleared here.
+
 The private process handshake carries a snapshot of the delegated limits.
 The installed strategy application constructs its real ledger from those limits
 and exposes read-only limits and cumulative usage; the standard managed worker

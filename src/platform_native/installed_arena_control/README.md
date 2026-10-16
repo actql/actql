@@ -87,3 +87,86 @@ child-first. Matching generated C must establish callback prototypes and RC
 before adding these methods to the private C/Python transport; the existing
 registered callback ABI is unchanged by this source unit. Normal supplier/profile,
 F's actual caller and installed/public Python execution remain separate.
+# Original live-child channel transport
+
+The private installed entry registers typed callbacks for the same Host,
+domain and `NativeBackedLiveChannel`. Preparation retains both successful and
+pending channel carriers in the original domain. Immutable replies retain the
+actual original Host, domain and channel even when a foreign target or a later
+operation is refused. They project existing Owner results, never reconstruct
+funding or permission from PID, FD, nonce, relative extent or scalar limits.
+
+VM binding, admission, current state, limits, cumulative usage, logical stop
+and metadata retirement delegate to the existing bootstrap/resource Owners.
+Tags are closed: report has its own typed callback, and unknown operation tags
+are refused. Missing state/limits have explicit negative sentinels. A failed
+capture or binding is not retried as a new channel. Closing permits original
+cleanup without admitting new work.
+
+The trusted physical caller must retain and validate its original process,
+private pipes and child Memory observation around these callbacks. Metadata
+retirement requires that caller's separate physical acknowledgements; it does
+not acknowledge process stop, Store cleanup, descriptor close or loan return.
+The domain retains its original backing until its independent cleanup succeeds.
+
+`installed_live_channel_conformance` consumes a disposable 64-page FD and tests
+invalid-pipe partial custody through the installed public Native API. It launches
+no worker or VM. Regular generated C must establish callback prototypes and
+managed reference ownership before a transport shim is linked. The complete
+pre-spawn supplier, numerical profile, actual VM and installed Python product
+acceptance remain separate; this entry does not bypass their refusals.
+
+### Original selected SQLite Library custody
+
+The private `prepare_sqlite_library` caller binds the existing original
+Host/domain read scope to `@sqlite.load_current_component_with_custody`.
+The trusted installer must already verify the component/cohort and original
+Host/Store epoch; path/heap/current-domain success does not perform that adoption
+or provide absent whole-process funding. The domain registers its one Library
+attempt before the foreign call and retains successful or partial references,
+including failures of the post-call current/leave checks. A second attempt in
+the same domain never reloads or rebinds a component.
+
+`current_sqlite_library` checks the same nominal registration/current again.
+`close_sqlite_library` may perform original cleanup after logical Host closing,
+but cannot switch Hosts/domains, reload or close a replacement Library. It
+retains the same references on failed cleanup and scope-leave; checked Library
+cleanup and all managed aliases precede read-context/domain/loan retirement.
+Even an empty pre-acquisition carrier must finish its own registered cleanup
+before the parent domain can retire. The domain retains that closed registration
+until full domain retirement acknowledges, preserving one acquisition per live
+domain and repeated original cleanup. Only then is the reverse registration
+cleared, breaking the retired Domain/carrier cycle. The retained carrier still
+identifies its original domain, but retired handles are refused. Normal
+supplier/profile, actual matching
+Native Library construction, installed Python/wheel and public E2E remain
+separate acceptance boundaries.
+
+### Original fenced Database lookup child
+
+`prepare_sqlite_lookup` registers one persistent controller on the original
+Database before entering its funded Library/domain scope or starting a physical
+read. The native Database issues the inner nominal read only after physical
+NoActive; pending start and postcheck failure keep that same child registered.
+The ordinary `call_sqlite_database` port refuses while a live child exists.
+`call_sqlite_lookup` checks the original Host/Database registration and current
+Library/domain, and exposes only that original read child's closed, bounded
+observation methods. No Python Bool or active-transaction DATA creates this
+exception. Foreign, substituted, stale, failed and reentrant controllers cannot
+invoke the read callback.
+
+`finish_sqlite_lookup` requires both the original physical read stop and the
+Host's post-call current/scope checks. An observed stop with a failed postcheck
+is not a complete snapshot. `close_sqlite_lookup` retains the same native child
+and parent scope until stop/leave cleanup ACKs; cleanup is permitted through the
+existing original cleanup entry after logical closing/current loss. Database
+full close drains its original child before closing the database. Reverse
+registration is cut only after the full read-child retirement ACK. Repeated
+closed cleanup cannot clear a later child's registration or regain read access.
+
+Read completion/cleanup never clears the earlier transaction fence, repairs the
+unconfirmed COMMIT, or admits a Run/Store outcome. Original Store/adoption epoch
+and current authority remain the installed caller's separate preconditions.
+The closed C/Python transport and ordinary factory still need their matching
+physical/component acceptance; these typed methods do not provide that supplier
+or a normal numerical profile.

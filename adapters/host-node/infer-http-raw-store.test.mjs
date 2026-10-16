@@ -56,12 +56,18 @@ async function joined(t, {storeFault, physicalFor = f => f.physical} = {}) {
   t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
   const endpoint = `http://127.0.0.1:${server.address().port}/chat`;
   const request = {}, provider = {}, entry = {}, registration = {};
+  const responseProfile = {};
   let call, starts = 0, observes = 0;
   const holdings = [];
   // Common request/Entry/grant/receipt are explicit doubles. Actual HTTP,
   // bounded reader, encrypted Store, original holding and reopen execute here.
   // This is not a checked Run, canonical issuer or complete numerical profile.
   const moon = {...f.moon,
+    clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
+      assert.strictEqual(profile, responseProfile);
+      assert.deepEqual(limits, [4096, 512, 512, 4, 64]);
+      return true;
+    },
     clientProgramProjectHTTPChatRequest(p, r, model) {
       assert.equal(p, provider); assert.equal(r, request); assert.equal(model, 'fixture');
       return {$tag: 1, _0: {_0: requestBody, _1: 'task', _2: 'prompt', _3: 'schema', _4: 'selector'}};
@@ -94,7 +100,7 @@ async function joined(t, {storeFault, physicalFor = f => f.physical} = {}) {
     requestLimits: {maxBytes: 4096, maxHeaders: 4, maxHeaderBytes: 128},
     responseLimits: {maxBytes: 512, maxChunkBytes: 512, maxChunks: 4,
       maxHeaderBytes: 64, observedHeaders: ['content-type']},
-    quantities: {tokens: 16n, costUnits: 0n, durationMs: 1n}, profile: {}, installation: {},
+    quantities: {tokens: 16n, costUnits: 0n, durationMs: 1n}, profile: responseProfile, installation: {},
     fetch(url, init) { starts++; assert.equal(url, endpoint); return fetch(url, init); },
     notify: io.notify, observeAt: () => at, checked,
     persistRaw: persistence, cleanupRaw: persistence.cleanup});

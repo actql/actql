@@ -32,6 +32,10 @@ struct OriginalResourcePark[T] {
 pub fn check_original_resources_mutable(
   ledger : Ledger,
 ) -> Result[Unit, LedgerIssue] {
+  match check_imported_child_ledger(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
     Err(ResourceParked)
   } else {

@@ -26,7 +26,7 @@ struct CapturedEffectInputs {
 /// exact Run. Preview order is mapped back to authored Effect occurrences.
 /// This is input custody, not Artifact evidence or mutation authority.
 struct CapturedEffectPreviewInputs {
-  preview : @checked.EffectProgramRunPreview
+  preview : @effect_binding.EffectProgramRunPreview
   inputs : CapturedEffectInputs
   source_indexes : Array[Int?]
 }
@@ -154,7 +154,7 @@ pub fn pin_captured_effect_sources(
 /// a caller-supplied index or matching equal-CID but foreign Run owners.
 pub fn checked_effect_preview_source_indexes(
   run : CheckedEffectRunDAG,
-  preview : @checked.EffectProgramRunPreview,
+  preview : @effect_binding.EffectProgramRunPreview,
   max_work : Int,
 ) -> Result[Array[Int?], RunIssue] {
   if max_work < 0 {
@@ -162,14 +162,14 @@ pub fn checked_effect_preview_source_indexes(
   }
   if !physical_equal(
       run.run,
-      @checked.effect_program_run_preview_owner(preview),
+      @effect_binding.effect_program_run_preview_owner(preview),
     ) {
     return Err(ForeignCandidate)
   }
-  let stage = @checked.effect_program_run_preview_stage(preview)
-  let identity = @checked.effect_program_run_preview_identity(preview)
+  let stage = @effect_binding.effect_program_run_preview_stage(preview)
+  let identity = @effect_binding.effect_program_run_preview_identity(preview)
   let headers = @checked.effect_program_static_headers(
-    @checked.effect_program_run_static_candidate(run.run),
+    @effect_binding.effect_program_run_static_candidate(run.run),
   )
   let mut remaining = max_work
   let member_indexes : Map[String, Int] = Map([])
@@ -245,7 +245,7 @@ pub fn checked_effect_preview_source_indexes(
 pub fn bind_captured_effect_preview_inputs(
   run : CapturedEffectRunDAG,
   inputs : CapturedEffectInputs,
-  preview : @checked.EffectProgramRunPreview,
+  preview : @effect_binding.EffectProgramRunPreview,
   max_work : Int,
 ) -> Result[CapturedEffectPreviewInputs, RunIssue] {
   if !physical_equal(inputs.run, run) {
@@ -287,7 +287,7 @@ fn captured_effect_source_available(
 ///|
 pub fn captured_effect_preview_owner(
   value : CapturedEffectPreviewInputs,
-) -> @checked.EffectProgramRunPreview {
+) -> @effect_binding.EffectProgramRunPreview {
   value.preview
 }
 
@@ -298,7 +298,7 @@ pub fn captured_effect_preview_owner(
 pub fn captured_effect_preview_ledger_identity(
   value : CapturedEffectPreviewInputs,
 ) -> @publication.EffectPreviewIdentity {
-  @checked.effect_program_run_preview_identity(value.preview)
+  @effect_binding.effect_program_run_preview_identity(value.preview)
 }
 
 ///|
@@ -374,7 +374,7 @@ pub fn captured_effect_preview_plan_terminal(
     return Err(InvalidMember)
   }
   guard source_index is Some(member_index) else { return Ok(None) }
-  let static_candidate = @checked.effect_program_run_static_candidate(
+  let static_candidate = @effect_binding.effect_program_run_static_candidate(
     value.inputs.run.checked.run,
   )
   let effects = @checked.effect_program_static_effects(static_candidate)
@@ -459,7 +459,7 @@ pub fn check_captured_effect_preview_target_guards(
     }
   }
   @effect.check_effect_preview_target_guards(
-    @checked.effect_program_run_preview_identity(value.preview),
+    @effect_binding.effect_program_run_preview_identity(value.preview),
     observations,
     max_rows,
     max_work,
@@ -498,6 +498,31 @@ pub fn captured_effect_preview_inputs_available(
 }
 
 ///|
+/// Callback-free final fence for the same captured consumer holdings. This
+/// detects explicit capture/set/pin release after a caller's current checks;
+/// it does not replace physical availability, current authority or approval.
+/// The inventory is the existing bounded pin set, without new handles/copies.
+pub fn captured_effect_preview_inputs_retained(
+  value : CapturedEffectPreviewInputs,
+) -> Bool {
+  let inputs = value.inputs
+  if !inputs.live || !inputs.pins.live || !inputs.table_pins.live {
+    return false
+  }
+  for borrow in inputs.pins.borrows {
+    if !captured_any_result_borrow_retained(borrow) {
+      return false
+    }
+  }
+  for borrow in inputs.table_pins.borrows {
+    if !captured_table_input_borrow_retained(borrow) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Compare all currently observed source, resolved Contract, capability, and
 /// authority bindings against the same private Preview and captured input.
 /// The Site must establish current observations under authenticated authority;
@@ -515,7 +540,7 @@ pub fn check_captured_effect_preview_current_bindings(
     return Err(NotReady)
   }
   check_effect_preview_current_bindings(
-    @checked.effect_program_run_preview_identity(value.preview),
+    @effect_binding.effect_program_run_preview_identity(value.preview),
     source_binding_cids,
     resolved_contract_cids,
     capability_evidence_cids,
@@ -602,7 +627,7 @@ pub fn check_captured_effect_preview_capabilities(
     }
   }
   @effect.check_effect_preview_apply_capabilities(
-    @checked.effect_program_run_preview_identity(value.preview),
+    @effect_binding.effect_program_run_preview_identity(value.preview),
     observations,
     max_members,
     max_work,
@@ -644,7 +669,7 @@ pub fn check_captured_effect_risk_acceptance_body(
     }
   }
   @effect.check_effect_risk_acceptance_body(
-    @checked.effect_program_run_preview_identity(value.preview),
+    @effect_binding.effect_program_run_preview_identity(value.preview),
     body,
     review_projection_cid,
     authority_scope_cid,
@@ -681,7 +706,7 @@ pub fn check_captured_effect_preview_apply_keys(
     return Err(NotReady)
   }
   check_effect_preview_apply_keys(
-    @checked.effect_program_run_preview_identity(value.preview),
+    @effect_binding.effect_program_run_preview_identity(value.preview),
     scope,
     keys,
     max_rows,
@@ -768,7 +793,7 @@ pub fn captured_effect_inputs_run_definition_cid(
   }
   Some(
     @publication.publication_contract_identity(
-      @checked.effect_program_run_definition(value.run.checked.run),
+      @effect_binding.effect_program_run_definition(value.run.checked.run),
     ),
   )
 }
@@ -1005,7 +1030,7 @@ pub fn captured_effect_preview_subject_cid(
   }
   Some(
     @publication.effect_preview_semantic_identity(
-      @checked.effect_program_run_preview_identity(value.preview),
+      @effect_binding.effect_program_run_preview_identity(value.preview),
     ),
   )
 }
@@ -1020,7 +1045,7 @@ pub fn captured_effect_preview_member_count(
   }
   Some(
     @publication.effect_preview_member_count(
-      @checked.effect_program_run_preview_identity(value.preview),
+      @effect_binding.effect_program_run_preview_identity(value.preview),
     ),
   )
 }

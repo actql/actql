@@ -1,0 +1,3402 @@
+{
+  "source": "3009c92fb3d5205e2e8fa19df0803f06ea21da50",
+  "qualification": "Source/operation/reference coverage only, using B existing actual AST projection. Existing tests named as verification entries are not new runtime receipts. Physical same-process ports and declaration companions are not Remote wire authority. No product code/test execution, grant or enabled profile changes.",
+  "projection": {
+    "path": "i6-f-provider-observation-uncovered-projection.json",
+    "sha256": "5fed5046797e480bc0fa8ab66de01e78eeffe3e5fae0b9bc5277f61077ae47e4"
+  },
+  "declarations": [
+    {
+      "module": "adapters/site-node/remote-credential-signature.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "45758f3adf6bbc27b722d8f3b22dbe9cd78de372303557514fd1de5e2b1fea51",
+      "exports": [
+        "admitSignedRemoteCredentialGrant",
+        "signRemoteCredentialGrant"
+      ],
+      "operations": [
+        {
+          "name": "admitSignedRemoteCredentialGrant",
+          "parameters": [
+            "envelope",
+            "authorities",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "envelopeObject",
+          "parameters": [
+            "value",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "signRemoteCredentialGrant",
+          "parameters": [
+            "grant",
+            "control",
+            "keyId",
+            "privateKey"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing RemoteCredential canonical envelope authority plus Node crypto verification against the independently trusted issuer map",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitSignedRemoteCredentialGrant",
+            "envelopeObject",
+            "fail/fail",
+            "signRemoteCredentialGrant",
+            "text/text"
+          ],
+          "exports": [
+            "admitSignedRemoteCredentialGrant",
+            "signRemoteCredentialGrant"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/remote_credential/credential.mbt",
+                "anchor": "credential_grant_signature_preimage"
+              },
+              {
+                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "anchor": "admitSignedRemoteCredentialGrant"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/remote_credential/credential.mbt",
+                "anchor": "RemoteCredentialSignatureEnvelope"
+              },
+              {
+                "path": "src/remote_credential/credential.mbt",
+                "anchor": "credential_signature_envelope_projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/remote_credential/credential.mbt",
+                "anchor": "actql-remote-credential-grant-signature/0.1"
+              },
+              {
+                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "anchor": "authorities.get(projection[5])"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "anchor": "Object.freeze({version, keyId, grantCid, body, signature})"
+              },
+              {
+                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "anchor": "privateKey"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "anchor": "control.signaturePreimage"
+              },
+              {
+                "path": "src/remote_credential/credential.mbt",
+                "anchor": "authorize_credential_use"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "anchor": "RemoteCredentialAuthorityRejected"
+              },
+              {
+                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "anchor": "RemoteCredentialSignatureRejected"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous cryptographic envelope conversion starts no cancellable I/O or use and holds no cleanup handle. Cancellation/revocation/use decisions remain in the existing credential journal and Credential Owner."
+            },
+            "resources": [
+              {
+                "path": "src/remote_credential/credential.mbt",
+                "anchor": "valid_signature"
+              },
+              {
+                "path": "src/remote_credential/credential.mbt",
+                "anchor": "bounded_text(key_id, 512)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/remote_credential/credential.mbt",
+                "anchor": "admit_credential_signature_envelope"
+              },
+              {
+                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "anchor": "InvalidRemoteCredentialSigner"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/site-node/sqlite-credential-journal.test.mjs",
+                "anchor": "untrusted or altered issuer envelope"
+              },
+              {
+                "path": "adapters/site-node/sqlite-credential-journal.test.mjs",
+                "anchor": "authenticate current grants without consuming a use"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/otel-node/configuration.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4677b6c419bcdd20b2e302f408b06ad1ccec9a842ff95cd3a841294adfd90410",
+      "exports": [
+        "managedLimits",
+        "observationConfiguration"
+      ],
+      "operations": [
+        {
+          "name": "endpoint",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "observationConfiguration",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationConfiguration/applicationOwned/applicationOwned",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationConfiguration/init:deliver/init:deliver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "observationConfiguration/observationConfiguration",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationConfiguration/observationConfiguration#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationConfiguration/observationConfiguration#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationConfiguration/observationConfiguration#4",
+          "parameters": [
+            "key",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationConfiguration/observationConfiguration#5",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "Existing Host observation projection and optional bounded Node OTel delivery custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "endpoint",
+            "fail/fail",
+            "observationConfiguration",
+            "observationConfiguration/applicationOwned/applicationOwned",
+            "observationConfiguration/init:deliver/init:deliver",
+            "observationConfiguration/observationConfiguration",
+            "observationConfiguration/observationConfiguration#2",
+            "observationConfiguration/observationConfiguration#3",
+            "observationConfiguration/observationConfiguration#4",
+            "observationConfiguration/observationConfiguration#5"
+          ],
+          "exports": [
+            "managedLimits",
+            "observationConfiguration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Owner"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "does not own Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/otel-node/configuration.mjs",
+                "anchor": "observationConfiguration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/otel-node/index.mjs",
+                "anchor": "configuration"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "CID is not access permission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/otel-node/configuration.mjs",
+                "anchor": "Object.freeze"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/otel-node/configuration.mjs",
+                "anchor": "before constructing"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "trace export failure does not disable logs or metrics or change execution"
+              },
+              {
+                "path": "packages/otel-node/transport.test.mjs",
+                "anchor": "HTTP errors cannot be reported as exported"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous configuration validation and immutable projections do not start a Run, exporter or cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "packages/otel-node/configuration.mjs",
+                "anchor": "managedLimits"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "ceilings, not execution resource budgets"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "unsupported hosts, protocols and implicit destinations"
+              },
+              {
+                "path": "packages/otel-node/environment.test.mjs",
+                "anchor": "never overlay application providers"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/otel-node/transport.test.mjs",
+                "anchor": "retains slot until close"
+              },
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "managed SDK exports real protobuf"
+              },
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "before SDK construction"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/otel-node/environment.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "851f35b47afa445a0082dbeef7a39649caf1aef6f0c323148a4dcb709e2dfc98",
+      "exports": [
+        "environmentOptions"
+      ],
+      "operations": [
+        {
+          "name": "environmentOptions",
+          "parameters": [
+            "options",
+            "environment"
+          ],
+          "async": false
+        },
+        {
+          "name": "environmentOptions/environmentOptions",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "environmentOptions/environmentOptions#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "environmentOptions/propagators/propagators",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "environmentOptions/read/read",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "headers",
+          "parameters": [
+            "raw"
+          ],
+          "async": false
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "Existing Host observation projection and optional bounded Node OTel delivery custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "environmentOptions",
+            "environmentOptions/environmentOptions",
+            "environmentOptions/environmentOptions#2",
+            "environmentOptions/propagators/propagators",
+            "environmentOptions/read/read",
+            "fail/fail",
+            "headers"
+          ],
+          "exports": [
+            "environmentOptions"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Owner"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "does not own Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/otel-node/environment.mjs",
+                "anchor": "environment = process.env"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/otel-node/environment.mjs",
+                "anchor": "source: 'environment+explicit'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/otel-node/environment.mjs",
+                "anchor": "never inherit an environment overlay"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/otel-node/environment.mjs",
+                "anchor": "options.environment !== true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/otel-node/environment.test.mjs",
+                "anchor": "without leaking diagnostics"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure synchronous installation-option projection starts no export, task or close operation; signal transport cancellation remains in the referenced sender."
+            },
+            "resources": [
+              {
+                "path": "packages/otel-node/configuration.mjs",
+                "anchor": "managedLimits"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "ceilings, not execution resource budgets"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "unsupported hosts, protocols and implicit destinations"
+              },
+              {
+                "path": "packages/otel-node/environment.test.mjs",
+                "anchor": "never overlay application providers"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/otel-node/transport.test.mjs",
+                "anchor": "retains slot until close"
+              },
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "managed SDK exports real protobuf"
+              },
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "before SDK construction"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/otel-node/index.d.ts",
+      "responsibilityFacet": "primary",
+      "sha256": "7d4957b2614d8438ff88abce81a253c909e902fbf8b5add278a88b14cc980980",
+      "exports": [
+        "NodeHostObservationOptions",
+        "OtlpSignal",
+        "createNodeHostObservability"
+      ],
+      "operations": [
+        {
+          "name": "createNodeHostObservability",
+          "parameters": [
+            "options?: NodeHostObservationOptions"
+          ],
+          "result": "Readonly<{\n  connection: HostObservationConnection;\n  /** Supply to the SDK remote connection's traceContext option. */\n  currentContext(): ObservationContext | undefined;\n  /** Read-only metadata; no destination URLs, credentials or connectivity probe. */\n  configuration(): Readonly<{host: 'node'; transport: 'http/protobuf';\n    disclosure: 'metadata-only'; scope: string; revision: string;\n    schemaUrl: string; sdk: string; signals: Readonly<Record<string,\n      Readonly<{enabled: boolean; destination?: 'explicit';\n        sampler?: 'parentbased_traceidratio'; sampleRate?: number;\n        credentialsPresent: boolean}>>>;\n    source: 'explicit' | 'environment+explicit'; diagnostics: readonly string[];\n    resourceAttributes: readonly string[]; unsupported: readonly string[];\n    correlations: readonly ObservationCorrelation[];\n    measurements: Readonly<{selected: readonly ObservationMeasurement[];\n      available: readonly ObservationMeasurement[]}>;\n    attributes: Readonly<{exclude: readonly string[]}>;\n    events: Readonly<{level: 'lifecycle' | 'diagnostic'}>;\n    operations: readonly ObservationOperation[]; correlation: boolean;\n    limits: Readonly<ObservationLimits>; transportLimits: Readonly<Record<string, number>>}>;\n  status(): Readonly<{profile: 'managed' | 'application-owned';\n    closed: boolean; deliveryConflicts: number;\n    projection: ReturnType<HostObservationConnection['status']>;\n    signals: Readonly<Record<string, Readonly<{sent: number; failed: number;\n      limited: number; active: number; windowRecords: number; windowBytes: number;\n      closed: boolean}>>>}>;\n  /** Call after Host/Client close; never shuts down application providers. */\n  close(): Promise<void>;\n}>"
+        },
+        {
+          "name": "createNodeHostObservability/close",
+          "parameters": [],
+          "result": "Promise<void>"
+        },
+        {
+          "name": "createNodeHostObservability/configuration",
+          "parameters": [],
+          "result": "Readonly<{host: 'node'; transport: 'http/protobuf';\n    disclosure: 'metadata-only'; scope: string; revision: string;\n    schemaUrl: string; sdk: string; signals: Readonly<Record<string,\n      Readonly<{enabled: boolean; destination?: 'explicit';\n        sampler?: 'parentbased_traceidratio'; sampleRate?: number;\n        credentialsPresent: boolean}>>>;\n    source: 'explicit' | 'environment+explicit'; diagnostics: readonly string[];\n    resourceAttributes: readonly string[]; unsupported: readonly string[];\n    correlations: readonly ObservationCorrelation[];\n    measurements: Readonly<{selected: readonly ObservationMeasurement[];\n      available: readonly ObservationMeasurement[]}>;\n    attributes: Readonly<{exclude: readonly string[]}>;\n    events: Readonly<{level: 'lifecycle' | 'diagnostic'}>;\n    operations: readonly ObservationOperation[]; correlation: boolean;\n    limits: Readonly<ObservationLimits>; transportLimits: Readonly<Record<string, number>>}>"
+        },
+        {
+          "name": "createNodeHostObservability/currentContext",
+          "parameters": [],
+          "result": "ObservationContext | undefined"
+        },
+        {
+          "name": "createNodeHostObservability/status",
+          "parameters": [],
+          "result": "Readonly<{profile: 'managed' | 'application-owned';\n    closed: boolean; deliveryConflicts: number;\n    projection: ReturnType<HostObservationConnection['status']>;\n    signals: Readonly<Record<string, Readonly<{sent: number; failed: number;\n      limited: number; active: number; windowRecords: number; windowBytes: number;\n      closed: boolean}>>>}>"
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "Existing Host observation projection and optional bounded Node OTel delivery custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNodeHostObservability",
+            "createNodeHostObservability/close",
+            "createNodeHostObservability/configuration",
+            "createNodeHostObservability/currentContext",
+            "createNodeHostObservability/status"
+          ],
+          "exports": [
+            "NodeHostObservationOptions",
+            "OtlpSignal",
+            "createNodeHostObservability"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Owner"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "does not own Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/otel-node/index.d.ts",
+                "anchor": "NodeHostObservationOptions"
+              },
+              {
+                "path": "packages/otel-node/index.d.ts",
+                "anchor": "currentContext():"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/otel-node/index.mjs",
+                "anchor": "configuration"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "CID is not access permission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/otel-node/index.d.ts",
+                "anchor": "providers remain application-owned"
+              },
+              {
+                "path": "packages/otel-node/transport.mjs",
+                "anchor": "Capacity is held until physical close"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "application provider callback is deferred"
+              },
+              {
+                "path": "packages/otel-node/index.mjs",
+                "anchor": "if (busy)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "trace export failure does not disable logs or metrics or change execution"
+              },
+              {
+                "path": "packages/otel-node/transport.test.mjs",
+                "anchor": "HTTP errors cannot be reported as exported"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "does not cancel a Run or revoke authority"
+              },
+              {
+                "path": "packages/otel-node/transport.mjs",
+                "anchor": "await active.settled.catch"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/otel-node/configuration.mjs",
+                "anchor": "managedLimits"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "ceilings, not execution resource budgets"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "unsupported hosts, protocols and implicit destinations"
+              },
+              {
+                "path": "packages/otel-node/environment.test.mjs",
+                "anchor": "never overlay application providers"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/otel-node/transport.test.mjs",
+                "anchor": "retains slot until close"
+              },
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "managed SDK exports real protobuf"
+              },
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "before SDK construction"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/otel-node/index.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "798ebc98512e68b4e08d2253f8af4cbfe54ff26b97b111615e9dfbacb6e9bc79",
+      "exports": [
+        "createNodeHostObservability"
+      ],
+      "operations": [
+        {
+          "name": "createNodeHostObservability",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver",
+          "parameters": [
+            "record"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/attempt/attempt",
+          "parameters": [
+            "work"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver/httpLabels/httpLabels",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver/httpLabels/httpLabels#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver#3",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver#4",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/labels/labels",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/labels/labels#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/createNodeHostObservability",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/createNodeHostObservability/createNodeHostObservability",
+          "parameters": [
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/createNodeHostObservability/createNodeHostObservability#2",
+          "parameters": [
+            "signal",
+            "sender"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/createNodeHostObservability#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/currentContext/currentContext",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/empty/empty",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNodeHostObservability/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNodeHostObservability/init:close/init:close/init:close",
+          "parameters": [
+            "sender"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/logProcessor/logProcessor",
+          "parameters": [
+            "log"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/projectedConfiguration/init:deliver/init:deliver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/revision/revision",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/senders/senders",
+          "parameters": [
+            "signal",
+            "setting"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/traceProcessor/init:onStart/init:onStart",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNodeHostObservability/traceProcessor/traceProcessor",
+          "parameters": [
+            "span"
+          ],
+          "async": false
+        },
+        {
+          "name": "OnDemandReader/constructor:constructor/constructor:constructor",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "OnDemandReader/constructor:constructor/constructor:constructor/constructor:constructor",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "OnDemandReader/constructor:constructor/constructor:constructor/constructor:constructor#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "OnDemandReader/method:onForceFlush/method:onForceFlush",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "OnDemandReader/method:onShutdown/method:onShutdown",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "Existing Host observation projection and optional bounded Node OTel delivery custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNodeHostObservability",
+            "createNodeHostObservability/connection/init:deliver/init:deliver",
+            "createNodeHostObservability/connection/init:deliver/init:deliver/attempt/attempt",
+            "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver",
+            "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver/httpLabels/httpLabels",
+            "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver/httpLabels/httpLabels#2",
+            "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver#2",
+            "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver#3",
+            "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver#4",
+            "createNodeHostObservability/connection/init:deliver/init:deliver/labels/labels",
+            "createNodeHostObservability/connection/init:deliver/init:deliver/labels/labels#2",
+            "createNodeHostObservability/createNodeHostObservability",
+            "createNodeHostObservability/createNodeHostObservability/createNodeHostObservability",
+            "createNodeHostObservability/createNodeHostObservability/createNodeHostObservability#2",
+            "createNodeHostObservability/createNodeHostObservability#2",
+            "createNodeHostObservability/currentContext/currentContext",
+            "createNodeHostObservability/empty/empty",
+            "createNodeHostObservability/init:close/init:close",
+            "createNodeHostObservability/init:close/init:close/init:close",
+            "createNodeHostObservability/logProcessor/logProcessor",
+            "createNodeHostObservability/projectedConfiguration/init:deliver/init:deliver",
+            "createNodeHostObservability/revision/revision",
+            "createNodeHostObservability/senders/senders",
+            "createNodeHostObservability/traceProcessor/init:onStart/init:onStart",
+            "createNodeHostObservability/traceProcessor/traceProcessor",
+            "OnDemandReader/constructor:constructor/constructor:constructor",
+            "OnDemandReader/constructor:constructor/constructor:constructor/constructor:constructor",
+            "OnDemandReader/constructor:constructor/constructor:constructor/constructor:constructor#2",
+            "OnDemandReader/method:onForceFlush/method:onForceFlush",
+            "OnDemandReader/method:onShutdown/method:onShutdown"
+          ],
+          "exports": [
+            "createNodeHostObservability"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Owner"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "does not own Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/otel-node/index.d.ts",
+                "anchor": "NodeHostObservationOptions"
+              },
+              {
+                "path": "packages/otel-node/index.d.ts",
+                "anchor": "currentContext():"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/otel-node/index.mjs",
+                "anchor": "configuration"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "CID is not access permission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/otel-node/index.d.ts",
+                "anchor": "providers remain application-owned"
+              },
+              {
+                "path": "packages/otel-node/transport.mjs",
+                "anchor": "Capacity is held until physical close"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "application provider callback is deferred"
+              },
+              {
+                "path": "packages/otel-node/index.mjs",
+                "anchor": "if (busy)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "trace export failure does not disable logs or metrics or change execution"
+              },
+              {
+                "path": "packages/otel-node/transport.test.mjs",
+                "anchor": "HTTP errors cannot be reported as exported"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "does not cancel a Run or revoke authority"
+              },
+              {
+                "path": "packages/otel-node/transport.mjs",
+                "anchor": "await active.settled.catch"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/otel-node/configuration.mjs",
+                "anchor": "managedLimits"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "ceilings, not execution resource budgets"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "unsupported hosts, protocols and implicit destinations"
+              },
+              {
+                "path": "packages/otel-node/environment.test.mjs",
+                "anchor": "never overlay application providers"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/otel-node/transport.test.mjs",
+                "anchor": "retains slot until close"
+              },
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "managed SDK exports real protobuf"
+              },
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "before SDK construction"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/otel-node/transport.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "3e0944455a538e6a4668db7cfe297d3d10731560cbaf64ff1359c89f4172c4d3",
+      "exports": [
+        "createBoundedOtlpSender"
+      ],
+      "operations": [
+        {
+          "name": "createBoundedOtlpSender",
+          "parameters": [
+            "endpoint",
+            "limits",
+            "headers"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/createBoundedOtlpSender",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createBoundedOtlpSender/init:close/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/init:send/init:send",
+          "parameters": [
+            "payload",
+            "serializer"
+          ],
+          "async": true
+        },
+        {
+          "name": "createBoundedOtlpSender/init:send/init:send/settled/settled",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/init:send/init:send/settled/settled/fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/init:send/init:send/settled/settled/settled",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/init:send/init:send/settled/settled/settled/settled",
+          "parameters": [
+            "data"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/init:send/init:send/settled/settled/settled/settled/settled",
+          "parameters": [
+            "key",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/init:send/init:send/settled/settled/settled/settled#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/init:send/init:send/settled/settled/settled#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBoundedOtlpSender/init:send/init:send/settled/settled/settled#3",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "Existing Host observation projection and optional bounded Node OTel delivery custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createBoundedOtlpSender",
+            "createBoundedOtlpSender/createBoundedOtlpSender",
+            "createBoundedOtlpSender/init:close/init:close",
+            "createBoundedOtlpSender/init:close/init:close/init:close",
+            "createBoundedOtlpSender/init:send/init:send",
+            "createBoundedOtlpSender/init:send/init:send/settled/settled",
+            "createBoundedOtlpSender/init:send/init:send/settled/settled/fail/fail",
+            "createBoundedOtlpSender/init:send/init:send/settled/settled/settled",
+            "createBoundedOtlpSender/init:send/init:send/settled/settled/settled/settled",
+            "createBoundedOtlpSender/init:send/init:send/settled/settled/settled/settled/settled",
+            "createBoundedOtlpSender/init:send/init:send/settled/settled/settled/settled#2",
+            "createBoundedOtlpSender/init:send/init:send/settled/settled/settled#2",
+            "createBoundedOtlpSender/init:send/init:send/settled/settled/settled#3"
+          ],
+          "exports": [
+            "createBoundedOtlpSender"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Owner"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "does not own Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/otel-node/transport.mjs",
+                "anchor": "async send(payload, serializer)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/otel-node/transport.mjs",
+                "anchor": "endpoint"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/otel-node/transport.mjs",
+                "anchor": "active = {req, settled}"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/otel-node/transport.mjs",
+                "anchor": "req.on('close'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "trace export failure does not disable logs or metrics or change execution"
+              },
+              {
+                "path": "packages/otel-node/transport.test.mjs",
+                "anchor": "HTTP errors cannot be reported as exported"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "does not cancel a Run or revoke authority"
+              },
+              {
+                "path": "packages/otel-node/transport.mjs",
+                "anchor": "await active.settled.catch"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/otel-node/configuration.mjs",
+                "anchor": "managedLimits"
+              },
+              {
+                "path": "packages/otel-node/README.md",
+                "anchor": "ceilings, not execution resource budgets"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "unsupported hosts, protocols and implicit destinations"
+              },
+              {
+                "path": "packages/otel-node/environment.test.mjs",
+                "anchor": "never overlay application providers"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/otel-node/transport.test.mjs",
+                "anchor": "retains slot until close"
+              },
+              {
+                "path": "packages/otel-node/index.test.mjs",
+                "anchor": "managed SDK exports real protobuf"
+              },
+              {
+                "path": "packages/otel-node/configuration.test.mjs",
+                "anchor": "before SDK construction"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4f05887943eeba1ef079ace2d221d23ddacb1e38ca7307fe9675afcb976a1e78",
+      "exports": [
+        "fixedInferResponseLimits",
+        "readBoundedInferResponse"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedInferResponseLimits",
+          "parameters": [
+            "maxBytes",
+            "maxChunkBytes",
+            "maxChunks",
+            "observedHeaders",
+            "maxHeaderBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedInferResponseLimits/fixedInferResponseLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse",
+          "parameters": [
+            "response",
+            "inputLimits",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "readBoundedInferResponse/abort/abort",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse#2",
+          "parameters": [
+            "next"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse#4",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#4",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "fixedInferResponseLimits",
+            "fixedInferResponseLimits/fixedInferResponseLimits",
+            "positive/positive",
+            "readBoundedInferResponse",
+            "readBoundedInferResponse/abort/abort",
+            "readBoundedInferResponse/readBoundedInferResponse",
+            "readBoundedInferResponse/readBoundedInferResponse#2",
+            "readBoundedInferResponse/readBoundedInferResponse#3",
+            "readBoundedInferResponse/readBoundedInferResponse#4",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#2",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#3",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#4"
+          ],
+          "exports": [
+            "fixedInferResponseLimits",
+            "readBoundedInferResponse"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "fixedInferResponseLimits"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "readBoundedInferResponse"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "heldReader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "cannot change across the body await"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "one byte over the bound"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "maxChunkBytes"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "maxHeaderBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "real Response streams"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "cleanup failure retains the same reader"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "873d79cff9604ff1b6d31aceba0072cdbc4c756f155cdeec0c560818b7d114a1",
+      "exports": [
+        "cancelSdkPreparation",
+        "cleanupSdkPreparation",
+        "deliverSdkResponse",
+        "interceptSdkRequest",
+        "pollSdkDecode",
+        "pollSdkPreparation",
+        "pollSdkTransport",
+        "prepareSdkTransport",
+        "progressSdkOriginalIoCleanup",
+        "retireSdkDecodedResult",
+        "sdkOriginalIoObservationAvailable",
+        "sdkPreparedRequest",
+        "sdkTransportRawObservation",
+        "sdkTransportResponse",
+        "startSdkTransport",
+        "takeSdkDecodedResult"
+      ],
+      "operations": [
+        {
+          "name": "advanceOriginalPhysicalCleanup",
+          "parameters": [
+            "state",
+            "transport"
+          ],
+          "async": false
+        },
+        {
+          "name": "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup",
+          "parameters": [
+            "retired"
+          ],
+          "async": false
+        },
+        {
+          "name": "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "cancelSdkPreparation",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "cleanupSdkPreparation",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "cleanupSdkPreparation/cleanupSdkPreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "cleanupSdkPreparation/cleanupSdkPreparation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "cleanupSdkPreparation/cleanupSdkPreparation#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "cleanupSdkPreparation/cleanupSdkPreparation#4",
+          "parameters": [
+            "retired"
+          ],
+          "async": false
+        },
+        {
+          "name": "cleanupSdkPreparation/cleanupSdkPreparation#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deliverOriginalSdkResponse",
+          "parameters": [
+            "state",
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverSdkResponse",
+          "parameters": [
+            "handle",
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest",
+          "parameters": [
+            "runSdk",
+            "endpoint",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "signal",
+            "notify",
+            "verifyRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/fetch/fetch",
+          "parameters": [
+            "input",
+            "init"
+          ],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/fetch/fetch/fetch",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/fetch/fetch/fetch#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/fetch/fetch/waiting/waiting",
+          "parameters": [
+            "resolve",
+            "rejectResponse"
+          ],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/interceptSdkRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/interceptSdkRequest#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/interceptSdkRequest#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/interceptSdkRequest#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/reject/reject",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "interceptSdkRequest/wake/wake",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "issue/issue",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "pollSdkDecode",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "pollSdkPreparation",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "pollSdkTransport",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkTransport",
+          "parameters": [
+            "handle",
+            "fetch",
+            "responseLimits",
+            "observeAt",
+            "responseMode"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkTransport/prepareSdkTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "progressSdkOriginalIoCleanup",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "retireSdkDecodedResult",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "sdkOriginalIoObservationAvailable",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "sdkPreparedRequest",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "sdkTransportRawObservation",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "sdkTransportResponse",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "startSdkTransport",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "startSdkTransport/startSdkTransport",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "startSdkTransport/startSdkTransport/startSdkTransport",
+          "parameters": [
+            "retired"
+          ],
+          "async": false
+        },
+        {
+          "name": "startSdkTransport/startSdkTransport#2",
+          "parameters": [
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "startSdkTransport/startSdkTransport#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startSdkTransport/startSdkTransport#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startSdkTransport/wake/wake",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "takeSdkDecodedResult",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advanceOriginalPhysicalCleanup",
+            "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup",
+            "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup#2",
+            "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup#3",
+            "cancelSdkPreparation",
+            "cleanupSdkPreparation",
+            "cleanupSdkPreparation/cleanupSdkPreparation",
+            "cleanupSdkPreparation/cleanupSdkPreparation#2",
+            "cleanupSdkPreparation/cleanupSdkPreparation#3",
+            "cleanupSdkPreparation/cleanupSdkPreparation#4",
+            "cleanupSdkPreparation/cleanupSdkPreparation#5",
+            "deliverOriginalSdkResponse",
+            "deliverSdkResponse",
+            "interceptSdkRequest",
+            "interceptSdkRequest/fetch/fetch",
+            "interceptSdkRequest/fetch/fetch/fetch",
+            "interceptSdkRequest/fetch/fetch/fetch#2",
+            "interceptSdkRequest/fetch/fetch/waiting/waiting",
+            "interceptSdkRequest/interceptSdkRequest",
+            "interceptSdkRequest/interceptSdkRequest#2",
+            "interceptSdkRequest/interceptSdkRequest#3",
+            "interceptSdkRequest/interceptSdkRequest#4",
+            "interceptSdkRequest/reject/reject",
+            "interceptSdkRequest/wake/wake",
+            "issue/issue",
+            "pollSdkDecode",
+            "pollSdkPreparation",
+            "pollSdkTransport",
+            "positive/positive",
+            "prepareSdkTransport",
+            "prepareSdkTransport/prepareSdkTransport",
+            "progressSdkOriginalIoCleanup",
+            "record/record",
+            "retireSdkDecodedResult",
+            "sdkOriginalIoObservationAvailable",
+            "sdkPreparedRequest",
+            "sdkTransportRawObservation",
+            "sdkTransportResponse",
+            "startSdkTransport",
+            "startSdkTransport/startSdkTransport",
+            "startSdkTransport/startSdkTransport/startSdkTransport",
+            "startSdkTransport/startSdkTransport#2",
+            "startSdkTransport/startSdkTransport#3",
+            "startSdkTransport/startSdkTransport#4",
+            "startSdkTransport/wake/wake",
+            "takeSdkDecodedResult"
+          ],
+          "exports": [
+            "cancelSdkPreparation",
+            "cleanupSdkPreparation",
+            "deliverSdkResponse",
+            "interceptSdkRequest",
+            "pollSdkDecode",
+            "pollSdkPreparation",
+            "pollSdkTransport",
+            "prepareSdkTransport",
+            "progressSdkOriginalIoCleanup",
+            "retireSdkDecodedResult",
+            "sdkOriginalIoObservationAvailable",
+            "sdkPreparedRequest",
+            "sdkTransportRawObservation",
+            "sdkTransportResponse",
+            "startSdkTransport",
+            "takeSdkDecodedResult"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "ProjectionLimits"
+              },
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "ProjectionLimits"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "preparations = new WeakMap()"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "heldReader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Only its explicitly installed transport"
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "2ca0b2982273c3d56a387692982b41edea2f93189370e99e567734297ffc9a74",
+      "exports": [
+        "openAIChatStaticOriginals",
+        "prepareOpenAIChatRequest"
+      ],
+      "operations": [
+        {
+          "name": "prepareOpenAIChatRequest",
+          "parameters": [
+            "modelId",
+            "baseURL",
+            "apiKey",
+            "options",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "signal",
+            "notify",
+            "verifyRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
+          "parameters": [
+            "fetch",
+            "abortSignal"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareOpenAIChatRequest",
+            "prepareOpenAIChatRequest/prepareOpenAIChatRequest"
+          ],
+          "exports": [
+            "openAIChatStaticOriginals",
+            "prepareOpenAIChatRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "prepareOpenAIChatRequest"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "openAIChatStaticOriginals"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "forgetting this borrowed shell is not module GC"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "interceptSdkRequest"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "60667136fad8cfa1acbe6a4fffdf955e15d299da901147ce0af2cc8e92b7ef73",
+      "exports": [
+        "createOriginalUndiciFetch",
+        "fixedOriginalAcquisitionLimits",
+        "prepareOriginalUndiciFetch"
+      ],
+      "operations": [
+        {
+          "name": "bindAcquisitionRead",
+          "parameters": [
+            "socket",
+            "limits",
+            "acquisition",
+            "inputExtent"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindAcquisitionRead/bindAcquisitionRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "bindAcquisitionRead/boundedRead/boundedRead",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOriginalUndiciFetch",
+          "parameters": [
+            "endpoint",
+            "requestLimits",
+            "responseLimits",
+            "physicalAcquisitionLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOriginalUndiciFetch/fetch/originalUndiciFetch",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fixedOriginalAcquisitionLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedOriginalAcquisitionLimits/entries/entries",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedOriginalAcquisitionLimits/fixedOriginalAcquisitionLimits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedOriginalAcquisitionLimits/fixedOriginalAcquisitionLimits#2",
+          "parameters": [
+            "key",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "issue/issue",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalHeadersView",
+          "parameters": [
+            "originalHeaders"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalHeadersView/init:get/init:get",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalResponseView",
+          "parameters": [
+            "response",
+            "body",
+            "closed"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalResponseView/cancel/cancel",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "originalResponseView/stream/init:getReader/init:getReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalResponseView/stream/init:getReader/init:getReader/originalReader/init:read/init:read",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalResponseView/stream/init:getReader/init:getReader/originalReader/init:read/init:read/init:read",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalResponseView/stream/init:getReader/init:getReader/originalReader/init:releaseLock/init:releaseLock",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch",
+          "parameters": [
+            "fetch",
+            "input",
+            "init",
+            "responseLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/cleanup/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/cleanup/cleanup/cleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/cleanup/cleanup/cleanup#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/connect/connect",
+          "parameters": [
+            "options",
+            "callback"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/connect/connect/connect",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/connect/connect/connect/connect",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/connect/connect/connect#2",
+          "parameters": [
+            "error",
+            "connected"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/connect/connect/connect#3",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/invoke/invoke",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/invoke/invoke/response/response",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/invoke/invoke/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/invoke/invoke/response/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/invoke/invoke/response/response/response#2",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/invoke/invoke/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/onread/init:callback/init:callback",
+          "parameters": [
+            "length",
+            "buffer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/prepareOriginalUndiciFetch",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameResponseLimits",
+          "parameters": [
+            "limits",
+            "original"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bindAcquisitionRead",
+            "bindAcquisitionRead/bindAcquisitionRead",
+            "bindAcquisitionRead/boundedRead/boundedRead",
+            "createOriginalUndiciFetch",
+            "createOriginalUndiciFetch/fetch/originalUndiciFetch",
+            "fixedOriginalAcquisitionLimits",
+            "fixedOriginalAcquisitionLimits/entries/entries",
+            "fixedOriginalAcquisitionLimits/fixedOriginalAcquisitionLimits",
+            "fixedOriginalAcquisitionLimits/fixedOriginalAcquisitionLimits#2",
+            "issue/issue",
+            "originalHeadersView",
+            "originalHeadersView/init:get/init:get",
+            "originalResponseView",
+            "originalResponseView/cancel/cancel",
+            "originalResponseView/stream/init:getReader/init:getReader",
+            "originalResponseView/stream/init:getReader/init:getReader/originalReader/init:read/init:read",
+            "originalResponseView/stream/init:getReader/init:getReader/originalReader/init:read/init:read/init:read",
+            "originalResponseView/stream/init:getReader/init:getReader/originalReader/init:releaseLock/init:releaseLock",
+            "positive/positive",
+            "prepareOriginalUndiciFetch",
+            "prepareOriginalUndiciFetch/cleanup/cleanup",
+            "prepareOriginalUndiciFetch/cleanup/cleanup/cleanup",
+            "prepareOriginalUndiciFetch/cleanup/cleanup/cleanup#2",
+            "prepareOriginalUndiciFetch/cleanup/cleanup/cleanup#3",
+            "prepareOriginalUndiciFetch/connect/connect",
+            "prepareOriginalUndiciFetch/connect/connect/connect",
+            "prepareOriginalUndiciFetch/connect/connect/connect/connect",
+            "prepareOriginalUndiciFetch/connect/connect/connect#2",
+            "prepareOriginalUndiciFetch/connect/connect/connect#3",
+            "prepareOriginalUndiciFetch/invoke/invoke",
+            "prepareOriginalUndiciFetch/invoke/invoke/response/response",
+            "prepareOriginalUndiciFetch/invoke/invoke/response/response/response",
+            "prepareOriginalUndiciFetch/invoke/invoke/response/response/response/response",
+            "prepareOriginalUndiciFetch/invoke/invoke/response/response/response#2",
+            "prepareOriginalUndiciFetch/invoke/invoke/settled/settled",
+            "prepareOriginalUndiciFetch/onread/init:callback/init:callback",
+            "prepareOriginalUndiciFetch/prepareOriginalUndiciFetch",
+            "sameResponseLimits"
+          ],
+          "exports": [
+            "createOriginalUndiciFetch",
+            "fixedOriginalAcquisitionLimits",
+            "prepareOriginalUndiciFetch"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "ProjectionLimits"
+              },
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "ProjectionLimits"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "installations = new WeakMap()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "per-call Client/duty"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "before that allocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "maxBorrowedBackingBytes"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "does not bound native emission"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/index.d.ts",
+      "responsibilityFacet": "primary",
+      "sha256": "58cff6db206180a5e8afba86e6affea7e26012a4942384d2bcc002e5ce2e0bc5",
+      "exports": [
+        "ModelProviderRegistration",
+        "OpenAIChatMaterialsRegistrationOptions",
+        "OpenAIChatRegistrationOptions",
+        "OpenAIInstallationData",
+        "OpenAIOriginalMaterials",
+        "OriginalBody",
+        "OriginalReadInstallationData",
+        "OriginalStringLimits",
+        "PhysicalAcquisitionLimits",
+        "ProjectionLimits",
+        "QuantityCapacity",
+        "RequestLimits",
+        "ResponseLimits",
+        "Sha256Cid",
+        "UndiciOpenAIChatMaterialsRegistrationOptions",
+        "UndiciOpenAIChatRegistrationOptions",
+        "createInstalledOpenAIChatRegistration",
+        "createInstalledUndiciOpenAIChatRegistration"
+      ],
+      "operations": [
+        {
+          "name": "<call>",
+          "parameters": [
+            "runtime: unknown"
+          ],
+          "result": "readonly Readonly<Record<string, unknown>>[]"
+        },
+        {
+          "name": "<call>#2",
+          "parameters": [],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#3",
+          "parameters": [],
+          "result": "string"
+        },
+        {
+          "name": "<call>#4",
+          "parameters": [
+            "facts: unknown"
+          ],
+          "result": "void"
+        },
+        {
+          "name": "createInstalledOpenAIChatRegistration",
+          "parameters": [
+            "options: OpenAIChatRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        },
+        {
+          "name": "createInstalledOpenAIChatRegistration#2",
+          "parameters": [
+            "options: OpenAIChatMaterialsRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        },
+        {
+          "name": "createInstalledUndiciOpenAIChatRegistration",
+          "parameters": [
+            "options: UndiciOpenAIChatRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        },
+        {
+          "name": "createInstalledUndiciOpenAIChatRegistration#2",
+          "parameters": [
+            "options: UndiciOpenAIChatMaterialsRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "<call>",
+            "<call>#2",
+            "<call>#3",
+            "<call>#4",
+            "createInstalledOpenAIChatRegistration",
+            "createInstalledOpenAIChatRegistration#2",
+            "createInstalledUndiciOpenAIChatRegistration",
+            "createInstalledUndiciOpenAIChatRegistration#2"
+          ],
+          "exports": [
+            "ModelProviderRegistration",
+            "OpenAIChatMaterialsRegistrationOptions",
+            "OpenAIChatRegistrationOptions",
+            "OpenAIInstallationData",
+            "OpenAIOriginalMaterials",
+            "OriginalBody",
+            "OriginalReadInstallationData",
+            "OriginalStringLimits",
+            "PhysicalAcquisitionLimits",
+            "ProjectionLimits",
+            "QuantityCapacity",
+            "RequestLimits",
+            "ResponseLimits",
+            "Sha256Cid",
+            "UndiciOpenAIChatMaterialsRegistrationOptions",
+            "UndiciOpenAIChatRegistrationOptions",
+            "createInstalledOpenAIChatRegistration",
+            "createInstalledUndiciOpenAIChatRegistration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "Sha256Cid"
+              },
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "ModelProviderRegistration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "OriginalBody"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Only its explicitly installed transport"
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "ProjectionLimits"
+              },
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "QuantityCapacity"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/index.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "129e67d4530f122511619f6a725205fbf184acee021f83d1c70e70ce8d9f2cec",
+      "exports": [
+        "createInstalledOpenAIChatRegistration",
+        "createInstalledUndiciOpenAIChatRegistration"
+      ],
+      "operations": [],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "createInstalledOpenAIChatRegistration",
+            "createInstalledUndiciOpenAIChatRegistration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/index.mjs",
+                "anchor": "export"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "preparations = new WeakMap()"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "heldReader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Only its explicitly installed transport"
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-http/_internal/bounded-response.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4f05887943eeba1ef079ace2d221d23ddacb1e38ca7307fe9675afcb976a1e78",
+      "exports": [
+        "fixedInferResponseLimits",
+        "readBoundedInferResponse"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedInferResponseLimits",
+          "parameters": [
+            "maxBytes",
+            "maxChunkBytes",
+            "maxChunks",
+            "observedHeaders",
+            "maxHeaderBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedInferResponseLimits/fixedInferResponseLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse",
+          "parameters": [
+            "response",
+            "inputLimits",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "readBoundedInferResponse/abort/abort",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse#2",
+          "parameters": [
+            "next"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse#4",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#4",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "fixedInferResponseLimits",
+            "fixedInferResponseLimits/fixedInferResponseLimits",
+            "positive/positive",
+            "readBoundedInferResponse",
+            "readBoundedInferResponse/abort/abort",
+            "readBoundedInferResponse/readBoundedInferResponse",
+            "readBoundedInferResponse/readBoundedInferResponse#2",
+            "readBoundedInferResponse/readBoundedInferResponse#3",
+            "readBoundedInferResponse/readBoundedInferResponse#4",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#2",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#3",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#4"
+          ],
+          "exports": [
+            "fixedInferResponseLimits",
+            "readBoundedInferResponse"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "anchor": "fixedInferResponseLimits"
+              },
+              {
+                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "anchor": "readBoundedInferResponse"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "anchor": "heldReader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "cannot change across the body await"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "one byte over the bound"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "anchor": "maxChunkBytes"
+              },
+              {
+                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "anchor": "maxHeaderBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "real Response streams"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "cleanup failure retains the same reader"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-http/index.d.ts",
+      "responsibilityFacet": "primary",
+      "sha256": "9e0151c2cf43466c3a580aa96b0aa0b881b530871d9c402e2d6e7117d2fad24e",
+      "exports": [
+        "HttpChatMaterialsRegistrationOptions",
+        "HttpChatRegistrationOptions",
+        "HttpInstallationData",
+        "HttpOriginalMaterials",
+        "ModelProviderRegistration",
+        "OriginalBody",
+        "OriginalReadInstallationData",
+        "ProjectionLimits",
+        "QuantityCapacity",
+        "RequestLimits",
+        "ResponseLimits",
+        "Sha256Cid",
+        "createInstalledHttpChatRegistration"
+      ],
+      "operations": [
+        {
+          "name": "<call>",
+          "parameters": [
+            "runtime: unknown"
+          ],
+          "result": "readonly Readonly<Record<string, unknown>>[]"
+        },
+        {
+          "name": "<call>#2",
+          "parameters": [],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#3",
+          "parameters": [],
+          "result": "string"
+        },
+        {
+          "name": "<call>#4",
+          "parameters": [
+            "facts: unknown"
+          ],
+          "result": "void"
+        },
+        {
+          "name": "createInstalledHttpChatRegistration",
+          "parameters": [
+            "options: HttpChatRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        },
+        {
+          "name": "createInstalledHttpChatRegistration#2",
+          "parameters": [
+            "options: HttpChatMaterialsRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "<call>",
+            "<call>#2",
+            "<call>#3",
+            "<call>#4",
+            "createInstalledHttpChatRegistration",
+            "createInstalledHttpChatRegistration#2"
+          ],
+          "exports": [
+            "HttpChatMaterialsRegistrationOptions",
+            "HttpChatRegistrationOptions",
+            "HttpInstallationData",
+            "HttpOriginalMaterials",
+            "ModelProviderRegistration",
+            "OriginalBody",
+            "OriginalReadInstallationData",
+            "ProjectionLimits",
+            "QuantityCapacity",
+            "RequestLimits",
+            "ResponseLimits",
+            "Sha256Cid",
+            "createInstalledHttpChatRegistration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "Sha256Cid"
+              },
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "ModelProviderRegistration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "OriginalBody"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Only its explicitly installed transport"
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "ProjectionLimits"
+              },
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "QuantityCapacity"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-http/index.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4a7fb63ba81cb229821c3380e4c72fb8615e69f207e9d13c5a26cc50798024c5",
+      "exports": [
+        "createInstalledHttpChatRegistration"
+      ],
+      "operations": [],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "createInstalledHttpChatRegistration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-http/index.mjs",
+                "anchor": "export"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "preparations = new WeakMap()"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "heldReader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Only its explicitly installed transport"
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "actualRuntimeQualification": "Earlier F Credential147, Provider759 and durablea15 receipts remain source-specific. This additional metadata pass runs no OTel/Provider/Native product or public acceptance tests."
+}

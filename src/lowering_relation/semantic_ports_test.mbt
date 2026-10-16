@@ -33,3 +33,33 @@ test "semantic ports retain exact resolved occurrences and output schema" {
   assert_eq(@lowering_relation.node_id(node), "select_2")
   assert_eq(@lowering_relation.input_ids(node), ["values_0"])
 }
+
+///|
+test "source view category is false for ordinary and absent prepared inputs" {
+  let schema = @pipeline.schema_at(checked(""), Step(0)).unwrap()
+  let pipeline = @pipeline.check(
+    cursor("[{\"select\":[\"id\"]}]"),
+    [("ordinary", schema)],
+    None,
+    None,
+    {
+      max_steps: 2,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let prepared = @lowering_relation.prepare(pipeline, limits()).unwrap()
+  assert_eq(@lowering_relation.preparation_input_count(prepared), 1)
+  for index in [-1, 0, 1] {
+    assert_false(
+      @lowering_relation.preparation_input_is_source_view(prepared, index),
+    )
+  }
+  let source_free = @lowering_relation.prepare(checked(""), limits()).unwrap()
+  assert_false(
+    @lowering_relation.preparation_input_is_source_view(source_free, 0),
+  )
+}

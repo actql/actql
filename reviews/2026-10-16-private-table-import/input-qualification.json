@@ -1,0 +1,177 @@
+{
+  "comparisonSource": "6908eb1856918bcbfe9ba1ed4963348de1781bdb",
+  "comparisons": [
+    {
+      "source": "05ca610aece3f417948a9312cb0b6e0ba0d87378",
+      "currentProductFilesIdentical": false,
+      "files": [
+        {
+          "path": "adapters/host-common/runtime-core.mjs",
+          "sha256": "a4ca5026e4a9ac540f9d62e3f7b8f38a5603e5ce64a5fdf571bf1a9a89150610",
+          "byteIdentical": true
+        },
+        {
+          "path": "adapters/host-node/effect-input-export.mjs",
+          "sha256": "97a1d5089f25093a8a9b7ca6e08ade800b71b6f73bf5a62c120f2b8b30c290c1",
+          "byteIdentical": false
+        },
+        {
+          "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+          "sha256": "724eb59099725685f1589b8425c922cf98729c736df0bff98785fdd6fa376cee",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node/pkg.generated.mbti",
+          "sha256": "ef0c6887555501b301fe107f43a99348da46b653072b19b7ec39d398d18071d4",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node_rela/client_multi_source_host_bridge.mbt",
+          "sha256": "fd5470c1aeaf381575cce11a61d155176def711c26ea97d4150de0d94273df73",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node_rela/client_program_bridge.mbt",
+          "sha256": "10395feb4e0c283685ded1ef5110c8f9acedb03a5a91a0ee21aa6a1bdb3bf035",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node_rela/pkg.generated.mbti",
+          "sha256": "d37fe869beced376ab7e872a8d6c26cbd4748482c10b7a5b5978dcc4536c75d4",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/run_publication_host/client_effect_imported_evidence.mbt",
+          "sha256": "28d3ce017e1537d0eb4be1eaf66c37b1c762b53c3569a1d3a2856e58645667a7",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/run_publication_host/client_effect_local_table_artifact.mbt",
+          "sha256": "fd46e95e3c7be3ea672dadcc9e94866c4faec927c9dcf6120ccea077cbf202b5",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/run_publication_host/pkg.generated.mbti",
+          "sha256": "b68e8761ced23e7a1a3d51e2b9207583a2083ec2f072109a52d92779d44fc97a",
+          "byteIdentical": true
+        }
+      ],
+      "currentChangedMoonInputsIdentical": true
+    },
+    {
+      "source": "400c82250121ded8e62a84ca3514c6a8b5277699",
+      "currentProductFilesIdentical": true,
+      "files": [
+        {
+          "path": "adapters/host-common/runtime-core.mjs",
+          "sha256": "a4ca5026e4a9ac540f9d62e3f7b8f38a5603e5ce64a5fdf571bf1a9a89150610",
+          "byteIdentical": true
+        },
+        {
+          "path": "adapters/host-node/effect-input-export.mjs",
+          "sha256": "97a1d5089f25093a8a9b7ca6e08ade800b71b6f73bf5a62c120f2b8b30c290c1",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+          "sha256": "724eb59099725685f1589b8425c922cf98729c736df0bff98785fdd6fa376cee",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node/pkg.generated.mbti",
+          "sha256": "ef0c6887555501b301fe107f43a99348da46b653072b19b7ec39d398d18071d4",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node_rela/client_multi_source_host_bridge.mbt",
+          "sha256": "fd5470c1aeaf381575cce11a61d155176def711c26ea97d4150de0d94273df73",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node_rela/client_program_bridge.mbt",
+          "sha256": "10395feb4e0c283685ded1ef5110c8f9acedb03a5a91a0ee21aa6a1bdb3bf035",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node_rela/pkg.generated.mbti",
+          "sha256": "d37fe869beced376ab7e872a8d6c26cbd4748482c10b7a5b5978dcc4536c75d4",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/run_publication_host/client_effect_imported_evidence.mbt",
+          "sha256": "28d3ce017e1537d0eb4be1eaf66c37b1c762b53c3569a1d3a2856e58645667a7",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/run_publication_host/client_effect_local_table_artifact.mbt",
+          "sha256": "fd46e95e3c7be3ea672dadcc9e94866c4faec927c9dcf6120ccea077cbf202b5",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/run_publication_host/pkg.generated.mbti",
+          "sha256": "b68e8761ced23e7a1a3d51e2b9207583a2083ec2f072109a52d92779d44fc97a",
+          "byteIdentical": true
+        }
+      ],
+      "currentChangedMoonInputsIdentical": true
+    },
+    {
+      "source": "0bf4f50fd1b4a90c544cf3f5929a625ce5f48174",
+      "currentProductFilesIdentical": true,
+      "files": [
+        {
+          "path": "adapters/host-common/runtime-core.mjs",
+          "sha256": "a4ca5026e4a9ac540f9d62e3f7b8f38a5603e5ce64a5fdf571bf1a9a89150610",
+          "byteIdentical": true
+        },
+        {
+          "path": "adapters/host-node/effect-input-export.mjs",
+          "sha256": "97a1d5089f25093a8a9b7ca6e08ade800b71b6f73bf5a62c120f2b8b30c290c1",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+          "sha256": "724eb59099725685f1589b8425c922cf98729c736df0bff98785fdd6fa376cee",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node/pkg.generated.mbti",
+          "sha256": "ef0c6887555501b301fe107f43a99348da46b653072b19b7ec39d398d18071d4",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node_rela/client_multi_source_host_bridge.mbt",
+          "sha256": "fd5470c1aeaf381575cce11a61d155176def711c26ea97d4150de0d94273df73",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node_rela/client_program_bridge.mbt",
+          "sha256": "10395feb4e0c283685ded1ef5110c8f9acedb03a5a91a0ee21aa6a1bdb3bf035",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/connectors_builtin_node_rela/pkg.generated.mbti",
+          "sha256": "d37fe869beced376ab7e872a8d6c26cbd4748482c10b7a5b5978dcc4536c75d4",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/run_publication_host/client_effect_imported_evidence.mbt",
+          "sha256": "28d3ce017e1537d0eb4be1eaf66c37b1c762b53c3569a1d3a2856e58645667a7",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/run_publication_host/client_effect_local_table_artifact.mbt",
+          "sha256": "fd46e95e3c7be3ea672dadcc9e94866c4faec927c9dcf6120ccea077cbf202b5",
+          "byteIdentical": true
+        },
+        {
+          "path": "src/run_publication_host/pkg.generated.mbti",
+          "sha256": "b68e8761ced23e7a1a3d51e2b9207583a2083ec2f072109a52d92779d44fc97a",
+          "byteIdentical": true
+        }
+      ],
+      "currentChangedMoonInputsIdentical": true
+    }
+  ],
+  "note": "05ca lacks only the subsequent bounded producer-scan JS change; 400 and 0bf preserve every current product input. Later changes are test registration and review documentation."
+}

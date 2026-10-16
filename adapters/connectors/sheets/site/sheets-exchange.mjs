@@ -1,14 +1,15 @@
 // Physical Sheets I/O only. The provider MoonBit projects typed cells and
 // acknowledgements; the common Effect owner decides approval and settlement.
-import {createHash} from 'node:crypto';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 import {refusedEffectPreparation} from
   '../../../host-common/effect-preparation-result.mjs';
 import {canonicalJson as valueJson} from '../../../../packages/sdk/host-port.mjs';
+import {prepareOwnedSheetsRequest, ownedSheetsRequestCid, sheetsOwnedResult} from './sheets-owned-request.mjs';
 
 export const SHEETS_READ_OPERATION = 'sheets:grid:read';
 export const SHEETS_APPEND_OPERATION = 'sheets:cells:append';
+export const SHEETS_UPDATE_OPERATION = 'sheets:cells:update';
 export const SHEETS_LIMITS = Object.freeze({maxRequestBytes: 300_000,
   maxResponseBytes: 2_000_000, maxNodes: 200_000, maxDepth: 32,
   maxCells: 6_400, maxRows: 100});
@@ -98,14 +99,11 @@ export function prepareSheetsAppend({moon, origin, spreadsheetId, sheetId,
     throw cause?.code === 'SheetsContractRefused' ? refusedEffectPreparation(cause) : cause;
   }
   const path = `${basePath(spreadsheetId)}:batchUpdate`;
-  // Exact wire bytes, not the NFC serializer used for configuration identity.
-  const hash = createHash('sha256');
-  for (const part of ['actql-sheets-append-request/0.1', origin, 'POST', path, body]) {
-    const bytes = Buffer.from(part, 'utf8');
-    hash.update(`${bytes.length}:`); hash.update(bytes);
-  }
+  // Exact framing belongs to the same portable provider authority as update.
+  const requestCid = sheetsOwnedResult(moon,
+    moon.sheetsAppendRequestIdentity(origin, path, body));
   return Object.freeze({origin, path, body, spreadsheetId, sheetId,
-    value: Object.freeze({...value}), requestCid: `sha256:${hash.digest('hex')}`});
+    value: Object.freeze({...value}), requestCid});
 }
 
 export async function sendSheetsAppend({request, authorization, credential,
@@ -130,4 +128,57 @@ export function projectSheetsAppend({moon, request, observation}) {
   return {kind: 'typed-success-response', outcome: {state: 'applied', result: {
     spreadsheet_id: request.spreadsheetId, sheet_id: request.sheetId,
     acknowledged_rows: 1}}};
+}
+
+// A range target is acquired from checked provider metadata, not from a
+// caller-authored ResourceRef or observed row coordinate. Charge the complete
+// response before admitting its projection through the ordinary Source owner.
+export async function readSheetsRangeTarget({moon, spreadsheetId, columns, range,
+  target, authorizationFor, credential, callResource, chargePage, consumePage, signal}) {
+  const authorization = await authorizationFor(0);
+  const response = await exchange({authorization, credential, callResource,
+    operation: SHEETS_READ_OPERATION, method: 'GET',
+    path: `${basePath(spreadsheetId)}?fields=${encodeURIComponent(metadataFields)}`, signal});
+  const charge = await chargePage(response.body);
+  if (!response.accepted || response.statusCode !== 200) fail('SheetsTargetUnverified');
+  decoded(moon.sheetsTargetJson(response.body, spreadsheetId, JSON.stringify(columns),
+    ...rangeArgs(range), range.sheetId, ...codecLimits(SHEETS_LIMITS.maxResponseBytes)));
+  signal?.throwIfAborted();
+  await consumePage([{target}], {charge});
+  return Object.freeze({pages: 1, rows: 1});
+}
+
+export function sheetsUpdateRequestCid(request) {
+  return ownedSheetsRequestCid(request);
+}
+
+// This only encodes a request. Current reference authority, approval, durable
+// claim and response custody remain the installed Source/Effect owners'.
+export function prepareSheetsUpdate({moon, binding, value, target}) {
+  try {
+    return prepareOwnedSheetsRequest(moon, binding, value, target);
+  } catch (cause) {
+    throw ['InvalidSheetsRangeInput', 'SheetsContractRefused'].includes(cause?.code)
+      ? refusedEffectPreparation(cause) : cause;
+  }
+}
+
+export async function sendSheetsUpdate({request, authorization, credential, callResource, signal}) {
+  if (authorization?.scope?.resourceOrigin !== request.origin ||
+      request.requestCid !== sheetsUpdateRequestCid(request)) fail('InvalidSheetsUpdateBinding');
+  const response = await exchange({authorization, credential, callResource,
+    operation: SHEETS_UPDATE_OPERATION, path: request.path, body: request.body, signal});
+  return Object.freeze({observation: Object.freeze({useCid: response.useCid,
+    statusCode: response.statusCode, body: response.body}), headers: response.headers});
+}
+
+export function projectSheetsUpdate({moon, request, observation}) {
+  // Both one-request AppendCells and UpdateCells batches acknowledge exactly
+  // one empty reply. Reuse that codec without inferring a row ID or retry.
+  const answer = JSON.parse(moon.sheetsAppendOutcomeJson(observation.statusCode,
+    observation.body, request.spreadsheetId, ...codecLimits(SHEETS_LIMITS.maxResponseBytes)));
+  if (answer.outcome !== 'Applied') return {kind: 'provider-response'};
+  return {kind: 'typed-success-response', outcome: {state: 'applied', result: {
+    spreadsheet_id: request.spreadsheetId, sheet_id: request.sheetId,
+    acknowledged_rows: request.acknowledgedRows}}};
 }

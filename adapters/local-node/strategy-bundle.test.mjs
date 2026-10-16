@@ -170,14 +170,14 @@ test('standard Local completion observes forced Site loss', async () => {
       usage: () => ({}),
       explain: () => ({}),
     };
-    const result = await runInstalledStrategy(
+    const result = await runInstalledStrategy({
       setup,
-      core,
-      [entry],
-      undefined,
-      undefined,
-      prepareExecutionSitePolicy({sites: [selectedSite]}),
-    );
+      runtime: {
+        core,
+        contributions: [entry],
+        sitePolicy: prepareExecutionSitePolicy({sites: [selectedSite]}),
+      },
+    });
     assert.equal(result.status,
       forced ? 'host-tasks-failed' : 'host-tasks-completed');
     assert.equal(completionCalls, forced ? 0 : 1);
@@ -355,9 +355,7 @@ test('an inapplicable managed connector does not hide a capable alternative', as
     };
     const candidates = reverse
       ? [alternate, productLocal] : [productLocal, alternate];
-    const result = await runInstalledStrategy(
-      setup, core, [source, ...candidates],
-    );
+    const result = await runInstalledStrategy({setup, runtime: {core, contributions: [source, ...candidates]}});
     assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
     assert.equal(ran, localSupported ? 'local' : 'alternate');
     assert.equal(selected, registrations[ran]);
@@ -858,9 +856,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         usage: () => ({}),
         explain: () => ({}),
       };
-      const result = await runInstalledStrategy(
-        setup, core, [...sourceEntries, local],
-      );
+      const result = await runInstalledStrategy({setup, runtime: {core, contributions: [...sourceEntries, local]}});
       assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
       assert.equal(providerUses, 1);
       assert.equal(advances, 2);
@@ -1107,7 +1103,7 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
     usage: () => ({}),
     explain: () => ({}),
   };
-  const result = await runInstalledStrategy(setup, core, [source, local]);
+  const result = await runInstalledStrategy({setup, runtime: {core, contributions: [source, local]}});
   assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
   assert.equal(sourceClosed, true);
   assert.equal(outputClosed, false);

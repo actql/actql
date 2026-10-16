@@ -148,3 +148,22 @@ int actql_native_domain_borrow_contains_live_span(void *storage, const void *add
         return ACTQL_OWNED_INVALID;
     return actql_native_owned_contains_live_span(record->lease, address, bytes);
 }
+
+int actql_native_domain_borrow_span_offset(void *storage, actql_owned_capacity *holding,
+    const void *address, size_t bytes, uint64_t *out) {
+    struct actql_domain_borrow_record *record = original_domain_record(storage);
+    if (record == NULL || out == NULL || *out != 0 || record->closed || record->closing ||
+        record->status != ACTQL_OWNED_OK || !record->holding_claimed ||
+        !record->holding_transferred || record->lease == NULL ||
+        holding != record->lease || holding != record->holding_pointer)
+        return ACTQL_OWNED_INVALID;
+    int status = actql_native_owned_contains_live_span(holding, address, bytes);
+    if (status != ACTQL_OWNED_OK) return status;
+    /* Membership above covers one live allocation. Do not expose a pointer or
+     * join adjacent extents. This observation owns nothing and cannot extend
+     * the lifetime of either the allocation or its original physical borrow. */
+    uintptr_t base = (uintptr_t)holding, value = (uintptr_t)address;
+    if (value < base) return ACTQL_OWNED_INVALID;
+    *out = (uint64_t)(value - base);
+    return ACTQL_OWNED_OK;
+}

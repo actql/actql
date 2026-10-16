@@ -14,8 +14,14 @@ const wire='{"id":"observed","choices":[{"index":0,"message":{"content":"{\\"ok\
 const bytes=new TextEncoder().encode(wire);
 function fixture(extra={}) {
   const request={},provider={},entry={},saved=Object.freeze({originalSaved: true});
+  const responseProfile = {};
   let sends=0,saves=0,cleanupAllowed=false,lastRaw;
   const moon={
+    clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
+      assert.strictEqual(profile, responseProfile);
+      assert.deepEqual(limits, [4096, 512, 512, 2, 64]);
+      return true;
+    },
     clientProgramProjectHTTPChatRequest(p,r,model,...bounds){
       assert.equal(p,provider);assert.equal(r,request);assert.equal(model,'fixture');
       assert.deepEqual(bounds,[4096,256,16,32,4096]);
@@ -40,7 +46,7 @@ function fixture(extra={}) {
     endpoint:'https://fixture.invalid/chat',headers:[['content-type','application/json']],
     requestLimits:{maxBytes:4096,maxHeaderBytes:128,maxHeaders:4},
     responseLimits:{maxBytes:512,maxChunkBytes:512,maxChunks:2,maxHeaderBytes:64,
-      observedHeaders:['content-type']},profile:{},installation:{sdk:undefined},
+      observedHeaders:['content-type']},profile:responseProfile,installation:{sdk:undefined},
     quantities:{tokens:16n,costUnits:0n,durationMs:1n},
     fetch(endpoint,init){sends++;assert.equal(init.body,body);assert.equal(init.redirect,'error');
       return Promise.resolve(new Response(bytes,{headers:{'content-type':'application/json'}}));},
@@ -57,6 +63,26 @@ async function finish(f){f.allowCleanup();await until(()=>f.port.preflight.clean
 // Common/Entry/saved view are explicit boundary doubles. Node HTTP, bounded
 // reader, original raw buffers and physical cleanup execute for real; no
 // numerical grant, nominal Store receipt or public Named Result is established.
+test('direct HTTP physical preflight refuses admitted bound mismatch before projection plan or raw binder', async t => {
+  const f = fixture();
+  t.after(() => finish(f));
+  let matches = 0, projections = 0, bindings = 0;
+  const moon = {...f.args.moon,
+    clientProgramProjectHTTPChatRequest() { projections++; assert.fail('No projection before admission'); },
+    clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
+      matches++;
+      assert.strictEqual(profile, f.args.profile);
+      assert.deepEqual(limits, [4096, 512, 512, 2, 64]);
+      return false;
+    },
+  };
+  assert.throws(() => createHttpChatPreflight({...f.args, moon,
+    persistRaw: undefined, cleanupRaw: undefined, rawCaptureBinder() { bindings++; }}),
+  {message: 'HTTPChatOriginalTransportLimitsMismatch'});
+  assert.deepEqual({matches, projections, bindings, sends: f.sends()},
+    {matches: 1, projections: 0, bindings: 0, sends: 0});
+});
+
 test('independent HTTP physical plan freezes request, starts once, saves same raw before release',async t=>{
   const f=fixture();t.after(()=>finish(f));
   const plan=f.port.preflight.advance()._1;

@@ -1,86 +1,8 @@
 """Closed wire admission, separate from Host-owned execution decisions."""
-import json
-import math
-from pathlib import Path
 import re
 import unicodedata
-from ._values import SAFE_INTEGER
-
-CONTRACT = json.loads(Path(__file__).with_name('_contract.json').read_text(encoding='utf-8'))
-SCHEMAS = CONTRACT['schemas']
-
-
-def utf16_length(text):
-    return len(text.encode('utf-16-le', 'strict')) // 2
-
-
-def _equal(left, right):
-    # Python bool is an int subclass; JSON constants never conflate them.
-    if type(left) is bool or type(right) is bool:
-        return type(left) is type(right) and left == right
-    return left == right
-
-
-def valid(value, schema):
-    if isinstance(schema, str):
-        schema = SCHEMAS[schema]
-    if '$ref' in schema:
-        return valid(value, schema['$ref'])
-    if 'oneOf' in schema and sum(valid(value, rule) for rule in schema['oneOf']) != 1:
-        return False
-    if 'not' in schema and valid(value, schema['not']):
-        return False
-    if 'if' in schema and valid(value, schema['if']) and not valid(value, schema['then']):
-        return False
-    if 'allOf' in schema and not all(valid(value, rule) for rule in schema['allOf']):
-        return False
-    if 'const' in schema and not _equal(value, schema['const']):
-        return False
-    if 'enum' in schema and not any(_equal(value, item) for item in schema['enum']):
-        return False
-    if type(value) in (int, float):
-        if not math.isfinite(value) or value == 0 and math.copysign(1, value) < 0:
-            return False
-        if value < schema.get('minimum', -math.inf) or value > schema.get('maximum', math.inf):
-            return False
-    if type(value) is str:
-        try:
-            length = utf16_length(value)
-        except UnicodeError:
-            return False
-        if len(value) < schema.get('minLength', 0) or length > schema.get('maxLength', math.inf):
-            return False
-        if 'pattern' in schema and re.search(schema['pattern'], value, re.ASCII) is None:
-            return False
-    kind = schema.get('type')
-    if kind == 'string':
-        return type(value) is str
-    if kind == 'number':
-        return type(value) in (int, float)
-    if kind == 'integer':
-        return type(value) in (int, float) and abs(value) <= SAFE_INTEGER and int(value) == value
-    if kind == 'boolean':
-        return type(value) is bool
-    if kind == 'array':
-        return (type(value) is list and schema.get('minItems', 0) <= len(value) <= schema.get('maxItems', math.inf)
-                and all(valid(item, schema['items']) for item in value)
-                and (not schema.get('uniqueItems') or len(set(value)) == len(value)))
-    if type(value) is dict and not schema.get('minProperties', 0) <= len(value) <= schema.get('maxProperties', math.inf):
-        return False
-    if kind == 'object' or 'properties' in schema or 'required' in schema:
-        if type(value) is not dict or not set(schema.get('required', ())).issubset(value):
-            return False
-        properties = schema.get('properties', {})
-        extra = set(value) - set(properties)
-        additional = schema.get('additionalProperties', True)
-        if additional is False and extra:
-            return False
-        if isinstance(additional, dict) and not all(valid(value[key], additional) for key in extra):
-            return False
-        if 'propertyNames' in schema and not all(valid(key, schema['propertyNames']) for key in value):
-            return False
-        return all(key not in value or valid(value[key], field) for key, field in properties.items())
-    return True
+from ._wire_codec import (CONTRACT, SCHEMAS, valid, utf16_length, correlated, check_outcome,
+                          negotiated as negotiated_contract)
 
 
 def bounded_text(value, limit=256):
@@ -107,54 +29,8 @@ def restart(value, fresh):
 
 
 def negotiated(value, schema, selected):
-    if not valid(value, schema) or not valid(selected, 'connection'):
-        return False
-    rules = CONTRACT['response_rules'][schema]
-    if any(value.get(key) != selected.get(key) for key in rules['matchConnection']):
-        return False
-    if any(selected.get(key) == expected and value.get(key) != expected
-           for key, expected in rules['requireRequested'].items()):
-        return False
-    return schema != 'profile' or 'submissionEpoch' not in value or epoch(value['submissionEpoch'])
-
-
-def correlated(value, schema, request_id):
-    rules = CONTRACT['request_response_rules'][schema]
-    return (any(valid(value, name) for name in rules['schemas'])
-            and value.get(rules['matchRequest']) == request_id)
-
-
-def check_outcome(value):
-    if not valid(value, 'check_outcome') or value['outcome_schema_cid'] != CONTRACT['check_outcome_schema_cid']:
-        return False
-    report = value.get('report', value.get('partial_report'))
-    if report is None:
-        return True
-    documents = {item['document_id']: item for item in report['inputs']}
-    if len(documents) != len(report['inputs']):
-        return False
-    if 'program' in documents:
-        if documents['program']['kind'] != 'structured' or {'source', 'parameter_declarations'} & documents.keys():
-            return False
-    elif documents.get('source', {}).get('kind') != 'text':
-        return False
-    if any(item['kind'] != 'structured' for key, item in documents.items() if key != 'source'):
-        return False
-    for reason in report['reasons'] + report['requirements'] + report['coverage']['limits']:
-        location = reason.get('location')
-        if location is not None:
-            doc = documents.get(location['document_id'])
-            if doc is None or (doc['revision'], doc['kind']) != (location['revision'], location['kind']):
-                return False
-            if location['kind'] == 'text' and not 0 <= location['start_byte'] <= location['end_byte'] <= doc['byte_length']:
-                return False
-        for fix in reason.get('fixes', []):
-            doc = documents.get(fix['target']['document_id'])
-            if doc is None or doc['kind'] != 'text' or doc['revision'] != fix['target']['revision']:
-                return False
-            if any(edit['start_byte'] != doc['byte_length'] or edit['end_byte'] != doc['byte_length'] for edit in fix['edits']):
-                return False
-    return True
+    return (negotiated_contract(value, schema, selected)
+            and (schema != 'profile' or 'submissionEpoch' not in value or epoch(value['submissionEpoch'])))
 
 
 def submission_outcome(value, selected, expected, intent_cid=None, unresolved=None, *, lookup=False):

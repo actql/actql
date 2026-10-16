@@ -132,6 +132,14 @@ function encodePrivateEvidenceEnvelope(input, isWire, key, aad, maximum) {
   return envelope;
 }
 
+// Exact extent of the SAME closed format, not memory funding or a lease.
+// Its 128 fixed ASCII bytes include the nonce/tag; ciphertext uses Base64.
+// Inverting before multiplication keeps the calculation safe at large limits.
+function privateEvidenceWireLimitForObject(maximum) {
+  if (maximum < 128) fail('PublicationObjectLimit');
+  return 3 * Math.floor((maximum - 128) / 4);
+}
+
 // Recovery facade of the SAME Store writer, not another cleanup/capacity
 // owner. A failed private preparation has no prepared object to return yet.
 // Keep its original reservation/FD/custody reachable, and expose only cleanup.
@@ -1721,7 +1729,12 @@ export async function openLocalPublicationStore(
           group.busy = operation.catch(() => {});
           materialRetentionBusy = group.busy;
           holder.releasing = operation.catch(error => {
-            errors.push(error);
+            // Private diagnostics retain the original first and latest
+            // failed release, not an unbounded retry log. Keep both roles
+            // even when the same Error is reused; status snapshots own their
+            // copied arrays. This never settles the original physical duty.
+            if (errors.length < 2) errors.push(error);
+            else errors[1] = error;
             throw error;
           }).finally(() => { holder.releasing = undefined; });
           return holder.releasing;
@@ -2500,13 +2513,10 @@ export async function openLocalPublicationStore(
     }
     cidHex(semanticCid);
     const key = privateEvidenceKey();
-    // This closed format has 128 fixed ASCII bytes, a 12-byte nonce and
-    // 16-byte tag already included, plus 4*ceil(plaintextBytes/3) ciphertext.
-    // Invert the bound to avoid overflowing safe-integer arithmetic. Refuse
-    // before UTF-8 copying, crypto or Base64/JSON envelope construction.
-    // This is an object extent check, not a complete memory reservation.
-    if (configuration.maxObjectBytes < 128 || byteLength >
-        3 * Math.floor((configuration.maxObjectBytes - 128) / 4)) {
+    // Share this exact original Store bound with upstream private exporters.
+    // Preserve validation/key priority, bytes/AAD and refusal before copying,
+    // crypto or Base64 construction. A clamp is not a memory reservation.
+    if (byteLength > privateEvidenceWireLimitForObject(configuration.maxObjectBytes)) {
       fail('PublicationObjectLimit');
     }
     const envelope = encodePrivateEvidenceEnvelope(input, isWire, key,
@@ -4861,7 +4871,7 @@ export async function openLocalPublicationStore(
     const stored = await readPrivateEvidence(
       binding.name, binding.semanticCid, binding.holdingCid,
     );
-    if (!stored.equals(Buffer.from(binding.wire, 'utf8'))) {
+    if (!exactUtf8WireMatches(stored, binding.wire)) {
       fail('PublicationPrivateEvidenceConflict');
     }
     await commitPhysicalHolding(record, []);
@@ -5968,6 +5978,31 @@ export async function openLocalPublicationStore(
     putBytes,
     putSemantic,
     preparePrivateEvidence,
+    // Read-only projection of this SAME immutable Store configuration. A
+    // caller must still fund export/tree/String/encoding workspace BEFORE
+    // allocation and retain its original reservation through actual ACK.
+    // No write, grant, reservation, persistence or cleanup is issued here.
+    privateEvidenceWireLimit() {
+      active();
+      return privateEvidenceWireLimitForObject(configuration.maxObjectBytes);
+    },
+    // Private Host DATA from this exact Store, not caller-supplied profile
+    // dimensions or authenticated storage evidence. The original installation
+    // must bind the receiver and fund this record, UTF-8 scan workspace and
+    // all derived paths/encodings before using it in an envelope. No path or
+    // key bytes escape, and no I/O, reservation, ACK or permission is issued.
+    originalModelStorageDimensions() {
+      active();
+      const key = privateEvidenceKey();
+      const namespace = 'local-continuation-private';
+      return Object.freeze({
+        directoryCodeUnits: configuration.directory.length,
+        directoryUtf8Bytes: Buffer.byteLength(configuration.directory, 'utf8'),
+        privateNamespaceCodeUnits: namespace.length,
+        privateNamespaceUtf8Bytes: Buffer.byteLength(namespace, 'utf8'),
+        privateKeyBytes: key.byteLength,
+      });
+    },
     confirmPrivateEvidence,
     prepareModelRawEvidence,
     readModelRawEvidence,

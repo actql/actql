@@ -573,7 +573,7 @@ fn resident_original_effect_materials_match(
     is Ok(_) &&
     @publication.publication_contract_identity(materials.run_definition) ==
     @publication.publication_contract_identity(
-      @checked.effect_program_run_definition(
+      @effect_binding.effect_program_run_definition(
         @strategy.checked_effect_run_owner(
           @host.prepared_client_effect_run_graph(bound),
         ),

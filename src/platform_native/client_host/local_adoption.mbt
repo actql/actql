@@ -21,6 +21,8 @@ struct NativeLocalAdoptionSession {
   intent_cid : String
   mut closed : Bool
   mut close_pending : Bool
+  mut read_cleanup : NativeLocalAdoptionIssue?
+  mut lock_close_attempted : Bool
 }
 
 ///|
@@ -37,6 +39,7 @@ pub(all) enum NativeLocalAdoptionIssue {
   Encoding
   Crypto(@crypto.NativeSignatureIssue)
   Filesystem(@filesystem.NativeFilesystemIssue)
+  ReadAcquisitionFailure(@filesystem.NativeReaderOpenFailure)
   ReadPending(@filesystem.Reader, @filesystem.NativeFilesystemIssue)
   WritePending(@filesystem.Writer, @filesystem.NativeFilesystemIssue)
   Physical(@sqlite.NativeSqliteIssue)
@@ -101,9 +104,12 @@ fn local_adoption_read(
   if generation.size < 0L || generation.size > max_bytes {
     return Err(ConfigurationLimit)
   }
-  let reader = match root.open_reader(name, generation) {
+  let reader = match
+    local_adoption_reader_result(
+      root.open_reader_with_custody(name, generation),
+    ) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
   }
   // Reserve a finite destination from the admitted original size before copying.
   let body : FixedArray[Byte] = FixedArray::make(generation.size.to_int(), 0)
@@ -142,6 +148,16 @@ fn local_adoption_read(
     Some(issue) => Err(Filesystem(issue))
     None => Ok((Bytes::makei(body.length(), i => body[i]), generation))
   }
+}
+
+///|
+/// Preserve the filesystem Owner's same rejected constructor and primary
+/// reason. The caller retains this carrier even if no descriptor was acquired;
+/// only its original retry_cleanup can acknowledge pending Reader retirement.
+fn local_adoption_reader_result(
+  result : Result[@filesystem.Reader, @filesystem.NativeReaderOpenFailure],
+) -> Result[@filesystem.Reader, NativeLocalAdoptionIssue] {
+  result.map_err(failure => ReadAcquisitionFailure(failure))
 }
 
 ///|
@@ -365,11 +381,28 @@ pub fn begin_native_local_host_adoption(
     intent_cid,
     closed: false,
     close_pending: false,
+    read_cleanup: None,
+    lock_close_attempted: false,
   })
 }
 
 ///|
 fn NativeLocalAdoptionSession::check_original(
+  self : NativeLocalAdoptionSession,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.read_cleanup is Some(issue) {
+    return Err(issue)
+  }
+  self
+  .check_original_after_read_custody()
+  .map_err(issue => self.retain_read_issue(issue))
+}
+
+///|
+fn NativeLocalAdoptionSession::check_original_after_read_custody(
   self : NativeLocalAdoptionSession,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.closed {
@@ -424,6 +457,21 @@ pub fn NativeLocalAdoptionSession::stage_configuration(
 // check_original. Public staging still checks that original itself. Keep the
 // final original check after account/custody I/O; no Allow or file fact is cached.
 fn NativeLocalAdoptionSession::stage_configuration_after_original(
+  self : NativeLocalAdoptionSession,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.read_cleanup is Some(issue) {
+    return Err(issue)
+  }
+  self
+  .stage_configuration_after_read_custody()
+  .map_err(issue => self.retain_read_issue(issue))
+}
+
+///|
+fn NativeLocalAdoptionSession::stage_configuration_after_read_custody(
   self : NativeLocalAdoptionSession,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   let existing = match self.root.inspect_generation("account.json") {
@@ -524,12 +572,58 @@ pub fn NativeLocalAdoptionSession::configuration_cid(
 pub fn NativeLocalAdoptionSession::close(
   self : NativeLocalAdoptionSession,
 ) -> Bool {
-  if self.closed {
+  // A current callback may expose only false, so its actual read carrier must
+  // stay here. Fence new work before cleanup; do not return the adoption lock
+  // while a rejected Reader still owns its original cleanup responsibility.
+  self.closed = true
+  if self.retry_read_cleanup() is Err(_) {
+    self.close_pending = true
+    return false
+  }
+  if self.lock_close_attempted {
     return !self.close_pending
   }
   // Fence reuse before releasing the exclusive physical claim, including a
   // failed/unknown close. A closed descriptor must never authorize another copy.
-  self.closed = true
+  self.lock_close_attempted = true
   self.close_pending = !self.lock.close()
   !self.close_pending
+}
+
+///|
+fn NativeLocalAdoptionSession::retain_read_issue(
+  self : NativeLocalAdoptionSession,
+  issue : NativeLocalAdoptionIssue,
+) -> NativeLocalAdoptionIssue {
+  match issue {
+    ReadAcquisitionFailure(_) | ReadPending(_, _) =>
+      match self.read_cleanup {
+        Some(original) => original
+        None => {
+          self.read_cleanup = Some(issue)
+          issue
+        }
+      }
+    _ => issue
+  }
+}
+
+///|
+/// Cleanup only: no read replay, replacement Reader or lock reacquisition.
+fn NativeLocalAdoptionSession::retry_read_cleanup(
+  self : NativeLocalAdoptionSession,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  guard self.read_cleanup is Some(original) else { return Ok(()) }
+  let cleaned = match original {
+    ReadAcquisitionFailure(failure) => failure.retry_cleanup()
+    ReadPending(reader, _) => reader.close()
+    _ => return Err(original)
+  }
+  match cleaned {
+    Err(_) => Err(original)
+    Ok(_) => {
+      self.read_cleanup = None
+      Ok(())
+    }
+  }
 }

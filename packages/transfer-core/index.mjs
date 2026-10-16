@@ -1,9 +1,10 @@
+import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';
 import * as owner from './dist/remote_transfer_abi.js';
 
 function checked(result) {
-  if (result?.$tag === 1) return result._0;
-  if (result?.$tag === 0) {
-    throw Object.assign(new Error('TransferOwnerRejected', {cause: result._0}),
+  if (runtimeIsOk(result)) return runtimeField(result, 0);
+  if (runtimeIsError(result)) {
+    throw Object.assign(new Error('TransferOwnerRejected', {cause: runtimeField(result, 0)}),
       {code: 'TransferOwnerRejected'});
   }
   throw Object.assign(new Error('InvalidTransferOwnerResult'),

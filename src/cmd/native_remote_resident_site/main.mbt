@@ -350,6 +350,21 @@ fn open_control_environment(
 }
 
 ///|
+/// Compare the issued process binding with the independently selected original
+/// Site. This does not reselect runtime, read Store or prove authorization.
+fn holder_site_active_runtime_current(
+  site : @site.ExecutionSite,
+  generation : Int,
+  active : @bundle.NativeActiveRuntimeBinding,
+) -> Bool {
+  @site.site_binding_current(
+    site,
+    generation,
+    @bundle.native_active_runtime_bundle_cid(active),
+  )
+}
+
+///|
 fn open_site_environment(
   matches : @argparse.Matches,
   process_hold_id : String,
@@ -362,6 +377,21 @@ fn open_site_environment(
   let max_operations = required_int(matches, "max-operations")
   let max_transfers = required_int(matches, "max-transfers")
   let journal_path = required(matches, "journal")
+  // The installer already selected this runtime. Preparing the same existing
+  // Site before physical reads supplies neither current validation nor funds,
+  // Account permission or a new authority derived from Store output.
+  let runtime_bundle_cid = required(matches, "runtime-bundle-cid")
+  let site = match
+    @site.create_site(
+      site_key, site_generation, runtime_bundle_cid, max_operations, max_transfers,
+      max_bytes, max_bytes,
+    ) {
+    Some(value) => value
+    None =>
+      return Err(
+        site_environment_open_custody("invalid execution Site", process_hold_id),
+      )
+  }
   let target = required(matches, "target-triple")
   let component_cid = required(matches, "component-cid")
   let loaded_component_cid = match
@@ -435,6 +465,21 @@ fn open_site_environment(
         ),
       )
   }
+  // Reject a foreign active selection before claiming a process holding.
+  // The Store has been read, so this is not an all-I/O-zero refusal.
+  if !@site.site_binding_current(
+      site,
+      site_generation,
+      active.runtime_bundle_cid,
+    ) {
+    return Err(
+      site_environment_open_custody(
+        "active runtime differs from the original Site selection",
+        process_hold_id,
+        bundles=Some(bundles),
+      ),
+    )
+  }
   let active_runtime = match
     bundles.acquire_active_component_with_custody(
       loaded_component_cid, target, process_hold_id,
@@ -460,26 +505,17 @@ fn open_site_environment(
         ),
       )
   }
-  let site = match
-    @site.create_site(
-      site_key,
-      site_generation,
-      active.runtime_bundle_cid,
-      max_operations,
-      max_transfers,
-      max_bytes,
-      max_bytes,
-    ) {
-    Some(value) => value
-    None =>
-      return Err(
-        site_environment_open_custody(
-          "invalid execution Site",
-          process_hold_id,
-          bundles=Some(bundles),
-          release_required=true,
-        ),
-      )
+  // Acquisition may have re-read a different active catalog generation. The
+  // exact nominal binding must still belong to the original configured Site.
+  if !holder_site_active_runtime_current(site, site_generation, active_runtime) {
+    return Err(
+      site_environment_open_custody(
+        "installed runtime differs from the original Site selection",
+        process_hold_id,
+        bundles=Some(bundles),
+        release_required=true,
+      ),
+    )
   }
   let control = match
     @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
@@ -4372,7 +4408,7 @@ fn run_holder(
       if proven_unstarted ||
         (
           resources.effect_host_setup.val is Some(scope) &&
-          scope.read_domain is Some(_)
+          (scope.read_domain is Some(_) || scope.read_parent is Some(_))
         ) {
         // A failed installed read may still own an active context/aliases.
         // Return it through the existing cleanup lifetime before any restore

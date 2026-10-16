@@ -115,6 +115,20 @@ pub fn sequence_serialization_input_kernel(
 }
 
 ///|
+/// Match the original compiler-prepared sort without exposing its checked
+/// payload to an evaluator. Equal rows, schemas or another bound invocation
+/// cannot substitute for the same barrier and operation occurrence.
+pub fn sequence_matches_serialization_sort(
+  value : PreparedSequence,
+  barrier : PreparedSerialization,
+) -> Bool {
+  physical_equal(value.owner, barrier.owner) &&
+  sequence_serialization_input_kernel(value, barrier.step) is Some(kernel) &&
+  @pipeline.serialization_sort(barrier.checked) is Some(sort) &&
+  physical_equal(kernel.checked, sort)
+}
+
+///|
 pub fn prepare_sequence(
   owner : BoundPrepared,
   limits : SequenceLimits,

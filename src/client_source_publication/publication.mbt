@@ -116,10 +116,9 @@ fn client_source_context(
   declarations : String?,
 ) -> @query_program.Context raise PublicationStop {
   let root = source_publication_cursor(publication)
-  @decode.closed_object(root, ["environmentCid", "aliases", "tableWrites"]).unwrap_or_else(() => {
-      raise PublicationStop(Publication)
-    },
-  )
+  @decode.closed_object(root, [
+    "environmentCid", "aliases", "tableWrites", "updateTargets",
+  ]).unwrap_or_else(() => raise PublicationStop(Publication))
   |> ignore
   let environment_cid = @program_check.checking_environment_cid(environment)
   if source_publication_text(root, "environmentCid") != environment_cid {

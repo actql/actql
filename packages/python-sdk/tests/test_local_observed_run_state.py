@@ -5,8 +5,9 @@ import unittest
 
 from actql_sdk._local_core import (
     LocalCore, LocalCoreError, _Input, _Output,
-    LOCAL_CORE_ABI, _PUBLICATION_COMMIT_EXPORT_SIGNATURES,
+    _PUBLICATION_COMMIT_EXPORT_SIGNATURES,
 )
+from actql_sdk import _local_wasm_abi
 
 
 class ObservedRunStateTests(unittest.TestCase):
@@ -28,7 +29,10 @@ class ObservedRunStateTests(unittest.TestCase):
 
     def test_closed_signature_and_original_handles_are_forwarded(self):
         core, source, output, calls, _ = self.bridge()
-        self.assertEqual(LOCAL_CORE_ABI, 72)
+        # This nominal double does not execute an ABI-version export. The
+        # actual artifact/version admission is tested by python-local-contract-abi.
+        self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_run_state'],
+                         _local_wasm_abi._PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_run_state'])
         self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_run_state'],
                          ('i64 i32 i32 i32', 'i32'))
         self.assertIsNone(core.produce_publication_observed_run_state(output, source, 23))

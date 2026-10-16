@@ -24,7 +24,19 @@
       "types": "./plan-explorer.d.ts",
       "default": "./dist/plan-explorer.js"
     },
-    "./styles.css": "./dist/plan-explorer.css"
+    "./styles.css": "./dist/plan-explorer.css",
+    "./run-observation": {
+      "types": "./run-observation.d.ts",
+      "default": "./run-observation.mjs"
+    },
+    "./cancellation": {
+      "types": "./cancellation.d.ts",
+      "default": "./cancellation.mjs"
+    },
+    "./checkpoint-review": {
+      "types": "./checkpoint-review.d.ts",
+      "default": "./checkpoint-review.mjs"
+    }
   },
   "files": [
     "read-model.mjs",
@@ -34,10 +46,20 @@
     "plan-explorer.d.ts",
     "presentation-limits.mjs",
     "THIRD_PARTY_NOTICES.md",
-    "ELKJS-LICENSE.md"
+    "ELKJS-LICENSE.md",
+    "run-observation.mjs",
+    "run-observation.d.ts",
+    "run-inspector.d.ts",
+    "cancellation-panel.d.ts",
+    "cancellation-types.d.ts",
+    "cancellation.mjs",
+    "cancellation.d.ts",
+    "checkpoint-review.mjs",
+    "checkpoint-review.d.ts",
+    "checkpoint-panel.d.ts"
   ],
   "scripts": {
     "build": "vite build --config vite.config.mts",
-    "prepack": "npm run build"
+    "prepack": "npm run build && node ../../scripts/check-interface-owners.mjs --manifest packages/explorer-ui/package.json"
   }
 }

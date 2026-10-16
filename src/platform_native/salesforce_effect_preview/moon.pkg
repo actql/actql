@@ -35,4 +35,5 @@ import {
 
 import {
   "actql/actql/sha256" @sha,
+  "actql/actql/platform_native/filesystem" @files,
 } for "wbtest"

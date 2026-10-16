@@ -31,11 +31,13 @@ try {
   const {open} = await import('@actql/node');
   const {connect} = await import('@actql/sdk');
   let factory = open, options = {stateDir: directory, durability: 'durable', installation: {
-    authorization, resolveSourceSecret: io.resolveSourceSecret}};
+    authorization, resolveSourceSecret: io.resolveSourceSecret,
+    ...(cases.calendarArtifact === undefined ? {} : {calendarArtifact: cases.calendarArtifact})}};
   if (mode === 'https') {
     const {openInstalledRemoteHttpHost} = await import('@actql/local-node/http-host');
     host = await openInstalledRemoteHttpHost({directory, authorization,
       resolveSourceSecret: io.resolveSourceSecret,
+      ...(cases.calendarArtifact === undefined ? {} : {calendarArtifact: cases.calendarArtifact}),
       authenticate: header => header === 'Bearer sourcefree-test' ? userInfo().username : undefined});
     server = createServer({key: await readFile('remote.key'), cert: await readFile('remote.crt')}, host.handler);
     await new Promise((resolve, reject) => {server.once('error', reject); server.listen(0, '127.0.0.1', resolve);});

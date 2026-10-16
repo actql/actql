@@ -77,7 +77,11 @@ export async function packedClientPackage({repository, name, destination,
   if (await digest(source) !== expected) {
     throw new Error(`Shared ${tarball(name)} changed after packing`);
   }
-  await copyFile(source, join(destination, tarball(name)));
+  const target = join(destination, tarball(name));
+  await copyFile(source, target);
+  if (await digest(target) !== expected) {
+    throw new Error(`Shared ${tarball(name)} changed while copying`);
+  }
   return undefined;
 }
 

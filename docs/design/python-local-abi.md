@@ -35,8 +35,9 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 36; this private ABI
-version is independent of Client wire and package release versions. Optional
+before opening the instance. `actql_host_abi_version` is declared by `src/client_host_wasm/version.mbt`;
+`scripts/generate-local-wasm-abi.py --check` verifies the generated wrapper
+declaration. This private ABI version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
 
@@ -169,6 +170,17 @@ Node package at runtime nor falls back to the Python extension's unbounded
 row-fetch APIs. The existing native adapter's C layouts and scalar row/field
 codec are shared boundary references. Canonical environment settings are
 generated from `adapters/connectors/duckdb/environment-contract.json`.
+
+The selected physical C API and by-value layouts are generated from the
+vendored DuckDB header by `scripts/generate-local-duckdb-binding.py`.
+`scripts/local-duckdb-c-api.json` selects existing operation names and the
+existing library-version string copy; it declares no query capability or new
+library compatibility. Other returned text pointers remain borrowed and
+length-aware. Generated field names follow the C header, while the independent
+pre-generation vector fixes scalar widths, order, alignment and nested layout.
+Actual C layout checks and selected-library executions qualify that header,
+Python wrapper and library together. The C header version, selected dynamic
+library version, private Local ABI and Client wire version remain independent.
 
 Before opening a database, the product Host must reserve the native workspace
 through the existing Core resource Owner. The adapter applies a memory limit,
@@ -2051,3 +2063,59 @@ packet; current Account permission, original selected file generations,
 committed index/manifest/retention and grant usage remain independent checks.
 Whole-process, compiled-module and SDK non-buffer accounting is not established
 by these bounded metadata reservations.
+
+## Private packaged Runtime C binding
+
+`scripts/local-native-runtime-binding.json` describes the existing transport
+roles, units, argument order and borrowed/owned output slots. Its callback root
+is the exact existing MoonBit `register_original_packaged_runtime_roots`
+declaration. `scripts/generate-local-native-runtime-binding.py --check` checks
+that root and the C implementation parameters, then compares the generated
+`packaged_runtime_abi.generated.h` and `_local_native_runtime_abi.py` read-only.
+The compiler independently checks the callback prototypes against regular
+Native C emission. Same-width UTF-16 pointer/count pairs retain their distinct
+root, source, platform and manifest meanings.
+
+The C calling convention is the platform C ABI. The private declaration version
+and SHA256 bytes are physical binding identity, independent of Wasm ABI, package
+version, permission, original key/claim identity and public wire. A missing or
+different binding refuses before a Runtime Owner operation. It cannot authorize
+loading a library: the trusted original installer still selects and verifies
+the same library, Host and parent-read originals first. No callback, cleanup,
+unknown-outcome or final-ACK semantics live in the generated binding.
+
+The serialized original Host thread owns entry. Inputs remain borrowed through
+synchronous callbacks and cannot reenter. Owned reply/output slots persist
+through transport failure. A known refusal and an unconfirmed physical outcome
+remain distinct. The existing inner Runtime close ACK clears only its data;
+outer original Root/Reader/Host retirement still requires its original Owner's
+separate stop/cleanup acknowledgment. No pointer is a public integer identity,
+serialized wire, authority, or permission to recreate a missing original.
+## Private Native transport declarations
+
+The installed Native control component's named C shim definitions are the
+authority for the private scalar transport signatures. The existing headers
+and MoonBit registration roots retain the opaque callback types and calling
+convention. `scripts/generate-local-native-shim-bindings.py` derives the Python
+ctypes signatures and a C redeclaration header from those definitions; its
+read-only `--check` is part of the private provider producer. The generated
+`PARAMETERS` and `ORIGINS` entries retain parameter roles and source locations,
+so a same-width argument reorder changes the binding even when its machine
+signature is unchanged.
+
+The generated binder only configures an operation on an already selected
+library. It cannot load or adopt a provider, create custody, authorize a call,
+retry a physical operation, or determine whether cleanup completed. The
+existing Control, Backing, Domain, Parent Read, SQLite, Database, Lookup,
+Live Channel, Worker Selection and Packaged Product custody classes continue
+to enforce original-library identity, thread/reentry rules, persistent output
+slots, Unknown outcomes and same-carrier cleanup. UTF-16 parameters carry code
+unit counts; byte buffers and their byte capacities remain separate. Their
+per-operation bounds and refusal classifications stay in the existing shims
+and owners rather than in a second generated policy table.
+
+The generated C header is compiled against the original shim headers and
+definitions. The independent signature fixture preserves the existing
+caller-selected declarations. Actual component probes remain necessary:
+declaration freshness and C syntax alone do not establish physical custody,
+runtime compatibility, ordinary funding or installed product acceptance.

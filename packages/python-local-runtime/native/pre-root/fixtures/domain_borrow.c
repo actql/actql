@@ -37,6 +37,10 @@ int main(void) {
         actql_native_owned_transfer(domain, 1, recipe) == 0 && actql_native_owned_enter(domain) == 0 &&
         actql_native_owned_allocate(domain, page, 1, &original_value) == 0 &&
         actql_native_owned_leave(domain) == 0, "original initialized allocator with retained allocation");
+    require(actql_native_owned_domain_matches_view(domain, &view, getpid()) == 0 &&
+        actql_native_owned_domain_matches_view(domain, &view, getpid() + 1) == ACTQL_OWNED_INVALID &&
+        actql_native_owned_transfer_original_domain(domain) == ACTQL_OWNED_INVALID,
+        "opaque original view check does not renew an already transferred domain");
     memset(original_value, 73, page);
     size_t value_offset = (size_t)((unsigned char *)original_value - (unsigned char *)domain);
     actql_owned_extent_view alias = {0}; actql_owned_capacity *other = NULL;
@@ -64,6 +68,9 @@ int main(void) {
             ((unsigned char *)borrow)[value_offset] == 73 &&
             borrow->extents[value_offset / page].pages == 1,
             "borrow preserves original header records and bytes");
+        require(actql_native_owned_domain_matches_view(borrow, &selected, getpid()) == ACTQL_OWNED_INVALID &&
+            actql_native_owned_domain_has_child(borrow, getppid(), getpid()) == ACTQL_OWNED_INVALID,
+            "child cannot claim the original parent physical observation");
         byte(ready[1], 'R'); receive(resume[0], 'C');
         void *value = NULL;
         require(actql_native_owned_enter(borrow) == 0 &&
@@ -89,9 +96,13 @@ int main(void) {
             fcntl(fd, F_GETFD) >= 0 && close(fd) == 0,
             "closed original cannot restart and FD retirement is separate");
         byte(ready[1], 'D'); close(ready[1]); close(resume[0]);
-        return cases == 8 ? 0 : 3;
+        return cases == 9 ? 0 : 3;
     }
     close(ready[1]); close(resume[0]); receive(ready[0], 'R');
+    require(actql_native_owned_domain_matches_view(domain, &view, getpid()) == 0 &&
+        actql_native_owned_domain_has_child(domain, getpid(), child) == 0 &&
+        actql_native_owned_domain_has_child(domain, getpid(), child + 1) == ACTQL_OWNED_INVALID,
+        "parent observes only its same actual child without locking the borrowed allocator");
     void *attempt = NULL; uint64_t held = 0;
     require(actql_native_owned_enter(domain) == ACTQL_OWNED_BUSY &&
         actql_native_owned_allocate(domain, page, 1, &attempt) == ACTQL_OWNED_BUSY && attempt == NULL &&
@@ -119,6 +130,6 @@ int main(void) {
         actql_native_owned_leave(parent) == 0 && actql_native_owned_try_close(&parent) == 0 && parent == NULL &&
         close(fd) == 0 && close(ready[0]) == 0 && close(resume[1]) == 0,
         "original parent domain view loan and FD close separately");
-    printf("{\"domain_borrow_cases\":16,\"parent_cases\":%d,\"child_cases\":8,\"passed\":16,\"fixture_pages\":64,\"worker\":0,\"vm\":0,\"public_e2e\":0}\n", cases);
-    return cases == 8 ? 0 : 3;
+    printf("{\"domain_borrow_cases\":19,\"parent_cases\":%d,\"child_cases\":9,\"passed\":19,\"fixture_pages\":64,\"worker\":0,\"vm\":0,\"public_e2e\":0}\n", cases);
+    return cases == 10 ? 0 : 3;
 }

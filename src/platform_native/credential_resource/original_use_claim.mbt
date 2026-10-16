@@ -11,14 +11,23 @@ fn claim_original_owned_credential_use(
   revoked : Bool,
   scope : NativeOwnedCredentialScope,
   max_uses : Int,
+  caller_transaction? : Bool = false,
 ) -> Result[NativeOwnedCredentialUse, NativeCredentialResourceIssue] {
   let grant_cid = owned_credential_grant_cid(grant)
-  let ordinal = match
+  let claimed = if caller_transaction {
+    database.claim_ordinal_action_in_transaction(
+      use_scope(grant_cid),
+      use_id,
+      max_uses.to_int64(),
+    )
+  } else {
     database.claim_ordinal_action(
       use_scope(grant_cid),
       use_id,
       max_uses.to_int64(),
-    ) {
+    )
+  }
+  let ordinal = match claimed {
     Ok(@sqlite.Retained(original_ordinal)) => {
       // Verify the retained original without constructing a replacement use.
       // Missing/corrupt custody is a typed refusal, never a fresh send right.

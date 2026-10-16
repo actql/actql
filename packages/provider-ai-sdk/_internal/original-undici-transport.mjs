@@ -33,7 +33,7 @@ export function fixedOriginalAcquisitionLimits(value) {
   return snapshot;
 }
 
-function bindAcquisitionRead(socket, limits, acquisition) {
+function bindAcquisitionRead(socket, limits, acquisition, inputExtent) {
   const read = socket.read;
   const descriptor = Object.getOwnPropertyDescriptor(socket, 'read');
   let plaintext = 0;
@@ -43,13 +43,34 @@ function bindAcquisitionRead(socket, limits, acquisition) {
   // these checks cannot fund or bound that first allocator. Ordinary adoption
   // still requires its original Host coverage and same-Ledger phase envelope.
   const boundedRead = function (...args) {
-    if (acquisition.refused) return null;
+    // Node can still consume an already queued buffer after destroy(). Stop
+    // another parser read, but retain the SAME queue/socket/close duty until
+    // actual cleanup; this flag is never a physical retirement observation.
+    if (acquisition.refused || socket.destroyed) return null;
     // Count every original read invocation, including null/empty probes.
     // Refuse before another read; this still does not bound native emission.
     if (acquisition.reads >= limits.maxReads) {
       acquisition.refused = true;
       socket.destroy(issue('UndiciOriginalAcquisitionReadsExceeded'));
       return null;
+    }
+    // Undici's un-sized read otherwise lets Node fromList concatenate the
+    // entire queued payload BEFORE the acquisition checks below. Select from
+    // this same original queue before that allocation, using this Call's
+    // already fixed native input extent, not a new capacity or packet bound.
+    // read(0) drives an empty producer without accepting a synchronous _read
+    // burst as one unbounded chunk; an already queued short response uses its
+    // actual length and does not wait for an extent or EOF. Explicit reads
+    // retain their existing Node meaning. Emission/native backing still needs
+    // the original Host coverage and the whole-phase numerical envelope.
+    if (args.length === 0 || args[0] === undefined) {
+      const available = socket.readableLength;
+      if (!Number.isSafeInteger(available) || available < 0) {
+        acquisition.refused = true;
+        socket.destroy(issue('UndiciOriginalAcquisitionShapeRefused'));
+        return null;
+      }
+      args[0] = Math.min(available, inputExtent);
     }
     acquisition.reads++;
     const chunk = Reflect.apply(read, socket, args);
@@ -227,7 +248,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     socket = connector(options, (error, connected) => {
       try {
         if (connected !== undefined && retireAcquisition === undefined) {
-          try { retireAcquisition = bindAcquisitionRead(connected, original.acquisition, acquisition); }
+          try { retireAcquisition = bindAcquisitionRead(connected, original.acquisition, acquisition, inputExtent); }
           catch (refusal) {
             connected.destroy(refusal);
             callback(refusal, null);
@@ -257,21 +278,36 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     if (retired || destroying !== undefined) throw issue('UndiciOriginalTransportRetired');
     // The existing SDK start bit/Core gate owns one-shot admission. The fixed
     // original Client method/options are the actual first physical operation.
-    pending = Reflect.apply(method, client, [request]).then(response => {
-      body = response.body;
+    const response = Reflect.apply(method, client, [request]).then(response => {
+      const responseBody = response.body;
+      body = responseBody;
       // Register settlement immediately, including errors before getReader.
       // Error/destroy flags are not the later actual stream close event.
-      body.on('error', () => {});
-      bodyClosed = body.closed ? Promise.resolve(true)
-        : new Promise(resolve => body.once('close', () => resolve(true)));
+      responseBody.on('error', () => {});
+      if (responseBody.closed) {
+        bodyClosed = Promise.resolve(true);
+        body = undefined;
+      } else {
+        bodyClosed = new Promise(resolve => responseBody.once('close', () => {
+          // Only this same body's actual close retires our unused alias.
+          // Its abort/handler/trailers need not remain pinned by a delayed
+          // Socket close. Escaped stream/raw borrowers keep their own roots;
+          // Client/connector/Socket/bodyClosed still form the original IO AND.
+          if (body === responseBody) body = undefined;
+          resolve(true);
+        }));
+      }
       // Escaped unread/reader views retain this SAME close observation after
       // the transport drops its own references. Do not make their cancellation
       // consult a mutable cell that physical cleanup can retire first.
-      return originalResponseView(response, body, bodyClosed);
+      return originalResponseView(response, responseBody, bodyClosed);
     });
-    // Cleanup and callers observe the same rejection, never an unhandled one.
-    pending.catch(() => {});
-    return pending;
+    // Cleanup needs settlement of this SAME request, not another retained
+    // fulfilled response/header view. Callers keep the original value/error;
+    // the handled child carries Unit on either outcome, never an I/O ACK.
+    const settled = () => {};
+    pending = response.then(settled, settled);
+    return response;
   };
   const cleanup = () => {
     if (retired) return Promise.resolve(true);
@@ -288,7 +324,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     body?.destroy();
     socket?.destroy(issue('UndiciOriginalTransportRetired'));
     destroying = client.destroy().then(async () => {
-      if (pending !== undefined) await pending.catch(() => {});
+      if (pending !== undefined) await pending;
       if (connectorFinished !== undefined && await connectorFinished !== true) return false;
       if (socketClosed !== undefined && await socketClosed !== true) return false;
       if (bodyClosed !== undefined && await bodyClosed !== true) return false;
@@ -296,7 +332,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
       retireAcquisition = undefined;
       acquisition.refused = true;
       acquisition.backings = undefined;
-      // Drop our own aliases only after physical closure. Escaped body/raw
+      // Drop the remaining aliases only after physical closure. Escaped body/raw
       // borrowers can still retain the Socket's input buffer: Model/SDK/Store
       // holding settlement, not this IO ACK, decides their byte retirement.
       client = undefined;

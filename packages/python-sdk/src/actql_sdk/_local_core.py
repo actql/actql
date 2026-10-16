@@ -16,13 +16,14 @@ from typing import TYPE_CHECKING, Any, Literal
 if TYPE_CHECKING:
     from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
     from ._local_native_image import _NativeImageHolding
+    from ._local_native_vm import _OriginalVMObservation
+    from ._local_worker_child_control import _OriginalChildControlPipe
     from ._local_distribution import LocalComponents
 
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
-LOCAL_CORE_ABI = 73
 
 
 class LocalCoreError(RuntimeError):
@@ -186,344 +187,45 @@ class _Output:
     family: str = "material"
 
 
-# This is the private in-process ABI, independent of Client wire versions.
-_BUFFER_SIGNATURES = {
-    'open': ('i64 i64 i32 i32 i32 i32 i32 i64 i64 i64 i64', 'i32'),
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'fill': ('i64 i32 i32 i32', 'i32'),
-    'seal': ('i64 i32', 'i32'),
-    'byte': ('i64 i32 i32', 'i32'),
-    'borrow': ('i64 i32', 'i32'),
-    'return': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'allocated': ('i64', 'i64'),
-    'reserved': ('i64', 'i64'),
-    'close_pool': ('i64', 'i32'),
-}
-_PROGRAM_SIGNATURES = {
-    'install_environment': ('i64 i32', 'i32'),
-    'install_source_environment': ('i64 i32', 'i32'),
-    'reserve_preparation': ('i64 i32 i32 i32', 'i32'),
-    'prepare': ('i64 i32', 'i32'),
-    'prepared_results': ('i64 i32', 'i32'),
-    'prepared_tasks': ('i64 i32', 'i32'),
-    'close_preparation': ('i64 i32', 'i32'),
-    'close_environment': ('i64 i32', 'i32'),
-}
-_RUN_SIGNATURES = {
-    'dispatch_action': ('i64 i32 i32 i32', 'i32'),
-    'install_configuration': ('i64 i32', 'i32'),
-    'install_current_configuration': ('i64 i32 i32', 'i32'),
-    'install_sdk_configuration': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32 i32', 'i32'),
-    'prepare': ('i64 i32', 'i32'),
-    'prepare_sdk': ('i64 i32 i32', 'i32'),
-    'restore': ('i64 i32 i32', 'i32'),
-    'prepared': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'close_configuration': ('i64 i32', 'i32'),
-    'reserve_physical_start': ('i64 i32 i32 i32', 'i32'),
-    'reserve_sdk_physical_start': ('i64 i32 i32', 'i32'),
-    'confirm_physical_start': ('i64 i32', 'i32'),
-    'physical_start_ready': ('i64 i32', 'i32'),
-    'close_physical_start': ('i64 i32', 'i32'),
-}
-_SUBMISSION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'validate_append': ('i64 i32 i32', 'i32'),
-    'retire_output': ('i64 i32', 'i32'),
-}
-
-_BOOTSTRAP_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'produce_sdk': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_SOURCE_PUBLICATION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'prepare': ('i64 i32 i32', 'i32'),
-    'advance': ('i64 i32 i32', 'i32'),
-    'progress': ('i64 i32 i32', 'i64'),
-    'finish': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_RUN_INVOCATION_SIGNATURES = {
-    'reserve_source_free': ('i64 i32 i32 i32 i64', 'i32'),
-    'prepare_source_free': ('i64 i32 i32', 'i32'),
-    'length_source_free': ('i64 i32', 'i32'),
-    'close_source_free': ('i64 i32', 'i32'),
-}
-_MATERIAL_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'reserve_submitted_rows': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'validate_submitted_rows': ('i64 i32', 'i32'),
-    'validate_sdk_start': ('i64 i32', 'i32'),
-    'confirm_sdk_start': ('i64 i32', 'i32'),
-    'validate_sdk_publication': ('i64 i32', 'i32'),
-    'confirm_sdk_publication': ('i64 i32', 'i32'),
-    'retire_output': ('i64 i32', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'reserve_restoration': ('i64 i32', 'i32'),
-    'restore': ('i64 i32', 'i32'),
-    'restored': ('i64 i32', 'i32'),
-    'close_restoration': ('i64 i32', 'i32'),
-}
-_PUBLICATION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'prepare': ('i64 i32 i32', 'i32'),
-    'advance': ('i64 i32 i32 i32', 'i32'),
-    'progress': ('i64 i32 i32', 'i64'),
-    'finish': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'retire_output': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'prepare_commit': ('i64 i32 i32 i32', 'i32'),
-    'validate_run': ('i64 i32 i32 i32', 'i32'),
-    'advance_commit': ('i64 i32 i32 i32', 'i32'),
-    'commit_progress': ('i64 i32 i32', 'i64'),
-    'finish_commit': ('i64 i32 i32', 'i32'),
-    'prepare_observation': ('i64 i32 i32 i32 i32', 'i32'),
-    'advance_observation': ('i64 i32 i32 i32', 'i32'),
-    'observation_progress': ('i64 i32 i32', 'i64'),
-    'finish_observation': ('i64 i32 i32', 'i32'),
-    'retire_observation': ('i64 i32', 'i32'),
-    'prepare_lookup': ('i64 i32 i32 i32 i32', 'i32'),
-    'retire_lookup': ('i64 i32', 'i32'),
-}
-_PUBLICATION_PREFLIGHT_SIGNATURES = {
-    'result_count': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'prepare': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'retire_output': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
+# Existing publication field selection is separate from scalar signatures.
 _CommitMaterialField = Literal['wire', 'name', 'identity_field', 'identity']
 _COMMIT_MATERIAL_FIELDS = {'wire': 0, 'name': 1, 'identity_field': 2, 'identity': 3}
 
 
-_PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
-    'count': ('i64 i32 i32', 'i32'),
-    'result_count': ('i64 i32 i32', 'i32'),
-    'produce_observed_index': ('i64 i32 i32 i32', 'i32'),
-    'produce_run_state': ('i64 i32 i32 i32', 'i32'),
-    'produce_sdk_read_original': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_read_evidence': ('i64 i32 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_read_grant': ('i64 i32 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_read_evidence_decision': ('i64 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_read_delivery_storage': ('i64 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_delivery_lookup': ('i64 i32 i32 i32 i32', 'i32'),
-    'retire_sdk_delivery_output': ('i64 i32', 'i32'),
-    'prepare_sdk_payload_codecs': ('i64 i32 i32 i32', 'i32'),
-    'sdk_payload_ordinal': ('i64 i32 i32 i32', 'i32'),
-    'bind_sdk_payload_record': ('i64 i32 i32 i32 i32 i32', 'i32'),
-    'prepare_sdk_payload_input': ('i64 i32 i32 i32', 'i32'),
-    'produce_sdk_payload_chunk': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
-    'confirm_sdk_payload_chunk': ('i64 i32', 'i64'),
-    'produce_sdk_payload_receipt': ('i64 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_terminal_storage': ('i64 i32 i32 i32 i32', 'i32'),
-    'observe_sdk_terminal': ('i64 i32 i32', 'i32'),
-    'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
-    'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
-    'produce_index_key': ('i64 i32 i32', 'i32'),
-    'produce_schema': ('i64 i32 i32 i32 i32', 'i32'),
-    'validate_payload_binding': ('i64 i32 i32 i32 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_REQUEST_SIGNATURES = {
-    'start_replay': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_RESULT_BINDING_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_CHUNK_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'final': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_RECORD_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'begin': ('i64 i32 i32', 'i32'),
-    'confirm': ('i64 i32 i32 i32', 'i32'),
-    'validate_snapshot': ('i64 i32 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_RESERVATION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'begin': ('i64 i32 i32', 'i32'),
-    'confirm': ('i64 i32 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_WRITING_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'begin': ('i64 i32 i32', 'i32'),
-    'confirm': ('i64 i32 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_ALLOCATION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'begin': ('i64 i32 i32', 'i32'),
-    'confirm': ('i64 i32 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_NAMES_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_BINDING_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_SOURCE_SIGNATURES = {
-    'reserve_configuration': ('i64 i32 i32', 'i32'),
-    'configure': ('i64 i32', 'i32'),
-    'configured': ('i64 i32', 'i32'),
-    'configuration_issue': ('i64 i32', 'i32'),
-    'capacity': ('i64 i32 i32', 'i64'),
-    'close_configuration': ('i64 i32', 'i32'),
-    'reserve_attempt': ('i64 i32 i32 i32', 'i32'),
-    'start': ('i64 i32', 'i32'),
-    'started': ('i64 i32', 'i32'),
-    'close_attempt': ('i64 i32', 'i32'),
-    'accept': ('i64 i32 i32 i32', 'i32'),
-    'completed': ('i64 i32', 'i32'),
-    'close_event': ('i64 i32', 'i32'),
-    'reserve_command': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'produce_command': ('i64 i32', 'i32'),
-    'command_length': ('i64 i32', 'i32'),
-    'close_command': ('i64 i32', 'i32'),
-}
-_TASK_SIGNATURES = {
-    'reserve_next_sdk': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32', 'i32'),
-    'start': ('i64 i32', 'i32'),
-    'started': ('i64 i32', 'i32'),
-    'issue': ('i64 i32', 'i32'),
-    'assessment': ('i64 i32 i32 i32', 'i64'),
-    'feed': ('i64 i32 i32', 'i32'),
-    'inputs_ready': ('i64 i32', 'i32'),
-    'advance': ('i64 i32 i32', 'i32'),
-    'progress': ('i64 i32 i32', 'i64'),
-    'prepare_finalization': ('i64 i32', 'i32'),
-    'advance_finalization': ('i64 i32 i32', 'i32'),
-    'complete': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_COMPUTE_SIGNATURES = {
-    'reserve_source_free': ('i64 i32 i32 i32', 'i32'),
-    'configure_source_free': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32', 'i32'),
-    'configure': ('i64 i32', 'i32'),
-    'configured': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_RESULT_SIGNATURES = {
-    'reserve_from_compute': ('i64 i32 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32', 'i32'),
-    'start': ('i64 i32', 'i32'),
-    'feed': ('i64 i32 i32', 'i32'),
-    'inputs_ready': ('i64 i32', 'i32'),
-    'advance': ('i64 i32 i32', 'i32'),
-    'progress': ('i64 i32 i32', 'i32'),
-    'finish_preparation': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'reserve_chunk': ('i64 i32 i32 i64', 'i32'),
-    'produce_chunk': ('i64 i32', 'i32'),
-    'chunk_length': ('i64 i32', 'i32'),
-    'chunk_final': ('i64 i32', 'i32'),
-    'close_chunk': ('i64 i32', 'i32'),
-}
-_WORKSPACE_SIGNATURES = {
-    'reserve': ('i64 i32 i64', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'root_reserved': ('i64', 'i64'),
-}
-_PUBLISHER_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'install': ('i64 i32 i32', 'i32'),
-    'authorize': ('i64 i32 i32 i32 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_IMPORT_SIGNATURES = {
-    'input_byte': ('i32 i32', 'i32'),
-    'input_cleanup': ('i32', 'i32'),
-    'reader_stop': ('i32 i32', 'i32'),
-    'native_settled': ('i32', 'i32'),
-    'native_stopped': ('i32', 'i32'),
-    'native_cleaned': ('i32', 'i32'),
-    'publisher_current': ('i32', 'i32'),
-    'publisher_begin': ('i32 i32', 'i32'),
-    'publisher_byte': ('i32 i32 i32', 'i32'),
-    'publisher_finish': ('i32', 'i32'),
-    'journal_current': ('i32', 'i32'),
-    'journal_begin': ('i32 i32 i32 i32', 'i32'),
-    'journal_query_byte': ('i32 i32 i32', 'i32'),
-    'journal_query': ('i32', 'i32'),
-    'journal_length': ('i32 i32', 'i32'),
-    'journal_byte': ('i32 i32 i32', 'i32'),
-    'journal_revision': ('i32', 'i64'),
-    'journal_release': ('i32', 'i32'),
-}
-_JOURNAL_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'inspect': ('i64 i32', 'i32'),
-    'revision': ('i64 i32 i32', 'i64'),
-    'admission_length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_CURRENT_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'bind': ('i64 i32', 'i32'),
-    'validate': ('i64 i32', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_ORIGINAL_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
+# Scalar declarations are generated from the original MoonBit boundary.
+from ._local_wasm_abi import (
+    LOCAL_CORE_ABI,
+    _BUFFER_SIGNATURES,
+    _PROGRAM_SIGNATURES,
+    _RUN_SIGNATURES,
+    _SUBMISSION_SIGNATURES,
+    _BOOTSTRAP_SIGNATURES,
+    _SOURCE_PUBLICATION_SIGNATURES,
+    _RUN_INVOCATION_SIGNATURES,
+    _MATERIAL_SIGNATURES,
+    _PUBLICATION_SIGNATURES,
+    _PUBLICATION_PREFLIGHT_SIGNATURES,
+    _PUBLICATION_COMMIT_EXPORT_SIGNATURES,
+    _PAYLOAD_REQUEST_SIGNATURES,
+    _RESULT_BINDING_SIGNATURES,
+    _PAYLOAD_CHUNK_SIGNATURES,
+    _PAYLOAD_RECORD_SIGNATURES,
+    _PAYLOAD_RESERVATION_SIGNATURES,
+    _PAYLOAD_WRITING_SIGNATURES,
+    _PAYLOAD_ALLOCATION_SIGNATURES,
+    _PAYLOAD_NAMES_SIGNATURES,
+    _PAYLOAD_BINDING_SIGNATURES,
+    _SOURCE_SIGNATURES,
+    _TASK_SIGNATURES,
+    _COMPUTE_SIGNATURES,
+    _RESULT_SIGNATURES,
+    _WORKSPACE_SIGNATURES,
+    _PUBLISHER_SIGNATURES,
+    _IMPORT_SIGNATURES,
+    _JOURNAL_SIGNATURES,
+    _CURRENT_SIGNATURES,
+    _ORIGINAL_SIGNATURES,
+)
 _MEMORY_LIMIT = 16 * 1024 * 1024
 
 
@@ -605,8 +307,7 @@ def _validate_core_module(wasmtime: Any, module: Any) -> None:
             not isinstance(exports[name], wasmtime.FuncType) or
             _signature(exports[name]) != signature
             for name, signature in expected.items()) or
-            any(name.startswith('actql_') and name not in expected
-                for name in exports)):
+            set(exports) != set(expected) | {'memory'}):
         raise ValueError('Unrecognized Local Core exports')
     memory = exports.get('memory')
     if (not isinstance(memory, wasmtime.MemoryType) or memory.is_64 or
@@ -638,22 +339,30 @@ class LocalCore:
     def _from_installed_image(cls, components: LocalComponents, *, resources: LocalCoreResources,
                               transfer_capacity: int, slots: int = 64,
                               _host_capacity_bytes: int = 0,
-                              _physical_holding: _NativeHoldingLease | None = None) -> LocalCore:
+                              _physical_holding: _NativeHoldingLease | None = None,
+                              _child_control: _OriginalChildControlPipe | None = None) -> LocalCore:
         if not _valid_core_limits(transfer_capacity, slots, 100_000_000, resources,
                                   _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
+        if _child_control is not None:
+            from ._local_worker_child_control import _OriginalChildControlPipe
+            if type(_child_control) is not _OriginalChildControlPipe or _physical_holding is None:
+                raise ValueError('Invalid original child control')
+            _child_control._require_unbound_holding(_physical_holding)
         from ._local_engine import _checked_installed_image, _checked_installed_image_file
         image = (_checked_installed_image(components) if _physical_holding is None
                  else _checked_installed_image_file(components))
         return cls(None, digest=components.module_sha256, transfer_capacity=transfer_capacity,
                    resources=resources, slots=slots, _compiled_image=image,
-                   _host_capacity_bytes=_host_capacity_bytes, _physical_holding=_physical_holding)
+                   _host_capacity_bytes=_host_capacity_bytes, _physical_holding=_physical_holding,
+                   _child_control=_child_control)
 
     def __init__(self, module: bytes | None, *, digest: str, transfer_capacity: int, resources: LocalCoreResources,
                  slots: int = 32, fuel: int = 100_000_000,
                  _compiled_image: _InstalledImageInput | _InstalledImageFileInput | None = None,
                  _host_capacity_bytes: int = 0,
-                 _physical_holding: _NativeHoldingLease | None = None) -> None:
+                 _physical_holding: _NativeHoldingLease | None = None,
+                 _child_control: _OriginalChildControlPipe | None = None) -> None:
         from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
         from ._local_native_image import _NativeImageHolding
         from ._local_image_recipe import _SelectedImageRecipe
@@ -682,6 +391,11 @@ class LocalCore:
         if _physical_holding is not None and (type(_physical_holding) is not _NativeHoldingLease
                                                or _compiled_image is None):
             raise ValueError('Invalid original native holding')
+        if _child_control is not None:
+            from ._local_worker_child_control import _OriginalChildControlPipe
+            if type(_child_control) is not _OriginalChildControlPipe or _physical_holding is None:
+                raise ValueError('Invalid original child control')
+            _child_control._require_unbound_holding(_physical_holding)
         self._lock = RLock()
         self._identity = object()
         self._nonce = secrets.randbelow(2**63 - 1) + 1
@@ -707,11 +421,15 @@ class LocalCore:
         self._linker: Any = None
         self._physical_vm_type: Any = None
         self._physical_vm_span: tuple[int, int] | None = None
+        self._physical_vm_observation: _OriginalVMObservation | None = None
+        self._physical_child_control = _child_control
         if _physical_holding is not None:
             _physical_holding._bind_core(self._identity)
         self._physical_holding = _physical_holding
         self._physical_image: _NativeImageHolding | None = None
         try:
+            if self._physical_child_control is not None:
+                self._physical_child_control._attach_core(self)
             if self._physical_holding is not None:
                 self._physical_holding._transfer_to_core(self._identity)
             with self._native_scope():
@@ -729,7 +447,7 @@ class LocalCore:
                     ffi = import_module(runtime_name + '._ffi')
                     _verify_loaded_runtime(_compiled_image, ffi)
                     if self._physical_holding is not None:
-                        self._physical_holding._verify_library(ffi.dll)
+                        self._physical_holding._verify_library(ffi.dll, _installed_image=_compiled_image)
                 self._engine_configuration = wasmtime.Config()
                 if _compiled_image is None:
                     # Original raw-Wasm physical diagnostics remain separately
@@ -791,6 +509,18 @@ class LocalCore:
                     self._linker.define_func('actql_host', name,
                         wasmtime.FuncType(params, [wasmtime.ValType.i64() if
                             _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
+                for name in ('execution_child_admit', 'execution_child_current',
+                             'execution_child_limit', 'execution_child_capacity',
+                             'execution_child_report', 'execution_child_stop'):
+                    params = [wasmtime.ValType.i64() if item == 'i64' else wasmtime.ValType.i32()
+                              for item in _IMPORT_SIGNATURES[name][0].split()]
+                    result_type = (wasmtime.ValType.i64() if _IMPORT_SIGNATURES[name][1] == 'i64'
+                                   else wasmtime.ValType.i32())
+                    child_callback = (self._unavailable_execution_child
+                        if self._physical_child_control is None else
+                        getattr(self._physical_child_control, name.removeprefix('execution_child_')))
+                    self._linker.define_func('actql_host', name,
+                        wasmtime.FuncType(params, [result_type]), child_callback, access_caller=True)
                 instance = self._linker.instantiate(self._store, self._module)
                 self._exports = instance.exports(self._store)
                 if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
@@ -798,11 +528,22 @@ class LocalCore:
                 if self._physical_holding is not None:
                     self._observe_original_vm_span(wasmtime)
                     self._validate_original_native_projection(_host_capacity_bytes)
-                self._check('open', self._call('buffer', 'open', transfer_capacity,
-                                            slots, 1_048_576, resources.planning_work,
-                                            resources.attempts, resources.holdings,
-                                            resources.transfer_bytes, resources.retained_bytes,
-                                            resources.execution_bytes, _host_capacity_bytes))
+                    from ._local_native_vm import _OriginalVMObservation
+                    _OriginalVMObservation._capture(self, wasmtime)
+                if self._physical_child_control is not None:
+                    if self._physical_vm_observation is None:
+                        raise ValueError('Original child VM observation is unavailable')
+                    self._physical_child_control._bind_original_vm(self._physical_vm_observation)
+                    # The existing portable Owner imports the original child
+                    # Ledger/VM/Host capacities. Never fall back to scalar open.
+                    self._check('open_live', self._call('buffer', 'open_live',
+                                                       transfer_capacity, slots, 1_048_576))
+                else:
+                    self._check('open', self._call('buffer', 'open', transfer_capacity,
+                                                slots, 1_048_576, resources.planning_work,
+                                                resources.attempts, resources.holdings,
+                                                resources.transfer_bytes, resources.retained_bytes,
+                                                resources.execution_bytes, _host_capacity_bytes))
         except BaseException as error:
             self._retired = True
             self._closing = True
@@ -838,6 +579,19 @@ class LocalCore:
         self._physical_vm_span = (address.value, _MEMORY_LIMIT)
         self._physical_vm_type.close()
         self._physical_vm_type = None
+
+    def _unavailable_execution_child(self, caller: Any, nonce: int, *arguments: int) -> int:
+        """No scalar-open or diagnostic holding supplies parent live authority.
+
+        The installed physical issuer must replace this missing supplier with
+        its original channel/native access. A Caller observation is necessary
+        but never sufficient for admission, capacity, report or stop authority.
+        """
+        observation = self._physical_vm_observation
+        if observation is None:
+            return -42
+        observation._require_caller(caller, nonce)
+        return -42
 
     def _validate_original_native_projection(self, host_capacity_bytes: int) -> None:
         """Refuse undercounting the original mapping before opening its Root.
@@ -875,6 +629,9 @@ class LocalCore:
         self._invoking = True
         try:
             with self._native_scope():
+                observation = getattr(self, '_physical_vm_observation', None)
+                if observation is not None:
+                    observation._require_core_current()
                 result = self._exports[f'actql_{family}_{name}'](
                     self._store, self._nonce, *arguments)
         except BaseException:
@@ -3761,6 +3518,14 @@ class LocalCore:
             # repeat already retired Store/native handles.
             holding.close()
             self._physical_holding = None
+        observation = getattr(self, '_physical_vm_observation', None)
+        if observation is not None:
+            observation._retire_metadata(self)
+            self._physical_vm_observation = None
+        child_control = getattr(self, '_physical_child_control', None)
+        if child_control is not None:
+            child_control._retire_metadata(self)
+            self._physical_child_control = None
         self._closed = True
         self._physical_vm_span = None
         self._inputs.clear()

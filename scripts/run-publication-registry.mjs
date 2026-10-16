@@ -83,6 +83,7 @@ export function publicationSchemas() {
       aoa_contract_cid: clone(cid),
       aoa_logical_cid: clone(cid),
       compiled_plan_cid: clone(cid),
+      effect_target_selections_cid: clone(cid),
     },
   );
   schemas.result_definition = schema(
@@ -507,6 +508,8 @@ export const referenceRoles = {
     program_semantics_cid: 'external:program-semantics',
     aoa_contract_cid: 'external:aoa-contract',
     aoa_logical_cid: 'external:aoa-logical-plan',
+    effect_target_selections_cid:
+      'external:executable-plan-effect-target-selections?',
   },
   result_definition: {
     program_definition_cid: 'external:program-definition',
