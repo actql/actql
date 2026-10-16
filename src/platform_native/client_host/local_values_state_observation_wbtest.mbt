@@ -256,7 +256,22 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     .unwrap(),
     None,
   )
+  assert_eq(
+    run_record_body(journal.retained(request).unwrap().unwrap()).unwrap(),
+    before_names_run,
+  )
+  assert_eq(
+    journal.retained_submission(reference).unwrap().unwrap().revision,
+    before_names_submission,
+  )
   pending.commit().unwrap() |> ignore
+  let committed_names_run = run_record_body(
+    journal.retained(request).unwrap().unwrap(),
+  ).unwrap()
+  let committed_names_submission = journal
+    .retained_submission(reference)
+    .unwrap()
+    .unwrap().revision
   assert_eq(
     host
     .lookup_original_result_names_json(
@@ -267,11 +282,11 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   assert_eq(
     run_record_body(journal.retained(request).unwrap().unwrap()).unwrap(),
-    before_names_run,
+    committed_names_run,
   )
   assert_eq(
     journal.retained_submission(reference).unwrap().unwrap().revision,
-    before_names_submission,
+    committed_names_submission,
   )
   let observed = host
     .observe_publication_run_state(
