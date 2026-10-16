@@ -11,13 +11,8 @@ Immediate delegation answers need no dummy Checkpoint; deferred answers use the
 existing durable continuation. Human approval and application routing belong to
 the Host. Conflicting account settings are errors, not a rule-priority system.
 
-Configuration and protocol integration remain specification work. This design
-does not claim executable authorization support.
-Authorization behavior below is the design target, not the current pinned
-contract: the [listed contract changes](host-authorization.md#relationship-to-current-pinned-contracts)
-have not yet been applied. This informative guide does not override those contracts.
 Encrypted evidence, secure defaults, retention and recovery guarantees remain
-unchanged. Follow the linked specification-work matrix before changing any wire or Core.
+unchanged.
 
 The [OSS authorization behavior draft](oss-host-authorization.md) details Local
 configuration, immediate/deferred adapters, CLI resolution and crash recovery.

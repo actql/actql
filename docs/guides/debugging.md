@@ -45,11 +45,21 @@ most:
 | `parameter_undeclared`, `parameter_value_required` | `@name` is used but not declared, or declared but not supplied | Declare it, and pass `--params` |
 | `query_alias_absent` | A column is referenced through an alias that does not exist | Check `AS` names, including the `INFER … AS` name |
 | `graph_operation_invalid` | A graph operation got an argument of the wrong kind | See the graph section of [Writing Programs](../authoring.md) |
-| `implementation_limit` | The Program is valid but uses something this Host cannot run yet | See [Limits and compatibility](../reference/limits.md) |
+| `implementation_limit` | The Program is valid but uses something this Host cannot run yet | See [Implementation status](../reference/status.md) |
 
 `check --json` returns the same report as data, which is what an agent should
 read before trying again. A warning does not stop `check` from returning 0;
 an error does.
+
+Not every reason means the Program is wrong. Three things are reported
+separately: the Program is **invalid** (`query_syntax_invalid`,
+`expression_type_mismatch` — fix the text); the check is **incomplete** —
+a value is missing (`parameter_value_required`), the checker ran out of
+budget (`analysis_budget_exhausted`), or something could not be resolved
+within your permissions (`unresolved_protected`) — supply the value or ask,
+the Program may be fine; or this Host **cannot run** a valid Program
+(`implementation_limit`). Read the verdict, the completeness and the
+environment support as three facts, not one severity.
 
 ## Plan problems
 
@@ -79,7 +89,7 @@ Read it by state:
 | Status | Likely cause | What to do |
 | --- | --- | --- |
 | `failed` during a read | Credentials, a missing object, a limit exceeded | Fix the connection or the Program; run again |
-| `failed` during `INFER` | Strict mode and a failed row, or the item limit exceeded before any call | Check `outcome` values with a mock run, or lower the input |
+| `failed` during `INFER` | `ON FAILURE FAIL` and a failed row, or the item limit exceeded before any call | Check `outcome` values with a mock run, or lower the input |
 | `waiting_checkpoint` | A decision is pending | `approve` or `reject` |
 | `needs_reconciliation` | A write's outcome is unknown | `reconcile`; see [Run lifecycle](run-lifecycle.md) |
 | `cancelled` | Someone cancelled it, or rejected its Checkpoint before anything was sent | Nothing was written; adjust and run again |

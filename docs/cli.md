@@ -107,9 +107,9 @@ flags override the file. The full schema is in the
 ## Core commands
 
 ```text
-actql check <program> [--params <file>] [--bindings <file>] [--json]
-actql explain [<program>] [--params <file>] [--input <name=file>] [--stop-before <boundary>] [--verbose] [--json]
-actql explain --run <run> [--verbose] [--json]
+actql check <program> [--params <file>] [--bindings <file>] [--json] [--redact]
+actql explain [<program>] [--params <file>] [--input <name=file>] [--stop-before <boundary>] [--verbose] [--json] [--redact]
+actql explain --run <run> [--verbose] [--json] [--redact]
 actql run <program> [--params <file>] [--input <name=file>] [--stop-before <boundary>]
                     [--deliver <result=format:file>] [--output <file>] [--receipt <file>] [--json]
 ```
@@ -154,7 +154,7 @@ override the configured files, and `--bindings <file>` for pre-bound inputs.
 ## Operations on a Run
 
 ```text
-actql status <run> [--watch] [--timeout <duration>] [--json]
+actql status <run> [--watch] [--timeout <duration>] [--json] [--redact]
 actql approve <checkpoint> [--signer <id>] [--wait] [--json]
 actql reject <checkpoint> [--signer <id>] [--json]
 actql cancel <run> [--json]
@@ -278,7 +278,10 @@ real systems.
 ## Output and exit codes
 
 Commands print a human summary by default and stable JSON with `--json`.
-Progress goes to stderr, results to stdout or the files you name.
+Progress goes to stderr, results to stdout or the files you name. `--redact`
+replaces system names, resource names, parameter values and Preview values
+with stable placeholders and keeps structure, codes and locations; use it
+when sharing output.
 
 | Exit code | Meaning |
 | --- | --- |

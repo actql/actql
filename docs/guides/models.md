@@ -151,8 +151,11 @@ By default every row comes back, failed ones included, so the Program decides
 what to do with them — keep only `ok`, route failures to a review table, or
 count them. Whether a failure fails the whole step is the Program's choice,
 not the task's: the task defines instructions, types, model and retries, and
-the `INFER` step says how to treat a failed row. To fail the step on the
-first failure, add `ON FAILURE FAIL`:
+the `INFER` step says how to treat a failed row. To refuse a partial result,
+add `ON FAILURE FAIL`: when any row is still unsuccessful after the bounded
+retries, the step's result is not published as a success, no later step or
+Effect sees it, and the calls already made stay recorded as evidence with
+their cost:
 
 ```sql
 |> INFER `model-task:churn-risk.v1`
@@ -189,4 +192,4 @@ a Checkpoint so a person sees the values before they are written.
 
 - [Writing Programs](../authoring.md): the full `INFER` syntax, `NEAREST` for retrieval before inference.
 - [Local and remote Hosts](hosts.md): routing `infer` in the account configuration.
-- [Limits and compatibility](../reference/limits.md): default ceilings per environment.
+- [Runtime limits](../reference/limits.md): default ceilings per environment.

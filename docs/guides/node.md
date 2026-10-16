@@ -60,7 +60,7 @@ For a remote Host:
 ```ts
 const client = await connect({
   mode: 'remote',
-  endpoint: process.env.ACTQL_ENDPOINT,   // https://host.example/
+  endpoint: process.env.ACTQL_ENDPOINT,   // actql://host.acme.internal
   token: process.env.ACTQL_TOKEN,
 });
 ```

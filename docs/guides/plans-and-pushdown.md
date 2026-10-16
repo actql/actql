@@ -301,5 +301,5 @@ that has not started; the Program's meaning, limits and approvals do not move.
 ## Next
 
 - [Connectors](../connectors/README.md): the Capabilities each Connector declares.
-- [Limits and compatibility](../reference/limits.md): default ceilings.
+- [Runtime limits](../reference/limits.md): default ceilings.
 - [Execution model and guarantees](../concepts/execution-model.md#placement-and-pushdown): what placement preserves.

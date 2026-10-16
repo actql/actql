@@ -107,7 +107,7 @@ actql status run_…           # the Host resumes it if it was interrupted
 ```
 
 Recovery belongs to the Host: opening the Store lets it continue work it had
-in flight. `status`, `inspect` and `explain --run` only read; none of them
+in flight. `status` and `explain --run` only read; neither of them
 starts or resends an external operation.
 
 ```ts

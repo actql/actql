@@ -38,7 +38,7 @@ lists exactly what is, and `check` refuses the rest by name.
 
 ## Pipe syntax
 
-Pipe syntax writes the same query as a sequence of steps. Start with `FROM`
+GoogleSQL's Pipe syntax writes the same query as a sequence of steps. Start with `FROM`
 (or a full `SELECT`) and introduce each later step with `|>`. Each step takes
 the rows from the step before it:
 
@@ -50,9 +50,11 @@ FROM support.cases AS c
 |> LIMIT 10
 ```
 
-Pipes are how you write ActQL's own operations in the same top-to-bottom
-order you would explain them. You can switch to pipes after any ordinary
-`SELECT`.
+`WHERE`, `SELECT`, `EXTEND`, `AGGREGATE`, `JOIN`, `ORDER BY` and `LIMIT`
+below are GoogleSQL's own pipe operators; `RESULT`, `INFER`, `NEAREST`,
+`SERIALIZE`, `ASSERT UNIQUE BY` and `EFFECT` are what ActQL adds, written in
+the same top-to-bottom order you would explain them. You can switch to pipes
+after any ordinary `SELECT`.
 
 The steps:
 
@@ -106,12 +108,14 @@ Files are read in two steps, and the steps are deliberately separate:
 listing tells you what exists, and reading content is an explicit read of a
 specific version. `LIST_FILES` returns one row per file with `resource`,
 `version` and `path` — metadata only, nothing downloaded. The content is a
-second source, `<connector>.contents`, joined on `resource` and `version`:
+second source, `<connector>.contents`, joined on `resource` and `version`.
+`LIST_FILES` names the listing source (`gcs.objects`, `drive.files`,
+`local.files`); the bare connection is accepted when it has only one:
 
 ```sql
-FROM LIST_FILES(gcs, glob => r'invoices/*.pdf') AS f
+FROM LIST_FILES(gcs.objects, glob => r'invoices/*.pdf') AS f
 |> JOIN gcs.contents AS c ON f.resource = c.resource AND f.version = c.version
-|> SELECT f.path, c.media_type, c.content AS document
+|> SELECT f.path, f.media_type, c.content AS document
 |> RESULT invoices;
 ```
 
@@ -131,7 +135,7 @@ summary of each contract, the category of each attachment — which you can
 join with CRM or warehouse data and write back like any other result:
 
 ```sql
-FROM LIST_FILES(gcs, glob => r'invoices/*.pdf') AS f
+FROM LIST_FILES(gcs.objects, glob => r'invoices/*.pdf') AS f
 |> JOIN gcs.contents AS c ON f.resource = c.resource AND f.version = c.version
 |> INFER `model-task:invoice-fields.v1` INPUT (document = c.content) AS inv
 |> WHERE inv.outcome = 'ok'
@@ -193,8 +197,10 @@ JOIN snowflake.usage_30d AS u ON a.id = u.account_id
 Always check `outcome`. Rows the model could not answer come back with the
 others, so the Program decides what happens to them: filter on
 `outcome = 'ok'` where only answers are useful, and keep a `RESULT` of the
-failed rows where someone should see or retry them. To fail the whole step on
-the first failure instead, add `ON FAILURE FAIL`.
+failed rows where someone should see or retry them. To refuse a partial
+result instead, add `ON FAILURE FAIL`: if any row is still unsuccessful after
+the bounded retries, the step's result is not published, nothing reaches the
+Effect, and the calls already made stay recorded.
 
 ## Searching vectors and graphs
 
@@ -267,15 +273,17 @@ FROM support.cases
 and writes it as an object or file; pointed at a table resource, it stores
 the rows themselves. The preview fixes the destination, the exact content and
 whether an existing object may be replaced. Each Connector page lists what
-it stores and the options it takes.
+it stores and the fields it takes.
 
 Values in an Effect are expressions over the current row. They are evaluated
 before anything is sent, and the evaluated values are what the preview shows
-and the approval covers. In the SQL text a Program declares one Effect, so a
+and the approval covers. The Pipe ends in one data-changing Effect, so a
 Program that reads, judges and writes one thing is the unit you review and
-resume; the [Program model](spec/language.md) carries several Stages and
-Effects when a workflow needs them. Approval covers the whole Effect Set —
-with one Effect, that Effect.
+resume. To notify about the same rows as well, publish them with `RESULT` and
+add Command postludes after the `;` — one per notification; they and the
+Effect form one Effect Set, approved at one Checkpoint
+([Syntax reference](reference/syntax.md#9-effects)). Steps that must run in
+order are Stages in the [Program model](spec/language.md).
 
 ## Running an operation
 
@@ -344,8 +352,9 @@ These apply to people and to agents alike.
    inputs are cheaper, faster and easier to review.
 4. **Check `outcome`** before reading a model's `value`, and decide what
    happens to the rows that failed.
-5. **One Effect per Program, at the end.** A Program that reads, judges and
-   writes one thing is easy to review and to resume.
+5. **One data-changing Effect per Program, at the end.** A Program that reads,
+   judges and writes one thing is easy to review and to resume; notifications
+   about it are Command postludes on its Result, not a second write.
 6. **Make the target identifiable.** Choose writes and operations whose
    target — a key, a resource, a version, a Command contract — the preview
    can show and recovery can check against the system.

@@ -278,8 +278,7 @@ const client = await connect({mode: 'remote', endpoint: 'actql://host.acme.inter
 `endpoint` is an `actql://` connection string or the Host's `https://` URL.
 Connections, credentials, policy and the Store then live on the server; the
 caller holds only a token. Checkpoints created there are approved through the
-same SDK calls or the CLI with `--config` pointing at the remote Host. The
-Program is the same file in both cases.
+same SDK calls. The Program is the same file in both cases.
 
 ActQL Cloud is a managed remote Host: nothing of your own to operate, and room
 for work that does not fit a local machine. It runs the same Core, so a Program

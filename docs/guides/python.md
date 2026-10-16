@@ -57,7 +57,7 @@ For a remote Host:
 ```python
 client = actql.connect(
     mode="remote",
-    endpoint=os.environ["ACTQL_ENDPOINT"],   # https://host.example/
+    endpoint=os.environ["ACTQL_ENDPOINT"],   # actql://host.acme.internal
     token=os.environ["ACTQL_TOKEN"],
 )
 ```

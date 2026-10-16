@@ -200,8 +200,9 @@ accepted has not necessarily been delivered.
 
 - **The target changed.** Right before applying, the Host checks the
   approval and the conditions it was given under. If a `full_diff` Preview no
-  longer matches the current values, the stale approval is not used; the Run
-  produces a new Preview and asks again.
+  longer matches the current values, the stale approval is not reused: the
+  item ends `failed` with `conflict`, and Host policy may offer a new Preview
+  for a fresh approval.
 - **The write failed or its outcome is unknown.** Approval is permission, not
   completion. Each item ends `applied`, `accepted`, `failed` or `unknown`, and
   an unknown outcome is reconciled rather than resent. See

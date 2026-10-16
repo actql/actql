@@ -21,19 +21,23 @@ actql init --template churn-risk-mock churn-risk
 cd churn-risk
 ```
 
-`init` writes six files and a `.actql` directory for the Host's state.
+`init` writes seven files and a `.actql` directory for the Host's state.
 Everything the Run uses is in these files, so the same result comes out on
 any machine — and you can create them by hand just as well. In order:
 
 `actql.config.json` tells the CLI where state and definitions live. The mock
 profile replaces every Connector and the LLM with stand-ins that answer from
-the fixture files named under `mock`. There is no policy file: a Local Host's
-standard policy runs reads and model calls on the connections and tasks you
-configured, and holds every write for approval:
+the fixture files named under `mock`. There is no policy in the project:
+`init` also creates the Host configuration (`~/.config/actql/host.json`) if
+you have none, and without an `account_config` a Local Host's standard
+policy runs reads and `INFER` on the connections and tasks you configured and
+sends every Effect to `effect_policy`, whose default, `review`, holds it for
+approval:
 
 ```json
 {
   "version": "actql-config/0.1",
+  "connectors": "./connectors.json",
   "model_tasks": "./model-tasks.json",
   "state_dir": "./.actql",
   "profile": "mock",
@@ -43,6 +47,11 @@ configured, and holds every write for approval:
   }
 }
 ```
+
+`connectors.json` names the two connections, `salesforce` and `snowflake`,
+and the Connector each one uses. Under the mock profile their credentials are
+never read, so the entries carry none yet; the Connector pages show what to
+add when you point them at real systems.
 
 `model-tasks.json` lists the model tasks the project uses and the model
 providers they may call. The mock profile answers for the provider, so no API
@@ -146,18 +155,18 @@ account, keep the high-risk ones, publish them as the Result `updates`, write
 the risk back. `INFER` needs one row
 per account. `id` is the key of `salesforce.accounts` and `account_id` the key
 of `snowflake.usage_30d`, so each `id` appears once after the join; `check`
-proves this from the declared keys, and refuses the Program if it could not. The same files are in
-the repository under `examples/churn-risk/` if you would rather start from
-there (the Program is `workflow.aql`).
+proves this from the declared keys, and refuses the Program if it could not.
 
 ## 2. Check it
 
-`check` validates names, types and the definitions the Program relies on. It
-reads no data:
+`check` validates names, types and the definitions the Program relies on, and
+says whether the Program is runnable on this Host: a parameter not bound or a
+model task not registered makes it valid but not runnable. It reads no data:
 
 ```text
 $ actql check churn-risk.aql
 Check  ok
+  Runnable  yes
   Sources
     salesforce.accounts   id, description                  read
     snowflake.usage_30d   account_id, active_users, trend  read

@@ -7,8 +7,9 @@ a policy in the loop. The [execution specification](../spec/execution.md)
 defines each rule exactly.
 
 The guarantees here are the ones the specification defines. Which features
-and Hosts implement them today is recorded separately, in the reference
-section's limits and compatibility pages.
+and Hosts implement them today is recorded separately:
+[Implementation status](../reference/status.md) says what runs today, and
+[Runtime limits](../reference/limits.md) lists the default ceilings.
 
 ## TL;DR
 
@@ -236,7 +237,8 @@ Run run_…
   partly typed value.
 - By default, failed rows are returned alongside successful ones, so the
   Program decides what to do with them. `ON FAILURE FAIL` on the `INFER`
-  step fails the whole step instead. Failures are never replaced with defaults.
+  step refuses a partial result instead: the step is not published while any
+  row is unsuccessful, and the calls made stay recorded. Failures are never replaced with defaults.
 - Only transient failures — rate limits, timeouts, provider errors — are
   retried, within fixed bounds. Refusals and invalid responses are not
   retried, and nothing is retried silently.
