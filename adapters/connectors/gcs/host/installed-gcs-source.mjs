@@ -146,9 +146,6 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
       object_name: objectName})});
   };
   const resourceValid = (kind, wire) => {
-    if (kind === 'file_collection') {
-      return !closed && collection !== undefined && wire === collection.resourceWire;
-    }
     if (closed || kind !== 'file' || typeof wire !== 'string' || wire.length > 4096) return false;
     let value;
     try { value = JSON.parse(wire); } catch { return false; }
@@ -158,6 +155,13 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
   };
   const {limits} = installed;
   const referenceIssuer = moon.clientProgramResourceReferenceIssuer(resourceValid, () => !closed);
+  // The escaped reference keeps this actual Site (and its original journal,
+  // context, credential generation and selected runtime) until its last
+  // borrower retires. A failed close invalidates currentness but not custody.
+  const collectionIssuer = collection === undefined ? undefined
+    : moon.clientProgramResourceReferenceIssuer(
+      (kind, wire) => kind === 'file_collection' && wire === collection.resourceWire,
+      wire => !closed && site.referenceCurrent() && wire === collection.resourceWire);
   try {
     const adapter = await createInstalledRowSource({moon, declaration, declared,
       environmentWire: environment.wire, connectorId: installed.connectorId,
@@ -201,7 +205,7 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
         issueOriginalCollectionReference(pair, maxWork) {
           if (closed) fail('GcsCollectionReferenceUnavailable');
           return issueGcsCollectionReference(collection, pair, declaredWire,
-            installed.connectorId, referenceIssuer, {...declarationLimits, maxWork});
+            installed.connectorId, collectionIssuer, {...declarationLimits, maxWork});
         },
       }),
       close() { closed = true; adapter.close(); }});

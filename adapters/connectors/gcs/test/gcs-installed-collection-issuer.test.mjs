@@ -8,8 +8,11 @@ import * as moon from '../../../../_build/js/release/build/connectors_builtin_no
 import * as fixtureMoon from '../../../../_build/js/release/build/connectors/gcs/fixtures/original_reference_node/original_reference_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
+import {installRowSourceAuthorization, openRowSourceCredentialSite} from '../../../host-node/installed-row-source.mjs';
+import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
+import {loadInstalledGcsSource} from '../host/installed-gcs-source.mjs';
 
 const runtimeUrl = new URL('../../../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -55,7 +58,7 @@ async function fixture(t) {
     assert.equal(secrets, 0);
     scratch.passed();
   });
-  return {open};
+  return {open, profile, site, options, scratch};
 }
 
 function originalPair(source) {
@@ -104,4 +107,52 @@ test('a different installed scope cannot substitute its actual Common collection
   await first.close();
   assert.equal(fixtureMoon.fixtureGcsReferenceAvailable(original), true,
     'closing another installation does not retire the original issuer');
+});
+
+test('the same credential Site invalidates reference currentness before failed close and retains close-only retry', async t => {
+  const {profile, site: siteProfile, options, scratch} = await fixture(t);
+  const authorization = await installRowSourceAuthorization({root: scratch.path,
+    principalId: options.principalId, connectorRegistration: 'gcs',
+    accountConfiguration: profile.accountConfigurationWire});
+  const failure = new Error('same original credential journal close failed');
+  let closes = 0;
+  const site = await openRowSourceCredentialSite({profile: {...siteProfile,
+    resourceOrigin: 'https://storage.googleapis.com'}, principalId: options.principalId,
+    authorization, connection: 'gcs:fixture-project/actql-fixture',
+    connectorRegistration: 'gcs', connectorRevision: 'gcs/0.1',
+    runtimeBundleCid: `sha256:${'7'.repeat(64)}`, commonMoon: moon,
+    resolveSecret: options.resolveSecret, admitsApprovalTarget: () => false,
+    openCredentialJournal(root, journalOptions) {
+      const original = openSqliteCredentialJournal(root, journalOptions);
+      return Object.freeze({...original, close() {
+        closes++;
+        if (closes === 1) throw failure;
+        return original.close();
+      }});
+    }});
+  t.after(() => site.close());
+  assert.equal(site.referenceCurrent(), true);
+  assert.throws(() => site.close(), error => error === failure);
+  assert.equal(site.referenceCurrent(), false);
+  assert.equal(closes, 1, 'failed close is not physical release');
+  assert.throws(() => site.issueReadGrant({}), {code: 'RowSourceSiteClosed'});
+  site.close();
+  assert.equal(closes, 2, 'the same original journal owns the retry');
+  assert.equal(site.referenceCurrent(), false);
+});
+
+test('only an explicitly source-only legacy installation can omit the collection provider', async t => {
+  const {profile, options, scratch} = await fixture(t);
+  const missing = {...profile, siteProfilePath: join(scratch.path, 'must-not-be-read.json')};
+  await assert.rejects(loadInstalledGcsSource(missing, {...options,
+    installation: {providerBundle: 'connectors/gcs/host_node'}}),
+  {code: 'GcsCollectionProviderUnavailable'});
+  const legacy = await loadInstalledGcsSource(profile, {...options,
+    runtimeBundleCid: `sha256:${'8'.repeat(64)}`,
+    installation: {registration: 'gcs', revision: 'gcs/0.1', responseHeaders: []}});
+  t.after(() => legacy.close());
+  assert.equal(legacy.issueOriginalCollectionReference, undefined);
+  assert.equal(legacy.publishedStoreTargets, undefined);
+  assert.equal(JSON.parse(legacy.environmentWire).connector_catalogs[0].commands.length, 0);
+  assert.equal(legacy.sourceReadAccesses.length, 2);
 });
