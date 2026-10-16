@@ -35,13 +35,21 @@ pub fn unit() -> Result[Unit, String] {
 ///|
 #export_name("bindingOption")
 pub fn optional(original : Original, present : Bool) -> Original? {
-  if present { Some(original) } else { None }
+  if present {
+    Some(original)
+  } else {
+    None
+  }
 }
 
 ///|
 #export_name("bindingUnitOption")
 pub fn optional_unit(present : Bool) -> Unit? {
-  if present { Some(()) } else { None }
+  if present {
+    Some(())
+  } else {
+    None
+  }
 }
 
 ///|
