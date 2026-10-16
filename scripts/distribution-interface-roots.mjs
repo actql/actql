@@ -2,7 +2,7 @@
 // result: a source entrance is not evidence that a generated binary exists.
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
-import {dirname, relative, resolve} from 'node:path';
+import {basename, dirname, relative, resolve} from 'node:path';
 import {packageEntrances} from './interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
@@ -13,7 +13,7 @@ export function repositoryFiles(root) {
 }
 
 export function npmInterfaceRoots(root, files = repositoryFiles(root)) {
-  return files.filter(path => path.endsWith('package.json') && !isConnectorTestFixture(path))
+  return files.filter(path => basename(path) === 'package.json' && !isConnectorTestFixture(path))
     .flatMap(path => {
       const manifest = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
       const entrances = packageEntrances(manifest, resolve(root, dirname(path)));
