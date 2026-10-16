@@ -5,7 +5,7 @@
   "type": "module",
   "engines": {"node": ">=22"},
   "scripts": {
-    "prepack": "node ../../scripts/build-runtime-packages.mjs local-node && node ../../scripts/build-local-node-adapters.mjs"
+    "prepack": "node ../../scripts/generate-credential-scope-binding.mjs --check && node ../../scripts/build-runtime-packages.mjs local-node && node ../../scripts/build-local-node-adapters.mjs"
   },
   "dependencies": {
     "@actql/client-wire": "0.0.0-development",
