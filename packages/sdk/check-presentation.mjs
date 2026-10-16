@@ -1,3 +1,6 @@
+import {validCheckOutcome} from '@actql/client-wire';
+import {selectCheckReasonPresentation} from './check-reason-catalog.generated.js';
+import {freezeInput, utf8} from './internal/data.mjs';
 // Translation data is separate from wire semantics and checking authority.
 // English Reason defaults come from the generated public catalog; a missing or malformed
 // translation uses that same safe default without changing the observation.
@@ -129,4 +132,179 @@ export function localizeCheck(key, english, options) {
   return Array.isArray(translated) && translated.length === english.length &&
     translated.every(value => typeof value === 'string' && value.length > 0 && value.length <= 2048)
     ? translated : english;
+}
+
+export function explainCheckOutcome(outcome, options) {
+  if (!validCheckOutcome(outcome)) return undefined;
+  const reportExplanation = (report, completeness) => ({completeness,
+    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref,
+    ...(report.omissions === undefined ? {} : {omissions: {...report.omissions}})});
+  if (outcome.outcome === 'completed') {
+    const explanations = {
+      invalid: ['The report establishes an input violation in its checking scope.',
+        'Review the disclosed reasons and correct the submitted revision where indicated.'],
+      verified: ['The report verifies only its selected checking scope and context.',
+        'Use the execution, cancellation and release owners for their respective results.'],
+      undetermined: ['The report cannot establish verification or a proven input violation in its checking scope.',
+        'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
+    };
+    // Capture observation fields before reading application-owned locale options.
+    const report = reportExplanation(outcome.report, 'complete');
+    const [summary, hint] = localizeCheck(`completed.${report.verdict}`,
+      explanations[report.verdict], options);
+    return freezeInput({outcome: 'completed', summary, hint, report});
+  }
+  if (outcome.outcome === 'failed') {
+    const explanations = {
+      check_report_unbounded: ['The reporting budget could not produce a complete bound check report.',
+        'Ask the checking-context owner to review reporting capacity for the original checking scope.'],
+      check_internal: ['An internal checking failure prevented a complete bound check report.',
+        'Ask the checking-context owner to investigate the reporting failure.'],
+    };
+    const known = Object.hasOwn(explanations, outcome.problem.code);
+    const problem = {kind: known ? 'known' : 'unknown', code: outcome.problem.code};
+    const correlationRef = outcome.correlation_ref;
+    const report = outcome.partial_report === undefined ? undefined
+      : reportExplanation(outcome.partial_report, 'partial');
+    const [summary, hint] = localizeCheck(`failed.${known ? problem.code : 'unknown'}`,
+      known ? explanations[problem.code]
+      : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
+        'Ask the checking-context owner to investigate; a partial report does not verify the input.'], options);
+    return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,
+      ...(report === undefined ? {} : {report})});
+  }
+  const problem = {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
+    code: outcome.problem.code};
+  const correlationRef = outcome.correlation_ref;
+  const [summary, hint] = localizeCheck('unavailable',
+    ['The scope and checking context needed for a safe public report are unavailable.',
+      'Ask the checking-context owner to review the published context; this response does not establish an input error.'], options);
+  return freezeInput({outcome: 'unavailable', summary, hint, problem, correlationRef});
+}
+
+
+// Presentation formats consume the disclosed report, never internal causes.
+// Escape untrusted controls and bidi marks without changing source identity.
+
+const checkDisplayString = value => JSON.stringify(value).replace(
+  /[\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
+  character => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
+
+const checkHtml = value => value.replace(/[&<>"']/gu, character =>
+  ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[character]);
+
+const checkAgentJson = value => JSON.stringify(value).replace(
+  /[<>&\u007f-\u009f\u061c\u200e\u200f\u2028-\u202e\u2066-\u2069]/gu,
+  character => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
+
+/** Format a validated public observation without granting actions or input access. */
+
+export function renderCheckOutcome(outcome, options, resolveCheckLocation, resolveCheckTextRangeEncoding) {
+  let snapshot;
+  try {
+    if (!validCheckOutcome(outcome)) return undefined;
+    snapshot = JSON.parse(JSON.stringify(outcome));
+    if (!validCheckOutcome(snapshot)) return undefined;
+  } catch { return undefined; }
+  let format, maxBytes, currentInputs, locale, positionEncoding;
+  try {
+    format = options?.format ?? 'text';
+    maxBytes = options?.maxBytes ?? 65536;
+    currentInputs = options?.currentInputs;
+    positionEncoding = options?.positionEncoding ?? 'utf-16';
+  } catch { return undefined; }
+  try { locale = options?.locale; } catch { locale = 'en'; }
+  if (!['text', 'html', 'json'].includes(format) || !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding) || !Number.isSafeInteger(maxBytes) ||
+      maxBytes < 1024 || maxBytes > 1048576) return undefined;
+  const presentation = getCheckPresentationInfo({locale});
+  const observation = explainCheckOutcome(snapshot, {locale: presentation.locale});
+  const report = snapshot.outcome === 'completed' ? snapshot.report : snapshot.partial_report;
+  const rows = report === undefined ? [] : [
+    ...report.reasons.map(reason => ({kind: 'violation', reason})),
+    ...report.requirements.map(reason => ({kind: 'requirement', reason})),
+    ...report.coverage.limits.map(reason => ({kind: 'limit', reason})),
+    ...report.coverage.unresolved.map(({reason, boundary}) =>
+      ({kind: 'unresolved', reason: {code: reason}, boundary})),
+  ];
+  const entries = [];
+  const model = () => ({observation, presentation, entries, omittedEntries: rows.length - entries.length,
+    reasonSchemaCid: snapshot.reason_schema_cid, outcomeSchemaCid: snapshot.outcome_schema_cid});
+  const line = entry => entry.kind + ': ' + checkDisplayString(entry.code) + ' ' + entry.summary +
+    (entry.hint === undefined ? '' : ' ' + entry.hint) +
+    (entry.facts === undefined ? '' : ' facts=' + checkDisplayString(entry.facts)) +
+    (entry.boundary === undefined ? '' : ' boundary=' + checkDisplayString(entry.boundary)) +
+    (entry.location === undefined ? '' : ' location=' + checkDisplayString(entry.location));
+  const render = () => {
+    if (format === 'json') return checkAgentJson(model());
+    const heading = observation.outcome +
+      (observation.report === undefined ? '' : '/' + observation.report.verdict +
+        ' (' + observation.report.completeness + ')') + ': ' + observation.summary;
+    const binding = observation.report === undefined ?
+      'Correlation: ' + checkDisplayString(observation.correlationRef) :
+      'Scope: ' + observation.report.scope.kind + '; context_ref: ' + checkDisplayString(observation.report.contextRef);
+    const omitted = rows.length - entries.length;
+    const suffix = [omitted ? `Omitted entries: ${omitted}. The observation above is unchanged.` : '',
+      report?.omissions?.requirements ? localizeCheck('omissions.requirements',
+        ['The Host omitted some known input requirements; no omitted count is exposed.',
+          'The verdict still covers the original scope; this requirement list is not a complete supplementation frontier.'],
+        {locale: presentation.locale}).join(' ') : ''].filter(Boolean).join(' ');
+    if (format === 'html') return '<section><h2>' + checkHtml(heading) + '</h2><p>' +
+      checkHtml(observation.hint) + '</p><p>' + checkHtml(binding) + '</p><ol>' + entries.map(entry => '<li>' +
+        checkHtml(line(entry)) + '</li>').join('') + '</ol><p>' + checkHtml(suffix) + '</p></section>';
+    return [heading, observation.hint, binding, ...entries.map(line), suffix].filter(Boolean).join('\n');
+  };
+  let output = render();
+  if (utf8.encode(output).length > maxBytes) return undefined;
+  for (const row of rows) {
+    const explanation = explainCheckReason(row.reason, {locale: presentation.locale});
+    const {kind: explanationKind, ...display} = explanation;
+    const entry = {kind: row.kind, code: row.reason.code, ...display, explanationKind};
+    if (explanation.kind === 'known' && row.reason.facts !== undefined) entry.facts = row.reason.facts;
+    if (row.boundary !== undefined) entry.boundary = row.boundary;
+    try {
+      const location = row.reason.location;
+      const current = currentInputs === undefined ? undefined :
+        Array.isArray(currentInputs) ? currentInputs.find(input => input?.documentId === location?.document_id) : undefined;
+      // An explicitly supplied current-input set never silently uses older input.
+      const resolved = currentInputs !== undefined && current === undefined ? undefined :
+        resolveCheckLocation(outcome, location, current);
+      if (resolved) {
+        entry.location = {kind: resolved.kind, documentId: resolved.document_id, revision: resolved.revision,
+          ...(resolved.kind === 'structured' ? {pointer: resolved.pointer} :
+            {startByte: resolved.start_byte, endByte: resolved.end_byte, precision: resolved.precision})};
+        const range = resolved.kind === 'text' && resolveCheckTextRangeEncoding(outcome, location, positionEncoding, current);
+        if (range) Object.assign(entry.location, {positionEncoding: range.positionEncoding, range: range.range});
+      }
+    } catch { /* Missing or malformed editor input cannot hide safe explanations. */ }
+    entries.push(entry);
+    const candidate = render();
+    if (utf8.encode(candidate).length > maxBytes) { entries.pop(); break; }
+    output = candidate;
+  }
+  return output;
+}
+
+// Reason presentation does not decide the report's verdict or outcome branch.
+
+export function explainCheckReason(reason, options) {
+  const display = selectCheckReasonPresentation(reason);
+  if (display) {
+    const [summary, hint] = localizeCheck(display.key, display.english, options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+  const [summary] = localizeCheck('reason.unknown', ['No supported explanation is available for this reason.'], options);
+  return Object.freeze({kind: 'unknown', summary});
+}
+
+export function presentCheckFailure(failure, options) {
+  const messages = {
+    unknown_outcome: ['The check reply contains an outcome this SDK cannot interpret.',
+      'Review Host and SDK contract support; this observation establishes no check verdict or retry permission.'],
+    contract_mismatch: ['The check reply does not match this SDK’s registered protocol identities.',
+      'Use matching Host and SDK contracts; the rejected reply establishes no check verdict.'],
+    malformed_response: ['The check reply violates the registered response contract or original input binding.',
+      'Ask the Host owner to investigate the protocol failure; it is not a diagnosed source error.'],
+  };
+  const [summary, hint] = localizeCheck(`protocol.${failure.problem}`, messages[failure.problem], options);
+  return freezeInput({kind: failure.kind, problem: failure.problem, summary, hint});
 }
