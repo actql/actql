@@ -64,7 +64,11 @@ function page(body, target, maximum) {
   // the common listing owner, not this provider transport.
   for (const item of items) {
     if (!object(item) || item.bucket !== target.bucket ||
-        !text(item.name, 1024) || !item.name.startsWith(target.prefix) ||
+        // Keep the original JSON object name, including legal controls.
+        // XML/CLI compatibility advice is not a listing naming restriction.
+        typeof item.name !== 'string' || item.name.length === 0 ||
+        !item.name.isWellFormed() || /[\r\n]/u.test(item.name) ||
+        Buffer.byteLength(item.name) > 1024 || !item.name.startsWith(target.prefix) ||
         typeof item.generation !== 'string' || !/^[1-9][0-9]{0,19}$/u.test(item.generation) ||
         typeof item.size !== 'string' || !/^(0|[1-9][0-9]{0,19})$/u.test(item.size) ||
         BigInt(item.size) > BigInt(Number.MAX_SAFE_INTEGER) ||
