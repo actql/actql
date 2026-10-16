@@ -1,0 +1,13 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/snowflake/catalog" @response,
+  "actql/actql/client_row_source_host" @rows,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+}
