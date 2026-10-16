@@ -69,9 +69,18 @@ test('installed completion observer receives the exact core output only after pu
   const installed = installCompletionObserver(value => { seen.push(value); });
   assert.throws(() => completionObserver({...installed}), /ForeignCompletionObserver/);
   assert.throws(() => completionObserver(() => {}), /ForeignCompletionObserver/);
-  const result = await runInstalledStrategy(f.setup, f.core, [{registration,
-    run() { f.complete.add(1); return {output: fake, diagnostic: {output: fake}}; },
-  }], undefined, completionObserver(installed));
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{registration,
+        run() { f.complete.add(1); return {output: fake, diagnostic: {output: fake}}; },
+      }],
+    },
+    control: {
+      observeCompletion: completionObserver(installed),
+    },
+  });
   assert.equal(result.status, 'host-tasks-completed');
   assert.equal(seen.length, 1);
   assert.equal(seen[0].task, 1);
@@ -97,12 +106,21 @@ test('installed task-start observer precedes Compute and cannot replace its sele
   });
   assert.throws(() => taskStartObserver({...installed}), /ForeignCompletionObserver/);
   assert.throws(() => installCompletionObserver(() => {}, {}), /InvalidTaskStartObserver/);
-  const result = await runInstalledStrategy(f.setup, f.core, [{registration,
-    managedSelectionKey: 'actual-registration', run(task) {
-      order.push('compute'); assert.equal(task.index, 1); f.complete.add(1);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{registration,
+        managedSelectionKey: 'actual-registration', run(task) {
+          order.push('compute'); assert.equal(task.index, 1); f.complete.add(1);
+        },
+      }],
     },
-  }], undefined, completionObserver(installed), undefined, undefined, undefined,
-  taskStartObserver(installed));
+    control: {
+      observeCompletion: completionObserver(installed),
+      observeTaskStart: taskStartObserver(installed),
+    },
+  });
   assert.equal(result.status, 'host-tasks-completed');
   assert.deepEqual(order, ['selected', 'compute', 'completed']);
   assert(Number.isFinite(result.completed[0].plannerObserverMilliseconds));
@@ -120,10 +138,20 @@ test('installed task-start observer failure or AbortSignal stops before physical
       if (kind === 'failure') throw reason;
       controller.abort(reason);
     });
-    const result = await runInstalledStrategy(f.setup, f.core, [{registration,
-      run() { compute++; f.complete.add(1); }, finish() { finished++; },
-    }], controller.signal, completionObserver(installed), undefined, undefined,
-    undefined, taskStartObserver(installed));
+    const result = await runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: [{registration,
+          run() { compute++; f.complete.add(1); }, finish() { finished++; },
+        }],
+      },
+      control: {
+        signal: controller.signal,
+        observeCompletion: completionObserver(installed),
+        observeTaskStart: taskStartObserver(installed),
+      },
+    });
     assert.equal(result.status, 'host-tasks-failed');
     assert.equal(result.failure, reason);
     assert.equal(compute, 0);
@@ -164,10 +192,16 @@ test('installed Host snapshots the checked Program and Result inventory', async 
   ];
   f.core.programDefinitionCid = () => programDefinitionCid;
   f.core.resultInventory = () => inventory;
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration,
-    run() { f.complete.add(1); },
-  }]);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        run() { f.complete.add(1); },
+      }],
+    },
+  });
   inventory[0].name = 'changed';
   inventory.push({name: 'third', task: 1});
   assert.equal(result.programDefinitionCid, programDefinitionCid);
@@ -216,29 +250,30 @@ test('publication preflight finishes before any Compute contribution starts',
     }];
     let runs = 0;
     const preflight = Object.freeze({kind: 'publication-preflight'});
-    const result = await runInstalledStrategy(
-      admitted.setup,
-      admitted.core,
-      [{
-        registration,
-        run() {
-          runs++;
-          admitted.complete.add(1);
-        },
-      }],
-      undefined,
-      undefined,
-      undefined,
-      facts => {
-        assert.equal(runs, 0);
-        assert.equal(facts.programDefinitionCid, programDefinitionCid);
-        assert.deepEqual(facts.resultInventory, [
-          {name: 'answer', task: 1},
-        ]);
-        assert.equal(facts.publicationInventory.occurrences.length, 1);
-        return preflight;
+    const result = await runInstalledStrategy({
+      setup: admitted.setup,
+      runtime: {
+        core: admitted.core,
+        contributions: [{
+          registration,
+          run() {
+            runs++;
+            admitted.complete.add(1);
+          },
+        }],
       },
-    );
+      publication: {
+        beforeCompute: facts => {
+          assert.equal(runs, 0);
+          assert.equal(facts.programDefinitionCid, programDefinitionCid);
+          assert.deepEqual(facts.resultInventory, [
+            {name: 'answer', task: 1},
+          ]);
+          assert.equal(facts.publicationInventory.occurrences.length, 1);
+          return preflight;
+        },
+      },
+    });
     assert.equal(runs, 1);
     assert.equal(result.publicationPreflight, preflight);
     result.close();
@@ -247,21 +282,22 @@ test('publication preflight finishes before any Compute contribution starts',
     rejected.core.programDefinitionCid = () => programDefinitionCid;
     rejected.core.resultInventory = admitted.core.resultInventory;
     let rejectedRuns = 0;
-    await assert.rejects(runInstalledStrategy(
-      rejected.setup,
-      rejected.core,
-      [{
-        registration,
-        run() {
-          rejectedRuns++;
-          rejected.complete.add(1);
-        },
-      }],
-      undefined,
-      undefined,
-      undefined,
-      () => { throw new Error('publication capacity rejected'); },
-    ), /publication capacity rejected/u);
+    await assert.rejects(runInstalledStrategy({
+      setup: rejected.setup,
+      runtime: {
+        core: rejected.core,
+        contributions: [{
+          registration,
+          run() {
+            rejectedRuns++;
+            rejected.complete.add(1);
+          },
+        }],
+      },
+      publication: {
+        beforeCompute: () => { throw new Error('publication capacity rejected'); },
+      },
+    }), /publication capacity rejected/u);
     assert.equal(rejectedRuns, 0);
     assert.equal(rejected.stopped(), 1);
   });
@@ -287,10 +323,16 @@ test('standard Host owns publication control and exact execution binding', async
       wire: '{}',
     }),
   }];
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration,
-    run() { f.complete.add(1); },
-  }]);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        run() { f.complete.add(1); },
+      }],
+    },
+  });
   await assert.rejects(
     result.publishEffectFreeRun({}, {control: {}}, undefined),
     {code: 'InvalidRunPublicationRequest'},
@@ -311,10 +353,16 @@ test('Effectful computation cannot use Effect-free publication', async () => {
   f.core.programHasEffects = () => true;
   const programDefinitionCid = `sha256:${'1'.repeat(64)}`;
   f.core.programDefinitionCid = () => programDefinitionCid;
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration,
-    run() { f.complete.add(1); },
-  }]);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        run() { f.complete.add(1); },
+      }],
+    },
+  });
   assert.deepEqual(result.resultInventory, []);
   assert.deepEqual(result.publicationInventory, {
     programDefinitionCid, occurrences: [], requestInventory: [],
@@ -330,9 +378,15 @@ test('Effectful computation cannot use Effect-free publication', async () => {
 test('Effect-only computation cannot lose its Program Definition identity', async () => {
   const registration = {}, f = fixture([registration]);
   f.core.programHasEffects = () => true;
-  await assert.rejects(runInstalledStrategy(f.setup, f.core, [{
-    registration, run() { assert.fail('No Compute without a checked identity'); },
-  }]), {code: 'InvalidCheckedResultInventory'});
+  await assert.rejects(runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration, run() { assert.fail('No Compute without a checked identity'); },
+      }],
+    },
+  }), {code: 'InvalidCheckedResultInventory'});
   assert.equal(f.complete.size, 0);
 });
 
@@ -340,10 +394,16 @@ test('checked Results cannot lose their Program Definition identity', async () =
   const registration = {}, f = fixture([registration]);
   f.core.resultInventory = () => [{name: 'r', task: 1, definition: {}}];
   await assert.rejects(
-    runInstalledStrategy(f.setup, f.core, [{
-      registration,
-      run() { f.complete.add(1); },
-    }]),
+    runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: [{
+          registration,
+          run() { f.complete.add(1); },
+        }],
+      },
+    }),
     {code: 'InvalidCheckedResultInventory'},
   );
 });
@@ -351,8 +411,16 @@ test('checked Results cannot lose their Program Definition identity', async () =
 test('resolved connector callback without common completion cannot issue an observed output', async () => {
   const registration = {}, f = fixture([registration]);
   let observed = 0;
-  const result = await runInstalledStrategy(f.setup, f.core, [{registration, run() { return {output: {}}; }}],
-    undefined, () => { observed++; });
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{registration, run() { return {output: {}}; }}],
+    },
+    control: {
+      observeCompletion: () => { observed++; },
+    },
+  });
   assert.equal(result.failure.code, 'TaskNotCompleted');
   assert.equal(observed, 0);
   result.close();
@@ -362,9 +430,18 @@ test('failed completion delivery stops future work but preserves completed outpu
   for (const reason of [undefined, null, new Error('delivery failed')]) {
     const registration = {}, f = fixture([registration, registration]);
     let started = 0, finished = 0;
-    const result = await runInstalledStrategy(f.setup, f.core, [{registration,
-      run(task) { started++; f.complete.add(task.index); }, finish() { finished++; },
-    }], undefined, () => Promise.reject(reason));
+    const result = await runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: [{registration,
+          run(task) { started++; f.complete.add(task.index); }, finish() { finished++; },
+        }],
+      },
+      control: {
+        observeCompletion: () => Promise.reject(reason),
+      },
+    });
     assert.equal(result.status, 'host-tasks-failed');
     assert.equal(result.failure, reason);
     assert.equal(started, 1);
@@ -383,9 +460,19 @@ test('cancellation while delivering completed output cannot start another task',
   let entered, release, started = 0;
   const observing = new Promise(resolve => { entered = resolve; });
   const waiting = new Promise(resolve => { release = resolve; });
-  const pending = runInstalledStrategy(f.setup, f.core, [{registration,
-    run(task) { started++; f.complete.add(task.index); },
-  }], controller.signal, async () => { entered(); await waiting; });
+  const pending = runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{registration,
+        run(task) { started++; f.complete.add(task.index); },
+      }],
+    },
+    control: {
+      signal: controller.signal,
+      observeCompletion: async () => { entered(); await waiting; },
+    },
+  });
   await observing;
   controller.abort();
   release();
@@ -412,7 +499,16 @@ test('cancellation after preparation or task selection stops normal work but fin
       async beforeNext() { preparations++; if (phase === 'preparation' && index === 0) await wait; },
       run() { executions++; }, finish() { finishes++; },
     }));
-    const pending = runInstalledStrategy(f.setup,f.core,entries,abort.signal);
+    const pending = runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: entries,
+      },
+      control: {
+        signal: abort.signal,
+      },
+    });
     if (phase === 'preparation') { abort.abort(); resumes(); }
     const result = await pending;
     assert.equal(result.status,'host-tasks-failed');
@@ -437,7 +533,7 @@ test('opaque registrations choose installed execution without a backend classifi
       return {diagnostic: {realization: `implementation-${id}`, task: 999}};
     },
   }));
-  const result = await runInstalledStrategy(f.setup, f.core, entries);
+  const result = await runInstalledStrategy({setup: f.setup, runtime: {core: f.core, contributions: entries}});
   assert.equal(result.status, 'host-tasks-completed');
   assert.deepEqual(calls, [0, 2, 1]);
   assert.deepEqual(result.completed.map(value => value.task), [1, 2, 3]);
@@ -485,7 +581,7 @@ test('managed equal-cost choice is stable when installation order is reversed', 
       },
     }));
     if (reverse) entries.reverse();
-    const result = await runInstalledStrategy(setup, core, entries);
+    const result = await runInstalledStrategy({setup, runtime: {core, contributions: entries}});
     assert.equal(result.status, 'host-tasks-completed');
     assert.equal(ran, 'a');
     assert.equal(selected, registrations.a);
@@ -530,7 +626,7 @@ test('a checked source-free root enters the installed managed task lifecycle',
         return {completed: output, material: {}};
       },
     };
-    const result = await runInstalledStrategy(setup, core, [entry]);
+    const result = await runInstalledStrategy({setup, runtime: {core, contributions: [entry]}});
     assert.equal(result.status, 'host-tasks-completed',
       result.failure?.code ?? result.failure?.message);
     assert.equal(starts, 1);
@@ -574,7 +670,7 @@ test('managed choice compares known cost before its stable registration key', as
       return {completed: {}, material: {}};
     },
   }));
-  const result = await runInstalledStrategy(setup, core, entries);
+  const result = await runInstalledStrategy({setup, runtime: {core, contributions: entries}});
   assert.equal(result.status, 'host-tasks-completed');
   assert.equal(ran, 'cheap');
   assert(result.candidateExclusions.some(value =>
@@ -686,9 +782,7 @@ test('Site startup and Transfer costs participate in standard managed choice', a
         copy() { assert.fail('candidate comparison must not perform Transfer I/O'); },
       }),
     });
-    const result = await runInstalledStrategy(
-      setup, core, entries, undefined, undefined, policy,
-    );
+    const result = await runInstalledStrategy({setup, runtime: {core, contributions: entries, sitePolicy: policy}});
     assert.equal(result.status, 'host-tasks-failed');
     assert.equal(result.failure?.code, 'ObservedSelectedExecutionSite');
     assert.equal(selected.length, 2);
@@ -710,15 +804,27 @@ test('equal names in foreign registration and callback success cannot publish co
   const registration = {name: 'same'};
   const foreign = fixture([{name: 'same'}]);
   let called = false;
-  const rejected = await runInstalledStrategy(foreign.setup, foreign.core, [{
-    registration, run() { called = true; },
-  }]);
+  const rejected = await runInstalledStrategy({
+    setup: foreign.setup,
+    runtime: {
+      core: foreign.core,
+      contributions: [{
+        registration, run() { called = true; },
+      }],
+    },
+  });
   assert.equal(rejected.failure.code, 'MissingStrategyImplementation');
   assert.equal(called, false);
   const incomplete = fixture([registration]);
-  const result = await runInstalledStrategy(incomplete.setup, incomplete.core, [{
-    registration, async run() { return {diagnostic: {realization: 'success'}}; },
-  }]);
+  const result = await runInstalledStrategy({
+    setup: incomplete.setup,
+    runtime: {
+      core: incomplete.core,
+      contributions: [{
+        registration, async run() { return {diagnostic: {realization: 'success'}}; },
+      }],
+    },
+  });
   assert.equal(result.failure.code, 'TaskNotCompleted');
   assert.deepEqual(result.completed, []);
   assert.equal(incomplete.stopped(), 1);
@@ -731,15 +837,21 @@ test('installation snapshots callbacks before awaits and rejects duplicate entri
   const wait = new Promise(resolve => { resume = resolve; });
   const entry = {registration, beforeNext: () => wait, run(task) { f.complete.add(task.index); }};
   const entries = [entry];
-  const running = runInstalledStrategy(f.setup, f.core, entries);
+  const running = runInstalledStrategy({setup: f.setup, runtime: {core: f.core, contributions: entries}});
   entry.run = () => assert.fail('replaced callback');
   f.core.next = () => assert.fail('replaced core');
   entries.length = 0;
-  await assert.rejects(runInstalledStrategy(f.setup, f.core, []), {code: 'StrategyAlreadyRunning'});
+  await assert.rejects(runInstalledStrategy({setup: f.setup, runtime: {core: f.core, contributions: []}}), {code: 'StrategyAlreadyRunning'});
   resume();
   assert.equal((await running).status, 'host-tasks-completed');
   const duplicate = fixture([]);
-  await assert.rejects(runInstalledStrategy(duplicate.setup, duplicate.core, [entry, entry]),
+  await assert.rejects(runInstalledStrategy({
+    setup: duplicate.setup,
+    runtime: {
+      core: duplicate.core,
+      contributions: [entry, entry],
+    },
+  }),
     {code: 'InvalidStrategyInstallation'});
   assert.equal(duplicate.stopped(), 0);
 });
@@ -752,16 +864,22 @@ test('failure stops later tasks and cleanup confirmation does not retry executio
     status: () => ({pending}),
     async retry() { retries++; pending = false; },
   };
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration,
-    run(task) {
-      calls++;
-      if (task.index === 2) throw Object.assign(new Error('failed'), {cleanupHandle});
-      f.complete.add(task.index);
-      return {close() { outputClosed++; }};
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        run(task) {
+          calls++;
+          if (task.index === 2) throw Object.assign(new Error('failed'), {cleanupHandle});
+          f.complete.add(task.index);
+          return {close() { outputClosed++; }};
+        },
+        finish() { finished++; },
+      }],
     },
-    finish() { finished++; },
-  }]);
+  });
   assert.equal(calls, 2);
   assert.equal(finished, 1);
   assert.equal(result.output(1), 1);
@@ -797,14 +915,14 @@ test('unconfirmed execution cleanup cannot release Site capacity or teardown', a
       cleanupPending: true,
     });
     if (cleanupHandle !== undefined) failure.cleanupHandle = cleanupHandle;
-    const result = await runInstalledStrategy(
-      f.setup,
-      f.core,
-      [{registration, managedSelectionKey: name, run() { throw failure; }}],
-      undefined,
-      undefined,
-      prepareExecutionSitePolicy({sites: [selectedSite]}),
-    );
+    const result = await runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: [{registration, managedSelectionKey: name, run() { throw failure; }}],
+        sitePolicy: prepareExecutionSitePolicy({sites: [selectedSite]}),
+      },
+    });
     assert.equal(result.status, 'host-tasks-failed');
     assert.equal(result.cleanupPending(), true);
     assert.deepEqual(executionSiteStatus(selectedSite), {
@@ -847,23 +965,23 @@ test('confirmed execution cleanup releases Site capacity exactly once', async ()
       return this.status();
     },
   });
-  const result = await runInstalledStrategy(
-    f.setup,
-    f.core,
-    [{
-      registration,
-      managedSelectionKey: 'confirmed-cleanup',
-      run() {
-        throw Object.assign(new Error('cleanup pending'), {
-          cleanupPending: true,
-          cleanupHandle,
-        });
-      },
-    }],
-    undefined,
-    undefined,
-    prepareExecutionSitePolicy({sites: [selectedSite]}),
-  );
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        managedSelectionKey: 'confirmed-cleanup',
+        run() {
+          throw Object.assign(new Error('cleanup pending'), {
+            cleanupPending: true,
+            cleanupHandle,
+          });
+        },
+      }],
+      sitePolicy: prepareExecutionSitePolicy({sites: [selectedSite]}),
+    },
+  });
   assert.equal(executionSiteStatus(selectedSite).activeOperations, 1);
   assert.equal(await result.cleanup(), true);
   assert.equal(retries, 1);
@@ -881,13 +999,19 @@ test('result close attempts every release even if one implementation fails', asy
   const registration = {};
   const f = fixture([registration, registration]);
   const released = [];
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration,
-    run(task) {
-      f.complete.add(task.index);
-      return {close() { released.push(task.index); if (task.index === 1) throw new Error('close'); }};
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        run(task) {
+          f.complete.add(task.index);
+          return {close() { released.push(task.index); if (task.index === 1) throw new Error('close'); }};
+        },
+      }],
     },
-  }]);
+  });
   assert.throws(() => result.close(), /close/);
   assert.deepEqual(released, [1, 2]);
   assert.equal(f.closed(), 1);
@@ -926,9 +1050,7 @@ test('Site teardown waits for retained result reclamation and its retry', async 
       },
     });
   };
-  const result = await runInstalledStrategy(
-    f.setup, f.core, [contribution], undefined, undefined, sitePolicy,
-  );
+  const result = await runInstalledStrategy({setup: f.setup, runtime: {core: f.core, contributions: [contribution], sitePolicy}});
   assert.equal(result.status, 'host-tasks-completed');
   assert.equal(beginExecutionSiteTeardown(selectedSite).teardownComplete, false);
   assert.throws(() => result.close(), /retained cleanup pending/);
@@ -951,20 +1073,20 @@ test('legacy dispatch enforces Site bytes and retains Core-owned output', async 
   const rejected = fixture([registration]);
   rejected.core.taskCapacity = () => [6n, 0n];
   let dispatched = false;
-  const denied = await runInstalledStrategy(
-    rejected.setup,
-    rejected.core,
-    [{
-      registration,
-      run() {
-        dispatched = true;
-        rejected.complete.add(1);
-      },
-    }],
-    undefined,
-    undefined,
-    rejectedPolicy,
-  );
+  const denied = await runInstalledStrategy({
+    setup: rejected.setup,
+    runtime: {
+      core: rejected.core,
+      contributions: [{
+        registration,
+        run() {
+          dispatched = true;
+          rejected.complete.add(1);
+        },
+      }],
+      sitePolicy: rejectedPolicy,
+    },
+  });
   assert.equal(denied.failure?.code, 'ExecutionSiteCapacityEstimateExceeded');
   assert.equal(dispatched, false);
   assert.equal(executionSiteStatus(rejectedSite).reservedRetentionBytes, 0n);
@@ -980,14 +1102,14 @@ test('legacy dispatch enforces Site bytes and retains Core-owned output', async 
   const output = {};
   retained.core.taskCapacity = () => [4n, 0n];
   retained.core.output = () => output;
-  const completed = await runInstalledStrategy(
-    retained.setup,
-    retained.core,
-    [{registration, run() { retained.complete.add(1); }}],
-    undefined,
-    undefined,
-    retainedPolicy,
-  );
+  const completed = await runInstalledStrategy({
+    setup: retained.setup,
+    runtime: {
+      core: retained.core,
+      contributions: [{registration, run() { retained.complete.add(1); }}],
+      sitePolicy: retainedPolicy,
+    },
+  });
   assert.equal(completed.status, 'host-tasks-completed');
   assert.equal(executionSiteStatus(retainedSite).heldBytes, 4n);
   assert.equal(beginExecutionSiteTeardown(retainedSite).teardownComplete, false);
@@ -1002,21 +1124,21 @@ test('legacy dispatch compares every placement before reserving or starting', as
     const registration = {};
     const f = fixture([registration]);
     f.core.taskCapacity = () => capacity;
-    const result = await runInstalledStrategy(
-      f.setup,
-      f.core,
-      [{
-        registration,
-        managedSelectionKey: `legacy-${name}`,
-        run(task) { f.complete.add(task.index); },
-      }],
-      undefined,
-      undefined,
-      prepareExecutionSitePolicy({
-        sites,
-        placements: new Map([[`legacy-${name}`, placements]]),
-      }),
-    );
+    const result = await runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: [{
+          registration,
+          managedSelectionKey: `legacy-${name}`,
+          run(task) { f.complete.add(task.index); },
+        }],
+        sitePolicy: prepareExecutionSitePolicy({
+          sites,
+          placements: new Map([[`legacy-${name}`, placements]]),
+        }),
+      },
+    });
     assert.equal(result.status, 'host-tasks-completed');
     assert.equal(result.completed[0].executionSite.key,
       executionSiteStatus(expected).key);
@@ -1131,22 +1253,25 @@ test('legacy completion permit rejects forced revocation but not graceful teardo
     });
     const f = fixture([registration]);
     let observed = 0;
-    const result = await runInstalledStrategy(
-      f.setup,
-      f.core,
-      [{
-        registration,
-        run(task, _signal, permit) {
-          if (forced) revokeExecutionSite(selectedSite);
-          else beginExecutionSiteTeardown(selectedSite);
-          permit.assertAvailable();
-          f.complete.add(task.index);
-        },
-      }],
-      undefined,
-      () => { observed++; },
-      prepareExecutionSitePolicy({sites: [selectedSite]}),
-    );
+    const result = await runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: [{
+          registration,
+          run(task, _signal, permit) {
+            if (forced) revokeExecutionSite(selectedSite);
+            else beginExecutionSiteTeardown(selectedSite);
+            permit.assertAvailable();
+            f.complete.add(task.index);
+          },
+        }],
+        sitePolicy: prepareExecutionSitePolicy({sites: [selectedSite]}),
+      },
+      control: {
+        observeCompletion: () => { observed++; },
+      },
+    });
     assert.equal(result.status,
       forced ? 'host-tasks-failed' : 'host-tasks-completed');
     assert.equal(f.complete.has(1), !forced);
@@ -1172,19 +1297,25 @@ test('cleanup advances a stopped reader before awaiting its retained output clos
       return this.status();
     },
   });
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration,
-    run(task) {
-      if (task.index === 1) {
-        f.complete.add(task.index);
-        return {close: () => closeWait};
-      }
-      throw Object.assign(new Error('reader stop pending'), {
-        cleanupPending: true,
-        cleanupHandle,
-      });
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        run(task) {
+          if (task.index === 1) {
+            f.complete.add(task.index);
+            return {close: () => closeWait};
+          }
+          throw Object.assign(new Error('reader stop pending'), {
+            cleanupPending: true,
+            cleanupHandle,
+          });
+        },
+      }],
     },
-  }]);
+  });
   assert.equal(result.status, 'host-tasks-failed');
   const closing = result.close();
   assert(closing instanceof Promise);
@@ -1257,10 +1388,14 @@ test('early managed release recovery also releases its Site holding', async () =
         };
       },
     };
-    const result = await runInstalledStrategy(
-      {}, core, [contribution], undefined, undefined,
-      prepareExecutionSitePolicy({sites: [selectedSite]}),
-    );
+    const result = await runInstalledStrategy({
+      setup: {},
+      runtime: {
+        core,
+        contributions: [contribution],
+        sitePolicy: prepareExecutionSitePolicy({sites: [selectedSite]}),
+      },
+    });
     assert.equal(result.status, 'host-tasks-failed');
     assert.equal(result.cleanupPending(), true);
     const closing = result.close();
@@ -1322,10 +1457,14 @@ test('early managed release without recovery remains explicitly unconfirmed', as
         };
       },
     };
-    const result = await runInstalledStrategy(
-      {}, core, [contribution], undefined, undefined,
-      prepareExecutionSitePolicy({sites: [selectedSite]}),
-    );
+    const result = await runInstalledStrategy({
+      setup: {},
+      runtime: {
+        core,
+        contributions: [contribution],
+        sitePolicy: prepareExecutionSitePolicy({sites: [selectedSite]}),
+      },
+    });
     assert.equal(result.status, 'host-tasks-failed');
     assert.equal(result.cleanupPending(), true);
     await result.close();
@@ -1342,20 +1481,26 @@ test('reasonless and non-Error failures preserve the first payload across every 
       const registration = {}, unused = {};
       const f = fixture([registration, registration]);
       let runs = 0, finishes = 0;
-      const result = await runInstalledStrategy(f.setup, f.core, [{
-        registration,
-        beforeNext() { if (phase === 'beforeNext') return Promise.reject(payload); },
-        run(task) {
-          runs++;
-          if (phase === 'run') return Promise.reject(payload);
-          f.complete.add(task.index);
+      const result = await runInstalledStrategy({
+        setup: f.setup,
+        runtime: {
+          core: f.core,
+          contributions: [{
+            registration,
+            beforeNext() { if (phase === 'beforeNext') return Promise.reject(payload); },
+            run(task) {
+              runs++;
+              if (phase === 'run') return Promise.reject(payload);
+              f.complete.add(task.index);
+            },
+            finish() { finishes++; if (phase === 'finish') return Promise.reject(payload); },
+          }, {
+            registration: unused,
+            run() { assert.fail('unused'); },
+            finish() { finishes++; throw new Error('secondary'); },
+          }],
         },
-        finish() { finishes++; if (phase === 'finish') return Promise.reject(payload); },
-      }, {
-        registration: unused,
-        run() { assert.fail('unused'); },
-        finish() { finishes++; throw new Error('secondary'); },
-      }]);
+      });
       assert.equal(result.status, 'host-tasks-failed');
       assert.equal(result.failure, payload);
       assert.equal(runs, phase === 'beforeNext' ? 0 : phase === 'run' ? 1 : 2);
@@ -1378,10 +1523,16 @@ test('close recovery retains all handles, attempts every retry and never repeats
   }));
   const release = i => { closes[i]++; throw Object.assign(new Error(`close ${i}`), {cleanupHandle: handles[i]}); };
   f.core.closeOutputs = () => release(2);
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration,
-    run(task) { f.complete.add(task.index); return {close: () => release(task.index - 1)}; },
-  }]);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        run(task) { f.complete.add(task.index); return {close: () => release(task.index - 1)}; },
+      }],
+    },
+  });
   assert.throws(() => result.close(), /close 0/);
   assert.throws(() => result.output(1), {code: 'ReleasedStrategy'});
   assert.deepEqual(closes, [1, 1, 1]);
@@ -1413,19 +1564,25 @@ test('dependent output cleanup preserves responsibility across explicit passes',
     retries[1]++;
     sourcePending = false;
   }};
-  const result = await runInstalledStrategy(f.setup, f.core, [{registration,
-    run(task) {
-      runs++;
-      f.complete.add(task.index);
-      return {close() {
-        closes[task.index - 1]++;
-        throw Object.assign(new Error(`pending ${task.index}`), {
-          cleanupPending: true,
-          cleanupHandle: task.index === 1 ? output : source,
-        });
-      }};
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{registration,
+        run(task) {
+          runs++;
+          f.complete.add(task.index);
+          return {close() {
+            closes[task.index - 1]++;
+            throw Object.assign(new Error(`pending ${task.index}`), {
+              cleanupPending: true,
+              cleanupHandle: task.index === 1 ? output : source,
+            });
+          }};
+        },
+      }],
     },
-  }]);
+  });
   assert.throws(() => result.close(), /pending 1/);
   assert.equal(await result.cleanup(), false);
   assert.equal(result.cleanupPending(), true);
@@ -1444,13 +1601,19 @@ test('reasonless release failure remains unconfirmed without guessing a safe ret
     const registration = {}, f = fixture([registration]);
     let closes = 0;
     if (phase === 'core') f.core.closeOutputs = () => { closes++; throw undefined; };
-    const result = await runInstalledStrategy(f.setup, f.core, [{
-      registration,
-      run(task) {
-        f.complete.add(task.index);
-        return {close() { if (phase === 'output') { closes++; throw undefined; } }};
+    const result = await runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: [{
+          registration,
+          run(task) {
+            f.complete.add(task.index);
+            return {close() { if (phase === 'output') { closes++; throw undefined; } }};
+          },
+        }],
       },
-    }]);
+    });
     let threw = false;
     try { result.close(); } catch (error) { threw = true; assert.equal(error, undefined); }
     assert.equal(threw, true);
@@ -1466,10 +1629,16 @@ test('concurrent cleanup calls share the same in-flight recovery', async () => {
   let pending = true, retries = 0, resume;
   const wait = new Promise(resolve => { resume = resolve; });
   const handle = {status: () => ({pending}), async retry() { retries++; await wait; pending = false; }};
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration,
-    run(task) { f.complete.add(task.index); return {close() { throw {cleanupHandle: handle}; }}; },
-  }]);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        run(task) { f.complete.add(task.index); return {close() { throw {cleanupHandle: handle}; }}; },
+      }],
+    },
+  });
   assert.throws(() => result.close());
   const first = result.cleanup(), second = result.cleanup();
   assert.equal(first, second);
@@ -1484,10 +1653,16 @@ test('asynchronous output close stays pending until all releases and explicit re
   const wait = new Promise(resolve => { resume = resolve; });
   const handle = {status: () => ({pending}), retry() { retries++; pending = false; }};
   const failure = Object.assign(new Error('file cleanup failed'), {cleanupHandle: handle});
-  const result = await runInstalledStrategy(f.setup, f.core, [{registration, run(task) {
-    f.complete.add(task.index);
-    return {async close() { closes++; await wait; if (task.index === 1) throw failure; }};
-  }}]);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{registration, run(task) {
+        f.complete.add(task.index);
+        return {async close() { closes++; await wait; if (task.index === 1) throw failure; }};
+      }}],
+    },
+  });
   const closing = result.close();
   assert.equal(result.close(), closing);
   assert.equal(closes, 2);
@@ -1512,10 +1687,16 @@ test('reasonless asynchronous close is not forgotten or implicitly retried', asy
   for (const reason of [undefined, null]) {
     const registration = {}, f = fixture([registration]);
     let closes = 0;
-    const result = await runInstalledStrategy(f.setup, f.core, [{registration, run(task) {
-      f.complete.add(task.index);
-      return {close() { closes++; return Promise.reject(reason); }};
-    }}]);
+    const result = await runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: [{registration, run(task) {
+          f.complete.add(task.index);
+          return {close() { closes++; return Promise.reject(reason); }};
+        }}],
+      },
+    });
     await assert.rejects(result.close(), error => error === reason);
     assert.equal(result.cleanupPending(), true);
     assert.equal(await result.cleanup(), false);
@@ -1529,11 +1710,20 @@ test('cancellation prevents dispatch and still finalizes every installed impleme
   const controller = new AbortController();
   controller.abort(new Error('cancelled before dispatch'));
   const finalized = [];
-  const result = await runInstalledStrategy(f.setup, f.core, [a, b].map((registration, i) => ({
-    registration,
-    run() { assert.fail('cancelled task must not start'); },
-    finish() { finalized.push(i); },
-  })), controller.signal);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [a, b].map((registration, i) => ({
+        registration,
+        run() { assert.fail('cancelled task must not start'); },
+        finish() { finalized.push(i); },
+      })),
+    },
+    control: {
+      signal: controller.signal,
+    },
+  });
   assert.equal(result.status, 'host-tasks-failed');
   assert.equal(result.failure.message, 'cancelled before dispatch');
   assert.deepEqual(result.completed, []);
@@ -1549,15 +1739,21 @@ test('unconfirmed cleanup remains pending without destroying independently compl
     status: () => ({pending}),
     async retry() { retries++; if (retries > 1) pending = false; },
   };
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration: a,
-    run(task) { f.complete.add(task.index); },
-    finish() { throw Object.assign(new Error('cleanup not confirmed'), {cleanupHandle}); },
-  }, {
-    registration: b,
-    run() { assert.fail('unselected implementation'); },
-    finish() { secondFinalized = true; },
-  }]);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration: a,
+        run(task) { f.complete.add(task.index); },
+        finish() { throw Object.assign(new Error('cleanup not confirmed'), {cleanupHandle}); },
+      }, {
+        registration: b,
+        run() { assert.fail('unselected implementation'); },
+        finish() { secondFinalized = true; },
+      }],
+    },
+  });
   assert.equal(result.status, 'host-tasks-failed');
   assert.equal(secondFinalized, true);
   assert.equal(result.output(1), 1);
@@ -1585,10 +1781,17 @@ test('a refused protected activation stops the Run before any start', async () =
       decide: () => { throw new Error('DecisionServiceDown'); },
       answeringAuthorities: ['reviewer'],
     });
-    const result = await runInstalledStrategy(f.setup, f.core, [{
-      registration,
-      run() { runs++; f.complete.add(1); },
-    }], undefined, undefined, undefined, undefined, gate);
+    const result = await runInstalledStrategy({
+      setup: f.setup,
+      runtime: {
+        core: f.core,
+        contributions: [{
+          registration,
+          run() { runs++; f.complete.add(1); },
+        }],
+        authorization: gate,
+      },
+    });
     assert.equal(result.status, 'host-tasks-failed');
     assert.equal(result.failure.code, code);
     assert.equal(runs, 0);
@@ -1611,10 +1814,17 @@ test('covered activations grant each task once with no evaluation', async () => 
     answeringAuthorities: ['reviewer'],
   });
   let index = 0;
-  const result = await runInstalledStrategy(f.setup, f.core, [{
-    registration,
-    run() { f.complete.add(++index); },
-  }], undefined, undefined, undefined, undefined, gate);
+  const result = await runInstalledStrategy({
+    setup: f.setup,
+    runtime: {
+      core: f.core,
+      contributions: [{
+        registration,
+        run() { f.complete.add(++index); },
+      }],
+      authorization: gate,
+    },
+  });
   assert.equal(result.status, 'host-tasks-completed');
   assert.equal(required, 1);
   assert.deepEqual(grants, [1, 2, 3]);

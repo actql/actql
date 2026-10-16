@@ -274,9 +274,17 @@ for (const [name, factory, prefix] of [
         explain: () => ({}),
       };
       const controller = new AbortController();
-      const running = runInstalledStrategy(
-        {}, core, [entry], controller.signal, undefined, placed.policy,
-      );
+      const running = runInstalledStrategy({
+        setup: {},
+        runtime: {
+          core,
+          contributions: [entry],
+          sitePolicy: placed.policy,
+        },
+        control: {
+          signal: controller.signal,
+        },
+      });
       if (phase === 'cancellation') {
         await readEntered;
         controller.abort();
@@ -409,9 +417,17 @@ test('standard file-to-Local cancellation closes the real read before settlement
     usage: () => ({reservedExecutionBytes, reservedRetentionBytes}),
     explain: () => ({}),
   };
-  const result = await runInstalledStrategy(
-    setup, core, [entry], controller.signal, undefined, placed.policy,
-  );
+  const result = await runInstalledStrategy({
+    setup,
+    runtime: {
+      core,
+      contributions: [entry],
+      sitePolicy: placed.policy,
+    },
+    control: {
+      signal: controller.signal,
+    },
+  });
   assert.equal(result.status, 'host-tasks-failed');
   assert.equal(result.failure, controller.signal.reason);
   assert.equal(rows, 1);
@@ -545,9 +561,7 @@ for (const [name, factory, prefix] of [
       usage: () => ({reservedExecutionBytes, reservedRetentionBytes}),
       explain: () => ({}),
     };
-    const result = await runInstalledStrategy(
-      {}, core, [entry], undefined, undefined, placed.policy,
-    );
+    const result = await runInstalledStrategy({setup: {}, runtime: {core, contributions: [entry], sitePolicy: placed.policy}});
     assert.equal(result.status, 'host-tasks-failed');
     assert.equal(commonCompleted, false);
     assert.deepEqual(events, ['finish', 'execute', 'close', 'settle']);
