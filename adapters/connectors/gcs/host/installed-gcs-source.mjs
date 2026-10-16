@@ -154,15 +154,17 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
       /^sha256:[0-9a-f]{64}$/u.test(value.identity_cid);
   };
   const {limits} = installed;
-  const referenceIssuer = moon.clientProgramResourceReferenceIssuer(resourceValid, () => !closed);
-  // The escaped reference keeps this actual Site (and its original journal,
-  // context, credential generation and selected runtime) until its last
-  // borrower retires. A failed close invalidates currentness but not custody.
-  const collectionIssuer = collection === undefined ? undefined
-    : moon.clientProgramResourceReferenceIssuer(
-      (kind, wire) => kind === 'file_collection' && wire === collection.resourceWire,
-      wire => !closed && site.referenceCurrent() && wire === collection.resourceWire);
   try {
+    const referenceIssuer = moon.clientProgramResourceReferenceIssuer(resourceValid, () => !closed);
+    // The escaped reference keeps this actual Site (and its original journal,
+    // context, credential generation and selected runtime) until its last
+    // borrower retires. A failed close invalidates currentness but not custody.
+    // Constructors can also fail: the acquired Site remains under this same
+    // initialization catch until the completed adapter is returned.
+    const collectionIssuer = collection === undefined ? undefined
+      : moon.clientProgramResourceReferenceIssuer(
+        (kind, wire) => kind === 'file_collection' && wire === collection.resourceWire,
+        wire => !closed && site.referenceCurrent() && wire === collection.resourceWire);
     const adapter = await createInstalledRowSource({moon, declaration, declared,
       environmentWire: environment.wire, connectorId: installed.connectorId,
       connectorRegistration: GCS_REGISTRATION, connectorRevision: GCS_REVISION,
