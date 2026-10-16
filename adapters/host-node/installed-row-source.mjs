@@ -56,11 +56,15 @@ const byCid = values => values.map(value => JSON.parse(value))
 // environment with the declaration's Catalog, source views, contracts,
 // manifest entry and evidence members, plus the create Mappings the common
 // runtime generated from the connector's declared writes. Built only from
-// regenerated declarations; nothing is read from the provider. Without
-// Mappings the environment is exactly the read-only one.
+// regenerated declarations; nothing is read from the provider. Complete
+// declared Command bodies keep their original Catalog/role correspondence for
+// Common admission; this assembly does not confer permission or issue targets.
+// Without Mappings or Commands the read-only environment remains unchanged.
 export function rowSourceCheckEnvironment(baseWire, declared, mappings = []) {
   const base = JSON.parse(baseWire);
   const {evidence_bundle_cid: _, ...body} = base;
+  const commands = Object.hasOwn(declared, 'command_bodies')
+    ? declared.command_bodies : [];
   if (body.version !== 'actql-check-environment/0.1' ||
       body.connector_catalogs.length !== 0 ||
       body.schema_snapshots.length !== 0 ||
@@ -68,8 +72,9 @@ export function rowSourceCheckEnvironment(baseWire, declared, mappings = []) {
       body.connector_manifest !== undefined ||
       declared.evidence_schemas.length !== declared.view_bodies.length ||
       declared.evidence_capabilities.length !== declared.view_bodies.length ||
-      !Array.isArray(mappings) ||
-      (mappings.length !== 0 && body.mapping_contracts?.length !== 0)) {
+      !Array.isArray(mappings) || !Array.isArray(commands) ||
+      (mappings.length !== 0 && body.mapping_contracts?.length !== 0) ||
+      (commands.length !== 0 && body.command_contracts?.length !== 0)) {
     fail('InvalidRowSourceCheckEnvironmentBase');
   }
   const environment = {...body,
@@ -80,7 +85,8 @@ export function rowSourceCheckEnvironment(baseWire, declared, mappings = []) {
     connector_catalogs: [JSON.parse(declared.catalog)],
     connector_manifest: {version: 'actql-connectors/0.1',
       connectors: [JSON.parse(declared.manifest_entry)]},
-    ...(mappings.length === 0 ? {} : {mapping_contracts: byCid(mappings)})};
+    ...(mappings.length === 0 ? {} : {mapping_contracts: byCid(mappings)}),
+    ...(commands.length === 0 ? {} : {command_contracts: byCid(commands)})};
   const evidenceCid = contentCid(environment);
   return Object.freeze({
     wire: canonicalJson({...environment, evidence_bundle_cid: evidenceCid}),
