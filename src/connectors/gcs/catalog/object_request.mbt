@@ -46,6 +46,7 @@ pub struct ObjectMutationRequest {
   body : String
   cid : String
   logical_after : ObjectMetadataFields?
+  authored_changes : String
 }
 
 ///|
@@ -216,6 +217,7 @@ fn mutation_request(
   verb : String,
   body : String,
   logical_after : ObjectMetadataFields?,
+  authored_changes : String,
 ) -> Result[ObjectMutationRequest, ObjectRequestIssue] {
   let path = match mutation_path(binding, original) {
     Ok(value) => value
@@ -251,6 +253,7 @@ fn mutation_request(
     body,
     cid: "sha256:" + @sha.hex(@utf8.encode(wire)),
     logical_after,
+    authored_changes,
   })
 }
 
@@ -291,6 +294,7 @@ pub fn prepare_object_metadata_patch(
     return Err(InvalidChanges)
   }
   let body : Map[String, Json] = Map([])
+  let authored : Map[String, Json] = Map([])
   let before = object_metadata_fields(original)
   let mut after = { ..before, metadata: Some(before.metadata.unwrap_or([])), }
   if @decode.lookup(object, "content_type") is Some(content_type) {
@@ -298,6 +302,7 @@ pub fn prepare_object_metadata_patch(
       return Err(InvalidChanges)
     }
     body["contentType"] = value.to_json()
+    authored["content_type"] = value.to_json()
     after = { ..after, content_type: Some(value), }
   }
   let patch : Map[String, Json] = Map([])
@@ -332,6 +337,7 @@ pub fn prepare_object_metadata_patch(
       patch[key] = value
     }
     after = { ..after, metadata: Some(logical), }
+    authored["metadata"] = Json::object(desired)
   }
   patch["actql-request"] = marker.to_json()
   body["metadata"] = Json::object(patch)
@@ -344,7 +350,19 @@ pub fn prepare_object_metadata_patch(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  mutation_request(binding, original, "PATCH", body, Some(after))
+  let authored_changes = match
+    mutation_json(Json::object(authored), limits.max_bytes, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  mutation_request(
+    binding,
+    original,
+    "PATCH",
+    body,
+    Some(after),
+    authored_changes,
+  )
 }
 
 ///|
@@ -355,7 +373,7 @@ pub fn prepare_object_delete(
   if binding.kind != DeleteObject {
     return Err(InvalidBinding)
   }
-  mutation_request(binding, original, "DELETE", "", None)
+  mutation_request(binding, original, "DELETE", "", None, "{}")
 }
 
 ///|
