@@ -71,7 +71,7 @@ Operations — sending is an operation, not a record write:
   message permanently, bypassing the trash. It needs the full `mail.google.com`
   scope and is `applied` once Gmail confirms the deletion.
 
-All three act on the connection's mailbox, so they take no `TARGET`. `ID` is
+Send, reply and forward act on the connection's mailbox, so they take no `TARGET`; purge names the message as its `TARGET`. `ID` is
 the row's key and identifies each send in the Preview and the status; it is
 not the recipient. A send that Gmail took ends `accepted`: Gmail accepted the
 message for delivery, which does not mean it was delivered or read. Nothing is
@@ -125,8 +125,9 @@ it is approved.
 puts the request's marker in an `X-ActQL-Request` header of the message; a
 lost reply is reconciled by searching the Sent label for **that header**. A
 sent message with the same recipients and text but no marker is not evidence.
-Label changes and trashing are reconciled by reading the message back and
-comparing its `history_id` with the one the request carried. Draft creation
+Label changes and trashing leave no marker Gmail stores, so a lost reply to
+one of them stays `unknown`; a moved `history_id` or the new label set alone
+is not evidence. Draft creation
 is reconciled by listing drafts for the marker in the draft's headers. When
 none of this settles the outcome, the item stays `unknown` and nothing is
 re-sent.

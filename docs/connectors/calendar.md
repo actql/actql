@@ -47,7 +47,8 @@ Record Effects write by key:
 - **delete** — `EFFECT DELETE calendar.events ID id`.
 
 `id` identifies exactly one event within its calendar; `ical_uid` identifies
-it across calendars. Setting `send_updates = 'all'` on an insert, update or
+it across calendars. `ID id` is enough because the row's `calendar_id` column
+names the calendar; a row without it is refused at `check`. Setting `send_updates = 'all'` on an insert, update or
 delete sends invitations or cancellations to attendees; the default makes
 the change silently.
 

@@ -18,7 +18,7 @@ engine never sees the system's API; it sees the declarations.
 | **Capabilities** | What the system can compute itself — column selection, filters (which operators), sorting, aggregation, search — and roughly what it costs | The planner pushes down only what is declared; everything else runs in the engine |
 | **Effects** | The record writes a Program can perform — insert, update, upsert, delete — as a Mapping per resource: the key, the writable fields and their types, the permission each needs, and the preview strength | Policy decides per operation; the Host previews, approves and sends through the Connector |
 | **Commands** | The operations a Program can run with `EFFECT COMMAND` — post, send, refresh, start a job — each as a versioned contract: input fields and types, the target resource kind, the permission, what the Preview shows and how the outcome is confirmed | `check` resolves `conn.operation` to exactly one contract and refuses ambiguity; the Host previews and approves it like any Effect |
-| **Store** | Where content (`content_ref`) or rows can be written — an object store, a stage, a declared table — with its destination options and overwrite rule | `EFFECT STORE` and `CREATE TABLE` are previewed with destination, content identity or row count, and the overwrite condition |
+| **Store** | Where content (`content_ref`) or rows can be written — an object store, a stage, a declared table — with the destination fields it takes and its overwrite rule | `EFFECT STORE` and `CREATE TABLE` are previewed with destination, content identity or row count, and the overwrite condition |
 | **Reconciliation** | How an operation with a lost reply can be looked up afterwards | An `unknown` outcome is resolved through this procedure, never by resending |
 | **Connection** | The configuration fields and credentials a connection needs | The Host resolves secrets and lends them to the Connector per admitted operation |
 
@@ -65,9 +65,9 @@ permission the account needs, and the preview strength:
   overwritten on a stale Preview.
 - `targeted` — the targets are known and the new values are shown, but there
   is no current value to show: creations, posts, sends, uploads.
-- `blind` — the exact targets cannot be resolved before sending. Such a
-  preview can be shown but never applied. None of the shipped Connectors
-  declares one; declare it only where nothing better exists.
+
+There is no third strength. An Effect whose exact targets cannot be resolved
+before sending cannot be declared.
 
 A Connector that cannot verify a key's uniqueness from the system's
 constraints verifies it when it builds the Preview, and an item whose key

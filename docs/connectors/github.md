@@ -19,10 +19,10 @@ generated files.
   `subject_number`, `author`, `body`, `created_at`, `updated_at`. Key `id`.
 - `github.repositories` — the connection's repository and, with an
   organisation token, the organisation's repositories: `name`, `full_name`,
-  `default_branch`, `visibility`, `pushed_at`, `open_issues`.
+  `default_branch`, `visibility`, `pushed_at`, `open_issues`. Key `full_name`.
 - `github.commits` — commits on a branch: `sha`, `message`, `author`,
   `committed_at`, `parents`, `files` (an array of path and change kind).
-  Filter by branch and time range.
+  Filter by branch and time range. Key `sha`.
 - `github.files` — files at a ref: `resource`, `version` (the blob sha),
   `path`, `size`, `media_type`, `ref`. `LIST_FILES(github, glob => r'docs/**/*.md')`
   is the same listing for the default branch.
@@ -141,7 +141,8 @@ review requests are reconciled through the issue's timeline events, which
 record the actor and time of each change: an event by this installation in
 the request window that produced the approved state settles the outcome,
 while the item merely being in that state does not. A merge is settled by
-the pull request's merge commit matching the previewed head `sha`. Without evidence the item stays
+the pull request's `merged` timeline event by this installation in the
+request window; a merge commit alone is not. Without evidence the item stays
 `unknown` and nothing is sent again. An operation ends `accepted` when GitHub
 returned 2xx and `applied` once the read-back confirms the state.
 

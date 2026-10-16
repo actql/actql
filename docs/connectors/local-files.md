@@ -27,10 +27,12 @@ at `check`.
 
 Files are sources too, independent of any table declaration:
 
-- `LIST_FILES(local, glob => r'inbound/*.pdf')` lists files under the root
-  with `resource`, `version` (a hash of size and modification time, or the
-  file's content hash when the connection sets `"version": "content"`),
-  `path`, `size` and `modified_time`.
+- `local.files` — files under the root: `resource`, `version` (a hash of
+  size and modification time, or the file's content hash when the connection
+  sets `"version": "content"`), `path`, `size` and `modified_time`.
+  `LIST_FILES(local, glob => r'inbound/*.pdf')` is the same listing by path;
+  the bare connection is valid because it is the connection's only listing
+  source.
 - `local.contents` — the content of files: `resource`, `version`, `path`,
   `media_type` (from the extension, overridable in the connection) and
   `content`, a `content_ref`. Join it on `resource` and `version` from
@@ -61,8 +63,9 @@ Tables:
   rows as a new table under the root, in the connection's default format
   (`"default_format": "parquet"`), and declares it so later Programs can read
   it. `CREATE` fails if the table exists; `CREATE OR REPLACE` replaces it.
-- **delete table** — `EFFECT DELETE local.<table>` removes the table's files
-  (for Iceberg, drops the table from the catalog directory).
+- **delete rows** — `EFFECT DELETE local.<table> ID key` removes rows by the
+  table's declared key; CSV, Parquet and JSON Lines tables are rewritten
+  without them, an Iceberg table gets one delete snapshot.
 
 Files:
 
@@ -125,11 +128,11 @@ the snapshot it would follow and fails if another writer committed first.
 **Reconciliation.** Writes go to a temporary file and are renamed into place,
 so a crash never leaves a half-written file; an Iceberg append commits one
 snapshot. There is no lost reply with local files, but a crash between the
-rename and its record is possible. Reconciliation reads the destination: a
-file whose checksum equals the approved content identity (or, for a table,
-whose row count and schema equal the approved write), a snapshot carrying the
-Effect's id in its summary, or the absence of the deleted file settles the
-outcome. A file at the destination with another checksum is not evidence;
+rename and its record is possible. Before the rename the Connector journals the
+item (id, destination, content identity) under the root; reconciliation
+reads that journal and, for Iceberg, the snapshot summary carrying the
+Effect's id. A file whose checksum happens to match, or the absence of a
+file, is not evidence on its own. A file at the destination with another checksum is not evidence;
 the item stays `unknown` and nothing is rewritten.
 
 ## Limits and cost

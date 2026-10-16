@@ -74,7 +74,7 @@ Tables and content:
 
 - **create table** — `|> CREATE [OR REPLACE] TABLE bigquery.events_30d`
   writes the rows as a whole table in the dataset.
-- **store** — `EFFECT STORE bigquery.loads SET (table = 'raw_events', uri = 'gs://acme-landing/events/*.jsonl', format = 'JSONL')`
+- **store** — `EFFECT STORE bigquery.loads SET (table = 'raw_events', uri = 'gs://acme-landing/events/*.jsonl', source_format = 'JSONL')`
   starts a load job from objects already in Google Cloud Storage into a
   table. Use the [GCS Connector](gcs.md) to put content there first.
 
@@ -151,10 +151,9 @@ with no error means the statement committed, done with an error means
 `failed`, still running means the item stays in flight. A job found in the
 project's history that does not carry the Effect's job id is not evidence,
 and neither is the target row holding the expected value. A streaming insert
-has no job; the Connector sends it with per-row `insertId`s that BigQuery
-de-duplicates for a short window, so a lost reply inside that window is
-settled by repeating the identical request — BigQuery treats it as the same
-insert — and outside it the item stays `unknown`.
+has no job and BigQuery offers no lookup by `insertId`, so a lost reply to a
+streaming insert leaves the item `unknown`; nothing is resent. A Program that
+needs reconcilable inserts uses the batch load path, which is a job.
 Operations end `accepted` when the job was created, `applied` when it
 reached `DONE` without error, and `unknown` when neither can be established.
 
@@ -194,7 +193,7 @@ JOIN bigquery.account_activity AS s ON a.id = s.account_id
      ID id SET (Activity_Status__c = 'dormant');
 ```
 
-Keep a scores table current and rebuild a snapshot from it:
+Keep a scores table current:
 
 ```sql
 SELECT a.id AS account_id, a.description AS notes, s.sessions_30d

@@ -43,11 +43,11 @@ and move records through an app's workflow.
 Record Effects write records of an app by key:
 
 - **insert** — `EFFECT INSERT kintone.inquiries (subject, body, assignee) VALUES (…)`.
-- **update** — `EFFECT UPDATE kintone.inquiries ID `$id` SET (category = …)`.
+- **update** — ``EFFECT UPDATE kintone.inquiries ID `$id` SET (category = …)``.
 - **upsert** — `EFFECT UPSERT kintone.customers ID customer_code SET (…)`,
   keyed by a field the app prohibits duplicates on; kintone's update-by-key
   API applies it.
-- **delete** — `EFFECT DELETE kintone.inquiries ID `$id``.
+- **delete** — ``EFFECT DELETE kintone.inquiries ID `$id` ``.
 
 The key named by `ID` must identify exactly one record. `$id` always does; a
 unique field does because kintone enforces the constraint. Subtable rows are
@@ -56,13 +56,13 @@ the subtable with the array given.
 
 Content:
 
-- **store** — `EFFECT STORE kintone.attachments SET (record = `$id`, field = 'attachments', content = content)`
+- **store** — ``EFFECT STORE kintone.attachments SET (record = `$id`, field = 'attachments', content = content)``
   uploads the row's `content` (a `content_ref` from `SERIALIZE` or a
   `contents` source) and attaches it to the record's field.
 
 Operations:
 
-- **update_status** — `EFFECT COMMAND kintone.update_status TARGET `$id` ID `$id` INPUT (action = 'Resolve', assignee = owner)`
+- **update_status** — ``EFFECT COMMAND kintone.update_status TARGET `$id` ID `$id` INPUT (action = 'Resolve', assignee = owner)``
   runs a process-management action on the record, moving it to the action's
   next status.
 
@@ -114,14 +114,12 @@ lists every record or file that would be created and where.
 **Reconciliation.** Inserts and uploads carry a request marker. For an app
 that declares a marker field in its connection entry (`"marker": "actql_request"`),
 the marker is written into that field and a lost reply is reconciled by
-querying the app for it. Without a declared field, the Connector queries the
-app for a record created by the token's user in the request window with the
-approved values; because that is circumstantial, the item stays `unknown`
-until a person confirms it, and nothing is resent. Updates, upserts and
-deletes are reconciled by reading the record: a `$revision` exactly one
-higher than the previewed one with the approved values, or the record's
-absence after a delete, settles the outcome; any other state stays
-`unknown`. An `update_status` ends `accepted` when kintone returns the new
+querying the app for it. Without a declared marker field the item stays `unknown` and nothing is
+resent. Updates and upserts write the same marker into the declared marker
+field in the same request and are reconciled by reading the record for that
+marker; a higher `$revision` or the approved values alone are not evidence. A
+delete leaves no marker kintone keeps, so a lost reply to a delete stays
+`unknown`. Nothing is resent. An `update_status` ends `accepted` when kintone returns the new
 revision and `applied` once the record read-back shows the next status.
 
 ## Limits and cost

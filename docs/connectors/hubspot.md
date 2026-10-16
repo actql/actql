@@ -122,7 +122,9 @@ change with its source (this integration's app id) and timestamp, so the
 Connector looks for the change from this app in the request window that set
 the request-id property — a matching value or a newer `hs_lastmodifieddate`
 alone is not evidence. A creation is reconciled by searching for the
-request-id property; an association by reading the record's associations; an
+request-id property; an association through the property history entry this app wrote in the
+same request (HubSpot stores no request id on the association itself, so an
+association without such an entry stays `unknown`); an
 enrolment by reading the workflow's enrolment history for the contact. When
 none of this settles the outcome, the item stays `unknown` and nothing is
 resent. Operations end `accepted` when HubSpot took the request, `applied`

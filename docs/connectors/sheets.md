@@ -128,8 +128,9 @@ metadata with the row when rows are sorted or moved). A lost reply is
 reconciled by searching the spreadsheet's developer metadata for **that
 marker**; rows with the expected values but no marker are not evidence, and
 the spreadsheet's revision history is read to confirm that the write landed
-within the request's window. A clear is reconciled by the revision history
-alone. When none of this settles the outcome, the item stays `unknown` and
+within the request's window. A clear writes the marker as developer metadata on the
+cleared range in the same batch and is reconciled by it; without it the
+item stays `unknown`. When none of this settles the outcome, the item stays `unknown` and
 the batch is never resent.
 
 ## Limits and cost

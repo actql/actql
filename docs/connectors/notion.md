@@ -15,7 +15,11 @@ that follows a CRM record — and to read the text people wrote in Notion.
   unique key for `UPSERT` (see [Effects](#effects-and-operations)).
 - `notion.pages` — every page the integration can see, inside or outside a
   database: `id`, `title`, `parent` (a database or page id), `url`,
-  `archived`, created and edited times. Key `id`.
+  `archived`, created and edited times, plus `resource` (the page id) and
+  `version` (its `last_edited_time`) for joining `notion.contents`. Key
+  `id`. Database sources carry the same `resource` and `version`.
+- `notion.users` — workspace members and bots: `id`, `name`, `type`, `email`
+  (people, when the integration may read it). Key `id`.
 - `notion.contents` — the content of a page as a `content_ref`: `resource`,
   `version` (the page's `last_edited_time`), `media_type` (`text/markdown`)
   and `content`. Join it on `resource` and `version` from `notion.pages` or a
@@ -119,11 +123,9 @@ that would be written.
 **Reconciliation.** Every write carries a request marker. For a database that
 declares a marker property in its connection entry (`"marker": "actql_request"`),
 the marker is written into that property and a lost reply is reconciled by
-querying the database for it. Without a declared property, the Connector
-looks for a page whose `created_by` is this integration, whose creation or
-edit time falls in the request window, and whose properties equal the
-approved values; because that is circumstantial, the item is reported
-`unknown` until a person confirms it, and nothing is resent. `append_blocks`
+querying the database for it. Without a declared marker property the
+Connector has nothing it can recognise, so the item stays `unknown` and
+nothing is resent. `append_blocks`
 and `STORE` leave a marker in the appended block's content and reconcile by
 reading the page's children. An operation ends `accepted` when Notion
 returned the created block ids, `applied` once the page read-back shows

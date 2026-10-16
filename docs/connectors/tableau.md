@@ -121,10 +121,10 @@ data source that the Connector did not start is not evidence. Publishes carry
 the request's marker in the data source description; a lost reply is
 reconciled by looking the data source up by name and checking the marker, and
 a data source with the right name but no marker leaves the item `unknown`.
-Updates and deletes are reconciled by reading the item back: a deleted item's
-absence settles a delete; for an update, the approved values together with an
-`updatedAt` inside the request window and no later change settle it, and
-anything less leaves the item `unknown`. Nothing is resent on a guess.
+Updates and deletes carry no marker Tableau stores and the REST API records
+no request id, so a lost reply to an update or delete leaves the item
+`unknown`; the item holding the approved values, or an `updatedAt` in the
+request window, is not evidence. Nothing is resent on a guess.
 
 ## Limits and cost
 

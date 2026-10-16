@@ -130,8 +130,8 @@ its record commit together or not at all. A crash before commit leaves
 nothing applied and nothing recorded; a crash after commit but before the Host
 heard the reply is reconciled by reading the ledger table for the item ids —
 the target table holding the expected values is not what settles it. A file
-copy is reconciled by the file's checksum against the content identity in the
-Preview. There is no network reply to lose, so outcomes are `applied` or
+copy is recorded in the same `actql_effects` ledger before the `COPY` and
+reconciled from it; the file's checksum alone is not evidence. There is no network reply to lose, so outcomes are `applied` or
 `failed`; `unknown` arises only from a crash and is settled from the ledger.
 
 ## Limits and cost

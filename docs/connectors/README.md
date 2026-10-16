@@ -26,7 +26,7 @@ channel or a bucket.
 | SaaS | [Slack](slack.md) | channels, messages, users, files | update, delete messages | share a file | post, reply, react, archive channel |
 | SaaS | [GitHub](github.md) | issues, pull requests, comments, repository files | insert, update, delete | commit a file | merge, close, request review, add labels |
 | SaaS | [Tableau](tableau.md) | workbooks, data sources, views, view data, flows | update, delete | publish a data source | refresh, run flow |
-| Google | [Google Sheets](sheets.md) | declared ranges | insert, update, upsert, delete rows by a declared key | replace a range | clear range |
+| Google | [Google Sheets](sheets.md) | declared ranges | insert, update, upsert, delete rows by a declared key | replace a range, new sheet | clear range |
 | Google | [Google Drive](drive.md) | files, folders, contents, comments | update, delete (trash) | upload | copy, share, purge |
 | Google | [Gmail](gmail.md) | messages, threads, labels, drafts, attachments | update labels, trash, create drafts | attach to a draft | send, reply, forward, purge |
 | Google | [Google Calendar](calendar.md) | calendars, events, free/busy | insert, update, upsert, delete | — | respond, move |
@@ -92,7 +92,7 @@ and Gmail expose file content as well. They all follow one set of rules:
 
 | Step | Role |
 | --- | --- |
-| `LIST_FILES(connection, …)` or the listing source | Metadata only: `resource`, `version`, `path`, size, type. Nothing is downloaded. |
+| `LIST_FILES(connection.listing, …)` (the bare connection when it has one listing source) | Metadata only: `resource`, `version`, `path`, size, type. Nothing is downloaded. |
 | `JOIN connection.contents ON resource AND version` | Reads the content of exactly those versions, as a `content_ref` with a `media_type`. |
 | `content_ref` | A typed reference to captured bytes. It can be handed to `INFER`, stored elsewhere, or read as a typed table through a Connector that declares the format. |
 | `SERIALIZE` | Turns rows into one file's content. It uploads nothing. |
@@ -142,12 +142,12 @@ Two connections can use the same Connector under different names — a
 `salesforce_prod` and a `salesforce_sandbox`, for example — and a Program
 refers to whichever it needs.
 
-**Local and Cloud.** On a Local Host you supply your own credentials for every
-Connector, and all seventeen are available that way. ActQL Cloud adds hosted
-OAuth for the Connectors whose providers require an approved application;
-where that approval is pending, the Cloud still accepts the same
-credential-based configuration as a Local Host. Each Connector page says what
-the account needs.
+**Local and Cloud.** On a Local Host you supply your own credentials. ActQL
+Cloud adds hosted OAuth for the Connectors whose providers require an
+approved application; where that approval is pending, the Cloud still accepts
+the same credential-based configuration as a Local Host. Each Connector page
+says what the account needs. Which Connectors run today is on
+[Implementation status](../reference/status.md).
 
 ## What `catalog show` tells you
 
@@ -184,7 +184,7 @@ An agent writes Programs against this, not against guesses.
 ## The mock profile
 
 `--profile mock` (CLI) or `profile: 'mock'` (SDK) replaces every connection
-with a mock that serves the records in the configuration's fixture file and
+with a mock that serves the records in `mock.data` and
 applies writes to those records, so a Program can create a record and read it
 back without credentials. The [quickstart](../getting-started/quickstart.md)
 runs the churn-risk Program this way.

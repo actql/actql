@@ -104,11 +104,12 @@ requirement that none exists. Copies and composes preview the sources, the
 destination and whether it would be replaced.
 
 **Reconciliation.** The Connector binds each item to the object it writes
-and the checksum of the approved content. A lost reply is reconciled by
-reading the destination object's metadata: a generation newer than the
-Preview whose `crc32c` equals the approved content identity (uploads,
-composes) or whose fields equal the approved change (updates), or the object's
-absence at the previewed generation (deletes), settles the outcome. A
+and the checksum of the approved content. Every upload, compose and
+metadata update carries the request's marker in the object's custom metadata
+(`x-goog-meta-actql-request`). A lost reply is reconciled by reading the
+destination's metadata for **that marker**; a matching `crc32c` or matching
+fields without it are not evidence. A delete leaves no marker, so a lost
+reply to a delete stays `unknown`. A
 resumable upload keeps its session URI, so an interrupted upload is queried
 before anything else. Evidence that does not match the approved identity is
 not evidence; the item stays `unknown` and nothing is resent. Operations end

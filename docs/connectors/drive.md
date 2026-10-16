@@ -66,6 +66,8 @@ Operations:
   copies a file into a folder.
 - **share** — `EFFECT COMMAND drive.share TARGET id ID key INPUT (email = …, role = 'reader' | 'commenter' | 'writer', notify = FALSE)`
   grants a permission on a file.
+- **purge** — `EFFECT COMMAND drive.purge TARGET id ID key` deletes a
+  trashed file permanently.
 
 `TARGET` is the file the operation acts on and `ID` the row's key, which
 identifies each operation in the Preview and the status.
@@ -111,15 +113,15 @@ content identity of what would be written, and whether an existing file would
 be replaced (and which revision). Copies and shares preview the source file,
 the destination or grantee, and the role.
 
-**Reconciliation.** Every write carries a request marker in the file's
-`appProperties` (uploads, copies) or in the request's own id (updates,
-deletes, shares). Uploads use resumable sessions whose upload URI the
+**Reconciliation.** Every upload and copy carries a request marker in the
+file's `appProperties`. Uploads use resumable sessions whose upload URI the
 Connector keeps until the reply arrives. A lost reply is reconciled by
 querying the session's status, then by listing the folder for a file whose
 `appProperties` carry the marker and whose `md5Checksum` matches the approved
-content identity; a share is reconciled by listing the file's permissions for
-the grantee; an update or delete by reading the file and comparing its
-revision and fields with the approved change. A file with the right name but
+content identity; an update, delete or share is reconciled through the Drive
+Activity log: an action by this connection's account in the request window
+that produced the approved change settles the outcome, while the file merely
+holding the approved values or a newer revision does not. A file with the right name but
 no marker is not evidence. Without evidence the item stays `unknown` and
 nothing is resent. Operations end `applied` once Drive confirms them; a copy
 of a large file is `accepted` while Drive finishes it.

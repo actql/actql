@@ -119,9 +119,10 @@ reconciled by reading the channel's recent history for a message with that
 marker; a message with the same text but no marker is not evidence. Edits
 carry the marker in the updated message's `metadata` as well, so an edit is
 reconciled by reading the message and finding the marker next to the approved
-text; the text alone, or an `edited` timestamp in the window, is not. Deletes
-are settled by the message's absence. Reactions and archives are read back from the message
-and the channel. File uploads reconcile through `files.list` for the
+text; the text alone, or an `edited` timestamp in the window, is not. Deletes,
+reactions and archives leave no marker Slack returns, so a lost reply to one
+of them stays `unknown`; the message's absence, a reaction on it or the
+channel's archived flag is not evidence. File uploads reconcile through `files.list` for the
 request's file name and marker in the file's `title`. Without evidence the
 item stays `unknown` and nothing is sent again. An operation ends `accepted`
 when Slack returned `ok: true`, `applied` once the read-back confirms it.
@@ -176,6 +177,6 @@ FROM slack.messages AS m
      AND m.posted_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY)
 |> INFER `model-task:support-reply.v1` INPUT (question = m.text) AS d
 |> WHERE d.outcome = 'ok' AND d.value.confidence = 'high'
-|> EFFECT COMMAND slack.reply TARGET m.channel ID m.ts
+|> EFFECT COMMAND slack.reply TARGET m.channel ID m.id
      INPUT (thread_ts = m.ts, text = d.value.text);
 ```
