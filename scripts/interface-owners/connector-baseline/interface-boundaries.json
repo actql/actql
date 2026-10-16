@@ -4325,7 +4325,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a434ce08ba0a918a496a04cc8792d3e46fa4b779637662af47b3e42703bfe991",
+      "sha256": "fb13e0611d1c0b59360da3c06b7c311b126aa86d9516af04668258f30a3d7ed2",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4401,6 +4401,7 @@
             "root",
             "principalId",
             "moon",
+            "providerMoon",
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
@@ -4410,20 +4411,15 @@
         },
         {
           "name": "loadInstalledGcsSource/adapter/adapter",
-          "parameters": [],
-          "async": false
+          "parameters": [
+            "options"
+          ],
+          "async": true
         },
         {
           "name": "loadInstalledGcsSource/adapter/adapter/adapter",
           "parameters": [
             "resource"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledGcsSource/adapter/adapter#2",
-          "parameters": [
-            "options"
           ],
           "async": true
         },
@@ -4443,6 +4439,21 @@
           "async": false
         },
         {
+          "name": "loadInstalledGcsSource/collectionIssuer/collectionIssuer",
+          "parameters": [
+            "kind",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/collectionIssuer/collectionIssuer#2",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledGcsSource/fieldLists/fieldLists",
           "parameters": [
             "view"
@@ -4451,6 +4462,19 @@
         },
         {
           "name": "loadInstalledGcsSource/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference",
+          "parameters": [
+            "pair",
+            "maxWork"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/referenceIssuer/referenceIssuer",
           "parameters": [],
           "async": false
         },
@@ -4529,11 +4553,14 @@
             "loadInstalledGcsSource",
             "loadInstalledGcsSource/adapter/adapter",
             "loadInstalledGcsSource/adapter/adapter/adapter",
-            "loadInstalledGcsSource/adapter/adapter#2",
             "loadInstalledGcsSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledGcsSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledGcsSource/collectionIssuer/collectionIssuer",
+            "loadInstalledGcsSource/collectionIssuer/collectionIssuer#2",
             "loadInstalledGcsSource/fieldLists/fieldLists",
             "loadInstalledGcsSource/init:close/init:close",
+            "loadInstalledGcsSource/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference",
+            "loadInstalledGcsSource/referenceIssuer/referenceIssuer",
             "loadInstalledGcsSource/resourceFor/resourceFor",
             "loadInstalledGcsSource/resourceValid/resourceValid",
             "loadInstalledGcsSource/resourceValid/resourceValid/resourceValid",
@@ -4554,48 +4581,112 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "Physical GCS observations enter the same"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Installed collection issuer"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "loadInstalledGcsSource"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_issue_reference"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "installedGcsSourceIdentityParts"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "installationCid: bindingCid"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_catalog != expected_catalog"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "site.referenceCurrent()"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "referenceCurrent: () => !closing"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "resourceValid"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "closing = true"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "close() { closed = true; adapter.close(); }"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "GcsKeyedResourceUnavailable"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "GcsCollectionProviderUnavailable"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "the same credential Site invalidates reference currentness before failed close"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "signal: options.signal"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Closing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "False means closing, not physical cleanup ACK"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "maxCaptureRows"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "const declarationLimits"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "let declaration_limits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Additional declarations/trees/strings"
               }
             ],
             "extension": [
@@ -4606,17 +4697,52 @@
               {
                 "path": "scripts/connector-host-bundles.mjs",
                 "anchor": "generateInstallations"
+              },
+              {
+                "path": "src/connectors/gcs/host-bundle.json",
+                "anchor": "\"providerBundle\""
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "An explicitly supplied legacy"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "ordinary installed GCS supplies its original checked collection"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "a different installed scope cannot substitute"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
+                "anchor": "LIST_FILES paths=[]"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../site/gcs-file-listing.mjs",
+        "../site/gcs-keyed-content.mjs",
+        "./gcs-collection-target.mjs",
+        "./gcs-source-declaration.mjs",
+        "./gcs-upload-declaration.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-file-listing.mjs",

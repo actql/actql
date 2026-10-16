@@ -172,9 +172,50 @@ canonical comparison trees/writers/Strings, the checked ResourceRef contract,
 reference envelope, authorization closure and escaped checked/reference aliases
 can overlap. They belong to the original Host/Run envelope, not free capacity.
 These structural bounds and contract-control tests are not a normal numerical
-profile or physical cleanup acknowledgment. The selected installation/current
-supplier, actual Node caller, saved target/Run recovery, Preview and physical
-apply connection remain separate unfinished work.
+profile or physical cleanup acknowledgment. The installed Site connection is
+described below. The actual Command capture caller, saved target/Run recovery,
+Preview and physical apply connection remain separate unfinished work.
+
+## Installed collection issuer
+
+The normal GCS `host-bundle.json` selects the real `connectors/gcs/host_node`
+provider. The existing Source installation composes the complete upload
+Command/Catalog/Mapping and creates the original collection from its exact
+project/bucket/prefix, Catalog and original Host binding. It adds no target
+Source, query column or synthetic Result. An explicitly supplied legacy
+source-only table has no collection hook; a declared but missing provider is
+refused instead of falling back to that legacy profile.
+
+`source.issueOriginalCollectionReference(pair, maxWork)` uses the checked Result
+facade and returns the existing original CheckedValue. The pair is the actual
+Common opaque selected pair, not a CID or a selector supplied as authority.
+The issuer and its currentness callback are created inside this same installed
+Site. The escaped reference retains that actual Site, whose existing journal,
+context, credential generation and selected runtime remain in its ownership
+graph. Its read-only `referenceCurrent()` observes the same closing state;
+it is neither Account permission nor physical cleanup acknowledgment. Closing
+or failed close refuses new issuance and invalidates reference availability,
+while the original close/cleanup owner and pending responsibility remain.
+Closing a different installation cannot retire this one.
+
+The hook's static representation clamps use the existing RowDeclaration Host's
+4,000,000 bytes / 400,000 nodes / depth 64 bounds, not Provider response limits
+or M1 numerical funding. The caller must provide its finite comparison work
+bound; omission or an invalid scalar is refused before invoking the bridge.
+Additional declarations/trees/strings, collection association, separate issuer
+token/two callbacks, hook/descriptors and Site lifecycle callback join the
+original Host/Run simultaneous holding inventory. The original issuer closure,
+checked/reference aliases and A's captured-input/proposal/proof aliases remain
+live until their actual last borrower retires. No GC/drop/close Boolean makes
+these managed allocations free or proves a physical ACK.
+
+Focused tests use the actual Common checker, compiled GCS provider, original
+installed credential Site and SQLite journal. A test-only typed fixture projects
+the Common pair/reference without JavaScript compiler-field inspection. The
+deliberate close failure uses the existing journal fault port and retries that
+same original journal. No token resolution, grant or provider send is exercised.
+These cases do not establish the installed Command capture/Run/Preview/apply or
+saved target reissuer/restore path, live GCS, a normal M1 profile or public STORE.
 
 ## Exact object metadata pages
 

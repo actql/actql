@@ -60,3 +60,25 @@ export function gcsCollectionUploadMapping(original, declaredWire, connectorId,
     throw Object.assign(new Error(code, {cause: failure.cause}), {code});
   }
 }
+
+// Called only with the existing installed Host's original issuer. Possessing
+// the DATA frame or equal wire cannot replace that issuer or its currentness.
+export function issueGcsCollectionReference(original, pair, declaredWire, connectorId,
+  issuer, {maxBytes, maxNodes, maxDepth, maxWork}) {
+  const owner = originals.get(original);
+  if (owner === undefined) fail('ForeignGcsCollectionTarget');
+  if (typeof declaredWire !== 'string' || typeof connectorId !== 'string') {
+    fail('GcsForeignCollectionSelection');
+  }
+  if (![maxBytes, maxNodes, maxDepth, maxWork].every(integer)) {
+    fail('GcsCollectionReferenceInvalidLimits');
+  }
+  try {
+    return checked(owner.moon.gcsCollectionIssueReference(owner.binding, pair,
+      declaredWire, connectorId, issuer, maxBytes, maxNodes, maxDepth, maxWork));
+  } catch (failure) {
+    if (failure?.code !== 'MoonBitHostFailure') throw failure;
+    const code = owner.moon.gcsCollectionReferenceFailureCode(failure.cause);
+    throw Object.assign(new Error(code, {cause: failure.cause}), {code});
+  }
+}
