@@ -82,7 +82,7 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
-  for (const name of ['build-runtime-packages', 'check-owned-contract-versions',
+  for (const name of ['build-runtime-packages', 'runtime-package-inputs', 'check-owned-contract-versions',
     'generated-owned-contracts',
     'local-node-package-inputs', 'connector-node-bundles', 'connector-compute-bundles',
     'connector-manifest-selection', 'connector-host-bundles', 'adapter-module-graph',
