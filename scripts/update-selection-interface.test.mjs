@@ -24,7 +24,10 @@ const modules = () => paths.map(module => {
   return {module, sha256: createHash('sha256').update(bytes).digest('hex'),
     ...javascriptInterface(bytes.toString('utf8'))};
 });
-const owners = () => interfaceOwnerDeclarations(root);
+// This focused test selects only the R3 change boundary. The ordinary checker
+// continues to validate every declaration in the full distribution closure.
+const owners = () => interfaceOwnerDeclarations(root).map(owner => ({...owner,
+  declarations: owner.declarations.filter(value => paths.includes(value.module))}));
 const check = (actual, declarations) => interfaceOwnerCoverage({root, modules: actual,
   owners: declarations, generated: [], requireComplete: true});
 
