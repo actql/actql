@@ -54,6 +54,7 @@ pub(all) enum StoreCommandIssue {
 pub struct StoreCommandBinding {
   mapping : MappingContractShape
   command : CommandTarget
+  mapping_operation : String
   work : Int
 }
 
@@ -67,6 +68,15 @@ pub fn store_command_mapping(
 ///|
 pub fn store_command_target(binding : StoreCommandBinding) -> CommandTarget {
   binding.command
+}
+
+///|
+// The original collection-only Mapping remains create/none. Selecting its
+// Command does not admit canonical relation-store or invent a row identity.
+pub fn store_command_mapping_operation(
+  binding : StoreCommandBinding,
+) -> (String, String) {
+  (binding.mapping_operation, "none")
 }
 
 ///|
@@ -94,8 +104,12 @@ pub fn bind_store_command(
     ) {
     return Err(ForeignEnvironment)
   }
+  let mapping_operation = match mapping_shape_primary_identity(mapping) {
+    None => "create"
+    Some(_) => "store"
+  }
   let (supported, work) = match
-    mapping_supports_operation(mapping, "store", "none", max_work) {
+    mapping_supports_operation(mapping, mapping_operation, "none", max_work) {
     Ok(value) => value
     Err(MappingPermissionIssue::WorkLimit) => return Err(WorkLimit)
     Err(issue) => return Err(Mapping(issue))
@@ -119,5 +133,10 @@ pub fn bind_store_command(
   if command_target_cid(command) != reference.command_contract_cid {
     return Err(ForeignCommand)
   }
-  Ok({ mapping, command, work: work + command_target_work(command), })
+  Ok({
+    mapping,
+    command,
+    mapping_operation,
+    work: work + command_target_work(command),
+  })
 }
