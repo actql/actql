@@ -49,6 +49,10 @@ if(process.argv.includes('--build-and-consume')){
   }
   assert.equal(createHash('sha256').update(await readFile(module)).digest('hex'),
     digest,'The retained artifact must match this fixed-source build');
+  const contract=JSON.parse(run(python,['scripts/fixtures/python-local-contract-abi.py',module]));
+  assert.equal(contract.success,true);
+  assert.equal(contract.module_sha256,digest);
+  assert.equal(contract.rejection_cases.length,6);
   const output=run(python,['scripts/fixtures/python-local-buffer-abi.py',module]);
   const result=JSON.parse(output);
   assert.equal(result.success,true);
@@ -73,7 +77,7 @@ if(process.argv.includes('--build-and-consume')){
     assert.equal(native.result_publication_cases.length,11);
     assert.equal(native.explicit_authored_view,true);
     assert.equal(native.source_queries,3);
-    const record={source_sha:source,module,module_sha256:digest,
+    const record={source_sha:source,module,module_sha256:digest,contract,
       scope:'private_original_result_snapshot_manifest_receipt_capture',
       moonc:run('moonc',['-v']),python:run(python,['--version']),result,physical,native,
       public_local_acceptance:false,durable_run_acceptance:false,
@@ -119,7 +123,7 @@ if(process.argv.includes('--build-and-consume')){
       assert.equal(explicit.source_publication_cases.length,11);
       Object.assign(invocationEvidence,{material,explicit});
     }
-    const record={source_sha:source,module,module_sha256:digest,
+    const record={source_sha:source,module,module_sha256:digest,contract,
       scope:invocationBoundary?'private_original_normalization_and_captured_invocation':'private_captured_source_publication_facts',
       moonc:run('moonc',['-v']),python:run(python,['--version']),result,physical,native,...invocationEvidence,
       public_local_acceptance:false,durable_run_acceptance:false,
@@ -137,7 +141,7 @@ if(process.argv.includes('--build-and-consume')){
     assert.equal(submission.success,true);
     assert.equal(submission.module_sha256,digest);
     assert.equal(submission.cases.length,11);
-    const record={source_sha:source,module,module_sha256:digest,
+    const record={source_sha:source,module,module_sha256:digest,contract,
       scope:'private_submission_owner_identity_and_physical_authentication',
       moonc:run('moonc',['-v']),python:run(python,['--version']),result,submission,
       public_local_acceptance:false,durable_run_acceptance:false};
@@ -154,7 +158,7 @@ if(process.argv.includes('--build-and-consume')){
     assert.equal(dispatch.success,true);
     assert.equal(dispatch.module_sha256,digest);
     assert.equal(dispatch.processes.length,6);
-    const record={source_sha:source,module,module_sha256:digest,
+    const record={source_sha:source,module,module_sha256:digest,contract,
       scope:'private_original_dispatch_reconciliation_only',
       moonc:run('moonc',['-v']),python:run(python,['--version']),result,dispatch,
       public_local_acceptance:false,durable_run_acceptance:false,
@@ -174,7 +178,7 @@ if(process.argv.includes('--build-and-consume')){
     const workspace=JSON.parse(run(python,['scripts/fixtures/python-local-workspace-abi.py',module]));
     assert.equal(workspace.success,true);
     assert.equal(workspace.module_sha256,digest);
-    const record={source_sha:source,module,module_sha256:digest,
+    const record={source_sha:source,module,module_sha256:digest,contract,
       scope:'physical_buffer_bridge_workspace_only',
       moonc:run('moonc',['-v']),python:run(python,['--version']),result,physical,workspace,
       positive_native_result_acceptance:false,public_local_acceptance:false};
@@ -205,7 +209,7 @@ if(process.argv.includes('--build-and-consume')){
   const materials=JSON.parse(run(python,['scripts/fixtures/python-local-material-abi.py',module]));
   assert.equal(materials.success,true);
   assert.equal(materials.module_sha256,digest);
-  const record={source_sha:source,module,module_sha256:digest,
+  const record={source_sha:source,module,module_sha256:digest,contract,
     moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation,physical,workspace,source_environment:sourceEnvironment,run_preparation:runPreparation,materials};
   try {
     await writeFile(join(receipt,'receipt.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});
