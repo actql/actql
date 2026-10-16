@@ -26,7 +26,7 @@ fn readme_hero_environment() -> @check.CheckEnvironment raise {
       max_work: 100000,
     }) {
     Ok(tasks) => tasks
-    Err(issue) => fail("independent ModelTask: " + @debug.to_string(issue))
+    Err(issue) => fail("independent ModelTask: " + @debug.to_string(issue.kind))
   }
   @check.checking_environment(
     wire,
