@@ -4,8 +4,16 @@ import {
   "actql/actql/connectors/gcs/catalog" @gcs,
   "actql/actql/check_environment" @environment,
   "actql/actql/value_contract" @value,
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/encode_core" @encode,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
 } for "test"
+
+formatter(
+  ignore: ["command_environment_receiver.generated_test.mbt"],
+)

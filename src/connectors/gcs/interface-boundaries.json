@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/gcs/catalog/object_metadata.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ecf9bbd6d7f7c26d2d407ca95bc3b626b124f0a7a343c6b8f5791f5d47c438e7",
+      "sha256": "033978bbea9c765ee515109fe52b7899d3c1e05f56bdeff359dc9aa01c9e4e14",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [],
@@ -20,6 +20,14 @@
         {
           "name": "logical_metadata",
           "declaration": "logical_metadata ( metadata : Array [ ( String , String ) ] ? , ) - > Array [ ( String , String ) ] ?"
+        },
+        {
+          "name": "metadata_cursor",
+          "declaration": "metadata_cursor ( bytes : Bytes , limits : ObjectMetadataLimits , ) - > Result [ @ decode . Cursor , ObjectMetadataIssue ]"
+        },
+        {
+          "name": "metadata_fields_from_cursor",
+          "declaration": "metadata_fields_from_cursor ( root : @ decode . Cursor , expected_bucket : String , expected_prefix : String , expected_name : String ? , limits : ObjectMetadataLimits , ) - > Result [ ObjectMetadataFields , ObjectMetadataIssue ]"
         },
         {
           "name": "metadata_integer",
@@ -53,6 +61,8 @@
             "admit_object_metadata",
             "custom_metadata",
             "logical_metadata",
+            "metadata_cursor",
+            "metadata_fields_from_cursor",
             "metadata_integer",
             "metadata_text",
             "object_metadata_fields",
@@ -74,12 +84,28 @@
               {
                 "path": "src/connectors/gcs/catalog/object_metadata.mbt",
                 "anchor": "Provider data only."
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact object metadata pages"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Common retains those responsibilities"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
                 "anchor": "pub fn admit_object_metadata"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn admit_object_metadata_page"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) struct ObjectMetadataFields"
               }
             ],
             "identity": [
@@ -90,6 +116,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_request.mbt",
                 "anchor": "actql-gcs-object-mutation-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "integer.to_string() == text"
               }
             ],
             "ownership": [
@@ -104,6 +138,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_request.mbt",
                 "anchor": "let owned = permissions.copy()"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "pub struct ObjectMetadataPage"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "metadata: logical_metadata(fields.metadata)"
               }
             ],
             "synchronization": [
@@ -114,6 +156,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_request.mbt",
                 "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Every physical item is checked"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "not object GET"
               }
             ],
             "failure": [
@@ -124,6 +174,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_request.mbt",
                 "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) enum ObjectMetadataIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "if count > max_items"
               }
             ],
             "cancellation": {
@@ -141,6 +199,18 @@
               {
                 "path": "src/connectors/gcs/catalog/object_request.mbt",
                 "anchor": "@scalar.admit_utf8_length(path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "fn metadata_cursor"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "max_items : Int"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The physical raw page, strict parser/decode trees"
               }
             ],
             "extension": [
@@ -151,6 +221,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_request.mbt",
                 "anchor": "@decode.closed_object(root, [\"content_type\", \"metadata\"])"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The existing Decimal(19,0) carrier"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "pub fn object_metadata_page_at"
               }
             ],
             "verification": [
@@ -161,6 +239,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_request_wbtest.mbt",
                 "anchor": "GCS same physical bytes under different permissions"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object page keeps exact Int64"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/object_page_test.mbt",
+                "anchor": "GCS original page integers reach real Decimal admission"
               }
             ]
           }
@@ -371,11 +457,12 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "93638336169603c5e49dcdec08e62a309010e33f18ec1cdf4cd16aab09867429",
+      "sha256": "205adbb4b6f5320c5866d720e436546c9a22d472f4ffe840752ce37c2b3154ad",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
         "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]",
+        "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
         "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
         "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
         "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
@@ -383,6 +470,10 @@
         "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
         "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
         "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
+        "pub fn object_metadata_page_at(ObjectMetadataPage, Int) -> ObjectMetadataFields?",
+        "pub fn object_metadata_page_count(ObjectMetadataPage) -> Int",
+        "pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?",
+        "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String",
         "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
         "pub fn object_metadata_version(ObjectMetadata) -> String",
         "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
@@ -405,6 +496,7 @@
         "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
         "pub struct ObjectCollectionBinding {",
         "pub struct ObjectMetadata {",
+        "pub struct ObjectMetadataPage {",
         "pub struct ObjectMutationBinding {",
         "pub struct ObjectMutationRequest {"
       ],
@@ -412,6 +504,10 @@
         {
           "name": "admit_object_metadata",
           "declaration": "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]"
+        },
+        {
+          "name": "admit_object_metadata_page",
+          "declaration": "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]"
         },
         {
           "name": "admit_object_mutation_request",
@@ -440,6 +536,22 @@
         {
           "name": "object_metadata_logical_json",
           "declaration": "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]"
+        },
+        {
+          "name": "object_metadata_page_at",
+          "declaration": "pub fn object_metadata_page_at(ObjectMetadataPage, Int) -> ObjectMetadataFields?"
+        },
+        {
+          "name": "object_metadata_page_count",
+          "declaration": "pub fn object_metadata_page_count(ObjectMetadataPage) -> Int"
+        },
+        {
+          "name": "object_metadata_page_next_token",
+          "declaration": "pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?"
+        },
+        {
+          "name": "object_metadata_page_response_sha256",
+          "declaration": "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String"
         },
         {
           "name": "object_metadata_response_sha256",
@@ -527,6 +639,7 @@
           "operations": [
             "<module>",
             "admit_object_metadata",
+            "admit_object_metadata_page",
             "admit_object_mutation_request",
             "check_object_collection_binding",
             "object_collection_identity_cid",
@@ -534,6 +647,10 @@
             "object_collection_resource_json",
             "object_metadata_fields",
             "object_metadata_logical_json",
+            "object_metadata_page_at",
+            "object_metadata_page_count",
+            "object_metadata_page_next_token",
+            "object_metadata_page_response_sha256",
             "object_metadata_response_sha256",
             "object_metadata_version",
             "object_mutation_after",
@@ -557,6 +674,7 @@
           ],
           "exports": [
             "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]",
+            "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
             "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
             "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
             "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
@@ -564,6 +682,10 @@
             "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
             "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
             "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
+            "pub fn object_metadata_page_at(ObjectMetadataPage, Int) -> ObjectMetadataFields?",
+            "pub fn object_metadata_page_count(ObjectMetadataPage) -> Int",
+            "pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?",
+            "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String",
             "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
             "pub fn object_metadata_version(ObjectMetadata) -> String",
             "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
@@ -586,6 +708,7 @@
             "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
             "pub struct ObjectCollectionBinding {",
             "pub struct ObjectMetadata {",
+            "pub struct ObjectMetadataPage {",
             "pub struct ObjectMutationBinding {",
             "pub struct ObjectMutationRequest {"
           ],
@@ -618,6 +741,14 @@
               {
                 "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
                 "anchor": "pub fn object_upload_catalog_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact object metadata pages"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Common retains those responsibilities"
               }
             ],
             "inputsOutputs": [
@@ -640,6 +771,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_mapping_json"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn admit_object_metadata_page"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) struct ObjectMetadataFields"
               }
             ],
             "identity": [
@@ -670,6 +809,14 @@
               {
                 "path": "src/check_environment/command_input_contract.mbt",
                 "anchor": "pub fn command_target_input_contract"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "integer.to_string() == text"
               }
             ],
             "ownership": [
@@ -700,6 +847,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
                 "anchor": "const owner = originals.get(original)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "pub struct ObjectMetadataPage"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "metadata: logical_metadata(fields.metadata)"
               }
             ],
             "synchronization": [
@@ -726,6 +881,14 @@
               {
                 "path": "src/check_environment/store_command.mbt",
                 "anchor": "member_environment(mapping.item)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Every physical item is checked"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "not object GET"
               }
             ],
             "failure": [
@@ -752,6 +915,14 @@
               {
                 "path": "src/connectors/gcs/host_node/upload.mbt",
                 "anchor": "pub fn gcs_upload_declaration_failure_code"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) enum ObjectMetadataIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "if count > max_items"
               }
             ],
             "cancellation": {
@@ -785,6 +956,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Declaration construction retains input wire"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "fn metadata_cursor"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "max_items : Int"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The physical raw page, strict parser/decode trees"
               }
             ],
             "extension": [
@@ -811,6 +994,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The new `published_store` canonical selector"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The existing Decimal(19,0) carrier"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "pub fn object_metadata_page_at"
               }
             ],
             "verification": [
@@ -841,6 +1032,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
                 "anchor": "real GCS upload declares the independent complete presence role"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object page keeps exact Int64"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/object_page_test.mbt",
+                "anchor": "GCS original page integers reach real Decimal admission"
               }
             ]
           }
@@ -2997,6 +3196,148 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "sha256": "baef75746000fe59b629bd1eb7f269248b40c6a3d37c54adf13110ab5767f4f6"
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_page.mbt",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing GCS object metadata semantics; Source/ReferenceIssuer/physical custody and mutation observations remain separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_object_metadata_page",
+            "object_metadata_page_at",
+            "object_metadata_page_count",
+            "object_metadata_page_next_token",
+            "object_metadata_page_response_sha256"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact object metadata pages"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Common retains those responsibilities"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn admit_object_metadata_page"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) struct ObjectMetadataFields"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "integer.to_string() == text"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "pub struct ObjectMetadataPage"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "metadata: logical_metadata(fields.metadata)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Every physical item is checked"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "not object GET"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) enum ObjectMetadataIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "if count > max_items"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded provider DATA admission only. It cannot issue scan completion, read/send authority or cleanup ACK; the original Source/physical Owners retain cancellation and pending custody."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "fn metadata_cursor"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "max_items : Int"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The physical raw page, strict parser/decode trees"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The existing Decimal(19,0) carrier"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "pub fn object_metadata_page_at"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object page keeps exact Int64"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/object_page_test.mbt",
+                "anchor": "GCS original page integers reach real Decimal admission"
+              }
+            ]
+          }
+        }
+      ],
+      "operations": [
+        {
+          "name": "admit_object_metadata_page",
+          "declaration": "admit_object_metadata_page ( bytes : Bytes , expected_bucket : String , expected_prefix : String , max_items : Int , limits : ObjectMetadataLimits , ) - > Result [ ObjectMetadataPage , ObjectMetadataIssue ]"
+        },
+        {
+          "name": "object_metadata_page_at",
+          "declaration": "object_metadata_page_at ( page : ObjectMetadataPage , index : Int , ) - > ObjectMetadataFields ?"
+        },
+        {
+          "name": "object_metadata_page_count",
+          "declaration": "object_metadata_page_count ( page : ObjectMetadataPage ) - > Int"
+        },
+        {
+          "name": "object_metadata_page_next_token",
+          "declaration": "object_metadata_page_next_token ( page : ObjectMetadataPage ) - > String ?"
+        },
+        {
+          "name": "object_metadata_page_response_sha256",
+          "declaration": "object_metadata_page_response_sha256 ( page : ObjectMetadataPage , ) - > String"
+        }
+      ],
+      "exports": [],
+      "sha256": "492920935f0f66beeb26295c5f9c02d9f089a157b9d2cecc118a03c19ef501de"
     }
   ]
 }

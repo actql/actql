@@ -8,6 +8,8 @@ import {
 // Values
 pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]
 
+pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]
+
 pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]
 
 pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]
@@ -21,6 +23,14 @@ pub fn object_collection_resource_json(ObjectCollectionBinding) -> String
 pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields
 
 pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
+
+pub fn object_metadata_page_at(ObjectMetadataPage, Int) -> ObjectMetadataFields?
+
+pub fn object_metadata_page_count(ObjectMetadataPage) -> Int
+
+pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?
+
+pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String
 
 pub fn object_metadata_response_sha256(ObjectMetadata) -> String
 
@@ -117,6 +127,12 @@ pub(all) struct ObjectMetadataLimits {
   max_nodes : Int
   max_depth : Int
   max_metadata_entries : Int
+}
+
+pub struct ObjectMetadataPage {
+  items : Array[ObjectMetadataFields]
+  next_token : String?
+  response_sha256 : String
 }
 
 pub struct ObjectMutationBinding {

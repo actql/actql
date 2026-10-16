@@ -146,6 +146,39 @@ installation is not silently activated for writes by these DATA functions;
 upload transport, exact Content acquisition, physical issuer/currentness,
 reconciliation and normal installed approval/restart acceptance remain needed.
 
+## Exact object metadata pages
+
+`admit_object_metadata_page` shares the existing strict, bounded metadata
+parser and field checks with single-object GET admission. It parses the original
+response once, checks every item under the same scope and whole-page node/text
+bounds, and exposes no partially validated page. Generation, metageneration
+and size remain exact nonnegative Int64 values, including values above the
+binary64 safe-integer range. Empty pages retain their exact continuation token;
+an absent member is not NULL or an empty String. Unexpected nonempty prefix
+pages remain unavailable for this flat, delimiter-free physical profile.
+
+The opaque page retains its complete original response digest. Detached item
+fields hide only the exact private request marker and cannot mutate the page's
+metadata array. They are not single-object `ObjectMetadata` observations for
+mutation, issued Resource references, scan completion or apply receipts.
+An individual member is not reserialized into a supposed original GET response.
+
+The existing Decimal(19,0) carrier can preserve each checked Int64 coefficient
+and emits its specified decimal wire as JSON text without binary64 conversion.
+This is not a public String alias or permission to widen the GCS integer domain:
+GCS rejects Int64 overflow even when the wider Decimal contract could represent
+the coefficient. The current installed `files` view and its seven-column
+LIST_FILES projection are unchanged. The separately documented `gcs.objects`
+field set still needs its full original Source schema, physical page receiver
+and SDK/installed matching acceptance; this primitive does not claim them.
+
+The physical raw page, strict parser/decode trees, item array, per-item records,
+exact strings and metadata arrays, detached logical views, digest workspace,
+decimal admission/emission and pending physical callbacks can overlap. The
+same Source reservation must cover their actual lifetime before acquisition;
+page clamps do not establish that aggregate funding or retire an outstanding
+read/cleanup responsibility. No normal numerical profile is introduced.
+
 ## Verification boundary
 
 The catalog white-box tests execute the portable semantics with independent

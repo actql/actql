@@ -127,6 +127,27 @@ pub fn admit_object_metadata(
   expected_name : String?,
   limits : ObjectMetadataLimits,
 ) -> Result[ObjectMetadata, ObjectMetadataIssue] {
+  let root = match metadata_cursor(bytes, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let fields = match
+    metadata_fields_from_cursor(
+      root, expected_bucket, expected_prefix, expected_name, limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ fields, response_sha256: @sha.hex(bytes), })
+}
+
+///|
+// One bounded original parse is shared by single-object and page admission.
+// Page members are never reserialized and reparsed as replacement responses.
+fn metadata_cursor(
+  bytes : Bytes,
+  limits : ObjectMetadataLimits,
+) -> Result[@decode.Cursor, ObjectMetadataIssue] {
   if limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||
     limits.max_depth < 1 ||
@@ -168,6 +189,17 @@ pub fn admit_object_metadata(
         },
       )
   }
+  Ok(root)
+}
+
+///|
+fn metadata_fields_from_cursor(
+  root : @decode.Cursor,
+  expected_bucket : String,
+  expected_prefix : String,
+  expected_name : String?,
+  limits : ObjectMetadataLimits,
+) -> Result[ObjectMetadataFields, ObjectMetadataIssue] {
   guard @decode.open_object(root) is Ok(object) &&
     metadata_text(object, "bucket", 222) is Some(bucket) &&
     metadata_text(object, "name", 1024) is Some(name) &&
@@ -216,21 +248,18 @@ pub fn admit_object_metadata(
     Err(issue) => return Err(issue)
   }
   Ok({
-    fields: {
-      bucket,
-      name,
-      generation,
-      metageneration,
-      size,
-      content_type,
-      content_encoding,
-      storage_class,
-      updated,
-      md5,
-      crc32c,
-      metadata,
-    },
-    response_sha256: @sha.hex(bytes),
+    bucket,
+    name,
+    generation,
+    metageneration,
+    size,
+    content_type,
+    content_encoding,
+    storage_class,
+    updated,
+    md5,
+    crc32c,
+    metadata,
   })
 }
 

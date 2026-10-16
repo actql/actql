@@ -14,6 +14,18 @@ import {blankGridRows, columns, errorGridRows, expectedRows, sheetsRoutes}
   from './sheets-api.fixture.mjs';
 import {rangeProgram} from './sheets-range-program.fixture.mjs';
 
+// Close live handles even when the caller retains the original fixture custody.
+export async function closeSheetsAcceptanceCustody({root, closers = [],
+  rangeCommand = false, acceptanceComplete, diagnostic = () => {},
+  preserveScratch = process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'}) {
+  try { for (const close of closers.reverse()) await close(); }
+  finally {
+    if (preserveScratch) diagnostic(`Retained Sheets acceptance custody: ${root}`);
+    else if (rangeCommand && !acceptanceComplete) diagnostic(`Retained range acceptance custody: ${root}`);
+    else await rm(root, {recursive: true, force: true});
+  }
+}
+
 export async function registerSheetsAcceptance({connect, connectEmbeddedLocal,
   openInstalledRemoteHttpHost, publishInstalledSource, publishInstalledEffect,
   canonicalJson, fixtureCertificates, openHttpsExchangeFixture,
@@ -26,7 +38,7 @@ await mkdir(scratch, {recursive: true});
 const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
 const tls = await fixtureCertificates(tlsRoot);
 setDefaultCACertificates([...getCACertificates('default'), tls.ca.toString('utf8')]);
-after(() => rm(tlsRoot, {recursive: true, force: true}));
+after(() => closeSheetsAcceptanceCustody({root: tlsRoot}));
 const owner = userInfo().username;
 const secret = async () => 'fixture-only-secret';
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
@@ -92,13 +104,8 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
   const api = await openHttpsExchangeFixture(t, {routes: sheetsRoutes(state), faults});
   const root = await mkdtemp(join(scratch, 'host-'));
   const closers = [];
-  t.after(async () => {
-    try { for (const close of closers.reverse()) await close(); }
-    finally {
-      if (!rangeCommand || state.acceptanceComplete) await rm(root, {recursive: true, force: true});
-      else t.diagnostic(`Retained range acceptance custody: ${root}`);
-    }
-  });
+  t.after(() => closeSheetsAcceptanceCustody({root, closers, rangeCommand,
+    acceptanceComplete: state.acceptanceComplete, diagnostic: message => t.diagnostic(message)}));
   const credential = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), pem(credential.privateKey), {mode: 0o600});
   const siteProfilePath = join(root, 'site.json');
