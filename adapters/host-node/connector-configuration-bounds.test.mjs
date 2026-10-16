@@ -174,6 +174,29 @@ test('Salesforce publication keeps exact UTF8 text and the original 16000000 byt
   f.passed();
 });
 
+test('Salesforce publication preserves replacement decoding and the exact decoded UTF8 ceiling', async t => {
+  const f = await fixture(t);
+  // This remains valid JSON after the original replacement decoding. Its raw
+  // bytes fit the physical bound even when the decoded identity text does not.
+  const raw = Buffer.concat([Buffer.from('{"original":"'),
+    Buffer.alloc(5_333_328, 0xff), Buffer.from('"} ')]);
+  const body = raw.toString('utf8');
+  assert.equal(Buffer.byteLength(body, 'utf8'), publicationLimit);
+  assert.equal(JSON.parse(body).original.length, 5_333_328);
+  assert.ok(raw.length < publicationLimit);
+  await fs.writeFile(f.path, raw);
+  const read = await readPublicationFile(f.path);
+  assert.equal(read.body, body);
+  assert.equal(read.generationCid, cid(body));
+  assert.equal(f.state.bytes, raw.length);
+  await fs.appendFile(f.path, ' ');
+  f.state.bytes = 0;
+  assert.equal(Buffer.byteLength(body + ' ', 'utf8'), publicationLimit + 1);
+  await assert.rejects(readPublicationFile(f.path), {code: 'InvalidSalesforcePublication'});
+  assert.equal(f.state.bytes, raw.length + 1);
+  f.passed();
+});
+
 test('Salesforce publication close failure preserves exact original cleanup and missing-file classification', async t => {
   const f = await fixture(t);
   await assert.rejects(readPublicationFile(f.path), {code: 'SalesforcePublicationMissing'});

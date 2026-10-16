@@ -9487,7 +9487,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4351eb00d5ecccf3d5aa3acf26d53149caf218881adc1a9c420f4e864b7dabc2",
+      "sha256": "9fc0fb589969ea837ce3220585d8f94a2935d32dbf8f39b0d7280f4de2b18041",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
       "exports": [

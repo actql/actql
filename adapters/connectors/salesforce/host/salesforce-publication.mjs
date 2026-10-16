@@ -87,6 +87,11 @@ export async function readPublicationFile(path) {
     }
     throw error;
   }
+  // The bounded raw read does not replace the original decoded-text ceiling:
+  // UTF8 replacement decoding can expand the exact text used for its identity.
+  if (Buffer.byteLength(body, 'utf8') > maxGenerationBytes) {
+    fail('InvalidSalesforcePublication');
+  }
   return Object.freeze({body, generationCid: bytesCid(body)});
 }
 
