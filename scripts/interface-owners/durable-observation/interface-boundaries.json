@@ -1,6 +1,6 @@
 {
   "source": "3e626100845be286750e71383ebaad29fcd71208",
-  "qualification": "Existing functional Owner reference index; representation is independently checked The original source/syntax-input metadata records the initial reference supply, not a new runtime qualification. Explicit bounded HTTP byte-body extensions retain the same existing owners; their source-qualified tests and simultaneous holding inventory are separate from reference coverage and normal funding.",
+  "qualification": "Existing functional Owner reference index; representation is independently checked. The original source/syntax-input metadata records the initial reference supply, not a new runtime qualification. Explicit bounded HTTP byte-body extensions retain the same existing owners; their source-qualified tests and simultaneous holding inventory are separate from reference coverage and normal funding.",
   "inputs": [
     {
       "file": "f-a15-owner-declarations-v2.json",
@@ -801,10 +801,6 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Synchronization |"
-              },
-              {
-                "path": "adapters/host-common/http-body-lifetime.md",
-                "anchor": "secret-resolution await."
               },
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
@@ -4639,10 +4635,6 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Synchronization |"
-              },
-              {
-                "path": "adapters/host-common/http-body-lifetime.md",
-                "anchor": "secret-resolution await."
               },
               {
                 "path": "adapters/host-common/http-body-lifetime.md",

@@ -4774,10 +4774,6 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "secret-resolution await."
-              },
-              {
-                "path": "adapters/host-common/http-body-lifetime.md",
-                "anchor": "secret-resolution await."
               }
             ],
             "failure": [
