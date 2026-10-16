@@ -118,7 +118,10 @@ test('current query rules bind the manifest while prior rules retain their ident
   assert.equal(body.query_text_rules_sha256, sha(queryRules).slice(7));
   assert.equal(sha(canonicalText(body)), current);
   const integrated = read('scripts/fixtures/logical-update-target/main2874-manifest-identity.json');
-  assert.deepEqual({...body, grammar_manifest_cid: current}, integrated.after);
+  // The main 2874 manifest is a historical vector; the v0.1 Effect forms moved the grammar after it.
+  const {grammar_manifest_cid: integratedCid, ...integratedBody} = integrated.after;
+  assert.equal(sha(canonicalText(integratedBody)), integratedCid);
+  assert.notEqual(integratedCid, current);
   // Preserve main's adopted NEAREST preimage after the combined grammar moves.
   const nearest = read('scripts/fixtures/nearest-shorthand/manifest-identity.json');
   assert.deepEqual(integrated.main_before, nearest.manifest);
@@ -168,7 +171,8 @@ test('private UPDATE capture retains historical identity and optional Result beh
   assert.equal(before.query_text_rules_sha256,
     '935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
   const grammar = readFileSync('spec/grammar/actql-query-0.1.ebnf', 'utf8');
-  assert.match(grammar, /terminal_update = "EFFECT", \[ identifier \], "UPDATE", update_target,\s+\[ "FROM", "RESULT", identifier \],/u);
+  assert.match(grammar, /record_target = path, \[ "MAPPING", identifier \]\s+\| "TARGET", query_string, "MAPPING", identifier/u);
+  assert.match(grammar, /terminal_update = effect_prefix, "UPDATE", record_target, \[ effect_result \]/u);
   const {grammar_manifest_cid: afterCid, ...after} = vector.after;
   assert.equal(afterCid,
     'sha256:913d9e69aa87096a497cbf163a2fb9bb019b13a765f28792b734fa5f1a367361');
@@ -202,9 +206,8 @@ test('logical UPDATE retains historical identity and target grammar', () => {
   assert.equal(before.query_text_rules_sha256,
     '935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
   const grammar = readFileSync('spec/grammar/actql-query-0.1.ebnf', 'utf8');
-  assert.match(grammar, /terminal_update = "EFFECT", \[ identifier \], "UPDATE", update_target,\s+\[ "FROM", "RESULT", identifier \],/u);
-  assert.match(grammar, /update_target = "TARGET", query_string, "MAPPING", identifier\s+\| logical_update_target, \[ "MAPPING", identifier \] ;/u);
-  assert.match(grammar, /logical_update_target = identifier, "\.", identifier, \{ "\.", identifier \} ;/u);
+  assert.match(grammar, /record_target = path, \[ "MAPPING", identifier \]\s+\| "TARGET", query_string, "MAPPING", identifier/u);
+  assert.match(grammar, /terminal_update = effect_prefix, "UPDATE", record_target, \[ effect_result \]/u);
   assert.equal(sha(readFileSync('docs/spec/structural-text.md')),
     'sha256:' + vector.after.structural_text_rules_sha256);
   const unchanged = {...vector.after};
@@ -251,7 +254,13 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   selection.before);
   const integrated = read('scripts/fixtures/logical-update-target/main2874-manifest-identity.json');
   assert.deepEqual(integrated.frozen_before, selection.after);
-  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), integrated.after);
+  // The v0.1 Effect forms moved the grammar after main 2874; only the two
+  // normative query inputs and the identity differ from that integrated manifest.
+  const currentManifest = read('spec/manifests/actql-grammar-0.1.json');
+  const currentAligned = {...currentManifest};
+  for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
+    'query_text_rules_sha256', 'source_grammar_cid']) currentAligned[key] = integrated.after[key];
+  assert.deepEqual(currentAligned, integrated.after);
   for (const value of [integrated.frozen_before, integrated.main_before, integrated.after]) {
     const {grammar_manifest_cid: expected, ...body} = value;
     assert.equal(sha(canonicalText(body)), expected);

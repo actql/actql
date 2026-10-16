@@ -46,8 +46,9 @@ insert SELECT star, rename collisions or reset parsing budgets.
 
 WITH bodies, derived tables and pure set operands retain their Pure rules;
 CTAS retains its existing Compute and whole-wrapper rules. Top-level sql versus
-aql-text selection is unchanged. A semicolon-delimited explicit Result COMMAND
-postlude is a separate statement, not an implicit current-input Pipe.
+aql-text selection is unchanged. Command postludes after the terminating
+semicolon are declarations in the same Stage and Effect Set, not arbitrary
+statement chaining or an implicit current-input Pipe.
 
 ## Content serialization
 
@@ -1272,7 +1273,9 @@ contracts and are not moved into a CTE to make a JOIN parse.
 ## File listing Sources
 
 `LIST_FILES` is a table source in SQL and Pipe, including a JOIN input. Its
-first argument is a statically resolved installed Source name, not an expression,
+first argument is a statically resolved `connection.listing` Source name, or a
+bare connection with exactly one published listing Source; zero or multiple
+listing Sources are refused rather than guessed. It is not an expression,
 URI or WITH producer. The normal Source publication and Catalog determine
 its authority and file-list contract; a matching column shape alone is not a
 file-list capability.
@@ -1313,7 +1316,19 @@ A file-list profile supplies finite physical-limit candidates, not a proof of
 actual item count, snapshot isolation or successful acquisition. The installed
 acquisition must enforce its resolved limits and complete the declared selection
 protocol before exposing the Relation. LIMIT, a page boundary or a continuation
-token cannot turn an unfinished listing into a complete one.
+token cannot turn an unfinished listing into a complete one. A limited partial
+listing can be used only where the selected contract admits partial results;
+it does not carry complete-listing evidence.
+
+The listing metadata includes `resource`, `version`, `path`, `media_type` and
+`size`, with types, presence and available version guarantees declared
+by the published Source contract. Listing does not download bytes.
+`connection.contents` is the corresponding keyed Source: JOIN binds both
+`resource` and `version` to fetch exactly that Resource version, returning the
+columns `resource`, `version`, `content` (a `content_ref`) and `media_type`.
+Joining on resource alone does not establish
+version-pinned acquisition. Failed acquisition or version mismatch is an
+acquisition failure, not an absent INNER JOIN row.
 
 ## Source-free SELECT
 
@@ -1549,21 +1564,32 @@ prefix Result can require bounded retention and is not a cost-free alias.
 ## INFER KEEP source projection
 
 The adopted INFER Pipe form requires `INPUT` and result `AS` clauses, with
-optional `ITEM KEY` and `KEEP`. The contract name is carried unchanged
+optional `ITEM KEY`, `KEEP`, `MAX ITEMS n` and `ON FAILURE FAIL`. The contract name is carried unchanged
 to ordinary `infer.contract` resolution in the same Check Environment;
 backticks can delimit a complete existing reference such as
 `model-task:risk-score.v1`. Parsing a name does not resolve a ModelTask, select
 a newer version, or authorize model egress. An empty INPUT is checked against
 the resolved closed input contract, not treated as permission to omit fields.
 
-Each INPUT entry is either `name = expression` or a single same-name identifier:
-`INPUT (notes)` is equivalent to `INPUT (notes = notes)`. Explicit and shorthand
-entries may be mixed. Shorthand uses the ordinary binding identifier role, so
+Each INPUT entry is `name = expression`, `expression AS name`, or a single
+same-name identifier: `INPUT (notes)` is equivalent to `INPUT (notes = notes)`.
+All three spellings may be mixed; `notes = a.description` and
+`a.description AS notes` produce the same input mapping. Shorthand uses the ordinary binding identifier role, so
 reserved words require backticks; explicit assignment keys retain their closed
 ModelTask schema-key role. Dotted references and other expressions require an
-explicit assignment. Both forms keep the original expression source ranges and
+explicit assignment or AS mapping. All forms keep the original expression source ranges and
 use the same closed input contract checks, including missing, extra, duplicate,
 ambiguous, unknown and wrong-type fields. Shorthand sends no additional field.
+
+`MAX ITEMS n` is a positive safe-integer literal or a whole declared Parameter
+of that contract, not a row expression. It guards the distinct checked input
+keys submitted by this INFER occurrence and composes with Contract and Host
+ceilings; specifying a key does not prove uniqueness. `ON FAILURE FAIL` is a
+publication rule, not an unbounded retry or a rollback of model calls. After
+the existing bounded retry policy, any unsuccessful row prevents the step from
+publishing success. No partial successful result reaches later steps or
+Effects; already made calls, their outcomes and their costs remain recorded.
+Omission retains the existing per-row outcome contract.
 
 KEEP accepts column references, optional output aliases, and known-schema
 `*` or range `.*`. Expansion retains visible declaration order, and explicit
@@ -1848,6 +1874,12 @@ output collisions, dimensions, profile and execution-resource obligations.
 The frontend does not duplicate grouping, numeric folds or identity encoding.
 An explicit `vectors()` bridge is required before Relation projection.
 
+All authored clock FieldRefs in `to_events`, `sequence`, `row_window`,
+`watermark_rows`, `asof_join` and `interval_join` accept the shared
+[timestamp or integer-millisecond domain](language.md#event-clock-domain).
+The original column is retained; only internal arithmetic converts timestamps.
+No numeric-only exception applies to an Events input.
+
 `row_window` and `window_events` retain the existing [window contract](language.md#event-windows),
 respectively Relation-to-Relation and Events-to-Events. `time` is a FieldRef,
 not a String or producer name. `kind` is the exact String `'fixed'` or
@@ -1860,9 +1892,12 @@ or offset. The common owner supplies default offset zero and retains the
 closed-open membership, clock, occurrence order, arithmetic and capacity rules.
 
 `watermark_events` preserves Events and the existing [watermark contract](language.md#event-bridges).
-Its closed arguments are a finite numeric `watermark_ms` literal, including
-negative/fractional values, and exact policy String `'mark'` or `'drop'`.
-Parameters cannot replace the threshold. The shared owner checks the Carrier,
+Its closed arguments are a finite numeric `watermark_ms` literal or whole
+declared numeric Parameter, including admitted negative/fractional values,
+and required exact policy String `'mark'` or `'drop'`.
+The common owner validates the Parameter declaration and bound value against
+the literal's domain and retains that value for the Run. Row expressions,
+implicit NOW() and recomputation on resume are refused. The shared owner checks the Carrier,
 fresh output names and values: late means time strictly below the threshold;
 equality is not late. Both policies preserve retained identity, payload and
 relative order. Use `events()` before ordinary Relation projection. These
@@ -2034,7 +2069,7 @@ The existing Graph diagnostic operations also enter ordinary Relation processing
 
 ```aql
 WITH stats AS (FROM g |> degree(direction: "out"))
-FROM stats |> WHERE degree > 0 |> SELECT node, degree |> RESULT active
+FROM stats |> WHERE degree > 0 |> SELECT node_id, degree |> RESULT active
 FROM g |> graph_bounds(max_nodes: 10, max_edges: @edge_limit)
   |> SELECT kind, node_id, actual, max |> RESULT violations
 FROM g |> components(kind: "strong", max_output_rows: 100)
@@ -2046,7 +2081,7 @@ Graph supplies the existing operation input. Bodies, typed parameter references
 and authored guards are preserved for the common checker and owner; omitted
 required arguments and invalid values are not replaced with defaults. Diagnostic
 thresholds select violations, rather than raising execution-resource ceilings.
-The Relation scopes are exactly `node, degree`, `kind, node_id, actual, max`, and
+The Relation scopes are exactly `node_id, degree`, `kind, node_id, actual, max`, and
 `node_id, component_id, component_size`, respectively. Graph identity types,
 nullable bounds `node_id`, component identity/order, selected capacity and
 atomic guard failures follow the existing machine contracts. WITH reuses the
@@ -2349,9 +2384,9 @@ lowers with the fixed Program-local name `aql_update_effect`. An explicit name
 is preserved exactly and remains identity-bearing; an invalid empty name is
 not omission. The omitted form and explicit `aql_update_effect` form normalize
 identically under the same bindings and output contract, independently of
-whitespace or source offsets. Another terminal Effect or a mixed COMMAND
-postlude is rejected, including one using the same completed name. This does
-not introduce implicit naming for multiple Effects.
+whitespace or source offsets. A second terminal Effect is rejected. Command
+postludes may follow the query terminator; their names remain explicit and
+unique across the complete Effect Set, including the completed terminal name.
 
 `FROM RESULT name` may be omitted. Omission consumes the current checked
 Relation, after its authored row operations, through a closed stage-local private
@@ -2393,10 +2428,63 @@ approval, durable capture and cleanup owners remain authoritative. Preparation
 failure produces no partial Preview or write. Approval and restart consume the
 same sealed values without reevaluation or repeated acquisition, Model work or
 confirmed Effects. Syntax admission does not establish those runtime outcomes
-or authorize execution. The explicit TARGET/MAPPING form and the published
-logical-target form below share these input-selection and SET rules. COMMAND,
-STORE, create and upsert do not gain implicit inputs or expression evaluation
-from this UPDATE spelling.
+or authorize execution. The long TARGET/MAPPING form remains available;
+the short forms below resolve to the same existing owners.
+
+### Short Effect forms and SQL statements
+
+The checker MUST resolve each short `conn.resource` or `conn.operation` form
+against the selected connection's published contracts, refusing unknown,
+ambiguous, type-incompatible or unauthorized bindings before acquisition.
+The author does not name a Mapping in the short form; a published logical
+UPDATE target may carry an explicit `MAPPING` as described below. Explicit long
+forms select among multiple published contracts without broadening their
+authority.
+Normalization records the resolved target, contract and installation identity.
+
+The admitted terminal forms are:
+
+```text
+|> EFFECT [name] UPDATE conn.resource ID key SET (field = expr, …)
+|> EFFECT [name] INSERT conn.resource (field, …) [VALUES (expr, …)]
+|> EFFECT [name] UPSERT conn.resource ID key SET (field = expr, …)
+|> EFFECT [name] DELETE conn.resource ID key
+|> EFFECT [name] STORE conn.resource [SET (field = expr, …)]
+|> EFFECT [name] COMMAND conn.operation [TARGET expr] ID key [INPUT (field = expr, …)]
+```
+
+These forms MUST consume the current checked Relation through existing private
+Stage Result capture, evaluating pure expressions before Preview and preserving
+explicit public Results without inventing a public Named Result.
+INSERT without VALUES maps same-named input columns; with VALUES, its lists
+have equal arity. UPDATE and UPSERT use the declared record key; DELETE carries
+no SET fields. Omitted single-terminal names are completed deterministically
+by Effect kind, with UPDATE retaining `aql_update_effect`; explicit names remain
+identity-bearing and unique across terminal and postlude declarations.
+
+Object, file and stage STORE MUST require a typed `content_ref` for each output
+object, with destination and overwrite fields checked by the published write
+Mapping; rows without content are refused rather than implicitly serialized.
+Content may come from SERIALIZE or an admitted contents Source. A declared
+table resource instead accepts its typed rows. SET fields are evaluated inputs,
+not codec options: `format` does not turn rows into Content. The sealed Preview
+fixes the destination, exact content identity or row scope, and overwrite guard.
+
+A short COMMAND MUST resolve to exactly one versioned Command contract, require
+TARGET when that contract needs a per-row ResourceRef, and refuse TARGET when
+the contract fixes the target.
+ID identifies the input operation row in Preview, status and recovery; it is
+not a recipient or a substitute for the Command's target-plus-payload identity.
+Optional INPUT is checked against the contract, including an empty input.
+
+SQL UPDATE, INSERT INTO and DELETE FROM MUST lower to the same update, create
+and delete Effects as the terminal forms, with the same checks and approval.
+For UPDATE and DELETE, key equality addresses the key directly; any other
+WHERE selects identities and versions at Preview time. Apply consumes that
+fixed set and never re-evaluates WHERE to add newly matching records. A Connector
+unable to fix identities and apply-time conditions refuses the form at check.
+A changed apply-time condition produces `failed` with `conflict`, not a refreshed
+Preview, automatic resend, or a silently omitted row.
 
 ### Published logical UPDATE targets
 
@@ -2501,9 +2589,11 @@ EffectValue fields or scalar literals; computed expressions are refused and
 belong in the preceding Relation pipeline. Unknown Result names, foreign
 aliases, unknown fields, duplicate Effect names and duplicate INPUT fields are
 rejected. An empty INPUT list remains subject to the declared Command schema.
-COMMAND postludes cannot be mixed with an existing terminal UPDATE or Table
-write in the same query. Both the query separator and each postlude terminator
-are required.
+Command postludes may accompany one terminal record, store or Table Effect.
+All declarations in the text are checked as one Stage and one Effect Set,
+with one Checkpoint when approval is required. They do not imply execution
+ordering between members; dependent work uses separate Stages. Both the query
+separator and each postlude terminator are required.
 
 Lowering emits the existing `command` Effect with its original Result port,
 ResourceRef target, CommandContractRef and typed input. The common checker
@@ -2582,7 +2672,10 @@ FROM records AS e
 ```
 
 Closed keys are `by`, `id`, `time`, `pattern`, `within`, `overlap`, `contiguity`,
-and optional `max_matches_per_key`, `max_output_rows`. Required membership,
+with `by`, `overlap`, `contiguity`, `max_matches_per_key` and `max_output_rows`
+optional in the authored form. Omitted grouping and modes complete to `[]`,
+`'disallow'` and `'adjacent'` at check time; the closed canonical body stores
+them explicitly. `within` remains required. Required membership,
 pattern length, generated-name collisions and clock/identity validity remain
 with the common checker. `by`/`id`/`time` are ordinary current-row FieldRefs;
 label names use ordinary OutputName reserved/quoted-name rules. The original
@@ -2729,3 +2822,13 @@ foreign same-CID profile owners are not accepted through a published Catalog.
 Source/checker connection does not establish an installed Calendar runtime:
 current physical lowering and normal Host profile installation must be verified
 separately.
+
+## Refused GoogleSQL Pipe forms
+
+The closed set of specifically refused GoogleSQL Pipe forms in this profile
+is `|> CALL`, standalone `|> WINDOW`, `|> TABLESAMPLE` and
+`|> ASSERT condition`. Each is rejected with `query_syntax_invalid` from the
+public check Reason catalog, with an original source location when available.
+The WINDOW clause inside SELECT or EXTEND remains admitted. ActQL's
+`ASSERT UNIQUE BY` and JOIN `MAX_OUTPUT_ROWS` retain their separate contracts;
+they are not aliases for the refused general ASSERT form.

@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "db86b126581d2b407f122ac71506ff6a6ecfa74e5a0665fbddf724dfa1154cfe",
+      "sha256": "059374b518d854b136528761d89697e5d184769afb440bae4131d00faaad30b9",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -892,6 +892,10 @@
               {
                 "path": "packages/client-wire/client-host.generated.js",
                 "anchor": "const schemas ="
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: public-check.runnable-is-not-validity-or-authority -->"
               }
             ],
             "identity": [
@@ -960,6 +964,10 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
+              },
+              {
+                "path": "spec/requirements/contracts.json",
+                "anchor": "\"requirement_id\": \"actql.protocol.contracts/public-check.runnable-is-not-validity-or-authority\""
               }
             ]
           }
@@ -1156,12 +1164,20 @@
               {
                 "path": "packages/client-wire/client-host.generated.js",
                 "anchor": "const schemas ="
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "<!-- requirement-block: run-observation.state-revision -->"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "<!-- requirement-block: run-observation.state-revision -->"
               }
             ],
             "ownership": [
@@ -1224,6 +1240,10 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
+              },
+              {
+                "path": "spec/requirements/run.json",
+                "anchor": "\"requirement_id\": \"actql.protocol.run/run-observation.state-revision\""
               }
             ]
           }
@@ -1339,7 +1359,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "734a1d756d3850f97505d4a761a33740a975b73f5e8dc69955ba1fcae369e64b",
+      "sha256": "0ff4027fc7b0729c7179e35f59f873cc91f7b536363a95a7b78f650d6323c75c",
       "exports": [
         "interactiveControlErrors",
         "interactiveControlRegistryCid",
@@ -2029,12 +2049,20 @@
               {
                 "path": "packages/client-wire/interactive-control.generated.js",
                 "anchor": "const schemas ="
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "<!-- requirement-block: run-observation.state-revision -->"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "<!-- requirement-block: run-observation.state-revision -->"
               }
             ],
             "ownership": [
@@ -2097,6 +2125,10 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
+              },
+              {
+                "path": "spec/requirements/run.json",
+                "anchor": "\"requirement_id\": \"actql.protocol.run/run-observation.state-revision\""
               }
             ]
           }

@@ -440,8 +440,8 @@ or set CID. A missing field is not supplied with a default.
 The version form binds the connector's exact target version/content guard.
 An update, delete, or update-side upsert admitted as `full_diff` or `targeted`
 requires that form. An upsert with a present `before` row is update-side for
-this purpose. A blind preview may use the not-applicable form when no target
-version was observed. Create uses the not-applicable form. A command without a
+this purpose. Unresolved target scope cannot be admitted as a Preview.
+Create uses the not-applicable form. A command without a
 version guard may also use it. This form does not waive another required
 admission guard.
 `intended_changes` is required and has the closed form
@@ -520,6 +520,13 @@ authorization binding at apply.
 | `full_diff` | Before, intended after/change, and target version; unchanged fields omitted from the diff |
 | `targeted` | Exact target, intended change, target guard, and explicit before-unavailable status |
 | `create`, `command`, `store` | Kind-specific intended operation, payload or typed request, and exact scope |
+
+<!-- requirement-block: effect-outcome-wire.upsert-action -->
+The `effect_row_outcome_receipt` for an applied upsert MUST include
+`typed_outcome.action` as `created` or `updated`, bound by `typed_outcome_cid`
+and the receipt CID to the original dispatch operation.
+The field is not valid for another operation or a non-applied outcome. A
+failed apply-time condition uses the existing typed error with code `conflict`.
 
 <!-- requirement-block: review-artifacts.approval-attestation-must-bind-both-effect-preview-cid-and-the-exact-review-projection-cid review-artifacts.redaction-must-not-substitute-for-an-authority-preview stage-wire.product-36870f813edf policy-risk-acceptance.present-risk-acceptance-evidence-must-bind-issuer-policy-preview-and-scope approval-renewal.product-6542a3eac80f logical-request.product-26cde1934ed3 source-advance-claim.product-026cf595ba1a private-inspection.product-f6c29d1d5272 -->
 Redaction and unavailable evidence are distinct states. Neither is represented
@@ -825,20 +832,20 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_checkpoint_reply sha256:087b35471447e082dbdb4f39e77bb91b4bfb90de7be348aebb57d395d9617784
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/observation_facts sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/event_delivery_evidence sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/effect_outcome sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/effect_outcome sha256:9b2a918f994cd00147d4acd038639534dd767ff7f4e119b5a5fb43b9463592b1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_evidence sha256:63485b767c477d6ed77853478eefbf7f3af055c2bfac78e915e2db8bb89b51bc
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_input_logical sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:821609c0cc04ef0ca1b0760a1864673e4fa70a3709af5d33e37e5177477d2f3a
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:83add51a9d2c3aa700d512b226f2931e0075304afab4a08e9b32c4da3a31c772
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:e239b0d9b9229efdc67095bbea81ff8bccc0873a6bc277de7857c7955d8719fd
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_set_apply_receipt sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:8a80246cc33e6c8b3997085e15a31deb8b975c5f060bfebd5fb250e40a22f57c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:62f9011e9e702f3d620f70513eac6260a21b980687b7574c1bdce55984b1aba8
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/runtime_error sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_context sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2
@@ -853,7 +860,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_scope sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:4e50bf4d62354e45aca753d9f436e1002721c78604bcf2a7bfcf6365f8200dc5
@@ -879,6 +886,31 @@ closure only after its typed correspondence and authority have been admitted.
 ```
 <!-- lookup-identity-pins:end -->
 
+
+<a id="run-observation-revisions"></a>
+
+### Run observation revisions and waiting
+
+<!-- requirement-block: run-observation.state-revision -->
+Every `actql-run-state/0.1` observation MUST carry a state-level nonnegative
+safe-integer `revision`, monotonically advancing for published logical state,
+control or Result-availability changes of that original Run and preserved
+across restart and attach.
+A read alone does not advance it. It is distinct from `control.revision`,
+which tracks the cancellation-control owner. Exhaustion is refused rather
+than wrapping or resetting a revision. A revision conveys neither approval
+nor physical-stop evidence.
+
+<!-- requirement-block: run-observation.wait-since -->
+A `wait({since})` request MUST validate `since` as an observed state revision
+and return a stable waiting or terminal observation whose revision is greater
+than `since`, or an explicit timeout without a fabricated state change.
+Without since, an already stable observation returns immediately. With since,
+the same stable revision does not satisfy the wait. Status and wait use the
+same original Run projection and current read authorization; neither starts,
+resumes, reacquires or resends work to make progress visible.
+
+<a id="client-cancellation-observations"></a>
 
 ### Client cancellation observations
 

@@ -11,8 +11,11 @@
   status or test-run reports there. Report those in the working conversation
   and commit history instead.
 
-- The specification and pinned machine contracts are authoritative. Reference
-  implementations are implementation material, not an immutable version authority.
+- The public documentation under `docs/` (getting started, concepts, guides,
+  connectors, reference) defines the v0.1 target; the specification and pinned
+  machine contracts define the same behaviour normatively and are aligned to
+  it. Reference implementations are implementation material, not an immutable
+  version authority.
 - Before proposing acceptance changes or resolving an unspecified edge case,
   follow [Semantic decision criteria](docs/design/semantic-decisions.md).
   Separate existing requirements, conflicting evidence and new decisions. Do

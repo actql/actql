@@ -3,10 +3,9 @@
   "notes": ["expected_status and expected_diagnostic are expectations for implementation conformance runs, not document-check results. Document checks parse YAML and check root layout for valid examples. Invalid examples require an expected_diagnostic and are not required to pass root layout checks."],
   "documents": [
     {
-      "path": "README.md",
+      "path": "docs/development.md",
       "programs": [
-        {"id": "customer.open_orders", "expected_status": "valid"},
-        {"id": "revenue.renewal_risk", "expected_status": "valid"}
+        {"id": "customer.open_orders", "expected_status": "valid"}
       ]
     },
     {
@@ -19,21 +18,6 @@
         },
         {
           "id": "renewal_risk.rank_evidence",
-          "expected_status": "valid",
-          "required_profiles": []
-        }
-      ]
-    },
-    {
-      "path": "docs/authoring.md",
-      "programs": [
-        {
-          "id": "customer.open_orders",
-          "expected_status": "valid",
-          "required_profiles": []
-        },
-        {
-          "id": "row_local.invoice",
           "expected_status": "valid",
           "required_profiles": []
         }

@@ -5,7 +5,7 @@ import {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry, explainCheckReaso
 const reasonCid = 'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742';
 test('public check catalog exposes separate readonly presentation metadata without authority', () => {
   assert.deepEqual(getCheckReasonCatalogInfo(), {version: 'actql-check-reason-catalog/0.1',
-    revision: '2026-10-09.3', reasonSchemaCid: reasonCid});
+    revision: '2026-10-16.1', reasonSchemaCid: reasonCid});
   const entry = getCheckReasonCatalogEntry('parameter_value_required');
   assert.equal(entry.family, 'requirement');
   assert.equal(entry.default_severity, 'info');

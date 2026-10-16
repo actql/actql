@@ -1,9 +1,14 @@
 # Documentation
 
+- [Install](getting-started/install.md) and [Quickstart](getting-started/quickstart.md).
+- [Concepts](concepts/overview.md): what a Program, a Run and a Host are.
+- [Guides](guides/hosts.md): Hosts, Effects and approvals, Plans and pushdown, Models and INFER, Node, Python, Run lifecycle, Debugging.
+- [Writing Programs](authoring.md): source syntax and common patterns.
+- [CLI reference](cli.md): commands and usage.
+- [Connectors](connectors/README.md): the Connectors that ship with ActQL and how to build one.
+- [Syntax reference](reference/syntax.md), [SQL compatibility](reference/sql-compatibility.md), [Types and functions](reference/types-and-functions.md), [Implementation status](reference/status.md), [Runtime limits](reference/limits.md), [Configuration](reference/configuration.md).
 - [Specification](spec/README.md): normative language and protocol definitions.
-- [Authoring guide](authoring.md): source syntax and common patterns.
-- [CLI guide](cli.md): commands and usage.
-- [Development](development.md): setup, verification, metadata updates and versioning.
+- [Development](contributing/README.md): the repository, its rules and how it is implemented; [building from source](development.md).
 - [Physical cost helper](physical-cost-usage.md): source-checkout serial latency estimates and explicit unknown-cost selection; no Connector dispatch or Plan admission.
 - [Local Compute attempts](local-compute-usage.md): synchronous execution using completed producer inputs; no source acquisition or durable capture.
 - [Rebuild-time connector contributions](connector-bundles.md): typed Compute manifests, fixed Host installations and separate Node transport composition.

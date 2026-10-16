@@ -558,7 +558,11 @@ RunStateResultAvailabilityValue = TypedDict("RunStateResultAvailabilityValue", {
 
 RunStateControl = TypedDict("RunStateControl", {"revision": Required["int"], "cancellation_requested": Required["bool"], "physical_stop": Required["Literal[\"unknown\", \"confirmed\"]"]}, total=False)
 
-RunState = TypedDict("RunState", {"version": Required["Literal[\"actql-run-state/0.1\"]"], "run_id": Required["str"], "status": Required["Literal[\"preparing\", \"running\", \"waiting_checkpoint\", \"resuming\", \"needs_reconciliation\", \"succeeded\", \"failed\", \"cancelled\"]"], "updated_at": Required["str"], "checkpoint": NotRequired["RunStateCheckpoint"], "next_action": Required["RunStateNextAction0 | RunStateNextAction1 | RunStateNextAction2 | RunStateNextAction3 | RunStateNextAction4 | RunStateNextAction5"], "result_available": Required["bool"], "terminal_error": NotRequired["RunStateTerminalError"], "result_availability": Required["dict[str, RunStateResultAvailabilityValue]"], "control": NotRequired["RunStateControl"]}, total=False)
+RunState = TypedDict("RunState", {"version": Required["Literal[\"actql-run-state/0.1\"]"], "run_id": Required["str"], "status": Required["Literal[\"preparing\", \"running\", \"waiting_checkpoint\", \"resuming\", \"needs_reconciliation\", \"succeeded\", \"failed\", \"cancelled\"]"], "updated_at": Required["str"], "checkpoint": NotRequired["RunStateCheckpoint"], "next_action": Required["RunStateNextAction0 | RunStateNextAction1 | RunStateNextAction2 | RunStateNextAction3 | RunStateNextAction4 | RunStateNextAction5"], "result_available": Required["bool"], "terminal_error": NotRequired["RunStateTerminalError"], "result_availability": Required["dict[str, RunStateResultAvailabilityValue]"], "control": NotRequired["RunStateControl"], "revision": Required["int"]}, total=False)
+
+CheckOutcome0ReportRunnableReasonsItem = TypedDict("CheckOutcome0ReportRunnableReasonsItem", {"code": Required["str"]}, total=False)
+
+CheckOutcome0ReportRunnable = TypedDict("CheckOutcome0ReportRunnable", {"verdict": Required["Literal[\"yes\", \"no\"]"], "reasons": Required["list[CheckOutcome0ReportRunnableReasonsItem]"]}, total=False)
 
 CheckOutcome0ReportOmissions = TypedDict("CheckOutcome0ReportOmissions", {"requirements": Required["Literal[True]"]}, total=False)
 
@@ -706,9 +710,13 @@ CheckOutcome0ReportRequirementsItem = TypedDict("CheckOutcome0ReportRequirements
 
 CheckOutcome0ReportScope = TypedDict("CheckOutcome0ReportScope", {"kind": Required["Literal[\"template_only\", \"bound_input\"]"]}, total=False)
 
-CheckOutcome0Report = TypedDict("CheckOutcome0Report", {"context_ref": Required["str"], "omissions": NotRequired["CheckOutcome0ReportOmissions"], "inputs": Required["list[CheckOutcome0ReportInputsItem]"], "coverage": Required["CheckOutcome0ReportCoverage"], "reasons": Required["list[CheckOutcome0ReportReasonsItem]"], "requirements": Required["list[CheckOutcome0ReportRequirementsItem]"], "scope": Required["CheckOutcome0ReportScope"], "verdict": Required["Literal[\"invalid\", \"undetermined\", \"verified\"]"]}, total=False)
+CheckOutcome0Report = TypedDict("CheckOutcome0Report", {"runnable": Required["CheckOutcome0ReportRunnable"], "context_ref": Required["str"], "omissions": NotRequired["CheckOutcome0ReportOmissions"], "inputs": Required["list[CheckOutcome0ReportInputsItem]"], "coverage": Required["CheckOutcome0ReportCoverage"], "reasons": Required["list[CheckOutcome0ReportReasonsItem]"], "requirements": Required["list[CheckOutcome0ReportRequirementsItem]"], "scope": Required["CheckOutcome0ReportScope"], "verdict": Required["Literal[\"invalid\", \"undetermined\", \"verified\"]"]}, total=False)
 
 CheckOutcome0 = TypedDict("CheckOutcome0", {"outcome": Required["Literal[\"completed\"]"], "report": Required["CheckOutcome0Report"], "outcome_schema_cid": Required["str"], "reason_schema_cid": Required["Literal[\"sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742\"]"], "version": Required["Literal[\"actql-check-outcome/0.1\"]"]}, total=False)
+
+CheckOutcome1PartialReportRunnableReasonsItem = TypedDict("CheckOutcome1PartialReportRunnableReasonsItem", {"code": Required["str"]}, total=False)
+
+CheckOutcome1PartialReportRunnable = TypedDict("CheckOutcome1PartialReportRunnable", {"verdict": Required["Literal[\"yes\", \"no\"]"], "reasons": Required["list[CheckOutcome1PartialReportRunnableReasonsItem]"]}, total=False)
 
 CheckOutcome1PartialReportOmissions = TypedDict("CheckOutcome1PartialReportOmissions", {"requirements": Required["Literal[True]"]}, total=False)
 
@@ -856,7 +864,7 @@ CheckOutcome1PartialReportRequirementsItem = TypedDict("CheckOutcome1PartialRepo
 
 CheckOutcome1PartialReportScope = TypedDict("CheckOutcome1PartialReportScope", {"kind": Required["Literal[\"template_only\", \"bound_input\"]"]}, total=False)
 
-CheckOutcome1PartialReport = TypedDict("CheckOutcome1PartialReport", {"context_ref": Required["str"], "omissions": NotRequired["CheckOutcome1PartialReportOmissions"], "inputs": Required["list[CheckOutcome1PartialReportInputsItem]"], "coverage": Required["CheckOutcome1PartialReportCoverage"], "reasons": Required["list[CheckOutcome1PartialReportReasonsItem]"], "requirements": Required["list[CheckOutcome1PartialReportRequirementsItem]"], "scope": Required["CheckOutcome1PartialReportScope"], "verdict": Required["Literal[\"invalid\", \"undetermined\"]"]}, total=False)
+CheckOutcome1PartialReport = TypedDict("CheckOutcome1PartialReport", {"runnable": Required["CheckOutcome1PartialReportRunnable"], "context_ref": Required["str"], "omissions": NotRequired["CheckOutcome1PartialReportOmissions"], "inputs": Required["list[CheckOutcome1PartialReportInputsItem]"], "coverage": Required["CheckOutcome1PartialReportCoverage"], "reasons": Required["list[CheckOutcome1PartialReportReasonsItem]"], "requirements": Required["list[CheckOutcome1PartialReportRequirementsItem]"], "scope": Required["CheckOutcome1PartialReportScope"], "verdict": Required["Literal[\"invalid\", \"undetermined\"]"]}, total=False)
 
 CheckOutcome1Problem = TypedDict("CheckOutcome1Problem", {"code": Required["str"]}, total=False)
 

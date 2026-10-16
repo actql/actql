@@ -45,7 +45,7 @@ or price before execution.
 
 ActQL 0.1 includes exact decimal arithmetic, closed object/array construction,
 `assert_rows`, and Unicode/total timestamp helpers. See the
-[authoring guide](../authoring.md#row-local-values-and-invariants) and
+[types and functions reference](../reference/types-and-functions.md) and
 [conformance requirements](../spec/conformance.md#conformance-tests).
 This is not admission of a general UDF boundary.
 

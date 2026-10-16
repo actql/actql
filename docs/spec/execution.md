@@ -1378,8 +1378,9 @@ can complete its Run while its provider operation remains pending ([Outcomes and
 <!-- requirement-block: run-states.run-creation-and-lifecycle-operations-must-expose-the-closed-actql-run-state-0-2 -->
 Run creation and lifecycle operations MUST expose the closed
 `actql-run-state/0.1` projection: Run identity, immutable outcome state, update
-time, optional Checkpoint identity, per-Result availability observations, their
-all-Results aggregate, and one state-consistent next action. Each availability
+time, a state-level monotonic `revision`, optional Checkpoint identity,
+per-Result availability observations, their all-Results aggregate, and one
+state-consistent next action. Each availability
 entry distinguishes `available`, `unavailable`, and `unknown`, records the
 observation time and bounded reason, and may cite a cause. A failed Store query
 is `unknown`, not evidence that data is absent. `result_available` is true only
@@ -1757,6 +1758,19 @@ never re-materialized to restore removed or restricted grants. The
 configuration document is `actql-execution-account-config/0.1`, whose wire form
 and exact overlap rule are bound by the [Run protocol](protocols/run.md#account-config).
 
+<!-- requirement-block: policy-routing.standard-local-bootstrap -->
+A standard Local Host without an authored `account_config` MUST materialize
+and durably adopt the explicit bootstrap profile that allows pure computation,
+reads from configured connections and INFER through registered ModelTasks,
+while delegating every Effect to `effect_policy`, whose default is `review`.
+This default is not inferred from a missing or invalid authorization record.
+Supplying an explicit account configuration replaces bootstrap routing, without
+merging its grants into that configuration; an explicit deny cannot be
+bypassed by Host policy, a callback or a previously materialized bootstrap.
+All ordinary credential, egress, resource, currentness and approval checks
+remain required. An unreadable, invalid or revoked configuration is refused,
+not treated as absence or a request to restore the bootstrap profile.
+
 <!-- requirement-block: policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection -->
 Initial denial and later denial are distinct. A denial or technical decision
 failure before Run creation follows [Checkpoints and Resolutions](#checkpoints).
@@ -1919,20 +1933,21 @@ Every preview declares one of:
 
 - `full_diff`: exact target identities, before/after, and target versions;
 - `targeted`: exact target identities and intended after/change with before
-  unavailable, guarded by a connector target version; or
-- `blind`: exact target scope cannot be resolved.
+  unavailable, guarded by a connector target version.
 
-<!-- requirement-block: preview-strength.a-blind-preview-may-be-displayed-but-must-not-be -->
+<!-- requirement-block: preview-strength.only-full-diff-and-targeted-are-admissible -->
 `update`, `delete`, and update-side `upsert` are apply-admissible only as
 `full_diff` or version-guarded `targeted`. `create`, `command`, and `store` do
 not require before state; command admissibility also depends on its declared
-preview strength. A `blind` preview may be displayed but MUST NOT be
-applied.
+preview strength. An Effect whose exact target scope cannot be resolved
+MUST be refused at check: it cannot be declared, and unresolved scope is not
+a third Preview strength.
 
 The resolved item limit counts created rows for create, unique target identities for
 update/delete, unique upsert keys for upsert, logical target-plus-payload items for command,
-and output relation rows for store. ActQL 0.1 has no scalar/file store effect,
-so a relation is not counted as one artifact. Duplicate mutation identities
+and written objects/files/stage items or declared table input rows for store.
+A SERIALIZE result supplies one Content item, not one item per serialized row;
+a table input is counted as its rows rather than as one artifact. Duplicate mutation identities
 are invalid rather than collapsed. Mapping/type failures abort preview before a
 scope is approved and cannot be omitted from the count.
 
@@ -2034,6 +2049,17 @@ requires a new review projection and attestation, even with unchanged computatio
 <a id="reconciliation"></a>
 
 ### Outcomes and reconciliation
+
+<!-- requirement-block: effect-outcomes.upsert-action-and-conflict -->
+An applied upsert row outcome MUST carry `action: created` or `action: updated`
+in its typed outcome, reflecting the provider-confirmed branch of the original
+operation; no branch is inferred from missing before-state.
+A failed apply-time condition is `failed` with error code `conflict`. It does
+not authorize redispatch, refreshing the approved version, or changing the
+fixed target set; Host policy may offer a new Preview for a fresh approval,
+and nothing is resent automatically. Unknown outcomes still require
+Connector-recognized evidence and are never resolved by blindly resending the
+mutation.
 
 A typed command returns exactly one `EffectOutcome`:
 
