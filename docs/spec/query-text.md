@@ -2461,6 +2461,10 @@ have equal arity. UPDATE and UPSERT use the declared record key; DELETE carries
 no SET fields. Omitted single-terminal names are completed deterministically
 by Effect kind, with UPDATE retaining `aql_update_effect`; explicit names remain
 identity-bearing and unique across terminal and postlude declarations.
+INSERT's target-field list is represented by the canonical `create.values`
+map over that same captured Result. The original Mapping is retained rather
+than trimmed to its default row mapping or replaced by an inferred declaration;
+omission, typing and write authority follow the create contract in language.md.
 
 Object, file and stage STORE MUST require a typed `content_ref` for each output
 object, with destination and overwrite fields checked by the published write

@@ -8937,6 +8937,34 @@ changes. A step alias is an internal dataflow node; an Effect may consume it
 only after stage-local `results`, or `table_inputs` for Table `store`, exposes
 a closed contract for it.
 
+<!-- requirement-block: effects.create-values-original-projection -->
+An optional `create.values` target-field map MUST use the existing EffectValue
+`{field: name}` or `{literal: value}` forms with the original
+`from: {result: name}` and without raw `payload`. Absence retains the existing
+complete Mapping `row_mapping` route. Raw `create.payload` remains single-item
+business data, including parameter-shaped objects, rather than a template.
+
+<!-- requirement-block: effects.create-values-original-mapping -->
+The existing Common Effect owner MUST validate every supplied target value and
+required/writable field, conversion, null/omission rule, multiplicity and original
+row identity against the same complete original Mapping, target, checked
+occurrence, Environment and captured input. Omission remains absent rather than
+NULL, an implicit default or an invented source field. Empty maps are subject to
+those original create requirements, not an unrelated UPDATE nonempty-SET rule.
+
+<!-- requirement-block: effects.create-values-original-capture -->
+SQL/terminal INSERT expressions MUST be evaluated once by the existing Relation
+compiler and retained as the same private captured input and original binding
+through Run materials, Preview, apply and restore. No Effect-side expression
+interpreter, fabricated Mapping/Ref or additional write authority is introduced;
+current installation and Account checks remain independent.
+
+<!-- requirement-block: effects.create-values-no-legacy-fallback -->
+A consumer without the selected `create.values` capability MUST refuse it
+explicitly rather than ignore the map or fall back to legacy row mapping.
+Saved Programs without this member keep their original meaning, bytes and CIDs;
+new bodies receive the identities of their actual canonical contents.
+
 <!-- requirement-block: effects.its-target-field-must-be-a-value-level-resource-ref-k-whose-kind-equals -->
 A command consumes one named result. Its `target.field` MUST be a
 value-level `resource_ref<K>` whose kind equals the Command Contract target

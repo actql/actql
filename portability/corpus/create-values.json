@@ -1,0 +1,950 @@
+{
+  "qualification": "Independent Python canonical JSON SHA-256; no product output or runtime acceptance",
+  "previous_source": "0976aca4e10f188f6b89b04d7e6e1394d0c9638b",
+  "previous_create_body": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [],
+    "properties": {
+      "target": {
+        "type": "string",
+        "pattern": "^connector://"
+      },
+      "mapping": {
+        "type": "string",
+        "pattern": "^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$"
+      },
+      "from": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "max_items": {
+        "oneOf": [
+          {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "$param"
+            ],
+            "properties": {
+              "$param": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              }
+            }
+          }
+        ]
+      },
+      "on_item_failure": {
+        "const": "continue"
+      },
+      "payload": {
+        "type": "object"
+      }
+    },
+    "allOf": [
+      {
+        "required": [
+          "target",
+          "mapping"
+        ]
+      },
+      {
+        "oneOf": [
+          {
+            "required": [
+              "from"
+            ]
+          },
+          {
+            "required": [
+              "payload"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "previous_create_body_cid": "sha256:33a168b2cc9609575d095f13377c98af592f1924bc6fe0e0a61e59b2571301d6",
+  "previous_program_grammar_cid": "sha256:bfd9428774124f6f15e2ab67d010d70aad064a9f5c40c7f71b7b1567e878bdc0",
+  "program_grammar_cid": "sha256:d1c708b9e134146964d565ca607f2a8bfde4989e27e8a2ce922fe33153b40819",
+  "create_body_cid": "sha256:7343590dd8681f9ff889d6a22e270a748837f6eecea51775c586e8b63c59cf05",
+  "create_body": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [],
+    "properties": {
+      "target": {
+        "type": "string",
+        "pattern": "^connector://"
+      },
+      "mapping": {
+        "type": "string",
+        "pattern": "^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$"
+      },
+      "from": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "max_items": {
+        "oneOf": [
+          {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "$param"
+            ],
+            "properties": {
+              "$param": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              }
+            }
+          }
+        ]
+      },
+      "on_item_failure": {
+        "const": "continue"
+      },
+      "payload": {
+        "type": "object"
+      },
+      "values": {
+        "type": "object",
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "literal"
+              ],
+              "properties": {
+                "literal": {}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "allOf": [
+      {
+        "required": [
+          "target",
+          "mapping"
+        ]
+      },
+      {
+        "oneOf": [
+          {
+            "required": [
+              "from"
+            ]
+          },
+          {
+            "required": [
+              "payload"
+            ]
+          }
+        ]
+      }
+    ],
+    "dependentRequired": {
+      "values": [
+        "from"
+      ]
+    }
+  },
+  "programs": [
+    {
+      "name": "legacy_from",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "from": {
+                    "result": "original"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:22e5061021a71b6b764295b1879669c843f39f22cef15a1da3c763195dfa9c77",
+      "header_valid": true,
+      "header_issue": null,
+      "legacy": true
+    },
+    {
+      "name": "legacy_raw_payload",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "payload": {
+                    "Name": {
+                      "$param": "business_data"
+                    },
+                    "values": {
+                      "field": "opaque_business"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:a8283f357ad496798668b538d51d16246e71ebb62116a6ff71e42c33ae1aacfd",
+      "header_valid": true,
+      "header_issue": null,
+      "legacy": true
+    },
+    {
+      "name": "field_subset",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "from": {
+                    "result": "original"
+                  },
+                  "values": {
+                    "Name": {
+                      "field": "name"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:836b2cf0430e5039eb9d30a0dac777a91da3ffcef613229558aff116e0f0d817",
+      "header_valid": true,
+      "header_issue": null,
+      "legacy": false
+    },
+    {
+      "name": "independent_target_values",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "from": {
+                    "result": "original"
+                  },
+                  "values": {
+                    "Name": {
+                      "field": "name"
+                    },
+                    "City": {
+                      "literal": "Kyoto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:25ce80d2a60d3b4d38f198e39fec4e0097bd0a747ab0469212bf994fdb1094bf",
+      "header_valid": true,
+      "header_issue": null,
+      "legacy": false
+    },
+    {
+      "name": "empty_map",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "from": {
+                    "result": "original"
+                  },
+                  "values": {}
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:bd62f46a1811f39c97720e63424e7216c173c95993f0ec0c2e1da319565f586b",
+      "header_valid": true,
+      "header_issue": null,
+      "legacy": false
+    },
+    {
+      "name": "nullable_literal",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "from": {
+                    "result": "original"
+                  },
+                  "values": {
+                    "Name": {
+                      "literal": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:ac73bfacca2021cba1a2ec1b83d17bb42060e4ad775dbdb0dea969f1255a64d6",
+      "header_valid": true,
+      "header_issue": null,
+      "legacy": false
+    },
+    {
+      "name": "immediate_parameter",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "from": {
+                    "result": "original"
+                  },
+                  "values": {
+                    "Name": {
+                      "literal": {
+                        "$param": "name"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "results": {},
+        "params": {
+          "name": {
+            "type": "string",
+            "nullable": false
+          }
+        }
+      },
+      "program_cid": "sha256:788c191108dbef368e21820ae0b789bbb2fa60c65bcca9c80d46873e7c63cb9f",
+      "header_valid": true,
+      "header_issue": null,
+      "legacy": false
+    },
+    {
+      "name": "missing_from",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "values": {
+                    "Name": {
+                      "literal": "one"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:07e4965976f57483418d3653ad6b04c7d017469245957dc8a8b486aedb8e9258",
+      "header_valid": false,
+      "header_issue": "InvalidSourceResult",
+      "legacy": false
+    },
+    {
+      "name": "raw_payload_conflict",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "from": {
+                    "result": "original"
+                  },
+                  "payload": {
+                    "Name": "one"
+                  },
+                  "values": {}
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:a61c9ea4264919237894fdd1a74aea85e483c138b04508ad90c80fba6aa4e381",
+      "header_valid": false,
+      "header_issue": "InvalidSourceResult",
+      "legacy": false
+    },
+    {
+      "name": "raw_payload_without_from",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "payload": {
+                    "Name": "one"
+                  },
+                  "values": {}
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:98f1d104a43769c4d8a160ca1702f9984f7552f5dea599db86a4b4bf03eeeee6",
+      "header_valid": false,
+      "header_issue": "InvalidSourceResult",
+      "legacy": false
+    },
+    {
+      "name": "plain_untyped_value",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "from": {
+                    "result": "original"
+                  },
+                  "values": {
+                    "Name": "one"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:389f7c60fed9fb0e72c2a82c3849a7827fc97d59c3a90b2405851a76a7e41a4f",
+      "header_valid": false,
+      "header_issue": "InvalidBody",
+      "legacy": false
+    },
+    {
+      "name": "ambiguous_value_form",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.create_values",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "name": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "name": "first"
+                    },
+                    {
+                      "name": "second"
+                    }
+                  ]
+                },
+                "as": "original_rows"
+              }
+            ],
+            "results": {
+              "original": {
+                "from": "original_rows",
+                "fields": [
+                  "name"
+                ]
+              }
+            },
+            "effects": {
+              "save": {
+                "create": {
+                  "target": "connector://crm/account",
+                  "mapping": "mapping:crm.account.v1",
+                  "from": {
+                    "result": "original"
+                  },
+                  "values": {
+                    "Name": {
+                      "field": "name",
+                      "literal": "one"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "results": {}
+      },
+      "program_cid": "sha256:d490e8e8b3f4bbe68e30c1bf06eff6bbc9fd35db3b064725ed831781baae682e",
+      "header_valid": false,
+      "header_issue": "InvalidBody",
+      "legacy": false
+    }
+  ]
+}

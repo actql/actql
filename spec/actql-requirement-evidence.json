@@ -8715,6 +8715,50 @@
       }
     },
     {
+      "requirement_id": "actql.language/effects.create-values-original-projection",
+      "statement_sha256": "9237d8172c1b47856519afd12556017d1ac8c285ea7354360f8fc6fbb15fe038",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.create-values-original-mapping",
+      "statement_sha256": "4a261f9b4f6f7a51d3fc287d66854c368d1ad02b470adc232aacfc947c4f687a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.create-values-original-capture",
+      "statement_sha256": "31921a3eb4e59c2240097579c6b71939250c18908b74b1f3eea65f4281263300",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.create-values-no-legacy-fallback",
+      "statement_sha256": "b7a56c81e6cc694b3d962dad80bc9b4ccfccbda3cd7aceeb95b7a01e366b1d9a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/effects.its-target-field-must-be-a-value-level-resource-ref-k-whose-kind-equals",
       "statement_sha256": "f9af1278b9cd29f6f0fb0b060ec1e3397bcbffd7d3cc4b1a5d88d80c86e26e65",
       "status": "pending",
@@ -15492,7 +15536,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "074a7f3e6435427e3d9770f1d8cf48917a1ac4248248d4abd912dc7376cb1497",
+      "statement_sha256": "a8f3f5a583f896457a546606652510e775422b3ac317875c0fd4cbe145d91842",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
