@@ -103,6 +103,7 @@ fn read_client_effect_command_content_reference(
 /// Original binding retained by a private projection of the existing capture.
 /// It owns no physical bytes, reservation, dispatch or independent cleanup.
 priv struct ClientEffectCommandContentOriginal {
+  mut view : ClientEffectCommandContent?
   owner : PreparedClientEffectComputation
   inputs : @strategy.CapturedEffectInputs
   member_index : Int
@@ -136,7 +137,8 @@ pub fn borrow_client_effect_command_content(
   read_client_effect_command_content_reference(
     owner, inputs, member_index, artifact, row, input_name, max_fields, max_work,
   ).map(reference => {
-    original: Some({
+    let original : ClientEffectCommandContentOriginal = {
+      view: None,
       owner,
       inputs,
       member_index,
@@ -146,7 +148,10 @@ pub fn borrow_client_effect_command_content(
       reference,
       max_fields,
       max_work,
-    }),
+    }
+    let value : ClientEffectCommandContent = { original: Some(original), }
+    original.view = Some(value)
+    value
   })
 }
 
@@ -155,7 +160,10 @@ pub fn borrow_client_effect_command_content(
 pub fn client_effect_command_content_current(
   value : ClientEffectCommandContent,
 ) -> Bool {
-  guard value.original is Some(original) else { return false }
+  guard value.original is Some(original) &&
+    original.view.map(issued => physical_equal(issued, value)) == Some(true) else {
+    return false
+  }
   let current = match
     read_client_effect_command_content_reference(
       original.owner,
@@ -215,5 +223,9 @@ pub fn client_effect_command_content_wire(
 pub fn release_client_effect_command_content(
   value : ClientEffectCommandContent,
 ) -> Unit {
+  if value.original is Some(original) &&
+    original.view.map(issued => physical_equal(issued, value)) == Some(true) {
+    original.view = None
+  }
   value.original = None
 }

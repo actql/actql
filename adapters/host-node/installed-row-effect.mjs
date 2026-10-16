@@ -194,6 +194,7 @@ function commandContentBorrower(configuration) {
         fail('OriginalEffectContentUnavailable');
       }
       const borrow = Object.freeze({
+        binding: common.binding,
         current: () => original !== undefined && observe(() => common.current()),
         wire: () => observe(() => common.wire()),
         release: () => common.release(),

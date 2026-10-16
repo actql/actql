@@ -3729,7 +3729,7 @@ function publicationControl(moon) {
           original.artifact, original.row, original.inputName);
       // A physical preparation retains this view before awaiting. Its wire is
       // observed DATA, not byte custody, a capacity loan or a read/send grant.
-      return Object.freeze({current,
+      return Object.freeze({binding: view, current,
         wire() {
           if (!current()) throw new TypeError('Original Effect Content unavailable');
           return checked(moon.clientProgramEffectCommandContentWire(original.view));
