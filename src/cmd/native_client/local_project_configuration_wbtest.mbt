@@ -423,7 +423,7 @@ test "a conflicting Remote connection never interprets an explicit project as pe
 fn project_bindings_fixture(
   directory : String,
   configuration : String,
-) -> LocalProjectConfiguration raise ClientStop {
+) -> LocalProjectConfiguration raise {
   local_project_select_loaded(
     command().parse(argv=["check", "never-read.aql"]),
     @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap() +
@@ -521,7 +521,7 @@ test "a refused declaration Reader retains original cleanup and never substitute
     }
     match directory {
       "missing-bindings" => assert_true(original.issue() is @files.Missing)
-      "oversize-bindings" => assert_true(original.issue() is @files.InputLimit)
+      "oversize-bindings" => assert_true(original.issue() is @files.CapacityExceeded)
       "invalid-utf8-bindings" =>
         assert_true(original.issue() is @files.InvalidUtf8)
       _ => assert_true(original.issue() is @files.Filesystem(_))
