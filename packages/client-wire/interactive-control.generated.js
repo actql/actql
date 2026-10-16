@@ -841,7 +841,7 @@ const schemas = {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           }
         }
       },
@@ -906,7 +906,7 @@ const schemas = {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           },
           "authorityScopeCid": {
             "type": "string",
@@ -3524,7 +3524,7 @@ const schemas = {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           },
           "authorityScopeCid": {
             "type": "string",
@@ -3675,7 +3675,7 @@ const schemas = {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           },
           "authorityScopeCid": {
             "type": "string",
@@ -3741,7 +3741,7 @@ const schemas = {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 256,
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
               },
               "authorityScopeCid": {
                 "type": "string",
@@ -4700,7 +4700,7 @@ const schemas = {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 256,
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
               },
               "authorityScopeCid": {
                 "type": "string",
@@ -4826,7 +4826,7 @@ const schemas = {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 256,
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                       },
                       "authorityScopeCid": {
                         "type": "string",
@@ -5785,7 +5785,7 @@ const schemas = {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 256,
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                       },
                       "authorityScopeCid": {
                         "type": "string",
@@ -5920,7 +5920,7 @@ const schemas = {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256,
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                   },
                   "authorityScopeCid": {
                     "type": "string",
@@ -5974,7 +5974,7 @@ const schemas = {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 256,
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
               },
               "authorityScopeCid": {
                 "type": "string",
@@ -6193,7 +6193,7 @@ const schemas = {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           },
           "authorityScopeCid": {
             "type": "string",
@@ -7217,7 +7217,7 @@ const schemas = {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 256,
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                       },
                       "authorityScopeCid": {
                         "type": "string",
@@ -7619,7 +7619,7 @@ const schemas = {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 256,
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                       },
                       "authorityScopeCid": {
                         "type": "string",
@@ -8179,7 +8179,7 @@ const schemas = {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 256,
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                       },
                       "authorityScopeCid": {
                         "type": "string",
@@ -8556,7 +8556,7 @@ const schemas = {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 256,
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                       },
                       "authorityScopeCid": {
                         "type": "string",
@@ -9125,7 +9125,7 @@ const schemas = {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           },
           "authorityScopeCid": {
             "type": "string",
@@ -10212,7 +10212,7 @@ const schemas = {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 256,
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                           },
                           "authorityScopeCid": {
                             "type": "string",
@@ -10614,7 +10614,7 @@ const schemas = {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 256,
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                           },
                           "authorityScopeCid": {
                             "type": "string",
@@ -11174,7 +11174,7 @@ const schemas = {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 256,
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                           },
                           "authorityScopeCid": {
                             "type": "string",
@@ -11551,7 +11551,7 @@ const schemas = {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 256,
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                           },
                           "authorityScopeCid": {
                             "type": "string",
@@ -12193,7 +12193,7 @@ const schemas = {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           },
           "authorityScopeCid": {
             "type": "string",

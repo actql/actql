@@ -8,6 +8,7 @@ import {join, resolve} from 'node:path';
 import test from 'node:test';
 import {publicSnowflakeFixture, publicSnowflakeInstallation} from '../adapters/connectors/snowflake/test/public-snowflake.fixture.mjs';
 import {pending, resultBody} from '../adapters/connectors/snowflake/test/snowflake-read.fixture.mjs';
+import {keyPairPublicSnowflakeInstallation} from '../adapters/connectors/snowflake/test/key-pair-public.fixture.mjs';
 
 async function python(phase, facade, fixture, custody) {
   assert(process.env.ACTQL_PYTHON_WHEEL, 'Select an independently qualified normal SDK-only installation');
@@ -34,13 +35,17 @@ async function python(phase, facade, fixture, custody) {
   return {terminal, result};
 }
 
-for (const facade of ['sync', 'async']) test(
-  `ordinary SDK-only wheel ${facade}: Snowflake decimal38/NULL, bounded reader, typed rows and separate-process original attach`, async t => {
-    const fixture = await publicSnowflakeFixture(t, 'HTTPS');
+for (const credential of ['token', 'key-pair']) for (const facade of ['sync', 'async']) test(
+  `ordinary SDK-only wheel ${facade}/${credential}: Snowflake decimal38/NULL, bounded reader, typed rows and separate-process original attach`, async t => {
+    const fixture = await publicSnowflakeFixture(t, 'HTTPS', credential === 'key-pair'
+      ? keyPairPublicSnowflakeInstallation : publicSnowflakeInstallation);
     assert.equal(fixture.state.requests.length, 0);
-    fixture.state.onRequest = () => fixture.state.requests.length === 1
-      ? {status: 202, body: pending('python-original')}
-      : {body: resultBody({handle: 'python-original'})};
+    fixture.state.onRequest = entry => {
+      fixture.assertOriginalCredential?.(entry);
+      return fixture.state.requests.length === 1
+        ? {status: 202, body: pending('python-original')}
+        : {body: resultBody({handle: 'python-original'})};
+    };
     const custody = join(fixture.root, `python-${facade}-original.json`);
     const normal = await python('normal', facade, fixture, custody);
     assert.deepEqual(fixture.state.requests.map(item => item.method), ['POST', 'GET']);
@@ -58,16 +63,18 @@ for (const facade of ['sync', 'async']) test(
       'reservedTransferBytes', 'uncertainTransferBytes']) assert.equal(usage[field], '0', field);
     assert.equal(usage.holdings, '2', 'same cumulative capture/Compute issuance');
     assert.equal(usage.attempts, '2');
-    t.diagnostic(JSON.stringify({facade, children: [normal, attached],
+    if (credential === 'key-pair') assert.equal(fixture.materialLookups(), 2);
+    t.diagnostic(JSON.stringify({facade, credential, children: [normal, attached],
       providerRequests: fixture.state.requests.length, usage}));
   });
 
 // Reuse the existing genuine Host process lifecycle and ordinary public
 // startup, with this test's explicit disposable credential supplier. No
 // original G Host/DB or Source is opened or modified.
-async function childHost(t, installationPath) {
+async function childHost(t, installationPath, sourceMaterialPath) {
   const child = fork(resolve('scripts/fixtures/python-client-source-host.mjs'),
-    [installationPath, ''], {stdio: ['ignore', 'ignore', 'pipe', 'ipc']});
+    [installationPath, '', ...(sourceMaterialPath === undefined ? [] : [sourceMaterialPath])],
+    {stdio: ['ignore', 'ignore', 'pipe', 'ipc']});
   child.stderr.on('data', bytes => appendFileSync(
     `${installationPath}.host-${child.pid}.stderr.log`, bytes, {mode: 0o600}));
   const exited = new Promise(resolve => child.once('exit', (code, signal) => resolve({code, signal})));
@@ -87,14 +94,16 @@ async function childHost(t, installationPath) {
   return {endpoint, pid: child.pid, close};
 }
 
-for (const facade of ['sync', 'async']) test(
-  `ordinary SDK-only wheel ${facade}: same Snowflake Run and Result survive a fresh Host and Python process`, async t => {
-    const fixture = await publicSnowflakeInstallation(t);
+for (const credential of ['token', 'key-pair']) for (const facade of ['sync', 'async']) test(
+  `ordinary SDK-only wheel ${facade}/${credential}: same Snowflake Run and Result survive a fresh Host and Python process`, async t => {
+    const fixture = await (credential === 'key-pair'
+      ? keyPairPublicSnowflakeInstallation : publicSnowflakeInstallation)(t);
     // This is the existing source-Host fixture's explicit test-only resolver,
     // selected before any request. It is not a production fallback or grant.
     fixture.state.secret = 'test-only-secret';
     fixture.state.onRequest = entry => {
-      assert.equal(entry.headers.authorization, 'Bearer test-only-secret');
+      if (credential === 'key-pair') fixture.assertOriginalCredential(entry);
+      else assert.equal(entry.headers.authorization, 'Bearer test-only-secret');
       return fixture.state.requests.length === 1
         ? {status: 202, body: pending('restored-python-original')}
         : {body: resultBody({handle: 'restored-python-original'})};
@@ -109,13 +118,13 @@ for (const facade of ['sync', 'async']) test(
     const bytes = JSON.stringify(config);
     await writeFile(installationPath, bytes, {mode: 0o600});
     const custody = join(fixture.root, `python-${facade}-original.json`);
-    const first = await childHost(t, installationPath);
+    const first = await childHost(t, installationPath, fixture.sourceMaterialPath);
     fixture.remote = {endpoint: first.endpoint, token: 'owner-token', caPath: join(fixture.root, 'server.crt')};
     const normal = await python('normal', facade, fixture, custody);
     await first.close();
     const original = await readFile(custody, 'utf8');
     assert.deepEqual(fixture.state.requests.map(item => item.method), ['POST', 'GET']);
-    const restored = await childHost(t, installationPath);
+    const restored = await childHost(t, installationPath, fixture.sourceMaterialPath);
     assert.notEqual(first.pid, restored.pid);
     fixture.remote = {...fixture.remote, endpoint: restored.endpoint};
     const attached = await python('attach', facade, fixture, custody);
@@ -130,7 +139,7 @@ for (const facade of ['sync', 'async']) test(
     assert.equal(events.filter(item => item.name === 'computed').length, 1);
     assert.equal(events.filter(item => item.name === 'acquisition_started').length, 1);
     assert.equal(events.filter(item => item.name === 'dispatch_cleanup_completed').length, 1);
-    t.diagnostic(JSON.stringify({facade, hosts: [first.pid, restored.pid],
+    t.diagnostic(JSON.stringify({facade, credential, hosts: [first.pid, restored.pid],
       children: [normal, attached], providerRequests: fixture.state.requests.length,
       computed: 1, originalCleanup: 1}));
   });

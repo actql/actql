@@ -314,7 +314,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         }
       }
     },
@@ -384,7 +384,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -414,7 +414,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "authorityScopeCid": {
                       "type": "string",
@@ -497,7 +497,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -572,7 +572,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -664,13 +664,13 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "prepareAttemptId": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "state": {
                   "enum": [
@@ -686,7 +686,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "checkpoint": {
                   "type": "object",
@@ -702,7 +702,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "checkpointCid": {
                       "type": "string",
@@ -721,7 +721,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -729,13 +729,13 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "terminalErrorCode": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -798,7 +798,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -872,7 +872,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -939,7 +939,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -1014,7 +1014,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -1072,7 +1072,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "classification": {
                   "enum": [
@@ -1144,7 +1144,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -1219,7 +1219,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -1277,7 +1277,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "classification": {
                   "enum": [
@@ -1349,7 +1349,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -1428,7 +1428,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -1458,7 +1458,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "authorityScopeCid": {
                       "type": "string",
@@ -1541,7 +1541,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -1616,7 +1616,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -1708,13 +1708,13 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "prepareAttemptId": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "state": {
                   "enum": [
@@ -1730,7 +1730,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "checkpoint": {
                   "type": "object",
@@ -1746,7 +1746,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "checkpointCid": {
                       "type": "string",
@@ -1765,7 +1765,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -1773,13 +1773,13 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "terminalErrorCode": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -1842,7 +1842,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -1916,7 +1916,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -1983,7 +1983,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -2058,7 +2058,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -2078,7 +2078,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "classification": {
                   "enum": [
@@ -2150,7 +2150,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -2225,7 +2225,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -2245,7 +2245,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "classification": {
                   "enum": [
@@ -2317,7 +2317,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -2391,7 +2391,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -2406,7 +2406,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -2469,7 +2469,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -2505,7 +2505,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "authorityScopeCid": {
               "type": "string",
@@ -2544,7 +2544,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "authorityScopeCid": {
               "type": "string",
@@ -2558,7 +2558,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "expectedRevision": {
               "type": "integer",
@@ -2582,7 +2582,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "authorityScopeCid": {
           "type": "string",
@@ -2622,7 +2622,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "consentRefs": {
           "type": "array",
@@ -2631,7 +2631,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           }
         },
         "runners": {
@@ -2641,7 +2641,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           }
         },
         "durability": {
@@ -2654,13 +2654,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "cloudConnectionRef": {
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         }
       },
       "allOf": [
@@ -2681,7 +2681,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256,
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                   }
                 }
               },
@@ -2717,7 +2717,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256,
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                   }
                 }
               },
@@ -2767,7 +2767,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256,
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                   }
                 }
               },
@@ -2863,13 +2863,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "workspaceId": {
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "capabilities": {
           "type": "array",
@@ -2877,7 +2877,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           }
         },
         "limits": {
@@ -2947,7 +2947,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "authorityScopeCid": {
               "type": "string",
@@ -2989,7 +2989,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "ref": {
           "type": "object",
@@ -3004,7 +3004,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "authorityScopeCid": {
               "type": "string",
@@ -3026,7 +3026,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         }
       }
     },
@@ -3057,7 +3057,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         }
       }
     },
@@ -3145,13 +3145,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "prepareAttemptId": {
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "state": {
           "enum": [
@@ -3167,7 +3167,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "checkpoint": {
           "type": "object",
@@ -3183,7 +3183,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "checkpointCid": {
               "type": "string",
@@ -3202,7 +3202,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             }
           }
         },
@@ -3210,13 +3210,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "terminalErrorCode": {
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         }
       }
     },
@@ -3243,7 +3243,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "checkpointCid": {
               "type": "string",
@@ -3282,13 +3282,13 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "requestId": {
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     }
                   }
                 },
@@ -3308,7 +3308,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "runDefinitionCid": {
                       "type": "string",
@@ -3330,7 +3330,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "cid": {
                   "type": "string",
@@ -3349,20 +3349,20 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 256,
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
               }
             },
             "createdAt": {
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "expiresAt": {
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "humanSummary": {
               "type": "string",
@@ -3392,7 +3392,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "checkpointCid": {
               "type": "string",
@@ -3420,7 +3420,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "runDefinitionCid": {
                   "type": "string",
@@ -3463,13 +3463,13 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "expiresAt": {
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "humanSummary": {
               "type": "string",
@@ -3576,7 +3576,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         }
       }
     },
@@ -3592,7 +3592,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "kind": {
           "enum": [
@@ -3614,7 +3614,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "authorityScopeCid": {
               "type": "string",
@@ -3649,7 +3649,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "observationCid": {
           "type": "string",
@@ -3669,7 +3669,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 256,
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
               },
               "outcome": {
                 "type": "string",
@@ -3705,13 +3705,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "resource": {
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "observationCid": {
           "type": "string",
@@ -3755,13 +3755,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "resource": {
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "observationCid": {
           "type": "string",
@@ -3775,7 +3775,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
           }
         },
         "rowsJson": {
@@ -3836,7 +3836,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "authorityScopeCid": {
               "type": "string",
@@ -3852,7 +3852,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "programDefinitionCid": {
           "type": "string",
@@ -3937,7 +3937,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "authorityScopeCid": {
           "type": "string",
@@ -3951,7 +3951,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         },
         "expectedRevision": {
           "type": "integer",
@@ -3996,7 +3996,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "authorityScopeCid": {
                       "type": "string",
@@ -4035,7 +4035,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "authorityScopeCid": {
                       "type": "string",
@@ -4049,7 +4049,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "expectedRevision": {
                       "type": "integer",
@@ -4088,7 +4088,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "authorityScopeCid": {
                   "type": "string",
@@ -4102,7 +4102,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "expectedRevision": {
                   "type": "integer",
@@ -4174,7 +4174,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             }
           }
         },
@@ -4201,7 +4201,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
         }
       }
     },
@@ -4234,7 +4234,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -4261,7 +4261,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "authorityScopeCid": {
                       "type": "string",
@@ -4296,7 +4296,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "authorityScopeCid": {
                       "type": "string",
@@ -4310,7 +4310,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "expectedRevision": {
                       "type": "integer",
@@ -4350,7 +4350,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -4377,7 +4377,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "authorityScopeCid": {
                       "type": "string",
@@ -4415,7 +4415,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "authorityScopeCid": {
                       "type": "string",
@@ -4429,7 +4429,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                     },
                     "expectedRevision": {
                       "type": "integer",
@@ -4470,7 +4470,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -4498,7 +4498,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "authorityScopeCid": {
                   "type": "string",
@@ -4512,7 +4512,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "expectedRevision": {
                   "type": "integer",
@@ -4551,7 +4551,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -4576,7 +4576,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "authorityScopeCid": {
                   "type": "string",
@@ -4590,7 +4590,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 },
                 "expectedRevision": {
                   "type": "integer",
@@ -4635,7 +4635,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -4705,7 +4705,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         }
                       }
                     },
@@ -4735,7 +4735,7 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 256,
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                             },
                             "authorityScopeCid": {
                               "type": "string",
@@ -4818,7 +4818,7 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 256,
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                             }
                           }
                         },
@@ -4893,7 +4893,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         }
                       }
                     },
@@ -4985,13 +4985,13 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         },
                         "prepareAttemptId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         },
                         "state": {
                           "enum": [
@@ -5007,7 +5007,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         },
                         "checkpoint": {
                           "type": "object",
@@ -5023,7 +5023,7 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 256,
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                             },
                             "checkpointCid": {
                               "type": "string",
@@ -5042,7 +5042,7 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 256,
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                             }
                           }
                         },
@@ -5050,13 +5050,13 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         },
                         "terminalErrorCode": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         }
                       }
                     },
@@ -5119,7 +5119,7 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 256,
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                             }
                           }
                         },
@@ -5193,7 +5193,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         }
                       }
                     },
@@ -5260,7 +5260,7 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 256,
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                             }
                           }
                         },
@@ -5335,7 +5335,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         }
                       }
                     },
@@ -5393,7 +5393,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         },
                         "classification": {
                           "enum": [
@@ -5465,7 +5465,7 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 256,
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                             }
                           }
                         },
@@ -5540,7 +5540,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         }
                       }
                     },
@@ -5598,7 +5598,7 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 256,
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                         },
                         "classification": {
                           "enum": [
@@ -5670,7 +5670,7 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 256,
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                             }
                           }
                         },
@@ -5749,7 +5749,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -5791,7 +5791,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -5846,7 +5846,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -5895,7 +5895,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -5950,7 +5950,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 256,
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
                 }
               }
             },
@@ -6063,7 +6063,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
             },
             "authorityScopeCid": {
               "type": "string",

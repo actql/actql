@@ -160,6 +160,7 @@ export const installedConnectors = Object.freeze([
     revision: "snowflake/0.1",
     implementationFiles: Object.freeze([
       Object.freeze({path: "adapters/connectors/snowflake/host/installed-snowflake-source.mjs", href: new URL("../connectors/snowflake/host/installed-snowflake-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/snowflake/site/snowflake-key-pair.mjs", href: new URL("../connectors/snowflake/site/snowflake-key-pair.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/snowflake/site/snowflake-sql-read.mjs", href: new URL("../connectors/snowflake/site/snowflake-sql-read.mjs", import.meta.url).href}),
     ]),
     responseHeaders: Object.freeze(["content-encoding"]),
