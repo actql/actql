@@ -50,6 +50,24 @@ Sync calls reject with `SyncClientInRunningEventLoop` before I/O when a caller's
 event loop is running. Use the async facade there. The sync facade owns a private,
 persistent Runner; it does not stop or nest an application loop.
 
+`run.status()` and `run.wait()` return immutable `RunState` values. To wait
+for a later stable observation, pass the original state revision:
+
+```python
+previous = run.status()
+changed = run.wait(since=previous.revision)
+# Async: previous = await run.status(); changed = await run.wait(since=previous.revision)
+```
+
+`since` is a nonnegative safe integer. Omission sends JSON null; zero is an
+explicit revision. A successful response must be stable and newer than `since`.
+The Host may return `WaitTimeout` without changing the Run or
+`InvalidWaitRevision` for a future revision. The SDK preserves those errors,
+performs no status polling or automatic retry, and does not substitute
+`control.revision`. A transport timeout remains an uncertain exchange, not a
+Run cancellation or physical-stop acknowledgement. The unfinished Local wait
+condition supplier refuses explicit conditions rather than ignoring `since`.
+
 Closing the Client or reader releases its local connection resources. It never
 cancels a Run, proves Host cleanup, or resends an unknown operation. Explicitly
 call `run.cancel()` to request cancellation. Keep the original submission and

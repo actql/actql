@@ -8290,16 +8290,26 @@
     {
       "module": "adapters/host-common/run-state-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8fef7d3e99a04cfa9d7a908fdb59891f71931fa7be6f0343a783fb94d94b989b",
+      "sha256": "3c5c8589d30df908ab180eb9280b33f31b15fce3c7f50ada218c5a401cbbf60e",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
       "exports": [
+        "installedRunWaitDecision",
         "issueInstalledRunControlObservation",
         "issueInstalledRunObservationKey",
         "issueInstalledUnpublishedRunState",
         "prepareInstalledRunStateObservation"
       ],
       "operations": [
+        {
+          "name": "installedRunWaitDecision",
+          "parameters": [
+            "moon",
+            "state",
+            "since"
+          ],
+          "async": false
+        },
         {
           "name": "issueInstalledRunControlObservation",
           "parameters": [
@@ -8357,13 +8367,15 @@
             "issueInstalledRunControlObservation",
             "issueInstalledRunObservationKey",
             "issueInstalledUnpublishedRunState",
-            "prepareInstalledRunStateObservation"
+            "prepareInstalledRunStateObservation",
+            "installedRunWaitDecision"
           ],
           "exports": [
             "issueInstalledRunControlObservation",
             "issueInstalledRunObservationKey",
             "issueInstalledUnpublishedRunState",
-            "prepareInstalledRunStateObservation"
+            "prepareInstalledRunStateObservation",
+            "installedRunWaitDecision"
           ],
           "attributes": {
             "responsibility": [
@@ -8382,6 +8394,10 @@
               {
                 "path": "src/run_publication/run_state_observation.mbt",
                 "anchor": "pub fn prepare_run_state_observation("
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
               }
             ],
             "inputsOutputs": [
@@ -8400,6 +8416,10 @@
               {
                 "path": "src/run_publication/run_state_observation.mbt",
                 "anchor": "pub fn RunStateObservation::wire("
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
               }
             ],
             "identity": [
@@ -8418,6 +8438,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -8436,6 +8460,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
               }
             ],
             "synchronization": [
@@ -8454,6 +8482,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
               }
             ],
             "failure": [
@@ -8472,6 +8504,10 @@
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
               }
             ],
             "cancellation": [
@@ -8490,6 +8526,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "cancellationRequested: current.cancellationRequested,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
             "resources": [
@@ -8512,6 +8552,14 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               }
             ],
             "extension": [
@@ -8530,6 +8578,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
               }
             ],
             "verification": [
@@ -8548,6 +8600,14 @@
               {
                 "path": "adapters/host-node/client-run-state-revision-public.test.mjs",
                 "anchor": "test('actual Local Run state revision survives Host release and attach without another computation'"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               }
             ]
           }
@@ -13740,7 +13800,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "13357232e46fdd127967477ece7f6184075ae7286bfdbe84ff034bbcda9f7235",
+      "sha256": "c945497c7972e4b269c179edab28e8d0ebe85c327837ffcaebc364baeb65e55d",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -14029,6 +14089,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
               }
             ],
             "inputsOutputs": [
@@ -14043,6 +14107,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
               }
             ],
             "identity": [
@@ -14057,6 +14125,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -14071,6 +14143,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
               }
             ],
             "synchronization": [
@@ -14085,6 +14161,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
               }
             ],
             "failure": [
@@ -14099,6 +14179,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
               }
             ],
             "cancellation": [
@@ -14113,6 +14197,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
             "resources": [
@@ -14127,6 +14215,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               }
             ],
             "extension": [
@@ -14141,6 +14237,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
               }
             ],
             "verification": [
@@ -14151,6 +14251,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               }
             ]
           }

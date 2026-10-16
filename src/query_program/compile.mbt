@@ -7142,6 +7142,9 @@ pub fn compile_with_source(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
+  if @query.terminal_store_effect(query) is Some(_) {
+    return Err(UnsupportedEffect)
+  }
   // Binding and primary scopes must be installed before inspecting a JOIN
   // input. The standalone probe sees only Context inputs, not authored WITH
   // producers or transformed range inputs.

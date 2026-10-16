@@ -1035,7 +1035,8 @@
           "name": "AsyncExecution/wait",
           "parameters": [
             "self",
-            "until"
+            "until",
+            "since"
           ],
           "async": true
         },
@@ -1415,7 +1416,8 @@
           "name": "Execution/wait",
           "parameters": [
             "self",
-            "until"
+            "until",
+            "since"
           ],
           "async": false
         },
@@ -1684,7 +1686,7 @@
           "async": false
         }
       ],
-      "sha256": "c3d76c10ad0df18421a92381858eb80f3871d36bdf1bfca4a8801026439c72dd",
+      "sha256": "9b010db0bc10809909af330f4d4407f89e979dea88c26adb7c3850c7c880beb9",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2416,7 +2418,8 @@
           "name": "AsyncExecution/wait",
           "parameters": [
             "self",
-            "until"
+            "until",
+            "since"
           ],
           "async": true
         },
@@ -2462,7 +2465,7 @@
           "async": false
         }
       ],
-      "sha256": "f12dfeea44b19e8a6775782c694a4ab71eae333ab6a267b7e61bad94febcff49",
+      "sha256": "6b708e60604fa5cac5c90e6b9cb47c64c3a0e9a9fa8419ecf49201aec2a35292",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
