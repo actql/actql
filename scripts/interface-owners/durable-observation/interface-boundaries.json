@@ -4267,13 +4267,32 @@
     {
       "module": "adapters/site-node/https-credential-resource.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c05d1bd11b22152ee7d398073942da7f96ed5e6cc35922ea83a9830f91890260",
       "exports": [
-        "callHttpsCredentialResource"
+        "callHttpsCredentialResource",
+        "closeHttpsCredentialBinding",
+        "openHttpsCredentialBinding"
       ],
       "operations": [
         {
-          "name": "callHttpsCredentialResource",
+          "name": "acquireBinding",
+          "parameters": [
+            "binding",
+            "scope",
+            "control",
+            "journal",
+            "resolveSecret"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireBinding/acquireBinding",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "callCredentialResource",
           "parameters": [
             "grant",
             "useId",
@@ -4289,9 +4308,24 @@
             "maxRequestBytes",
             "maxResponseBytes",
             "returnRejectedResponse",
-            "signal"
+            "signal",
+            "binding"
           ],
           "async": true
+        },
+        {
+          "name": "callHttpsCredentialResource",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "closeHttpsCredentialBinding",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
         },
         {
           "name": "count/count",
@@ -4312,6 +4346,31 @@
           "parameters": [
             "code",
             "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openHttpsCredentialBinding",
+          "parameters": [
+            "scope",
+            "control",
+            "journal",
+            "resolveSecret",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "openHttpsCredentialBinding/openHttpsCredentialBinding",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openHttpsCredentialBinding/original/original",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -4339,7 +4398,8 @@
             "cert",
             "key",
             "signal",
-            "maxResponseBytes"
+            "maxResponseBytes",
+            "binding"
           ],
           "async": false
         },
@@ -4360,10 +4420,37 @@
           "async": false
         },
         {
+          "name": "receive/receive/finish/finish/finish",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "receive/receive/receive",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive/receive",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive#3",
           "parameters": [
             "error"
           ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/release/release",
+          "parameters": [],
           "async": false
         },
         {
@@ -4393,6 +4480,13 @@
           "async": false
         },
         {
+          "name": "retireBinding",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -4406,23 +4500,38 @@
         {
           "operations": [
             "<module>",
+            "acquireBinding",
+            "acquireBinding/acquireBinding",
+            "callCredentialResource",
             "callHttpsCredentialResource",
+            "closeHttpsCredentialBinding",
             "count/count",
             "exactRequestTarget",
             "fail/fail",
+            "openHttpsCredentialBinding",
+            "openHttpsCredentialBinding/openHttpsCredentialBinding",
+            "openHttpsCredentialBinding/original/original",
             "operationFor",
             "receive",
             "receive/receive",
             "receive/receive/finish/finish",
+            "receive/receive/finish/finish/finish",
             "receive/receive/receive",
+            "receive/receive/receive/receive",
+            "receive/receive/receive#2",
+            "receive/receive/receive#3",
+            "receive/receive/release/release",
             "receive/receive/request/request",
             "receive/receive/request/request/request",
             "receive/receive/request/request/request#2",
             "receive/receive/request/request/request#3",
+            "retireBinding",
             "text/text"
           ],
           "exports": [
-            "callHttpsCredentialResource"
+            "callHttpsCredentialResource",
+            "closeHttpsCredentialBinding",
+            "openHttpsCredentialBinding"
           ],
           "attributes": {
             "responsibility": [
@@ -4487,7 +4596,8 @@
             ]
           }
         }
-      ]
+      ],
+      "sha256": "12e2806284ca5ee08ab577f053a8db0e7be99cbad0990fa5c6d6ff1ae7d18255"
     },
     {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",

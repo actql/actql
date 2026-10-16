@@ -17,7 +17,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b595d46303db472b68243751d4a18129e968968a80a65c7f8bfffec8ed1bd938",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "consumeRetainedComputeInput",
         "encodeManagedColumnFrame",
@@ -4541,7 +4541,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d4de151b675628ba9e21c7d5dec7c9104db72b233ad725fdac1c386a2472dd3c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "finishManagedOutputReceipt"
       ],
@@ -4789,7 +4789,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "243d6e24785503fd307a79711aec9075101956681bff6e9fdc7fa30022449af0",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -5036,7 +5036,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "6f8598cc533afa1629a5d3faa40bb0c3c28ea47e25f6afb52ff670988935ce0e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "duckdbStrategyContribution"
       ],
@@ -5551,7 +5551,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "68d81095d50b3015dd221e2a9bf46c78fc735f5e7c994465947323421b6f35cf",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_EFFECT_VERSION",
         "SALESFORCE_EFFECT_PUBLICATION_VERSION",
@@ -8117,7 +8117,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7611563530b47dd8b093349911ff78f51cbd6d6dafaea566426da0053f5d740b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_SOURCE_VERSION",
         "checkInstalledSalesforceSourceProfile",
@@ -9811,7 +9811,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "e340e8fadfc68d74fb34b59e156c2abfd09271fd6d29edc128c8fcb9c1b64a90",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "authorObservedSalesforceEffectPreview"
       ],
@@ -10497,7 +10497,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "9f2772f90855bf44f2eedd80fda8c2ce9c45028a26412cfa440cb7a57cbb2118",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "salesforceRowEffectSite",
         "salesforceWriteDriver"
@@ -11502,7 +11502,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2e3ca5fabc271f7717afd5067d29c77b66d1b59fe5c21476a710fb44f4387875",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedSalesforceCatalogPreparation"
       ],
@@ -11759,7 +11759,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "346a80302aa10dfd246ac2cb6bad4d01f692473a4f0d7f6deea385e19e4f0567",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "readSalesforceManagedQuery",
         "readSalesforceQuery"
@@ -13079,7 +13079,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -14917,7 +14917,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedEffectPreparation",
         "isEffectPreparationRefusal",
@@ -15408,7 +15408,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -15656,7 +15656,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "abdafb589e9e636b9f200c49377f42c73e9d12a5e77bb1c29a22d1138dcf5f4f",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "contentCaptureControl",
         "contentGenerationControl",
@@ -24470,7 +24470,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d17780e2ca901ff56cc87c907dc588eae3b829913d7c06916c14a4659f7aa1ab",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -24717,7 +24717,7 @@
       "responsibilityFacet": "primary",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "strategyAction"
       ],
@@ -24973,7 +24973,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "866cd4909fc7074f5373c918e426492c3adfcfaadd8ee5eddc68663747ef1587",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -25565,7 +25565,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8c41827c3d9108274b722d9f1427031f0699aebc66ca76b458527cbb30d62e80",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -26578,7 +26578,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "996754e5df36d91037dc045b8f344931dfd2d363d519c418e1549d9a3e678c98",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -28022,7 +28022,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "624f7aa1d534366303b9f4577ea22a53159651a466d69909c8bb3a742b570944",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -29518,7 +29518,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "3756cf05d8704c10e9e9fe8a9cb8cf040eddaef0dbf5e7cc2d370418e940806d",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -31908,7 +31908,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "33b6b728bc25406b5f1dbef6c697987bca5ba3c1f1f24181fd13e06e3409cc29",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -32185,7 +32185,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d9e69b04f15462c276413b85417c1839d2a81111454aa703ddb44776bbabe4ac",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -34402,9 +34402,9 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "87d33ababac4c8e5506e7d77f8f7aba9a3d53e2db683329d8e9608f6b3e76bb6",
+      "sha256": "0d59271fb07382207ecdfcb55ca7237b49511b5ce2ba9a64a7d8f0c18c879dcd",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -38282,7 +38282,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b55747fa9a33570a52fade73235ff07ae4e056b98be0560ab476acf425bf3308",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openNodeInferCaptureCustody"
       ],
@@ -38874,7 +38874,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a8b59358ea08677da044371e235c6a31f9b5e95a6552090b00193d9b21916963",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "configureInferEvidence",
         "projectInferEvidence",
@@ -39983,7 +39983,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "50c914fc3e7f45a7a2368752a3b72805220b0f6d7e1546dd8773013bc9da77c1",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openNodeComposedInferProvider",
         "openNodeInferOperation",
@@ -42435,7 +42435,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "99561c228b553fff5b5a987c47854f45dc0b2f5071d0a78b2e6f8da58e363b02",
       "role": "physical-io",
-      "owner": "A \u2014 existing Model raw custody projection",
+      "owner": "A — existing Model raw custody projection",
       "exports": [
         "createModelRawCaptureStorePort",
         "createModelRawTransportPersistence",
@@ -43304,7 +43304,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "e98731b94d6e2aa4c3b1ff40116e8277390877b5d9901aeb6dc85e28429ca00d",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runInstalledComposedInfers"
       ],
@@ -43757,7 +43757,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a1d095cd38dcb67b245090104381019b7af8e0d2683f500df610b0a1ca6dadf3",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeInferRun"
       ],
@@ -44248,7 +44248,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0cc651f48b43c9e29685e7d7d4d9ce5e4425443c2747aef49890314d92b885ca",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -44724,7 +44724,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "3d0924637313dc9b6873756d4b17c87bb2b03e908c0112e124f3333a34f6ec4a",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
@@ -46583,7 +46583,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b7c50f80a10888ac32c06f175efdc196121d0f3c39dfac0ab7692e877e72f319",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
@@ -47927,7 +47927,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "1cbb136595da776ab7c8ede9b3fbe2fece595ec09c5d4a8f57009446d57b47d6",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
@@ -52026,7 +52026,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d61623b468c6334d266dfd6d282e8a218db0c22d5130dcc5cec5a1a4ca92f4df",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "startInstalledRowRun"
       ],
@@ -52541,7 +52541,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "878f41d5ecc9ad7d701c8cbf01b9987b192b9089d2f1ac2af486e2d6dc74addc",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "installRowSourceAuthorization",
@@ -54553,7 +54553,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "90247d18abc6db953b021cc7efa9191bbcbbbb3dbd70b80c34b9b62f8af0f15b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkInstalledTableEffectLimits",
         "createInstalledTableEffect"
@@ -56339,7 +56339,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "3c8489ba987d207badea97e5c5b93b63730cba8816c0e870ce139e65d51a4f0e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -60098,7 +60098,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "024e1ae2bb1d1a8fbcb1f282ac11b6b71eaab1dcc3e620ab239b139433e69b40",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "authorTableOperationPreview"
       ],
@@ -60856,7 +60856,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "cdc086218b28f7170fbe70e9145c79b4e7ab470d0b64097493974a04c0b7731b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedTableWriteBinding",
         "verifyTableWriteBinding"
@@ -61230,7 +61230,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2696846f037c18d380967acbabd4ca6dd2de29ae0761bbb5587fe2bcef2835ec",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "prepareLocalRetainedOutput"
       ],
@@ -61642,7 +61642,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "865da6ec2ea9307e5f390a9eea90f763ebde73d366eb951730d4e3b1d29eb4da",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "localStrategyContribution"
       ],
@@ -62995,7 +62995,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "752288be142a2ea76466f032875af7b85019d9675dd0a135af109db0fec35f9c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "numericStrategyContribution"
       ],
@@ -63533,7 +63533,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "92e6cb34879d3a5641a080adf3161b03fc5dc48625a100dfc9f063562fe118ac",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "bindWorkersFiniteHost"
       ],
@@ -64693,7 +64693,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -66531,7 +66531,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "29401b3dfde33c5b48963671b7b2174299b27ddb0e8ed1bb55b82744aa46b898",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acceptedSiteOutput",
         "acceptedSourceObservation",
@@ -76897,7 +76897,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -78735,7 +78735,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -80573,7 +80573,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -82411,7 +82411,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "bdc85d295da1ba5b9504c462c3ad2bcf70c371156adfaa28c5133b97a7e4b32c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
@@ -105864,7 +105864,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "47c5920dcd16b65be41156686e7970adfd6b998d719c4e62420b0bef5f93887c",
       "role": "observation-presentation",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitObservationScope",
         "chargeObservation",
@@ -107132,7 +107132,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -107380,7 +107380,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -109218,7 +109218,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ba3ac39d933226c2230e0abc1d5d12c09dde8d3097c6d18629defae3e8ee70a6",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "activeAt",
         "admitDurableJson",
