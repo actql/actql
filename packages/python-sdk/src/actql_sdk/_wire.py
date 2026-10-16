@@ -90,7 +90,10 @@ def valid_body(operation, body):
         return False
     if operation == 'check' and body.get('scope') == 'template_only':
         keys = [key for key in keys if key != 'parameters']
-    if set(body) != set(keys) or not valid(body['connection'], 'connection'):
+    optional = CONTRACT.get('request_optional_fields', {}).get(operation, {})
+    if (not set(keys) <= set(body) or set(body) - set(keys) - set(optional)
+            or any(not valid(body[key], rule) for key, rule in optional.items() if key in body)
+            or not valid(body['connection'], 'connection')):
         return False
     if operation == 'connect':
         return True
@@ -102,8 +105,10 @@ def valid_body(operation, body):
             return False
         if operation == 'restart-intent' and not restart(body['unresolvedHistory'], body['submissionRef']):
             return False
-        return valid_body('submit', {key: body[key] for key in ('connection', 'kind', 'input', 'parameters')}
-                          | {'requestId': body['submissionRef']['nonce']}) and (body['parameters'] is None or type(body['parameters']) is dict)
+        submitted = {key: body[key] for key in ('connection', 'kind', 'input', 'parameters')}
+        if 'stopBefore' in body:
+            submitted['stopBefore'] = body['stopBefore']
+        return valid_body('submit', submitted | {'requestId': body['submissionRef']['nonce']}) and (body['parameters'] is None or type(body['parameters']) is dict)
     if operation in ('submit', 'check'):
         is_check = operation == 'check'
         if is_check:

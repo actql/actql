@@ -260,13 +260,25 @@ fn decode_run_state(
       "version", "run_id", "status", "updated_at", "next_action", "result_available",
       "result_availability",
     ],
-    ["checkpoint", "terminal_error"],
+    ["checkpoint", "terminal_error", "revision"],
     "",
   )
   if string_field(value, "version") != Some(RUN_STATE_VERSION) {
     raise RunStateFailed(RunStateInvalidField("version"))
   }
   let run_id = run_state_text(value, "run_id")
+  // The original observation journal owns this public counter. Preserve a
+  // present valid value without issuing, advancing or resetting it. Legacy
+  // owner-produced lifecycle projections have no observation counter yet.
+  match @json.object_field(value, "revision") {
+    None => ()
+    Some(Number(number)) =>
+      match @scalar.read_safe_integer(number) {
+        Some(revision) if revision >= 0L => ()
+        _ => raise RunStateFailed(RunStateInvalidField("revision"))
+      }
+    _ => raise RunStateFailed(RunStateInvalidField("revision"))
+  }
   let status = match parse_run_status(run_state_text(value, "status")) {
     Some(status) => status
     None => raise RunStateFailed(RunStateInvalidField("status"))

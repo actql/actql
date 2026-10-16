@@ -1591,6 +1591,22 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       body.run_identity_cid, body.authoring_context.authoring_context_cid,
       requestScope, keys, limits.preview.maxWireBytes,
       limits.preview.maxNodes, limits.preview.maxDepth);
+    const submitted = recovered.originalSubmittedIntent;
+    submitted?.assertCurrent();
+    const requestedStop = submitted === undefined ||
+      !moon.clientSubmittedIntentRequestsCommitStop(submitted.intent)
+      ? undefined : control.restoreRequestedEffectStop(
+      submitted, requestIdentity, recovered.materials, durable.invocation, preview,
+      moon.clientProgramEffectPreviewInputLimits(
+        limits.preview.maxWireBytes, limits.preview.maxNodes,
+        limits.preview.maxDepth, limits.maxWork, limits.maxFields,
+        limits.preview.maxWireBytes, limits.preview.maxNodes,
+        limits.preview.maxDepth, members.length, limits.maxRows,
+        limits.maxWork, limits.maxWork));
+    const assertRequestedStopCurrent = () => {
+      submitted?.assertCurrent();
+      assertCurrent?.();
+    };
     const ledger = openLedger(requestIdentity);
     // The handle is released exactly once: it is marked released only after
     // its close succeeds, so a failed close stays this owner's pending
@@ -1672,6 +1688,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         }
       };
       return Object.freeze({preview, computation, storedResults,
+        ...(requestedStop === undefined ? {} : {requestedStop, assertRequestedStopCurrent}),
         apply: {moon, store, publicationControl: control, computation,
           preview, ledger, requestScope, programId: provider.program_id,
           nodeId: provider.stage_id, maxRows: limits.maxRows,

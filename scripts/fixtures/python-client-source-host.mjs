@@ -7,10 +7,17 @@ import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-loc
 const installationPath=process.argv[2];
 const installation=JSON.parse(readFileSync(installationPath,'utf8'));
 const fault=process.argv[3]??'';
+// Explicit disposable fixture input, never a production secret fallback.
+const sourceMaterials=process.argv[4]===undefined?undefined:JSON.parse(readFileSync(process.argv[4],'utf8'));
 const cert=readFileSync(installation.hostTls.certificatePath);
 setDefaultCACertificates([...getCACertificates('default'),cert.toString('utf8')]);
 const host=await openInstalledRemoteHttpHost({directory:installation.directory,
-  sourceProfilePath:installation.sourceProfilePath,resolveSourceSecret:async()=> 'test-only-secret',
+  sourceProfilePath:installation.sourceProfilePath,resolveSourceSecret:async context=>{
+    if(sourceMaterials===undefined)return 'test-only-secret';
+    const name=context.materialEnvironment;
+    if(typeof name!=='string'||!Object.hasOwn(sourceMaterials,name))throw Error('FixtureSourceMaterialUnavailable');
+    return sourceMaterials[name];
+  },
   effectProfilePath:installation.effectProfilePath,resolveEffectSecret:async()=> 'test-only-secret',
   authenticate:header=>fault!=='revoked'&&header==='Bearer owner-token'?userInfo().username:undefined,
   authorization:{...installation.authorization,observe:(name,detail)=>{

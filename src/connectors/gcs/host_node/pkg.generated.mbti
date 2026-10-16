@@ -25,6 +25,10 @@ pub fn gcs_collection_reference_failure_code(@original_reference.CollectionRefer
 
 pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String
 
+pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String
+
+pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]
+
 pub fn gcs_object_failure_code(GcsFailure) -> String
 
 pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]

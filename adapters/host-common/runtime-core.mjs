@@ -1,4 +1,4 @@
-import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {publicationAction} from './publication-action.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
@@ -4029,6 +4029,29 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Effect computation Preview');
       }
       return wire;
+    },
+    // Private original Client/Checkpoint binding. These operations accept the
+    // Common-issued opaque view, never a wire/CID reconstructed substitute.
+    requestedEffectStopLifetime(original) {
+      const lifetime = checked(moon.clientProgramRequestedEffectStopLifetime(original));
+      return Object.freeze({createdAt: runtimeField(lifetime, 0),
+        validUntil: runtimeField(lifetime, 1)});
+    },
+    requestedEffectStopIntentCid(original) {
+      return moon.clientProgramRequestedEffectStopIntentCid(original);
+    },
+    restoreRequestedEffectStop(original, identity, materials, invocation, preview, limits) {
+      const admitted = computationPreviewTokens.get(preview);
+      if (admitted === undefined) throw new TypeError('Foreign Effect computation Preview');
+      return runtimeUnboxedReferenceOption(checked(moon.clientProgramRestoreRequestedEffectStop(
+        original.intent, original.referenceWire, identity, materials,
+        token(invocation), admitted, limits)));
+    },
+    sealRequestedEffectStop(original, bodyWire, continuationWire, limits) {
+      issuanceLimits(limits, 'Requested Effect stop');
+      return checked(moon.clientProgramRequestedEffectStopCheckpoint(original,
+        bodyWire, continuationWire, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth));
     },
     effectPrivateEvidenceBinding(preview, storeAuthorityCid) {
       const ownedPreview = computationPreviewTokens.get(preview);

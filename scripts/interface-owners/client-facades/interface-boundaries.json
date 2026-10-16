@@ -3045,7 +3045,7 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "862d2dbde639095c651129379801957bb04c59cb6c034f5249d867fc2cc2e7c1",
+      "sha256": "9809d27dd256297e64d9d940ed087cc5746b6f005820f33caac5e3c4c54bd2c1",
       "exports": [
         "bytesCid",
         "canonicalJson",
@@ -3814,7 +3814,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "41d71c3302babd6277a194f737f161d83e8651eafe0341a80c5fee1d92e2ae36",
+      "sha256": "4e89d07e3020bb92dbc07b4380def28cf5e6610791859f86ab19a484f84ee3c9",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -4951,6 +4951,10 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "pub fn run_wait_ready("
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -4961,6 +4965,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"run_wait\": {"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -4975,6 +4983,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "state.run_id !== latestState.runId"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -4989,6 +5001,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -5003,6 +5019,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const observeStep = async promise => {"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -5017,6 +5037,10 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "return Err(InvalidSince)"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -5031,6 +5055,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -5049,6 +5077,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -5063,6 +5099,10 @@
               {
                 "path": "scripts/generate-client-host-wire.mjs",
                 "anchor": "const wait = requestRules.run_wait;"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -5077,6 +5117,14 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -8322,7 +8370,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "76051b3c37012588bf7762292d1865c44a97516fecf8f13c49d649172c53c354",
+      "sha256": "415f263155c51a4cd946d872e75aaf220159846fa0abde44ee84b609cbc31100",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -8736,12 +8784,20 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -8752,6 +8808,10 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -8762,6 +8822,10 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -8772,6 +8836,10 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -8782,6 +8850,10 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -8792,6 +8864,10 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -8802,6 +8878,14 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -8812,12 +8896,24 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/submission-identity.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }

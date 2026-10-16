@@ -89,7 +89,7 @@ const schemas = {
       },
       "nonce": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       }
@@ -159,7 +159,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -189,7 +189,7 @@ const schemas = {
                 "properties": {
                   "namespaceId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -272,7 +272,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -347,7 +347,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -374,13 +374,13 @@ const schemas = {
               },
               "requestId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
               "prepareAttemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -396,7 +396,7 @@ const schemas = {
               },
               "lookupExpiresAt": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -412,7 +412,7 @@ const schemas = {
                 "properties": {
                   "checkpointId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -431,7 +431,7 @@ const schemas = {
                   },
                   "expiresAt": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -439,13 +439,13 @@ const schemas = {
               },
               "endReason": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
               "terminalErrorCode": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -573,7 +573,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -647,7 +647,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -714,7 +714,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -789,7 +789,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -847,7 +847,7 @@ const schemas = {
             "properties": {
               "code": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -919,7 +919,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -994,7 +994,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -1052,7 +1052,7 @@ const schemas = {
             "properties": {
               "code": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -1124,7 +1124,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -1203,7 +1203,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -1233,7 +1233,7 @@ const schemas = {
                 "properties": {
                   "namespaceId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -1316,7 +1316,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -1391,7 +1391,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -1418,13 +1418,13 @@ const schemas = {
               },
               "requestId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
               "prepareAttemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -1440,7 +1440,7 @@ const schemas = {
               },
               "lookupExpiresAt": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -1456,7 +1456,7 @@ const schemas = {
                 "properties": {
                   "checkpointId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -1475,7 +1475,7 @@ const schemas = {
                   },
                   "expiresAt": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -1483,13 +1483,13 @@ const schemas = {
               },
               "endReason": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
               "terminalErrorCode": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -1617,7 +1617,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -1691,7 +1691,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -1758,7 +1758,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -1833,7 +1833,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -1853,7 +1853,7 @@ const schemas = {
             "properties": {
               "code": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -1925,7 +1925,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -2000,7 +2000,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -2020,7 +2020,7 @@ const schemas = {
             "properties": {
               "code": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -2092,7 +2092,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -2166,7 +2166,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -2181,7 +2181,7 @@ const schemas = {
             "properties": {
               "code": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -2244,7 +2244,7 @@ const schemas = {
                   },
                   "nonce": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -2316,7 +2316,7 @@ const schemas = {
           },
           "nonce": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           }
@@ -2357,7 +2357,7 @@ const schemas = {
               },
               "attemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -2427,7 +2427,7 @@ const schemas = {
                       },
                       "nonce": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       }
@@ -2457,7 +2457,7 @@ const schemas = {
                         "properties": {
                           "namespaceId": {
                             "type": "string",
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                             "minLength": 1,
                             "maxLength": 256
                           },
@@ -2540,7 +2540,7 @@ const schemas = {
                           },
                           "nonce": {
                             "type": "string",
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                             "minLength": 1,
                             "maxLength": 256
                           }
@@ -2615,7 +2615,7 @@ const schemas = {
                       },
                       "nonce": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       }
@@ -2642,13 +2642,13 @@ const schemas = {
                       },
                       "requestId": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       },
                       "prepareAttemptId": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       },
@@ -2664,7 +2664,7 @@ const schemas = {
                       },
                       "lookupExpiresAt": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       },
@@ -2680,7 +2680,7 @@ const schemas = {
                         "properties": {
                           "checkpointId": {
                             "type": "string",
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                             "minLength": 1,
                             "maxLength": 256
                           },
@@ -2699,7 +2699,7 @@ const schemas = {
                           },
                           "expiresAt": {
                             "type": "string",
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                             "minLength": 1,
                             "maxLength": 256
                           }
@@ -2707,13 +2707,13 @@ const schemas = {
                       },
                       "endReason": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       },
                       "terminalErrorCode": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       }
@@ -2841,7 +2841,7 @@ const schemas = {
                           },
                           "nonce": {
                             "type": "string",
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                             "minLength": 1,
                             "maxLength": 256
                           }
@@ -2915,7 +2915,7 @@ const schemas = {
                       },
                       "nonce": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       }
@@ -2982,7 +2982,7 @@ const schemas = {
                           },
                           "nonce": {
                             "type": "string",
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                             "minLength": 1,
                             "maxLength": 256
                           }
@@ -3057,7 +3057,7 @@ const schemas = {
                       },
                       "nonce": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       }
@@ -3115,7 +3115,7 @@ const schemas = {
                     "properties": {
                       "code": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       },
@@ -3187,7 +3187,7 @@ const schemas = {
                           },
                           "nonce": {
                             "type": "string",
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                             "minLength": 1,
                             "maxLength": 256
                           }
@@ -3262,7 +3262,7 @@ const schemas = {
                       },
                       "nonce": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       }
@@ -3320,7 +3320,7 @@ const schemas = {
                     "properties": {
                       "code": {
                         "type": "string",
-                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                         "minLength": 1,
                         "maxLength": 256
                       },
@@ -3392,7 +3392,7 @@ const schemas = {
                           },
                           "nonce": {
                             "type": "string",
-                            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                             "minLength": 1,
                             "maxLength": 256
                           }
@@ -3471,7 +3471,7 @@ const schemas = {
               },
               "attemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -3513,7 +3513,7 @@ const schemas = {
               },
               "attemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -3568,7 +3568,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -3617,7 +3617,7 @@ const schemas = {
               },
               "attemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -3672,7 +3672,7 @@ const schemas = {
               },
               "nonce": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -3703,7 +3703,7 @@ const schemas = {
     "properties": {
       "namespaceId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -3743,7 +3743,7 @@ const schemas = {
       },
       "workspaceId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -3752,7 +3752,7 @@ const schemas = {
         "uniqueItems": true,
         "items": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -3762,7 +3762,7 @@ const schemas = {
         "uniqueItems": true,
         "items": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -3775,13 +3775,13 @@ const schemas = {
       },
       "movementPolicyRef": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
       "cloudConnectionRef": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       }
@@ -3802,7 +3802,7 @@ const schemas = {
                 "maxItems": 0,
                 "items": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -3838,7 +3838,7 @@ const schemas = {
                 "maxItems": 0,
                 "items": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -3891,7 +3891,7 @@ const schemas = {
                 "minItems": 1,
                 "items": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -3984,13 +3984,13 @@ const schemas = {
       },
       "scopeRef": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
       "workspaceId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -3998,7 +3998,7 @@ const schemas = {
         "type": "array",
         "items": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -4068,7 +4068,7 @@ const schemas = {
         "properties": {
           "namespaceId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4110,7 +4110,7 @@ const schemas = {
       },
       "requestId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -4125,7 +4125,7 @@ const schemas = {
         "properties": {
           "namespaceId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4147,7 +4147,7 @@ const schemas = {
       },
       "lookupExpiresAt": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       }
@@ -4178,7 +4178,7 @@ const schemas = {
       },
       "reason": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       }
@@ -4201,13 +4201,13 @@ const schemas = {
       },
       "requestId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
       "prepareAttemptId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -4223,7 +4223,7 @@ const schemas = {
       },
       "lookupExpiresAt": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -4239,7 +4239,7 @@ const schemas = {
         "properties": {
           "checkpointId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4258,7 +4258,7 @@ const schemas = {
           },
           "expiresAt": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           }
@@ -4266,13 +4266,13 @@ const schemas = {
       },
       "endReason": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
       "terminalErrorCode": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       }
@@ -4364,7 +4364,7 @@ const schemas = {
         "properties": {
           "checkpointId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4403,13 +4403,13 @@ const schemas = {
                   },
                   "prepareAttemptId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
                   "requestId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -4429,7 +4429,7 @@ const schemas = {
                   },
                   "runId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -4451,7 +4451,7 @@ const schemas = {
             "properties": {
               "type": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -4470,20 +4470,20 @@ const schemas = {
             "uniqueItems": true,
             "items": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             }
           },
           "createdAt": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
           "expiresAt": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4513,7 +4513,7 @@ const schemas = {
         "properties": {
           "checkpointId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4541,7 +4541,7 @@ const schemas = {
               },
               "runId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -4584,13 +4584,13 @@ const schemas = {
           },
           "createdAt": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
           "expiresAt": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4697,7 +4697,7 @@ const schemas = {
       },
       "reason": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       }
@@ -4745,7 +4745,7 @@ const schemas = {
         "properties": {
           "namespaceId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4784,7 +4784,7 @@ const schemas = {
         "properties": {
           "namespaceId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4798,7 +4798,7 @@ const schemas = {
           },
           "cancelId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -4824,7 +4824,7 @@ const schemas = {
     "properties": {
       "namespaceId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -4838,7 +4838,7 @@ const schemas = {
       },
       "cancelId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -4883,7 +4883,7 @@ const schemas = {
                 "properties": {
                   "namespaceId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -4922,7 +4922,7 @@ const schemas = {
                 "properties": {
                   "namespaceId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -4936,7 +4936,7 @@ const schemas = {
                   },
                   "cancelId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -4975,7 +4975,7 @@ const schemas = {
             "properties": {
               "namespaceId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -4989,7 +4989,7 @@ const schemas = {
               },
               "cancelId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -5020,7 +5020,7 @@ const schemas = {
       },
       "attemptId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       }
@@ -5053,7 +5053,7 @@ const schemas = {
               },
               "attemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -5080,7 +5080,7 @@ const schemas = {
                 "properties": {
                   "namespaceId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -5115,7 +5115,7 @@ const schemas = {
                 "properties": {
                   "namespaceId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -5129,7 +5129,7 @@ const schemas = {
                   },
                   "cancelId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -5169,7 +5169,7 @@ const schemas = {
               },
               "attemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -5196,7 +5196,7 @@ const schemas = {
                 "properties": {
                   "namespaceId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -5234,7 +5234,7 @@ const schemas = {
                 "properties": {
                   "namespaceId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -5248,7 +5248,7 @@ const schemas = {
                   },
                   "cancelId": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   },
@@ -5289,7 +5289,7 @@ const schemas = {
               },
               "attemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -5317,7 +5317,7 @@ const schemas = {
             "properties": {
               "namespaceId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -5331,7 +5331,7 @@ const schemas = {
               },
               "cancelId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -5370,7 +5370,7 @@ const schemas = {
               },
               "attemptId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
@@ -5395,7 +5395,7 @@ const schemas = {
             "properties": {
               "namespaceId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -5409,7 +5409,7 @@ const schemas = {
               },
               "cancelId": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -5434,7 +5434,7 @@ const schemas = {
     "properties": {
       "requestId": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -5456,7 +5456,7 @@ const schemas = {
         "properties": {
           "namespaceId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -5491,7 +5491,7 @@ const schemas = {
     "properties": {
       "resourceConnection": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -5511,7 +5511,7 @@ const schemas = {
           "properties": {
             "name": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -5547,13 +5547,13 @@ const schemas = {
     "properties": {
       "resourceConnection": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
       "resource": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -5597,13 +5597,13 @@ const schemas = {
     "properties": {
       "resourceConnection": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
       "resource": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -5617,7 +5617,7 @@ const schemas = {
         "minItems": 1,
         "items": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -5657,7 +5657,7 @@ const schemas = {
         "properties": {
           "namespaceId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -5673,7 +5673,7 @@ const schemas = {
       },
       "resultName": {
         "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
         "minLength": 1,
         "maxLength": 256
       },
@@ -5838,7 +5838,7 @@ const schemas = {
         "properties": {
           "namespaceId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -17112,7 +17112,7 @@ const schemas = {
         "properties": {
           "namespaceId": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           },
@@ -17798,6 +17798,24 @@ const operationKeys = {
   ]
 };
 
+const optionalRequestFields = {
+  "submit": {
+    "stopBefore": {
+      "const": "commit"
+    }
+  },
+  "submit-intent": {
+    "stopBefore": {
+      "const": "commit"
+    }
+  },
+  "restart-intent": {
+    "stopBefore": {
+      "const": "commit"
+    }
+  }
+};
+
 export const checkReasonSchemaCid = "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742";
 export const checkOutcomeSchemaCid = "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
@@ -17857,7 +17875,8 @@ function valid(value, schema) {
 }
 
 export const clientHostOperations = Object.freeze(Object.keys(operationKeys));
-export const clientHostRequestKeys = operation => (Object.hasOwn(operationKeys, operation) ? operationKeys[operation] : undefined);
+export const clientHostRequestKeys = (operation, body = {}) => (Object.hasOwn(operationKeys, operation) ? [...operationKeys[operation], ...Object.keys(optionalRequestFields[operation] ?? {}).filter(key => body !== null && typeof body === 'object' && Object.hasOwn(body, key))] : undefined);
+export const validClientRequestOptionalFields = (operation, body) => Object.entries(optionalRequestFields[operation] ?? {}).every(([key, schema]) => !Object.hasOwn(body, key) || valid(body[key], schema));
 export const validSubmissionEpochShape = value => valid(value, schemas.submission_epoch);
 export const validSubmissionRefShape = value => valid(value, schemas.submission_ref);
 export const validSubmissionOutcomeShape = value => valid(value, schemas.submission_outcome);

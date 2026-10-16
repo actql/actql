@@ -184,6 +184,6 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
     chargeResponse: body => { state.charges++; return row?.charge(body) ?? body.byteLength; },
     consumeObservation: charge => { state.consumed++; row?.consume(charge); }};
 
-  return {state, scope, grant, control, journal, binding, row, options,
+  return {root, state, scope, grant, control, journal, binding, row, options,
     current, sign, writeAccount, observe: overrides => observeHubSpotAccount({...options, ...overrides})};
 }

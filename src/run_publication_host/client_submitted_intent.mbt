@@ -4,6 +4,7 @@
 struct ClientSubmittedIntent {
   wire : String
   cid : String
+  stop_before_commit : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -38,6 +39,14 @@ pub fn client_submitted_intent_transition(
 ///|
 pub fn client_submitted_intent_cid(value : ClientSubmittedIntent) -> String {
   value.cid
+}
+
+///|
+/// An admitted continuation restriction, not Account or resume authority.
+pub fn client_submitted_intent_requests_commit_stop(
+  value : ClientSubmittedIntent,
+) -> Bool {
+  value.stop_before_commit
 }
 
 ///|
@@ -78,7 +87,13 @@ pub fn prepare_client_submitted_intent(
     @canonical.InputLimit => return Err(Limit)
     _ => return Err(InvalidEnvelope)
   }
-  if @canonical.object_field_count(value) != Some(3) {
+  let stop_before_commit = match @canonical.object_field(value, "stopBefore") {
+    None => false
+    Some(@canonical.String("commit")) => true
+    _ => return Err(InvalidEnvelope)
+  }
+  let expected_fields = if stop_before_commit { 4 } else { 3 }
+  if @canonical.object_field_count(value) != Some(expected_fields) {
     return Err(InvalidEnvelope)
   }
   guard @canonical.object_field(value, "kind") is Some(@canonical.String(kind)) &&
@@ -109,7 +124,11 @@ pub fn prepare_client_submitted_intent(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-submitted-intent/0.1")
     @encode.end_object(writer)
-    Ok({ wire, cid: "sha256:" + @encode.finish_hash(writer), })
+    Ok({
+      wire,
+      cid: "sha256:" + @encode.finish_hash(writer),
+      stop_before_commit,
+    })
   } catch {
     _ => Err(Encoding)
   }

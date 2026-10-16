@@ -1630,8 +1630,29 @@ async function openInstalledHost(originalInstallation) {
       contractLimits: localContractLimits, signal,
       restoreOriginal: (saved, requestIdentity) => {
         const original = saved.runAdmissionEvidence?.updateTargetRunOriginal;
-        return original === undefined ? {} : updateTargetOriginals.restoreRun(
+        let restored = original === undefined ? {} : updateTargetOriginals.restoreRun(
           original, saved.runDefinition, requestIdentity);
+        const originalSubmittedIntent = journal.originalSubmittedIntent(requestIdentity,
+          {namespaceId}, moon, control);
+        if (originalSubmittedIntent !== undefined &&
+            moon.clientSubmittedIntentRequestsCommitStop(originalSubmittedIntent.intent)) {
+          if (restored.materials === undefined) {
+            const wire = saved.runAdmissionEvidence?.effectOriginalRunWire;
+            if (typeof wire !== 'string' || updateTargetOriginals === undefined) {
+              throw new Error('RequestedEffectStopOriginalUnavailable');
+            }
+            restored = updateTargetOriginals.restoreEffectMaterials(wire,
+              saved.runDefinition, requestIdentity);
+          }
+          if (moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(restored.allowed)) !==
+                saved.runAdmissionEvidence.prepared ||
+              moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(restored.allowed)) !==
+                saved.runAdmissionEvidence.authorization) {
+            throw new Error('EffectRecoveryOriginalSelectionUnavailable');
+          }
+          originalSubmittedIntent.assertCurrent();
+        }
+        return Object.freeze({...restored, originalSubmittedIntent});
       },
       authorizeEvidenceRead: binding => hostConnection({principalId,
         connection: {mode, owner: mode}, ref}) &&
