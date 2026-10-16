@@ -385,6 +385,10 @@ try {
       accountConfiguration: modelApprovalAccount}));
     await writeFile(join(root, 'model-approval-effect.json'), JSON.stringify({
       ...JSON.parse(await readFile(join(root, 'effect.json'), 'utf8')),
+      queryUpdateTargets: [
+        {name: 'crm.TestRecord', targetRef: 'connector://crm-main/Test_Record__c'},
+        {name: 'crm.OtherRecord', targetRef: 'connector://crm-main/Other_Record__c'},
+      ],
       accountConfigurationWire: modelApprovalAccount}));
   }
   const alternateSource = JSON.parse(await readFile(join(root,
@@ -1377,6 +1381,7 @@ try {
       const expectedReads = [2, 0, 0, 0, 0, 0];
       const expectedWriteCounts = [0, 0, 0, 0, 1, 1];
       const modelCalls = [];
+      const selectionOriginals = [];
       let sourceObservations;
       for (const [index, phase] of phases.entries()) {
         const output = (await runChild('effect-run.mjs', rceEnvironment,
@@ -1403,6 +1408,36 @@ try {
         effectWriteCounts.push(patches().length);
         assert.equal(patches().length, expectedWriteCounts[index],
           phase.step + ': only separate Effect approval permits writes');
+        const ref = JSON.parse(await readFile(join(root, 'effect-ref.json'), 'utf8'));
+        const database = new DatabaseSync(join(rceEnvironment.ACTQL_LOCAL_STATE_DIR,
+          'requests/client-requests.sqlite3'), {readOnly: true});
+        try {
+          const retained = database.prepare(`SELECT run_admission_evidence_json, run_definition_wire
+            FROM client_requests WHERE run_definition_cid = ?`).get(ref.runDefinitionCid);
+          assert.ok(retained, phase.step + ': the original Run remains in request custody');
+          const original = JSON.parse(retained.run_admission_evidence_json).updateTargetRunOriginal;
+          assert.equal(typeof original?.materialsWire, 'string');
+          const materials = JSON.parse(original.materialsWire);
+          assert.equal(typeof materials.effect_target_selections_json, 'string');
+          const selections = JSON.parse(materials.effect_target_selections_json);
+          assert.equal(selections.length, 1, 'Two aliases do not create two actual UPDATE occurrences');
+          assert(selections[0].target_ref === 'connector://crm-main/Test_Record__c',
+            'The selected UPDATE retains its original Test_Record target');
+          assert(selections[0].effect_id === 'save', 'The selected UPDATE retains its original save occurrence');
+          assert.equal(typeof materials.infer_execution_contract_json, 'string');
+          assert.ok(materials.infer_execution_contract_json.length > 0);
+          const definition = JSON.parse(retained.run_definition_wire);
+          const observation = {runDefinitionCid: ref.runDefinitionCid, selectionCount: selections.length,
+            selectionCid: definition.effect_target_selections_cid,
+            inferExecutionContractCid: materials.infer_execution_contract_cid};
+          for (const cid of [observation.selectionCid, observation.inferExecutionContractCid]) {
+            assert(typeof cid === 'string' && /^sha256:[a-f0-9]{64}$/u.test(cid),
+              'Original selection and Model contract identities must be CIDs');
+          }
+          if (selectionOriginals.length) assert.deepEqual(observation, selectionOriginals[0],
+            phase.step + ': reconstruction must retain the original selection and Model contract');
+          selectionOriginals.push(observation);
+        } finally { database.close(); }
       }
       assert.deepEqual(patches().map(item => ({id: item.path.split('/').at(-1),
         body: JSON.parse(item.body)})), expectedWrites);
@@ -1419,7 +1454,7 @@ try {
         requestId: submission.requestId, submissionRef: submission.submissionRef, ref, submittedFormat: submission.format,
         submittedProgramSha256: createHash('sha256').update(submission.document).digest('hex'),
         sourceReadSessions: sourceObservations.map(item => item.sourceReadSessions),
-        modelCalls, effectWriteCounts,
+        modelCalls, effectWriteCounts, selectionOriginals,
         modelCheckpointCid: JSON.parse(await readFile(join(root,
           'model-approval-checkpoint.json'), 'utf8')).checkpointCid,
         effectCheckpointCid: JSON.parse(await readFile(join(root,
