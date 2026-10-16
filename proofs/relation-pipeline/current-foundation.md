@@ -103,7 +103,8 @@ Ordinary declaration shape (replace placeholders with exact identities):
 ```
 
 Declarations are append-only. At every commit, all declarations inherited from
-any parent must survive byte-identically. Independently introduced copies of
+any parent must survive byte-identically, except the exact checked edge in the
+historical visible-input recovery rule below. Independently introduced copies of
 the same path must have the identical Git blob and mode. Every introduction
 must strictly follow its supporting source commit in the real ancestry; the
 generated report retains the complete sorted `introductions` list. Correct an
@@ -229,6 +230,57 @@ When present, a separate `supplements` array records the new records, their
 digests and introductions; affected integrations list their supplement IDs.
 Without supplements, declaration and aggregate formats/results are unchanged.
 This is dependency provenance, not an approval or permission to execute.
+
+### Recovering an exact historical visible-input edit
+
+The default inherited-byte rule still rejects editing an introduced declaration.
+One explicit `actql-foundation-historical-input-edit/0.1` disposition in the
+existing supplements directory can support a separately labelled recovered
+lineage. It does not make either historical raw version valid. This is a
+normative recovery rule, distinct from ordinary late supplements and atomic
+co-introduction repair; neither existing rule silently covers this failure.
+
+The closed record has `version`, `id`, `target`, `original`, `edit`,
+`addedInput`, `replacement` and a nonempty `reason`. `target`, `addedInput` and
+`replacement` bind exact declaration IDs and JSON SHA-256 digests. Each of
+`original` and `edit` binds the actual commit `revision`, ordered `parents`,
+Git blob `object`, SHA-256 `digest` and `mode` (`100644`). The target path is
+exactly the existing declaration directory plus its ID and `.json`.
+
+The original must be a single fresh canonical introduction strictly following
+its two-parent resolution source. The edit must be its direct single-parent
+child. Each of these two commits changes only that declaration path. The edit
+may only add the one bound input to the sorted unique input IDs; every other
+JSON field, including source, parent order, all actual maximal bases, protected
+changes, modes and rationale, remains identical. The bound dependency must
+already be visible with identical bytes and mode in the original introduction's
+parent. No other inherited-byte transition is excused. The edited bytes and
+all disposition/replacement records remain frozen in every descendant; merged
+conflicting copies, ambiguous originals, removals and further edits reject.
+
+A new ordinary, unsupplemented resolution declaration with a distinct ID must
+strictly follow the edit and independently pass all existing source, full
+changed-path, ordered-parent, maximal-base, input-ancestry and complete-source-
+group checks. Its body is exactly the edited body's binding except for its ID.
+Every disposition introduction strictly follows every replacement introduction.
+The original input groups must omit exactly the bound relevant source group,
+with no other missing, irrelevant or future dependency. A duplicate, reused,
+chained, self-replacing, copied, non-ancestral, co-introduced or otherwise
+incomplete recovery rejects. Neither target nor replacement acquires ordinary
+supplement, completion or normalization authority through this disposition.
+
+Discovery of the exact edge permits inspection only. No recovered result can
+be returned until the independent replacement and the whole composition have
+passed. Existing references to the legacy ID may then resolve to that same
+checked source group; dependent receipts are not rewritten. The aggregate
+retains both raw Git identities and failure categories
+`visible_input_omitted` / `inherited_declaration_edited`, marks the target
+`rawValidity: "rejected"`, and reports the disposition and replacement under
+`historicalRecoveries` with lineage `recovered_historical_input_edit`.
+The raw original is never a valid independent original or an execution proof.
+Original failing campaign results, immutable baselines, product semantics and
+all other provenance refusals remain unchanged. A new campaign reports only
+its own explicitly recovered-composition result, never a historical PASS.
 
 ### Repairing a rejected atomic co-introduction
 
