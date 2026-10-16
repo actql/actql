@@ -272,7 +272,7 @@ try:
             pass
         assert setup.close()
     environment_wire = (root / 'scripts/fixtures/python-local-native-environment.json').read_text().strip()
-    publication = {'environmentCid': 'sha256:535c4c9bbefc918c4e1c67afcc8a7fae402d37b9113d039b3a03c758ae59a58e',
+    publication = {'environmentCid': 'sha256:7dba96908baad08da9a223db447588590ba5b432ba23f85f50f16150963d55a1',
                    'aliases': [{'name': 'records', 'sourceRef': 'connector://crm/main/r#v',
                                 'sourceViewContractCid': 'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
                                 'schemaContractCid': 'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4'}], 'tableWrites': []}
