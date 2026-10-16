@@ -195,8 +195,8 @@ pub fn RunStateObservation::next_revision(
 }
 
 ///|
-/// Serialize only after the existing journal confirms its original row's
-/// revision commit. The caller cannot derive execution authority from this DATA.
+/// Prepare bounded DATA; the durable owner exposes it only after confirming
+/// its original row's revision commit. Serialization proves no execution right.
 pub fn RunStateObservation::wire(
   self : RunStateObservation,
   revision : Int64,
