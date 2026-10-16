@@ -79,7 +79,7 @@ pub(all) struct Lowered {
   program : @stage_syntax.Program?
   update_targets : @query_program.UpdateTargetPublication?
   store_targets : @query_program.StoreTargetPublication?
-  command_targets : @query_program.CommandTargetPublication?
+  command_selection : @query_program.ShortCommandSelection?
 }
 
 pub(all) struct PublishedAlias {
