@@ -133,6 +133,8 @@ pub fn captured_effect_input_occurrence(CapturedEffectInput) -> @execution_relat
 
 pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.CompletedOutput?
 
+pub fn captured_effect_input_retained(CapturedEffectInputs, Int, CapturedEffectInput) -> Bool
+
 pub fn captured_effect_input_stage(CapturedEffectInput) -> Int
 
 pub fn captured_effect_input_task(CapturedEffectInput) -> Int

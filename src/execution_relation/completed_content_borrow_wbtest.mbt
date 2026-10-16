@@ -1,0 +1,299 @@
+///|
+fn content_borrow_export_fixture(
+  conditional : Bool,
+  first_live : Ref[Bool],
+  second_live : Ref[Bool],
+) -> (CompletedRelationExportReceipt, Array[@admitted.Value]) raise {
+  let (source, originals, _) = reference_export_fixture(
+    conditional, first_live, second_live,
+  )
+  (content_borrow_export(source), originals)
+}
+
+///|
+fn content_borrow_export(
+  source : CompletedOutput,
+) -> CompletedRelationExportReceipt {
+  let stream = prepare_completed_relation_export(
+    source,
+    4,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    4096,
+  ).unwrap()
+  while next_completed_output_export(stream).unwrap() is Some(_) {
+    ()
+  }
+  let (receipt, _) = finish_completed_relation_export(stream).unwrap()
+  receipt
+}
+
+///|
+test "Content inventory moves once from the exact export and retires with bounded original backing" {
+  let live = Ref(true)
+  let (receipt, originals) = content_borrow_export_fixture(
+    false,
+    live,
+    Ref(true),
+  )
+  let original_backing = receipt.rows.references.unwrap()
+  let view = take_completed_relation_content_references(receipt).unwrap()
+  assert_true(
+    physical_equal(view.original.unwrap().references.unwrap(), original_backing),
+  )
+  assert_true(receipt.rows.source is None)
+  assert_true(receipt.rows.references is None)
+  assert_true(
+    take_completed_relation_content_references(receipt) is Err(Unavailable),
+  )
+  cancel_completed_relation_export_receipt(receipt)
+  guard originals[0] is @admitted.Reference(first) &&
+    originals[1] is @admitted.Reference(second) else {
+    fail("original Content")
+  }
+  assert_true(
+    physical_equal(completed_content_reference_at(view, 0, 1).unwrap(), first),
+  )
+  assert_true(
+    physical_equal(completed_content_reference_at(view, 3, 1).unwrap(), second),
+  )
+  assert_false(@admitted.reference_same_issuer(first, second))
+  live.val = false
+  assert_true(completed_content_reference_at(view, 0, 1) is None)
+  live.val = true
+  let copied : CompletedContentReferences = { original: view.original, }
+  assert_true(completed_content_reference_at(copied, 0, 1) is None)
+  assert_false(advance_release_completed_content_references(copied, 1000))
+  assert_true(completed_content_reference_at(view, 0, 1) is Some(_))
+  assert_false(advance_release_completed_content_references(view, 1))
+  assert_true(original_backing.workspace.live > 0)
+  assert_true(completed_content_reference_at(view, 0, 1) is None)
+  let mut retired = false
+  for _ in 0..<100 {
+    if advance_release_completed_content_references(view, 1) {
+      retired = true
+      break
+    }
+  }
+  assert_true(retired)
+  assert_eq(original_backing.workspace.live, 0)
+  assert_true(view.original is None)
+  assert_true(copied.original.unwrap().references is None)
+  assert_true(copied.original.unwrap().fields is None)
+  assert_true(copied.original.unwrap().schema is None)
+  assert_true(advance_release_completed_content_references(view, 1))
+}
+
+///|
+test "Content export field selection preserves its original and enforces exact work bounds" {
+  let (receipt, originals) = content_borrow_export_fixture(
+    false,
+    Ref(true),
+    Ref(true),
+  )
+  let contract = select_checked_contract(
+    "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+  )
+  let schema = @schema.from_fields(
+    [(@schema.Unqualified("p"), contract)],
+    max_fields=1,
+    max_name_bytes=1,
+  ).unwrap()
+  let field = @schema.field_at(schema, 0).unwrap()
+  let selected = completed_relation_export_content_field(
+    receipt, 0, field, 2, 7,
+  ).unwrap()
+  guard originals[0] is @admitted.Reference(original) else {
+    fail("original Content fixture")
+  }
+  assert_true(physical_equal(selected, original))
+  assert_true(
+    completed_relation_export_content_field(receipt, 0, field, 1, 7)
+    is Err(Admission(CaptureLimit)),
+  )
+  assert_true(
+    completed_relation_export_content_field(receipt, 0, field, 2, 6)
+    is Err(Admission(CaptureLimit)),
+  )
+  assert_true(
+    completed_relation_export_content_field(receipt, 1, field, 2, 7)
+    is Err(Unavailable),
+  )
+  let missing = @schema.from_fields(
+    [(@schema.Unqualified("q"), contract)],
+    max_fields=1,
+    max_name_bytes=1,
+  ).unwrap()
+  assert_true(
+    completed_relation_export_content_field(
+      receipt,
+      0,
+      @schema.field_at(missing, 0).unwrap(),
+      2,
+      7,
+    )
+    is Err(InvalidTarget),
+  )
+  let foreign_media = select_checked_contract(
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
+  )
+  let foreign = @schema.from_fields(
+    [(@schema.Unqualified("p"), foreign_media)],
+    max_fields=1,
+    max_name_bytes=1,
+  ).unwrap()
+  assert_true(
+    completed_relation_export_content_field(
+      receipt,
+      0,
+      @schema.field_at(foreign, 0).unwrap(),
+      2,
+      7,
+    )
+    is Err(ForeignMaterial),
+  )
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(
+    completed_relation_export_content_field(receipt, 0, field, 2, 7)
+    is Err(Unavailable),
+  )
+}
+
+///|
+test "Content export borrow preserves each original issuer despite equal wire" {
+  let (receipt, originals) = content_borrow_export_fixture(
+    false,
+    Ref(true),
+    Ref(true),
+  )
+  let first = completed_relation_export_content_reference(receipt, 0, 1).unwrap()
+  let second = completed_relation_export_content_reference(receipt, 3, 1).unwrap()
+  guard originals[0] is @admitted.Reference(original_first) &&
+    originals[1] is @admitted.Reference(original_second) else {
+    fail("original Content occurrences")
+  }
+  assert_true(physical_equal(first, original_first))
+  assert_true(physical_equal(second, original_second))
+  assert_eq(@admitted.reference_wire(first), @admitted.reference_wire(second))
+  assert_false(@admitted.reference_same_issuer(first, second))
+  assert_true(
+    completed_relation_export_content_reference(receipt, 0, 0) is None,
+  )
+  assert_true(
+    completed_relation_export_content_reference(receipt, 1, 1) is None,
+  )
+  assert_true(
+    completed_relation_export_content_reference(receipt, -1, 1) is None,
+  )
+  assert_true(
+    completed_relation_export_content_reference(receipt, 4, 1) is None,
+  )
+  assert_true(
+    completed_relation_export_content_reference(receipt, 0, -1) is None,
+  )
+  assert_true(
+    completed_relation_export_content_reference(receipt, 0, 2) is None,
+  )
+}
+
+///|
+test "Content export borrow rechecks custody after original authorization callback" {
+  let contract = select_checked_contract(
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+  )
+  let seed = issued_content_value(contract, Ref(true))
+  guard seed.value is @admitted.Reference(seed_reference) else {
+    fail("Content reference fixture")
+  }
+  let wire = @admitted.reference_wire(seed_reference)
+  let retained : Ref[CompletedRelationExportReceipt?] = Ref(None)
+  let moved : Ref[CompletedContentReferences?] = Ref(None)
+  let value = @admitted.issue_reference(
+    @admitted.bind_reference_issuer((_, candidate) => candidate == wire, _ => {
+      if retained.val is Some(receipt) {
+        cancel_completed_relation_export_receipt(receipt)
+      }
+      if moved.val is Some(view) {
+        advance_release_completed_content_references(view, 1000) |> ignore
+      }
+      true
+    }),
+    contract,
+    wire,
+    { max_bytes: 4096, max_nodes: 64, max_depth: 4, max_text_units: 4096, },
+  ).unwrap()
+  let id_contract = @contract.primitive(NumberType, nullable=false)
+  let schema = @schema.from_fields(
+    [
+      (@schema.Unqualified("id"), id_contract),
+      (@schema.Unqualified("p"), contract),
+    ],
+    max_fields=2,
+    max_name_bytes=3,
+  ).unwrap()
+  let owner = presence_output_owner(schema~)
+  let admitted = prepare_admitted_output(
+    owner,
+    Step(0),
+    1,
+    stream_value_limits(),
+  ).unwrap()
+  let id = @admitted.admit(id_contract, input_cursor("1"), {
+    max_nodes: 1,
+    max_depth: 0,
+    max_text_bytes: 0,
+  }).unwrap()
+  append_admitted_output(admitted, [id, value]).unwrap()
+  let rows = finish_admitted_output(admitted).unwrap()
+  let preparation = prepare_completion(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    ["events_0"],
+    10000,
+    1000,
+  ).unwrap()
+  let source = complete_trusted_output(
+    prepare_trusted_output_port(preparation, Step(0), 1000, 10000, (_ : Unit) => {
+      Some(rows)
+    }).unwrap(),
+    (),
+  ).unwrap()
+  let receipt = content_borrow_export(source)
+  retained.val = Some(receipt)
+  assert_true(
+    completed_relation_export_content_reference(receipt, 0, 1) is None,
+  )
+  assert_true(receipt.rows.source is None)
+  assert_true(receipt.rows.references.unwrap().revoked)
+  retained.val = None
+  let second_receipt = content_borrow_export(source)
+  let view = take_completed_relation_content_references(second_receipt).unwrap()
+  moved.val = Some(view)
+  assert_true(completed_content_reference_at(view, 0, 1) is None)
+  assert_true(view.original is None)
+}
+
+///|
+test "Content export borrow refuses absent revoked and retired originals" {
+  let live = Ref(true)
+  let (receipt, _) = content_borrow_export_fixture(true, live, Ref(true))
+  assert_true(
+    completed_relation_export_content_reference(receipt, 0, 1) is Some(_),
+  )
+  assert_true(
+    completed_relation_export_content_reference(receipt, 2, 1) is None,
+  )
+  live.val = false
+  assert_true(
+    completed_relation_export_content_reference(receipt, 0, 1) is None,
+  )
+  assert_true(
+    completed_relation_export_content_reference(receipt, 3, 1) is Some(_),
+  )
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(
+    completed_relation_export_content_reference(receipt, 3, 1) is None,
+  )
+}
