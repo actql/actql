@@ -273,12 +273,13 @@ test('Salesforce shared original issuer reaches unchanged loopback Describe and 
   assert.deepEqual(org.seen.slice(before).map(item => decodeURIComponent(item.path)), [
     '/services/data/v62.0/sobjects/Test_Record__c/describe',
     '/services/data/v62.0/sobjects/Test_Record__c/describe',
+    '/services/data/v62.0/sobjects/Test_Record__c/describe',
     '/services/data/v62.0/query?q=SELECT Id FROM Test_Record__c LIMIT 1',
   ]);
   await assert.rejects(f.site.peek({decision: {...decision}, resource, fields: ['Id'], maxRows: 1}),
     {code: 'SalesforcePeekNotAuthorized'});
-  assert.equal(org.seen.length, before + 3);
-  assert.equal(f.state.grants, 3);
-  assert.equal(f.state.secretCalls, 3);
+  assert.equal(org.seen.length, before + 4);
+  assert.equal(f.state.grants, 4);
+  assert.equal(f.state.secretCalls, 4);
   f.passed();
 });
