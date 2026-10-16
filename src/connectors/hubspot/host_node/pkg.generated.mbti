@@ -30,6 +30,8 @@ pub fn hubspot_project_properties(Bytes, String, Int, Int, Int, Int, Int) -> Res
 
 pub fn hubspot_project_record_read(@catalog.RecordReadRequest, Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordReadObservation, @catalog.RecordReadIssue]
 
+pub fn hubspot_project_record_write_success(@catalog.RecordBatchRequest, Int, Bytes, Int, Int, Int, Int) -> Result[@catalog.RecordWriteResponse, @catalog.RecordWriteResponseIssue]
+
 pub fn hubspot_property_catalog_names(@catalog.PropertyCatalog) -> Array[String]
 
 pub fn hubspot_property_catalog_object_type(@catalog.PropertyCatalog) -> String
@@ -59,6 +61,10 @@ pub fn hubspot_record_read_body(@catalog.RecordReadRequest) -> String
 pub fn hubspot_record_read_object_type(@catalog.RecordReadRequest) -> String
 
 pub fn hubspot_record_read_wire(@catalog.RecordReadObservation) -> String
+
+pub fn hubspot_record_write_response_rows(@catalog.RecordWriteResponse) -> Array[Array[String]]
+
+pub fn hubspot_record_write_response_sha256(@catalog.RecordWriteResponse) -> String
 
 pub fn hubspot_targeted_record_write_input(@catalog.WriteBody, @catalog.RecordTarget, String) -> @catalog.RecordWriteInput
 

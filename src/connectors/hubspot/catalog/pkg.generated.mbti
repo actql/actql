@@ -37,6 +37,8 @@ pub fn project_properties(Bytes, String, PropertyLimits) -> Result[PropertyCatal
 
 pub fn project_record_read_observation(RecordReadRequest, Bytes, ObjectPageLimits, Int, Int, Int) -> Result[RecordReadObservation, RecordReadIssue]
 
+pub fn project_record_write_success(RecordBatchRequest, Int, Bytes, Int, Int, Int, Int) -> Result[RecordWriteResponse, RecordWriteResponseIssue]
+
 pub fn property_contract(PropertyCatalog, String) -> Result[@value_contract.Contract, PropertyIssue]
 
 pub fn property_named(PropertyCatalog, String) -> PropertyMetadata?
@@ -70,6 +72,12 @@ pub fn record_read_observation_wire(RecordReadObservation) -> String
 pub fn record_read_request_body(RecordReadRequest) -> String
 
 pub fn record_read_request_object_type(RecordReadRequest) -> String
+
+pub fn record_write_response_count(RecordWriteResponse) -> Int
+
+pub fn record_write_response_request(RecordWriteResponse) -> RecordBatchRequest
+
+pub fn record_write_response_result(RecordWriteResponse, Int) -> RecordWriteResult?
 
 pub fn require_property_write(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
 
@@ -251,6 +259,26 @@ pub(all) enum RecordWriteOperation {
   Create
   Update
   Upsert(String)
+}
+
+pub struct RecordWriteResponse {
+  response_sha256 : String
+  // private fields
+}
+
+pub(all) enum RecordWriteResponseIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnexpectedStatus
+  InvalidResponse
+  IncompleteResponse
+  UncorrelatedResult
+  DuplicateRecord
+} derive(Eq, @debug.Debug)
+
+pub struct RecordWriteResult {
+  id : String
+  created : Bool
 }
 
 pub struct WriteBody {
