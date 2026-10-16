@@ -136,3 +136,35 @@ test "STORE consumes the existing syntax and expression work budgets" {
     is Err(_),
   )
 }
+
+///|
+test "STORE continuation preserves the original Model prefix and completed set" {
+  let query = parse_query(
+    "FROM tickets |> INFER constant ITEM KEY (id) INPUT () AS assessment |> RESULT prepared |> WHERE id > 0 |> EFFECT STORE local.archive",
+    query_limits(),
+  ).unwrap()
+  let original = terminal_store_effect(query).unwrap()
+  let (prefix, tail) = effect_result_continuation(query, {
+    value: "prepared",
+    quoted: false,
+  }).unwrap()
+  assert_true(terminal_store_effect(prefix) is None)
+  assert_eq(operation_count(prefix), 2)
+  assert_true(operation_at(prefix, 0) is Some(Infer(_)))
+  assert_true(operation_at(prefix, 1) is Some(RetainResult(_)))
+  assert_eq(terminal_store_effect(tail).unwrap().start, original.start)
+  assert_eq(terminal_store_effect(tail).unwrap().end, original.end)
+  assert_true(operation_at(tail, 0) is Some(Where(_)))
+  let set = parse_query(
+    "FROM left_rows |> UNION ALL (FROM right_rows) |> EFFECT STORE local.archive",
+    query_limits(),
+  ).unwrap()
+  assert_eq(query_binding_count(set), 1)
+  assert_true(terminal_store_effect(set) is Some(_))
+  let body = "FROM rows |> EFFECT STORE local.archive"
+  let commented = parse_query(
+    body + " /* not part of the Effect */ ;",
+    query_limits(),
+  ).unwrap()
+  assert_eq(terminal_store_effect(commented).unwrap().end, body.length())
+}

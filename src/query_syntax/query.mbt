@@ -3815,15 +3815,19 @@ fn QueryParser::store_effect_clause(
     )
   }
   let assignments : Array[(NamePart, Expression)] = []
+  let assigned : Map[String, Bool] = Map([])
   if self.has("SET") {
     self.keyword("SET")
     self.symbol(40)
     while true {
       self.node()
       let field = self.name()
-      if assignments.any(entry => same_binding_name(entry.0, field)) {
+      self.spend(field.value.length())
+      let key = ascii_upper(field.value)
+      if assigned.contains(key) {
         raise QueryAbort("Duplicate STORE input field", self.peek().start)
       }
+      assigned[key] = true
       self.symbol(61)
       assignments.push((field, self.expression()))
       if self.peek().value != Symbol(44) {
@@ -3833,7 +3837,13 @@ fn QueryParser::store_effect_clause(
     }
     self.symbol(41)
   }
-  { name, target, set: assignments, start, end: self.peek().start, }
+  {
+    name,
+    target,
+    set: assignments,
+    start,
+    end: token_at(self.source, self.index - 1).unwrap().end,
+  }
 }
 
 ///|
