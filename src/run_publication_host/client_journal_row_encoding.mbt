@@ -98,6 +98,7 @@ pub fn client_submitted_intent_journal_row_body(
   intent : ClientSubmittedIntent,
   run_admission? : (ClientRequestIdentity, String, Int64)? = None,
   run_state_original? : String? = None,
+  run_state_observation? : (Int64, String?)? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
   let wire = client_submitted_intent_wire(intent)
   // This physical profile is explicitly finite. Capacity does not classify
@@ -108,6 +109,18 @@ pub fn client_submitted_intent_journal_row_body(
   if run_state_original is Some(original) &&
     (run_admission is None || @utf8.encode(original).length() > 131072) {
     return Err(CapacityExceeded)
+  }
+  if run_state_observation is Some((revision, key)) {
+    if run_admission is None || revision < 0L || revision > 9007199254740991L {
+      return Err(Encoding)
+    }
+    match key {
+      None if revision != 0L || run_state_original is Some(_) =>
+        return Err(Encoding)
+      Some(value) if value.is_empty() || run_state_original is None =>
+        return Err(Encoding)
+      _ => ()
+    }
   }
   try {
     let writer = @encode.writer(262144, 16, 2)
@@ -134,9 +147,22 @@ pub fn client_submitted_intent_journal_row_body(
       @encode.key(writer, "run_admission")
       @encode.string_value(writer, wire)
     }
+    // Absence preserves legacy bytes. A present zero/NULL pair is issued only
+    // with fresh acceptance by the physical Owner, never inferred on restore.
+    if run_state_observation is Some((_, key)) {
+      @encode.key(writer, "run_state_key")
+      match key {
+        Some(value) => @encode.string_value(writer, value)
+        None => @encode.null_value(writer)
+      }
+    }
     if run_state_original is Some(original) {
       @encode.key(writer, "run_state_original")
       @encode.string_value(writer, original)
+    }
+    if run_state_observation is Some((revision, _)) {
+      @encode.key(writer, "run_state_revision")
+      @encode.decimal_number_value(writer, revision.to_string())
     }
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-native-client-submitted-intent-row/0.1")

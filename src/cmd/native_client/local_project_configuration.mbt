@@ -75,43 +75,116 @@ fn local_project_select_loaded(
 }
 
 ///|
-fn local_project_read(
+fn local_project_discovery_selected(
   matches : @argparse.Matches,
-) -> Result[LocalProjectConfiguration?, @files.NativeBoundedTextFailure] raise ClientStop {
-  let selected = optional(matches, "config")
-  if selected is None && optional(matches, "profile") is None {
-    return Ok(None)
+) -> Bool raise ClientStop {
+  optional(matches, "config") is None &&
+  required(matches, "mode") == "local" &&
+  !(matches.sources.get("config-file") is Some(@argparse.Argv)) &&
+  !(matches.sources.get("config-root") is Some(@argparse.Argv))
+}
+
+///|
+fn local_project_parent_directory(
+  directory : String,
+) -> String? raise ClientStop {
+  if directory == "/" {
+    None
+  } else {
+    Some(local_product_selected_location(Some(directory), None).parent_path)
+  }
+}
+
+///|
+fn local_project_requires_read(
+  matches : @argparse.Matches,
+) -> Bool raise ClientStop {
+  let explicit = optional(matches, "config")
+  let discover = local_project_discovery_selected(matches)
+  if explicit is None && !discover && optional(matches, "profile") is None {
+    return false
   }
   if required(matches, "mode") != "local" {
     stop("Local project configuration is unavailable in Remote mode")
   }
-  if matches.sources.get("config-file") is Some(@argparse.Argv) ||
-    matches.sources.get("config-root") is Some(@argparse.Argv) {
+  if explicit is Some(_) &&
+    (
+      matches.sources.get("config-file") is Some(@argparse.Argv) ||
+      matches.sources.get("config-root") is Some(@argparse.Argv)
+    ) {
     stop("ConflictingLocalProjectSelection")
   }
-  let selected = selected.unwrap_or_else(() => {
+  if explicit is None && !discover {
     stop("ProjectConfigurationRequired")
-  })
+  }
+  true
+}
+
+///|
+fn local_project_read_from(
+  matches : @argparse.Matches,
+  starting_directory : String,
+) -> Result[LocalProjectConfiguration?, @files.NativeBoundedTextFailure] raise ClientStop {
+  if !local_project_requires_read(matches) {
+    return Ok(None)
+  }
+  let explicit = optional(matches, "config")
+  let discover = local_project_discovery_selected(matches)
+  let selected = explicit.unwrap_or("actql.config.json")
   if selected.has_suffix("/") {
     stop("InvalidProjectConfigurationPath")
+  }
+  let absolute = local_project_absolute_path(starting_directory, selected)
+  let initial = local_product_selected_location(Some(absolute), None)
+  let mut directory = initial.parent_path
+  while true {
+    // One exact generation at a time. The existing Reader retains rejected
+    // constructor/close custody; only acknowledged absence may advance to a
+    // parent. Malformed, unreadable or changed nearer files never fall back.
+    match
+      @files.read_bounded_text_file_with_custody(
+        directory,
+        initial.directory_name,
+        65536L,
+      ) {
+      Ok(wire) =>
+        return Ok(Some(local_project_select_loaded(matches, directory, wire)))
+      Err(original) => {
+        if !discover || !(original.issue() is @files.Missing) {
+          return Err(original)
+        }
+        if original.retry_cleanup() is Err(_) {
+          return Err(original)
+        }
+        match local_project_parent_directory(directory) {
+          Some(parent) => directory = parent
+          None => {
+            if optional(matches, "profile") is Some(_) {
+              stop("ProjectConfigurationRequired")
+            }
+            return Ok(None)
+          }
+        }
+      }
+    }
+  } nobreak {
+    stop("ProjectConfigurationDirectoryUnavailable")
+  }
+}
+
+///|
+fn local_project_read(
+  matches : @argparse.Matches,
+) -> Result[LocalProjectConfiguration?, @files.NativeBoundedTextFailure] raise ClientStop {
+  // Explicit Remote and legacy installation selections do not probe project
+  // files or silently switch their Host/mode. Discovery selects metadata only.
+  if !local_project_requires_read(matches) {
+    return Ok(None)
   }
   let cwd = @env.current_dir().unwrap_or_else(() => {
     stop("ProjectConfigurationDirectoryUnavailable")
   })
-  let absolute = local_project_absolute_path(cwd, selected)
-  let location = local_product_selected_location(Some(absolute), None)
-  // The existing Reader owns no-follow/generation/UTF-8 and close. Propagate
-  // its original failure carrier, including rejected constructor custody.
-  match
-    @files.read_bounded_text_file_with_custody(
-      location.parent_path,
-      location.directory_name,
-      65536L,
-    ) {
-    Ok(wire) =>
-      Ok(Some(local_project_select_loaded(matches, location.parent_path, wire)))
-    Err(original) => Err(original)
-  }
+  local_project_read_from(matches, cwd)
 }
 
 ///|
