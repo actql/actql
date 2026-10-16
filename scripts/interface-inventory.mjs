@@ -81,7 +81,8 @@ export function javascriptClosure(root, entries) {
     const absolute = realpathSync(resolve(base, path));
     const module = relative(base, absolute).split('\\').join('/');
     assert(inside(module), `Interface source escapes distribution: ${module}`);
-    assert(!isConnectorTestFixture(module), `Test authority in distributed interface: ${module}`);
+    assert(!isConnectorTestFixture(module) && !/(?:\.test|_test|_wbtest|_bbtest)\.[^/]+$/u.test(module),
+      `Test authority in distributed interface: ${module}`);
     const bytes = readFileSync(absolute);
     return {module, sha256: digest(bytes), ...javascriptInterface(bytes.toString('utf8'))};
   });
@@ -99,7 +100,7 @@ export function packageEntrances(manifest, directory = '.') {
     ...targets(manifest.main), ...targets(manifest.types)]).map(path => {
     assert(inside(path), `Nonlocal distribution entrance: ${path}`);
     return resolve(directory, path);
-  });
+  }).sort();
 }
 
 function reference(root, ref) {
