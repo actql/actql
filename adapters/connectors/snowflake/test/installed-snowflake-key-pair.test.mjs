@@ -111,7 +111,9 @@ test('public Local SQL reaches the original key-pair Site and Named Result witho
   const {tokenEnvironment, ...site} = f.site;
   await writeFile(f.siteProfilePath, JSON.stringify({...site, authenticationType: 'KEYPAIR_JWT',
     keyPair: {accountIdentifier: 'testorg-testaccount', user: 'operator', privateKeyEnvironment: 'KEY'}}));
-  await writeFile(f.path, JSON.stringify({...f.profile, limits: {...f.profile.limits, maxSecretBytes: 4096}}));
+  const originalProfile = JSON.parse(await readFile(f.path, 'utf8'));
+  await writeFile(f.path, JSON.stringify({...originalProfile,
+    limits: {...originalProfile.limits, maxSecretBytes: 4096}}));
   let lookups = 0;
   const client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
     installation: {...f.installation, resolveSourceSecret: async value => {
