@@ -114,5 +114,15 @@ def correlated(value, schema, request_id):
                for name in rules['schemas'])
 
 
+def valid_run_wait(value, since):
+    rule = CONTRACT['request_response_rules']['run_wait']
+    schema = rule['schema']
+    field = rule['revisionField']
+    return (valid(value, schema) and
+            (since is None or valid(since, SCHEMAS[schema]['properties'][field])) and
+            value['status'] in rule['stableStatuses'] and
+            (since is None or value[field] > since))
+
+
 ` + pythonCheckReportRules(reportRules);
 }
