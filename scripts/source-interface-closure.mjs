@@ -158,19 +158,64 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
         targets = [reference.specifier];
       } else if (reference.kind === 'owner-projection') {
         const owner = 'adapters/host-node/installed-connectors.mjs';
-        if (relative(root, resolve(dirname(resolve(root, module)), reference.source)) !== owner ||
-            reference.name !== 'providerBundleUrl') return;
+        const importedFrom = (value, expected) => value?.source &&
+          relative(root, resolve(dirname(resolve(root, module)), value.source)) === expected;
+        const ownerCall = (value, name) => value?.kind === 'owner-call' && value.name === name && importedFrom(value, owner);
+        if (!importedFrom(reference, owner) || reference.name !== 'providerBundleUrl' ||
+            ![1, 2].includes(reference.arguments?.length)) return;
         // Reuse the actual installed table Owner and normal checked manifest
         // inventory. No provider names, target patterns or alternate table.
         assert(readFileSync(resolve(root, owner)).equals(readFileSync(new URL('../' + owner, import.meta.url))),
           'Runtime dependency Owner differs from its checked source');
-        targets = local?.providerBundles.map(entry => {
-          const url = providerBundleUrl({providerBundle: entry.package}, pathToFileURL(resolve(root, owner)));
+        const declared = () => local?.providerBundles.map(entry => ({providerBundle: entry.package}));
+        const runtimeTable = value => value?.kind === 'runtime-parameter' ||
+          value?.kind === 'alternatives' && value.values.length && value.values.every(runtimeTable);
+        function entries(value) {
+          if (value?.kind === 'alternatives') {
+            const choices = value.values.map(entries);
+            return choices.every(Array.isArray) ? choices.flat() : undefined;
+          }
+          if (value?.kind === 'object') {
+            const bundle = value.properties.providerBundle;
+            return bundle === undefined ? [{}] : bundle.kind === 'value' && typeof bundle.value === 'string'
+              ? [{providerBundle: bundle.value}] : undefined;
+          }
+          if (value?.kind === 'import' && value.name === 'installedConnectors' &&
+              importedFrom(value, 'adapters/connectors-builtin/installations.generated.mjs')) return declared();
+          if (value?.kind === 'array') {
+            const parts = value.values.map(part => entries(part?.kind === 'spread' ? part.value : part));
+            return parts.every(Array.isArray) ? parts.flat() : undefined;
+          }
+          if ((ownerCall(value, 'installedEffectTable') || ownerCall(value, 'installedConnectorTable')) &&
+              value.arguments.length === 1) return entries(value.arguments[0]);
+          if (ownerCall(value, 'installedConnectorFor') && value.arguments.length >= 2 && value.arguments.length <= 3) {
+            return entries(value.arguments[0]);
+          }
+          // Explicit tables are opaque, Owner-admitted runtime installations.
+          // Their selector's original role/handle obligation stays visible;
+          // this qualifies only the normal builder's finite compiled set, not
+          // an arbitrary foreign table or a new runtime installation.
+          if (ownerCall(value, 'installedConnectorForTable') && value.arguments.length >= 3 && value.arguments.length <= 4 &&
+              runtimeTable(value.arguments[0]) &&
+              value.arguments[1]?.kind === 'value' && ['source', 'effect'].includes(value.arguments[1].value)) return declared();
+        }
+        const actualEntries = entries(reference.arguments[0]);
+        if (!actualEntries) return;
+        let base = pathToFileURL(resolve(root, owner));
+        if (reference.arguments.length === 2) {
+          const actualBase = reference.arguments[1];
+          if (actualBase.kind === 'module-meta-url') base = pathToFileURL(resolve(root, module));
+          else if (actualBase.kind === 'value' && typeof actualBase.value === 'string') base = actualBase.value;
+          else return;
+        }
+        targets = [...new Set(actualEntries.flatMap(entry => {
+          const url = providerBundleUrl(entry, base);
+          if (url === undefined) return [];
           const target = fileURLToPath(url);
           assert(artifacts.has(target), `Unregistered provider runtime interface: ${target}`);
           artifactReferences.add(target);
-          return relative(dirname(resolve(root, module)), target).replace(/^(?!\.)/u, './');
-        });
+          return [relative(dirname(resolve(root, module)), target).replace(/^(?!\.)/u, './')];
+        }))];
       }
       if (targets?.length) runtimeBindings.push({module, sourceSha256: sha256, reference, targets});
       return targets;
