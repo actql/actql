@@ -133,5 +133,10 @@ pub fn bind_store_command(
   if command_target_cid(command) != reference.command_contract_cid {
     return Err(ForeignCommand)
   }
-  Ok({ mapping, command, mapping_operation, work: work + command_target_work(command), })
+  Ok({
+    mapping,
+    command,
+    mapping_operation,
+    work: work + command_target_work(command),
+  })
 }

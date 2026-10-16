@@ -4,41 +4,41 @@
 fn source_publication_effect_aliases(
   section : @decode.Cursor,
 ) -> Array[@query_program.UpdateTargetAlias] raise PublicationStop {
-let entries = @decode.elements(section).unwrap_or_else(() => {
-  raise PublicationStop(Publication)
-})
-if entries.length() > 1024 {
-  raise PublicationStop(Limit)
-}
-if entries.is_empty() {
-  return []
-}
-let aliases : Array[@query_program.UpdateTargetAlias] = []
-for entry in entries {
-  @decode.closed_object(entry, [
-    "name", "targetRef", "installationBindingCid", "installationOwnerCid",
-  ]).unwrap_or_else(() => raise PublicationStop(Publication))
-  |> ignore
-  let name = @query_syntax.parse_relation_path(
-    source_publication_text(entry, "name"),
-    {
-      max_source_bytes: 1024,
-      max_tokens: 256,
-      max_literal_bytes: 1024,
-      max_work: 16384,
-    },
-  ).unwrap_or_else(() => raise PublicationStop(Publication))
-  aliases.push({
-    name,
-    target_ref: source_publication_text(entry, "targetRef"),
-    installation_binding_cid: source_publication_text(
-      entry, "installationBindingCid",
-    ),
-    installation_owner_cid: source_publication_text(
-      entry, "installationOwnerCid",
-    ),
+  let entries = @decode.elements(section).unwrap_or_else(() => {
+    raise PublicationStop(Publication)
   })
-}
+  if entries.length() > 1024 {
+    raise PublicationStop(Limit)
+  }
+  if entries.is_empty() {
+    return []
+  }
+  let aliases : Array[@query_program.UpdateTargetAlias] = []
+  for entry in entries {
+    @decode.closed_object(entry, [
+      "name", "targetRef", "installationBindingCid", "installationOwnerCid",
+    ]).unwrap_or_else(() => raise PublicationStop(Publication))
+    |> ignore
+    let name = @query_syntax.parse_relation_path(
+      source_publication_text(entry, "name"),
+      {
+        max_source_bytes: 1024,
+        max_tokens: 256,
+        max_literal_bytes: 1024,
+        max_work: 16384,
+      },
+    ).unwrap_or_else(() => raise PublicationStop(Publication))
+    aliases.push({
+      name,
+      target_ref: source_publication_text(entry, "targetRef"),
+      installation_binding_cid: source_publication_text(
+        entry, "installationBindingCid",
+      ),
+      installation_owner_cid: source_publication_text(
+        entry, "installationOwnerCid",
+      ),
+    })
+  }
   aliases
 }
 

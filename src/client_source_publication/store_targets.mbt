@@ -23,14 +23,26 @@ pub fn published_store_targets(
     }
     let wire = @program_check.checking_environment_wire(environment)
     let limits : @check_environment.Limits = {
-      max_bytes: 1048576, max_nodes: 16384, max_depth: 32, max_members: 32768,
+      max_bytes: 1048576,
+      max_nodes: 16384,
+      max_depth: 32,
+      max_members: 32768,
     }
     let mappings = @check_environment.check_mapping_contract_shapes(
       wire, limits, 1000000,
     ).unwrap_or_else(() => raise PublicationStop(Publication))
-    let registry = @check_environment.check_contract_registry(wire, limits).unwrap_or_else(() => raise PublicationStop(Publication))
-    let catalogs = @check_environment.check_catalog_contents(registry, limits).unwrap_or_else(() => raise PublicationStop(Publication))
-    match @query_program.bind_store_target_publication(mappings, catalogs, aliases, 1000000) {
+    let registry = @check_environment.check_contract_registry(wire, limits).unwrap_or_else(() => {
+        raise PublicationStop(Publication)
+      },
+    )
+    let catalogs = @check_environment.check_catalog_contents(registry, limits).unwrap_or_else(() => {
+        raise PublicationStop(Publication)
+      },
+    )
+    match
+      @query_program.bind_store_target_publication(
+        mappings, catalogs, aliases, 1000000,
+      ) {
       Ok(value) => Ok(Some(value))
       Err(@query_program.StoreTargetIssue::WorkLimit) => Err(Limit)
       Err(_) => Err(Publication)
