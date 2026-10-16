@@ -38652,7 +38652,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dbf6994b97c322c1703830fcf7516ab825fecde468a0043aba05e90a6f960a34",
+      "sha256": "f666c8d18621eda3ff79232c99ad9b11738e16374fc761df9a0bad4aaae23b11",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [

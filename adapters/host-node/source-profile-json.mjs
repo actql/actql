@@ -96,7 +96,8 @@ async function readConfiguration(path, maxBytes, openFile, project) {
       try {
         // Never overwrite another resource's cleanup responsibility. Frozen or
         // readonly primaries stay intact beneath the same-handle carrier.
-        if (Object.getOwnPropertyDescriptor(primary, 'cleanupHandle') !== undefined) throw primary;
+        if (primary.cleanupHandle !== undefined || primary.cleanupPending === true ||
+            Object.getOwnPropertyDescriptor(primary, 'cleanupHandle') !== undefined) throw primary;
         if (Object.getOwnPropertyDescriptor(primary, 'cleanupPending')?.configurable === false) throw primary;
         Object.defineProperties(primary, descriptors);
       } catch {
