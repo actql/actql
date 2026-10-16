@@ -69,7 +69,8 @@ pub fn client_submitted_intent_effect_compatible(
   !intent.read_only ||
   @syntax.effect_header_count(
     @checked.effect_program_static_headers(prepared.candidate),
-  ) == 0
+  ) ==
+  0
 }
 
 ///|
@@ -120,7 +121,8 @@ pub fn prepare_client_submitted_intent(
     Some(@canonical.Bool(true)) => true
     _ => return Err(InvalidEnvelope)
   }
-  let expected_fields = 3 + (if stop_before_commit { 1 } else { 0 }) +
+  let expected_fields = 3 +
+    (if stop_before_commit { 1 } else { 0 }) +
     (if read_only { 1 } else { 0 })
   if @canonical.object_field_count(value) != Some(expected_fields) {
     return Err(InvalidEnvelope)
