@@ -13792,7 +13792,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "15d9125702e1559e3b3e4a0a4bd0f21ba46c3da097a7dafca6c8a77cddbff160",
+      "sha256": "c945497c7972e4b269c179edab28e8d0ebe85c327837ffcaebc364baeb65e55d",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [

@@ -86,6 +86,7 @@ function responseCode(error) {
       error?.code === 'ClientParametersInvalid' ||
       error?.code === 'InvalidRunStateRequest' ||
       error?.code === 'InvalidWaitCondition' ||
+      error?.code === 'InvalidWaitRevision' ||
       error?.code === 'InvalidResultAccessRequest' ||
       error?.code === 'InvalidCheckpointPage') return 400;
   if (error?.code === 'ClientProgramNeedsInputs' ||

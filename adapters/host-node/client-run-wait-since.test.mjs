@@ -50,6 +50,12 @@ test('actual Local wait since observes the same saved Run, times out without rev
   const completed = await run.wait({signal:AbortSignal.timeout(15000)});
   assert.equal(completed.status, 'succeeded');
   const current = await run.status();
+  if (current.revision > 0) {
+    assert.equal((await run.wait({since:current.revision-1})).revision, current.revision);
+    t.diagnostic('Actual Local newer-than-since stable positive: 1');
+  } else {
+    t.diagnostic('Actual Local first projection was already terminal at revision zero; newer-than-since positive: 0');
+  }
   await assert.rejects(run.wait({since:current.revision, signal:AbortSignal.timeout(250)}),
     {code:'WaitTimeout'});
   assert.equal((await run.status()).revision, current.revision,
