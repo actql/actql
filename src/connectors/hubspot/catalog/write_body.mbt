@@ -198,6 +198,21 @@ fn recheck_write_cell_spelling(
 }
 
 ///|
+fn write_body_limits_valid(limits : WriteBodyLimits) -> Bool {
+  limits.max_input_bytes > 0 &&
+  limits.max_nodes > 0 &&
+  limits.max_depth > 0 &&
+  limits.max_fields > 0 &&
+  limits.max_name_bytes > 0 &&
+  limits.max_value_nodes > 0 &&
+  limits.max_value_text_bytes > 0 &&
+  limits.max_comparison_work > 0 &&
+  limits.max_output_bytes > 0 &&
+  limits.max_output_nodes > 0 &&
+  limits.max_output_depth > 0
+}
+
+///|
 /// Admit the complete mapped row through existing Source/Decode/Common types.
 /// Operation, target key, Preview, current authority, durable nominal request
 /// and original Account/portal binding remain duties of their existing Owners.
@@ -207,17 +222,7 @@ pub fn prepare_write_body(
   bytes : Bytes,
   limits : WriteBodyLimits,
 ) -> Result[WriteBody, WriteBodyIssue] {
-  if limits.max_input_bytes <= 0 ||
-    limits.max_nodes <= 0 ||
-    limits.max_depth <= 0 ||
-    limits.max_fields <= 0 ||
-    limits.max_name_bytes <= 0 ||
-    limits.max_value_nodes <= 0 ||
-    limits.max_value_text_bytes <= 0 ||
-    limits.max_comparison_work <= 0 ||
-    limits.max_output_bytes <= 0 ||
-    limits.max_output_nodes <= 0 ||
-    limits.max_output_depth <= 0 {
+  if !write_body_limits_valid(limits) {
     return Err(InvalidLimits)
   }
   if bytes.length() > limits.max_input_bytes ||
