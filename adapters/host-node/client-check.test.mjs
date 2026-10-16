@@ -71,7 +71,7 @@ const account = outcome => canonicalJson({
 const query = 'SELECT id FROM records WHERE amount >= @minimum';
 const declarations = Object.freeze({minimum: {type: 'number'}});
 const expectedNumberAdmission = Object.freeze({kind: 'parameter_declaration',
-  contract_schema_cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551',
+  contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947',
   contract: {nullable: false, type: 'number'},
   constraints: [{kind: 'numeric', path: [], integer: false}], supplier: 'caller'});
 const requests = Object.freeze({
@@ -419,7 +419,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
       [{parameter: 'b', expected_type: 'string', admission: {
         kind: 'parameter_declaration', supplier: 'caller',
         contract: {type: 'string', nullable: false}, constraints: [],
-        contract_schema_cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551'}}]);
+        contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947'}}]);
     assert.notEqual(changed.report.context_ref, first.report.context_ref);
     assert.equal(frontierSDK.equalCheckRequirementFrontiers(first, changed), false, '[check-mutation:frontier-context]');
     const anotherBinding = await client.check(text, {...options, parameters: {a: 2}});
@@ -524,8 +524,11 @@ const withoutContext = (outcome, expectedAssertion) => {
   for (const input of outcome.report.inputs) assert.match(input.revision, /^rev:[0-9a-f]{64}$/u);
   // These original fixtures compare classification/coverage. Exact public
   // locations and retained inputs have their own independent vectors below.
+  // Runnable has actual text/Program Owner and Local/HTTPS vectors in
+  // client-check-text-boundary.test.mjs; do not replace this classification
+  // oracle with a verdict-derived expectation for that separate observation.
   const {reason_schema_cid, outcome_schema_cid, ...envelope} = outcome;
-  const {inputs, requirements, ...report} = outcome.report;
+  const {inputs, requirements, runnable, ...report} = outcome.report;
   return {...envelope, report: {...report, context_ref: '<ctx>',
     reasons: report.reasons.map(({location, facts, ...reason}) =>
       reason.code === 'supplied_value_type_mismatch' ? {code: 'supplied_value_invalid'} : reason)}};
@@ -950,7 +953,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
         facts: {parameter: 'missing', expected_type: 'string', admission: {
           kind: 'parameter_declaration', supplier: 'caller',
           contract: {type: 'string', nullable: false}, constraints: [],
-          contract_schema_cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551'}},
+          contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947'}},
         location: {document_id: 'parameter_declarations', revision: declared.revision,
           kind: 'structured', pointer: '/missing'}}], '[check-mutation:nested-missing-requirement]');
       assert.deepEqual(original.value, parameters);
@@ -3451,6 +3454,7 @@ test('the public outcome contract keeps verdicts bound and partial ' +
   'reports unverified', () => {
   const report = {context_ref: 'ctx:a', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 1}], scope: {kind: 'bound_input'},
     verdict: 'undetermined', reasons: [],
+    runnable: {verdict: 'no', reasons: [{code: 'analysis_budget_exhausted'}]},
     coverage: {limits: [{code: 'analysis_budget_exhausted'}],
       unresolved: []}};
   const version = 'actql-check-outcome/0.1';
@@ -5105,7 +5109,7 @@ for (const entrance of ['local', 'http']) {
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: missing parameter Requirements expose admitted recursive declaration conditions`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
-    const contractSchemaCid = 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551';
+    const contractSchemaCid = 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947';
     const cases = [
       [{type: 'number', nullable: true, integer: true, minimum: -2.5, maximum: 4.5,
         meta: {note: 'private-admission-note', instruction: 'private-admission-instruction'}},

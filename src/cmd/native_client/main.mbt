@@ -754,6 +754,9 @@ fn command() -> @argparse.Command {
       @argparse.OptionArg("mode", default_values=["remote"], global=true),
       @argparse.OptionArg("config-root", default_values=["."], global=true),
       @argparse.OptionArg("config-file", global=true),
+      @argparse.OptionArg("config", global=true),
+      @argparse.OptionArg("profile", global=true),
+      @argparse.OptionArg("state-dir", global=true),
       @argparse.OptionArg("input-root", global=true),
       @argparse.OptionArg("endpoint", global=true),
       @argparse.OptionArg("connection-root", global=true),
@@ -913,6 +916,9 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         stop("operation requires an explicit Local configuration")
       }
     _ => stop("unsupported Client mode")
+  }
+  if optional(matches, "state-dir") is Some(_) {
+    stop("Local installation directory is unavailable in Remote mode")
   }
   if optional(matches, "input-root") is Some(_) {
     stop("Local document root is unavailable in Remote mode")
@@ -1221,10 +1227,24 @@ fn main {
       abort("native Client argument failure")
     }
   }
-  let value = execute(matches) catch {
+  let selected = execute_native_project_selection(matches) catch {
     ClientStop(message) => {
       fail_command(message)
       abort("native Client operation failure")
+    }
+  }
+  let value = match selected {
+    Ok(value) => value
+    Err(original) => {
+      // Retry retirement on the same Root/Reader only. A cleanup failure is
+      // still a failure; process exit is not a filesystem retirement ACK.
+      if original.retry_cleanup() is Err(_) {
+        fail_command("ProjectConfigurationReadCleanupPending")
+      } else {
+        fail_command("ProjectConfigurationReadUnavailable")
+      }
+      ignore(original.issue())
+      abort("native Client project input failure")
     }
   }
   if matches.subcommand is Some(("read", _)) {

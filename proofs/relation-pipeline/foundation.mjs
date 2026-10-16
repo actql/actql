@@ -201,6 +201,74 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   const supplementsAt = revision => new Map([...tree(revision)].filter(([path]) => path.startsWith(`${supplementDirectory}/`)));
   assert.equal(declarationsAt(checkpoint).size, 0, 'Foundation checkpoint already contains declarations');
   assert.equal(supplementsAt(checkpoint).size, 0, 'Foundation checkpoint already contains supplements');
+  // Discovery is provisional: it permits inspection of exactly one bound edge,
+  // never acceptance. The independent replacement and full source closure below
+  // must still pass before any recovered lineage can be returned.
+  const historicalEdits = new Map(), historicalReplacements = new Set();
+  for (const [path, entry] of supplementsAt(head)) {
+    const raw = bytes(entry);
+    let record;
+    // Discovery must not replace the primary inherited-byte refusal for an
+    // unrelated corrupted record. Its ordinary parser still rejects a fresh
+    // malformed record after the history checks; it supplies no exception.
+    try { record = JSON.parse(raw); } catch { continue; }
+    if (record?.version !== 'actql-foundation-historical-input-edit/0.1') continue;
+    assert(raw.equals(Buffer.from(`${JSON.stringify(record, null, 2)}\n`)), 'Noncanonical historical recovery JSON');
+    keys(record, ['version', 'id', 'target', 'original', 'edit', 'addedInput', 'replacement', 'reason'], 'historical recovery');
+    assert(id.test(record.id) && path === `${supplementDirectory}/${record.id}.json`, 'Invalid historical recovery filename');
+    assert(typeof record.reason === 'string' && record.reason.trim(), 'Missing historical recovery rationale');
+    for (const name of ['target', 'addedInput', 'replacement']) {
+      keys(record[name], ['id', 'digest'], `historical recovery ${name}`);
+      assert(id.test(record[name].id) && digest.test(record[name].digest), 'Invalid historical recovery binding');
+    }
+    assert(!historicalEdits.has(record.target.id), 'Duplicate historical recovery target');
+    assert(!historicalReplacements.has(record.replacement.id), 'Reused historical recovery replacement');
+    const targetPath = `${directory}/${record.target.id}.json`;
+    const bound = name => {
+      const binding = record[name];
+      keys(binding, ['revision', 'parents', 'object', 'digest', 'mode'], `historical recovery ${name}`);
+      assert(sha.test(binding.revision) && revisionSet.has(binding.revision), 'Unrelated historical recovery edge');
+      assert.deepEqual(binding.parents, parents(binding.revision), 'Incorrect historical recovery parents');
+      assert.equal(binding.parents.length, 1, 'Historical recovery requires single-parent edge');
+      const actual = tree(binding.revision).get(targetPath);
+      assert(sha.test(binding.object) && digest.test(binding.digest) && binding.mode === '100644'
+        && same(actual, binding) && hash(bytes(actual)) === binding.digest, 'Incorrect historical recovery raw binding');
+      const value = JSON.parse(bytes(actual));
+      assert(bytes(actual).equals(Buffer.from(`${JSON.stringify(value, null, 2)}\n`)), 'Noncanonical historical recovery raw JSON');
+      return {entry: actual, value};
+    };
+    const original = bound('original'), edited = bound('edit');
+    assert.deepEqual(record.edit.parents, [record.original.revision], 'Historical edit must directly follow introduction');
+    assert(!tree(record.original.parents[0]).has(targetPath), 'Historical recovery requires a fresh original');
+    for (const binding of [record.original, record.edit]) {
+      assert.deepEqual(git(['diff-tree', '--no-commit-id', '--name-only', '-r', '-z',
+        binding.parents[0], binding.revision]).stdout.toString().split('\0').filter(Boolean), [targetPath],
+      'Historical recovery edge contains other changes');
+    }
+    assert(original.value.kind === 'resolution' && original.value.parents?.length === 2,
+      'Historical recovery requires a resolution');
+    assert.equal(original.value.id, record.target.id, 'Incorrect historical recovery original ID');
+    for (const value of [original.value, edited.value]) {
+      assert(Array.isArray(value.inputs) && value.inputs.every(value => id.test(value)), 'Invalid historical recovery inputs');
+      assert.deepEqual(value.inputs, sorted(new Set(value.inputs)), 'Noncanonical historical recovery inputs');
+    }
+    const {inputs: oldInputs, ...oldBody} = original.value;
+    const {inputs: newInputs, ...newBody} = edited.value;
+    assert.deepEqual(newBody, oldBody, 'Historical edit changes fields other than inputs');
+    assert(!oldInputs.includes(record.addedInput.id), 'Historical recovery input already present');
+    assert.deepEqual(newInputs, sorted([...oldInputs, record.addedInput.id]), 'Historical recovery must add exactly one input');
+    const inputPath = `${directory}/${record.addedInput.id}.json`;
+    const visible = tree(record.original.parents[0]).get(inputPath), currentInput = tree(head).get(inputPath);
+    assert(visible && same(visible, currentInput) && hash(bytes(visible)) === record.addedInput.digest,
+      'Historical recovery input must already be visible and unchanged');
+    assert(same(tree(head).get(targetPath), edited.entry) && record.target.digest === record.edit.digest,
+      'Changed historical recovery target');
+    assert.notEqual(record.target.id, record.replacement.id, 'Self-replacing historical recovery');
+    historicalEdits.set(record.target.id, {path, digest: hash(raw), record, targetPath,
+      original: original.value, edited: edited.value});
+    historicalReplacements.add(record.replacement.id);
+  }
+  for (const target of historicalEdits.keys()) assert(!historicalReplacements.has(target), 'Chained historical recovery');
   const introductions = new Map();
   for (const revision of revisions) {
     const actualParents = parents(revision);
@@ -222,7 +290,14 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
       inherited.set(path, entry);
     }
     const current = new Map([...declarationsAt(revision), ...supplementsAt(revision)]);
-    for (const [path, entry] of inherited) assert(same(entry, current.get(path)), `Changed or removed foundation declaration ${path}`);
+    for (const [path, entry] of inherited) {
+      if (same(entry, current.get(path))) continue;
+      const recovery = [...historicalEdits.values()].find(value => value.targetPath === path);
+      assert(recovery && revision === recovery.record.edit.revision
+        && actualParents.length === 1 && actualParents[0] === recovery.record.original.revision
+        && same(entry, recovery.record.original) && same(current.get(path), recovery.record.edit),
+      `Changed or removed foundation declaration ${path}`);
+    }
     for (const [path, entry] of current) if (!inherited.has(path)) {
       assert(entry.mode === '100644', `Invalid foundation declaration mode ${path}`);
       const previous = introductions.get(path);
@@ -358,6 +433,30 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     byId.set(declaration.id, declaration);
     declarations.push({ path, digest: hash(bytes(entry)), introductions: declarationIntroductions, ...declaration });
   }
+  const checkedHistoricalRecords = new Map();
+  for (const recovery of historicalEdits.values()) {
+    const record = recovery.record;
+    const original = declarations.find(value => value.id === record.target.id);
+    const replacement = declarations.find(value => value.id === record.replacement.id);
+    assert(original && replacement && replacement.kind === 'resolution'
+      && replacement.digest === record.replacement.digest, 'Missing or changed historical recovery replacement');
+    assert.deepEqual(original.introductions, [record.original.revision], 'Ambiguous historical recovery original');
+    const {id: originalId, ...originalBody} = recovery.edited;
+    const {id: replacementId, ...replacementBody} = byId.get(record.replacement.id);
+    assert.deepEqual(replacementBody, originalBody, 'Historical recovery replacement changes source binding');
+    for (const introduction of replacement.introductions) {
+      assert(introduction !== record.edit.revision && ancestor(record.edit.revision, introduction),
+        'Historical recovery replacement must strictly follow edit');
+    }
+    const introduced = sorted(introductions.get(recovery.path).revisions);
+    for (const introduction of introduced) {
+      assert(replacement.introductions.every(prior => prior !== introduction && ancestor(prior, introduction)),
+        'Historical recovery disposition must strictly follow replacement');
+    }
+    assert(!declarationCopies.has(originalId) && !declarationCopies.has(replacementId), 'Historical recovery cannot use copied originals');
+    checkedHistoricalRecords.set(recovery.path, {path: recovery.path, digest: recovery.digest,
+      introductions: introduced, ...record});
+  }
   // Preserve a rejected co-introduction as rejected provenance. Only a new,
   // independently checked, strictly later receipt can supply its inputs.
   const temporalRepairs = new Map(), checkedRepairRecords = new Map(), repairReplacements = new Set();
@@ -426,6 +525,10 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   const effectiveChanges = declaration => [...declaration.changes,
     ...(completionsByTarget.get(declaration.id) ?? []).flatMap(record => record.changes)];
   for (const [path, entry] of supplementsAt(head)) {
+    if (checkedHistoricalRecords.has(path)) {
+      supplements.push(checkedHistoricalRecords.get(path));
+      continue;
+    }
     if (checkedRepairRecords.has(path)) {
       supplements.push(checkedRepairRecords.get(path));
       continue;
@@ -447,6 +550,8 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     keys(supplement.target, ['id', 'digest'], 'foundation supplement target');
     const original = declarations.find(value => value.id === supplement.target.id);
     assert(original?.kind === (completion ? 'change' : 'resolution'), 'Unknown or wrong-kind foundation supplement target');
+    assert(!historicalEdits.has(original.id) && !historicalReplacements.has(original.id),
+      'Historical recovery requires independently complete unsupplemented bindings');
     assert.equal(supplement.target.digest, original.digest, 'Changed foundation supplement original');
     assert(typeof supplement.reason === 'string' && supplement.reason.trim(), 'Missing foundation supplement rationale');
     if (normalization) {
@@ -656,6 +761,15 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
           inputRevisions = sorted(effective);
         }
         assert.deepEqual(inputRevisions, inputs, 'Incomplete or ambiguous foundation resolution inputs');
+        const recovery = historicalEdits.get(declaration.id);
+        if (recovery) {
+          const missingSource = byId.get(recovery.record.addedInput.id).revision;
+          const oldSources = sorted(new Set(recovery.original.inputs.map(value => byId.get(value).revision)));
+          assert(inputs.includes(missingSource) && !oldSources.includes(missingSource),
+            'Historical recovery must bind a missing relevant source group');
+          assert.deepEqual(oldSources, inputs.filter(value => value !== missingSource),
+            'Historical recovery original has other missing or irrelevant inputs');
+        }
       }
       const effectiveDeclaration = { ...declaration, changes: effectiveChanges(declaration) };
       if (singleBaseNormalizations.has(declaration.id)) delete effectiveDeclaration.mergeBases;
@@ -713,7 +827,15 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   }
   return { version: 'actql-composed-foundation/0.1', sourceRevision: head, checkpoint,
     declarations: declarations.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map(declaration => ({ ...declaration,
+      ...(historicalEdits.has(declaration.id) ? {rawValidity: 'rejected', historicalRecovery: historicalEdits.get(declaration.id).record.id} : {}),
       changes: [...declaration.changes].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0) })),
+    ...(historicalEdits.size ? { historicalRecoveries: [...historicalEdits.values()].map(({record}) => ({
+      target: record.target.id, replacement: record.replacement.id, disposition: record.id,
+      rawValidity: 'rejected', lineage: 'recovered_historical_input_edit',
+      rejectedProvenance: {original: record.original, edit: record.edit,
+        failures: ['visible_input_omitted', 'inherited_declaration_edited']},
+      addedInput: record.addedInput,
+    })).sort((a, b) => a.target < b.target ? -1 : a.target > b.target ? 1 : 0) } : {}),
     ...(completionsByTarget.size ? { changeCompletions: [...completionsByTarget].map(([target, records]) => ({
       target, supplements: sorted(records.map(record => record.id)),
       changes: effectiveChanges(byId.get(target)).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0),
