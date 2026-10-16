@@ -186,7 +186,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
     const fields = attempt?.fields ?? await authorize(value);
     const input = moon.clientSubmittedIntent(canonicalJson({kind: value.kind, input: value.input,
-      parameters: value.parameters}, {dataKeys: true}), 1048576, 65536, 64);
+      parameters: value.parameters,
+      ...(Object.hasOwn(value, 'stopBefore') ? {stopBefore: value.stopBefore} : {})},
+    {dataKeys: true}), 1048576, 65536, 64);
     if (input === undefined || moon.clientSubmittedIntentCid(input) !== value.intentCid) {
       fail('InvalidClientSubmittedIntent');
     }

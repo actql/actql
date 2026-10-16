@@ -5111,7 +5111,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "32dd9b590bd9e1db53c3c5e3f9b9d991f94d2c2f5185779fe0957d72de6ec3bf",
+      "sha256": "41939a5acb001185e7b9273a19d95ce432d721c669e4dbcbdaf89a6843233718",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",

@@ -912,11 +912,23 @@ pub fn client_program_request_identity(@run_publication_host.PreparedClientProgr
 
 pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
 
+pub fn client_program_requested_effect_stop(@run_publication_host.ClientSubmittedIntent, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs) -> Result[@run_publication_host.ClientRequestedEffectStop?, @run_publication_host.ClientRequestedEffectStopIssue]
+
+pub fn client_program_requested_effect_stop_checkpoint(@run_publication_host.ClientRequestedEffectStop, String, String, Int, Int, Int) -> Result[String, @run_publication_host.ClientRequestedEffectStopIssue]
+
+pub fn client_program_requested_effect_stop_continuation(@run_publication_host.ClientRequestedEffectStop, String, String?, Int, Int, Int) -> Result[String, @run_publication_host.ClientRequestedEffectStopIssue]
+
+pub fn client_program_requested_effect_stop_intent_cid(@run_publication_host.ClientRequestedEffectStop) -> String
+
+pub fn client_program_requested_effect_stop_lifetime(@run_publication_host.ClientRequestedEffectStop) -> Result[(String, String), @run_publication_host.ClientRequestedEffectStopIssue]
+
 pub fn client_program_requires_acquisition_result_publication(@run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn client_program_requires_task_compilation(@run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn client_program_resource_reference_issuer((String, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
+
+pub fn client_program_restore_requested_effect_stop(@run_publication_host.ClientSubmittedIntent, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectRunMaterials, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, ClientEffectPreviewInputLimits) -> Result[@run_publication_host.ClientRequestedEffectStop?, @run_publication_host.ClientRequestedEffectStopIssue]
 
 pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?, (String, String, Array[String])?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
 

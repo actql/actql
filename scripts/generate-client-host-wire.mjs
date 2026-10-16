@@ -30,6 +30,20 @@ const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'Submi
   'CancellationLookup', 'OperationAttemptRef', 'CancellationAttempt', 'RequestCancellation',
   'ResourceListing', 'ResourceInspection', 'ResourcePeek', 'ResultDescription', 'OwnerRef', 'OwnerCursor', 'OwnerObservations'];
 
+export function projectClientHostOptionalFields(registry) {
+  const fieldsByOperation = registry.request_optional_fields;
+  if (fieldsByOperation === null || typeof fieldsByOperation !== 'object' ||
+      Array.isArray(fieldsByOperation) || Object.entries(fieldsByOperation).some(([name, fields]) =>
+        !Object.hasOwn(registry.operations, name) || fields === null ||
+        typeof fields !== 'object' || Array.isArray(fields) ||
+        Object.keys(fields).length === 0 || Object.keys(fields).some(key =>
+          !/^[a-zA-Z][a-zA-Z]*$/u.test(key) || registry.operations[name].includes(key)))) {
+    throw new Error('InvalidClientHostOptionalFields');
+  }
+  return Object.fromEntries(Object.entries(fieldsByOperation).map(([name, fields]) =>
+    [name, Object.fromEntries(Object.entries(fields).map(([field, schema]) => [field, project(schema)]))]));
+}
+
 export function buildClientHostWire(registry, protocol) {
   if (registry.version !== 'actql-client-host/0.1' ||
       registry.operations === null ||
@@ -46,6 +60,7 @@ export function buildClientHostWire(registry, protocol) {
     keys.some(key => !/^[a-zA-Z][a-zA-Z]*$/u.test(key)))) {
     throw new Error('InvalidClientHostOperations');
   }
+  const optionalSchemas = projectClientHostOptionalFields(registry);
   const schemas = Object.fromEntries(names.map(name => {
     if (!registry.schemas?.[name]) throw new Error(`MissingClientHostSchema:${name}`);
     return [name, project(registry.schemas[name])];
@@ -92,6 +107,7 @@ export function buildClientHostWire(registry, protocol) {
     `// Run: node scripts/generate-client-host-wire.mjs --write\n` +
     `const schemas = ${JSON.stringify(schemas, null, 2)};\n` +
     `const operationKeys = ${JSON.stringify(registry.operations, null, 2)};\n\n` +
+    `const optionalRequestFields = ${JSON.stringify(optionalSchemas, null, 2)};\n\n` +
     `export const checkReasonSchemaCid = ${JSON.stringify(protocol.artifact_schema_cids.check_reason)};\n` +
     `export const checkOutcomeSchemaCid = ${JSON.stringify(protocol.artifact_schema_cids.check_outcome)};\n` +
     `export const checkOutcomeProtocol = Object.freeze({version: ${JSON.stringify(checkVersion)}, ` +
@@ -102,9 +118,13 @@ export function buildClientHostWire(registry, protocol) {
     structuralValidatorSource() +
     `export const clientHostOperations = Object.freeze(` +
     `Object.keys(operationKeys));\n` +
-    `export const clientHostRequestKeys = operation => ` +
-    `(Object.hasOwn(operationKeys, operation) ? operationKeys[operation] : ` +
-    `undefined);\n` +
+    `export const clientHostRequestKeys = (operation, body = {}) => ` +
+    `(Object.hasOwn(operationKeys, operation) ? [...operationKeys[operation], ` +
+    `...Object.keys(optionalRequestFields[operation] ?? {}).filter(key => ` +
+    `body !== null && typeof body === 'object' && Object.hasOwn(body, key))] : undefined);\n` +
+    `export const validClientRequestOptionalFields = (operation, body) => ` +
+    `Object.entries(optionalRequestFields[operation] ?? {}).every(([key, schema]) => ` +
+    `!Object.hasOwn(body, key) || valid(body[key], schema));\n` +
     names.map((name, index) =>
       `export const valid${exports[index]}Shape = value => ` +
       `valid(value, schemas.${name});\n`).join('') +

@@ -1,4 +1,12 @@
 ///|
+#export_name("clientSubmittedIntentRequestsCommitStop")
+pub fn client_submitted_intent_requests_commit_stop(
+  value : @publication_host.ClientSubmittedIntent,
+) -> Bool {
+  @publication_host.client_submitted_intent_requests_commit_stop(value)
+}
+
+///|
 /// Physical authentication is performed by the installed Host. This bridge
 /// transfers the checked interval and exact submission identity to its journal.
 #export_name("clientSubmissionEpoch")

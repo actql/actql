@@ -67,6 +67,49 @@ test "submitted intent identity uses an independent versioned preimage" {
 }
 
 ///|
+test "submitted intent binds the optional first Effect stop without changing old identity" {
+  let wire = "{\"kind\":\"program\",\"input\":{},\"parameters\":null,\"stopBefore\":\"commit\"}"
+  let admitted = prepare_client_submitted_intent(wire, 4096, 128, 16).unwrap()
+  assert_true(client_submitted_intent_requests_commit_stop(admitted))
+  assert_false(
+    client_submitted_intent_requests_commit_stop(
+      prepare_client_submitted_intent(
+        "{\"kind\":\"program\",\"input\":{},\"parameters\":null}", 4096, 128, 16,
+      ).unwrap(),
+    ),
+  )
+  assert_eq(
+    client_submitted_intent_wire(admitted),
+    "{\"input\":{},\"kind\":\"program\",\"parameters\":null,\"stopBefore\":\"commit\"}",
+  )
+  // Independent canonical preimage, including the retained user restriction.
+  assert_eq(
+    client_submitted_intent_cid(admitted),
+    "sha256:4f9c3ae04162c1dba9cdc083c925ac8898e23d8f1b9da298ced13d3d62886d07",
+  )
+  for invalid in ["null", "false", "1", "\"\"", "\"prepare\"", "{}"] {
+    assert_true(
+      prepare_client_submitted_intent(
+        wire.replace(old="\"commit\"", new=invalid),
+        4096,
+        128,
+        16,
+      )
+      is Err(InvalidEnvelope),
+    )
+  }
+  assert_true(
+    prepare_client_submitted_intent(
+      wire.replace(old="\"stopBefore\"", new="\"other\""),
+      4096,
+      128,
+      16,
+    )
+    is Err(InvalidEnvelope),
+  )
+}
+
+///|
 test "submitted intent transitions preserve the acceptance boundary" {
   for next in ["preparing", "held", "ready", "preparation_failed"] {
     assert_true(client_submitted_intent_transition("preparing", next))

@@ -2712,7 +2712,7 @@
     },
     {
       "module": "adapters/host-node/effect-run-apply.mjs",
-      "sha256": "d9e69b04f15462c276413b85417c1839d2a81111454aa703ddb44776bbabe4ac",
+      "sha256": "d04b7cb2df313ab2693def3ca799e54807bc180c3f9c83f8d126a8eefd898e6e",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -2828,6 +2828,13 @@
         },
         {
           "name": "authorizeEffectCommit/authorizeEffectCommit",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "authorizeEffectCommit/authorizeEffectCommit#2",
           "parameters": [
             "decision"
           ],
@@ -3035,7 +3042,8 @@
             "ownPreflight/ownPreflight/ownPreflight",
             "sealedSubject",
             "text/text",
-            "validDispatch/validDispatch"
+            "validDispatch/validDispatch",
+            "authorizeEffectCommit/authorizeEffectCommit#2"
           ],
           "exports": [
             "applyCapturedEffectSet",
@@ -3051,6 +3059,10 @@
               {
                 "path": "adapters/host-node/effect-run-apply.mjs",
                 "anchor": "applyRecoveredEffectSet"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -3061,18 +3073,30 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/effect-run-apply.mjs",
                 "anchor": "subjectCid"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "Failed or interrupted writes retain their cleanup"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -3083,30 +3107,54 @@
               {
                 "path": "adapters/host-node/effect-run-apply.mjs",
                 "anchor": "authorizeEffectCommit"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/effect-run-apply.mjs",
                 "anchor": "isEffectApplyPreflightRejection"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/effect-run-apply.mjs",
                 "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/effect-run-apply.mjs",
                 "anchor": "maxFrontierWork"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -3117,6 +3165,14 @@
               {
                 "path": "adapters/host-node/client-check-composition.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -3125,7 +3181,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "18a3d843802e15bf5995952a993feb5f193c06a75e7ac25e5d647b93ccfcb61e",
+      "sha256": "0a0d6037fe198f6d8179f82006b29ef15651ecc68d45708ab38e419cb9ac22de",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",

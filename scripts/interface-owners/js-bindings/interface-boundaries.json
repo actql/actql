@@ -15654,7 +15654,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "abdafb589e9e636b9f200c49377f42c73e9d12a5e77bb1c29a22d1138dcf5f4f",
+      "sha256": "43eab3570778d3da461ebf7e4231e7fb001d5904004e71c3d396504fd8e06fdd",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -19460,6 +19460,32 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
+          "parameters": [
+            "original",
+            "identity",
+            "materials",
+            "invocation",
+            "preview",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:resultAccessProgressAction/init:resultAccessProgressAction",
           "parameters": [
             "progress"
@@ -19587,6 +19613,16 @@
           "parameters": [
             "name",
             "bodyWire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
+          "parameters": [
+            "original",
+            "bodyWire",
+            "continuationWire",
             "limits"
           ],
           "async": false
@@ -22055,7 +22091,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -22065,7 +22101,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -22075,7 +22111,7 @@
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -22085,7 +22121,7 @@
             "ownership": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -22095,7 +22131,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -22105,7 +22141,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -22115,7 +22151,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -22125,7 +22161,7 @@
             "resources": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -22135,7 +22171,7 @@
             "extension": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -22145,7 +22181,7 @@
             "verification": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -23195,7 +23231,11 @@
             "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
-            "publicationControl/token/token"
+            "publicationControl/token/token",
+            "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
+            "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
+            "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
+            "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop"
           ],
           "exports": [],
           "attributes": {
@@ -23207,6 +23247,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -23217,6 +23261,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -23227,6 +23275,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -23237,6 +23289,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -23247,6 +23303,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -23257,6 +23317,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -23267,6 +23331,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -23277,6 +23345,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -23287,6 +23363,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -23301,6 +23381,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -32183,7 +32271,7 @@
     {
       "module": "adapters/host-node/effect-run-apply.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d9e69b04f15462c276413b85417c1839d2a81111454aa703ddb44776bbabe4ac",
+      "sha256": "d04b7cb2df313ab2693def3ca799e54807bc180c3f9c83f8d126a8eefd898e6e",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32301,6 +32389,13 @@
         },
         {
           "name": "authorizeEffectCommit/authorizeEffectCommit",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "authorizeEffectCommit/authorizeEffectCommit#2",
           "parameters": [
             "decision"
           ],
@@ -32824,7 +32919,8 @@
             "authorizeEffectCommit/admission/admission",
             "authorizeEffectCommit/authorizeEffectCommit",
             "authorizeEffectCommit/decision/decision",
-            "authorizeEffectCommit/tuples/tuples"
+            "authorizeEffectCommit/tuples/tuples",
+            "authorizeEffectCommit/authorizeEffectCommit#2"
           ],
           "exports": [],
           "attributes": {
@@ -32836,6 +32932,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -32846,6 +32946,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -32856,6 +32960,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -32866,6 +32974,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -32876,6 +32988,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -32886,6 +33002,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -32896,6 +33016,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -32906,6 +33030,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -32916,6 +33048,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -32930,6 +33066,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -34402,7 +34546,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "18a3d843802e15bf5995952a993feb5f193c06a75e7ac25e5d647b93ccfcb61e",
+      "sha256": "0a0d6037fe198f6d8179f82006b29ef15651ecc68d45708ab38e419cb9ac22de",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -47984,7 +48128,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "1cbb136595da776ab7c8ede9b3fbe2fece595ec09c5d4a8f57009446d57b47d6",
+      "sha256": "cbe61186d2ea1805209fbdac106e7eb4858717de3922a6faeb2564b37af213b2",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -48902,6 +49046,11 @@
           "parameters": [
             "facts"
           ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -50488,7 +50637,8 @@
             "createRowEffectStage/scopes/scopes/scopes",
             "createRowEffectStage/selectOwner/selectOwner",
             "createRowEffectStage/selectOwner/selectOwner/route/route",
-            "createRowEffectStage/settle/settle"
+            "createRowEffectStage/settle/settle",
+            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -50500,6 +50650,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -50510,6 +50664,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -50520,6 +50678,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -50530,6 +50692,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -50540,6 +50706,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -50550,6 +50720,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -50560,6 +50734,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -50570,6 +50748,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -50580,6 +50766,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -50594,6 +50784,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }

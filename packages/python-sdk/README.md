@@ -68,6 +68,24 @@ performs no status polling or automatic retry, and does not substitute
 Run cancellation or physical-stop acknowledgement. The unfinished Local wait
 condition supplier refuses explicit conditions rather than ignoring `since`.
 
+To request the existing Host's stop before the first write, select the closed
+literal on the original submission:
+
+```python
+run = client.start_source(effect_text, format="sql",
+    submission_ref=client.new_submission(), stop_before="commit")
+# Async: run = await client.start_source(..., stop_before="commit")
+```
+
+The same option is available on `start(program, ...)`. It is a restriction,
+not a write grant or a COMMIT acknowledgement; the existing Checkpoint,
+Preview and authorization Owners still decide whether execution may continue.
+Omit the argument when no requested stop is needed. Explicit `None`, booleans
+and other strings are invalid before credentials or transport. The selected
+restriction is captured in the same submitted-intent CID. Preserve the original
+submission reference after response loss and use lookup; changing the option
+does not turn the same original submission into a new authorized operation.
+
 Closing the Client or reader releases its local connection resources. It never
 cancels a Run, proves Host cleanup, or resends an unknown operation. Explicitly
 call `run.cancel()` to request cancellation. Keep the original submission and

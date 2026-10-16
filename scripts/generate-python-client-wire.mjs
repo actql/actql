@@ -6,6 +6,7 @@ import {project} from './generate-client-publication-wire.mjs';
 import {pythonStructuralValidatorSource, pythonResponseValidatorSource} from './python-client-wire-codec.mjs';
 import {responseRules, requestResponseRules} from './generate-native-client-wire.mjs';
 import {checkReportRules} from './client-check-report-rules.mjs';
+import {projectClientHostOptionalFields} from './generate-client-host-wire.mjs';
 import {clientSourceFormats, checkpointLimits, resultDescriptionLimits} from '../packages/client-wire/index.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -16,7 +17,8 @@ export function pythonClientContract(registry, protocol, publication, reasons) {
   schemas.value_contract = project(protocol.schemas.canonical_value_contract.$defs.value_contract);
   for (const name of ['delivery_attempt', 'delivery_record']) schemas[name] = project(publication.schemas[name]);
   schemas.result_delivery_receipt = project(protocol.artifact_schemas.result_delivery_receipt);
-  return {version: registry.version, operations: registry.operations, schemas,
+  return {version: registry.version, operations: registry.operations,
+    request_optional_fields: projectClientHostOptionalFields(registry), schemas,
     source_formats: clientSourceFormats, checkpoint_limits: checkpointLimits,
     result_description_limits: resultDescriptionLimits,
     response_rules: responseRules(registry), request_response_rules: requestResponseRules(registry, schemas),

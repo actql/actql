@@ -18,6 +18,10 @@ import {isEffectPreparationRefusal} from '../host-common/effect-preparation-resu
 import {isEffectCaptureRecoveryRefusal} from './effect-run-recovery.mjs';
 import {assertEffectTargetReadBinding, isEffectTargetReadRefusal} from
   './effect-target-read-continuation.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
+import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from
+  '../host-common/installed-checkpoint-codec-limits.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -49,7 +53,21 @@ function effectUnitId(facts) {
   return unit;
 }
 
-function continuation(facts, stage, settlementOnly = false) {
+function requestedStopOriginal(facts, stage) {
+  if (stage.requestedStop !== undefined) {
+    stage.assertRequestedStopCurrent();
+    return stage.requestedStop;
+  }
+  const original = facts.originalSubmittedIntent;
+  if (original === undefined) return undefined;
+  original.assertCurrent();
+  return runtimeUnboxedReferenceOption(checked(
+    facts.moon.clientProgramRequestedEffectStop(original.intent,
+      original.referenceWire, facts.identity, facts.allowed, facts.definition,
+      stage.apply.capturedInputs)));
+}
+
+function continuation(facts, stage, settlementOnly = false, requestedStop) {
   let provider;
   try { provider = JSON.parse(stage.continuationWire); }
   catch { fail('InvalidInstalledEffectContinuation'); }
@@ -59,6 +77,14 @@ function continuation(facts, stage, settlementOnly = false) {
     // Observing that capture does not reopen its target-read authorization.
     targetBinding = facts.continuation.target_read_binding;
     assertEffectTargetReadBinding(targetBinding);
+  }
+  if (requestedStop !== undefined) {
+    return checked(facts.moon.clientProgramRequestedEffectStopContinuation(
+      requestedStop, stage.continuationWire,
+      targetBinding === undefined ? undefined : canonicalValueJson(targetBinding, {dataKeys:true}),
+      INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxWireBytes,
+      INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxNodes,
+      INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxDepth));
   }
   return canonicalValueJson({version: 'actql-installed-effect-continuation/0.1',
     run_definition_cid: facts.ref.runDefinitionCid,
@@ -70,7 +96,12 @@ function continuation(facts, stage, settlementOnly = false) {
 }
 
 function checkContinuation(facts, stage, settlementOnly = false) {
-  const expected = continuation(facts, stage, settlementOnly);
+  const original = facts.continuation?.requested_stop === undefined ? undefined
+    : requestedStopOriginal(facts, stage);
+  if (facts.continuation?.requested_stop !== undefined && original === undefined) {
+    fail('RequestedEffectStopUnavailable');
+  }
+  const expected = continuation(facts, stage, settlementOnly, original);
   if (canonicalValueJson(facts.continuation, {dataKeys: true}) !== expected) {
     fail('InstalledEffectContinuationMismatch');
   }
@@ -97,6 +128,10 @@ function authorization(facts, stage, beforeDefer) {
       new Set(declaredResults).size !== declaredResults.length) {
     fail('InvalidInstalledEffectResultInventory');
   }
+  const requestedStop = requestedStopOriginal(facts, stage);
+  if (requestedStop !== undefined && typeof facts.effectAuthorization !== 'function') {
+    fail('RequestedEffectStopUnavailable');
+  }
   return facts.effectAuthorization({
     runId: facts.control.runDefinitionRunId(facts.retained?.runDefinition ??
       facts.runDefinition),
@@ -104,7 +139,10 @@ function authorization(facts, stage, beforeDefer) {
     unitId: effectUnitId(facts),
     declaredResults,
     reviewWire: facts.control.effectComputationPreviewWire(stage.preview),
-    continuationWire: continuation(facts, stage),
+    continuationWire: continuation(facts, stage, false, requestedStop),
+    ...(requestedStop === undefined ? {} : {requestedStop,
+      assertRequestedStopCurrent: stage.assertRequestedStopCurrent ??
+        (() => facts.originalSubmittedIntent.assertCurrent())}),
     beforeDefer,
     targetReads: facts.targetReads,
   });

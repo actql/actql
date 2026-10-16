@@ -1,0 +1,114 @@
+// Source-qualified public HTTPS Client/Host acceptance with real Common,
+// SQLite, encrypted Store and a stateful loopback Salesforce provider. This is
+// not a pristine packed consumer or a live-service/Model qualification.
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
+import {approveHeldSet, expectedOrgAfterSuccess, expectedUpdates,
+  readComputeEffectInstallation, waitFor} from
+  '../connectors/salesforce/test/read-compute-effect.fixture.mjs';
+
+test('requested first Effect pauses Account Allow and completes only the same approved Run after Host reopen', async t => {
+  // The Allow is selected before the original Site/profile is published. No
+  // current configuration or retained original is rewritten after admission.
+  const setup = await readComputeEffectInstallation(t, {effect: 'allow'});
+  const diagnostics = [];
+  const observations = {};
+  t.after(async () => {
+    const observed = {observations,
+      diagnostics: diagnostics.map(event => ({name: event.name,
+        code: event.detail?.code, cause: event.detail?.cause?.code})),
+      queries: setup.queries(), writes: setup.writes().length};
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+      t.diagnostic(JSON.stringify(observed));
+      return;
+    }
+    const path = join(setup.root, 'requested-stop-observations.json');
+    await writeFile(path, JSON.stringify(observed) + '\n', {mode: 0o600});
+    t.diagnostic(`Requested-stop authorized facts retained: ${path}`);
+  });
+  const first = await setup.openHost({diagnostics});
+  const owner = await first.as('owner-token');
+  const submissionRef = await setup.persistSubmission(owner.newSubmission({
+    nonce: 'requested-effect-allow'}));
+  const execution = await owner.startSource(setup.program(), {
+    format: 'json', submissionRef, stopBefore: 'commit'});
+  const originalRef = execution.ref;
+  const waiting = await waitFor(async () => {
+    const state = await execution.status();
+    return state.status === 'waiting_checkpoint' ? state : undefined;
+  });
+  const originalRunId = waiting.run_id;
+  observations.beforeApproval = waiting;
+  assert.equal(typeof originalRunId, 'string');
+  assert.ok(originalRunId.length > 0);
+  assert.equal(setup.queries(), 1);
+  assert.equal(setup.writes().length, 0, 'Account Allow cannot bypass the requested stop');
+  const before = await owner.checkpoints();
+  assert.equal(before.items.length, 1);
+  assert.equal(before.items[0].kind, 'effect_set');
+  await first.close();
+
+  const reviewHost = await setup.openHost({diagnostics});
+  const recoveredOwner = await reviewHost.as('owner-token');
+  const lookup = await recoveredOwner.lookupSubmission(submissionRef);
+  assert.equal(lookup.kind, 'ready');
+  assert.deepEqual(lookup.admission.ref, originalRef);
+  const sameRun = await recoveredOwner.attach(originalRef);
+  const checkpoint = await approveHeldSet(reviewHost, sameRun);
+  observations.afterApproval = await sameRun.status();
+  assert.equal(checkpoint.checkpointCid, before.items[0].checkpointCid);
+  assert.equal(setup.writes().length, 0, 'the answer is not a physical send');
+  await reviewHost.close();
+
+  const resumedHost = await setup.openHost({diagnostics});
+  const resumedOwner = await resumedHost.as('owner-token');
+  const resumed = await resumedOwner.attach(originalRef);
+  const succeeded = await waitFor(async () => {
+    const state = await resumed.status();
+    observations.lastResume = state;
+    return ['succeeded', 'failed', 'needs_reconciliation', 'cancelled'].includes(state.status)
+      ? state : undefined;
+  });
+  assert.equal(succeeded.status, 'succeeded', JSON.stringify(succeeded));
+  assert.equal(succeeded.run_id, originalRunId);
+  assert.deepEqual(await resumed.result('updates').all(), expectedUpdates);
+  assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
+  assert.equal(setup.writes().length, 2);
+  assert.equal(setup.queries(), 1, 'the original acquisition/Compute is not repeated');
+  assert.deepEqual((await resumedOwner.checkpoints()).items, [],
+    'the public pending-only list must not repeat the fulfilled stop');
+  await resumedHost.close();
+
+  const finalHost = await setup.openHost({diagnostics});
+  const finalOwner = await finalHost.as('owner-token');
+  const final = await finalOwner.attach(originalRef);
+  assert.equal((await final.status()).status, 'succeeded');
+  assert.deepEqual(await final.result('updates').all(), expectedUpdates);
+  assert.equal(setup.queries(), 1);
+  assert.equal(setup.writes().length, 2, 'a later Host cannot resend the completed Effect');
+  assert.deepEqual((await finalOwner.checkpoints()).items, []);
+  await finalHost.close();
+  // Read the original journal only after every Host has closed. Pending-only
+  // public lists are not a history oracle. No receipt or grant is constructed
+  // from these rows; the real Owner already performed the resume above.
+  const database = new DatabaseSync(join(setup.root, 'state', 'checkpoints',
+    'journal', 'checkpoint-journal.sqlite3'), {readOnly: true});
+  try {
+    database.exec('PRAGMA query_only=ON; BEGIN');
+    const rows = database.prepare(`SELECT c.checkpoint_cid, c.closure,
+      r.decision, i.state, i.outcome_status FROM checkpoints c
+      JOIN resolutions r USING (checkpoint_cid)
+      JOIN resume_intents i USING (checkpoint_cid)
+      WHERE c.run_id = ?`).all(originalRunId);
+    assert.deepEqual(rows.map(row => ({...row})), [{
+      checkpoint_cid: before.items[0].checkpointCid,
+      closure: 'resolved', decision: 'approved', state: 'completed',
+      outcome_status: 'succeeded'}]);
+    database.exec('ROLLBACK');
+  } finally { database.close(); }
+  assert.deepEqual(diagnostics.filter(event => event.name.endsWith('_resume_failed'))
+    .map(event => ({name: event.name, code: event.detail?.code})), []);
+});
