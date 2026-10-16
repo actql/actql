@@ -108,6 +108,15 @@ pub fn sheets_range_prepare(
 }
 
 ///|
+#export_name("sheetsRangeTargetMatches")
+pub fn sheets_range_target_matches(
+  binding : @catalog.RangeBinding,
+  target : String,
+) -> Bool {
+  @catalog.range_target_matches(binding, target)
+}
+
+///|
 #export_name("sheetsRangeRequestJson")
 pub fn sheets_range_request_json(
   binding : @catalog.RangeBinding,
@@ -122,8 +131,9 @@ pub fn sheets_range_request_cid(
   binding : @catalog.RangeBinding,
   request : @catalog.RangeRequest,
 ) -> Result[String, @catalog.RangeFailure] {
-  @catalog.admit_range_request(binding, request).map(_ =>
-    @catalog.range_request_identity(request))
+  @catalog.admit_range_request(binding, request).map(_ => {
+    @catalog.range_request_identity(request)
+  })
 }
 
 ///|

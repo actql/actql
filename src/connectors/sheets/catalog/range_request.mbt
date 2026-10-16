@@ -26,7 +26,8 @@ pub struct RangeRequest {
 fn range_integer(value : Json?) -> Int? {
   match value {
     Some(Number(value, ..)) if value >= 0 &&
-      value <= 2147483647.0 && value.trunc() == value => Some(value.to_int())
+      value <= 2147483647.0 &&
+      value.trunc() == value => Some(value.to_int())
     _ => None
   }
 }
@@ -42,7 +43,7 @@ fn range_of_json(value : Json) -> GridRange? {
     range_integer(fields.get("endColumn")) is Some(end_column) else {
     return None
   }
-  Some({ sheet_id, start_row, end_row, start_column, end_column })
+  Some({ sheet_id, start_row, end_row, start_column, end_column, })
 }
 
 ///|
@@ -50,9 +51,12 @@ fn range_columns(value : Json) -> Array[Column]? {
   guard value is Array(items) else { return None }
   let columns = []
   for item in items {
-    guard item is Object(fields) && fields.length() == 3 &&
+    guard item is Object(fields) &&
+      fields.length() == 3 &&
       fields.get("name") is Some(String(name)) &&
-      fields.get("type") is Some(String(kind)) else { return None }
+      fields.get("type") is Some(String(kind)) else {
+      return None
+    }
     let nullable = match fields.get("nullable") {
       Some(True) => true
       Some(False) => false
@@ -64,22 +68,28 @@ fn range_columns(value : Json) -> Array[Column]? {
       "boolean" => Boolean
       _ => return None
     }
-    columns.push({ name, cell_type, nullable })
+    columns.push({ name, cell_type, nullable, })
   }
-  if check_columns(columns) { Some(columns) } else { None }
+  if check_columns(columns) {
+    Some(columns)
+  } else {
+    None
+  }
 }
 
 ///|
 fn range_columns_json(columns : Array[Column]) -> Json {
-  Json::array(columns.map(column => {
-    "name": column.name.to_json(),
-    "type": match column.cell_type {
-      Text => "string".to_json()
-      Number => "number".to_json()
-      Boolean => "boolean".to_json()
-    },
-    "nullable": column.nullable.to_json(),
-  }))
+  Json::array(
+    columns.map(column => {
+      "name": column.name.to_json(),
+      "type": match column.cell_type {
+        Text => "string".to_json()
+        Number => "number".to_json()
+        Boolean => "boolean".to_json()
+      },
+      "nullable": column.nullable.to_json(),
+    }),
+  )
 }
 
 ///|
@@ -90,7 +100,8 @@ pub fn admit_range_binding(
   target_wire : String,
   limits : Limits,
 ) -> Result[RangeBinding, RangeFailure] {
-  let configuration = match range_parse(configuration_wire, limits, "InvalidSheetsRangeInput") {
+  let configuration = match
+    range_parse(configuration_wire, limits, "InvalidSheetsRangeInput") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -108,14 +119,21 @@ pub fn admit_range_binding(
     Ok(_) => ()
     Err(issue) => return Err(range_contract_failure(issue))
   }
-  if spreadsheet_id.is_empty() || spreadsheet_id.length() > 128 ||
-    !spreadsheet_id.iter().all(character =>
+  if spreadsheet_id.is_empty() ||
+    spreadsheet_id.length() > 128 ||
+    !spreadsheet_id
+    .iter()
+    .all(character => {
       (character >= 'A' && character <= 'Z') ||
       (character >= 'a' && character <= 'z') ||
-      (character >= '0' && character <= '9') || character == '_' || character == '-') {
+      (character >= '0' && character <= '9') ||
+      character == '_' ||
+      character == '-'
+    }) {
     return Err(range_failure("InvalidSheetsSpreadsheetId"))
   }
-  let target = match range_parse(target_wire, limits, "SheetsRangeReferenceUnavailable") {
+  let target = match
+    range_parse(target_wire, limits, "SheetsRangeReferenceUnavailable") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -123,13 +141,32 @@ pub fn admit_range_binding(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ origin, spreadsheet_id, range, columns, command_cid, binding_cid, target_wire, limits })
+  Ok({
+    origin,
+    spreadsheet_id,
+    range,
+    columns,
+    command_cid,
+    binding_cid,
+    target_wire,
+    limits,
+  })
 }
 
 ///|
-pub fn range_target_matches(binding : RangeBinding, target_wire : String) -> Bool {
-  guard range_parse(target_wire, binding.limits, "SheetsRangeReferenceUnavailable")
-    is Ok(target) && range_canonical(target, binding.limits) is Ok(wire) else { return false }
+pub fn range_target_matches(
+  binding : RangeBinding,
+  target_wire : String,
+) -> Bool {
+  guard range_parse(
+      target_wire,
+      binding.limits,
+      "SheetsRangeReferenceUnavailable",
+    )
+    is Ok(target) &&
+    range_canonical(target, binding.limits) is Ok(wire) else {
+    return false
+  }
   wire == binding.target_wire
 }
 
@@ -142,7 +179,8 @@ pub fn prepare_range_request(
   if !range_target_matches(binding, target_wire) {
     return Err(range_failure("SheetsRangeReferenceUnavailable"))
   }
-  let value = match range_parse(value_wire, binding.limits, "InvalidSheetsRangeInput") {
+  let value = match
+    range_parse(value_wire, binding.limits, "InvalidSheetsRangeInput") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -164,17 +202,20 @@ pub fn prepare_range_request(
       }
       match value {
         Null | String(_) | Number(_, ..) | True | False => row.push(value)
-        _ => return Err(range_contract_failure(UnrepresentableWrite(column.name)))
+        _ =>
+          return Err(range_contract_failure(UnrepresentableWrite(column.name)))
       }
     }
     rows.push(row)
   }
-  let body = match update_request(binding.range, binding.columns, rows, binding.limits) {
+  let body = match
+    update_request(binding.range, binding.columns, rows, binding.limits) {
     Ok(body) => body
     Err(issue) => return Err(range_contract_failure(issue))
   }
   let path = "/v4/spreadsheets/" + binding.spreadsheet_id + ":batchUpdate"
-  let cid = match range_request_cid(binding.origin, path, body, binding.target_wire) {
+  let cid = match
+    range_request_cid(binding.origin, path, body, binding.target_wire) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -182,7 +223,7 @@ pub fn prepare_range_request(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ binding, body, path, value_wire, cid })
+  Ok({ binding, body, path, value_wire, cid, })
 }
 
 ///|
@@ -208,41 +249,70 @@ pub fn range_request_json(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let value = match range_parse(request.value_wire, binding.limits, "InvalidSheetsRangeInput") {
+  let value = match
+    range_parse(request.value_wire, binding.limits, "InvalidSheetsRangeInput") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let target = match range_parse(binding.target_wire, binding.limits, "SheetsRangeReferenceUnavailable") {
+  let target = match
+    range_parse(
+      binding.target_wire,
+      binding.limits,
+      "SheetsRangeReferenceUnavailable",
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  range_canonical({
-    "origin": binding.origin.to_json(), "path": request.path.to_json(),
-    "body": request.body.to_json(), "spreadsheetId": binding.spreadsheet_id.to_json(),
-    "sheetId": binding.range.sheet_id.to_json(),
-    "acknowledgedRows": (binding.range.end_row - binding.range.start_row).to_json(),
-    "value": value, "target": target, "requestCid": request.cid.to_json(),
-  }, binding.limits)
+  range_canonical(
+    {
+      "origin": binding.origin.to_json(),
+      "path": request.path.to_json(),
+      "body": request.body.to_json(),
+      "spreadsheetId": binding.spreadsheet_id.to_json(),
+      "sheetId": binding.range.sheet_id.to_json(),
+      "acknowledgedRows": (binding.range.end_row - binding.range.start_row).to_json(),
+      "value": value,
+      "target": target,
+      "requestCid": request.cid.to_json(),
+    },
+    binding.limits,
+  )
 }
 
 ///|
-pub fn range_request_identity(request : RangeRequest) -> String { request.cid }
+pub fn range_request_identity(request : RangeRequest) -> String {
+  request.cid
+}
 
 ///|
-pub fn range_request_body(request : RangeRequest) -> String { request.body }
+pub fn range_request_body(request : RangeRequest) -> String {
+  request.body
+}
 
 ///|
-fn range_recovery_value(binding : RangeBinding, effect_id : String) -> Result[Json, RangeFailure] {
-  let target = match range_parse(binding.target_wire, binding.limits, "SheetsRangeRecoveryMismatch") {
+fn range_recovery_value(
+  binding : RangeBinding,
+  effect_id : String,
+) -> Result[Json, RangeFailure] {
+  let target = match
+    range_parse(
+      binding.target_wire,
+      binding.limits,
+      "SheetsRangeRecoveryMismatch",
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   Ok({
     "version": "actql-sheets-range-recovery/0.1",
-    "bindingCid": binding.binding_cid.to_json(), "commandCid": binding.command_cid.to_json(),
-    "origin": binding.origin.to_json(), "spreadsheetId": binding.spreadsheet_id.to_json(),
-    "range": range_json_value(binding.range), "columns": range_columns_json(binding.columns),
-    "target": target, "effectId": effect_id.to_json(),
+    "bindingCid": binding.binding_cid.to_json(),
+    "commandCid": binding.command_cid.to_json(),
+    "origin": binding.origin.to_json(),
+    "spreadsheetId": binding.spreadsheet_id.to_json(),
+    "range": range_json_value(binding.range),
+    "columns": range_columns_json(binding.columns),
+    "target": target,
+    "effectId": effect_id.to_json(),
   })
 }
 
@@ -263,8 +333,14 @@ pub fn range_recovery_entry(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  range_canonical({ "kind": "sheets-range-request", "wire": wire.to_json(),
-    "observationCid": cid.to_json() }, binding.limits)
+  range_canonical(
+    {
+      "kind": "sheets-range-request",
+      "wire": wire.to_json(),
+      "observationCid": cid.to_json(),
+    },
+    binding.limits,
+  )
 }
 
 ///|
@@ -274,29 +350,36 @@ pub fn recover_range_requests(
   recovery_wire : String,
   limits : Limits,
 ) -> Result[Array[Array[RangeRequest]], RangeFailure] {
-  guard range_parse(effects_wire, limits, "SheetsRangeRecoveryMismatch") is Ok(Array(effects)) &&
-    range_parse(recovery_wire, limits, "SheetsRangeRecoveryMismatch") is Ok(Array(saved)) &&
+  guard range_parse(effects_wire, limits, "SheetsRangeRecoveryMismatch")
+    is Ok(Array(effects)) &&
+    range_parse(recovery_wire, limits, "SheetsRangeRecoveryMismatch")
+    is Ok(Array(saved)) &&
     saved.length() == effects.length() else {
     return Err(range_failure("SheetsRangeRecoveryMismatch"))
   }
   let output = []
   for index, effect in effects {
-    guard effect is Object(effect_fields) && effect_fields.get("effect_id") is Some(String(effect_id)) &&
+    guard effect is Object(effect_fields) &&
+      effect_fields.get("effect_id") is Some(String(effect_id)) &&
       effect_fields.get("effect_kind") == Some("command".to_json()) &&
-      effect_fields.get("resolved_command_contract_cid") == Some(binding.command_cid.to_json()) &&
+      effect_fields.get("resolved_command_contract_cid") ==
+      Some(binding.command_cid.to_json()) &&
       effect_fields.get("changes") is Some(Array(changes)) else {
       return Err(range_failure("SheetsRangeRecoveryMismatch"))
     }
     let entries = saved.filter(entry => {
       guard entry is Object(entry) else { return false }
       range_integer(entry.get("memberIndex")) == Some(index) &&
-        entry.get("kind") == Some("sheets-range-request".to_json())
+      entry.get("kind") == Some("sheets-range-request".to_json())
     })
-    guard entries.length() == 1 && entries[0] is Object(entry) &&
-      entry.get("wire") is Some(String(wire)) && @utf8.encode(wire).length() <= 100000 &&
+    guard entries.length() == 1 &&
+      entries[0] is Object(entry) &&
+      entry.get("wire") is Some(String(wire)) &&
+      @utf8.encode(wire).length() <= 100000 &&
       entry.get("observationCid") is Some(String(cid)) &&
       range_parse(wire, limits, "SheetsRangeRecoveryMismatch") is Ok(value) &&
-      range_canonical(value, limits) == Ok(wire) && range_content_cid(value, limits) == Ok(cid) &&
+      range_canonical(value, limits) == Ok(wire) &&
+      range_content_cid(value, limits) == Ok(cid) &&
       range_recovery_value(binding, effect_id) is Ok(expected) &&
       range_canonical(expected, limits) == Ok(wire) else {
       return Err(range_failure("SheetsRangeRecoveryMismatch"))

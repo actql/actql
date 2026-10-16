@@ -36,11 +36,18 @@ export function createSheetsRangeDriver({moon, site, command, bindingCid, target
     range: site.gridRange, columns: site.columns,
   }), command.commandCid, bindingCid, wire(target), ...limits(SHEETS_LIMITS.maxRequestBytes)));
   const current = () => { if (!isCurrent()) fail('SheetsRangeReferenceUnavailable'); };
-  const admitRequest = request => { current(); return ownedSheetsRequestCid(request, binding); };
+  const admitTarget = target => {
+    current();
+    if (!moon.sheetsRangeTargetMatches(binding, wire(target))) fail('SheetsRangeReferenceUnavailable');
+  };
+  const admitRequest = request => {
+    admitTarget(request.target);
+    return ownedSheetsRequestCid(request, binding);
+  };
   return Object.freeze({kinds: ['command'], writeOperation: () => SHEETS_UPDATE_OPERATION,
     prepareRequest({member, value, selector}) {
       if (member.resource !== 'range_target') fail('UndeclaredSheetsResource');
-      current();
+      admitTarget(selector);
       const request = prepareSheetsUpdate({moon, binding, value, target: selector});
       return {request, requestCid: request.requestCid};
     },
@@ -52,11 +59,13 @@ export function createSheetsRangeDriver({moon, site, command, bindingCid, target
         moon.sheetsRangeRecoveryEntryJson(binding, member.effectId)));
     },
     recoverRequests({body, durable}) {
-      current();
       const handles = sheetsOwnedResult(moon, moon.sheetsRangeRecover(binding,
         JSON.stringify(body.effects) ?? 'null', JSON.stringify(durable.connectorRecovery) ?? 'null',
         ...limits(SHEETS_LIMITS.maxResponseBytes)));
-      const requests = handles.map(rows => rows.map(handle => projectOwnedSheetsRequest(moon, binding, handle)));
+      const requests = handles.map(rows => rows.map(handle => {
+        current();
+        return projectOwnedSheetsRequest(moon, binding, handle);
+      }));
       return {currents: requests.map(() => undefined), requests};
     },
     async send(options) { admitRequest(options.request); return sendSheetsUpdate(options); },

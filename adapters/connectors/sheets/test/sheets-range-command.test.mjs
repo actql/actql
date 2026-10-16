@@ -125,6 +125,25 @@ test('Sheets range request binds original literal values exact rectangle and ori
     /ForeignSheetsRangeRequest/);
 });
 
+test('Sheets nominal request owner refuses same bytes under another permission or installation', () => {
+  const first = fixture();
+  const other = fixture();
+  assert.equal(first.request.body, other.request.body);
+  assert.equal(first.request.requestCid, other.request.requestCid);
+  assert.throws(() => other.driver.recheckRequests({entries: [{request: first.request}]}),
+    {code: 'ForeignSheetsRangeRequest'});
+  const target = sheetsRangeReference({site, catalogCid: token('a'), bindingCid: token('c'), moon: provider});
+  const driver = createSheetsRangeDriver({moon: provider, site, command: first.range.installed,
+    bindingCid: token('c'), target, isCurrent: () => true});
+  const request = driver.prepareRequest({member, value, selector: target}).request;
+  assert.equal(request.body, first.request.body);
+  assert.notEqual(request.requestCid, first.request.requestCid);
+  assert.throws(() => driver.recheckRequests({entries: [{request: first.request}]}),
+    {code: 'SheetsRangeReferenceUnavailable'});
+  assert.throws(() => first.driver.recheckRequests({entries: [{request: {...first.request, target}}]}),
+    {code: 'SheetsRangeReferenceUnavailable'});
+});
+
 test('Sheets range refuses foreign current target installation and partial input before send', () => {
   const {driver, target, revoke, request} = fixture();
   for (const field of ['provider_namespace', 'resource_kind', 'provider_identity_cid',

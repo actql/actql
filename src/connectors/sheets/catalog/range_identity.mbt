@@ -9,12 +9,12 @@ pub struct RangeFailure {
 
 ///|
 fn range_failure(code : String) -> RangeFailure {
-  { code, refusal: None }
+  { code, refusal: None, }
 }
 
 ///|
 fn range_contract_failure(issue : Issue) -> RangeFailure {
-  { code: "SheetsContractRefused", refusal: Some(issue) }
+  { code: "SheetsContractRefused", refusal: Some(issue), }
 }
 
 ///|
@@ -36,22 +36,32 @@ fn range_parse(
   guard admit(@utf8.encode(wire), limits) is Ok(_) else {
     return Err(range_failure(code))
   }
-  try {
-    Ok(@json.parse(wire))
-  } catch {
+  Ok(@json.parse(wire)) catch {
     _ => Err(range_failure(code))
   }
 }
 
 ///|
-fn range_canonical(value : Json, limits : Limits) -> Result[String, RangeFailure] {
+fn range_canonical(
+  value : Json,
+  limits : Limits,
+) -> Result[String, RangeFailure] {
   try {
     let value = @canonical.from_json(
-      value, limits.max_nodes, limits.max_depth, limits.max_bytes, data_keys=true,
+      value,
+      limits.max_nodes,
+      limits.max_depth,
+      limits.max_bytes,
+      data_keys=true,
     )
-    Ok(@canonical.stringify_value(
-      value, limits.max_bytes, limits.max_nodes, limits.max_depth,
-    ))
+    Ok(
+      @canonical.stringify_value(
+        value,
+        limits.max_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ),
+    )
   } catch {
     _ => Err(range_failure("SheetsRangeRecoveryMismatch"))
   }
@@ -96,7 +106,10 @@ fn range_configuration_value(value : Json) -> Result[Json, RangeFailure] {
 }
 
 ///|
-fn range_content_cid(value : Json, limits : Limits) -> Result[String, RangeFailure] {
+fn range_content_cid(
+  value : Json,
+  limits : Limits,
+) -> Result[String, RangeFailure] {
   let normalized = match range_configuration_value(value) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -127,23 +140,31 @@ pub fn range_reference(
   binding_cid : String,
   limits : Limits,
 ) -> Result[Json, RangeFailure] {
-  let provider_cid = match range_content_cid({
-    "version": "actql-sheets-provider/0.1",
-    "api_origin": origin.to_json(),
-    "spreadsheet_id": spreadsheet_id.to_json(),
-  }, limits) {
+  let provider_cid = match
+    range_content_cid(
+      {
+        "version": "actql-sheets-provider/0.1",
+        "api_origin": origin.to_json(),
+        "spreadsheet_id": spreadsheet_id.to_json(),
+      },
+      limits,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let identity_cid = match range_content_cid({
-    "version": "actql-sheets-range/0.1", "range": range_json_value(range),
-  }, limits) {
+  let identity_cid = match
+    range_content_cid(
+      { "version": "actql-sheets-range/0.1", "range": range_json_value(range) },
+      limits,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   Ok({
-    "$actql_ref": "resource", "version": "actql-resource-ref/0.1",
-    "provider_namespace": "sheets", "resource_kind": "sheet_range",
+    "$actql_ref": "resource",
+    "version": "actql-resource-ref/0.1",
+    "provider_namespace": "sheets",
+    "resource_kind": "sheet_range",
     "provider_identity_cid": provider_cid.to_json(),
     "identity_cid": identity_cid.to_json(),
     "authority_scope_cid": binding_cid.to_json(),
@@ -160,7 +181,10 @@ fn range_request_cid(
 ) -> Result[String, RangeFailure] {
   let hash = @sha.hasher()
   try {
-    for part in ["actql-sheets-update-request/0.1", origin, "POST", path, body, target] {
+    for
+      part in [
+        "actql-sheets-update-request/0.1", origin, "POST", path, body, target,
+      ] {
       let bytes = @utf8.encode(part)
       @sha.update(hash, @utf8.encode(bytes.length().to_string() + ":"))
       @sha.update(hash, bytes)
