@@ -48,3 +48,41 @@ Output export and formal release. A failed export releases its pins; pending
 payload cleanup retains capacity until physical deletion is confirmed. Export
 cancellation uses the existing captured-input owner. Durable outbound
 cancellation and restart guarantees remain separate contracts.
+
+## Bounded installation documents
+
+Source profile, Site and publication document acquisition shares a bounded
+incremental reader. Each Connector retains its declared byte ceiling; JSON
+profiles retain their own ceiling, while a publication identified by its exact
+UTF-8 text uses the text projection without parsing and reserialization.
+Binary signing keys and CA material are separate inputs. The ceiling limits
+acquisition, not the decoded tree's heap size or a resource admission grant.
+
+A failed or false close retains the original FD through the existing
+initialization cleanup protocol. Retry is single-flight and close-only: it
+never opens, reads, parses or starts another installation. No parsed value or
+text is returned before that initial close succeeds. A frozen or readonly
+failure is retained as a cause, not mutated into a substitute cleanup owner.
+Snapshots retain first/latest close diagnostics and their original error
+graphs; bounded reference count is not a byte bound.
+
+A thrown read failure may be any JavaScript value, including `undefined`.
+The cleanup facade retains that exact primary separately from the close
+failure. Diagnostic message access is best-effort, never coerces non-String
+values, and cannot prevent exporting the original FD's cleanup responsibility.
+
+Namespace observation may remain unresolved when metadata cannot be read.
+Pending original cleanup is not namespace uncertainty: installation must stop
+and hand that same handle to initialization custody. If an adapter was already
+acquired, its existing initialization cleanup retains it until the failed read
+retires. Error projections must preserve the cleanup facet at the receiving
+boundary rather than leaving it only on a nested cause.
+
+The existing read buffers, chunk array/views, joined bytes, decoded String and
+JSON tree overlap during projection. On failed close, original FD, retry/status
+closures, single-flight Promise, exported carrier/cause, first/latest errors
+and frozen status arrays remain owned until actual close. The explicit read-failed
+flag, original primary reference and any diagnostic message alias also remain
+within that same responsibility. An acquired adapter
+and the outer initialization carrier can overlap them. These are explicit
+holding components, not zero-priced allocations or a normal Model profile.
