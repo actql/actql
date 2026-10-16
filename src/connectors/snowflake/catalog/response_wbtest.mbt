@@ -356,10 +356,120 @@ test "caller bounds are never expanded by provider metadata" {
 
 ///|
 test "statement handle remains an opaque bounded identity" {
-  let body = @utf8.decode(test_body(text_column(), "[[\"a\"]]")) catch { _ => abort("fixture UTF8") }
-  let opaque = body.replace_all("536fad38-b564-4dc5-9892-a4543504df6c", "opaque-handle:1")
-  let result = project_result_set(@utf8.encode(opaque), test_limits()).unwrap()
+  let body = @utf8.decode(test_body(text_column(), "[[\"a\"]]")) catch {
+    _ => abort("fixture UTF8")
+  }
+  let handle_body = body.replace_all(
+    old="536fad38-b564-4dc5-9892-a4543504df6c",
+    new="opaque-handle:1",
+  )
+  let result = project_result_set(@utf8.encode(handle_body), test_limits()).unwrap()
   assert_eq(result_set_handle(result), "opaque-handle:1")
   let limits = test_limits()
-  assert_true(project_result_set(@utf8.encode(opaque), { ..limits, max_handle_units: 2 }) is Err(InvalidHandle))
+  assert_true(
+    project_result_set(@utf8.encode(handle_body), {
+      ..limits,
+      max_handle_units: 2,
+    })
+    is Err(InvalidHandle),
+  )
+}
+
+///|
+test "JSON literal admission keeps nullable contract without collapsing its domain" {
+  let columns = "[{\"name\":\"V\",\"type\":\"variant\",\"nullable\":true}]"
+  let result = project_result_set(
+    test_body(columns, "[[\"null\"]]"),
+    test_limits(),
+  ).unwrap()
+  let value = result_set_cell(result, 0, 0).unwrap()
+  assert_true(value.value is @admitted.JsonData(@admitted.Null))
+  assert_true(@contract.contract_nullable(value.contract))
+  let object_column = "[{\"name\":\"V\",\"type\":\"object\",\"nullable\":false}]"
+  assert_true(
+    project_result_set(test_body(object_column, "[[\"[]\"]]"), test_limits())
+    is Err(InvalidCell("V")),
+  )
+}
+
+///|
+test "nested JSON limits remain capacity failures" {
+  let columns = "[{\"name\":\"V\",\"type\":\"variant\",\"nullable\":false}]"
+  let limits = test_limits()
+  assert_true(
+    project_result_set(test_body(columns, "[[\"[[[[[[[0]]]]]]]\"]]"), {
+      ..limits,
+      max_depth: 5,
+    })
+    is Err(BudgetExceeded),
+  )
+}
+
+///|
+test "expanded decimal holding shares one page value budget" {
+  let fields = StringBuilder()
+  let row = StringBuilder()
+  fields.write_string("[")
+  row.write_string("[")
+  for index in 0..<8 {
+    if index != 0 {
+      fields.write_string(",")
+      row.write_string(",")
+    }
+    fields.write_string(
+      "{\"name\":\"N" +
+      index.to_string() +
+      "\",\"type\":\"fixed\",\"precision\":38,\"scale\":0,\"nullable\":false}",
+    )
+    row.write_string("\"1e37\"")
+  }
+  fields.write_string("]")
+  row.write_string("]")
+  let data = "[" +
+    row.to_string() +
+    "," +
+    row.to_string() +
+    "," +
+    row.to_string() +
+    "," +
+    row.to_string() +
+    "]"
+  let bytes = test_body(
+    fields.to_string(),
+    data,
+    partitions="[{\"rowCount\":4}]",
+    total="4",
+  )
+  let limits = test_limits()
+  assert_true(bytes.length() <= 1100)
+  assert_true(
+    project_result_set(bytes, { ..limits, max_bytes: 1100, })
+    is Err(BudgetExceeded),
+  )
+}
+
+///|
+test "later partition observes tighter caller metadata limits" {
+  let original = project_result_set(
+    test_body(
+      text_column(),
+      "[[\"a\"]]",
+      partitions="[{\"rowCount\":1},{\"rowCount\":1}]",
+      total="2",
+    ),
+    test_limits(),
+  ).unwrap()
+  let bytes = @utf8.encode("{\"data\":[[\"b\"]]}")
+  let limits = test_limits()
+  for
+    selected in [
+      { ..limits, max_total_rows: 1L, },
+      { ..limits, max_partitions: 1, },
+      { ..limits, max_name_units: 1, },
+      { ..limits, max_handle_units: 1, },
+    ] {
+    assert_true(
+      project_partition(bytes, original, 1, selected) is Err(BudgetExceeded),
+    )
+  }
 }

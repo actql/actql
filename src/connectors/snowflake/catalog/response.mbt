@@ -32,32 +32,31 @@ pub(all) enum ResponseIssue {
 
 ///|
 pub struct Column {
-  name : String
-  native_type : String
-  nullable : Bool
-  precision : Int?
-  scale : Int?
-  contract : @contract.Contract
+  priv name : String
+  priv native_type : String
+  priv precision : Int?
+  priv scale : Int?
+  priv contract : @contract.Contract
 }
 
 ///|
 /// Immutable vendor observation material, not a Source grant or an Acquisition
 /// completion. A future Site caller must retain the original request/use/body.
 pub struct ResultSet {
-  handle : String
-  columns : Array[Column]
-  partitions : Array[Int64]
-  total_rows : Int64
-  rows : Array[Array[@admitted.CheckedValue]]
-  response_sha256 : String
+  priv handle : String
+  priv columns : Array[Column]
+  priv partitions : Array[Int64]
+  priv total_rows : Int64
+  priv rows : Array[Array[@admitted.CheckedValue]]
+  priv response_sha256 : String
 }
 
 ///|
 pub struct Partition {
-  original : ResultSet
-  ordinal : Int
-  rows : Array[Array[@admitted.CheckedValue]]
-  response_sha256 : String
+  priv original : ResultSet
+  priv ordinal : Int
+  priv rows : Array[Array[@admitted.CheckedValue]]
+  priv response_sha256 : String
 }
 
 ///|
@@ -177,7 +176,7 @@ fn project_column(
       @contract.primitive(@contract.JsonType, nullable~)
     _ => return Err(UnsupportedColumn(name, native_type))
   }
-  Ok({ name, native_type, nullable, precision, scale, contract, })
+  Ok({ name, native_type, precision, scale, contract, })
 }
 
 ///|
@@ -214,7 +213,7 @@ pub fn project_result_set(
     total_rows > limits.max_total_rows {
     return Err(BudgetExceeded)
   }
-  let columns = []
+  let columns : Array[Column] = []
   for index in 0..<count {
     let column = match
       project_column(@decode.element_at(columns_cursor, index).unwrap(), limits) {
@@ -266,6 +265,18 @@ pub fn project_partition(
   ordinal : Int,
   limits : ResponseLimits,
 ) -> Result[Partition, ResponseIssue] {
+  if !valid_limits(limits) {
+    return Err(InvalidLimits)
+  }
+  // Reusing the same immutable metadata does not bypass a later caller's
+  // tighter ceiling. These limits remain observations, not a Source grant.
+  if original.total_rows > limits.max_total_rows ||
+    original.columns.length() > limits.max_columns ||
+    original.partitions.length() > limits.max_partitions ||
+    original.handle.length() > limits.max_handle_units ||
+    original.columns.any(column => column.name.length() > limits.max_name_units) {
+    return Err(BudgetExceeded)
+  }
   if ordinal <= 0 || ordinal >= original.partitions.length() {
     return Err(InvalidPartition)
   }
@@ -359,4 +370,24 @@ pub fn partition_cell(
     Some(cells) => cells.get(column)
     None => None
   }
+}
+
+///|
+pub fn result_set_partition_count(result : ResultSet) -> Int {
+  result.partitions.length()
+}
+
+///|
+pub fn result_set_partition_rows(result : ResultSet, ordinal : Int) -> Int64? {
+  result.partitions.get(ordinal)
+}
+
+///|
+pub fn partition_ordinal(partition : Partition) -> Int {
+  partition.ordinal
+}
+
+///|
+pub fn partition_response_sha256(partition : Partition) -> String {
+  partition.response_sha256
 }

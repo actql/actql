@@ -105,6 +105,8 @@ fn project_cell(
           max_depth: budget.max_depth,
         }) {
         Ok(value) => value
+        Err({ issue: InputLimit | NodeLimit | DepthLimit, .. }) =>
+          return Err(BudgetExceeded)
         Err(_) => return Err(InvalidCell(column.name))
       }
       guard node.value is Number(_) else {
@@ -113,25 +115,45 @@ fn project_cell(
       converted_cursor(node, column, budget)
     }
     "VARIANT" | "variant" | "OBJECT" | "object" | "ARRAY" | "array" => {
-      let node = match
-        @source.parse_json_bytes_preserving(@utf8.encode(text), {
-          max_input_bytes: budget.text_bytes,
+      // Common JSON-literal admission preserves JSON null as JsonData(Null),
+      // independently of the outer SQL NULL handled above.
+      let (literal, nodes, bytes) = match
+        @admitted.admit_json_literal(text, {
           max_nodes: budget.nodes,
+          max_text_bytes: budget.text_bytes,
           max_depth: budget.max_depth,
         }) {
         Ok(value) => value
+        Err(
+          JsonLiteralParse({ issue: InputLimit | NodeLimit | DepthLimit, .. })
+        ) => return Err(BudgetExceeded)
+        Err(
+          JsonLiteralAdmission(
+            @admitted.ValueIssue(@admitted.BudgetExceeded, ..)
+          )
+        ) => return Err(BudgetExceeded)
         Err(_) => return Err(InvalidCell(column.name))
       }
-      // OBJECT/ARRAY are declared vendor types, not arbitrary VARIANT values.
+      let payload = @admitted.json_payload(literal.value).unwrap()
       if (column.native_type == "OBJECT" || column.native_type == "object") &&
-        !(node.value is Object(_)) {
+        !(payload is @admitted.Object(_)) {
         return Err(InvalidCell(column.name))
       }
       if (column.native_type == "ARRAY" || column.native_type == "array") &&
-        !(node.value is Array(_)) {
+        !(payload is @admitted.Array(_)) {
         return Err(InvalidCell(column.name))
       }
-      converted_cursor(node, column, budget)
+      guard @admitted.recheck_runtime_value(literal.value, column.contract, {
+          max_nodes: budget.nodes,
+          max_text_bytes: budget.text_bytes,
+          max_depth: budget.max_depth,
+        })
+        is Some(checked) else {
+        return Err(BudgetExceeded)
+      }
+      budget.nodes -= nodes
+      budget.text_bytes -= bytes
+      Ok(checked)
     }
     _ => Err(UnsupportedColumn(column.name, column.native_type))
   }
