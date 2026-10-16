@@ -328,6 +328,7 @@ pub fn client_program_prepare_source_computation_with_parameters(
           evidence,
           client_program_effect_limits(),
           update_targets=lowered.update_targets,
+          store_targets=lowered.store_targets,
         ) {
         Ok(value) => value
         Err(issue) => return SourceEffect(EffectRejected(Preparation(issue)))

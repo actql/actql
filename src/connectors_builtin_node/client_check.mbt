@@ -648,6 +648,7 @@ fn check_source_findings(
             supplied,
             [],
             client_program_effect_limits(),
+            store_targets=lowered.store_targets,
           ) {
           Ok(_) => return Report
           Err(Static(CommandInputs(issue))) =>
