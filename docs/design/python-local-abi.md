@@ -35,8 +35,9 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 36; this private ABI
-version is independent of Client wire and package release versions. Optional
+before opening the instance. `actql_host_abi_version` is declared by `src/client_host_wasm/version.mbt`;
+`scripts/generate-local-wasm-abi.py --check` verifies the generated wrapper
+declaration. This private ABI version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
 
