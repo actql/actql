@@ -170,12 +170,20 @@ fn catalog_optional_timestamp(
   match catalog_optional_text(object, key) {
     Err(issue) => Err(issue)
     Ok(None) => Ok(None)
-    Ok(Some(text)) =>
-      if @values.timestamp_epoch_milliseconds(text) is Some(_) {
-        Ok(Some(text))
+    Ok(Some(text)) => {
+      // Tableau documents UTC whole seconds. Add exact zero milliseconds,
+      // then let the existing Values Owner validate the calendar and instant.
+      let canonical = if text.length() == 20 && text.has_suffix("Z") {
+        text[:19].to_owned() + ".000Z"
+      } else {
+        text
+      }
+      if @values.timestamp_epoch_milliseconds(canonical) is Some(_) {
+        Ok(Some(canonical))
       } else {
         Err(InvalidResponse)
       }
+    }
   }
 }
 

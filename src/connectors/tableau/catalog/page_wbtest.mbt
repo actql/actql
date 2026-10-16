@@ -212,8 +212,8 @@ test "project owner tags and canonical timestamps keep their separate provider f
   assert_eq(row.project_name, Some("Finance"))
   assert_eq(row.owner_id, Some("33333333-3333-3333-3333-333333333333"))
   assert_eq(row.tags, Some(["approved"]))
-  assert_eq(row.created_at, Some("2026-10-01T00:00:00Z"))
-  assert_eq(row.updated_at, Some("2026-10-02T01:02:03Z"))
+  assert_eq(row.created_at, Some("2026-10-01T00:00:00.000Z"))
+  assert_eq(row.updated_at, Some("2026-10-02T01:02:03.000Z"))
   assert_eq(row.content_url, Some("Finance/sheets/Churn"))
 }
 
@@ -571,6 +571,39 @@ test "numeric JSON pagination is not rounded into the documented decimal-string 
         catalog_request(Workbooks),
         200,
         body,
+        catalog_limits(),
+      )
+      is Err(InvalidResponse),
+    )
+  }
+}
+
+///|
+test "provider UTC seconds and milliseconds use the existing calendar admission" {
+  for
+    (input, expected) in [
+      ("2024-02-29T01:02:03Z", "2024-02-29T01:02:03.000Z"),
+      ("2026-10-02T01:02:03.123Z", "2026-10-02T01:02:03.123Z"),
+    ] {
+    let extra = ",\"updatedAt\":\"" + input + "\"" // Replaced below to preserve one JSON escape.
+    let page = admit_catalog_page(
+      catalog_request(Workbooks),
+      200,
+      catalog_fixture(Workbooks, [catalog_fixture_row(1, extra~)]),
+      catalog_limits(),
+    ).unwrap()
+    assert_eq(catalog_page_rows(page)[0].updated_at, Some(expected))
+  }
+  for
+    text in [
+      "2023-02-29T00:00:00Z", "2026-02-30T00:00:00Z", "2026-10-02T25:00:00Z", "2026-10-02T01:02:03+00:00",
+    ] {
+    let extra = ",\"updatedAt\":\"" + text + "\""
+    assert_true(
+      admit_catalog_page(
+        catalog_request(Workbooks),
+        200,
+        catalog_fixture(Workbooks, [catalog_fixture_row(1, extra~)]),
         catalog_limits(),
       )
       is Err(InvalidResponse),

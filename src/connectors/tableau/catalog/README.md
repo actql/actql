@@ -45,8 +45,7 @@ duplicate identities, and derives only the next request of that same listing.
 
 Missing/null optional metadata remains unknown. Explicit empty tags and zero
 usage remain distinct. Present malformed metadata refuses the entire page,
-including a malformed nonfirst record. Timestamps use the existing Values
-admission. An updated timestamp is DATA, never an atomic conditional-write token.
+including a malformed nonfirst record. Documented UTC whole seconds receive exact zero milliseconds; all timestamps\nthen use the existing Values calendar/instant admission. An updated timestamp is DATA, never an atomic conditional-write token.
 Catalog timestamps do not stand in for last refresh, last viewed or last flow
 run observations; those require their actual provider suppliers.
 
