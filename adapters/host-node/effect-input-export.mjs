@@ -689,7 +689,7 @@ async function preparePinnedEffectSourcePayloadOwned({
   moon, checkedOwner, execution, inputs, memberIndex, limits, store, maxBytes,
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
   localEvidenceContext,
-  onProposalRow, proposalMemberIndexes, proposalLimits,
+  onProposalRow, proposalMemberIndexes, proposalLimits, onOriginalArtifact,
 }, manifestSet, local, duplicateManifestMember = false) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
@@ -724,6 +724,7 @@ async function preparePinnedEffectSourcePayloadOwned({
           proposalLimits.maxBytes === 0 ||
           proposalLimits.maxNodes === 0 ||
           proposalLimits.maxDepth === 0)) ||
+      (onOriginalArtifact !== undefined && typeof onOriginalArtifact !== 'function') ||
       !Number.isSafeInteger(maxBytes) || maxBytes < 0) {
     throw new TypeError('InvalidEffectSourceStore');
   }
@@ -882,6 +883,16 @@ async function preparePinnedEffectSourcePayloadOwned({
           : control.issueDependentLocalEffectResultArtifact(checkedOwner,
             inputs, importing, local.dependency, localDefinition, receipt,
             retention, localContext, contractLimits);
+        if (onOriginalArtifact !== undefined && proposalMembers !== undefined) {
+          for (const originalMember of proposalMembers) {
+            // The same original export still owns its reference backing here.
+            // The capture must retain the Artifact before a fallible adoption;
+            // normal export finally remains responsible for the old receipt.
+            if (onOriginalArtifact(localResultArtifact, originalMember) !== undefined) {
+              throw new TypeError('InvalidEffectOriginalArtifactProjection');
+            }
+          }
+        }
         if (local !== undefined && !table) {
           if (memberIndex === undefined) return undefined;
           if (!moon.clientProgramEffectLocalResultMatchesMember(

@@ -3710,6 +3710,22 @@ function publicationControl(moon) {
       localEffectIdentityTokens.set(value, issued);
       return value;
     },
+    prepareEffectCommandContentArtifact(owner, inputs, memberIndex, artifact, limits) {
+      const owned = localEffectArtifactTokens.get(artifact);
+      if (owned === undefined || ![memberIndex, limits?.maxFields, limits?.maxWork]
+        .every(value => Number.isSafeInteger(value) && value >= 0)) {
+        throw new TypeError('Invalid original Effect Content Artifact');
+      }
+      checked(moon.clientProgramEffectCommandContentPrepareArtifact(
+        owner, inputs, memberIndex, owned, limits.maxFields, limits.maxWork));
+    },
+    releaseEffectCommandContentArtifact(artifact, quantum) {
+      const owned = localEffectArtifactTokens.get(artifact);
+      if (owned === undefined || !Number.isSafeInteger(quantum) || quantum <= 0) {
+        throw new TypeError('Invalid original Effect Content retirement');
+      }
+      return moon.clientProgramEffectCommandContentReleaseArtifact(owned, quantum);
+    },
     borrowEffectCommandContent(owner, inputs, memberIndex, artifact, row,
       inputName, limits) {
       const ownedArtifact = localEffectArtifactTokens.get(artifact);

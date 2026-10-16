@@ -31,6 +31,62 @@ fn content_borrow_export(
 }
 
 ///|
+test "Content inventory moves once from the exact export and retires with bounded original backing" {
+  let live = Ref(true)
+  let (receipt, originals) = content_borrow_export_fixture(
+    false,
+    live,
+    Ref(true),
+  )
+  let original_backing = receipt.rows.references.unwrap()
+  let view = take_completed_relation_content_references(receipt).unwrap()
+  assert_true(
+    physical_equal(view.original.unwrap().references.unwrap(), original_backing),
+  )
+  assert_true(receipt.rows.source is None)
+  assert_true(receipt.rows.references is None)
+  assert_true(
+    take_completed_relation_content_references(receipt) is Err(Unavailable),
+  )
+  cancel_completed_relation_export_receipt(receipt)
+  guard originals[0] is @admitted.Reference(first) &&
+    originals[1] is @admitted.Reference(second) else {
+    fail("original Content")
+  }
+  assert_true(
+    physical_equal(completed_content_reference_at(view, 0, 1).unwrap(), first),
+  )
+  assert_true(
+    physical_equal(completed_content_reference_at(view, 3, 1).unwrap(), second),
+  )
+  assert_false(@admitted.reference_same_issuer(first, second))
+  live.val = false
+  assert_true(completed_content_reference_at(view, 0, 1) is None)
+  live.val = true
+  let copied : CompletedContentReferences = { original: view.original, }
+  assert_true(completed_content_reference_at(copied, 0, 1) is None)
+  assert_false(advance_release_completed_content_references(copied, 1000))
+  assert_true(completed_content_reference_at(view, 0, 1) is Some(_))
+  assert_false(advance_release_completed_content_references(view, 1))
+  assert_true(original_backing.workspace.live > 0)
+  assert_true(completed_content_reference_at(view, 0, 1) is None)
+  let mut retired = false
+  for _ in 0..<100 {
+    if advance_release_completed_content_references(view, 1) {
+      retired = true
+      break
+    }
+  }
+  assert_true(retired)
+  assert_eq(original_backing.workspace.live, 0)
+  assert_true(view.original is None)
+  assert_true(copied.original.unwrap().references is None)
+  assert_true(copied.original.unwrap().fields is None)
+  assert_true(copied.original.unwrap().schema is None)
+  assert_true(advance_release_completed_content_references(view, 1))
+}
+
+///|
 test "Content export field selection preserves its original and enforces exact work bounds" {
   let (receipt, originals) = content_borrow_export_fixture(
     false,
@@ -153,10 +209,14 @@ test "Content export borrow rechecks custody after original authorization callba
   }
   let wire = @admitted.reference_wire(seed_reference)
   let retained : Ref[CompletedRelationExportReceipt?] = Ref(None)
+  let moved : Ref[CompletedContentReferences?] = Ref(None)
   let value = @admitted.issue_reference(
     @admitted.bind_reference_issuer((_, candidate) => candidate == wire, _ => {
       if retained.val is Some(receipt) {
         cancel_completed_relation_export_receipt(receipt)
+      }
+      if moved.val is Some(view) {
+        advance_release_completed_content_references(view, 1000) |> ignore
       }
       true
     }),
@@ -207,6 +267,12 @@ test "Content export borrow rechecks custody after original authorization callba
   )
   assert_true(receipt.rows.source is None)
   assert_true(receipt.rows.references.unwrap().revoked)
+  retained.val = None
+  let second_receipt = content_borrow_export(source)
+  let view = take_completed_relation_content_references(second_receipt).unwrap()
+  moved.val = Some(view)
+  assert_true(completed_content_reference_at(view, 0, 1) is None)
+  assert_true(view.original is None)
 }
 
 ///|

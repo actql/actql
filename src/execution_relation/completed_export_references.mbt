@@ -24,7 +24,28 @@ pub fn completed_relation_export_content_reference(
     @schema.field_at(value.rows.content.schema, column) is Some(field) &&
     field.contract.shape is @contract.ContentRef(..) &&
     value.rows.references is Some(references) &&
-    references.complete &&
+    original_export_content_reference(references, row, column)
+    is Some(reference) else {
+    return None
+  }
+  guard value.rows.source is Some(current_source) &&
+    physical_equal(current_source, source) &&
+    value.rows.references is Some(current_references) &&
+    physical_equal(current_references, references) else {
+    return None
+  }
+  Some(reference)
+}
+
+///|
+/// Both the transient export and its explicit retained successor use this
+/// same per-cell inventory. Reading it never creates another Reference.
+fn original_export_content_reference(
+  references : CompletedExportReferences,
+  row : Int,
+  column : Int,
+) -> @admitted.ReferenceValue? {
+  guard references.complete &&
     !references.revoked &&
     references.rows.get(row) is Some(cells) &&
     cells.get(column) is Some(cell) &&
@@ -36,11 +57,7 @@ pub fn completed_relation_export_content_reference(
   }
   // Availability calls the original Host. A callback may retire this export
   // while still returning true; do not cache its pre-callback custody check.
-  guard value.rows.source is Some(current_source) &&
-    physical_equal(current_source, source) &&
-    value.rows.references is Some(current_references) &&
-    physical_equal(current_references, references) &&
-    references.complete &&
+  guard references.complete &&
     !references.revoked &&
     references.rows.get(row) is Some(current_cells) &&
     current_cells.get(column) is Some(current_cell) &&
@@ -63,13 +80,31 @@ pub fn completed_relation_export_content_field(
   max_fields : Int,
   max_work : Int,
 ) -> Result[@admitted.ReferenceValue, CompletedExportIssue] {
+  original_export_content_field(
+    value.fields,
+    row,
+    field,
+    max_fields,
+    max_work,
+    column => completed_relation_export_content_reference(value, row, column),
+  )
+}
+
+///|
+fn original_export_content_field(
+  names : Array[String],
+  row : Int,
+  field : @schema.Field,
+  max_fields : Int,
+  max_work : Int,
+  read : (Int) -> @admitted.ReferenceValue?,
+) -> Result[@admitted.ReferenceValue, CompletedExportIssue] {
   if row < 0 || max_fields < 0 || max_work < 0 {
     return Err(Admission(InvalidCaptureLimits))
   }
   guard field.contract.shape is @contract.ContentRef(..) else {
     return Err(InvalidTarget)
   }
-  let names = value.fields
   if names.length() > max_fields || names.length() > max_work {
     return Err(Admission(CaptureLimit))
   }
@@ -85,10 +120,7 @@ pub fn completed_relation_export_content_field(
     }
     remaining -= expected.length()
     if name == expected {
-      guard completed_relation_export_content_reference(value, row, column)
-        is Some(reference) else {
-        return Err(Unavailable)
-      }
+      guard read(column) is Some(reference) else { return Err(Unavailable) }
       if !@admitted.reference_compatible(reference, field.contract) {
         return Err(ForeignMaterial)
       }

@@ -1235,9 +1235,18 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
     const contentBorrowers = [];
+    const contentArtifacts = [];
     const releaseInputs = () => {
       for (const borrower of contentBorrowers) borrower.release();
       contentBorrowers.length = 0;
+      let retired = true;
+      for (const artifact of contentArtifacts) {
+        // Scrub every original inventory, but do not return the parent pin
+        // merely because one bounded cleanup quantum was exhausted.
+        if (!control.releaseEffectCommandContentArtifact(artifact, limits.maxWork)) retired = false;
+      }
+      if (!retired) fail('InstalledRowEffectContentCleanupPending');
+      contentArtifacts.length = 0;
       moon.clientProgramReleaseEffectInputs(inputs);
     };
     ownInputs(releaseInputs);
@@ -1262,6 +1271,13 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         maxBytes: limits.body.maxBytes, maxNodes: limits.body.maxNodes,
         maxDepth: limits.body.maxDepth,
         maxUtf16Units: limits.body.maxBytes},
+      onOriginalArtifact(artifact, memberIndex) {
+        if (members[memberIndex]?.kind !== 'command') return;
+        if (!contentArtifacts.includes(artifact)) contentArtifacts.push(artifact);
+        // Retain before a Common/source callback can fail after the move.
+        control.prepareEffectCommandContentArtifact(prepared, inputs,
+          memberIndex, artifact, limits);
+      },
       onProposalRow(memberIndex, rowIndex, proposal) {
         if (rowIndex !== proposals[memberIndex]?.length ||
             rowIndex >= limits.maxRows || proposalCount >= limits.maxRows) {

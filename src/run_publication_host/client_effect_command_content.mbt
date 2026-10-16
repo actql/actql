@@ -77,13 +77,12 @@ fn read_client_effect_command_content_reference(
       is @stage_results.ResultField(source) else {
       return Err(MissingContentInput)
     }
+    guard artifact.content_references is Some(references) else {
+      return Err(Unavailable)
+    }
     let reference = match
-      @execution.completed_relation_export_content_field(
-        artifact.export_receipt,
-        row,
-        source,
-        max_fields,
-        remaining,
+      @execution.completed_content_reference_field(
+        references, row, source, max_fields, remaining,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Export(issue))
@@ -97,6 +96,106 @@ fn read_client_effect_command_content_reference(
     return Ok(reference)
   }
   Err(MissingContentInput)
+}
+
+///|
+/// Adopt the original reference backing while this Artifact's exact export
+/// is live. The row exporter may then retire its transient receipt normally.
+/// A non-Content Command needs no additional inventory. No copy or reexport.
+pub fn prepare_client_effect_command_content_artifact(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  artifact : ClientEffectLocalResultArtifact,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[Unit, ClientEffectCommandContentIssue] {
+  if max_fields < 0 || max_work < 0 {
+    return Err(InvalidLimits)
+  }
+  if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
+    !client_effect_local_artifact_matches_computation(artifact, owner) ||
+    !client_effect_local_artifact_matches_member(artifact, inputs, member_index) {
+    return Err(ForeignInput)
+  }
+  guard artifact.source is ResultSource(_, _) &&
+    @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
+    return Err(Unavailable)
+  }
+  let commands = @stage_results.effect_static_candidate_command_inputs(
+    @checked.effect_program_static_effects(owner.candidate),
+  )
+  let count = @stage_results.effect_command_input_count(commands)
+  if max_work == 0 || count > max_work - 1 {
+    return Err(Limit)
+  }
+  let command = match
+    @stage_results.effect_command_input_for_member(
+      commands, member_index, max_work,
+    ) {
+    Ok(Some(command)) => command
+    Ok(None) => return Err(MissingContentInput)
+    Err(issue) => return Err(Command(issue))
+  }
+  let fields = @stage_results.effect_command_input_field_count(command)
+  if fields > max_fields || fields > max_work - count - 1 {
+    return Err(Limit)
+  }
+  let mut needed = false
+  for index in 0..<fields {
+    let field = @stage_results.effect_command_input_field_at(command, index).unwrap()
+    if @stage_results.effect_command_input_field_contract(field).shape
+      is @contract.ContentRef(..) &&
+      @stage_results.effect_command_input_field_value(field)
+      is @stage_results.ResultField(_) {
+      needed = true
+    }
+  }
+  if !needed || artifact.content_references is Some(_) {
+    return if @strategy.captured_effect_input_retained(
+        inputs, member_index, input,
+      ) {
+      Ok(())
+    } else {
+      Err(Unavailable)
+    }
+  }
+  let references = match
+    @execution.take_completed_relation_content_references(
+      artifact.export_receipt,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Export(issue))
+  }
+  // Keep custody even if a liveness callback retired the original parent.
+  // The existing capture has already retained this Artifact for cleanup.
+  artifact.content_references = Some(references)
+  if !@strategy.captured_effect_input_retained(inputs, member_index, input) ||
+    !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) {
+    return Err(Unavailable)
+  }
+  Ok(())
+}
+
+///|
+/// Alias retirement only, with bounded scrubbing of the original backing.
+/// The caller keeps the input pin while false and retries the same Artifact.
+pub fn advance_release_client_effect_command_content_artifact(
+  artifact : ClientEffectLocalResultArtifact,
+  quantum : Int,
+) -> Bool {
+  match artifact.content_references {
+    None => true
+    Some(references) => {
+      if !@execution.advance_release_completed_content_references(
+          references, quantum,
+        ) {
+        return false
+      }
+      artifact.content_references = None
+      true
+    }
+  }
 }
 
 ///|
