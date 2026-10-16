@@ -26,7 +26,9 @@ Source validator, retry controller or publication owner.
   lost response remain distinct causes. One bounded raw observation stays
   private on failure. A stale refusal/loss-recording failure stays secondary to
   the original transport/decoder cause. Response loss retains Unknown and never
-  resends the POST.
+  resends the POST. After an original 202, a later status refusal also remains
+  Unknown: local transport closure does not prove remote statement termination.
+  Only the original Core's complete statement observation clears that uncertainty.
 - Cancellation: signal/parent close stops admission; an abort request is not a
   provider cancellation, commit or cleanup ACK. Pending stop retains the same
   root and original callback, without another reservation or transport scope.
@@ -38,7 +40,7 @@ Source validator, retry controller or publication owner.
   here; no provider branch enters the shared Host or replaces its finish/capture.
 - Verification: genuine Common SQL, exact decimal38/NULL, Account and SQLite
   credential Owners run against fresh loopback TLS. Status/partition/gzip,
-  foreign scope/schema, denial/revocation, lost reply, dot handles, abort and
+  foreign scope/schema, denial/revocation, accepted-then-refused status, lost reply, dot handles, abort and
   pending cleanup are executed. Generic Host cleanup counters separately use
   explicit stop-law doubles. This is not installed/live Snowflake, Python Local,
   normal numeric funding, Engine, wheel, write or whole-product acceptance.

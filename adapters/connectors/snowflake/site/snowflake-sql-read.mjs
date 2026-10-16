@@ -79,6 +79,7 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
   let wireBytes = 0n, decodedBytes = 0n, lastStatus, lastExchange;
   let transportLost = false, result, failure, lastObservation, recordingFailure;
   let processingOriginal = true;
+  let remoteStatementUnconfirmed = false;
   try {
     signal?.throwIfAborted();
     await verifyRead();
@@ -135,6 +136,9 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
       }
       lastObservation = response;
       lastStatus = response.statusCode;
+      // A later refusal to read status cannot end the statement accepted by
+      // this original 202. Local socket retirement is a separate observation.
+      if (response.statusCode === 202) remoteStatementUnconfirmed = true;
       const ticket = checked(moon.clientProgramSnowflakeChargeResponse(statement,
         request, response.statusCode, response.body));
       wireBytes += BigInt(response.body.byteLength);
@@ -161,6 +165,7 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
       }
     }
     if (!moon.clientProgramSnowflakeStatementComplete(statement)) fail('SnowflakeReadIncomplete');
+    remoteStatementUnconfirmed = false;
     const usage = moon.clientProgramSnowflakeReadUsage(read);
     const original = moon.clientProgramSnowflakeStatementOriginal(statement);
     result = Object.freeze({requestId: runtimeField(original, 0),
@@ -194,7 +199,7 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
   if (failure !== undefined) {
     const original = statement === undefined ? undefined :
       moon.clientProgramSnowflakeStatementOriginal(statement);
-    const outcome = !stopped || transportLost || lastStatus === 202 ||
+    const outcome = !stopped || transportLost || remoteStatementUnconfirmed || lastStatus === 202 ||
       lastStatus === 408 || lastStatus >= 500 ? 'unknown'
       : attempted === 0 ? 'not_started' : 'stopped';
     const error = new AcquisitionOpenError(failure, outcome);

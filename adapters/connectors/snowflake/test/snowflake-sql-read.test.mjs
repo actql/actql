@@ -148,6 +148,35 @@ test('HTTP refusal is an original charged observation, never a row or commit ACK
   assert.equal(f.journal.recover()[0].outcome, 'failed'); f.row.assertNoCapture();
 });
 
+test('accepted statement followed by a status refusal keeps its original Unknown without resending', async t => {
+  for (const status of [403, 404, 422]) {
+    const f = await snowflakeFixture(t);
+    const handle = `accepted-original-${status}`;
+    const accepted = pending(handle);
+    const refused = Buffer.from('{"message":"status unavailable"}');
+    f.state.onRequest = () => f.state.requests.length === 1
+      ? {status: 202, body: accepted} : {status, body: refused};
+    await assert.rejects(f.read(), error => {
+      assert.ok(error instanceof AcquisitionOpenError);
+      assert.equal(error.code, 'MoonBitHostFailure');
+      assert.equal(error.observation.statusCode, status);
+      assert.equal(error.outcome, 'unknown');
+      assert.deepEqual(error.originalStatement, {
+        requestId: f.frame.requestId, statementHandle: handle});
+      return true;
+    });
+    assert.deepEqual(f.state.requests.map(r => [r.method, r.path]), [
+      ['POST', `/api/v2/statements?requestId=${f.frame.requestId}`],
+      ['GET', `/api/v2/statements/${handle}`]]);
+    assert.equal(f.row.usage()[3], BigInt(accepted.byteLength + refused.byteLength));
+    assert.deepEqual(f.journal.recover().map(r => r.outcome), ['succeeded', 'failed']);
+    f.row.assertNoCapture();
+    await assert.rejects(f.read(), {code: 'MoonBitHostFailure'});
+    assert.equal(f.state.requests.length, 2, 'the original POST and GET are not resent');
+    assert.equal(f.state.resolutions, 2);
+  }
+});
+
 test('gzip decoder refusal retains the exact charged wire and never accepts partial rows', async t => {
   for (const body of [Buffer.from('not-gzip'), gzipSync(Buffer.alloc(8192, 97))]) {
     const f = await snowflakeFixture(t);
