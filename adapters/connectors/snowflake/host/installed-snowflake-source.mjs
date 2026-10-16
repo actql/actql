@@ -11,6 +11,7 @@ import {retainInstalledHostInitializationFailure} from '../../../host-node/insta
 import {createInstalledRowSource, installRowSourceAuthorization,
   openRowSourceCredentialSite, rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {readSnowflakeSqlApi, SNOWFLAKE_SQL_READ_OPERATION} from '../site/snowflake-sql-read.mjs';
+import {checkSnowflakeKeyPairProfile, openSnowflakeKeyPairMaterial} from '../site/snowflake-key-pair.mjs';
 
 export const INSTALLED_SNOWFLAKE_SOURCE_VERSION = 'actql-installed-snowflake-source/0.1';
 export const INSTALLED_SNOWFLAKE_SITE_VERSION = 'actql-installed-snowflake-site/0.1';
@@ -51,10 +52,12 @@ export function checkInstalledSnowflakeSourceProfile(profile) {
 }
 
 function checkSite(site) {
-  const {caPath, ...rest} = site ?? {};
+  const {caPath, keyPair, ...rest} = site ?? {};
   let origin;
   try {origin = new URL(rest.apiOrigin);} catch { /* Closed rejection below. */ }
-  if (!closed(rest, siteKeys) || rest.version !== INSTALLED_SNOWFLAKE_SITE_VERSION ||
+  const materialKeys = Object.hasOwn(site ?? {}, 'keyPair')
+    ? siteKeys.filter(key => key !== 'tokenEnvironment') : siteKeys;
+  if (!closed(rest, materialKeys) || rest.version !== INSTALLED_SNOWFLAKE_SITE_VERSION ||
       origin?.protocol !== 'https:' || origin.origin !== rest.apiOrigin ||
       !['warehouse', 'role', 'credentialAuthorityId', 'credentialKeyId', 'environment',
         'namespaceId', 'siteKey'].every(key => text(rest[key]) && Buffer.byteLength(rest[key]) <= 4096) ||
@@ -62,8 +65,11 @@ function checkSite(site) {
       !absolute(rest.credentialPrivateKeyPath) || !absolute(rest.journalRoot) ||
       (caPath !== undefined && !absolute(caPath)) ||
       !Number.isSafeInteger(rest.siteGeneration) || rest.siteGeneration < 0 ||
-      !/^[A-Z_][A-Z0-9_]{0,63}$/u.test(rest.tokenEnvironment)) fail('InvalidInstalledSnowflakeSite');
-  return Object.freeze({...rest, ...(caPath === undefined ? {} : {caPath})});
+      (Object.hasOwn(site ?? {}, 'keyPair') ? rest.authenticationType !== 'KEYPAIR_JWT'
+        : !/^[A-Z_][A-Z0-9_]{0,63}$/u.test(rest.tokenEnvironment))) fail('InvalidInstalledSnowflakeSite');
+  const selected = Object.hasOwn(site ?? {}, 'keyPair') ? checkSnowflakeKeyPairProfile(keyPair) : undefined;
+  return Object.freeze({...rest, ...(caPath === undefined ? {} : {caPath}),
+    ...(selected === undefined ? {} : {keyPair: selected})});
 }
 
 async function readInputs(profile) {
@@ -134,16 +140,30 @@ export async function loadInstalledSnowflakeSource(profile, {root, principalId, 
     binding.fields.every(field => allFields.includes(field)) &&
     canonical(binding) === canonical(target(resource, binding.fields));
   const ca = siteProfile.caPath === undefined ? undefined : await readFile(siteProfile.caPath);
-  const site = await openRowSourceCredentialSite({profile: {...siteProfile,
+  const material = siteProfile.keyPair === undefined ? undefined : openSnowflakeKeyPairMaterial(
+    siteProfile.keyPair, {maxSecretBytes: limits.maxSecretBytes, resolveMaterial: resolveSecret});
+  let originalSite;
+  try {
+    originalSite = await openRowSourceCredentialSite({profile: {...siteProfile,
     resourceOrigin: siteProfile.apiOrigin}, principalId, authorization, connection,
     connectorRegistration: registration, connectorRevision: revision, runtimeBundleCid,
     commonMoon: moon, ca, admitsApprovalTarget,
     responseHeaders: installation?.responseHeaders ?? ['content-encoding'],
-    resolveSecret: resolveSecret ?? (async () => {
+    resolveSecret: material?.resolveSecret ?? resolveSecret ?? (async () => {
       const secret = process.env[siteProfile.tokenEnvironment];
       if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
       return secret;
     })});
+  } catch (cause) {
+    material?.close();
+    throw cause;
+  }
+  const site = material === undefined ? originalSite : Object.freeze({...originalSite,
+    close() {
+      const result = originalSite.close();
+      material.close();
+      return result;
+    }});
   try {
     const preparedReads = new WeakMap();
     return await createInstalledRowSource({moon, declaration, declared,
