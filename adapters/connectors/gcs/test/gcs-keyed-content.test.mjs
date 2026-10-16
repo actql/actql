@@ -120,6 +120,35 @@ test('the explicit source-only legacy path retains its original three-column con
   assert.equal(state.pending, undefined);
 });
 
+test('an original three-column response port with the modern provider receives no undeclared fields', async () => {
+  const {options, state} = fixture();
+  options.columns = ['content', 'resource', 'version'];
+  const resolve = options.resolveResource;
+  options.resolveResource = async (...args) => {
+    const result = await resolve(...args);
+    options.columns.push('name', 'media_type');
+    return result;
+  };
+  await readGcsKeyedContent(options);
+  assert.deepEqual(state.pages, [[], [{resource, version: generation, content}]]);
+  assert.equal(state.calls.length, 2);
+  assert.equal(state.captures.length, 1);
+  assert.equal(state.pending, undefined);
+});
+
+for (const columns of [['name', 'name'], ['resource', 'unknown'],
+  ['resource', 'version', 'name', 'media_type', 'content', 'unknown'], {}]) {
+  test(`invalid original content response columns ${JSON.stringify(columns)} refuse before I/O`, async () => {
+    const {options, state} = fixture();
+    options.columns = columns;
+    await assert.rejects(readGcsKeyedContent(options), {code: 'InvalidGcsKeyedContentRead'});
+    assert.equal(state.calls.length, 0);
+    assert.equal(state.requests.length, 0);
+    assert.equal(state.charges.length, 0);
+    assert.equal(state.captures.length, 0);
+  });
+}
+
 test('the public name and media type borrow original metadata across the asynchronous capture', async () => {
   const {options, state} = fixture('Text/Plain;Label="e\u0301"');
   const capture = options.captureContent;

@@ -90,6 +90,9 @@ remains with the existing capture/Value Owner.
 The explicit source-only legacy installation and its body-only transport keep
 their earlier three-column carrier. The ordinary carrier and Catalog have
 different identities; an old capture cannot be relabelled with the new schema.
+The checked response-port columns are selected before the first await, so a
+three-column declaration using the modern parser still receives no undeclared
+companion fields; a mutable caller Array cannot widen that selection later.
 The seven-column file listing, resource/version lookup correlation, read
 authorization, original charge tickets and no-retry behavior are unchanged.
 

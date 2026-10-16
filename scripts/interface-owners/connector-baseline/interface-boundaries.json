@@ -5136,7 +5136,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "10880cfe13c49b511d65909e7a329abb60321769add229a1c5e6cc5aa22801df",
+      "sha256": "b1bdace431076d1134fd1c739c3ed64ca9d4140420ac7673a4ae203e35fe0ad2",
       "role": "physical-io",
       "owner": "Version-keyed metadata/media sequencing through the original RowRun charge and capture owner",
       "exports": [
@@ -5155,6 +5155,7 @@
           "parameters": [
             "moon",
             "requestWire",
+            "columns",
             "resolveResource",
             "beginRequest",
             "chargePage",
@@ -5203,6 +5204,13 @@
             "callback"
           ],
           "async": false
+        },
+        {
+          "name": "readGcsKeyedContent/readGcsKeyedContent#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -5215,7 +5223,8 @@
             "readGcsKeyedContent/captured/captured#2",
             "readGcsKeyedContent/captured/captured#3",
             "readGcsKeyedContent/captured/captured#4",
-            "readGcsKeyedContent/readGcsKeyedContent"
+            "readGcsKeyedContent/readGcsKeyedContent",
+            "readGcsKeyedContent/readGcsKeyedContent#2"
           ],
           "exports": [
             "readGcsKeyedContent"

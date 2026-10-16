@@ -7,6 +7,7 @@ import * as objectFixture from '../../../../_build/js/release/build/connectors/g
 import * as provider from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
+import {selectInstalledHostEnvironment} from '../../../host-node/installed-host-policy.mjs';
 import {checkInstalledGcsSourceProfile, restoreGcsSourceDeclaration} from '../host/gcs-source-declaration.mjs';
 
 const baseWire = await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
@@ -131,9 +132,48 @@ test('ordinary contents declares five public fields and retains its original loo
   assert.notEqual(ordinary.declared.views.find(value => value.resource === 'contents').carrier_schema_cid,
     legacy.declared.views.find(value => value.resource === 'contents').carrier_schema_cid);
   const catalog = JSON.parse(ordinary.declared.catalog);
-  assert.deepEqual(catalog.source_views.find(value => value.acquisition.authority === 'read_content').acquisition,
-    {kind: 'fetch', authority: 'read_content', correlation: {request_fields: ['resource', 'version'],
-      response_fields: ['resource', 'version'], identity: ['resource', 'version'], cardinality: 'one'}});
+  const acquisition = catalog.source_views.find(value => value.acquisition.authority === 'read_content').acquisition;
+  const previous = JSON.parse(legacy.declared.catalog).source_views.find(value =>
+    value.acquisition.authority === 'read_content').acquisition;
+  assert.deepEqual(acquisition, previous,
+    'preserve the complete existing request schema, modes and correlation, not a new fetch policy');
+  assert.equal(acquisition.kind, 'fetch');
+  assert.equal(acquisition.authority, 'read_content');
+  assert.deepEqual(acquisition.correlation, {request_fields: ['resource', 'version'],
+    response_fields: ['resource', 'version'], identity: ['resource', 'version'], cardinality: 'one'});
+});
+
+test('the actual checker binds original resource/version lookup to public content companion columns', () => {
+  const input = profile();
+  const policy = {version: 'actql-lookup-execution-policy/0.1',
+    max_network_attempts_per_request: 3, max_request_bytes_per_attempt: 4096,
+    max_total_request_bytes: 73728, max_total_response_bytes: 49152,
+    max_total_decoded_response_bytes: 49152, max_total_duration_ms: 30000};
+  const selectedBase = selectInstalledHostEnvironment(moon, baseWire.trimEnd(), undefined, policy);
+  const program = {version: 'actql/0.1', id: 'gcs-original-content-columns', stages: [{id: 's', inputs: {
+    files: {connector: 'storage', resource: 'files', view: 'records',
+      request: {paths: ['test/e\u0301/invoice.pdf'], glob: null}},
+    contents: {connector: 'storage', resource: 'contents', view: 'records'},
+  }, steps: [
+    {from: 'files', filter: 'name IS NOT NULL', as: 'listed'},
+    {from: 'listed', select: ['resource', 'version', 'name', 'path', 'media_type', 'size_bytes', 'modified_at'], as: 'listing'},
+    {join: {left: 'listing', with: 'contents', kind: 'inner',
+      on: [{left: 'resource', right: 'resource'}, {left: 'version', right: 'version'}],
+      select: {name: 'right.name', media_type: 'right.media_type', content: 'right.content', version: 'right.version'}}, as: 'rows'},
+    {from: 'rows', assert_rows: {unique_by: ['name']}, as: 'unique_names'},
+    {from: 'unique_names', sort: [{name: 'asc'}], as: 'ordered'},
+  ], results: {r: {from: 'ordered', fields: ['name', 'media_type', 'content', 'version']}}}],
+  results: {r: {from: {stage: 's', result: 'r'}}}};
+  for (const includeObjects of [false, true]) {
+    const original = restoreGcsSourceDeclaration(moon, input, undefined, {includeObjects});
+    const environment = rowSourceCheckEnvironment(selectedBase, original.declared);
+    const checkedEnvironment = moon.clientProgramCheckEnvironment(environment.wire,
+      environment.evidenceCid, false, false, true, false, false, false, false);
+    assert.ok(checkedEnvironment);
+    const prepared = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program), 'json', checkedEnvironment, undefined);
+    assert.equal(moon.clientProgramPreparationReady(prepared) !== undefined, includeObjects,
+      inspect(moon.clientProgramPreparationIssue(prepared), {depth:8,maxStringLength:200}));
+  }
 });
 
 test('checked profile owns nested limits before later asynchronous installation', () => {
