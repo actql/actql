@@ -83,7 +83,7 @@ async function readSite(path, providerMoon) {
   return Object.freeze({...site, ca: caPath === undefined ? undefined : await readFile(caPath)});
 }
 
-function restore(moon, profile, site, expectedCatalogCid) {
+function restore(moon, providerMoon, profile, site, expectedCatalogCid) {
   if (profile.rangeCommand) {
     const schema = Object.fromEntries(site.columns.map(({name, type, nullable}) =>
       [name, {type, nullable}]));
@@ -94,9 +94,9 @@ function restore(moon, profile, site, expectedCatalogCid) {
         target: {type: 'resource_ref', resource_kind: 'sheet_range', nullable: false}})]};
     const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
       profile.connectorId, registration, revision, JSON.stringify(views), undefined));
-    const rangeCommand = sheetsRangeCommand(profile.connectorId, site);
+    const rangeCommand = sheetsRangeCommand(profile.connectorId, site, providerMoon);
     const declared = withSheetsRangeCommand(
-      JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration)), rangeCommand);
+      JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration)), rangeCommand, providerMoon);
     if (expectedCatalogCid !== undefined && expectedCatalogCid !== declared.catalog_cid) {
       fail('SheetsPublicationBindingChanged');
     }
@@ -174,7 +174,7 @@ async function openSite(profile, site, options, publication) {
 
 async function publish(profile, options) {
   const site = await readSite(profile.siteProfilePath, options.providerMoon);
-  const {declaration, declared, rangeCommand} = restore(options.moon, profile, site);
+  const {declaration, declared, rangeCommand} = restore(options.moon, options.providerMoon, profile, site);
   // Validate all Mapping declarations before any provider I/O.
   const mapping = profile.sources === undefined ? undefined
     : mappingOf(options.moon, profile, site, declaration);
@@ -232,7 +232,7 @@ export const publishInstalledSheetsEffect = (profile, options) =>
 async function load(profile, options, effect) {
   const {moon, providerMoon, baseEnvironmentWire} = options;
   const site = await readSite(profile.siteProfilePath, providerMoon);
-  const {declaration, declared, rangeCommand} = restore(moon, profile, site);
+  const {declaration, declared, rangeCommand} = restore(moon, providerMoon, profile, site);
   const publication = await readPublication(profile, site, declared);
   const mapping = effect && rangeCommand === undefined ? mappingOf(moon, profile, site, declaration) : undefined;
   let environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared,
@@ -248,7 +248,7 @@ async function load(profile, options, effect) {
   const opened = await openSite(profile, site, options, publication);
   let closed = false;
   const target = rangeCommand === undefined ? undefined : sheetsRangeReference({site,
-    catalogCid: declared.catalog_cid, bindingCid: opened.bindingCid});
+    catalogCid: declared.catalog_cid, bindingCid: opened.bindingCid, moon: providerMoon});
   try {
     if (!effect) {
       const adapter = await createInstalledRowSource({moon, declaration, declared,

@@ -1,3 +1,4 @@
+import {finiteWireNumberSource} from './client-wire-scalar-rules.mjs';
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {nativeCheckReportRules} from './client-check-report-rules.mjs';
@@ -6,6 +7,7 @@ import {nativeCheckReportRules} from './client-check-report-rules.mjs';
 // build-time projection, not a schema interpreter in the Native executable.
 export function nativeClientWire(schemas, rules, requestRules, checkPins, reportRules) {
   const functions = [];
+  const checkOutcomePredicates = new Set();
   let serial = 0;
   let checkDepth = 0;
   const emitted = new Map();
@@ -30,6 +32,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       try { referred = emit(schemas[schema.$ref]); } finally { checkDepth--; }
       lines.push(`if !${referred}(value) { return false }`);
       if (schema.$ref === 'check_outcome') {
+        checkOutcomePredicates.add(name);
         if (!checkPins?.reason || !checkPins?.outcome) throw new Error('MissingNativeCheckPins');
         lines.push('guard value is Object(fields) else { return false }',
           `if fields.get("reason_schema_cid") != Some(Json::string(${quote(checkPins.reason)})) { return false }`,
@@ -89,6 +92,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       } else if (values.every(value => typeof value === 'number' && Number.isFinite(value))) {
         const number = value => String(value).match(/[.e]/iu) ? String(value) : String(value) + '.0';
         lines.push('guard value is Number(number, ..) else { return false }',
+          'if !wire_finite_number(number) { return false }',
           `if !(${values.map(value => `number == ${number(value)}`).join(' || ')}) { return false }`);
       } else if (values.every(value => value === null)) {
         lines.push('guard value is Null else { return false }');
@@ -140,11 +144,11 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     } else if (schema.type === 'boolean') {
       lines.push('if !(value is True || value is False) { return false }');
     } else if (schema.type === 'number') {
-      lines.push('guard value is Number(number, ..) else { return false }', 'if number.is_nan() || number.is_inf() { return false }');
+      lines.push('guard value is Number(number, ..) else { return false }', 'if !wire_finite_number(number) { return false }');
       if (schema.minimum !== undefined) lines.push(`if number < ${schema.minimum}.0 { return false }`);
       if (schema.maximum !== undefined) lines.push(`if number > ${schema.maximum}.0 { return false }`);
     } else if (schema.type === 'integer') {
-      lines.push('guard value is Number(number, ..) else { return false }', 'if number != number.floor() || number < -9007199254740991.0 || number > 9007199254740991.0 { return false }');
+      lines.push('guard value is Number(number, ..) else { return false }', 'if !wire_finite_number(number) || number != number.floor() || number < -9007199254740991.0 || number > 9007199254740991.0 { return false }');
       if (schema.minimum !== undefined) lines.push(`if number < ${schema.minimum}.0 { return false }`);
       if (schema.maximum !== undefined) lines.push(`if number > ${schema.maximum}.0 { return false }`);
     } else if (schema.type === 'array') {
@@ -225,11 +229,12 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
   const testOnly = new Set([...candidates].filter(([name]) => !reached.has(name))
     .map(([, source]) => source));
   const header = '// Generated from spec/contracts/actql-client-host.json.\n// Run: node scripts/generate-client-host-wire.mjs --write\n\n';
-  const source = header + functions.filter(source => !testOnly.has(source)).join('\n') + '\n' + report;
+  const source = header + finiteWireNumberSource('native') + functions.filter(source => !testOnly.has(source)).join('\n') + '\n' + report;
   // Use the repository's pinned formatter, also required by the CI formatting gate.
   const formatter = process.env.MOON_HOME ? join(process.env.MOON_HOME, 'bin', 'moonfmt') : 'moonfmt';
   const format = input => execFileSync(formatter, ['-'], {input, encoding: 'utf8', timeout: 10000});
-  return {native: format(source), nativeTests: format(header + observationFunctions
+  if (checkOutcomePredicates.size !== 1) throw Error('AmbiguousNativeCheckOutcomePredicate');
+  return {nativeCheckOutcome: [...checkOutcomePredicates][0], native: format(source), nativeTests: format(header + observationFunctions
     .filter(source => testOnly.has(source)).join('\n') + '\n')};
 }
 
