@@ -114,3 +114,38 @@ test "short COMMAND preserves its occurrence across a retained Model continuatio
   assert_eq(terminal_short_command_effect(tail).unwrap().end, original.end)
   assert_eq(original.end, text.length())
 }
+
+///|
+test "short COMMAND and explicit long postludes keep separate declared occurrences" {
+  let text = "FROM replies |> RESULT prepared |> EFFECT notify COMMAND gmail.send ID id; EFFECT upload COMMAND FROM RESULT prepared AS r TARGET r.destination CONTRACT upload INPUT (body = r.body);"
+  let query = parse_query(text, query_limits()).unwrap()
+  assert_eq(
+    terminal_short_command_effect(query).unwrap().name.unwrap().value,
+    "notify",
+  )
+  assert_eq(terminal_command_effect_count(query), 1)
+  assert_eq(terminal_command_effect_at(query, 0).unwrap().name.value, "upload")
+  assert_true(
+    parse_query(
+      text.replace(old="EFFECT upload", new="EFFECT NOTIFY"),
+      query_limits(),
+    )
+    is Err(_),
+  )
+}
+
+///|
+test "short COMMAND preserves a completed set and the existing syntax work limit" {
+  let text = "FROM left_rows UNION ALL FROM right_rows |> EFFECT COMMAND gmail.send ID id;"
+  let query = parse_query(text, query_limits()).unwrap()
+  assert_eq(set_part_count(query), 1)
+  assert_eq(
+    terminal_short_command_effect(query).unwrap().operation.map(part => {
+      part.value
+    }),
+    ["gmail", "send"],
+  )
+  assert_true(
+    parse_query(text, { ..query_limits(), max_syntax_nodes: 0, }) is Err(_),
+  )
+}

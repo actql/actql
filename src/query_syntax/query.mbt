@@ -3724,8 +3724,7 @@ pub fn parse_query(
       while parser.has("EFFECT") {
         if query.effect is Some(_) ||
           query.table_effect is Some(_) ||
-          query.store_effect is Some(_) ||
-          query.short_command_effect is Some(_) {
+          query.store_effect is Some(_) {
           raise QueryAbort(
             "Conflicting terminal Effect declarations",
             parser.peek().start,
@@ -3733,9 +3732,12 @@ pub fn parse_query(
         }
         let at = parser.peek().start
         let clause = parser.command_effect_clause()
-        if commands.any(previous => {
-            same_binding_name(previous.name, clause.name)
-          }) {
+        let duplicate_terminal_name = match query.short_command_effect {
+          Some({ name: Some(name), .. }) => same_binding_name(name, clause.name)
+          _ => false
+        }
+        if duplicate_terminal_name ||
+          commands.any(previous => same_binding_name(previous.name, clause.name)) {
           raise QueryAbort("Duplicate Effect name", at)
         }
         commands.push(clause)
