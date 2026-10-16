@@ -420,6 +420,71 @@ pub fn client_program_run_observation_key(
 }
 
 ///|
+pub(all) suberror ClientProgramRunObservationIssue {
+  Observation(@publication.RunStateObservationIssue)
+}
+
+///|
+/// Join the original journal counter to an owner-produced state. This opaque
+/// projection is DATA and cannot resume a Run or acknowledge physical cleanup.
+#export_name("clientProgramPrepareRunStateObservation")
+pub fn client_program_prepare_run_state_observation(
+  wire : String,
+  run_id : String,
+  revision : Int64,
+) -> @publication.RunStateObservation raise ClientProgramRunObservationIssue {
+  match
+    @publication.prepare_run_state_observation(
+      wire, run_id, revision, 100000, 10000, 64,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Observation(issue)
+  }
+}
+
+///|
+#export_name("clientProgramRunStateObservationKey")
+pub fn client_program_run_state_observation_key(
+  observation : @publication.RunStateObservation,
+) -> String {
+  observation.key()
+}
+
+///|
+#export_name("clientProgramRunStateObservationRevision")
+pub fn client_program_run_state_observation_revision(
+  observation : @publication.RunStateObservation,
+  has_prior : Bool,
+  prior : String,
+  revision : Int64,
+) -> Int64 raise ClientProgramRunObservationIssue {
+  match
+    observation.next_revision(
+      if has_prior {
+        Some(prior)
+      } else {
+        None
+      },
+      revision,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Observation(issue)
+  }
+}
+
+///|
+#export_name("clientProgramRunStateObservationWire")
+pub fn client_program_run_state_observation_wire(
+  observation : @publication.RunStateObservation,
+  revision : Int64,
+) -> String raise ClientProgramRunObservationIssue {
+  match observation.wire(revision) {
+    Ok(value) => value
+    Err(issue) => raise Observation(issue)
+  }
+}
+
+///|
 /// The installed Host reports an uncommitted Run through the portable
 /// validator. Only a durable confirmed failure before physical dispatch may
 /// make this projection terminal; missing worker observation cannot.
