@@ -11,6 +11,7 @@ import weakref
 import httpx
 from . import _wire as wire
 from ._errors import ClientError
+from ._connection import NO_TOKEN, remote_connection, valid_dsn_credential
 from ._run_state import RunState
 from ._values import Observation, content_cid, decode_json, freeze, snapshot, thaw, wire_bytes
 from ._diagnostics import bind_check, retain_submission_check
@@ -48,15 +49,20 @@ class _LocalCoreCleanupPort:
 
 class AsyncClient:
     """Use open() for installed Local or connect() for an existing HTTPS Host."""
-    def __init__(self, endpoint, token, *, workspace_id=None, durability='durable',
+    def __init__(self, endpoint, token=NO_TOKEN, *, workspace_id=None, durability='durable',
                  verify=True, timeout=30.0, transport=None, signer=None):
-        parsed = urlsplit(endpoint)
+        endpoint, token, workspace_id, self._dsn = remote_connection(endpoint, token, workspace_id)
+        try:
+            parsed = urlsplit(endpoint)
+        except (ValueError, TypeError, AttributeError):
+            raise ClientError('InvalidConnectionEndpoint') from None
         if (parsed.scheme != 'https' or not parsed.hostname or parsed.username is not None
                 or parsed.password is not None or parsed.query or parsed.fragment):
             raise ClientError('InvalidConnectionEndpoint')
         if verify is False or not isinstance(verify, (bool, ssl.SSLContext)):
             raise ClientError('InvalidConnectionTrust')
-        if not callable(token) and not self._valid_token(token):
+        self._credential_valid = valid_dsn_credential if self._dsn else self._valid_token
+        if not callable(token) and not self._credential_valid(token):
             raise ClientError('InvalidConnectionToken')
         selected = {'mode': 'remote', 'owner': 'remote', 'durability': durability, 'consentRefs': [], 'runners': []}
         if workspace_id is not None:
@@ -117,7 +123,7 @@ class AsyncClient:
         return await cls._connect_local(host, signer=selected_signer)
 
     @classmethod
-    async def connect(cls, endpoint, token, **options):
+    async def connect(cls, endpoint, token=NO_TOKEN, **options):
         client = cls(endpoint, token, **options)
         try:
             profile = await client._request('connect', {})
@@ -272,12 +278,12 @@ class AsyncClient:
             raise
         except Exception:
             raise _ExchangeFailure('ClientCredentialUnavailable', False) from None
-        if not self._valid_token(credential):
+        if not self._credential_valid(credential):
             raise _ExchangeFailure('InvalidConnectionToken', False)
         if self._closed:
             raise _ExchangeFailure('ClientClosed', False)
         request = self._http.build_request('POST', urljoin(self._endpoint, 'actql/client/0.1/' + operation),
-            headers={'authorization': 'Bearer ' + credential, 'content-type': 'application/json',
+            headers={'authorization': ('Bearer ' + credential).encode('latin-1') if self._dsn else 'Bearer ' + credential, 'content-type': 'application/json',
                      'accept-encoding': 'identity'}, content=payload)
         try:
             response = await self._http.send(request, stream=True)

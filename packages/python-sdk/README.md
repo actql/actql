@@ -256,3 +256,30 @@ schema cannot supply a missing protocol completion marker or Host receipt.
 | resources | Existing page/control/signature limits remain; the convenience makes one exact lookup, without independent polling, pagination or retained cache. |
 | extension | Optional application signer does not require a Host/token/path for Local open; missing original Local funding still refuses. Remote remains engine-free. |
 | verification | Public sync/async, exact-ID, interruption, close-retry, signature preimage and strict typing cases remain distinct from installed Local acceptance. |
+
+### Workspace connection strings
+
+The Remote clients accept the existing Workspace URI instead of an HTTPS
+endpoint and separate Workspace option:
+
+```python
+with Client.connect("actql://host.example/Case-Sensitive", get_access_token) as client:
+    rows = client.sql("SELECT 1 AS n").all()
+# Async: async with await AsyncClient.connect(uri, get_access_token) as client: ...
+```
+
+A secret-bearing URI may instead supply `token:<percent-encoded-bearer>@` in
+its authority; omit the separate token argument in that case. Selecting both
+is an error, even if the credentials agree. The Client decodes each component
+once and asserts that exact Workspace on every operation. A different or
+unsupported Host Workspace refuses the original request; the SDK never drops
+the assertion, follows redirects, retries, discovers another Host or opens
+Local. The URI and credential are absent from the profile and operation body.
+The existing HTTPS endpoint plus token API remains available.
+
+The exact `?transport=http` opt-in is currently a private Node-only transport.
+Python rejects that selection with `LoopbackHttpUnavailable` before credentials
+or I/O; ordinary HTTPS keeps certificate verification and `trust_env=False`.
+A connection string naming localhost still denotes a network Host, not an
+embedded installation. Use `Client.open()` for the installed Local supplier;
+its unfinished physical funding continues to refuse before VM startup.
