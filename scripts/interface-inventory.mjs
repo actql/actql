@@ -107,9 +107,12 @@ export function javascriptInterface(source) {
     }
     if (node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration' ||
         node.type === 'ExportNamedDeclaration' && node.source) imports.push(node.source.value);
-    if (node.type === 'ImportExpression' && node.source.type === 'Literal') imports.push(node.source.value);
-    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require' &&
-        node.arguments[0]?.type === 'Literal') imports.push(node.arguments[0].value);
+    if (node.type === 'ImportExpression' || node.type === 'CallExpression' &&
+        node.callee.type === 'Identifier' && node.callee.name === 'require') {
+      const target = literalValue(node.type === 'ImportExpression' ? node.source : node.arguments[0]);
+      if (typeof target === 'string') imports.push(target);
+      else unresolvedSyntax.push('runtime-dependent module dependency requires original owner/artifact mapping');
+    }
     if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
         node.callee.object.name === 'Reflect' && propertyName(node.callee) === 'get' &&
         compilerField(node.arguments[1])) compilerFields.push(compilerField(node.arguments[1]));

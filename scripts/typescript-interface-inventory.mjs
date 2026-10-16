@@ -54,7 +54,7 @@ function bindingNames(node) {
 export function typescriptInterface(source, filename = 'interface.ts') {
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
   assert.equal(tree.parseDiagnostics.length, 0, `Invalid TypeScript interface: ${filename}`);
-  const operations = [], exports = [], imports = [], compilerFields = [], occurrences = new Map();
+  const operations = [], exports = [], imports = [], compilerFields = [], unresolvedSyntax = [], occurrences = new Map();
   const globalDeclarations = tree.isDeclarationFile && !ts.isExternalModule(tree);
   function visit(node, scope = []) {
     const exported = node.modifiers?.some(value => value.kind === ts.SyntaxKind.ExportKeyword) ||
@@ -96,8 +96,12 @@ export function typescriptInterface(source, filename = 'interface.ts') {
         node.moduleReference.expression && ts.isStringLiteral(node.moduleReference.expression)) {
       imports.push(node.moduleReference.expression.text);
     }
-    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-        node.arguments[0] && ts.isStringLiteral(node.arguments[0])) imports.push(node.arguments[0].text);
+    if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        ts.isIdentifier(node.expression) && node.expression.text === 'require')) {
+      const target = literalValue(node.arguments[0]);
+      if (typeof target === 'string') imports.push(target);
+      else unresolvedSyntax.push('runtime-dependent module dependency requires original owner/artifact mapping');
+    }
     const key = node.name && (ts.isComputedPropertyName(node.name) ? node.name.expression : node.name);
     const field = ts.isPropertyAccessExpression(node) ? node.name.text
       : ts.isElementAccessExpression(node) ? compilerField(node.argumentExpression)
@@ -117,7 +121,8 @@ export function typescriptInterface(source, filename = 'interface.ts') {
   imports.push(...tree.referencedFiles.map(value => value.fileName.startsWith('.')
     ? value.fileName : `./${value.fileName}`));
   return {exports: [...new Set(exports)].sort(), operations: operations.sort((a, b) => a.name.localeCompare(b.name)),
-    imports: [...new Set(imports)].sort(), compilerFields: [...new Set(compilerFields)].sort()};
+    imports: [...new Set(imports)].sort(), compilerFields: [...new Set(compilerFields)].sort(),
+    ...(unresolvedSyntax.length ? {unresolvedSyntax: [...new Set(unresolvedSyntax)].sort()} : {})};
 }
 
 export function typescriptInterfaceClosure(root, entrances) {
