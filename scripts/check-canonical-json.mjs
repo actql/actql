@@ -306,10 +306,16 @@ function fixtures() {
   result.push({ id: 'inherited text/time Unicode data', value: read('spec/dependencies/actql-text-time-unicode-data.json'), cid: dependencies.unicode_semantics.data_cid });
   result.push({
     id: 'Program source grammar resource',
-    value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
-    // Independent canonical JSON oracle for the current closed Program schema,
-    // including the selected common GoogleSQL scalar function alternatives.
+    // Preserve the complete original oracle from before published STORE,
+    // rather than pairing its historical CID with today's extended schema.
+    value: read('portability/fixtures/program-grammar-before-published-store.json'),
     cid: 'sha256:0160e902a462b4cb69aa9ee3e1f2205d25299a55b5a442d74f41b472fd84fd89',
+  });
+  result.push({
+    id: 'Program source grammar with published STORE targets',
+    value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
+    // Independent Python canonical schema preimage; no product output.
+    cid: 'sha256:44fb1d94a435948c6fe63111ce1e55b7e615674835d2214a0ae98cb9d3a92435',
   });
   const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
   for (const item of read('portability/corpus/incoming-gates.json').cases) {

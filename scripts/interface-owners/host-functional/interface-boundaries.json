@@ -8071,7 +8071,7 @@
     {
       "module": "adapters/host-common/run-state-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2e0981b0051a19ca2ccbe333ec8c9afdfc2bea8d888d883cde49cb62c3d4abc1",
+      "sha256": "e6b45e08ec21b4f1bc29d2c14cfc1fb4f4ce3fde9a8dab98acb94dece033d1d1",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -8131,8 +8131,7 @@
           "parameters": [
             "installed",
             "context",
-            "resultName",
-            "at"
+            "resultName"
           ],
           "async": true
         },

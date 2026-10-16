@@ -413,6 +413,10 @@ fn compile_query_script_with_source(
       }
     }
   }
+  if @query.terminal_short_command_effect(@query.script_query(script))
+    is Some(_) {
+    return Err(UnsupportedEffect)
+  }
   let document = @query.script_document(script)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
   let builder = match @builder.create(document, limits.source) {

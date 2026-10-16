@@ -15,6 +15,15 @@ Malformed, incomplete, duplicate, foreign or over-budget input cannot become a
 captured Source. SQL spelling comes from the description projection, not caller
 text or a provider-inferred replacement schema.
 
+An installed driver can instead borrow the Host's already-begun accounted
+RowRun with `borrow_accounted_read`. The original acquisition must match
+nominally. Binding the existing physical cleanup observer is mandatory before
+issuing statement candidates. Complete provider admission in this mode only
+marks the provider prefix complete; the Host alone finishes and captures the
+original Run. The reader cannot invoke its owned-read finish/capture/close APIs.
+Retiring this borrow clears aliases only after that exact transport confirms
+stop; a parent close retains the same observer through cleanup failure.
+
 Completing partition admission enters Common's awaiting-cleanup state. It does
 not acknowledge a transport stop, COMMIT, publication or durable recovery.
 Capture uses the original Common evidence issuer and physical verification port.

@@ -126,6 +126,8 @@ pub fn terminal_command_effect_count(Query) -> Int
 
 pub fn terminal_effect(Query) -> UpdateEffectClause?
 
+pub fn terminal_short_command_effect(Query) -> ShortCommandEffectClause?
+
 pub fn terminal_store_effect(Query) -> StoreEffectClause?
 
 pub fn terminal_table_effect(Query) -> TableEffectClause?
@@ -568,6 +570,16 @@ pub struct SgaPredicate {
 }
 pub impl Eq for SgaPredicate
 pub impl @debug.Debug for SgaPredicate
+
+pub(all) struct ShortCommandEffectClause {
+  name : NamePart?
+  operation : Array[NamePart]
+  target : Expression?
+  id : Array[NamePart]
+  input : Array[(NamePart, Expression)]
+  start : Int
+  end : Int
+}
 
 pub(all) struct SortTerm {
   expression : Expression
