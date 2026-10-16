@@ -525,8 +525,8 @@ class AsyncExecution:
     async def status(self):
         return await self._observe('status')
 
-    async def wait(self, *, until=None):
-        return await self._observe('wait', until=until)
+    async def wait(self, *, until=None, since=None):
+        return await self._observe('wait', until=until, since=since)
 
     async def reconcile(self):
         return await self._observe('reconcile')

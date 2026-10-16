@@ -148,5 +148,6 @@ def valid_body(operation, body):
                        for key, limit in {'maxWireBytes': 1048576, 'maxNodes': 10000, 'maxDepth': 64}.items())
         return True
     if operation == 'wait':
-        return body['until'] is None or bounded_text(body['until'], 128)
+        return ((body['until'] is None or bounded_text(body['until'], 128))
+                and (body['since'] is None or valid(body['since'], SCHEMAS['run_state']['properties']['revision'])))
     return operation in ('attach', 'status', 'reconcile')
