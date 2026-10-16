@@ -11,8 +11,9 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 import actql_sdk
 from actql_sdk import AsyncClient, Client, Signer
 
-assert Path(actql_sdk.__file__).resolve().is_relative_to(
-    Path('/private/tmp/actql-e-checkpoint-https-installed-20261017'))
+package = Path(actql_sdk.__file__).resolve()
+assert package.is_relative_to(Path(sys.prefix).resolve())
+assert not package.is_relative_to(Path(__file__).resolve().parents[2])
 assert 'actql_sdk._local_core' not in sys.modules
 
 phase, facade, decision, endpoint, installation_path, custody_path = sys.argv[1:]
