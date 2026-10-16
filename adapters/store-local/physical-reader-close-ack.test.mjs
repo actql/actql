@@ -1,5 +1,5 @@
 // Actual Content holding, OS FD and Store. Only close outcomes and the
-// consumer failure are controlled; contract admission is the existing double.
+// original read failure are controlled; contract admission is the existing double.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {open, readFile} from 'node:fs/promises';
@@ -53,6 +53,9 @@ async function fixture(t, {outcomes = ['false', 'false'], primary} = {}) {
         return Reflect.apply(nativeClose, this, closeArgs);
       };
     }
+    // Fail the same acquired FD before a ReadStream exists. This isolates
+    // diagnostic attachment from Node's independent stream-destroy close.
+    if (this === original && primary !== undefined) return Promise.reject(primary);
     return Reflect.apply(stat, this, args);
   };
   t.after(async () => {
@@ -73,7 +76,6 @@ async function fixture(t, {outcomes = ['false', 'false'], primary} = {}) {
         return await store.consumePhysicalHolding(holding.holding_cid, 0, chunk => {
           consumerCalls++;
           assert.deepEqual(chunk, bytes);
-          if (primary !== undefined) throw primary;
         });
       } catch (failure) { caught = failure; throw failure; }
     }};
@@ -131,7 +133,7 @@ test('false close-only retry cannot settle an earlier rejected physical close', 
 
 for (const field of ['cleanupPending', 'cleanupHandle', 'cleanupError']) {
   test(`readonly ${field} cannot hide the physical reader's original failure or cleanup`, async t => {
-    const primary = new Error('original Content consumer refused');
+    const primary = new Error('original Content FD read refused');
     Object.defineProperty(primary, field, {value: false});
     assert.equal(Object.isExtensible(primary), true);
     const f = await fixture(t, {outcomes: ['reject'], primary});
