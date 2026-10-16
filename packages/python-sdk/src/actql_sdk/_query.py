@@ -126,6 +126,7 @@ class AsyncQueryReader(_OriginalQueryHandle):
         self._query, self._captured = query, captured
         self._reader = None
         self._open_lock = asyncio.Lock()
+        self._advance = None
         self._closed = False
 
     @property
@@ -150,6 +151,12 @@ class AsyncQueryReader(_OriginalQueryHandle):
     async def __anext__(self):
         if self._closed:
             raise StopAsyncIteration
+        if self._advance is not None and not self._advance.done():
+            raise ClientError('ReaderAdvanceInProgress')
+        self._advance = asyncio.create_task(self._next())
+        return await self._advance
+
+    async def _next(self):
         async with self._open_lock:
             if self._closed:
                 raise StopAsyncIteration
@@ -161,7 +168,20 @@ class AsyncQueryReader(_OriginalQueryHandle):
         return await self._reader.__anext__()
 
     async def aclose(self):
+        if self._advance is asyncio.current_task():
+            raise ClientError('ReaderAdvanceInProgress')
         self._closed = True
+        if self._advance is not None:
+            pending = not self._advance.done()
+            if pending:
+                self._advance.cancel()
+            try:
+                await self._advance
+            except (asyncio.CancelledError, StopAsyncIteration):
+                pass
+            except ClientError as error:
+                if pending and error.code == 'ReaderCleanupFailed':
+                    raise
         async with self._open_lock:
             if self._reader is not None:
                 # Failed cleanup retains that exact reader and response. Its

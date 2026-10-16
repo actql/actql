@@ -7492,7 +7492,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_query.py",
-      "sha256": "0aa4070482fe0251ac4a9c859a1ed5a622f4844dbf980b0c62889c34f7d37dde",
+      "sha256": "4c5995ace8c30affcb53a3e6e80675a0e22b51bd818ac9e514d4cea1f5e1a5ad",
       "exports": [
         "AsyncQuery",
         "AsyncQueryReader",
@@ -7610,6 +7610,13 @@
             "captured"
           ],
           "async": false
+        },
+        {
+          "name": "AsyncQueryReader/_next",
+          "parameters": [
+            "self"
+          ],
+          "async": true
         },
         {
           "name": "AsyncQueryReader/aclose",
@@ -7819,6 +7826,114 @@
             "_OriginalQueryHandle/__copy__",
             "_OriginalQueryHandle/__deepcopy__",
             "_OriginalQueryHandle/__reduce_ex__"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "AsyncQueryReader/_next"
           ],
           "exports": [],
           "attributes": {
