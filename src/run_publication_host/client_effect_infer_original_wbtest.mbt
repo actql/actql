@@ -46,7 +46,16 @@ fn selected_infer_original_fixture() -> (
   if prepared is Err(Candidate(Computation(cause))) {
     raise cause
   }
-  let prepared = prepared.unwrap()
+  let prepared = match prepared {
+    Ok(value) => value
+    Err(Syntax(_)) => fail("selected Model original fixture: Syntax")
+    Err(Candidate(_)) => fail("selected Model original fixture: Candidate")
+    Err(Mapping(_)) => fail("selected Model original fixture: Mapping")
+    Err(Static(_)) => fail("selected Model original fixture: Static")
+    Err(Stage(_)) => fail("selected Model original fixture: Stage")
+    Err(Graph(_)) => fail("selected Model original fixture: Graph")
+    Err(TargetSelection(_)) => fail("selected Model original fixture: TargetSelection")
+  }
   let occurrence = prepared_client_effect_infer_occurrence(prepared).unwrap()
   let execution = client_infer_graph_test_execution(
     occurrence.owner,
