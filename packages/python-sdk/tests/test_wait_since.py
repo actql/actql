@@ -38,6 +38,7 @@ class WaitAsyncTests(unittest.IsolatedAsyncioTestCase):
     async def connect(self, reply=None):
         self.requests = []
         self.credentials = 0
+        self.responses = []
         self.reply = state() if reply is None else reply
         def token():
             self.credentials += 1
@@ -48,8 +49,9 @@ class WaitAsyncTests(unittest.IsolatedAsyncioTestCase):
             if operation == 'connect': return httpx.Response(200, json=PROFILE)
             if operation == 'attach': return httpx.Response(200, json=ADMISSION)
             if isinstance(self.reply, BaseException): raise self.reply
-            if isinstance(self.reply, httpx.Response): return self.reply
-            return httpx.Response(200, json=self.reply)
+            response = self.reply if isinstance(self.reply, httpx.Response) else httpx.Response(200, json=self.reply)
+            self.responses.append(response)
+            return response
         self.client = await AsyncClient.connect('https://host.invalid/', token,
             transport=httpx.MockTransport(handler))
         self.addAsyncCleanup(self.client.aclose)
@@ -89,6 +91,7 @@ class WaitAsyncTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(revision=revision), self.assertRaises(ClientError) as error:
                 await run.wait(since=7)
             self.assertEqual(error.exception.code, 'InvalidHostRunState')
+            self.assertTrue(self.responses[-1].is_closed)
         self.assertEqual([operation for operation, _ in self.requests], ['connect', 'attach', 'wait', 'wait'])
 
     async def test_newer_running_state_does_not_satisfy_wait(self):
@@ -96,6 +99,41 @@ class WaitAsyncTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ClientError) as error: await run.wait(since=7)
         self.assertEqual(error.exception.code, 'InvalidHostRunState')
         self.assertEqual(len(self.requests), 3)
+
+    async def test_without_since_still_requires_stable_owner_observation(self):
+        run = await self.connect(state(8, 'running'))
+        with self.assertRaises(ClientError) as error: await run.wait()
+        self.assertEqual(error.exception.code, 'InvalidHostRunState')
+        self.assertTrue(self.responses[-1].is_closed)
+        self.assertEqual(len(self.requests), 3)
+
+    async def test_each_stable_variant_retains_original_state_and_unknown_control(self):
+        run = await self.connect()
+        checkpoint = {'checkpoint_id': 'checkpoint-original',
+            'checkpoint_cid': 'sha256:' + 'a' * 64, 'kind': 'read_access'}
+        for status in ['waiting_checkpoint', 'needs_reconciliation', 'succeeded', 'failed', 'cancelled']:
+            self.reply = state(8, status)
+            if status == 'waiting_checkpoint':
+                self.reply |= {'checkpoint': checkpoint, 'next_action': {
+                    'kind': 'resolve_checkpoint', 'checkpoint_id': 'checkpoint-original'}}
+            elif status == 'needs_reconciliation':
+                self.reply['next_action'] = {'kind': 'reconcile_run', 'reason': 'execution_unknown'}
+            with self.subTest(status=status):
+                observed = await run.wait(since=7)
+                self.assertEqual(observed.to_dict(), self.reply)
+                self.assertEqual(observed.control['physical_stop'], 'unknown')
+                self.assertTrue(self.responses[-1].is_closed)
+        self.assertEqual(len(self.requests), 7)
+
+    async def test_missing_or_wrong_host_revision_is_not_filled_from_since(self):
+        run = await self.connect()
+        for value in [None, True, '8', -1, 9007199254740992]:
+            self.reply = state(value)
+            with self.subTest(revision=repr(value)), self.assertRaises(ClientError): await run.wait(since=7)
+        self.reply = state(); del self.reply['revision']
+        with self.assertRaises(ClientError): await run.wait(since=7)
+        self.assertTrue(all(response.is_closed for response in self.responses))
+        self.assertEqual(len(self.requests), 8)
 
     async def test_control_revision_does_not_replace_state_revision(self):
         run = await self.connect(state(7) | {'control': {'revision': 99,

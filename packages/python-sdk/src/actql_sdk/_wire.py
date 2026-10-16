@@ -1,7 +1,7 @@
 """Closed wire admission, separate from Host-owned execution decisions."""
 import re
 import unicodedata
-from ._wire_codec import (CONTRACT, SCHEMAS, valid, utf16_length, correlated, check_outcome,
+from ._wire_codec import (CONTRACT, SCHEMAS, valid, utf16_length, correlated, check_outcome, valid_run_wait,
                           negotiated as negotiated_contract)
 
 
