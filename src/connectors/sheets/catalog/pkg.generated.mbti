@@ -26,7 +26,7 @@ pub fn project_grid(Bytes, String, GridRange, Array[Column], Limits) -> Result[P
 
 pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure]
 
-pub fn range_command_json(String, String, Int, Limits) -> Result[String, RangeFailure]
+pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]
 
 pub fn range_failure_code(RangeFailure) -> String
 
@@ -37,6 +37,8 @@ pub fn range_recovery_entry(RangeBinding, String) -> Result[String, RangeFailure
 pub fn range_reference(String, String, GridRange, String, String, Limits) -> Result[Json, RangeFailure]
 
 pub fn range_request_body(RangeRequest) -> String
+
+pub fn range_request_body_for(RangeBinding, RangeRequest) -> Result[String, RangeFailure]
 
 pub fn range_request_identity(RangeRequest) -> String
 

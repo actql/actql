@@ -18,7 +18,7 @@ pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) 
 
 pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
 
-pub fn sheets_range_command_json(String, String, Int, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
+pub fn sheets_range_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
 
 pub fn sheets_range_failure_json(@catalog.RangeFailure) -> String
 
@@ -29,6 +29,8 @@ pub fn sheets_range_recover(@catalog.RangeBinding, String, String, Int, Int, Int
 pub fn sheets_range_recovery_entry_json(@catalog.RangeBinding, String) -> Result[String, @catalog.RangeFailure]
 
 pub fn sheets_range_reference_json(String, String, Int, Int, Int, Int, Int, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
+
+pub fn sheets_range_request_body(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]
 
 pub fn sheets_range_request_cid(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]
 
