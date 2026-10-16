@@ -15,6 +15,7 @@ const observation = (input, rev = revision('4')) => ({version: 'actql-check-outc
   reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
   outcome: 'completed', report: {context_ref: 'ctx:structured-original',
     scope: {kind: 'bound_input'}, verdict: 'invalid',
+    runnable: {verdict: 'no', reasons: [{code: 'program_structure_invalid'}]},
     inputs: [{document_id: 'program', kind: 'structured', revision: rev,
       byte_length: Buffer.byteLength(JSON.stringify(input))}],
     reasons: [{code: 'program_structure_invalid', facts: {issue: 'invalid_structure'},

@@ -485,6 +485,33 @@ pub fn client_program_run_state_observation_wire(
 }
 
 ///|
+/// Data-only wait correlation through the original Run observation owner.
+#export_name("clientProgramRunWaitDecision")
+pub fn client_program_run_wait_decision(
+  wire : String,
+  has_since : Bool,
+  since : Int64,
+) -> String {
+  match
+    @publication.run_wait_ready(
+      wire,
+      if has_since {
+        Some(since)
+      } else {
+        None
+      },
+      100000,
+      10000,
+      64,
+    ) {
+    Ok(true) => "ready"
+    Ok(false) => "pending"
+    Err(@publication.InvalidSince) => "InvalidWaitRevision"
+    Err(@publication.InvalidState) => "InvalidRunWaitState"
+  }
+}
+
+///|
 /// The installed Host reports an uncommitted Run through the portable
 /// validator. Only a durable confirmed failure before physical dispatch may
 /// make this projection terminal; missing worker observation cannot.
