@@ -12,12 +12,26 @@ import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 export async function viteInterfaceInventory(root, configs) {
   root = realpathSync(root);
   const modules = new Map(), assets = new Map(), generated = [], external = new Set();
+  const compiled = new Map(), copied = new Map(), consumed = new Set();
   const inside = path => {
     const name = relative(root, path);
     return !isAbsolute(name) && name !== '..' && !name.startsWith('../');
   };
   function source(path) {
     const original = realpathSync(path);
+    if (compiled.has(original)) {
+      assert.equal(createHash('sha256').update(readFileSync(original)).digest('hex'), compiled.get(original).sha256,
+        `Mixed configured Vite dependency: ${relative(root, original)}`);
+      consumed.add(original);
+      return;
+    }
+    if (copied.has(original)) {
+      const sourcePath = copied.get(original);
+      assert(readFileSync(original).equals(readFileSync(sourcePath)),
+        `Mixed configured Vite source asset: ${relative(root, original)}`);
+      source(sourcePath);
+      return;
+    }
     if (!inside(original)) {
       external.add(original);
       return;
@@ -36,9 +50,12 @@ export async function viteInterfaceInventory(root, configs) {
     assert(inside(realpathSync(configPath)), `Escaped Vite config: ${config}`);
     source(configPath);
     const virtual = new Set();
+    let outputDirectory;
     const result = await build({configFile: configPath, configLoader: 'native', logLevel: 'silent',
       build: {write: false, emptyOutDir: false, reportCompressedSize: false},
-      plugins: [{name: 'actql-resolved-interface-inputs', generateBundle() {
+      plugins: [{name: 'actql-resolved-interface-inputs', configResolved(config) {
+        outputDirectory = resolve(config.root, config.build.outDir);
+      }, generateBundle() {
         for (const id of this.getModuleIds()) {
           if (id.includes('\0')) {virtual.add(id); continue;}
           const path = id.split('?', 1)[0];
@@ -50,6 +67,8 @@ export async function viteInterfaceInventory(root, configs) {
     for (const output of outputs) {
       assert(output, 'Vite watch results are not interface inventory');
       if (output.type === 'chunk') {
+        compiled.set(resolve(outputDirectory, output.fileName), {config, file: output.fileName,
+          sha256: createHash('sha256').update(output.code).digest('hex')});
         generated.push({config, file: output.fileName,
           sourceModules: Object.keys(output.modules).filter(id => !id.includes('\0') && inside(id))
             .map(id => relative(root, id)).sort(),
@@ -57,7 +76,14 @@ export async function viteInterfaceInventory(root, configs) {
       } else {
         for (const path of output.originalFileNames ?? []) {
           const absolute = isAbsolute(path) ? path : resolve(root, path);
-          if (existsSync(absolute)) source(absolute);
+          if (existsSync(absolute)) {
+            source(absolute);
+            if (/\.[cm]?js$/u.test(absolute)) {
+              assert(Buffer.from(output.source).equals(readFileSync(absolute)),
+                `Changed copied Vite source asset: ${relative(root, absolute)}`);
+              copied.set(resolve(outputDirectory, output.fileName), absolute);
+            }
+          }
         }
       }
     }
@@ -66,5 +92,8 @@ export async function viteInterfaceInventory(root, configs) {
   return {qualification: 'configured-vite-input-coverage-only',
     modules: [...modules.values()].sort((a, b) => a.module.localeCompare(b.module)),
     assets: [...assets.values()].sort((a, b) => a.module.localeCompare(b.module)),
-    externalModuleCount: external.size, generated};
+    externalModuleCount: external.size, generated,
+    consumedCompiled: [...consumed].sort().map(path => ({module: relative(root, path), ...compiled.get(path),
+      qualification: 'configured-output-digest-only; not-normal-release-admission'})),
+    sourceCopies: [...copied].map(([output, source]) => ({output: relative(root, output), source: relative(root, source)}))};
 }

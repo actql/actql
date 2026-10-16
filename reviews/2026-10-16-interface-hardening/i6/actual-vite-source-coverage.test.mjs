@@ -24,6 +24,9 @@ test('normal OSS Vite inputs include the library dependency, browser modules and
     assert(result.modules.some(value => value.module === name), `Missing actual Vite source: ${name}`);
   }
   assert(result.generated.some(value => value.file === 'plan-explorer.js'));
+  assert(result.consumedCompiled.some(value => value.module === 'packages/explorer-ui/dist/plan-explorer.js'));
+  assert(!result.modules.some(value => value.module.includes('/dist/')));
+  assert(result.sourceCopies.some(value => value.source === 'packages/explorer-ui/flow-layout-worker.mjs'));
   const readerSource = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   writeFileSync('/Users/t14i/workspace/20260822/reviews/2026-10-16-interface-hardening/i6-actual-vite-source-coverage.json',
     JSON.stringify({...result, readerSource}, null, 2) + '\n');
