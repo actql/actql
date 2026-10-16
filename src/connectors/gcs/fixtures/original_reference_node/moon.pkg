@@ -1,0 +1,9 @@
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/program_check" @program,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/value_admission" @admitted,
+}
