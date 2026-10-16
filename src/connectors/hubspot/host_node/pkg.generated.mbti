@@ -18,6 +18,8 @@ pub fn hubspot_object_schema_wire(@catalog.PropertyCatalog, Array[String], Int, 
 
 pub fn hubspot_prepare_record_batch(@catalog.PropertyCatalog, Int, String, Array[@catalog.RecordWriteInput], Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordBatchRequest, @catalog.RecordRequestIssue]
 
+pub fn hubspot_prepare_record_read(@catalog.PropertyCatalog, Array[@catalog.RecordTarget], Array[String], Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordReadRequest, @catalog.RecordReadIssue]
+
 pub fn hubspot_prepare_record_target(@catalog.PropertyCatalog, String, Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordTarget, @catalog.RecordRequestIssue]
 
 pub fn hubspot_prepare_write_body(@catalog.PropertyCatalog, Array[String], Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.WriteBody, @catalog.WriteBodyIssue]
@@ -25,6 +27,8 @@ pub fn hubspot_prepare_write_body(@catalog.PropertyCatalog, Array[String], Bytes
 pub fn hubspot_project_object_page(Bytes, @catalog.PropertyCatalog, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectPage, @catalog.ObjectPageIssue]
 
 pub fn hubspot_project_properties(Bytes, String, Int, Int, Int, Int, Int) -> Result[@catalog.PropertyCatalog, @catalog.PropertyIssue]
+
+pub fn hubspot_project_record_read(@catalog.RecordReadRequest, Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordReadObservation, @catalog.RecordReadIssue]
 
 pub fn hubspot_property_catalog_names(@catalog.PropertyCatalog) -> Array[String]
 
@@ -36,6 +40,10 @@ pub fn hubspot_recheck_property_catalog(@catalog.PropertyCatalog, @catalog.Prope
 
 pub fn hubspot_recheck_record_batch(@catalog.RecordBatchRequest, @catalog.PropertyCatalog, Int) -> Result[Unit, @catalog.PropertyIssue]
 
+pub fn hubspot_recheck_record_read(@catalog.RecordReadObservation, @catalog.RecordReadObservation, Int, Int) -> Result[Unit, @catalog.RecordReadIssue]
+
+pub fn hubspot_recheck_record_read_request(@catalog.RecordReadRequest, @catalog.PropertyCatalog, Int) -> Result[Unit, @catalog.PropertyIssue]
+
 pub fn hubspot_recheck_write_body(@catalog.WriteBody, @catalog.PropertyCatalog, Int) -> Result[Unit, @catalog.PropertyIssue]
 
 pub fn hubspot_record_batch_body(@catalog.RecordBatchRequest) -> String
@@ -45,6 +53,12 @@ pub fn hubspot_record_batch_count(@catalog.RecordBatchRequest) -> Int
 pub fn hubspot_record_batch_endpoint(@catalog.RecordBatchRequest) -> String
 
 pub fn hubspot_record_batch_object_type(@catalog.RecordBatchRequest) -> String
+
+pub fn hubspot_record_read_body(@catalog.RecordReadRequest) -> String
+
+pub fn hubspot_record_read_object_type(@catalog.RecordReadRequest) -> String
+
+pub fn hubspot_record_read_wire(@catalog.RecordReadObservation) -> String
 
 pub fn hubspot_targeted_record_write_input(@catalog.WriteBody, @catalog.RecordTarget, String) -> @catalog.RecordWriteInput
 
