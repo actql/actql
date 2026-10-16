@@ -39,7 +39,11 @@ fn selected_infer_original_fixture() -> (
     [],
     limits,
     update_targets=Some(publication),
-  ).unwrap()
+  )
+  if prepared is Err(Candidate(Computation(cause))) {
+    fail("selected Model original fixture: " + cause.to_string())
+  }
+  let prepared = prepared.unwrap()
   let occurrence = prepared_client_effect_infer_occurrence(prepared).unwrap()
   let execution = client_infer_graph_test_execution(
     occurrence.owner,

@@ -72,8 +72,8 @@ fn client_effect_target_original_canonical(
   let value = @canonical.from_source(
     source,
     CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
-    CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     64,
+    CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     data_keys=true,
   ) catch {
     _ => raise InvalidUpdateTargetOriginal
