@@ -1,0 +1,237 @@
+{
+  "qualification": "Normal-installed TimeSeries at immutable product and fixture Source32995; not latest-main or full v0.1 acceptance",
+  "productSource": "32995bb12aa1b4b0d71b292f7b29950ee9fff4ef",
+  "fixtureSource": "32995bb12aa1b4b0d71b292f7b29950ee9fff4ef",
+  "sourceTree": "3a2bb6dfb6ff1f0a05f12a53b7a4a72cc97a0b7a",
+  "manifestSHA256": "142c3fffd44826dcf1b38b539ff1b23f7040b19b88f5f2481bce2ebd77cda2b5",
+  "normalProducerOwner": "G",
+  "newBProducerCount": 0,
+  "artifacts": [
+    {
+      "name": "@actql/client-wire",
+      "version": "0.0.1",
+      "sha256": "a661d33890e03c6adb934f7489037c219b40a0782794553ba484af5280d9cb80",
+      "integrity": "sha512-ACpITjCcaWPltSRdxutE3ZSLKgVFItUsbHUhqkRujZQO5MM0HREyiIo5QhfazRb0AxRaQRq7XTywJXX38zBoIw=="
+    },
+    {
+      "name": "@actql/sdk",
+      "version": "0.0.1",
+      "sha256": "26fae01f609a19e312c31143c29054d734358be8d0d14396166b0c9348cce97b",
+      "integrity": "sha512-12f97lkM81iJbZQezeXxctoRSGPfYaaJQPHs2xYNfOkNGnReUgzSD551h8GO+0ITZH4Q8s9j+ueAeKQQgpk+VQ=="
+    },
+    {
+      "name": "@actql/local-node",
+      "version": "0.0.1",
+      "sha256": "124dbb7f4d89a03ba5d8a3a2afb7737074fe2ebb14e5fbf333fd7370ebd33377",
+      "integrity": "sha512-l7BHLkVSFl4f9FB6qhla8UhOwo/AeMAL0eP0ELXh+Lysv+zRTeCz9cJG+FokYf5rCrSVqwMf5et6N+nEqqOXGQ=="
+    },
+    {
+      "name": "@actql/node",
+      "version": "0.0.1",
+      "sha256": "0e892db9f465f5b575c255cf16c950ede0507a72afb2b95942714d5d6b825483",
+      "integrity": "sha512-Uq3YQVnoV0I4ZAbdeiATUkOQPme74YmupGHvklU8YWsFYSNtx1MGIWQhlGATY6lfmSn0o3F1lREvN1/5IsAKFg=="
+    }
+  ],
+  "installedMemberCount": 341,
+  "allInstalledMemberBytesAndModesEqual": true,
+  "fixtureInputs": [
+    {
+      "path": "scripts/release-sourcefree-query-cases.mjs",
+      "sha256": "045d994ef9d05ec9081748d10eaa0d4ae4ef97a815e7fcef759566d0c217a010",
+      "bytes": 3911
+    },
+    {
+      "path": "scripts/release-calendar-query-cases.mjs",
+      "sha256": "533e6a1e4557e298d0c56181d4dd2701b3c098ac11a421b4b343ca665cdfec5a",
+      "bytes": 1576
+    },
+    {
+      "path": "scripts/fixtures/calendar-source-input.mjs",
+      "sha256": "dc8e62204e2b7faad02d262d68832f036cb5c743302bc6d76c57c1f5670ca334",
+      "bytes": 3776
+    },
+    {
+      "path": "scripts/release-public-aql-format-cases.mjs",
+      "sha256": "09f1bc07a5c4c0099e038bc261a34fc3ee3d66d52f0809afaa68ef4de218057b",
+      "bytes": 1720
+    },
+    {
+      "path": "scripts/release-sequence-query-cases.mjs",
+      "sha256": "9fff254d3eb399c282af352db735b03ad9a0b7c59fae27a559804b60479ac1d4",
+      "bytes": 2013
+    },
+    {
+      "path": "scripts/release-time-series-query-cases.mjs",
+      "sha256": "8cba375f126ee6e560346c94ad8902d8e0693c24a19c61629519b0bb76198056",
+      "bytes": 1188
+    },
+    {
+      "path": "scripts/release-temporal-join-query-cases.mjs",
+      "sha256": "194756c93b028fb92ee0ee6a214d9f5f58b082c1782014e8fdd24a2ad7278bd2",
+      "bytes": 1494
+    },
+    {
+      "path": "scripts/fixtures/temporal-join-source-input.mjs",
+      "sha256": "cfbdf2588fdff071da01570051a2a1af9b41b6c91022bdce0c71241e9edeaa24",
+      "bytes": 4328
+    },
+    {
+      "path": "scripts/fixtures/time-series-primary-source-input.mjs",
+      "sha256": "c5f43f34dc7ea62b13aff023cb8188a2a1cfa5dafedfa663c875e4fc92f6c900",
+      "bytes": 3285
+    },
+    {
+      "path": "scripts/fixtures/release-sourcefree-authorization.mjs",
+      "sha256": "39bbb42147cf95a19b9b136f97e369002706d2d4ba65d021599c32ad442ca8a7",
+      "bytes": 1759
+    },
+    {
+      "path": "scripts/fixtures/release-time-series-reread.mjs",
+      "sha256": "453a5732bb5fe5127c67352fac569de706b8375aa097459e9b1e30959ff3fc1d",
+      "bytes": 4962
+    },
+    {
+      "path": "scripts/fixtures/release-sourcefree-query.mjs",
+      "sha256": "a8aa69d66dbaa116f8b8e9169752d83c3a828388749deb8fb3042c8b58e89718",
+      "bytes": 6437
+    },
+    {
+      "path": "scripts/fixtures/release-sourcefree-io.mjs",
+      "sha256": "374279313af52e70ac60b7cac7b943d1845919ee1c8219015bcd304751ef230a",
+      "bytes": 2318
+    },
+    {
+      "path": "scripts/fixtures/in-unnest-literal-array-source-input.mjs",
+      "sha256": "dc63aed0eb2e39e890e4ae57dd95e6843434f907d9867c3bccd095928d491732",
+      "bytes": 5575
+    },
+    {
+      "path": "scripts/fixtures/sequence-source-input.mjs",
+      "sha256": "b52d4b467f56c00ab91003c4c58d36d8db6f0e9be0df1926fee6fc091ebe6f9d",
+      "bytes": 5562
+    },
+    {
+      "path": "scripts/fixtures/public-query-input.mjs",
+      "sha256": "a66dd028fc2f95652a544195d75a66ffb265ae28c96bdc44475eec7dca9e7cb5",
+      "bytes": 81076
+    }
+  ],
+  "run": "run-heHMzL",
+  "consumerComplete": true,
+  "consumerExit": 0,
+  "guardBudgetSeconds": 300,
+  "termGraceSeconds": 5,
+  "childBudgetSeconds": 180,
+  "independentOriginalAudit": {
+    "run": "run-oadQpA",
+    "exit": 0,
+    "meaning": "Original expected rows/ordered schemas/refusal classes and same-Run reread, not product execution"
+  },
+  "transports": [
+    {
+      "mode": "local",
+      "normal": 9,
+      "refusal": 7,
+      "namedResults": 9,
+      "rows": 21,
+      "freshProcessReread": 9,
+      "providerObservation": {
+        "sourceSecrets": 0,
+        "forbiddenFetches": 0,
+        "forbiddenProcesses": 0
+      }
+    },
+    {
+      "mode": "https",
+      "normal": 9,
+      "refusal": 7,
+      "namedResults": 9,
+      "rows": 21,
+      "freshProcessReread": 9,
+      "providerObservation": {
+        "sourceSecrets": 0,
+        "forbiddenFetches": 0,
+        "forbiddenProcesses": 0
+      }
+    }
+  ],
+  "acceptedNormalDeclarations": 9,
+  "normalTransportExecutions": 18,
+  "staticRefusalTransportExecutions": 14,
+  "freshProcessNamedResultRereads": 18,
+  "coverage": [
+    "JSON/SQL/AQL literal grid",
+    "bare TimeSeries producer",
+    "JSON and SQL empty half-open grids",
+    "JSON/SQL/AQL timestamp and step Parameters",
+    "missing/extra/duplicate argument refusals",
+    "unused invalid/reversed producer still statically rejected",
+    "consuming-pipe and nullable endpoint refusals"
+  ],
+  "distinctNewBusinessScenarios": "not claimed; original language fixture declarations",
+  "sourceCounterScope": "No installed Source plus forbidden process/fetch/secret attempts0; not arbitrary filesystem IO telemetry",
+  "sixOriginalChildCommands": [
+    {
+      "command": "npm",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 763
+    },
+    {
+      "command": "openssl",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 97
+    },
+    {
+      "command": "node",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 15782
+    },
+    {
+      "command": "node",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 4982
+    },
+    {
+      "command": "node",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 14778
+    },
+    {
+      "command": "node",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 4905
+    }
+  ],
+  "ownerClosure": {
+    "consumerOwnerPID": 5043,
+    "actualOwnerAndGroupAbsent": true,
+    "sixChildCommandExits": 0,
+    "originalLeasesAbsent": true,
+    "buildAndConsumerOpenFDs": 0,
+    "privateCustodyRetained": true
+  },
+  "originalEvidence": {
+    "workspaceDirectory": "reviews/2026-10-17-b-time-series-installed-32995bb1",
+    "consumerReceiptSHA256": "df9337361353b192ee3280cadaf675bb6c78a01b5792aa55555ed9d79940f612",
+    "rawInventorySHA256": "2e46c4bbb0ece19d766ebe96b62603456094e46cf7d59b30d674ca0f1cbcb63a",
+    "rawFiles": 1929,
+    "installedMembersSHA256": "7aee711ad4c116e35385e7c2f6a0073d87cdcb9877b25fad5946da02d9cd2fba",
+    "sourceClosureSHA256": "bf2cdcd7c69b5c77cc990bc7e3fe381cf3e76bb7acc836b3c6b7f855944c06ef",
+    "independentAuditClosureSHA256": "992052ed317c9c87793e21f7c3782989c2d157957deaca350981176f450d353e",
+    "guardSummarySHA256": "46962f956804dd9dae495967a815e05f99da767d3da0d0a7d80646f8ac44e9cd",
+    "guardOutputSHA256": "04458ee12d8dce19a66881027b8dbe073429a4f1f6e795208a8a9e7f5379aa51"
+  },
+  "preserved": [
+    "Original RC and manifest unchanged",
+    "Old TimeSeries Source/failed receipt qualifications unchanged",
+    "No keys/Run/DB/WAL/Unknown/private custody committed",
+    "No STORE/Calendar/real-Connector/latest-main or full target qualification inferred"
+  ],
+  "evidenceBranchAdoption": "Normal main adopted after actual consumer and audit closure; all16fixture input bytes still equal the tested Source. No rerun or relabel."
+}

@@ -35,3 +35,13 @@ Source access. The input buffer still checks exact contract identity.
   no provider equality, independent Ledger or generic retry replaces them.
 - Verification: package and consuming query-integration cases exercise nominal
   values, page accounting, keyed/listing profiles, capture and retained cleanup.
+
+
+### Non-row response charge consumption
+
+`consume_row_run_response_charge` consumes exactly the same outstanding nominal
+page-charge ticket of a live Reading attempt when its selected protocol observes
+control input instead of rows. It neither increments pages nor admits values,
+finishes the scan, creates evidence or acknowledges transport cleanup. The
+existing ticket Owner checks original attempt, identity and single consumption;
+foreign/stale/repeated tickets retain its ordinary typed refusal/abort behavior.

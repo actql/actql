@@ -311,6 +311,29 @@ fn project_result_set_original(
 }
 
 ///|
+/// A pending statement response supplies lookup material only. It is not a
+/// completed query, a captured Source, a retry permission or a physical ACK.
+pub fn project_running_statement(
+  bytes : Bytes,
+  limits : ResponseLimits,
+) -> Result[String, ResponseIssue] {
+  let root = match response_root(bytes, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @decode.open_object(root) is Ok(object) &&
+    required_text(object, "code") is Some("333334") &&
+    required_text(object, "statementHandle") is Some(handle) &&
+    valid_handle(handle, limits) &&
+    @decode.lookup(object, "data") is None &&
+    @decode.lookup(object, "resultSetMetaData") is None &&
+    @decode.lookup(object, "statementHandles") is None else {
+    return Err(InvalidResponse)
+  }
+  Ok(handle)
+}
+
+///|
 pub fn project_partition(
   bytes : Bytes,
   original : ResultSet,

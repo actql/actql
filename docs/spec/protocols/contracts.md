@@ -193,7 +193,10 @@ remain separate required checks.
 Each `request_schema`, `command_input`, `command_output`, `idempotency_key`,
 `checkpoint`, `lookup_request_key`, `lookup_batch_request` and
 `lookup_response_key` Contract Envelope body MUST satisfy the canonical checked
-value-contract grammar, including unused supplied envelopes. Author-form
+value-contract grammar, including unused supplied envelopes, except that
+`command_input` additionally admits the closed Command presence record below.
+This additional grammar applies only to that role; it does not make general
+Object fields optional. Author-form
 defaults and arbitrary JSON Schema bodies are not substituted for that grammar.
 The Check Environment contract pins the exact governing schema. `carrier_schema`
 and behavioral roles use their own body contracts, not this value grammar.
@@ -1192,6 +1195,30 @@ input_schema and closed input_contract, output_schema, permissions,
 idempotency {support, key_schema, retention}, preview strength,
 reversibility, atomicity, outcome, reconciliation, cancellation, contract_cid
 ```
+
+<!-- requirement-block: command-contracts.input-presence -->
+The closed inline `input_contract` contains `additional_properties: false`
+and a finite `fields` map of canonical checked ValueContracts. With no
+`required_fields` member, every declared input remains required and the legacy
+`command_input` role grammar and original bytes remain unchanged. A present
+`required_fields` MUST be a duplicate-free array containing only declared field
+names; an empty subset is valid, but NULL, unknown names and nonstrings are
+invalid. Its exact array order remains part of the canonical identity.
+Every declared child contract is checked and budgeted, even when its optional
+value is absent. Supplied values retain the ordinary type, nullability, exact
+field and aggregate budget checks. Only an unsupplied optional binding is
+omitted; NULL, false, defaults, placeholders and Ref values are not synthesized.
+
+<!-- requirement-block: command-contracts.input-presence-correspondence -->
+For this explicit presence form, the Command's original `input_schema`
+reference MUST resolve to a `command_input` Contract Envelope in that same
+Catalog and environment, with its body exactly equal to the complete closed
+inline record, including `required_fields`. A legacy ValueContract or empty
+body is not a substitute. Comparison follows checked decoding and preserves
+array order; matching bare-body hashes do not establish original role or pair
+membership. All supplied presence role bodies, including unused ones, undergo
+the same bounded validation. The existing Envelope, Command and Catalog
+preimage rules apply without a version bump or conversion of saved bytes.
 
 <!-- requirement-block: command-contracts.permissions-must-be-derived-from-this-contract command-contracts.they-must-not-be-authored-or-broadened-by-the-program command-item-contract.product-7dc55ab8c349 stamp-writes.product-de5edfbb89aa stamp-writes.product-54385477c89e model-task.product-e2cfca5b7129 -->
 The complete resolved contract, not only its authored reference, is bound as
@@ -2364,7 +2391,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:26eef3a8e865b3ab2146de992cb4c70c9aa44c4766bdf11d0d0c453116297aeb
+../../../spec/contracts/actql-check-environment.json# sha256:f2548edea56aa6c71d18bf1213cdef0e63b79569409544aea3e744758bfc0922
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9
@@ -2381,8 +2408,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_ref sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_envelope sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/source_view sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:f46da6b7252b64412366acd65068b36367ef02bf563a7fd28e4788f13e9018bb
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:b62f09f0356b4841b28f8b06dc37585967c3f7bbba311e65467c0885b50e25f7
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:089b4bb20d9b047805d2176852265c3a4f4fd3822eaab80359b9e1bac8ca9a1b
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:5777408c086b03bc0a7d049c75797a633daa0ec9662dab0c462bfb572600eca6
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/lock sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3

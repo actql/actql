@@ -50,20 +50,22 @@ pub fn body_dependency_value(
 }
 
 ///|
-/// The governing grammar is the sole direct contract dependency of this body
-/// shape. ResourceKind/ArtifactType strings are type data, not ContractRefs.
-pub fn body_dependency_count(_v : ContractBodyDependencies) -> Int {
-  1
+/// The Command presence form additionally depends on its domain-specific
+/// governing record. Child types retain the existing ValueContract grammar.
+/// ResourceKind/ArtifactType strings remain data, not ContractRefs.
+pub fn body_dependency_count(v : ContractBodyDependencies) -> Int {
+  match v.value.body {
+    Value(_) => 1
+    CommandInput(_) => 2
+  }
 }
 
 ///|
-pub fn body_dependency_at(
-  _v : ContractBodyDependencies,
-  index : Int,
-) -> String? {
-  if index == 0 {
-    Some(protocol_value_grammar_cid())
-  } else {
-    None
+pub fn body_dependency_at(v : ContractBodyDependencies, index : Int) -> String? {
+  match (v.value.body, index) {
+    (Value(_), 0) => Some(protocol_value_grammar_cid())
+    (CommandInput(_), 0) => Some(catalog_body_grammar_cid())
+    (CommandInput(_), 1) => Some(protocol_value_grammar_cid())
+    _ => None
   }
 }

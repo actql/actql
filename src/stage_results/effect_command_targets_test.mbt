@@ -2,15 +2,29 @@
 fn command_target_catalog(
   kind : String,
   input_fields? : String = "{}",
+  required_fields? : String? = None,
+  input_role_body? : String = "{}",
 ) -> @environment.CatalogReferences {
-  let input_preimage = "{\"body\":{},\"id\":\"crm.input\",\"kind\":\"command_input\",\"schema\":\"actql.contract/0.1\",\"version\":\"external\"}"
-  let output_preimage = "{\"body\":{},\"id\":\"crm.output\",\"kind\":\"command_output\",\"schema\":\"actql.contract/0.1\",\"version\":\"external\"}"
+  let input_preimage = "{\"body\":" +
+    input_role_body +
+    ",\"id\":\"crm.input\",\"kind\":\"command_input\",\"schema\":\"actql.contract/0.1\",\"version\":\"external\"}"
+  let output_role_body = match required_fields {
+    None => "{}"
+    Some(_) => "{\"nullable\":false,\"type\":\"number\"}"
+  }
+  let output_preimage = "{\"body\":" +
+    output_role_body +
+    ",\"id\":\"crm.output\",\"kind\":\"command_output\",\"schema\":\"actql.contract/0.1\",\"version\":\"external\"}"
   let input_cid = "sha256:" + @sha.hex(@utf8.encode(input_preimage))
   let output_cid = "sha256:" + @sha.hex(@utf8.encode(output_preimage))
-  let input_envelope = "{\"body\":{},\"cid\":\"" +
+  let input_envelope = "{\"body\":" +
+    input_role_body +
+    ",\"cid\":\"" +
     input_cid +
     "\",\"id\":\"crm.input\",\"kind\":\"command_input\",\"schema\":\"actql.contract/0.1\",\"version\":\"external\"}"
-  let output_envelope = "{\"body\":{},\"cid\":\"" +
+  let output_envelope = "{\"body\":" +
+    output_role_body +
+    ",\"cid\":\"" +
     output_cid +
     "\",\"id\":\"crm.output\",\"kind\":\"command_output\",\"schema\":\"actql.contract/0.1\",\"version\":\"external\"}"
   let input_ref = "{\"cid\":\"" +
@@ -31,6 +45,10 @@ fn command_target_catalog(
   let command_before = "{\"atomicity\":\"single_target\",\"command_id\":\"command:crm.invoke.v1\",\"connector_id\":\"example\","
   let command_after = "\"idempotency\":{\"support\":\"unsupported\"},\"input_contract\":{\"additional_properties\":false,\"fields\":" +
     input_fields +
+    (match required_fields {
+      None => ""
+      Some(value) => ",\"required_fields\":" + value
+    }) +
     "},\"input_schema\":" +
     input_ref +
     ",\"minimum_approval\":\"required\",\"outcome\":\"synchronous\",\"output_schema\":" +

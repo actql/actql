@@ -38,6 +38,74 @@ fn protocol_value_limits() -> ValueContractLimits {
 }
 
 ///|
+test "Command presence role is bounded validated when unused and not a general value type" {
+  let text =
+    #|{"additional_properties":false,"fields":{"optional":{"nullable":false,"type":"boolean"}},"required_fields":[]}
+  let bodies = value_bodies("{\"nullable\":false,\"type\":\"number\"}")
+  bodies["command_input"] = @json.parse(text)
+  let policies = value_policies(bodies)
+  let checked = check_protocol_value_contracts(
+    policies,
+    protocol_value_limits(),
+  ).unwrap()
+  let mut found = false
+  for i in 0..<protocol_value_usage(checked).2 {
+    let value = protocol_value_at(checked, i).unwrap()
+    if contract_role(protocol_value_envelope(value)) == "command_input" {
+      found = true
+      assert_true(protocol_value_type(value) is None)
+      let presence = protocol_command_input_type(value).unwrap()
+      assert_eq(command_input_contract_field_count(presence), 1)
+      let dependencies = check_body_dependencies(
+        checked,
+        protocol_value_envelope(value),
+      ).unwrap()
+      assert_eq(body_dependency_count(dependencies), 2)
+      assert_true(body_dependency_at(dependencies, 0) is Some(_))
+      assert_eq(
+        body_dependency_at(dependencies, 1),
+        Some(
+          "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947",
+        ),
+      )
+      assert_true(
+        body_dependency_at(dependencies, 0) !=
+        body_dependency_at(dependencies, 1),
+      )
+    } else {
+      assert_true(protocol_value_type(value) is Some(_))
+      assert_true(protocol_command_input_type(value) is None)
+    }
+  }
+  assert_true(found)
+  for kind in value_roles() {
+    if kind == "command_input" {
+      continue
+    }
+    let wrong = value_bodies("{\"nullable\":false,\"type\":\"number\"}")
+    wrong[kind] = @json.parse(text)
+    assert_true(
+      check_protocol_value_contracts(
+        value_policies(wrong),
+        protocol_value_limits(),
+      )
+      is Err(InvalidContract(_, _)),
+    )
+  }
+  let invalid = value_bodies("{\"nullable\":false,\"type\":\"number\"}")
+  invalid["command_input"] = @json.parse(
+    text.replace(old="boolean", new="invalid"),
+  )
+  assert_true(
+    check_protocol_value_contracts(
+      value_policies(invalid),
+      protocol_value_limits(),
+    )
+    is Err(InvalidCommandInput(_, _)),
+  )
+}
+
+///|
 test "eight value-contract roles share exact reader budgets and preserve envelope ownership" {
   let policies = value_policies(
     value_bodies("{\"type\":\"number\",\"nullable\":false}"),
@@ -58,7 +126,7 @@ test "eight value-contract roles share exact reader budgets and preserve envelop
     )
     assert_eq(
       @value_contract.stringify_checked(
-        protocol_value_type(value),
+        protocol_value_type(value).unwrap(),
         1000,
         100,
         10,
@@ -161,7 +229,7 @@ test "recursive checked object array decimal and reference types are retained wi
   for i in 0..<8 {
     assert_eq(
       @value_contract.stringify_checked(
-        protocol_value_type(protocol_value_at(checked, i).unwrap()),
+        protocol_value_type(protocol_value_at(checked, i).unwrap()).unwrap(),
         10000,
         100,
         10,
