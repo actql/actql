@@ -4,4 +4,7 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/connectors/gcs/catalog",
+  "actql/actql/connectors/gcs/original_reference" @original,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/value_admission" @admitted,
 }

@@ -146,6 +146,36 @@ installation is not silently activated for writes by these DATA functions;
 upload transport, exact Content acquisition, physical issuer/currentness,
 reconciliation and normal installed approval/restart acceptance remain needed.
 
+## Original collection reference selection
+
+`connectors/gcs/original_reference::issue_collection_reference` accepts the
+original collection DATA handle, Common's opaque `StoreCommandBinding`, the
+original declared Catalog, and an existing trusted `ReferenceIssuer`. It checks
+the complete original Mapping and Catalog bodies, including their contracts,
+permissions, scope identity and Command relationship. The Mapping, Command and
+Catalog must share their nominal Common environment. Identifier equality is
+not a substitute for these checks. A separate capture receiver must still
+check the exact pair, original inputs/member and Run lifecycle.
+
+The result is the existing value owner's original `CheckedValue`, with its
+non-null `file_collection` contract and original reference currentness closure.
+The typed private Node bridge does not reparse it, construct a replacement Ref,
+or grant read/write/approval. The supplied issuer must come from the actual
+installed Site and its original lifecycle, not from packet data or a caller
+Boolean. This primitive does not install that supplier, reissue a target from
+current configuration during restore, or establish installed STORE acceptance.
+
+Complete comparison has a shared finite work budget as well as byte/node/depth
+bounds. The original collection, pair, issuer and declared wire remain borrowed
+through the call; declaration construction, strict/ordinary parsed trees,
+canonical comparison trees/writers/Strings, the checked ResourceRef contract,
+reference envelope, authorization closure and escaped checked/reference aliases
+can overlap. They belong to the original Host/Run envelope, not free capacity.
+These structural bounds and contract-control tests are not a normal numerical
+profile or physical cleanup acknowledgment. The selected installation/current
+supplier, actual Node caller, saved target/Run recovery, Preview and physical
+apply connection remain separate unfinished work.
+
 ## Exact object metadata pages
 
 `admit_object_metadata_page` shares the existing strict, bounded metadata
