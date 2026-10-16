@@ -913,6 +913,8 @@ pub fn client_request_scope_cid(ClientRequestIdentity) -> String
 
 pub fn client_requested_effect_stop_intent_cid(ClientRequestedEffectStop) -> String
 
+pub fn client_requested_effect_stop_lifetime(ClientRequestedEffectStop) -> Result[(String, String), ClientRequestedEffectStopIssue]
+
 pub fn client_result_plan_cid(ClientResultPlanIdentity) -> String
 
 pub fn client_result_plan_name(ClientResultPlanIdentity) -> String

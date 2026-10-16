@@ -1779,6 +1779,8 @@ pub fn client_program_requested_effect_stop_continuation(@run_publication_host.C
 
 pub fn client_program_requested_effect_stop_intent_cid(@run_publication_host.ClientRequestedEffectStop) -> String
 
+pub fn client_program_requested_effect_stop_lifetime(@run_publication_host.ClientRequestedEffectStop) -> Result[(String, String), @run_publication_host.ClientRequestedEffectStopIssue]
+
 pub fn client_program_require_infer_call_entry(@client_infer_host.Execution) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
 pub fn client_program_requires_acquisition_result_publication(@run_publication_host.PreparedClientProgram) -> Bool
