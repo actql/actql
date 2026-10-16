@@ -5562,7 +5562,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f3b40c34031c1aea94c83dc124834691ad92bf21fc59e69e34216a2df4a94f02",
+      "sha256": "55ae0545ced3a141714db6af8bb785b823a3f8559425e1da73677f141f38c93b",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -5860,6 +5860,10 @@
               {
                 "path": "adapters/connectors/github/test/github-standard-host.integration.test.mjs",
                 "anchor": "a same-name B"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-publication-cleanup.test.mjs",
+                "anchor": "GitHub publication retains its original journal after successful publication close fails"
               }
             ]
           }
