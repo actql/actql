@@ -409,7 +409,7 @@ test "Native human explain quotes authored terminal controls without executing t
   // A shape-only display vector, not a new compiler original or authority.
   let changed = wire.replace(
     old="\"names\":[\"original\"]",
-    "\"names\":[\"name\\n\\u001b[31m\"]",
+    new=new="\"names\":[\"name\\n\\u001b[31m\"]",
   )
   assert_true(changed != wire)
   let display = local_explain_reply(changed, false)
