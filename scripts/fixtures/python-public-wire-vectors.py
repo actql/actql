@@ -5,7 +5,8 @@ from pathlib import Path
 import sys
 
 root = Path(sys.argv[1]).resolve()
-sys.path.insert(0, str(root / 'packages/python-sdk/src'))
+if '--installed' not in sys.argv:
+    sys.path.insert(0, str(root / 'packages/python-sdk/src'))
 
 
 class RemoteOnly(importlib.abc.MetaPathFinder):
@@ -18,6 +19,14 @@ sys.meta_path.insert(0, RemoteOnly())
 from actql_sdk import _wire as wire
 from actql_sdk._values import decode_json
 from actql_sdk import ClientError
+
+if '--installed' in sys.argv:
+    import importlib.metadata
+    assert root not in Path(wire.__file__).resolve().parents, 'Source fallback'
+    assert Path(sys.prefix).resolve() in Path(wire.__file__).resolve().parents
+    assert not {'wasmtime', 'duckdb', 'actql-local-runtime'} & {
+        distribution.metadata['Name'].lower() for distribution in importlib.metadata.distributions()}
+    print('Installed Remote codec: ' + str(Path(wire.__file__).resolve()), file=sys.stderr)
 
 vectors=json.load(sys.stdin)
 assert len(vectors) > 0

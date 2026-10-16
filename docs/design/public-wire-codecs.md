@@ -55,7 +55,11 @@ report relationships for those consumers. No full engine is imported for Remote.
 
 ## Focused verification
 
-Run the existing generators in read-only mode and the focused Node wrapper for
+The focused `node scripts/check-public-wire-codecs.mjs` guard runs read-only
+generation, independent JS/Python vectors/mutations and actual Native vectors.
+It requires the pinned compiler only for target verification, never as a Remote
+package runtime dependency. To select affected regressions separately, run
+the existing generators in read-only mode and the focused Node wrapper for
 `public-wire-language-vectors.test.mjs`, `public-wire-language-mutations.test.mjs`
 and affected generator/SDK tests. `ACTQL_PYTHON` selects the existing test Python;
 the Remote import counter refuses any attempt to import Wasmtime, DuckDB or the
