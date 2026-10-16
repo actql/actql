@@ -201,7 +201,7 @@ priv struct RetainedResult {
   // captured-value receipts, key proofs or execution authority.
   update : (String, Array[(String, @builder.Node)])?
   store : Bool
-  insert : Bool
+  insert : Array[(String, @builder.Node)]?
   command : (String, String?, Array[(String, @builder.Node)])?
 }
 
@@ -224,7 +224,7 @@ fn retained_result_exports(
   let public = retained.filter(result => {
     result.update is None &&
     !result.store &&
-    !result.insert &&
+    result.insert is None &&
     result.command is None
   })
   if public.is_empty() {
@@ -272,7 +272,7 @@ fn retained_stage_results(
       !retained.any(result => {
         result.update is None &&
         !result.store &&
-        !result.insert &&
+        result.insert is None &&
         result.command is None &&
         result.terminal
       })
@@ -282,13 +282,13 @@ fn retained_stage_results(
       retained.any(result => {
         result.update is Some(_) ||
         result.store ||
-        result.insert ||
+        result.insert is Some(_) ||
         result.command is Some(_)
       }) &&
       retained.all(result => {
         result.update is Some(_) ||
         result.store ||
-        result.insert ||
+        result.insert is Some(_) ||
         result.command is Some(_)
       })
     ) {
@@ -2244,7 +2244,6 @@ fn compile_steps(
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
   checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
-  insert_target? : ResolvedInsertTarget? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   // Internal parenthesized bindings retain their positional export role.
   // This parser fact never grants anonymous exports to authored CTEs.
@@ -3120,7 +3119,7 @@ fn compile_steps(
           carrier_complete: !needs_view,
           update: None,
           store: false,
-          insert: false,
+          insert: None,
           command: None,
         })
         if terminal_result {
@@ -7089,10 +7088,6 @@ fn compile_steps(
     let (capture, body) = lower_insert_capture(
       construction,
       clause,
-      match insert_target {
-        Some(value) => value
-        None => raise Abort(UnsupportedEffect)
-      },
       producer,
       pipe_visible,
       pipe_ranges,
@@ -7688,7 +7683,6 @@ fn compile_join_steps(
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
   checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
-  insert_target? : ResolvedInsertTarget? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     limits.max_join_output_rows < 1L ||
@@ -7894,7 +7888,6 @@ fn compile_join_steps(
       },
       next,
       result_tail=join_continuation_context(query, limits, retained),
-      insert_target~,
       step_bindings~,
       prefix_steps~,
       reserved_bindings~,
@@ -8110,7 +8103,6 @@ fn compile_join_steps(
     },
     select_index + 1,
     result_tail=join_continuation_context(query, limits, retained),
-    insert_target~,
     step_bindings~,
     prefix_steps~,
     reserved_bindings~,
@@ -9626,7 +9618,6 @@ fn append_join_order_steps(
   initial_from : String,
   next_operation : Int,
   result_tail? : (Limits, Array[RetainedResult])? = None,
-  insert_target? : ResolvedInsertTarget? = None,
   step_bindings? : Map[String, String] = Map([]),
   prefix_steps? : Array[@builder.Node] = [],
   reserved_bindings? : Array[String] = [],
@@ -9733,7 +9724,6 @@ fn append_join_order_steps(
       false,
       join_step_binding(step_bindings, "aql_join_result"),
       retained=Some(retained),
-      insert_target~,
       projected_input=true,
       prefix_steps=prefix_steps + steps,
       reserved_bindings~,

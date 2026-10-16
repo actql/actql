@@ -125,7 +125,6 @@ fn lower_script_graph_rows(
   set_head? : Bool = false,
   continuation? : (Context, ScriptSources)? = None,
   allow_nonrelation? : Bool = false,
-  insert_target? : ResolvedInsertTarget? = None,
 ) -> Input raise Abort {
   check_graph_range_alias(query)
   if @query.query_binding_count(query) > 0 ||
@@ -287,7 +286,6 @@ fn lower_script_graph_rows(
       reserved,
       output,
       retained~,
-      insert_target~,
       graphs~,
       positional_set_output~,
       allow_nonrelation~,
@@ -308,7 +306,6 @@ fn lower_script_graph_rows(
     false,
     output,
     retained~,
-    insert_target~,
     positional_set_output~,
   )
   steps.append(body)

@@ -134,7 +134,6 @@ fn resolve_insert_effect_target(
 fn lower_insert_capture(
   construction : Construction,
   clause : @query.InsertEffectClause,
-  target : ResolvedInsertTarget,
   producer : String,
   visible : Array[(String, String)],
   ranges : Array[(@query.NamePart, Array[(String, String)])],
@@ -153,35 +152,16 @@ fn lower_insert_capture(
     pipe_expression_slot(path, expression_visible, ranges, value_ranges~)
   }
   let fields : Array[String] = []
-  let projection : Array[@builder.Node] = []
-  let captured : Array[(String, String)] = []
+  let assignments : Array[(String, @builder.Node)] = []
   let derives : Array[(String, @builder.Node)] = []
-  let rows = target.row_fields
-  let row_count = @environment.mapping_row_fields_count(rows)
   let remaining = Ref(max_work)
-  insert_capture_work(remaining, row_count)
   insert_capture_work(remaining, clause.fields.length())
-  // create.from consumes the original row_mapping, not an independent payload.
-  // Keep the entire declared correspondence and never replace its contract.
-  let declared = @environment.mapping_row_fields_names(rows)
-  if declared.length() != clause.fields.length() {
-    raise Abort(UnsupportedEffect)
-  }
-  for name in declared {
-    insert_capture_work(remaining, clause.fields.length())
-    if !clause.fields.any(field => field.value == name) {
-      raise Abort(UnsupportedEffect)
-    }
-  }
-  let reserved = physical + declared
+  let reserved = physical.copy()
   for index in 0..<clause.fields.length() {
     let field = clause.fields[index]
-    insert_capture_work(remaining, row_count)
-    let matches = Array::makei(row_count, i => {
-      @environment.mapping_row_fields_source_at(rows, i).unwrap()
-    }).filter(entry => entry.0 == field.value)
-    guard matches.length() == 1 && matches[0].1 is Some(source_name) else {
-      raise Abort(UnsupportedEffect)
+    insert_capture_work(remaining, assignments.length())
+    if assignments.any(entry => entry.0 == field.value) {
+      raise Abort(DuplicateOutput)
     }
     let slot = match clause.values {
       None =>
@@ -225,25 +205,13 @@ fn lower_insert_capture(
         }
       }
     }
-    insert_capture_work(remaining, captured.length())
-    let previous = captured.filter(entry => entry.0 == source_name)
-    if previous.get(0) is Some(entry) {
-      // A shared original source column must denote the same resolved input.
-      // Different expressions cannot overwrite one another through an alias.
-      if entry.1 != slot {
-        raise Abort(UnsupportedEffect)
-      }
-    } else {
-      captured.push((source_name, slot))
-      fields.push(source_name)
-      projection.push(
-        if source_name == slot {
-          construction.text(slot)
-        } else {
-          construction.object([(source_name, construction.text(slot))])
-        },
-      )
+    insert_capture_work(remaining, fields.length())
+    if !fields.contains(slot) {
+      fields.push(slot)
     }
+    assignments.push(
+      (field.value, construction.object([("field", construction.text(slot))])),
+    )
   }
   let steps : Array[Array[(String, @builder.Node)]] = []
   let start = [("from", construction.text(producer))]
@@ -252,7 +220,12 @@ fn lower_insert_capture(
     steps.push(start)
   }
   let selected = if derives.is_empty() { start } else { [] }
-  selected.push(("select", construction.array(projection)))
+  selected.push(
+    (
+      "select",
+      construction.array(fields.map(field => construction.text(field))),
+    ),
+  )
   let capture = pipe_physical_name(
     reserved_bindings + [producer],
     "aql_insert_capture_",
@@ -270,7 +243,7 @@ fn lower_insert_capture(
       carrier_complete: false,
       update: None,
       store: false,
-      insert: true,
+      insert: Some(assignments),
       command: None,
     },
     steps,
@@ -285,9 +258,10 @@ fn lower_insert_effect(
   default_port : String,
   retained : Array[RetainedResult],
 ) -> @builder.Node raise Abort {
-  let captures = retained.filter(result => result.insert)
+  let captures = retained.filter(result => result.insert is Some(_))
   guard captures.length() == 1 else { raise Abort(UnsupportedEffect) }
   let capture = captures[0]
+  let assignments = capture.insert.unwrap()
   let name = clause.name.map(part => part.value).unwrap_or("aql_create_effect")
   guard name != "" else { raise Abort(UnsupportedEffect) }
   let (target_ref, mapping_ref) = resolved_update_target(target.selection)
@@ -300,6 +274,7 @@ fn lower_insert_effect(
           construction.object([
             ("target", construction.text(target_ref)),
             ("mapping", construction.text(mapping_ref)),
+            ("values", construction.object(assignments)),
             (
               "from",
               construction.object([

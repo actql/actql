@@ -343,7 +343,6 @@ fn lower_script_keyed_graph_query(
   known? : Array[Input] = [],
   current? : ScriptGraph? = None,
   continuation? : (Context, ScriptSources)? = None,
-  insert_target? : ResolvedInsertTarget? = None,
 ) -> Input raise Abort {
   guard @query.graph_query(query) is Some(pattern_query) &&
     pattern_query.pattern is Some(pattern) else {
@@ -673,7 +672,6 @@ fn lower_script_keyed_graph_query(
     output,
     graph_bindings_only=true,
     retained=Some(retained),
-    insert_target~,
     prefix_steps=steps.copy(),
     reserved_bindings=reserved,
     checked_infer_prefix=continuation.map(pair => {

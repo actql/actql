@@ -135,25 +135,33 @@ current-installation and Run owners admit the new purpose, Source preparation
 reports that missing connection explicitly rather than dropping the Effect
 or treating its rows as a pure query.
 
-## Original Mapping route for INSERT
+## Original Mapping and explicit INSERT values
 
-INSERT first selects the original Mapping using the existing create/none
-operation contract, independently of VALUES and current write permissions.
-The Relation lowerer evaluates each authored expression once, retains its
-multiplicity and captures only the actual values needed by that selection.
-The existing canonical `create.from` consumes the original Mapping's complete
-row correspondence. For that route, the capture projects target values into
-the Mapping's original source column names; it does not create a new Mapping,
-infer a grant or reinterpret the legacy raw single-item `create.payload`.
+INSERT selects one original Mapping using the existing create/none operation
+contract before resolving VALUES. The Relation lowerer evaluates each authored
+expression once, retains multiplicity and captures only the actual supplied
+values. Explicit target-field assignments refer to those private Result slots
+through canonical `create.values`; they do not rewrite the Mapping's default
+row correspondence. Different target values may share an input slot, or retain
+different derived slots even when the default Mapping uses one source column.
 
-That canonical route cannot represent every authored field subset or different
-values for targets sharing one original source column. The missing projection
-is reported as an implementation boundary, not a permanent language restriction.
-It must not be rescued by dropping original Mapping entries, supplying missing
-values, or combining the mutually exclusive legacy `from` and `payload` forms.
-Source preparation also requires the original create-purpose selection at the
-existing capture/current/Run boundary; an UPDATE original is not a substitute.
-Only explicitly authored public Results are exported.
+The original selected Mapping, target and Environment remain paired with the
+Effect header and captured input. Common validates the complete explicit write
+set, required/writable fields, value types, conversions and original row scope.
+This is neither a new Mapping nor an installation grant. Preview, apply and
+restore consume the same frozen original values; SQL is not evaluated again
+inside an Effect.
+
+Legacy canonical `create.from` without values still consumes the complete
+original Mapping row correspondence. Legacy raw single-item `create.payload`
+remains business data. Those absence forms retain their bytes and identities;
+new values require from and exclude payload. Empty canonical maps follow the
+original Mapping requirements rather than UPDATE's nonempty SET rule.
+
+Source preparation separately requires the original create-purpose selection at
+the existing capture/current/Run boundary. An UPDATE original is not a substitute,
+and an unconnected purpose remains an explicit implementation boundary. Only
+explicitly authored public Results are exported.
 
 ## Evidence classification
 

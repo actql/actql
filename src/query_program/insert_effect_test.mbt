@@ -79,6 +79,14 @@ fn insert_fields(program : @program.Program) -> Array[String] {
 }
 
 ///|
+fn insert_field_value(program : @program.Program, target : String) -> String {
+  let values = @program.effect_header_create_values(
+    short_command_header(program),
+  ).unwrap()
+  @wire.text(store_capture_field(store_capture_field(values, target), "field")).unwrap()
+}
+
+///|
 test "INSERT resolves create rules including collection-only Mapping without UPDATE promotion" {
   for mode in ["one", "collection"] {
     let publication = insert_publication(mode)
@@ -137,7 +145,7 @@ test "INSERT resolves create rules including collection-only Mapping without UPD
 }
 
 ///|
-test "INSERT emits existing create.from with its original row mapping and one private Result and no implicit public output" {
+test "INSERT emits explicit target values over one original private Result and no implicit public output" {
   let program = insert_program(
     "FROM messages |> EFFECT INSERT salesforce.Account (Name) VALUES (body)",
   )
@@ -152,7 +160,8 @@ test "INSERT emits existing create.from with its original row mapping and one pr
     @program.effect_header_source_result(header),
     Some("aql_private_insert"),
   )
-  assert_eq(insert_fields(program), ["name"])
+  assert_eq(insert_fields(program), ["body"])
+  assert_eq(insert_field_value(program, "Name"), "body")
   assert_eq(@program.export_count(program), 0)
   let body = @wire.open_object(@program.effect_header_body(header)).unwrap()
   for field in ["id", "key", "set", "payload"] {
@@ -168,40 +177,45 @@ test "INSERT omitted VALUES captures same-named fields and keeps explicit public
   let explicit = insert_program(prefix + " VALUES (Name)")
   assert_eq(semantic(omitted), semantic(explicit))
   assert_eq(@program.exports(omitted), [("public_rows", "main", "rows")])
-  assert_eq(insert_fields(omitted), ["name"])
+  assert_eq(insert_fields(omitted), ["Name"])
+  assert_eq(insert_field_value(omitted, "Name"), "Name")
   assert_true(insert_static_result(omitted, "one") is Ok(_))
 }
 
 ///|
 test "INSERT keeps original Mapping capture after CTE JOIN and complete set continuations" {
   for
-    text in [
-      "WITH original AS (FROM messages) FROM original |> EFFECT INSERT salesforce.Account (Name) VALUES (body)",
-      "FROM messages AS l JOIN messages AS r ON l.id = r.id |> SELECT l.body AS Name |> EFFECT INSERT salesforce.Account (Name) VALUES (Name)",
-      "FROM messages |> SELECT body AS Name |> UNION ALL (FROM messages |> SELECT body AS Name) |> EFFECT INSERT salesforce.Account (Name)",
+    (text, field) in [
+      (
+        "WITH original AS (FROM messages) FROM original |> EFFECT INSERT salesforce.Account (Name) VALUES (body)",
+        "body",
+      ),
+      (
+        "FROM messages AS l JOIN messages AS r ON l.id = r.id |> SELECT l.body AS Name |> EFFECT INSERT salesforce.Account (Name) VALUES (Name)",
+        "Name",
+      ),
+      (
+        "FROM messages |> SELECT body AS Name |> UNION ALL (FROM messages |> SELECT body AS Name) |> EFFECT INSERT salesforce.Account (Name)",
+        "Name",
+      ),
     ] {
     let program = insert_program(text)
-    assert_eq(insert_fields(program), ["name"])
+    assert_eq(insert_fields(program), [field])
+    assert_eq(insert_field_value(program, "Name"), field)
     assert_eq(@program.export_count(program), 0)
     assert_true(insert_static_result(program, "one") is Ok(_))
   }
 }
 
 ///|
-test "INSERT does not discard the original Mapping row correspondence for an authored subset" {
-  let query = @query.parse_query(
+test "INSERT explicit subset retains the complete original Mapping rather than trimming its default correspondence" {
+  let program = insert_program(
     "FROM messages |> EFFECT INSERT salesforce.Account (Name) VALUES (body)",
-    syntax_limits(),
-  ).unwrap()
-  assert_true(
-    compile(
-      query,
-      short_command_context(),
-      construction_limits(),
-      update_targets=Some(insert_publication("subset")),
-    )
-    is Err(UnsupportedEffect),
+    mode="subset",
   )
+  assert_eq(insert_field_value(program, "Name"), "body")
+  assert_eq(insert_fields(program), ["body"])
+  assert_true(insert_static_result(program, "subset") is Ok(_))
 }
 
 ///|
@@ -209,7 +223,8 @@ test "literal-only INSERT VALUES retain a real derived payload without an empty 
   let program = insert_program(
     "FROM messages |> EFFECT INSERT salesforce.Account (Name) VALUES ('fixed')",
   )
-  assert_eq(insert_fields(program), ["name"])
+  assert_eq(insert_fields(program).length(), 1)
+  assert_eq(insert_field_value(program, "Name"), insert_fields(program)[0])
   let derives = store_capture_steps(program).filter(step => {
     @wire.lookup(@wire.open_object(step).unwrap(), "derive") is Some(_)
   })
@@ -255,4 +270,29 @@ test "INSERT binds the original target before expressions and keeps actual Commo
     @stage_results.effect_mapping_rule_issue_kind(issue),
     IncompatibleSourceType("Name"),
   )
+}
+
+///|
+test "INSERT gives two targets independent values despite a shared original Mapping default source" {
+  let program = insert_program(
+    "FROM messages |> EFFECT INSERT salesforce.Account (Name, City) VALUES (body, secret)",
+    mode="shared",
+  )
+  assert_eq(insert_fields(program), ["body", "secret"])
+  assert_eq(insert_field_value(program, "Name"), "body")
+  assert_eq(insert_field_value(program, "City"), "secret")
+  assert_eq(@program.export_count(program), 0)
+  assert_true(insert_static_result(program, "shared") is Ok(_))
+}
+
+///|
+test "INSERT may reuse one captured original field without inventing a Mapping column" {
+  let program = insert_program(
+    "FROM messages |> EFFECT INSERT salesforce.Account (Name, City) VALUES (body, body)",
+    mode="subset",
+  )
+  assert_eq(insert_fields(program), ["body"])
+  assert_eq(insert_field_value(program, "Name"), "body")
+  assert_eq(insert_field_value(program, "City"), "body")
+  assert_true(insert_static_result(program, "subset") is Ok(_))
 }
