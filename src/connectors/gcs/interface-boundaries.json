@@ -457,7 +457,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "25ed4d90da1b9cdd3487bcebeafa666141ff30d9cd7a7834b37b5dc80d504f8b",
+      "sha256": "32f772bb9fbdc1dfd06d9ff4227ca6115051e8ee302ebedf4a718c98bfe178c0",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -493,6 +493,8 @@
         "pub fn object_upload_cid(ObjectUploadRequest) -> String",
         "pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
         "pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+        "pub fn object_upload_metadata_max_bytes(ObjectUploadBinding) -> Int",
+        "pub fn object_upload_metadata_path(ObjectUploadBinding, String) -> Result[String, ObjectUploadIssue]",
         "pub fn object_upload_path(ObjectUploadRequest) -> String",
         "pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]",
         "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool",
@@ -643,6 +645,14 @@
           "declaration": "pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]"
         },
         {
+          "name": "object_upload_metadata_max_bytes",
+          "declaration": "pub fn object_upload_metadata_max_bytes(ObjectUploadBinding) -> Int"
+        },
+        {
+          "name": "object_upload_metadata_path",
+          "declaration": "pub fn object_upload_metadata_path(ObjectUploadBinding, String) -> Result[String, ObjectUploadIssue]"
+        },
+        {
           "name": "object_upload_path",
           "declaration": "pub fn object_upload_path(ObjectUploadRequest) -> String"
         },
@@ -723,6 +733,8 @@
             "object_upload_cid",
             "object_upload_command_json",
             "object_upload_mapping_json",
+            "object_upload_metadata_max_bytes",
+            "object_upload_metadata_path",
             "object_upload_path",
             "object_upload_projection_json",
             "object_upload_response_matches",
@@ -768,6 +780,8 @@
             "pub fn object_upload_cid(ObjectUploadRequest) -> String",
             "pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
             "pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+            "pub fn object_upload_metadata_max_bytes(ObjectUploadBinding) -> Int",
+            "pub fn object_upload_metadata_path(ObjectUploadBinding, String) -> Result[String, ObjectUploadIssue]",
             "pub fn object_upload_path(ObjectUploadRequest) -> String",
             "pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]",
             "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool",
@@ -833,6 +847,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
                 "anchor": "Original provider requests only"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The same original upload binding also supplies"
               }
             ],
             "inputsOutputs": [
@@ -871,6 +889,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_prepare_multipart"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_metadata_path"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_metadata_path"
               }
             ],
             "identity": [
@@ -917,6 +943,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
                 "anchor": "let preimage ="
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "fn upload_name"
               }
             ],
             "ownership": [
@@ -967,6 +997,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The parsed observation and its raw response"
               }
             ],
             "synchronization": [
@@ -1009,6 +1043,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "function original(request, binding)"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "export async function readGcsUploadTarget"
               }
             ],
             "failure": [
@@ -1051,6 +1089,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "there is no catch/retry or re-read"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read refuses foreign scope"
               }
             ],
             "cancellation": {
@@ -1108,6 +1150,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "fixed assembly array and sealed body"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its path/encoded-name strings"
               }
             ],
             "extension": [
@@ -1150,6 +1196,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "ordinary installed STORE acceptance remain unfinished"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The actual Content borrow and same-Site driver integration remain unfinished"
               }
             ],
             "verification": [
@@ -1200,6 +1250,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "upload response loss preserves the exact original cleanup failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS upload metadata path is exact scoped DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read uses the original scoped path"
               }
             ]
           }
@@ -1560,6 +1618,8 @@
             "gcs_upload_declaration_failure_code",
             "gcs_upload_failure_code",
             "gcs_upload_mapping_json",
+            "gcs_upload_metadata_max_bytes",
+            "gcs_upload_metadata_path",
             "gcs_upload_observation",
             "gcs_upload_prepare_multipart",
             "gcs_upload_projection",
@@ -1592,6 +1652,8 @@
             "pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String",
             "pub fn gcs_upload_failure_code(@catalog.ObjectUploadIssue) -> String",
             "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
+            "pub fn gcs_upload_metadata_max_bytes(@catalog.ObjectUploadBinding) -> Int",
+            "pub fn gcs_upload_metadata_path(@catalog.ObjectUploadBinding, String) -> Result[String, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_observation(@catalog.ObjectUploadBinding, String, Int, Bytes) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_prepare_multipart(@catalog.ObjectUploadBinding, @catalog.ObjectUploadObservation, Bytes, String, String, String, String, String) -> Result[@catalog.ObjectUploadRequest, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]",
@@ -1640,6 +1702,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
                 "anchor": "Original provider requests only"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The same original upload binding also supplies"
               }
             ],
             "inputsOutputs": [
@@ -1686,6 +1752,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_prepare_multipart"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_metadata_path"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_metadata_path"
               }
             ],
             "identity": [
@@ -1736,6 +1810,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
                 "anchor": "let preimage ="
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "fn upload_name"
               }
             ],
             "ownership": [
@@ -1786,6 +1864,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The parsed observation and its raw response"
               }
             ],
             "synchronization": [
@@ -1828,6 +1910,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "function original(request, binding)"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "export async function readGcsUploadTarget"
               }
             ],
             "failure": [
@@ -1870,6 +1956,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "there is no catch/retry or re-read"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read refuses foreign scope"
               }
             ],
             "cancellation": [
@@ -1888,6 +1978,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "cancel acknowledgement or function return"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "does not acknowledge native cleanup"
               }
             ],
             "resources": [
@@ -1938,6 +2032,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "fixed assembly array and sealed body"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its path/encoded-name strings"
               }
             ],
             "extension": [
@@ -1980,6 +2078,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "ordinary installed STORE acceptance remain unfinished"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The actual Content borrow and same-Site driver integration remain unfinished"
               }
             ],
             "verification": [
@@ -2034,6 +2136,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "upload response loss preserves the exact original cleanup failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS upload metadata path is exact scoped DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read uses the original scoped path"
               }
             ]
           }
@@ -2065,6 +2175,8 @@
         "pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String",
         "pub fn gcs_upload_failure_code(@catalog.ObjectUploadIssue) -> String",
         "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
+        "pub fn gcs_upload_metadata_max_bytes(@catalog.ObjectUploadBinding) -> Int",
+        "pub fn gcs_upload_metadata_path(@catalog.ObjectUploadBinding, String) -> Result[String, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_observation(@catalog.ObjectUploadBinding, String, Int, Bytes) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_prepare_multipart(@catalog.ObjectUploadBinding, @catalog.ObjectUploadObservation, Bytes, String, String, String, String, String) -> Result[@catalog.ObjectUploadRequest, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]",
@@ -2174,6 +2286,14 @@
           "declaration": "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]"
         },
         {
+          "name": "gcs_upload_metadata_max_bytes",
+          "declaration": "pub fn gcs_upload_metadata_max_bytes(@catalog.ObjectUploadBinding) -> Int"
+        },
+        {
+          "name": "gcs_upload_metadata_path",
+          "declaration": "pub fn gcs_upload_metadata_path(@catalog.ObjectUploadBinding, String) -> Result[String, @catalog.ObjectUploadIssue]"
+        },
+        {
           "name": "gcs_upload_observation",
           "declaration": "pub fn gcs_upload_observation(@catalog.ObjectUploadBinding, String, Int, Bytes) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         },
@@ -2194,7 +2314,7 @@
           "declaration": "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool"
         }
       ],
-      "sha256": "95a2045a80944adb18795f026328b06b60a9914b23f1745b56556f20a125f2f6"
+      "sha256": "d221dee2c9765c28daf9a58beb8325e10758ccac103ab14af16fdef442767f39"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -4407,7 +4527,7 @@
     },
     {
       "module": "src/connectors/gcs/catalog/object_upload.mbt",
-      "sha256": "48b699adb7a887da20062c74eb090128d1932d4e3a1268cdbce3fe35da9f435e",
+      "sha256": "375365e98d00d7aa4cca305d17dcbcd710b5b6fd2846d219210af262c4c2f8ff",
       "operations": [
         {
           "name": "admit_object_upload_observation",
@@ -4424,6 +4544,14 @@
         {
           "name": "object_upload_cid",
           "declaration": "object_upload_cid ( request : ObjectUploadRequest ) - > String"
+        },
+        {
+          "name": "object_upload_metadata_max_bytes",
+          "declaration": "object_upload_metadata_max_bytes ( binding : ObjectUploadBinding ) - > Int"
+        },
+        {
+          "name": "object_upload_metadata_path",
+          "declaration": "object_upload_metadata_path ( binding : ObjectUploadBinding , name : String , ) - > Result [ String , ObjectUploadIssue ]"
         },
         {
           "name": "object_upload_path",
@@ -4458,6 +4586,10 @@
           "declaration": "upload_json ( value : Json , maximum : Int , limits : ObjectMetadataLimits , ) - > Result [ String , ObjectUploadIssue ]"
         },
         {
+          "name": "upload_name",
+          "declaration": "upload_name ( binding : ObjectUploadBinding , name : String ) - > Bool"
+        },
+        {
           "name": "upload_object_text",
           "declaration": "upload_object_text ( value : String , empty ? : Bool"
         },
@@ -4482,6 +4614,8 @@
             "object_upload_body_for",
             "object_upload_body_media_type",
             "object_upload_cid",
+            "object_upload_metadata_max_bytes",
+            "object_upload_metadata_path",
             "object_upload_path",
             "object_upload_projection_json",
             "object_upload_response_matches",
@@ -4490,6 +4624,7 @@
             "recheck_object_upload",
             "upload_crc32c",
             "upload_json",
+            "upload_name",
             "upload_object_text",
             "upload_request_wire",
             "upload_text"
@@ -4504,6 +4639,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
                 "anchor": "Original provider requests only"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The same original upload binding also supplies"
               }
             ],
             "inputsOutputs": [
@@ -4514,6 +4653,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_prepare_multipart"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_metadata_path"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_metadata_path"
               }
             ],
             "identity": [
@@ -4524,6 +4671,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
                 "anchor": "let preimage ="
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "fn upload_name"
               }
             ],
             "ownership": [
@@ -4538,6 +4689,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The parsed observation and its raw response"
               }
             ],
             "synchronization": [
@@ -4548,6 +4703,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "function original(request, binding)"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "export async function readGcsUploadTarget"
               }
             ],
             "failure": [
@@ -4558,6 +4717,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "there is no catch/retry or re-read"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read refuses foreign scope"
               }
             ],
             "cancellation": [
@@ -4568,6 +4731,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "cancel acknowledgement or function return"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "does not acknowledge native cleanup"
               }
             ],
             "resources": [
@@ -4582,6 +4749,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "fixed assembly array and sealed body"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its path/encoded-name strings"
               }
             ],
             "extension": [
@@ -4592,6 +4763,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "ordinary installed STORE acceptance remain unfinished"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The actual Content borrow and same-Site driver integration remain unfinished"
               }
             ],
             "verification": [
@@ -4606,6 +4781,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "upload response loss preserves the exact original cleanup failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS upload metadata path is exact scoped DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read uses the original scoped path"
               }
             ]
           }
@@ -4614,7 +4797,7 @@
     },
     {
       "module": "src/connectors/gcs/host_node/upload_request.mbt",
-      "sha256": "f0312f76c46ffee6e0c0660e2b4d7abcf411ef5773db19bb70f64c75d07050e4",
+      "sha256": "86d0f2f71935154040dfbe94b975dfa45755611cfa0e43555c31f018fc254ed0",
       "operations": [
         {
           "name": "gcs_upload_binding",
@@ -4627,6 +4810,14 @@
         {
           "name": "gcs_upload_failure_code",
           "declaration": "gcs_upload_failure_code ( issue : @ catalog . ObjectUploadIssue ) - > String"
+        },
+        {
+          "name": "gcs_upload_metadata_max_bytes",
+          "declaration": "gcs_upload_metadata_max_bytes ( binding : @ catalog . ObjectUploadBinding , ) - > Int"
+        },
+        {
+          "name": "gcs_upload_metadata_path",
+          "declaration": "gcs_upload_metadata_path ( binding : @ catalog . ObjectUploadBinding , name : String , ) - > Result [ String , @ catalog . ObjectUploadIssue ]"
         },
         {
           "name": "gcs_upload_observation",
@@ -4660,6 +4851,8 @@
             "gcs_upload_binding",
             "gcs_upload_body",
             "gcs_upload_failure_code",
+            "gcs_upload_metadata_max_bytes",
+            "gcs_upload_metadata_path",
             "gcs_upload_observation",
             "gcs_upload_prepare_multipart",
             "gcs_upload_projection",
@@ -4676,6 +4869,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
                 "anchor": "Original provider requests only"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The same original upload binding also supplies"
               }
             ],
             "inputsOutputs": [
@@ -4686,6 +4883,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_prepare_multipart"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_metadata_path"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_metadata_path"
               }
             ],
             "identity": [
@@ -4696,6 +4901,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
                 "anchor": "let preimage ="
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "fn upload_name"
               }
             ],
             "ownership": [
@@ -4710,6 +4919,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The parsed observation and its raw response"
               }
             ],
             "synchronization": [
@@ -4720,6 +4933,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "function original(request, binding)"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "export async function readGcsUploadTarget"
               }
             ],
             "failure": [
@@ -4730,6 +4947,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "there is no catch/retry or re-read"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read refuses foreign scope"
               }
             ],
             "cancellation": [
@@ -4740,6 +4961,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "cancel acknowledgement or function return"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "does not acknowledge native cleanup"
               }
             ],
             "resources": [
@@ -4754,6 +4979,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "fixed assembly array and sealed body"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its path/encoded-name strings"
               }
             ],
             "extension": [
@@ -4764,6 +4993,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "ordinary installed STORE acceptance remain unfinished"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The actual Content borrow and same-Site driver integration remain unfinished"
               }
             ],
             "verification": [
@@ -4778,6 +5011,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "upload response loss preserves the exact original cleanup failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS upload metadata path is exact scoped DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read uses the original scoped path"
               }
             ]
           }
@@ -4786,13 +5027,14 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-      "sha256": "7ba245ab73545a3d61dc93e24ffaf179e4555471127574ab5fd6b181daf74912",
+      "sha256": "3598380d86384bf9bd14398f46e8518ce512ccf141574651f59def3edba942b0",
       "exports": [
         "admitGcsUploadObservation",
         "gcsUploadResult",
         "ownedGcsUploadBody",
         "ownedGcsUploadResponseMatches",
         "prepareOwnedGcsMultipartUpload",
+        "readGcsUploadTarget",
         "recheckOwnedGcsUpload",
         "sendOwnedGcsUpload"
       ],
@@ -4886,6 +5128,20 @@
           "async": false
         },
         {
+          "name": "readGcsUploadTarget",
+          "parameters": [
+            "moon",
+            "binding",
+            "name",
+            "authorization",
+            "credential",
+            "callResource",
+            "maxRequestBytes",
+            "signal"
+          ],
+          "async": true
+        },
+        {
           "name": "recheckOwnedGcsUpload",
           "parameters": [
             "request",
@@ -4931,6 +5187,7 @@
             "ownedGcsUploadResponseMatches",
             "prepareOwnedGcsMultipartUpload",
             "prepareOwnedGcsMultipartUpload/prepareOwnedGcsMultipartUpload",
+            "readGcsUploadTarget",
             "recheckOwnedGcsUpload",
             "sendOwnedGcsUpload"
           ],
@@ -4940,6 +5197,7 @@
             "ownedGcsUploadBody",
             "ownedGcsUploadResponseMatches",
             "prepareOwnedGcsMultipartUpload",
+            "readGcsUploadTarget",
             "recheckOwnedGcsUpload",
             "sendOwnedGcsUpload"
           ],
@@ -4952,6 +5210,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
                 "anchor": "Original provider requests only"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The same original upload binding also supplies"
               }
             ],
             "inputsOutputs": [
@@ -4962,6 +5224,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_prepare_multipart"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_metadata_path"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_metadata_path"
               }
             ],
             "identity": [
@@ -4972,6 +5242,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
                 "anchor": "let preimage ="
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "fn upload_name"
               }
             ],
             "ownership": [
@@ -4986,6 +5260,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The parsed observation and its raw response"
               }
             ],
             "synchronization": [
@@ -4996,6 +5274,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "function original(request, binding)"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "export async function readGcsUploadTarget"
               }
             ],
             "failure": [
@@ -5006,6 +5288,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "there is no catch/retry or re-read"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read refuses foreign scope"
               }
             ],
             "cancellation": [
@@ -5016,6 +5302,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "cancel acknowledgement or function return"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "does not acknowledge native cleanup"
               }
             ],
             "resources": [
@@ -5030,6 +5320,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "fixed assembly array and sealed body"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its path/encoded-name strings"
               }
             ],
             "extension": [
@@ -5040,6 +5334,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "ordinary installed STORE acceptance remain unfinished"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The actual Content borrow and same-Site driver integration remain unfinished"
               }
             ],
             "verification": [
@@ -5054,6 +5352,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "upload response loss preserves the exact original cleanup failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS upload metadata path is exact scoped DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "target metadata read uses the original scoped path"
               }
             ]
           }
