@@ -72,7 +72,8 @@
     "wait": [
       "connection",
       "ref",
-      "until"
+      "until",
+      "since"
     ],
     "cancel": [
       "connection",
@@ -17548,6 +17549,17 @@
     }
   },
   "request_response_rules": {
+    "run_wait": {
+      "schema": "run_state",
+      "revisionField": "revision",
+      "stableStatuses": [
+        "waiting_checkpoint",
+        "needs_reconciliation",
+        "succeeded",
+        "failed",
+        "cancelled"
+      ]
+    },
     "held": {
       "schemas": [
         "held"

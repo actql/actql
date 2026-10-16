@@ -511,7 +511,9 @@ class AsyncExecution:
 
     async def _observe(self, operation, **body):
         value = await self._client._request(operation, {'ref': thaw(self.ref)} | body)
-        if not wire.valid(value, 'run_state'):
+        accepted = (wire.valid_run_wait(value, body['since']) if operation == 'wait'
+                    else wire.valid(value, 'run_state'))
+        if not accepted:
             raise ClientError('InvalidHostRunState')
         control = value.get('control')
         if control is not None:
@@ -525,8 +527,8 @@ class AsyncExecution:
     async def status(self):
         return await self._observe('status')
 
-    async def wait(self, *, until=None):
-        return await self._observe('wait', until=until)
+    async def wait(self, *, until=None, since=None):
+        return await self._observe('wait', until=until, since=since)
 
     async def reconcile(self):
         return await self._observe('reconcile')

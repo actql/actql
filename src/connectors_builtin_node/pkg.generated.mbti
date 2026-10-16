@@ -1858,6 +1858,8 @@ pub fn client_program_row_source_close_accounted(@client_row_source_host.RowRun)
 
 pub fn client_program_row_source_columns(@client_row_source_host.RowAcquisition) -> Array[String]
 
+pub fn client_program_row_source_consume_observation_charge(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
 
 pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
@@ -1901,6 +1903,8 @@ pub fn client_program_run_state_observation_key(@run_publication.RunStateObserva
 pub fn client_program_run_state_observation_revision(@run_publication.RunStateObservation, Bool, String, Int64) -> Int64 raise ClientProgramRunObservationIssue
 
 pub fn client_program_run_state_observation_wire(@run_publication.RunStateObservation, Int64) -> String raise ClientProgramRunObservationIssue
+
+pub fn client_program_run_wait_decision(String, Bool, Int64) -> String
 
 pub fn client_program_salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@catalog.QueryRead, @catalog.QueryReadIssue]
 

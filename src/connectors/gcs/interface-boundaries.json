@@ -1,0 +1,2197 @@
+{
+  "qualification": "Explicit GCS semantics, typed bridge and physical transport reference supply; not installed capability, funded admission, genuine Effect/Store recovery or service acceptance",
+  "declarations": [
+    {
+      "module": "src/connectors/gcs/catalog/object_metadata.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "ecf9bbd6d7f7c26d2d407ca95bc3b626b124f0a7a343c6b8f5791f5d47c438e7",
+      "role": "connector-semantics",
+      "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_object_metadata",
+          "declaration": "admit_object_metadata ( bytes : Bytes , expected_bucket : String , expected_prefix : String , expected_name : String ? , limits : ObjectMetadataLimits , ) - > Result [ ObjectMetadata , ObjectMetadataIssue ]"
+        },
+        {
+          "name": "custom_metadata",
+          "declaration": "custom_metadata ( object : @ decode . ObjectView , limits : ObjectMetadataLimits , ) - > Result [ Array [ ( String , String ) ] ? , ObjectMetadataIssue ]"
+        },
+        {
+          "name": "logical_metadata",
+          "declaration": "logical_metadata ( metadata : Array [ ( String , String ) ] ? , ) - > Array [ ( String , String ) ] ?"
+        },
+        {
+          "name": "metadata_integer",
+          "declaration": "metadata_integer ( object : @ decode . ObjectView , name : String , positive ~ : Bool , ) - > Int64 ?"
+        },
+        {
+          "name": "metadata_text",
+          "declaration": "metadata_text ( object : @ decode . ObjectView , name : String , maximum : Int , empty ? : Bool"
+        },
+        {
+          "name": "object_metadata_fields",
+          "declaration": "object_metadata_fields ( value : ObjectMetadata ) - > ObjectMetadataFields"
+        },
+        {
+          "name": "object_metadata_response_sha256",
+          "declaration": "object_metadata_response_sha256 ( value : ObjectMetadata ) - > String"
+        },
+        {
+          "name": "object_metadata_version",
+          "declaration": "object_metadata_version ( value : ObjectMetadata ) - > String"
+        },
+        {
+          "name": "optional_metadata_text",
+          "declaration": "optional_metadata_text ( object : @ decode . ObjectView , name : String , maximum : Int , ) - > Result [ String ? , ObjectMetadataIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_object_metadata",
+            "custom_metadata",
+            "logical_metadata",
+            "metadata_integer",
+            "metadata_text",
+            "object_metadata_fields",
+            "object_metadata_response_sha256",
+            "object_metadata_version",
+            "optional_metadata_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
+              {
+                "path": "docs/connectors/gcs.md",
+                "anchor": "## Preview and reconciliation"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "Provider data only."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn admit_object_metadata"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub fn object_metadata_response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "actql-gcs-object-mutation-request/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub struct ObjectMetadata"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub struct ObjectMutationBinding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "let owned = permissions.copy()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub fn recheck_object_mutation"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) enum ObjectMetadataIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded DATA projection has no owned I/O or cancellation state. The invoking original Source/Effect owner must check cancellation/currentness and keep physical cleanup; this library issues no send or cleanup permission."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) struct ObjectMetadataLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) struct ObjectRequestLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "@scalar.admit_utf8_length(path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectMutationKind"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "@decode.closed_object(root, [\"content_type\", \"metadata\"])"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata_wbtest.mbt",
+                "anchor": "GCS keeps exact generation integers"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request_wbtest.mbt",
+                "anchor": "GCS same physical bytes under different permissions"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_request.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "4bd853e05791b8316068714a64ef3e6237b26610dcc5d8040c2ad4c72094e275",
+      "role": "connector-semantics",
+      "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
+      "exports": [],
+      "operations": [
+        {
+          "name": "mutation_cid",
+          "declaration": "mutation_cid ( value : String ) - > Bool"
+        },
+        {
+          "name": "mutation_json",
+          "declaration": "mutation_json ( value : Json , maximum : Int , limits : ObjectMetadataLimits , ) - > Result [ String , ObjectRequestIssue ]"
+        },
+        {
+          "name": "mutation_part",
+          "declaration": "mutation_part ( value : String , maximum : Int , ) - > Result [ String , ObjectRequestIssue ]"
+        },
+        {
+          "name": "mutation_path",
+          "declaration": "mutation_path ( binding : ObjectMutationBinding , original : ObjectMetadata , ) - > Result [ String , ObjectRequestIssue ]"
+        },
+        {
+          "name": "mutation_request",
+          "declaration": "mutation_request ( binding : ObjectMutationBinding , original : ObjectMetadata , verb : String , body : String , logical_after : ObjectMetadataFields ? , authored_changes : String , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+        },
+        {
+          "name": "object_mutation_after",
+          "declaration": "object_mutation_after ( request : ObjectMutationRequest , ) - > ObjectMetadataFields ?"
+        },
+        {
+          "name": "object_mutation_before",
+          "declaration": "object_mutation_before ( request : ObjectMutationRequest , ) - > ObjectMetadataFields"
+        },
+        {
+          "name": "object_mutation_body",
+          "declaration": "object_mutation_body ( request : ObjectMutationRequest ) - > String"
+        },
+        {
+          "name": "object_mutation_cid",
+          "declaration": "object_mutation_cid ( request : ObjectMutationRequest ) - > String"
+        },
+        {
+          "name": "object_mutation_method",
+          "declaration": "object_mutation_method ( request : ObjectMutationRequest ) - > String"
+        },
+        {
+          "name": "object_mutation_path",
+          "declaration": "object_mutation_path ( request : ObjectMutationRequest ) - > String"
+        },
+        {
+          "name": "object_mutation_protocol_behavior",
+          "declaration": "object_mutation_protocol_behavior ( request : ObjectMutationRequest , ) - > String ?"
+        },
+        {
+          "name": "prepare_object_delete",
+          "declaration": "prepare_object_delete ( binding : ObjectMutationBinding , original : ObjectMetadata , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+        },
+        {
+          "name": "prepare_object_metadata_patch",
+          "declaration": "prepare_object_metadata_patch ( binding : ObjectMutationBinding , original : ObjectMetadata , changes : Bytes , marker : String , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+        },
+        {
+          "name": "prepare_object_mutation_binding",
+          "declaration": "prepare_object_mutation_binding ( kind : ObjectMutationKind , bucket : String , prefix : String , catalog_cid : String , installation_cid : String , contract_cid : String , permissions : Array [ String ] , limits : ObjectRequestLimits , ) - > Result [ ObjectMutationBinding , ObjectRequestIssue ]"
+        },
+        {
+          "name": "recheck_object_mutation",
+          "declaration": "recheck_object_mutation ( binding : ObjectMutationBinding , request : ObjectMutationRequest , current : ObjectMetadata , ) - > Result [ Unit , ObjectRequestIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "mutation_cid",
+            "mutation_json",
+            "mutation_part",
+            "mutation_path",
+            "mutation_request",
+            "object_mutation_after",
+            "object_mutation_before",
+            "object_mutation_body",
+            "object_mutation_cid",
+            "object_mutation_method",
+            "object_mutation_path",
+            "object_mutation_protocol_behavior",
+            "prepare_object_delete",
+            "prepare_object_metadata_patch",
+            "prepare_object_mutation_binding",
+            "recheck_object_mutation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
+              {
+                "path": "docs/connectors/gcs.md",
+                "anchor": "## Preview and reconciliation"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "Exact request material, not a credential"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_metadata_patch"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub fn object_metadata_response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "actql-gcs-object-mutation-request/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub struct ObjectMetadata"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub struct ObjectMutationBinding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "let owned = permissions.copy()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub fn recheck_object_mutation"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) enum ObjectMetadataIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded DATA projection has no owned I/O or cancellation state. The invoking original Source/Effect owner must check cancellation/currentness and keep physical cleanup; this library issues no send or cleanup permission."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) struct ObjectMetadataLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) struct ObjectRequestLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "@scalar.admit_utf8_length(path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectMutationKind"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "@decode.closed_object(root, [\"content_type\", \"metadata\"])"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata_wbtest.mbt",
+                "anchor": "GCS keeps exact generation integers"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request_wbtest.mbt",
+                "anchor": "GCS same physical bytes under different permissions"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
+      "responsibilityFacet": "primary",
+      "sha256": "4cfa286f4248d80321b5a92fb966ce84c65ae3316d1c42abdef5fcb788e8d633",
+      "role": "connector-semantics",
+      "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
+      "exports": [
+        "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]",
+        "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
+        "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+        "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
+        "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
+        "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
+        "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
+        "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
+        "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
+        "pub fn object_metadata_version(ObjectMetadata) -> String",
+        "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
+        "pub fn object_mutation_before(ObjectMutationRequest) -> ObjectMetadataFields",
+        "pub fn object_mutation_body(ObjectMutationRequest) -> String",
+        "pub fn object_mutation_body_for(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]",
+        "pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]",
+        "pub fn object_mutation_cid(ObjectMutationRequest) -> String",
+        "pub fn object_mutation_method(ObjectMutationRequest) -> String",
+        "pub fn object_mutation_path(ObjectMutationRequest) -> String",
+        "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
+        "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
+        "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
+        "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+        "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+        "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
+        "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
+        "pub struct ObjectCollectionBinding {",
+        "pub struct ObjectMetadata {",
+        "pub struct ObjectMutationBinding {",
+        "pub struct ObjectMutationRequest {"
+      ],
+      "operations": [
+        {
+          "name": "admit_object_metadata",
+          "declaration": "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]"
+        },
+        {
+          "name": "admit_object_mutation_request",
+          "declaration": "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]"
+        },
+        {
+          "name": "check_object_collection_binding",
+          "declaration": "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]"
+        },
+        {
+          "name": "object_collection_identity_cid",
+          "declaration": "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "object_collection_identity_json",
+          "declaration": "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "object_collection_resource_json",
+          "declaration": "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "object_metadata_fields",
+          "declaration": "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields"
+        },
+        {
+          "name": "object_metadata_logical_json",
+          "declaration": "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]"
+        },
+        {
+          "name": "object_metadata_response_sha256",
+          "declaration": "pub fn object_metadata_response_sha256(ObjectMetadata) -> String"
+        },
+        {
+          "name": "object_metadata_version",
+          "declaration": "pub fn object_metadata_version(ObjectMetadata) -> String"
+        },
+        {
+          "name": "object_mutation_after",
+          "declaration": "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?"
+        },
+        {
+          "name": "object_mutation_before",
+          "declaration": "pub fn object_mutation_before(ObjectMutationRequest) -> ObjectMetadataFields"
+        },
+        {
+          "name": "object_mutation_body",
+          "declaration": "pub fn object_mutation_body(ObjectMutationRequest) -> String"
+        },
+        {
+          "name": "object_mutation_body_for",
+          "declaration": "pub fn object_mutation_body_for(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]"
+        },
+        {
+          "name": "object_mutation_changes_json",
+          "declaration": "pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]"
+        },
+        {
+          "name": "object_mutation_cid",
+          "declaration": "pub fn object_mutation_cid(ObjectMutationRequest) -> String"
+        },
+        {
+          "name": "object_mutation_method",
+          "declaration": "pub fn object_mutation_method(ObjectMutationRequest) -> String"
+        },
+        {
+          "name": "object_mutation_path",
+          "declaration": "pub fn object_mutation_path(ObjectMutationRequest) -> String"
+        },
+        {
+          "name": "object_mutation_projection_json",
+          "declaration": "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]"
+        },
+        {
+          "name": "object_mutation_protocol_behavior",
+          "declaration": "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?"
+        },
+        {
+          "name": "prepare_object_collection_binding",
+          "declaration": "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]"
+        },
+        {
+          "name": "prepare_object_delete",
+          "declaration": "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
+        },
+        {
+          "name": "prepare_object_metadata_patch",
+          "declaration": "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
+        },
+        {
+          "name": "prepare_object_mutation_binding",
+          "declaration": "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]"
+        },
+        {
+          "name": "recheck_object_mutation",
+          "declaration": "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_object_metadata",
+            "admit_object_mutation_request",
+            "check_object_collection_binding",
+            "object_collection_identity_cid",
+            "object_collection_identity_json",
+            "object_collection_resource_json",
+            "object_metadata_fields",
+            "object_metadata_logical_json",
+            "object_metadata_response_sha256",
+            "object_metadata_version",
+            "object_mutation_after",
+            "object_mutation_before",
+            "object_mutation_body",
+            "object_mutation_body_for",
+            "object_mutation_changes_json",
+            "object_mutation_cid",
+            "object_mutation_method",
+            "object_mutation_path",
+            "object_mutation_projection_json",
+            "object_mutation_protocol_behavior",
+            "prepare_object_collection_binding",
+            "prepare_object_delete",
+            "prepare_object_metadata_patch",
+            "prepare_object_mutation_binding",
+            "recheck_object_mutation"
+          ],
+          "exports": [
+            "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]",
+            "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
+            "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+            "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
+            "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
+            "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
+            "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
+            "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
+            "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
+            "pub fn object_metadata_version(ObjectMetadata) -> String",
+            "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
+            "pub fn object_mutation_before(ObjectMutationRequest) -> ObjectMetadataFields",
+            "pub fn object_mutation_body(ObjectMutationRequest) -> String",
+            "pub fn object_mutation_body_for(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]",
+            "pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]",
+            "pub fn object_mutation_cid(ObjectMutationRequest) -> String",
+            "pub fn object_mutation_method(ObjectMutationRequest) -> String",
+            "pub fn object_mutation_path(ObjectMutationRequest) -> String",
+            "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
+            "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
+            "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
+            "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+            "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+            "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
+            "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
+            "pub struct ObjectCollectionBinding {",
+            "pub struct ObjectMetadata {",
+            "pub struct ObjectMutationBinding {",
+            "pub struct ObjectMutationRequest {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
+              {
+                "path": "docs/connectors/gcs.md",
+                "anchor": "## Preview and reconciliation"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "Exact request material, not a credential"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Collection target material"
+              },
+              {
+                "path": "scripts/mapping-contract.mjs",
+                "anchor": "collection_resource_identity:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_metadata_patch"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_collection_binding"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub fn object_metadata_response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "actql-gcs-object-mutation-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql.collection_resource_identity/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql-gcs-resource-scope/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub struct ObjectMetadata"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub struct ObjectMutationBinding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "let owned = permissions.copy()"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub struct ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub fn recheck_object_mutation"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "export function checkGcsCollectionTarget"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) enum ObjectMetadataIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) enum ObjectCollectionIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/collection.mbt",
+                "anchor": "pub fn gcs_collection_failure_code"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded DATA projection has no owned I/O or cancellation state. The invoking original Source/Effect owner must check cancellation/currentness and keep physical cleanup; this library issues no send or cleanup permission."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata.mbt",
+                "anchor": "pub(all) struct ObjectMetadataLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) struct ObjectRequestLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "@scalar.admit_utf8_length(path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) struct ObjectCollectionLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Three separate representation clamps"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectMutationKind"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "@decode.closed_object(root, [\"content_type\", \"metadata\"])"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "actual checked Command target"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "target_ref is an explicitly selected"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_metadata_wbtest.mbt",
+                "anchor": "GCS keeps exact generation integers"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request_wbtest.mbt",
+                "anchor": "GCS same physical bytes under different permissions"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity_wbtest.mbt",
+                "anchor": "GCS collection DATA cannot transfer"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-collection-target.test.mjs",
+                "anchor": "same data, copied projections"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_projection.mbt",
+      "role": "connector-semantics",
+      "owner": "Existing GCS Connector object semantics and physical projection",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_object_mutation_request",
+            "metadata_fields_json",
+            "object_metadata_logical_json",
+            "object_mutation_body_for",
+            "object_mutation_changes_json",
+            "object_mutation_projection_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original object request"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_mutation_projection_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_request_projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "actql-gcs-object-mutation-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Same binding and transport"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export async function sendOwnedGcsObjectRequest"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "anchor": "export function invokeScopedCredentialOperation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Rejected"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "pub fn gcs_object_failure_code"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "physical cleanup ACK"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Lifetime and limits"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "capability"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "Typed ABI projection only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
+                "anchor": "same original generation/metageneration"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection_wbtest.mbt",
+                "anchor": "GCS physical projection borrows the same request"
+              }
+            ]
+          }
+        }
+      ],
+      "operations": [
+        {
+          "name": "admit_object_mutation_request",
+          "declaration": "admit_object_mutation_request ( binding : ObjectMutationBinding , request : ObjectMutationRequest , ) - > Result [ Unit , ObjectRequestIssue ]"
+        },
+        {
+          "name": "metadata_fields_json",
+          "declaration": "metadata_fields_json ( fields : ObjectMetadataFields ) - > Json"
+        },
+        {
+          "name": "object_metadata_logical_json",
+          "declaration": "object_metadata_logical_json ( original : ObjectMetadata , limits : ObjectMetadataLimits , ) - > Result [ String , ObjectMetadataIssue ]"
+        },
+        {
+          "name": "object_mutation_body_for",
+          "declaration": "object_mutation_body_for ( binding : ObjectMutationBinding , request : ObjectMutationRequest , ) - > Result [ String , ObjectRequestIssue ]"
+        },
+        {
+          "name": "object_mutation_changes_json",
+          "declaration": "object_mutation_changes_json ( binding : ObjectMutationBinding , request : ObjectMutationRequest , ) - > Result [ String , ObjectRequestIssue ]"
+        },
+        {
+          "name": "object_mutation_projection_json",
+          "declaration": "object_mutation_projection_json ( binding : ObjectMutationBinding , request : ObjectMutationRequest , max_bytes : Int , ) - > Result [ String , ObjectRequestIssue ]"
+        }
+      ],
+      "exports": [],
+      "sha256": "f0193919983fd65120eb43192478a3ab9e0abb8562dcd57d75ee66fcbf890b1d"
+    },
+    {
+      "module": "src/connectors/gcs/host_node/object.mbt",
+      "role": "physical-io",
+      "owner": "GCS typed provider bridge; Common retains admission and physical lifecycle",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gcs_object_failure_code",
+            "gcs_object_metadata",
+            "gcs_object_metadata_json",
+            "gcs_object_mutation_binding",
+            "gcs_object_prepare_delete",
+            "gcs_object_prepare_patch",
+            "gcs_object_recheck",
+            "gcs_object_request_body",
+            "gcs_object_request_changes",
+            "gcs_object_request_projection"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original object request"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_mutation_projection_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_request_projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "actql-gcs-object-mutation-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Same binding and transport"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export async function sendOwnedGcsObjectRequest"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "anchor": "export function invokeScopedCredentialOperation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Rejected"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "pub fn gcs_object_failure_code"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "physical cleanup ACK"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Lifetime and limits"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "capability"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "Typed ABI projection only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
+                "anchor": "same original generation/metageneration"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection_wbtest.mbt",
+                "anchor": "GCS physical projection borrows the same request"
+              }
+            ]
+          }
+        }
+      ],
+      "operations": [
+        {
+          "name": "gcs_object_failure_code",
+          "declaration": "gcs_object_failure_code ( issue : GcsFailure ) - > String"
+        },
+        {
+          "name": "gcs_object_metadata",
+          "declaration": "gcs_object_metadata ( bytes : Bytes , bucket : String , prefix : String , name : String ? , max_bytes : Int , max_nodes : Int , max_depth : Int , max_entries : Int , ) - > Result [ @ catalog . ObjectMetadata , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_metadata_json",
+          "declaration": "gcs_object_metadata_json ( original : @ catalog . ObjectMetadata , max_bytes : Int , max_nodes : Int , max_depth : Int , max_entries : Int , ) - > Result [ String , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_mutation_binding",
+          "declaration": "gcs_object_mutation_binding ( kind : String , bucket : String , prefix : String , catalog_cid : String , installation_cid : String , contract_cid : String , permissions : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_entries : Int , max_path_bytes : Int , max_body_bytes : Int , max_identity_bytes : Int , ) - > Result [ @ catalog . ObjectMutationBinding , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_prepare_delete",
+          "declaration": "gcs_object_prepare_delete ( binding : @ catalog . ObjectMutationBinding , original : @ catalog . ObjectMetadata , ) - > Result [ @ catalog . ObjectMutationRequest , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_prepare_patch",
+          "declaration": "gcs_object_prepare_patch ( binding : @ catalog . ObjectMutationBinding , original : @ catalog . ObjectMetadata , changes : Bytes , marker : String , ) - > Result [ @ catalog . ObjectMutationRequest , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_recheck",
+          "declaration": "gcs_object_recheck ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , current : @ catalog . ObjectMetadata , ) - > Result [ Unit , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_request_body",
+          "declaration": "gcs_object_request_body ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , ) - > Result [ String , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_request_changes",
+          "declaration": "gcs_object_request_changes ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , ) - > Result [ String , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_request_projection",
+          "declaration": "gcs_object_request_projection ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , max_bytes : Int , ) - > Result [ String , GcsFailure ]"
+        }
+      ],
+      "exports": [],
+      "sha256": "726e29519fcf50fe80a5f20050c71d0249dfd1d479286f86854eee96773e0327"
+    },
+    {
+      "module": "src/connectors/gcs/host_node/pkg.generated.mbti",
+      "role": "physical-io",
+      "owner": "Actual generated GCS provider bridge API",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gcs_collection_binding",
+            "gcs_collection_check_binding",
+            "gcs_collection_failure_code",
+            "gcs_collection_identity_cid",
+            "gcs_collection_identity_json",
+            "gcs_collection_resource_json",
+            "gcs_object_failure_code",
+            "gcs_object_metadata",
+            "gcs_object_metadata_json",
+            "gcs_object_mutation_binding",
+            "gcs_object_prepare_delete",
+            "gcs_object_prepare_patch",
+            "gcs_object_recheck",
+            "gcs_object_request_body",
+            "gcs_object_request_changes",
+            "gcs_object_request_projection"
+          ],
+          "exports": [
+            "pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]",
+            "pub fn gcs_collection_check_binding(@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionBinding, String, String) -> Result[Unit, @catalog.ObjectCollectionIssue]",
+            "pub fn gcs_collection_failure_code(@catalog.ObjectCollectionIssue) -> String",
+            "pub fn gcs_collection_identity_cid(@catalog.ObjectCollectionBinding) -> String",
+            "pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String",
+            "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
+            "pub fn gcs_object_failure_code(GcsFailure) -> String",
+            "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
+            "pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]",
+            "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
+            "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
+            "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
+            "pub fn gcs_object_recheck(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Result[Unit, GcsFailure]",
+            "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
+            "pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
+            "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
+            "pub enum GcsFailure {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original object request"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Collection target material"
+              },
+              {
+                "path": "scripts/mapping-contract.mjs",
+                "anchor": "collection_resource_identity:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_mutation_projection_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_request_projection"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_collection_binding"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "actql-gcs-object-mutation-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql.collection_resource_identity/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql-gcs-resource-scope/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Same binding and transport"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub struct ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export async function sendOwnedGcsObjectRequest"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "anchor": "export function invokeScopedCredentialOperation"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "export function checkGcsCollectionTarget"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Rejected"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "pub fn gcs_object_failure_code"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) enum ObjectCollectionIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/collection.mbt",
+                "anchor": "pub fn gcs_collection_failure_code"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "physical cleanup ACK"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Lifetime and limits"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) struct ObjectCollectionLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Three separate representation clamps"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "capability"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "Typed ABI projection only"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "actual checked Command target"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "target_ref is an explicitly selected"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
+                "anchor": "same original generation/metageneration"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection_wbtest.mbt",
+                "anchor": "GCS physical projection borrows the same request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity_wbtest.mbt",
+                "anchor": "GCS collection DATA cannot transfer"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-collection-target.test.mjs",
+                "anchor": "same data, copied projections"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]",
+        "pub fn gcs_collection_check_binding(@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionBinding, String, String) -> Result[Unit, @catalog.ObjectCollectionIssue]",
+        "pub fn gcs_collection_failure_code(@catalog.ObjectCollectionIssue) -> String",
+        "pub fn gcs_collection_identity_cid(@catalog.ObjectCollectionBinding) -> String",
+        "pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String",
+        "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
+        "pub fn gcs_object_failure_code(GcsFailure) -> String",
+        "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
+        "pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
+        "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
+        "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
+        "pub fn gcs_object_recheck(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Result[Unit, GcsFailure]",
+        "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
+        "pub enum GcsFailure {"
+      ],
+      "operations": [
+        {
+          "name": "gcs_collection_binding",
+          "declaration": "pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]"
+        },
+        {
+          "name": "gcs_collection_check_binding",
+          "declaration": "pub fn gcs_collection_check_binding(@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionBinding, String, String) -> Result[Unit, @catalog.ObjectCollectionIssue]"
+        },
+        {
+          "name": "gcs_collection_failure_code",
+          "declaration": "pub fn gcs_collection_failure_code(@catalog.ObjectCollectionIssue) -> String"
+        },
+        {
+          "name": "gcs_collection_identity_cid",
+          "declaration": "pub fn gcs_collection_identity_cid(@catalog.ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "gcs_collection_identity_json",
+          "declaration": "pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "gcs_collection_resource_json",
+          "declaration": "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "gcs_object_failure_code",
+          "declaration": "pub fn gcs_object_failure_code(GcsFailure) -> String"
+        },
+        {
+          "name": "gcs_object_metadata",
+          "declaration": "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_metadata_json",
+          "declaration": "pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_mutation_binding",
+          "declaration": "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_prepare_delete",
+          "declaration": "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_prepare_patch",
+          "declaration": "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_recheck",
+          "declaration": "pub fn gcs_object_recheck(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Result[Unit, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_request_body",
+          "declaration": "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_request_changes",
+          "declaration": "pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_request_projection",
+          "declaration": "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]"
+        }
+      ],
+      "sha256": "370935f118a6c5911acb80b6b08e69c9b49b9e3511d9516864470c8da0f9a738"
+    },
+    {
+      "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+      "role": "physical-io",
+      "owner": "Existing GCS physical request adapter; Common retains authorization, claims, capture and cleanup",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitGcsObjectMetadata",
+            "fail/fail",
+            "freeze/freeze",
+            "gcsOwnedResult",
+            "integer/integer",
+            "metadataArguments",
+            "originalRequest",
+            "ownedGcsObjectRequestCid",
+            "prepareGcsObjectBinding",
+            "prepareGcsObjectBinding/prepareGcsObjectBinding",
+            "prepareGcsObjectBinding/prepareGcsObjectBinding#2",
+            "prepareGcsObjectBinding/prepareGcsObjectBinding#3",
+            "prepareOwnedGcsMetadataPatch",
+            "prepareOwnedGcsObjectDelete",
+            "projectGcsObjectMetadata",
+            "projectOwnedGcsObjectRequest",
+            "recheckOwnedGcsObjectRequest",
+            "sendOwnedGcsObjectRequest",
+            "wire/wire"
+          ],
+          "exports": [
+            "admitGcsObjectMetadata",
+            "gcsOwnedResult",
+            "ownedGcsObjectRequestCid",
+            "prepareGcsObjectBinding",
+            "prepareOwnedGcsMetadataPatch",
+            "prepareOwnedGcsObjectDelete",
+            "projectGcsObjectMetadata",
+            "projectOwnedGcsObjectRequest",
+            "recheckOwnedGcsObjectRequest",
+            "sendOwnedGcsObjectRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original object request"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_mutation_projection_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_request_projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "actql-gcs-object-mutation-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Same binding and transport"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export async function sendOwnedGcsObjectRequest"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "anchor": "export function invokeScopedCredentialOperation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Rejected"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "pub fn gcs_object_failure_code"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "physical cleanup ACK"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Lifetime and limits"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "capability"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "Typed ABI projection only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
+                "anchor": "same original generation/metageneration"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection_wbtest.mbt",
+                "anchor": "GCS physical projection borrows the same request"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "admitGcsObjectMetadata",
+        "gcsOwnedResult",
+        "ownedGcsObjectRequestCid",
+        "prepareGcsObjectBinding",
+        "prepareOwnedGcsMetadataPatch",
+        "prepareOwnedGcsObjectDelete",
+        "projectGcsObjectMetadata",
+        "projectOwnedGcsObjectRequest",
+        "recheckOwnedGcsObjectRequest",
+        "sendOwnedGcsObjectRequest"
+      ],
+      "operations": [
+        {
+          "name": "admitGcsObjectMetadata",
+          "parameters": [
+            "moon",
+            "bytes",
+            "bucket",
+            "prefix",
+            "name",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "freeze/freeze",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "gcsOwnedResult",
+          "parameters": [
+            "moon",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value",
+            "minimum"
+          ],
+          "async": false
+        },
+        {
+          "name": "metadataArguments",
+          "parameters": [
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalRequest",
+          "parameters": [
+            "request",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedGcsObjectRequestCid",
+          "parameters": [
+            "request",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsObjectBinding",
+          "parameters": [
+            "moon",
+            "kind",
+            "bucket",
+            "prefix",
+            "catalogCid",
+            "installationCid",
+            "contractCid",
+            "permissions",
+            "metadata",
+            "maxPathBytes",
+            "maxBodyBytes",
+            "maxIdentityBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsObjectBinding/prepareGcsObjectBinding",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsObjectBinding/prepareGcsObjectBinding#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsObjectBinding/prepareGcsObjectBinding#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOwnedGcsMetadataPatch",
+          "parameters": [
+            "moon",
+            "binding",
+            "original",
+            "value",
+            "marker",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOwnedGcsObjectDelete",
+          "parameters": [
+            "moon",
+            "binding",
+            "original",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectGcsObjectMetadata",
+          "parameters": [
+            "moon",
+            "original",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectOwnedGcsObjectRequest",
+          "parameters": [
+            "moon",
+            "binding",
+            "handle",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "recheckOwnedGcsObjectRequest",
+          "parameters": [
+            "request",
+            "current",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendOwnedGcsObjectRequest",
+          "parameters": [
+            "request",
+            "authorization",
+            "credential",
+            "callResource",
+            "maxRequestBytes",
+            "maxResponseBytes",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "wire/wire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "41bf35abb938dbdc11fb1d9ab354edb20b5aedca392a626c7aa182b17905e4b0"
+    },
+    {
+      "module": "src/connectors/gcs/catalog/collection_identity.mbt",
+      "role": "connector-semantics",
+      "owner": "Existing GCS Connector collection identity DATA; Common retains Mapping/Command admission and references",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_object_collection_binding",
+            "collection_cid",
+            "collection_json",
+            "object_collection_identity_cid",
+            "object_collection_identity_json",
+            "object_collection_resource_json",
+            "prepare_object_collection_binding"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Collection target material"
+              },
+              {
+                "path": "scripts/mapping-contract.mjs",
+                "anchor": "collection_resource_identity:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_collection_binding"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql.collection_resource_identity/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql-gcs-resource-scope/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub struct ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "export function checkGcsCollectionTarget"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) enum ObjectCollectionIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/collection.mbt",
+                "anchor": "pub fn gcs_collection_failure_code"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded Connector DATA only. No I/O, asynchronous custody, permission or cleanup ACK is issued; the existing installed Common receiver retains currentness, cancellation and cleanup."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) struct ObjectCollectionLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Three separate representation clamps"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "actual checked Command target"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "target_ref is an explicitly selected"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity_wbtest.mbt",
+                "anchor": "GCS collection DATA cannot transfer"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-collection-target.test.mjs",
+                "anchor": "same data, copied projections"
+              }
+            ]
+          }
+        }
+      ],
+      "operations": [
+        {
+          "name": "check_object_collection_binding",
+          "declaration": "check_object_collection_binding ( original : ObjectCollectionBinding , selected : ObjectCollectionBinding , installation_cid : String , target_ref : String , ) - > Result [ Unit , ObjectCollectionIssue ]"
+        },
+        {
+          "name": "collection_cid",
+          "declaration": "collection_cid ( wire : String ) - > String"
+        },
+        {
+          "name": "collection_json",
+          "declaration": "collection_json ( body : Json , limits : ObjectCollectionLimits , ) - > Result [ String , ObjectCollectionIssue ]"
+        },
+        {
+          "name": "object_collection_identity_cid",
+          "declaration": "object_collection_identity_cid ( binding : ObjectCollectionBinding , ) - > String"
+        },
+        {
+          "name": "object_collection_identity_json",
+          "declaration": "object_collection_identity_json ( binding : ObjectCollectionBinding , ) - > String"
+        },
+        {
+          "name": "object_collection_resource_json",
+          "declaration": "object_collection_resource_json ( binding : ObjectCollectionBinding , ) - > String"
+        },
+        {
+          "name": "prepare_object_collection_binding",
+          "declaration": "prepare_object_collection_binding ( project : String , bucket : String , prefix : String , target_ref : String , resource_kind : String , catalog_cid : String , installation_cid : String , limits : ObjectCollectionLimits , ) - > Result [ ObjectCollectionBinding , ObjectCollectionIssue ]"
+        }
+      ],
+      "exports": [],
+      "sha256": "2141941599a1fb9b37c4127aae8bc6d72b839156320b25630e7cd617b066747e"
+    },
+    {
+      "module": "src/connectors/gcs/host_node/collection.mbt",
+      "role": "physical-io",
+      "owner": "GCS typed provider DATA bridge; existing installed Common reference issuer remains authoritative",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gcs_collection_binding",
+            "gcs_collection_check_binding",
+            "gcs_collection_failure_code",
+            "gcs_collection_identity_cid",
+            "gcs_collection_identity_json",
+            "gcs_collection_resource_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Collection target material"
+              },
+              {
+                "path": "scripts/mapping-contract.mjs",
+                "anchor": "collection_resource_identity:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_collection_binding"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql.collection_resource_identity/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql-gcs-resource-scope/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub struct ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "export function checkGcsCollectionTarget"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) enum ObjectCollectionIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/collection.mbt",
+                "anchor": "pub fn gcs_collection_failure_code"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded Connector DATA only. No I/O, asynchronous custody, permission or cleanup ACK is issued; the existing installed Common receiver retains currentness, cancellation and cleanup."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) struct ObjectCollectionLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Three separate representation clamps"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "actual checked Command target"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "target_ref is an explicitly selected"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity_wbtest.mbt",
+                "anchor": "GCS collection DATA cannot transfer"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-collection-target.test.mjs",
+                "anchor": "same data, copied projections"
+              }
+            ]
+          }
+        }
+      ],
+      "operations": [
+        {
+          "name": "gcs_collection_binding",
+          "declaration": "gcs_collection_binding ( project : String , bucket : String , prefix : String , target_ref : String , resource_kind : String , catalog_cid : String , installation_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ catalog . ObjectCollectionBinding , @ catalog . ObjectCollectionIssue ]"
+        },
+        {
+          "name": "gcs_collection_check_binding",
+          "declaration": "gcs_collection_check_binding ( original : @ catalog . ObjectCollectionBinding , selected : @ catalog . ObjectCollectionBinding , installation_cid : String , target_ref : String , ) - > Result [ Unit , @ catalog . ObjectCollectionIssue ]"
+        },
+        {
+          "name": "gcs_collection_failure_code",
+          "declaration": "gcs_collection_failure_code ( issue : @ catalog . ObjectCollectionIssue , ) - > String"
+        },
+        {
+          "name": "gcs_collection_identity_cid",
+          "declaration": "gcs_collection_identity_cid ( binding : @ catalog . ObjectCollectionBinding , ) - > String"
+        },
+        {
+          "name": "gcs_collection_identity_json",
+          "declaration": "gcs_collection_identity_json ( binding : @ catalog . ObjectCollectionBinding , ) - > String"
+        },
+        {
+          "name": "gcs_collection_resource_json",
+          "declaration": "gcs_collection_resource_json ( binding : @ catalog . ObjectCollectionBinding , ) - > String"
+        }
+      ],
+      "exports": [],
+      "sha256": "7193414b188060e2c41133275c9c3f4cba74ed9ed98e469a1a2b67dfba3a7dc3"
+    },
+    {
+      "module": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+      "role": "physical-io",
+      "owner": "GCS physical projection of original provider collection DATA; no reference or I/O permission issuance",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkGcsCollectionTarget",
+            "collectionResult",
+            "fail/fail",
+            "integer/integer",
+            "prepareGcsCollectionTarget",
+            "prepareGcsCollectionTarget/prepareGcsCollectionTarget"
+          ],
+          "exports": [
+            "checkGcsCollectionTarget",
+            "prepareGcsCollectionTarget"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Collection target material"
+              },
+              {
+                "path": "scripts/mapping-contract.mjs",
+                "anchor": "collection_resource_identity:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_collection_binding"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_binding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql.collection_resource_identity/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "actql-gcs-resource-scope/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub struct ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "export function checkGcsCollectionTarget"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) enum ObjectCollectionIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/collection.mbt",
+                "anchor": "pub fn gcs_collection_failure_code"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded Connector DATA only. No I/O, asynchronous custody, permission or cleanup ACK is issued; the existing installed Common receiver retains currentness, cancellation and cleanup."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "pub(all) struct ObjectCollectionLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Three separate representation clamps"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "actual checked Command target"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity.mbt",
+                "anchor": "target_ref is an explicitly selected"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/collection_identity_wbtest.mbt",
+                "anchor": "GCS collection DATA cannot transfer"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-collection-target.test.mjs",
+                "anchor": "same data, copied projections"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "checkGcsCollectionTarget",
+        "prepareGcsCollectionTarget"
+      ],
+      "operations": [
+        {
+          "name": "checkGcsCollectionTarget",
+          "parameters": [
+            "original",
+            "selected",
+            "installationCid",
+            "targetRef"
+          ],
+          "async": false
+        },
+        {
+          "name": "collectionResult",
+          "parameters": [
+            "moon",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsCollectionTarget",
+          "parameters": [
+            "moon",
+            "project",
+            "bucket",
+            "prefix",
+            "targetRef",
+            "resourceKind",
+            "catalogCid",
+            "installationCid",
+            "maxBytes",
+            "maxNodes",
+            "maxDepth"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsCollectionTarget/prepareGcsCollectionTarget",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "114d527c939ec429bffc134cf2bc2493afad1c008ac624c338235169ced14af5"
+    }
+  ]
+}

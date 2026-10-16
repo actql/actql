@@ -450,6 +450,9 @@ fn compile_query_script_with_source(
       carrier_work: limits.max_expression_work,
     }
     let root = @query.script_query(script)
+    if @query.terminal_store_effect(root) is Some(_) {
+      raise Abort(UnsupportedEffect)
+    }
     // Complete authoritative target selection before the existing Relation
     // lowerer resolves ID/SET or builds a private UPDATE capture.
     let update_target = match @query.terminal_effect(root) {

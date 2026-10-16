@@ -8,6 +8,7 @@
       "kind": "bound_input"
     },
     "verdict": "invalid",
+    "runnable": {"verdict": "no", "reasons": [{"code": "parameter_unused"}]},
     "inputs": [
       {
         "document_id": "source",
@@ -42,5 +43,5 @@
       "unresolved": []
     }
   },
-  "outcome_schema_cid": "sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a"
+  "outcome_schema_cid": "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce"
 }
