@@ -34,7 +34,7 @@ pub(all) enum WriteBodyIssue {
 pub struct WriteBody {
   priv catalog : PropertyCatalog
   priv names : Array[String]
-  priv properties_json : String
+  priv properties_document : @encode.EncodedDocument
   priv value_json : String
 }
 
@@ -52,7 +52,7 @@ priv suberror WriteBodyStop {
 
 ///|
 pub fn write_body_properties_json(body : WriteBody) -> String {
-  body.properties_json
+  @encode.document_text(body.properties_document)
 }
 
 ///|
@@ -351,7 +351,7 @@ pub fn prepare_write_body(
     Ok({
       catalog,
       names: names.copy(),
-      properties_json: @encode.finish(provider),
+      properties_document: @encode.finish_document(provider),
       value_json: @encode.finish(values),
     })
   } catch {

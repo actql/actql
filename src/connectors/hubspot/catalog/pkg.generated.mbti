@@ -21,6 +21,10 @@ pub fn object_row_values(ObjectRow) -> Array[@value_admission.CheckedValue]
 
 pub fn object_schema_wire(PropertyCatalog, Array[String], Int, Int, Int, Int, Int) -> Result[String, ObjectPageIssue]
 
+pub fn prepare_record_batch_request(PropertyCatalog, RecordWriteOperation, Array[RecordWriteInput], RecordRequestLimits) -> Result[RecordBatchRequest, RecordRequestIssue]
+
+pub fn prepare_record_target(PropertyCatalog, String, Bytes, WriteBodyLimits) -> Result[RecordTarget, RecordRequestIssue]
+
 pub fn prepare_write_body(PropertyCatalog, Array[String], Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
 
 pub fn project_account_identity(Bytes, @source_value.ParseLimits) -> Result[AccountIdentity, AccountIdentityIssue]
@@ -41,7 +45,17 @@ pub fn recheck_account_identity(AccountIdentity, String) -> Result[Unit, Account
 
 pub fn recheck_property_catalog(PropertyCatalog, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
 
+pub fn recheck_record_batch_request(RecordBatchRequest, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
+
 pub fn recheck_write_body(WriteBody, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
+
+pub fn record_batch_request_body(RecordBatchRequest) -> String
+
+pub fn record_batch_request_count(RecordBatchRequest) -> Int
+
+pub fn record_batch_request_input(RecordBatchRequest, Int) -> RecordWriteInput?
+
+pub fn record_batch_request_object_type(RecordBatchRequest) -> String
 
 pub fn require_property_write(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
 
@@ -142,6 +156,54 @@ pub struct PropertyMetadata {
   writable : Bool?
   // private fields
 } derive(Eq)
+
+pub struct RecordBatchRequest {
+  operation : RecordWriteOperation
+  // private fields
+}
+
+pub(all) enum RecordRequestIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidTarget
+  Property(PropertyIssue)
+  Value(WriteBodyIssue)
+  ForeignCatalog
+  MissingTarget
+  UnexpectedTarget
+  ForeignTargetKey
+  DuplicateTarget
+  InvalidTrace
+  DuplicateTrace
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordRequestLimits {
+  max_rows : Int
+  max_properties : Int
+  max_trace_bytes : Int
+  max_body_bytes : Int
+  max_body_nodes : Int
+  max_body_depth : Int
+}
+
+pub struct RecordTarget {
+  key : String
+  value_wire : String
+  provider_value : String
+  // private fields
+}
+
+pub(all) struct RecordWriteInput {
+  body : WriteBody
+  target : RecordTarget?
+  trace_id : String
+}
+
+pub(all) enum RecordWriteOperation {
+  Create
+  Update
+  Upsert(String)
+}
 
 pub struct WriteBody {
   // private fields
