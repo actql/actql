@@ -158,6 +158,27 @@ test('byte length/backing properties cannot disguise an over-limit or shared sou
     {code: 'InvalidHttpRequestBody'});
 });
 
+test('resizable shrink after metadata admission cannot expose uninitialized body bytes', () => {
+  const backing = new ArrayBuffer(4, {maxByteLength: 8});
+  const source = new Uint8Array(backing);
+  source.set([1, 2, 3, 4]);
+  const query = ['name', 'original'];
+  Object.defineProperty(query, 1, {get() { backing.resize(2); return 'original'; }});
+  assert.throws(() => ownHttpByteRequest({method: 'POST', path: '/upload', query: [query],
+    bodyBytes: source, bodyMediaType: 'application/octet-stream', maxBodyBytes: 4}),
+  {code: 'InvalidHttpRequestBody'});
+});
+
+test('resizable growth after metadata admission refuses rather than changing the snapshot extent', () => {
+  const backing = new ArrayBuffer(4, {maxByteLength: 8});
+  const source = new Uint8Array(backing);
+  const query = ['name', 'original'];
+  Object.defineProperty(query, 1, {get() { backing.resize(8); return 'original'; }});
+  assert.throws(() => ownHttpByteRequest({method: 'POST', path: '/upload', query: [query],
+    bodyBytes: source, bodyMediaType: 'application/octet-stream', maxBodyBytes: 4}),
+  {code: 'InvalidHttpRequestBody'});
+});
+
 test('response header observation admits only declared names under caps', () => {
   const received = {link: '<https://api.example/next>; rel="next"',
     'x-ratelimit-remaining': '0', 'x-secret': 'never', 'set-cookie': ['a=b']};
