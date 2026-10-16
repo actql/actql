@@ -1051,7 +1051,7 @@ pub fn client_submission_reference_record_wire(ClientSubmissionReferenceRecord) 
 
 pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
-pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
+pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?, run_state_observation? : (Int64, String?)?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_submitted_intent_transition(String, String) -> Bool
 
@@ -1884,6 +1884,8 @@ pub fn submission_epoch_validity(@logical_request_scope.SubmissionEpoch, Double)
 pub fn submission_epoch_wire(@logical_request_scope.SubmissionEpoch) -> String
 
 pub fn submission_request_id(@logical_request_scope.SubmissionEpoch, String) -> Result[String, @logical_request_scope.SubmissionIdentityIssue]
+
+pub fn validate_client_historical_run_state_original(@run_publication.PublicationContract, String) -> Result[Unit, ClientJournalDecodingIssue]
 
 pub fn validate_client_local_run_policy_original_run(Bytes, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[Unit, ClientLocalRunPolicyProfileIssue]
 
@@ -3693,6 +3695,7 @@ pub(all) struct ClientSubmittedJournalEncoding {
   intent : ClientSubmittedIntent
   run_admission : (ClientRequestIdentity, String, Int64)?
   run_state_original : String?
+  run_state_observation : (Int64, String?)?
 }
 
 pub(all) enum ClientSubmittedRunRecordIssue {

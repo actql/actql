@@ -700,6 +700,21 @@ fn consume_row_page_charge(
 }
 
 ///|
+/// Consume one original physical-response charge without inventing a data
+/// page. The installer still owns the operation's authorization, request count
+/// and observation semantics. No row, Source completion, permission or cleanup
+/// ACK is issued here; actual transfer stays charged to this same RowRun Ledger.
+pub fn consume_row_run_observation_charge(
+  run : RowRun,
+  charge : RowPageCharge,
+) -> Result[Unit, RowHostIssue] {
+  if run.physical is None {
+    return Err(InvalidState)
+  }
+  consume_row_page_charge(run, charge)
+}
+
+///|
 /// Admit one JSON page with exactly one charge of its actual received bytes.
 /// A refused page aborts the attempt.
 pub fn accept_row_run_page(
