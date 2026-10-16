@@ -40,6 +40,51 @@ both by field ID. Actual Parquet files are inspected before default projection;
 missing/NULL companions, missing value fields, and false-with-value are refused.
 Ordinary Iceberg readers expose the physical columns, not ActQL absence rules.
 
+## Data interface and materialization ownership
+
+The logical Carrier/schema and storage Mapping are separate contracts. The
+existing Table capture owner admits the Relation and its schema CID; the Local
+mapping binds physical field IDs and types. `physical.py` validates the actual
+Parquet fields before projection, including the presence companions. It does
+not repair a missing companion, substitute an Iceberg default, or infer an
+ActQL field from its position. Duplicate rows and exact data text survive the
+physical conversion. Number fields are binary64, including negative zero;
+Python integers must be exactly representable, and booleans are not numbers.
+Invalid UTF-8/surrogates and nonfinite numbers refuse rather than normalize.
+
+Arrow chunks and process frames are different boundaries. `decode_physical`
+preserves the order of the supplied Arrow Table, including across empty chunks;
+an empty chunk does not signal end-of-stream. A frozen Iceberg generation does
+not promise file/scan order. A typed empty Table keeps its complete schema and
+does not manufacture a row, file, or snapshot. The current process protocol
+accepts one execute request after its handshake, with a four-byte length prefix
+and the existing 4 MiB/100,000-node/depth-32 bounds. Partial byte reads are not
+partial rows; EOF within an announced frame is a failure, not successful EOS.
+The existing session/run/sequence checks reject foreign or repeated frames.
+This is a bounded whole-Relation implementation, not a new streaming channel.
+
+Borrowing an Arrow slice can retain its original buffers. Dropping the parent
+Table or observing GC does not prove that backing was physically retired.
+The initial writer materializes the already bounded input: original captured
+material, the JS private-frame snapshot/encoded Buffer, the Python frame
+bytearray/decoded text/row tree, mapped presence rows, and Arrow buffers may
+overlap. Readback similarly owns the decoded physical rows and response frame
+until the existing process/capture handoff finishes. These are distinct owned
+materializations, not additional logical rows or independent authority. A copy
+is not free because its content CID matches the original. The transport bounds
+above are physical clamps, not a proof of the entire simultaneous heap or a
+new Ledger grant; a selected Host's existing acquisition/retention declaration
+must cover its actual overlap. No new capacity coefficients are defined here.
+
+Cancellation and channel closure do not establish stopped writer, committed
+operation, or reclaimed files. The existing managed-process and Catalog
+custody owners retain those responsibilities through uncertain replies and
+cleanup failure. `data_channel_test.py` exercises real Arrow buffers/chunks,
+Parquet types/field IDs and multiple Iceberg files; `physical_test.py` fixes
+the original presence and empty-schema cases; `process_worker_test.py` fixes
+fragmentation, truncation, byte bounds and foreign-frame refusal. These are
+physical owner tests, not public approval or whole-profile funding acceptance.
+
 ## Publication and physical custody
 
 One operation stages one complete Relation. Whole-table replace binds exact
