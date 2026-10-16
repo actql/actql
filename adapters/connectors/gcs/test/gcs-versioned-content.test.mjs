@@ -45,9 +45,10 @@ function fixture({metadata = {}, media = body, metadataResponse = {},
       state.events.push(`get:${state.calls.length}`);
       assert.equal(invocation.returnRejectedResponse, true);
       assert.equal(request.method, 'GET');
-      assert.deepEqual(request.headers, [['accept-encoding', 'identity']]);
-      assert.equal(request.body, undefined);
       const mediaRead = state.calls.length === 2;
+      assert.deepEqual(request.headers, [['accept-encoding', mediaRead &&
+        originalMetadata.contentEncoding === 'gzip' ? 'gzip' : 'identity']]);
+      assert.equal(request.body, undefined);
       return {accepted: true, statusCode: 200, headers: [],
         useCid: `fixture-use-${state.calls.length}`,
         body: mediaRead ? media : Buffer.from(JSON.stringify(originalMetadata)),
@@ -122,7 +123,7 @@ for (const [name, change] of [
 }
 
 for (const [name, change, expectedCalls] of [
-  ['gzip metadata', {metadata: {contentEncoding: 'gzip'}}, 1],
+  ['gzip metadata without the matching media representation', {metadata: {contentEncoding: 'gzip'}}, 2],
   ['gzip media', {mediaResponse: {headers: [['content-encoding', 'gzip']]}}, 2],
   ['range media', {mediaResponse: {headers: [['content-range', 'bytes 0-8/10']]}}, 2],
 ]) {

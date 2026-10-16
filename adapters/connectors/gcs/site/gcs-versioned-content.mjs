@@ -17,12 +17,15 @@ const size = value => typeof value === 'string' && /^(0|[1-9][0-9]{0,19})$/u.tes
 const encode = value => encodeURIComponent(value).replace(/[!'()*]/gu,
   char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 
-function physicalRequest(target, phase, metageneration) {
+function physicalRequest(target, phase, metageneration, contentEncoding = 'identity') {
   return ownHttpRequest({method: 'GET',
     path: `/storage/v1/b/${encode(target.bucket)}/o/${encode(target.objectName)}`,
     query: [['generation', target.generation], ['ifGenerationMatch', target.generation],
       ...(phase === 'media' ? [['alt', 'media'], ['ifMetagenerationMatch', metageneration]] : [])],
-    headers: [['accept-encoding', 'identity']]});
+    // GCS may otherwise transparently decompress a stored gzip object. The
+    // selected original metadata fixes this request's exact representation;
+    // the existing HTTP adapter returns raw bytes and must not decode them.
+    headers: [['accept-encoding', phase === 'media' ? contentEncoding : 'identity']]});
 }
 
 // The same immutable operation envelope is observed by the existing keyed
@@ -80,7 +83,7 @@ function setup(options) {
   return Object.freeze({...context, target});
 }
 
-function responseHeaders(response) {
+function responseHeaders(response, expectedEncoding = 'identity') {
   if (!Array.isArray(response.headers)) fail('InvalidGcsContentResponse');
   const result = new Map();
   for (const pair of response.headers) {
@@ -89,8 +92,9 @@ function responseHeaders(response) {
         result.has(pair[0])) fail('InvalidGcsContentResponse');
     result.set(pair[0], pair[1]);
   }
-  if (result.has('content-range') || (result.has('content-encoding') &&
-      result.get('content-encoding') !== 'identity')) {
+  const encoding = result.get('content-encoding');
+  if (result.has('content-range') || (expectedEncoding === 'gzip'
+    ? encoding !== 'gzip' : encoding !== undefined && encoding !== 'identity')) {
     fail('GcsContentRepresentationUnsupported');
   }
   return result;
@@ -117,12 +121,14 @@ function metadata(body, target, limits) {
       value.generation !== target.generation || !token(value.metageneration) ||
       !size(value.size) || BigInt(value.size) > BigInt(limits.maxContentBytes) ||
       !exactText(value.contentType, 1024)) fail('GcsContentMetadataMismatch');
-  if (value.contentEncoding !== undefined && value.contentEncoding !== 'identity') {
+  if (value.contentEncoding !== undefined && value.contentEncoding !== 'identity' &&
+      value.contentEncoding !== 'gzip') {
     fail('GcsContentRepresentationUnsupported');
   }
   return Object.freeze({bucket: target.bucket, objectName: target.objectName,
     generation: target.generation, metageneration: value.metageneration,
     sizeBytes: BigInt(value.size), mediaType: value.contentType,
+    ...(value.contentEncoding === 'gzip' ? {contentEncoding: 'gzip'} : {}),
     crc32c: digestText(value.crc32c, 4),
     ...(value.md5Hash === undefined ? {} : {md5: digestText(value.md5Hash, 16)})});
 }
@@ -175,9 +181,9 @@ export async function readGcsVersionedContent(options) {
   const signal = AbortSignal.any([AbortSignal.timeout(limits.maxTimeMs),
     ...(options.signal === undefined ? [] : [options.signal])]);
   const observations = [];
-  async function request(phase, maxBytes, metageneration) {
+  async function request(phase, maxBytes, metageneration, contentEncoding = 'identity') {
     signal.throwIfAborted();
-    const selected = physicalRequest(target, phase, metageneration);
+    const selected = physicalRequest(target, phase, metageneration, contentEncoding);
     const auth = phase === 'metadata' ? context.authorization
       : authorization(ownInvocationAuthorization(
         await callbacks.authorizationForRequest(Object.freeze({phase, target,
@@ -198,7 +204,7 @@ export async function readGcsVersionedContent(options) {
     if (charge === undefined || charge === null) fail('GcsContentChargeMissing');
     if (response.body.length > maxBytes) fail('GcsContentResponseBytesExceeded');
     if (!response.accepted || response.statusCode !== 200) fail('GcsContentResourceRejected');
-    const headers = responseHeaders(response);
+    const headers = responseHeaders(response, phase === 'media' ? contentEncoding : 'identity');
     if (headers.has('x-goog-generation') &&
         headers.get('x-goog-generation') !== target.generation) {
       fail('GcsContentMetadataMismatch');
@@ -213,7 +219,8 @@ export async function readGcsVersionedContent(options) {
       metaResponse.headers.get('x-goog-metageneration') !== meta.metageneration) {
     fail('GcsContentMetadataMismatch');
   }
-  const media = await request('media', limits.maxContentBytes, meta.metageneration);
+  const media = await request('media', limits.maxContentBytes, meta.metageneration,
+    meta.contentEncoding);
   if (media.headers.has('x-goog-metageneration') &&
       media.headers.get('x-goog-metageneration') !== meta.metageneration) {
     fail('GcsContentMetadataMismatch');
