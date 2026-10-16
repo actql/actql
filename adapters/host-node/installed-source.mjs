@@ -212,8 +212,13 @@ async function readProfile(path) {
   }
   try { return await readSourceProfileJson(path); }
   catch (cause) {
-    throw Object.assign(new TypeError('InvalidInstalledSourceProfile',
+    const failure = Object.assign(new TypeError('InvalidInstalledSourceProfile',
       {cause}), {code: 'InvalidInstalledSourceProfile'});
+    if (cause?.cleanupHandle !== undefined) {
+      Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
+        cleanupPending: cause.cleanupPending});
+    }
+    throw failure;
   }
 }
 
@@ -250,7 +255,8 @@ export async function loadInstalledSource(path, {root, principalId, moon,
     if (queryAliases.length === 0) delete identityProfile.queryAliases;
     publicationRevision = sourceIdentityFromParts(await module.identityParts(
       identityProfile, providerProfile, readSourceProfileJson, entry), queryAliases);
-  } catch {
+  } catch (cause) {
+    if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
     // Usable positive installation metadata alone cannot prove completeness.
   }
   const adapter = await module.load(checked, {root, principalId, moon,
@@ -262,7 +268,10 @@ export async function loadInstalledSource(path, {root, principalId, moon,
     if (publicationRevision !== undefined) {
       let current;
       try { current = await installedSourceIdentity(path, {connectorTable}); }
-      catch { /* Missing metadata leaves the namespace observation unresolved. */ }
+      catch (cause) {
+        if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
+        // Missing metadata leaves the namespace observation unresolved.
+      }
       if (current === publicationRevision) {
         sourcePublications.set(source, Object.freeze({path,
           revision: publicationRevision, aliases: queryAliases}));

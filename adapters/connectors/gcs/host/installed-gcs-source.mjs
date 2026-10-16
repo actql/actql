@@ -2,7 +2,6 @@
 // declaration, RowRun, ReferenceIssuer and lookup owners as other Sources.
 // Loading reads only installed documents; it never resolves a token or lists.
 import {createHash} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {createInstalledRowSource, installRowSourceAuthorization,
@@ -10,6 +9,7 @@ import {createInstalledRowSource, installRowSourceAuthorization,
   '../../../host-node/installed-row-source.mjs';
 import {retainInstalledHostInitializationFailure} from
   '../../../host-node/installed-host-cleanup.mjs';
+import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
 import {checkInstalledGcsSourceProfile as checkProfile, restoreGcsSourceDeclaration,
   GCS_REGISTRATION, GCS_REVISION} from './gcs-source-declaration.mjs';
 import {readGcsFileListing, GCS_FILE_LIST_OPERATION} from '../site/gcs-file-listing.mjs';
@@ -54,10 +54,13 @@ function checkSite(site) {
 
 async function readSite(path) {
   try {
-    const body = await readFile(path);
-    if (body.byteLength > 1048576) fail('InvalidInstalledGcsSite');
-    return checkSite(JSON.parse(body.toString('utf8')));
+    return checkSite(await readSourceProfileJson(path, {maxBytes: 1048576}));
   } catch (cause) {
+    if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) {
+      throw Object.assign(new Error('InvalidInstalledGcsSite', {cause}),
+        {code: 'InvalidInstalledGcsSite', cleanupHandle: cause.cleanupHandle,
+          cleanupPending: cause.cleanupPending});
+    }
     if (cause?.code === 'InvalidInstalledGcsSite') throw cause;
     fail('InvalidInstalledGcsSite', cause);
   }
@@ -65,7 +68,7 @@ async function readSite(path) {
 
 export async function installedGcsSourceIdentityParts(profile, providerProfile, read) {
   const installed = checkInstalledGcsSourceProfile(providerProfile);
-  const site = checkSite(await read(installed.siteProfilePath));
+  const site = checkSite(await read(installed.siteProfilePath, {maxBytes: 1048576}));
   // Installation configuration has its own canonicalization. Exact object
   // scope is data: commit its value CID so NFC never merges different prefixes.
   return [{...profile, accountConfigurationWire: JSON.parse(profile.accountConfigurationWire)},

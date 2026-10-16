@@ -9,13 +9,14 @@ import {retainInstalledHostInitializationFailure} from './installed-host-cleanup
 import {loadInstalledSource} from './installed-source.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 
-async function fixture(t, {body = '{}', mode = 'false', failOpen = 1} = {}) {
+async function fixture(t, {body = '{}', mode = 'false', failOpen = 1,
+  closeFailure = Object.freeze(new Error('OriginalProfileCloseFailure'))} = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'profile-custody-', label: 'Original configuration FD cleanup counter'});
   const path = join(scratch.path, 'profile.json');
   await fs.writeFile(path, body);
   const open = fs.open;
-  const primary = Object.freeze(new Error('OriginalProfileCloseFailure'));
+  const primary = closeFailure;
   const state = {opens: 0, reads: 0, closes: 0, allowClose: false, handles: []};
   fs.open = async (name, ...args) => {
     const handle = await open(name, ...args);
@@ -44,6 +45,25 @@ async function fixture(t, {body = '{}', mode = 'false', failOpen = 1} = {}) {
     scratch.passed();
   });
   return {path, primary, state};
+}
+
+for (const field of ['cleanupHandle', 'cleanupPending']) {
+  test(`readonly ${field} cannot hide original configuration cleanup`, async t => {
+    const primary = Object.defineProperty(new Error('ReadonlyProfileClose'), field,
+      {value: field === 'cleanupPending' ? false : undefined});
+    const f = await fixture(t, {mode: 'reject', closeFailure: primary});
+    let failure;
+    await assert.rejects(readSourceProfileJson(f.path), error => {
+      failure = error;
+      assert.equal(error.cause, primary);
+      assert.equal(error.cleanupHandle.status().pending, true);
+      assert.equal(primary[field], field === 'cleanupPending' ? false : undefined);
+      return true;
+    });
+    f.state.allowClose = true;
+    await failure.cleanupHandle.retry();
+    await assert.rejects(f.state.handles[0].stat(), {code: 'EBADF'});
+  });
 }
 
 for (const mode of ['false', 'reject']) {

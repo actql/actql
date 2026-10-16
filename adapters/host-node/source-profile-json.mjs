@@ -11,7 +11,21 @@ export async function readSourceProfileJson(path,
       maxBytes > profileByteLimit) {
     throw new TypeError('InvalidInstalledSourceProfileByteLimit');
   }
-  const file = await openFile(path, 'r');
+  return readConfiguration(path, maxBytes, openFile,
+    bytes => JSON.parse(bytes.toString('utf8')));
+}
+
+// Publications may have a different declared ceiling and hash their original
+// UTF-8 text. Do not parse/reserialize them or impose the JSON profile ceiling.
+export async function readBoundedConfigurationText(path, {maxBytes, openFile = open} = {}) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) {
+    throw new TypeError('InvalidInstalledSourceProfileByteLimit');
+  }
+  return readConfiguration(path, maxBytes, openFile, bytes => bytes.toString('utf8'));
+}
+
+async function readConfiguration(path, maxBytes, openFile, project) {
+  let original = await openFile(path, 'r');
   let failure;
   try {
     const chunks = [];
@@ -21,11 +35,11 @@ export async function readSourceProfileJson(path,
     for (;;) {
       // One lookahead byte distinguishes exact-limit EOF from an oversized
       // file, including one that grows after it is opened. Never readFile.
-      const {bytesRead} = await file.read(buffer, used,
+      const {bytesRead} = await original.read(buffer, used,
         buffer.length - used, null);
       if (bytesRead === 0) {
         chunks.push(buffer.subarray(0, used));
-        return JSON.parse(Buffer.concat(chunks, bytes).toString('utf8'));
+        return project(Buffer.concat(chunks, bytes));
       }
       bytes += bytesRead;
       used += bytesRead;
@@ -42,11 +56,51 @@ export async function readSourceProfileJson(path,
     failure = cause;
     throw cause;
   } finally {
-    try { await file.close(); }
+    try {
+      if (await original.close() === false) {
+        throw new TypeError('InstalledSourceProfileCleanupPending');
+      }
+      original = undefined;
+    }
     catch (cause) {
-      if (failure === undefined) throw cause;
-      throw new AggregateError([failure, cause], failure.message,
-        {cause: failure});
+      const first = cause;
+      let latest = cause, flight;
+      const status = () => Object.freeze({pending: original !== undefined,
+        errors: Object.freeze(first === latest ? [first] : [first, latest])});
+      const retry = () => {
+        if (flight !== undefined) return flight;
+        flight = (async () => {
+          if (original !== undefined) {
+            try {
+              if (await original.close() === false) {
+                throw new TypeError('InstalledSourceProfileCleanupPending');
+              }
+              original = undefined;
+            } catch (error) { latest = error; throw error; }
+          }
+          return status();
+        })().finally(() => { flight = undefined; });
+        return flight;
+      };
+      const cleanupHandle = Object.freeze({status, retry});
+      const primary = failure === undefined ? cause : new AggregateError(
+        [failure, cause], failure.message, {cause: failure});
+      const descriptors = {
+        cleanupHandle: {value: cleanupHandle, configurable: true},
+        cleanupPending: {get: () => status().pending, configurable: true},
+      };
+      let exported = primary;
+      try {
+        // Never overwrite another resource's cleanup responsibility. Frozen or
+        // readonly primaries stay intact beneath the same-handle carrier.
+        if (Object.getOwnPropertyDescriptor(primary, 'cleanupHandle') !== undefined) throw primary;
+        if (Object.getOwnPropertyDescriptor(primary, 'cleanupPending')?.configurable === false) throw primary;
+        Object.defineProperties(primary, descriptors);
+      } catch {
+        exported = new Error('InstalledSourceProfileCleanupPending', {cause: primary});
+        Object.defineProperties(exported, descriptors);
+      }
+      throw exported;
     }
   }
 }
