@@ -1557,21 +1557,32 @@ prefix Result can require bounded retention and is not a cost-free alias.
 ## INFER KEEP source projection
 
 The adopted INFER Pipe form requires `INPUT` and result `AS` clauses, with
-optional `ITEM KEY` and `KEEP`. The contract name is carried unchanged
+optional `ITEM KEY`, `KEEP`, `MAX ITEMS n` and `ON FAILURE FAIL`. The contract name is carried unchanged
 to ordinary `infer.contract` resolution in the same Check Environment;
 backticks can delimit a complete existing reference such as
 `model-task:risk-score.v1`. Parsing a name does not resolve a ModelTask, select
 a newer version, or authorize model egress. An empty INPUT is checked against
 the resolved closed input contract, not treated as permission to omit fields.
 
-Each INPUT entry is either `name = expression` or a single same-name identifier:
-`INPUT (notes)` is equivalent to `INPUT (notes = notes)`. Explicit and shorthand
-entries may be mixed. Shorthand uses the ordinary binding identifier role, so
+Each INPUT entry is `name = expression`, `expression AS name`, or a single
+same-name identifier: `INPUT (notes)` is equivalent to `INPUT (notes = notes)`.
+All three spellings may be mixed; `notes = a.description` and
+`a.description AS notes` produce the same input mapping. Shorthand uses the ordinary binding identifier role, so
 reserved words require backticks; explicit assignment keys retain their closed
 ModelTask schema-key role. Dotted references and other expressions require an
-explicit assignment. Both forms keep the original expression source ranges and
+explicit assignment or AS mapping. All forms keep the original expression source ranges and
 use the same closed input contract checks, including missing, extra, duplicate,
 ambiguous, unknown and wrong-type fields. Shorthand sends no additional field.
+
+`MAX ITEMS n` is a positive safe-integer literal or a whole declared Parameter
+of that contract, not a row expression. It guards the distinct checked input
+keys submitted by this INFER occurrence and composes with Contract and Host
+ceilings; specifying a key does not prove uniqueness. `ON FAILURE FAIL` is a
+publication rule, not an unbounded retry or a rollback of model calls. After
+the existing bounded retry policy, any unsuccessful row prevents the step from
+publishing success. No partial successful result reaches later steps or
+Effects; already made calls, their outcomes and their costs remain recorded.
+Omission retains the existing per-row outcome contract.
 
 KEEP accepts column references, optional output aliases, and known-schema
 `*` or range `.*`. Expansion retains visible declaration order, and explicit
@@ -2708,3 +2719,13 @@ foreign same-CID profile owners are not accepted through a published Catalog.
 Source/checker connection does not establish an installed Calendar runtime:
 current physical lowering and normal Host profile installation must be verified
 separately.
+
+## Refused GoogleSQL Pipe forms
+
+The closed set of specifically refused GoogleSQL Pipe forms in this profile
+is `|> CALL`, standalone `|> WINDOW`, `|> TABLESAMPLE` and
+`|> ASSERT condition`. Each is rejected with `query_syntax_invalid` from the
+public check Reason catalog, with an original source location when available.
+The WINDOW clause inside SELECT or EXTEND remains admitted. ActQL's
+`ASSERT UNIQUE BY` and JOIN `MAX_OUTPUT_ROWS` retain their separate contracts;
+they are not aliases for the refused general ASSERT form.

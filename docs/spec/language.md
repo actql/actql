@@ -8690,6 +8690,15 @@ and provenance; where constraints on one dimension are ordered, the more
 restrictive value applies. This rule is not an author-visible `visibility` or
 retention field.
 
+<!-- requirement-block: infer.publication-failure-and-max-items -->
+An INFER with `ON FAILURE FAIL` MUST withhold successful publication of the
+whole step when any row remains unsuccessful after its bounded retry policy,
+while retaining original call evidence and costs and preventing partial
+results from reaching later steps or Effects.
+`MAX ITEMS` guards distinct admitted item keys under the common resolved-limit
+rules. It grants neither permission nor additional retries. Both text clauses
+normalize into the existing inference barrier's guard and publication policy.
+
 <a id="effects"></a>
 
 ### Private Table inputs

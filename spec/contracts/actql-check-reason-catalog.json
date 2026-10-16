@@ -1,6 +1,6 @@
 {
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-09.3",
+  "revision": "2026-10-16.1",
   "reason_schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
@@ -2974,7 +2974,7 @@
     },
     {
       "code": "query_syntax_invalid",
-      "condition": "The query syntax is invalid.",
+      "condition": "The query syntax is invalid, including CALL, standalone WINDOW, TABLESAMPLE and general ASSERT Pipe steps refused by the v0.1 profile.",
       "facts_schema": "#/reason_schema",
       "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
       "locations": [
@@ -2987,7 +2987,7 @@
           "key": "reason.query_syntax_invalid",
           "english": [
             "The query syntax is invalid.",
-            "Correct the query syntax at the reported location when available."
+            "Correct the syntax at the reported location; CALL, standalone WINDOW, TABLESAMPLE and general ASSERT Pipe steps are not accepted."
           ]
         },
         "variants": []

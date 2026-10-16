@@ -8352,6 +8352,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/infer.publication-failure-and-max-items",
+      "statement_sha256": "02d4b2b0249469f9c99134ab28dd18ec056dfb9005efe31b81f938297da83b92",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "results-and-delivery",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/effects.table-input-closed-fields",
       "statement_sha256": "aaa555b7b6830b52d789011f5b41a01308cf5771127a550968011facef32d119",
       "status": "pending",
