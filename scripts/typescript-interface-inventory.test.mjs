@@ -3,7 +3,7 @@ import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {test} from 'node:test';
-import {typescriptInterface, typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
+import {typescriptInterface, typescriptInterfaceClosure, typescriptInterfaceInputs} from './typescript-interface-inventory.mjs';
 
 for (const [name, source] of [
   ['import type query', 'export type View = import("../outside/owner.js").Host;'],
@@ -43,4 +43,27 @@ test('TS closed literal and computed compiler fields cannot bypass the existing 
   }
   assert.deepEqual(typescriptInterface('export const wire = {name: "_0", text: "$tag"};').compilerFields, []);
   assert.deepEqual(typescriptInterface("value['_' + 'column']; const [_0] = input;").compilerFields, []);
+});
+
+test('actual TypeScript config aliases retain authored helpers and JSON input identity', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-if-config-'));
+  t.after(() => rmSync(root, {recursive: true}));
+  mkdirSync(join(root, 'sdk'));
+  mkdirSync(join(root, 'outside'));
+  writeFileSync(join(root, 'tsconfig.json'), JSON.stringify({compilerOptions: {
+    moduleResolution: 'Bundler', resolveJsonModule: true, baseUrl: '.', paths: {'@/*': ['outside/*']}}}));
+  writeFileSync(join(root, 'sdk/entry.ts'), 'export {decide} from "@/owner";');
+  writeFileSync(join(root, 'outside/owner.ts'), 'import schema from "./schema.json"; export const decide = () => schema;');
+  writeFileSync(join(root, 'outside/schema.json'), '{"field":"existing"}');
+  const result = typescriptInterfaceInputs(root, ['sdk/entry.ts']);
+  assert.deepEqual(result.modules.map(value => value.module), ['outside/owner.ts', 'sdk/entry.ts']);
+  assert.equal(result.assets[0].module, 'outside/schema.json');
+  assert.match(result.assets[0].sha256, /^[a-f0-9]{64}$/u);
+  assert.equal(result.configs[0].module, 'tsconfig.json');
+  assert.deepEqual(result.external, []);
+  writeFileSync(join(root, 'sdk/entry.ts'), 'export {decide} from "@/owner.test";');
+  writeFileSync(join(root, 'outside/owner.test.ts'), 'export const decide = () => "success";');
+  assert.throws(() => typescriptInterfaceInputs(root, ['sdk/entry.ts']), /Test authority in TypeScript interface/u);
+  writeFileSync(join(root, 'sdk/entry.ts'), 'export {decide} from "@/missing";');
+  assert.throws(() => typescriptInterfaceInputs(root, ['sdk/entry.ts']), /Unresolved TypeScript configured alias/u);
 });
