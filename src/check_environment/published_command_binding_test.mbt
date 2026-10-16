@@ -199,6 +199,20 @@ test "published Command identifiers require the existing checked nonnull KeyComp
 
 ///|
 test "published Command selection budgets original walk, declaration and every checked type" {
+  // The original Catalog walk exhausts two units before this declaration.
+  // A malformed child cannot trigger type interpretation with no work left.
+  let exhausted = published_command_fixture(
+    Some({ "kind": "identifier", "identity_contract": Json::null() }),
+  )
+  assert_true(
+    select_published_command_binding(
+      exhausted,
+      "command:mailbox.send.v1",
+      published_command_limits(),
+      2,
+    )
+    is Err(WorkLimit),
+  )
   let cases : Array[(Json, Int, Int, Int)] = [
     ({ "kind": "installation" }, 2, 12, 16),
     (published_identifier_fixture(), 3, 16, 21),

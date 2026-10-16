@@ -87,6 +87,10 @@ pub fn select_published_command_binding(
     Err(issue) => return Err(Command(issue))
   }
   guard declaration is Some(source) else { return Err(MissingBinding) }
+  let remaining = max_work - command_target_work(target)
+  if remaining < 2 {
+    return Err(WorkLimit)
+  }
   let object = match
     @decode.closed_object(source, ["kind", "identity_contract"]) {
     Ok(value) => value
@@ -113,6 +117,10 @@ pub fn select_published_command_binding(
     Ok(value) => value
     Err(_) => return Err(WorkLimit)
   }
+  if text > remaining - nodes {
+    return Err(WorkLimit)
+  }
+  let type_work = remaining - nodes - text
   let identifier = match mode {
     Installation => {
       if @decode.lookup(object, "identity_contract") is Some(_) {
@@ -126,9 +134,9 @@ pub fn select_published_command_binding(
       }
       let (contract, child_nodes, child_text) = match
         @value_contract.read_checked_usage(body, {
-          max_nodes: limits.max_nodes - nodes,
+          max_nodes: Int::min(limits.max_nodes - nodes, type_work),
           max_depth: limits.max_depth - 1,
-          max_text_bytes: limits.max_text_bytes - text,
+          max_text_bytes: Int::min(limits.max_text_bytes - text, type_work),
         }) {
         Ok(value) => value
         Err(@value_contract.ContractIssue(@value_contract.BudgetExceeded, ..)) =>
@@ -144,7 +152,6 @@ pub fn select_published_command_binding(
       Some(contract)
     }
   }
-  let remaining = max_work - command_target_work(target)
   if nodes > remaining || text > remaining - nodes {
     return Err(WorkLimit)
   }
