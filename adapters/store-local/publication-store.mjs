@@ -970,11 +970,20 @@ export async function openLocalPublicationStore(
     `${cidHex(holdingCid)}.json`,
   );
 
-  const writePhysicalHoldingRecord = async (path, bytes) => {
-    if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+  const writePhysicalHoldingRecord = async (path, bytes, exclusive = true) => {
+    // Existing holding publication retains its exclusive preparation fence.
+    // Independent prepared-object custodies historically write concurrently;
+    // they share this same Store's FD duties without a new serialization owner.
+    if (exclusive && activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+    // A failed duty can outlive its payload reservation. Refuse another
+    // metadata FD before acquisition until that original duty actually retires;
+    // healthy in-flight writes are not a serialization fence.
+    for (const pending of activePhysicalRecordWriters) {
+      if (pending.failed) fail('PublicationStoreCleanupPending');
+    }
     const temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
     let handle, flight;
-    const writer = {cleanup: undefined};
+    const writer = {cleanup: undefined, failed: false};
     activePhysicalRecordWriters.add(writer);
     let original = {writers: activePhysicalRecordWriters, writer, temporary,
       directory: stagingDirectory, syncDirectory};
@@ -1015,6 +1024,7 @@ export async function openLocalPublicationStore(
       writer.cleanup = cleanup;
       await cleanup.retry();
     } catch (primary) {
+      writer.failed = true;
       writer.cleanup = cleanup;
       try { await cleanup.retry(); } catch {}
       if (!status().pending) throw primary;
@@ -1331,7 +1341,10 @@ export async function openLocalPublicationStore(
       inode: String(state.ino),
     });
     const path = custodyPath(token);
-    await writeExclusive(path, Buffer.from(JSON.stringify(record), 'utf8'));
+    // Publish a final recovery name only after the original record is complete,
+    // synced and closed. An abrupt process stop may leave staging bytes, never
+    // a partial final custody. Failed close stays in the same Store duty set.
+    await writePhysicalHoldingRecord(path, Buffer.from(JSON.stringify(record), 'utf8'), false);
     await syncDirectory(custodyDirectory);
     const custody = {
       token,

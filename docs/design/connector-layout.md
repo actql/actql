@@ -123,3 +123,48 @@ memory, physical retirement ACKs, capacity reservations or a numerical profile.
 Releasing references or completing a synchronous comparison makes none of those
 claims. The original Run, Store, Checkpoint, Unknown and cleanup responsibilities
 stay with their existing Owners.
+
+## Original Content preparation projection
+
+The existing execution-relation export owns the issued Content Reference and
+its per-cell inventory. The existing Effect capture owns the exact prepared
+computation, captured input pin, member, Command field and local Artifact.
+`client_effect_command_content.mbt` joins those originals in a bounded,
+read-only projection; a parsed Content envelope, equal wire or CID cannot
+reconstruct that occurrence or replace another Run's original input.
+
+That admission must occur before the transient export's normal finally. For a
+checked Command with a mapped Content field, the same Common Owner moves the
+exact export reference backing into the existing local Artifact. It copies no
+rows, Ref values or canonical material. The old receipt loses its bind/reissue
+right; immutable schema, logical identity, bytes and CID facts remain unchanged.
+Later preparation reads the moved inventory, never a cancelled export receipt
+or a newly parsed envelope. The capture retains the Artifact before the move
+can invoke a fallible original-current callback.
+
+The projection reads only a declared Content input mapped from an original
+Result field. It checks field/work ceilings and original availability, then
+rechecks the same input retention after the Reference's Host callback. Its
+private constructor and original back-reference reject copied views. The
+installed adapter also checks its original installation/current fence before
+and after projection. Invalid, foreign, unavailable or retired inputs refuse;
+retention alone is not availability or authorization.
+
+A synchronous trusted Command preparation can borrow the same view repeatedly
+for one row/input. The capture retains it before further caller callbacks and
+retires it through its existing input cleanup, including failure and cancellation
+paths. The view, its original record, row/name cache, callbacks, original input,
+Artifact and Reference coexist until those references actually retire. Release
+cuts the view's back-references only: it is not byte acquisition, physical FD or
+transport cleanup, a capacity loan, a Store ACK, a permission or a numerical
+profile. The Artifact then revokes and scrubs that same reference backing with
+bounded work. An incomplete scrub retains the same Artifact and parent input
+pin for cleanup retry; it does not return the input's allowance early. A future
+asynchronous child must remain under that same cleanup Owner
+before its first await; this projection does not implement or authorize it.
+
+The private Common/RelA bridges are generated from the existing shared bridge
+source and use the normal compiler binding. The focused execution-relation,
+input-retention and actual installed Host tests distinguish issuer identity,
+work exhaustion, callback retirement, copied views and parent cleanup. Their
+scope is not physical Content upload, cold recovery or public Provider acceptance.

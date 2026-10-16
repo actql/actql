@@ -101,6 +101,7 @@ struct ClientEffectLocalResultArtifact {
   physical_cid : String
   physical_bytes : Int
   export_receipt : @execution.CompletedRelationExportReceipt
+  mut content_references : @execution.CompletedContentReferences?
 }
 
 ///|
@@ -396,6 +397,7 @@ fn build_client_effect_local_result_artifact(
     physical_cid,
     physical_bytes,
     export_receipt: receipt,
+    content_references: None,
     run_invocation,
   })
 }
