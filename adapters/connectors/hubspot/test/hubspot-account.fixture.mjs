@@ -87,7 +87,7 @@ async function rowOwner(rowSchema, verifyOriginalTransport = () => false) {
 }
 
 export async function accountFixture(t, {accounted = true, accountOutcome = 'allow',
-  rowSchema, resources = ['account']} = {}) {
+  rowSchema, resources = ['account'], accountOperations = ['read']} = {}) {
   const parent = join(repo, '_build', 'hubspot-account-fixtures');
   await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent, 'identity-'));
@@ -155,14 +155,14 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
     version: 'actql-execution-account-config/0.1', account_id: 'fixture', entries: [{
       entry_id: 'identity-read', outcome, principal: {all: true},
       connection: {any_of: ['hubspot:fixture']}, resource: {any_of: resources},
-      operation: {any_of: ['read']}, exclusions: []}]}));
+      operation: {any_of: accountOperations}, exclusions: []}]}));
   await writeAccount(accountOutcome);
   const gate = await createLocalAuthorizationGate({accountConfig: accountPath,
     principal: 'operator', context: {principal: 'operator', contextCid: cid('d')}});
-  const current = async (resource = 'account') => {
+  const current = async (resource = 'account', operation = 'read', boundary = 'acquisition') => {
     state.currentCalls++;
-    const decision = await gate.authorize('acquisition',
-      {connection: 'hubspot:fixture', resource, operation: 'read'},
+    const decision = await gate.authorize(boundary,
+      {connection: 'hubspot:fixture', resource, operation},
       {subjectCid: scope.runInvocationCid});
     if (decision.action !== 'dispatch') throw Object.assign(
       new Error('ExecutionAuthorizationDenied'), {code: 'ExecutionAuthorizationDenied', decision});

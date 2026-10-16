@@ -1056,6 +1056,248 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/site/hubspot-record-write.mjs",
+      "sha256": "5690ec42c8afd973d3344e21feb7b3e9092834d9b26ad3bbe7120a073cca235c",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing HubSpot Catalog and Host Row Effect/Credential/Account owners",
+      "exports": [
+        "HUBSPOT_BATCH_WRITE_OPERATIONS",
+        "HubSpotRecordWriteFailure",
+        "projectHubSpotRecordWriteObservation",
+        "sendRawHubSpotRecordBatch"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "HubSpotRecordWriteFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectHubSpotRecordWriteObservation",
+          "parameters": [
+            "moon",
+            "request",
+            "observation",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectHubSpotRecordWriteObservation/projectHubSpotRecordWriteObservation",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment/segment",
+          "parameters": [
+            "unit"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch",
+          "parameters": [
+            "moon",
+            "originalPortalId",
+            "originalCatalog",
+            "request",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/account/account",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/receive/receive",
+          "parameters": [
+            "selected",
+            "index",
+            "path",
+            "method",
+            "payload"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/receive/receive/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/receive/receive/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/verify/verify",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "HubSpotRecordWriteFailure/constructor:constructor/constructor:constructor",
+            "positive/positive",
+            "projectHubSpotRecordWriteObservation",
+            "projectHubSpotRecordWriteObservation/projectHubSpotRecordWriteObservation",
+            "segment/segment",
+            "segment/segment/segment",
+            "sendRawHubSpotRecordBatch",
+            "sendRawHubSpotRecordBatch/account/account",
+            "sendRawHubSpotRecordBatch/provider/provider",
+            "sendRawHubSpotRecordBatch/receive/receive",
+            "sendRawHubSpotRecordBatch/receive/receive/response/response",
+            "sendRawHubSpotRecordBatch/receive/receive/response/response/response",
+            "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch",
+            "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#2",
+            "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#3",
+            "sendRawHubSpotRecordBatch/verify/verify"
+          ],
+          "exports": [
+            "HUBSPOT_BATCH_WRITE_OPERATIONS",
+            "HubSpotRecordWriteFailure",
+            "projectHubSpotRecordWriteObservation",
+            "sendRawHubSpotRecordBatch"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
