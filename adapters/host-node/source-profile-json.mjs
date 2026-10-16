@@ -27,6 +27,7 @@ export async function readBoundedConfigurationText(path, {maxBytes, openFile = o
 async function readConfiguration(path, maxBytes, openFile, project) {
   let original = await openFile(path, 'r');
   let failure;
+  let readFailed = false;
   try {
     const chunks = [];
     let bytes = 0;
@@ -53,6 +54,7 @@ async function readConfiguration(path, maxBytes, openFile, project) {
       }
     }
   } catch (cause) {
+    readFailed = true;
     failure = cause;
     throw cause;
   } finally {
@@ -82,9 +84,19 @@ async function readConfiguration(path, maxBytes, openFile, project) {
         })().finally(() => { flight = undefined; });
         return flight;
       };
-      const cleanupHandle = Object.freeze({status, retry});
-      const primary = failure === undefined ? cause : new AggregateError(
-        [failure, cause], failure.message, {cause: failure});
+      const cleanupHandle = Object.freeze({status, retry,
+        primaryFailure: readFailed ? failure : cause});
+      let primary = cause;
+      if (readFailed) {
+        // Diagnostic presentation must not hide the original FD. Thrown values
+        // need not be Errors, and reading/coercing their message can itself fail.
+        let message;
+        try {
+          const observed = failure?.message;
+          if (typeof observed === 'string') message = observed;
+        } catch { /* Keep both original failures without a diagnostic message. */ }
+        primary = new AggregateError([failure, cause], message, {cause: failure});
+      }
       const descriptors = {
         cleanupHandle: {value: cleanupHandle, configurable: true},
         cleanupPending: {get: () => status().pending, configurable: true},

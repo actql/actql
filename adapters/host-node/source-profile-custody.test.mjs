@@ -10,6 +10,7 @@ import {loadInstalledSource} from './installed-source.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 
 async function fixture(t, {body = '{}', mode = 'false', failOpen = 1,
+  failRead = false, readFailure,
   closeFailure = Object.freeze(new Error('OriginalProfileCloseFailure'))} = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'profile-custody-', label: 'Original configuration FD cleanup counter'});
@@ -25,7 +26,11 @@ async function fixture(t, {body = '{}', mode = 'false', failOpen = 1,
     if (state.opens !== failOpen) return handle;
     state.handles.push(handle);
     return {
-      read(...parameters) { state.reads++; return handle.read(...parameters); },
+      read(...parameters) {
+        state.reads++;
+        if (failRead) throw readFailure;
+        return handle.read(...parameters);
+      },
       async close() {
         state.closes++;
         if (!state.allowClose) {
@@ -45,6 +50,44 @@ async function fixture(t, {body = '{}', mode = 'false', failOpen = 1,
     scratch.passed();
   });
   return {path, primary, state};
+}
+
+for (const [name, primary] of [
+  ['null', null],
+  ['undefined', undefined],
+  ['throwing message getter', Object.defineProperty({}, 'message', {
+    get() { throw new Error('DiagnosticMessageUnavailable'); },
+  })],
+  ['non-string message', {message: {toString() { throw new Error('DoNotCoerceDiagnostic'); }}}],
+]) {
+  test(`thrown ${name} cannot mask the original configuration FD`, async t => {
+    const f = await fixture(t, {mode: 'reject', failRead: true, readFailure: primary});
+    let failure;
+    await assert.rejects(readSourceProfileJson(f.path), error => {
+      failure = error;
+      assert.equal(error.cleanupHandle.primaryFailure, primary);
+      assert.equal(error.cause, primary);
+      assert.deepEqual(error.errors, [primary, f.primary]);
+      assert.equal(error.cleanupPending, true);
+      return true;
+    });
+    await f.state.handles[0].stat();
+    const snapshot = failure.cleanupHandle.status();
+    assert.deepEqual(snapshot.errors, [f.primary]);
+    const first = failure.cleanupHandle.retry();
+    assert.equal(first, failure.cleanupHandle.retry());
+    await assert.rejects(first, error => error === f.primary);
+    f.state.allowClose = true;
+    await failure.cleanupHandle.retry();
+    assert.equal(failure.cleanupPending, false);
+    assert.equal(snapshot.pending, true);
+    assert.equal(f.state.opens, 1);
+    assert.equal(f.state.reads, 1);
+    await assert.rejects(f.state.handles[0].stat(), {code: 'EBADF'});
+    const closes = f.state.closes;
+    await failure.cleanupHandle.retry();
+    assert.equal(f.state.closes, closes);
+  });
 }
 
 for (const field of ['cleanupHandle', 'cleanupPending']) {
