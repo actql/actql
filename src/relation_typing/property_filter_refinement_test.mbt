@@ -3,7 +3,7 @@ fn property_guard_input() -> @schema.Schema {
   @schema.from_object(
     schema(
       (
-        #|{"risk":{"type":"object","nullable":false,"fields":{"outcome":{"type":"string","nullable":false},"value":{"type":"object","nullable":true,"fields":{"level":{"type":"string","nullable":false},"reason":{"type":"string","nullable":false},"unrelated":{"type":"string","nullable":true}}}}},"other":{"type":"string","nullable":true}}
+        #|{"risk":{"type":"object","nullable":false,"fields":{"outcome":{"type":"string","nullable":false},"value":{"type":"object","nullable":true,"fields":{"level":{"type":"string","nullable":false},"reason":{"type":"string","nullable":false},"unrelated":{"type":"string","nullable":true}}}}},"other":{"type":"string","nullable":true},"replacement":{"type":"object","nullable":false,"fields":{"value":{"type":"object","nullable":true,"fields":{"level":{"type":"string","nullable":false},"reason":{"type":"string","nullable":false}}}}}}
       ),
     ),
   ).unwrap()
@@ -131,4 +131,29 @@ test "property guard proof is charged to the original bounded typing account" {
       @relation_typing.check(Filter, source, input, None, reduced) is Err(_),
     )
   }
+}
+
+///|
+test "a later assignment cannot reuse the earlier receiver property proof" {
+  let input = property_guard_input()
+  let filtered = @relation_typing.check(
+    Filter,
+    cursor("\"risk.value.level = 'high'\""),
+    input,
+    None,
+    limits(),
+  ).unwrap()
+  let proved = @relation_typing.output_schema(filtered)
+  assert_false(property_guard_value(proved).nullable)
+  let assigned = @relation_typing.check(
+    Derive,
+    cursor("{\"risk\":{\"field\":\"replacement\"}}"),
+    proved,
+    None,
+    limits(),
+  ).unwrap()
+  let output = @relation_typing.output_schema(assigned)
+  assert_true(property_guard_value(output).nullable)
+  assert_true(property_guard_value(input).nullable)
+  assert_false(property_guard_value(proved).nullable)
 }
