@@ -316,8 +316,8 @@ pub fn catalog_body_admission(
 /// Reference roles remain separate even when both Graph law CIDs are equal.
 pub fn catalog_body_dependency_count(v : CatalogBodyDependencies) -> Int {
   match v.admission {
-    ValueBody(_)
-    | DataPolicyBody(_)
+    ValueBody(value) => body_dependency_count(value)
+    DataPolicyBody(_)
     | LookupFactsBody(_)
     | ListingFactsBody(_, _)
     | ContentFactsBody(_, _)
@@ -347,8 +347,12 @@ pub fn catalog_body_dependency_at(
   match v.admission {
     ValueBody(value) =>
       Some({
-        role: GoverningGrammar,
-        cid: body_dependency_at(value, 0).unwrap(),
+        role: if index == 0 {
+          GoverningGrammar
+        } else {
+          ValueGrammar
+        },
+        cid: body_dependency_at(value, index).unwrap(),
       })
     DataPolicyBody(_)
     | LookupFactsBody(_)

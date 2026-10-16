@@ -169,8 +169,10 @@ fn command_input_charge(
 
 ///|
 /// Admit the closed inline input contract for each selected Command and
-/// retain its exact typed Result fields or literals. Catalog role-reference
-/// closure, permissions, recovery and current authority remain separate.
+/// retain its exact typed Result fields or literals. Explicit presence uses
+/// this original Command's complete Catalog-owned command_input body. Legacy
+/// all-required inputs keep their existing grammar. Permissions, recovery and
+/// current authority remain separate.
 pub fn bind_effect_command_inputs(
   targets : EffectCommandTargets,
   limits : EffectCommandInputLimits,
@@ -202,7 +204,9 @@ pub fn bind_effect_command_inputs(
       None => return Err(command_input_issue(InvalidContract, header))
     }
     let input_shape = match
-      @decode.closed_object(input_contract, ["additional_properties", "fields"]) {
+      @decode.closed_object(input_contract, [
+        "additional_properties", "fields", "required_fields",
+      ]) {
       Ok(value) => value
       Err(_) => return Err(command_input_issue(InvalidContract, header))
     }
@@ -219,6 +223,33 @@ pub fn bind_effect_command_inputs(
       return Err(command_input_issue(WorkLimit, header))
     }
     work.val -= expected_count + authored_count
+    let presence = if @decode.lookup(input_shape, "required_fields") is Some(_) {
+      let (admitted, used_work) = match
+        @environment.command_target_input_contract(
+          effect_command_target_contract(target),
+          effect_command_targets_references(targets),
+          {
+            max_nodes: Int::min(nodes.val, work.val),
+            max_depth: limits.max_depth,
+            max_text_bytes: text.val,
+          },
+          work.val,
+        ) {
+        Ok(value) => value
+        Err(@environment.CommandInputBudget) =>
+          return Err(command_input_issue(WorkLimit, header))
+        Err(_) => return Err(command_input_issue(InvalidContract, header))
+      }
+      let (used_nodes, used_text) = @environment.command_input_contract_usage(
+        admitted,
+      )
+      work.val -= used_work
+      nodes.val -= used_nodes
+      text.val -= used_text
+      Some(admitted)
+    } else {
+      None
+    }
     let supplied : Map[String, @decode.Cursor] = Map([])
     for at in 0..<authored_count {
       let (name, value) = @decode.field_at(authored, at).unwrap()
@@ -241,24 +272,39 @@ pub fn bind_effect_command_inputs(
     for at in 0..<expected_count {
       let (name, body) = @decode.field_at(contract_fields, at).unwrap()
       expected_names[name] = true
-      let supplied_value = match supplied.get(name) {
-        Some(value) => value
-        None => return Err(command_input_issue(MissingField(name), header))
+      let supplied_value = supplied.get(name)
+      if supplied_value is None {
+        let required = match presence {
+          None => true
+          Some(admitted) =>
+            @environment.command_input_contract_field_required(admitted, name)
+        }
+        if required {
+          return Err(command_input_issue(MissingField(name), header))
+        }
       }
-      let (contract, used_nodes, used_text) = match
-        @contract.read_checked_usage(body, {
-          max_nodes: Int::min(nodes.val, work.val),
-          max_depth: limits.max_depth,
-          max_text_bytes: text.val,
-        }) {
-        Ok(value) => value
-        Err(@contract.ContractIssue(@contract.BudgetExceeded, ..)) =>
-          return Err(command_input_issue(WorkLimit, header))
-        Err(_) => return Err(command_input_issue(InvalidContract, header))
+      let contract = match presence {
+        Some(admitted) =>
+          @environment.command_input_contract_field_type(admitted, name).unwrap()
+        None => {
+          let (contract, used_nodes, used_text) = match
+            @contract.read_checked_usage(body, {
+              max_nodes: Int::min(nodes.val, work.val),
+              max_depth: limits.max_depth,
+              max_text_bytes: text.val,
+            }) {
+            Ok(value) => value
+            Err(@contract.ContractIssue(@contract.BudgetExceeded, ..)) =>
+              return Err(command_input_issue(WorkLimit, header))
+            Err(_) => return Err(command_input_issue(InvalidContract, header))
+          }
+          work.val -= used_nodes
+          nodes.val -= used_nodes
+          text.val -= used_text
+          contract
+        }
       }
-      work.val -= used_nodes
-      nodes.val -= used_nodes
-      text.val -= used_text
+      guard supplied_value is Some(supplied_value) else { continue }
       let wrapper = @decode.open_object(supplied_value).unwrap()
       let value = if @decode.lookup(wrapper, "field") is Some(_) {
         let source = match result_fields.get(name) {
