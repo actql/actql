@@ -298,6 +298,71 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(peer.operations(), ['connect', 'submit-intent', 'wait', 'read'])
         with self.assertRaises(StopAsyncIteration): await reader.__anext__()
 
+    async def test_reader_close_interrupts_original_pending_admission_without_send(self):
+        peer = Peer(); entered = asyncio.Event(); query = None
+        async def token():
+            if query is not None:
+                entered.set(); await asyncio.Future()
+            return 'original-token'
+        client = await AsyncClient.connect('https://host.invalid/', token,
+            transport=httpx.MockTransport(peer.handle))
+        self.addAsyncCleanup(client.aclose)
+        query = client.sql('SELECT 1', request_id='reader-close-original')
+        reader = query.rows(); pending = asyncio.create_task(anext(reader))
+        await entered.wait()
+        try:
+            await asyncio.wait_for(reader.aclose(), 0.5)
+        finally:
+            if not pending.done(): pending.cancel()
+            with self.assertRaises(asyncio.CancelledError) as failure: await pending
+        self.assertEqual(failure.exception.submission_ref['nonce'], 'reader-close-original')
+        self.assertEqual(peer.operations(), ['connect'])
+        self.assertIsNone(query.execution)
+        with self.assertRaises(asyncio.CancelledError): await query.all()
+
+    async def test_reader_close_interrupts_only_original_wait_and_retains_run(self):
+        peer = Peer(); entered = asyncio.Event()
+        async def handle(request):
+            if request.url.path.endswith('/wait'):
+                peer.requests.append(('wait', json.loads(request.content)))
+                entered.set(); await asyncio.Future()
+            return await peer.handle(request)
+        client = await AsyncClient.connect('https://host.invalid/', peer.token,
+            transport=httpx.MockTransport(handle))
+        self.addAsyncCleanup(client.aclose)
+        query = client.sql('SELECT 1', request_id='reader-wait-original')
+        reader = query.rows(); pending = asyncio.create_task(anext(reader))
+        await entered.wait(); original = query.execution
+        try:
+            await asyncio.wait_for(reader.aclose(), 0.5)
+        finally:
+            if not pending.done(): pending.cancel()
+            with self.assertRaises(asyncio.CancelledError): await pending
+        self.assertIs(query.execution, original)
+        self.assertIsNotNone(original)
+        self.assertEqual(get_submission_input(original)['submissionRef']['nonce'], 'reader-wait-original')
+        self.assertEqual(peer.operations(), ['connect', 'submit-intent', 'wait'])
+
+    async def test_same_advance_close_refuses_without_poisoning_reader(self):
+        peer = Peer(); reader = None; reentered = False
+        async def token():
+            nonlocal reentered
+            if reader is not None and not reentered:
+                reentered = True
+                with self.assertRaises(ClientError) as failure: await reader.aclose()
+                self.assertEqual(failure.exception.code, 'ReaderAdvanceInProgress')
+            return 'original-token'
+        client = await AsyncClient.connect('https://host.invalid/', token,
+            transport=httpx.MockTransport(peer.handle))
+        self.addAsyncCleanup(client.aclose)
+        reader = client.sql('SELECT 1').rows()
+        try:
+            self.assertEqual(await asyncio.wait_for(anext(reader), 0.5), {'n': 1})
+        finally:
+            await reader.aclose()
+        self.assertTrue(reentered)
+        self.assertEqual(peer.operations(), ['connect', 'submit-intent', 'wait', 'read'])
+
     async def test_strict_schema_and_original_retained_limits(self):
         peer = Peer(); client = await self.client(peer)
         query = client.sql('SELECT 1')
