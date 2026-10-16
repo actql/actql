@@ -5,7 +5,6 @@ import {checkEffectOnlyProgramContract, effectRootRule, tableWriteSchema,
   withEffectOnlyProgramContract} from './effect-only-program-contract.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
-import {emitSchema} from './run-publication-protocol.mjs';
 
 const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
 const stages = JSON.parse(readFileSync('spec/contracts/actql-stage-contracts.json', 'utf8'));
@@ -63,8 +62,9 @@ test('both real artifact Program schemas retain exclusive original field and pub
     assert.deepEqual(command.properties.target, {oneOf: [oldFieldTarget, originalStoreTarget]});
     assert.deepEqual(command.required, ['from', 'target', 'contract', 'input']);
     assert.equal(command.additionalProperties, false);
-    // Use the real protocol emitter: no second schema validator or target parser.
-    assert.doesNotThrow(() => emitSchema(command.properties.target));
+    // The actual Program syntax reader exercises these alternatives in
+    // stage_syntax/published_store_target_test.mbt. This is an artifact-schema
+    // correspondence check, not a second runtime target parser.
     const store = program.properties.effects.additionalProperties.oneOf
       .find(member => member.properties?.store).properties.store;
     assert.equal(store.properties.target.type, 'string');
