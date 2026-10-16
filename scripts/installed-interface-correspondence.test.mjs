@@ -28,7 +28,7 @@ function fixture(t, sourceText = 'export function read(original) {return origina
   const source = git(['rev-parse', 'HEAD']);
   const module = {module: 'outside/owner.mjs', sha256: createHash('sha256').update(sourceText).digest('hex'),
     ...javascriptInterface(sourceText)};
-  const declaration = {...module, role: 'physical-io', owner: 'original test boundary',
+  const declaration = {...module, responsibilityFacet: 'primary', role: 'physical-io', owner: 'original test boundary',
     contracts: [{operations: ['<module>', ...module.operations.map(value => value.name)], exports: module.exports,
       attributes: Object.fromEntries(interfaceAttributes.map(name => [name,
         [{path: 'owner.md', anchor: 'Original identity, lifetime, Unknown and cleanup boundary'}]]))}]};

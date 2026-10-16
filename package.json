@@ -7,6 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "check:interfaces": "node scripts/check-interface-owners.mjs",
     "check:js-compiler-bindings": "node scripts/check-js-compiler-bindings.mjs",
     "postcheck:salesforce-site": "moon build --target js --release src/connectors/sheets/host_node && node --test adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs",
     "postcheck:local-node-assets": "node scripts/test-packed-sheets.mjs",
