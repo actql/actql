@@ -59,6 +59,17 @@ writer-set entry, closure/Promise and original error/FD overlap with the payload
 writer and reservation until actual retirement. This is explicit inventory,
 not numerical funding or a physical-byte exemption.
 
+A failed metadata duty also prevents a new metadata FD acquisition until the
+same duty retires. Its payload reservation can already have been returned, so
+that reservation's original object limit cannot be reused as evidence that the
+failed metadata lifetime ended. The existing writer record adds one private
+failure Boolean; admission scans the existing duty set without copying it.
+Healthy in-flight metadata writes do not activate this fence and may proceed
+in parallel. Retry only retires the original FD/staging duty, without rewriting
+the record; after actual retirement ordinary preparation is admitted again.
+The Boolean and scan iterator/workspace remain explicit control inventory,
+not a new Owner, counter, FD quota, numerical profile or permission grant.
+
 ## Verification boundary
 
 The independent tests interrupt the actual filesystem write before any byte

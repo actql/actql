@@ -975,9 +975,15 @@ export async function openLocalPublicationStore(
     // Independent prepared-object custodies historically write concurrently;
     // they share this same Store's FD duties without a new serialization owner.
     if (exclusive && activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+    // A failed duty can outlive its payload reservation. Refuse another
+    // metadata FD before acquisition until that original duty actually retires;
+    // healthy in-flight writes are not a serialization fence.
+    for (const pending of activePhysicalRecordWriters) {
+      if (pending.failed) fail('PublicationStoreCleanupPending');
+    }
     const temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
     let handle, flight;
-    const writer = {cleanup: undefined};
+    const writer = {cleanup: undefined, failed: false};
     activePhysicalRecordWriters.add(writer);
     let original = {writers: activePhysicalRecordWriters, writer, temporary,
       directory: stagingDirectory, syncDirectory};
@@ -1018,6 +1024,7 @@ export async function openLocalPublicationStore(
       writer.cleanup = cleanup;
       await cleanup.retry();
     } catch (primary) {
+      writer.failed = true;
       writer.cleanup = cleanup;
       try { await cleanup.retry(); } catch {}
       if (!status().pending) throw primary;
