@@ -71,3 +71,37 @@ test('scoped invoker owns the call and rejects a foreign operation',
     }), {code: 'InvalidOwnedInvocationContext'});
     assert.equal(calls.length, 1);
   });
+
+test('explicit binary invocation snapshots the view and forwards no fabricated JSON body', async () => {
+  const original = Buffer.from([88, 0, 255, 192, 13, 10, 89]);
+  let call;
+  await invokeScopedCredentialOperation({
+    authorization: {grant: {}, useId: 'original-content-use', scope: {operation: 'upload'}},
+    credential: {journal: {counterOnly: true}}, operation: 'upload', method: 'PUT',
+    path: '/upload', bodyBytes: original.subarray(1, 6),
+    bodyMediaType: 'application/octet-stream', maxRequestBytes: 5, maxResponseBytes: 128,
+    callResource: async value => { call = value; original.fill(0x77); return {}; },
+  });
+  const request = call.operations.get('upload');
+  assert.deepEqual([...request.bodyBytes], [0, 255, 192, 13, 10]);
+  assert.equal(request.bodyBytes.buffer.byteLength, 5);
+  assert.equal(request.bodyMediaType, 'application/octet-stream');
+  assert.equal(request.maxBodyBytes, 5);
+  assert.equal(request.body, undefined);
+  assert.equal(call.maxRequestBytes, 5);
+  assert.equal(call.useId, 'original-content-use');
+});
+
+test('malformed or one-short binary calls do not reach the physical callback', async () => {
+  let calls = 0;
+  const input = {authorization: {grant: {}, useId: 'u', scope: {operation: 'upload'}},
+    credential: {}, operation: 'upload', method: 'POST', path: '/upload',
+    bodyBytes: new Uint8Array([0, 255]), bodyMediaType: 'application/octet-stream',
+    maxRequestBytes: 2, maxResponseBytes: 16, callResource: async () => { calls++; }};
+  for (const change of [{maxRequestBytes: 1}, {maxRequestBytes: undefined},
+    {body: '{}'}, {bodyMediaType: undefined}, {bodyBytes: undefined},
+    {method: 'GET'}, {operation: 'foreign'}]) {
+    await assert.rejects(async () => invokeScopedCredentialOperation({...input, ...change}));
+  }
+  assert.equal(calls, 0);
+});

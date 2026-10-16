@@ -937,6 +937,9 @@ export async function openLocalPublicationStore(
   // Same Store lifetime only, not another capacity grant or semantic authority.
   // Keep the original read/failed-close custody until that exact FD closes.
   const activeSemanticReaders = new Set();
+  // The same Store retains an unfinished metadata writer's original FD and
+  // staging alias. Neither a failed write nor caller error disposal retires it.
+  const activePhysicalRecordWriters = new Set();
   const pendingResultDeletions = new Map();
   const pendingMetadataDeletions = new Map();
   const pendingPhysicalHoldingDeletions = new Map();
@@ -966,6 +969,62 @@ export async function openLocalPublicationStore(
     physicalHoldingDeletionsDirectory,
     `${cidHex(holdingCid)}.json`,
   );
+
+  const writePhysicalHoldingRecord = async (path, bytes) => {
+    if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+    const temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
+    let handle, flight;
+    const writer = {cleanup: undefined};
+    activePhysicalRecordWriters.add(writer);
+    let original = {writers: activePhysicalRecordWriters, writer, temporary,
+      directory: stagingDirectory, syncDirectory};
+    const status = () => Object.freeze({pending: original !== undefined});
+    const cleanup = Object.freeze({status, retry() {
+      if (flight !== undefined) return flight;
+      if (!status().pending) return Promise.resolve(status());
+      flight = Promise.resolve().then(async () => {
+        if (handle !== undefined) {
+          if (await handle.close() === false) fail('PublicationStoreCleanupPending');
+          handle = undefined;
+        }
+        try { await unlink(original.temporary); }
+        catch (error) { if (error?.code !== 'ENOENT') throw error; }
+        await original.syncDirectory(original.directory);
+        original.writers.delete(original.writer);
+        original = undefined;
+        return status();
+      }).finally(() => { flight = undefined; });
+      return flight;
+    }});
+    try {
+      handle = await open(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
+      let offset = 0;
+      while (offset < bytes.byteLength) {
+        const {bytesWritten} = await handle.write(bytes, offset, bytes.byteLength - offset, offset);
+        if (!Number.isSafeInteger(bytesWritten) || bytesWritten <= 0 ||
+            bytesWritten > bytes.byteLength - offset) fail('IncompletePublicationWrite');
+        offset += bytesWritten;
+      }
+      await handle.sync();
+      if (await handle.close() === false) fail('PublicationStoreCleanupPending');
+      handle = undefined;
+      // Final names are exclusive links to complete, synced, closed bytes.
+      // The containing holding directory still needs its original separate
+      // durability ACK before prepared ownership can be adopted.
+      await link(temporary, path);
+      writer.cleanup = cleanup;
+      await cleanup.retry();
+    } catch (primary) {
+      writer.cleanup = cleanup;
+      try { await cleanup.retry(); } catch {}
+      if (!status().pending) throw primary;
+      const failure = new PublicationStoreError('PublicationStoreCleanupPending', primary);
+      failure.primaryFailure = primary;
+      failure.cleanupPending = true;
+      failure.cleanupHandle = cleanup;
+      throw failure;
+    }
+  };
   const retentionExtensionDirectory = keyHash =>
     resolve(retentionExtensionsDirectory, keyHash);
   const retentionExtensionResultDirectory = (
@@ -4818,7 +4877,7 @@ export async function openLocalPublicationStore(
     }
     await verifyPhysicalHoldingObjects(record);
     try {
-      await writeExclusive(
+      await writePhysicalHoldingRecord(
         physicalHoldingPath(record.holding_cid),
         admitted.bytes,
       );
@@ -4914,7 +4973,7 @@ export async function openLocalPublicationStore(
       }
       await verifyPhysicalHoldingObjects(source);
       try {
-        await writeExclusive(
+        await writePhysicalHoldingRecord(
           physicalHoldingPath(record.holding_cid),
           admitted.bytes,
         );
@@ -4989,7 +5048,7 @@ export async function openLocalPublicationStore(
   const ensurePhysicalHoldingDeletion = async record => {
     const bytes = Buffer.from(JSON.stringify(record), 'utf8');
     const path = physicalHoldingDeletionPath(record.holding_cid);
-    try { await writeExclusive(path, bytes); }
+    try { await writePhysicalHoldingRecord(path, bytes); }
     catch (error) {
       if (error?.code !== 'EEXIST') throw error;
       const existing = await readBounded(
@@ -6108,6 +6167,11 @@ export async function openLocalPublicationStore(
           ));
         }
       }
+      for (const writer of activePhysicalRecordWriters) {
+        if (writer.cleanup === undefined) {
+          return Promise.reject(new PublicationStoreError('PublicationStoreCleanupPending'));
+        }
+      }
       // Refuse new Store work once retirement starts, but do not report closed
       // or erase the original key until the SAME ownership confirms release.
       // A redacted control-read error cannot drive private cleanup. The same
@@ -6119,6 +6183,11 @@ export async function openLocalPublicationStore(
           catch { fail('PublicationStoreCleanupPending'); }
         }
         if (activeSemanticReaders.size !== 0) fail('PublicationStoreCleanupPending');
+        for (const writer of activePhysicalRecordWriters) {
+          try { await writer.cleanup.retry(); }
+          catch { fail('PublicationStoreCleanupPending'); }
+        }
+        if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
         return ownership.release();
       }).then(released => {
         if (released !== true) fail('PublicationStoreOwnershipLost');
