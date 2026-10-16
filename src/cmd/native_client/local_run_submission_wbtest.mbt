@@ -34,13 +34,22 @@ test "public Native run accepts a Program without private correlation files" {
   assert_eq(optional(child, "request-id"), None)
   // Legacy intake still requires the caller's complete saved correlation.
   for operation in ["aql", "start"] {
+    let original = [operation, "--program-file", "literal.sql"]
+    if operation == "aql" {
+      original.push("--format")
+      original.push("sql")
+    }
+    let complete = original.copy()
+    for
+      value in [
+        "--submission-ref-file", "original.json", "--operation-attempt-id", "original-attempt",
+      ] {
+      complete.push(value)
+    }
+    ignore(command().parse(argv=complete[:], env=Map([])))
     assert_true(
       try {
-        command().parse(
-          argv=[operation, "--program-file", "literal.sql", "--format", "sql"],
-          env=Map([]),
-        )
-        |> ignore
+        command().parse(argv=original[:], env=Map([])) |> ignore
         false
       } catch {
         _ => true

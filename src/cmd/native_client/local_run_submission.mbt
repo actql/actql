@@ -67,13 +67,18 @@ fn local_select_run_submission(
         stop("LocalSubmissionAuthorizationDenied")
       }
       let authority = local_host_result(host.epoch_authority())
-      let epoch = authority
-        .issue_epoch(
+      let epoch = match
+        authority.issue_epoch(
           scope,
           local_submit_allowed(host, settings, crypto, scope),
           @env.now().to_double(),
-        )
-        .unwrap_or_else(() => stop("LocalSubmissionEpochUnavailable"))
+        ) {
+        Ok(value) => value
+        Err(TransactionUnknown) => stop("LocalSubmissionEpochUnknown")
+        Err(Fenced) => stop("LocalSubmissionEpochFenced")
+        Err(AuthorizationDenied) => stop("LocalSubmissionAuthorizationDenied")
+        Err(_) => stop("LocalSubmissionEpochUnavailable")
+      }
       let reference = @local_host.prepare_native_client_submission_reference(
         epoch,
         local_run_random_nonce(crypto),
