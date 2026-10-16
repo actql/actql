@@ -1,4 +1,6 @@
 import {request as httpsRequest} from 'node:https';
+import {credentialInvocationBindingKeys} from
+  '../host-common/credential-scope-fields.generated.mjs';
 import {checkHttpRequestMethodBody, observeResponseHeaders, ownRequestHeaders,
   ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 
@@ -7,6 +9,69 @@ const fail = (code, cause) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
+
+// Acquisition custody stays in the Credential Owner, not in Connector-visible
+// fields. Scope equality is only identity; each operation still claims and
+// authorizes its own nominal use in the original journal.
+const bindings = new WeakMap();
+
+export function openHttpsCredentialBinding({scope, control, journal,
+  resolveSecret, maxSecretBytes}) {
+  if (!scope || typeof scope !== 'object' ||
+      typeof control?.identity !== 'function' ||
+      typeof journal?.claim !== 'function' ||
+      typeof journal?.authorize !== 'function' ||
+      typeof journal?.finish !== 'function' ||
+      typeof resolveSecret !== 'function' || !count(maxSecretBytes) ||
+      maxSecretBytes === 0 || credentialInvocationBindingKeys.some(key =>
+        !['string', 'number', 'bigint'].includes(typeof scope[key]))) {
+    fail('InvalidRemoteCredentialBinding');
+  }
+  const original = Object.freeze(Object.fromEntries(
+    credentialInvocationBindingKeys.map(key => [key, scope[key]])));
+  const binding = Object.freeze(Object.create(null));
+  bindings.set(binding, {original, control, journal, resolveSecret,
+    maxSecretBytes, secret: undefined, active: false, retiring: false,
+    closed: false, changed: false, request: undefined});
+  return binding;
+}
+
+function retireBinding(state) {
+  if (state.retiring && !state.active && state.request === undefined) {
+    state.secret = undefined;
+    state.closed = true;
+  }
+}
+
+// Pending is the same original custody, never a close ACK. No timer, resolver
+// lookup or new nominal use is started by cleanup. The active call observes
+// request/socket retirement before relinquishing its original material.
+export function closeHttpsCredentialBinding(binding) {
+  const state = bindings.get(binding);
+  if (!state) fail('InvalidRemoteCredentialBinding');
+  state.retiring = true;
+  state.request?.destroy(Object.assign(
+    new Error('RemoteCredentialBindingRetiring'),
+    {code: 'RemoteCredentialBindingRetiring'}));
+  retireBinding(state);
+  return state.closed ? 'closed' : 'pending';
+}
+
+function acquireBinding(binding, {scope, control, journal, resolveSecret}) {
+  if (binding === undefined) return undefined;
+  const state = bindings.get(binding);
+  if (!state || state.control !== control || state.journal !== journal ||
+      state.resolveSecret !== resolveSecret ||
+      credentialInvocationBindingKeys.some(key =>
+        scope?.[key] !== state.original[key])) {
+    fail('ForeignRemoteCredentialBinding');
+  }
+  if (state.retiring) fail('RemoteCredentialBindingRetiring');
+  if (state.changed) fail('RemoteCredentialBindingChanged');
+  if (state.active) fail('RemoteCredentialBindingBusy');
+  state.active = true;
+  return state;
+}
 
 function exactRequestTarget(path) {
   if (!text(path) || !path.startsWith('/') || path.startsWith('//') ||
@@ -80,16 +145,34 @@ function operationFor(operations, scope, maxRequestBytes) {
 }
 
 function receive({hostname, port, path, method, body, requestBytes, secret,
-  headers, ca, cert, key, signal, maxResponseBytes}) {
+  headers, ca, cert, key, signal, maxResponseBytes, binding}) {
   return new Promise((resolve, reject) => {
     let settled = false;
+    let socket;
+    let socketClosed = false;
+    let requestClosed = false;
+    let complete;
+    const release = () => {
+      if (!binding || !requestClosed || (socket && !socketClosed)) return;
+      binding.request = undefined;
+      complete?.();
+    };
     const finish = (handler, value) => {
       if (settled) return;
       settled = true;
-      handler(value);
+      if (!binding) {
+        handler(value);
+        return;
+      }
+      complete = () => handler(value);
+      // Only this new acquisition port owns a one-request connection. A full
+      // response is retained until its actual request and socket close events.
+      socket?.destroy();
+      release();
     };
     const request = httpsRequest({
       protocol: 'https:',
+      ...(binding ? {agent: false} : {}),
       hostname,
       port,
       path,
@@ -130,6 +213,20 @@ function receive({hostname, port, path, method, body, requestBytes, secret,
         body: Buffer.concat(chunks, received),
       })));
     });
+    if (binding) {
+      binding.request = request;
+      request.once('socket', original => {
+        socket = original;
+        socket.once('close', () => {
+          socketClosed = true;
+          release();
+        });
+      });
+      request.once('close', () => {
+        requestClosed = true;
+        release();
+      });
+    }
     request.once('error', error => finish(reject, error));
     request.end(body);
   });
@@ -140,7 +237,7 @@ function receive({hostname, port, path, method, body, requestBytes, secret,
 /// An operation is `{method, path, body?, headers?, responseHeaders?}`: the
 /// optional entries are the typed exchange's allowed request headers and the
 /// declared response header names (`adapters/host-common/http-exchange.mjs`).
-export async function callHttpsCredentialResource({
+async function callCredentialResource({
   grant,
   useId,
   scope,
@@ -156,7 +253,7 @@ export async function callHttpsCredentialResource({
   maxResponseBytes = 1_048_576,
   returnRejectedResponse = false,
   signal,
-}) {
+}, binding) {
   if (typeof control?.identity !== 'function' ||
       typeof journal?.claim !== 'function' ||
       typeof journal?.authorize !== 'function' ||
@@ -179,7 +276,7 @@ export async function callHttpsCredentialResource({
   if (claimed.replayed) fail('RemoteCredentialUseAlreadyClaimed');
   let requestStarted = false;
   try {
-    const secret = await resolveSecret(Object.freeze({
+    const currentSecret = await resolveSecret(Object.freeze({
       grantCid: claimed.record.grantCid,
       principal: scope.principal,
       namespaceId: scope.namespaceId,
@@ -190,7 +287,16 @@ export async function callHttpsCredentialResource({
       siteGeneration: scope.siteGeneration,
       connectorRegistration: scope.connectorRegistration,
     }), signal);
-    if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
+    if (!text(currentSecret)) fail('RemoteCredentialSecretUnavailable');
+    if (binding && (currentSecret.length > binding.maxSecretBytes ||
+        Buffer.byteLength(currentSecret) > binding.maxSecretBytes)) {
+      fail('RemoteCredentialSecretLimitExceeded');
+    }
+    if (binding?.retiring) fail('RemoteCredentialBindingRetiring');
+    if (binding?.secret !== undefined && binding.secret !== currentSecret) {
+      binding.changed = true;
+      fail('RemoteCredentialBindingChanged');
+    }
     signal?.throwIfAborted();
     journal.authorize(
       claimed.use,
@@ -198,6 +304,11 @@ export async function callHttpsCredentialResource({
       scope,
       control,
     );
+    // No await separates the current authority fence, retained-material
+    // selection and physical request construction. A later resolver result
+    // cannot replace the original acquisition's privately retained secret.
+    if (binding && binding.secret === undefined) binding.secret = currentSecret;
+    const secret = binding ? binding.secret : currentSecret;
     requestStarted = true;
     const response = await receive({
       ...operation,
@@ -207,6 +318,7 @@ export async function callHttpsCredentialResource({
       key,
       signal,
       maxResponseBytes,
+      binding,
     });
     if (response.statusCode === 401 &&
         typeof resolveSecret.invalidate === 'function') {
@@ -243,5 +355,17 @@ export async function callHttpsCredentialResource({
         : 'failed',
     );
     throw error;
+  }
+}
+
+export async function callHttpsCredentialResource(options) {
+  const binding = acquireBinding(options.binding, options);
+  try {
+    return await callCredentialResource(options, binding);
+  } finally {
+    if (binding) {
+      binding.active = false;
+      retireBinding(binding);
+    }
   }
 }
