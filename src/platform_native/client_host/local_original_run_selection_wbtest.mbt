@@ -1,4 +1,65 @@
 ///|
+// Test-only API phase/kind. On setup refusal, retire the same physical Host
+// before reporting; no raw issue payload, original body or key is disclosed.
+fn[T, E] original_selection_checked(
+  host : NativeLocalHostConnection,
+  value : Result[T, E],
+  phase : String,
+  kind : (E) -> String,
+) -> T raise {
+  match value {
+    Ok(value) => value
+    Err(issue) => {
+      let issue_kind = kind(issue)
+      let cleanup = if host.close() is Ok(_) { "confirmed" } else { "pending" }
+      fail(
+        "original selection fixture phase=" +
+        phase +
+        " kind=" +
+        issue_kind +
+        " cleanup=" +
+        cleanup,
+      )
+    }
+  }
+}
+
+///|
+fn original_selection_journal_kind(
+  issue : NativeClientRunJournalIssue,
+) -> String {
+  match issue {
+    ForeignRun => "ForeignRun"
+    ChangedIntent => "ChangedIntent"
+    InvalidSubmission => "InvalidSubmission"
+    AuthorizationDenied => "AuthorizationDenied"
+    CustodyLost => "CustodyLost"
+    CapacityExceeded => "CapacityExceeded"
+    TransactionUnknown => "TransactionUnknown"
+    Fenced => "Fenced"
+    _ => "OtherJournalRefusal"
+  }
+}
+
+///|
+fn original_selection_epoch_kind(issue : NativeClientEpochIssue) -> String {
+  match issue {
+    InvalidInput => "InvalidInput"
+    Encoding => "Encoding"
+    AlreadyInitialized => "AlreadyInitialized"
+    CustodyLost => "CustodyLost"
+    AuthorizationDenied => "AuthorizationDenied"
+    Unverifiable => "Unverifiable"
+    ScopeMismatch => "ScopeMismatch"
+    Fenced => "Fenced"
+    TransactionUnknown => "TransactionUnknown"
+    Physical(_) => "Physical"
+    Crypto(_) => "Crypto"
+    Identity(_) => "Identity"
+  }
+}
+
+///|
 // Real adopted Account/Epoch/SQLite originals. These fixtures stop at durable
 // admission, before execution/publication/state observation; no Provider is used.
 fn original_selection_fixture(
@@ -11,41 +72,88 @@ fn original_selection_fixture(
   @publication.PublicationContract,
 ) raise {
   let crypto = epoch_test_crypto()
-  let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
-  let epoch = host.epoch_authority().unwrap()
-  let token = epoch.issue_epoch(scope, true, 1000.0).unwrap()
-  let reference = prepare_native_client_submission_reference(token, nonce).unwrap()
-  let intent = @host.prepare_client_submitted_intent(
-    "{\"kind\":\"program\",\"input\":" +
-    preparation_values_document() +
-    ",\"parameters\":null}",
-    65536,
-    8192,
-    64,
-  ).unwrap()
-  let preparation = submitted_prepare(intent).unwrap()
+  let scope = original_selection_checked(
+    host,
+    host.authority_scope_cid("operator", "cli", crypto),
+    "scope",
+    _ => "AdoptionRefusal",
+  )
+  let epoch = original_selection_checked(
+    host,
+    host.epoch_authority(),
+    "epoch_authority",
+    _ => "AdoptionRefusal",
+  )
+  let token = original_selection_checked(
+    host,
+    epoch.issue_epoch(scope, true, 1000.0),
+    "issue_epoch",
+    original_selection_epoch_kind,
+  )
+  let reference = original_selection_checked(
+    host,
+    prepare_native_client_submission_reference(token, nonce),
+    "submission_reference",
+    original_selection_epoch_kind,
+  )
+  let intent = original_selection_checked(
+    host,
+    @host.prepare_client_submitted_intent(
+      "{\"kind\":\"program\",\"input\":" +
+      preparation_values_document() +
+      ",\"parameters\":null}",
+      65536,
+      8192,
+      64,
+    ),
+    "prepare_intent",
+    _ => "IntentRefusal",
+  )
+  let preparation = original_selection_checked(
+    host,
+    submitted_prepare(intent),
+    "prepare_program",
+    _ => "PreparationRefusal",
+  )
   guard native_client_submitted_preparation(preparation)
     is Computation(prepared) else {
     fail("original identity fixture: Computation required")
   }
-  let (request, _, compiled, definition) = journal_test_fixture_require(
+  let (request, _, compiled, definition) = original_selection_checked(
+    host,
     journal_test_prepared_run_result(
       prepared,
       reference.request_id,
       run_id,
       scope~,
     ),
+    "first_compilation",
+    issue => issue.phase + "." + issue.kind,
   )
-  let journal = host.run_journal().unwrap()
-  journal
-  .record_submitted_intent(epoch, reference, intent, scope, true, 1001.0)
-  .unwrap()
+  let journal = original_selection_checked(
+    host,
+    host.run_journal(),
+    "run_journal",
+    _ => "AdoptionRefusal",
+  )
+  original_selection_checked(
+    host,
+    journal.record_submitted_intent(
+      epoch, reference, intent, scope, true, 1001.0,
+    ),
+    "record_submitted_intent",
+    original_selection_journal_kind,
+  )
   |> ignore
-  journal
-  .accept_submitted_run(
-    epoch, reference, preparation, request, compiled, definition, scope, true, 1001.0,
+  original_selection_checked(
+    host,
+    journal.accept_submitted_run(
+      epoch, reference, preparation, request, compiled, definition, scope, true,
+      1001.0,
+    ),
+    "accept_submitted_run",
+    original_selection_journal_kind,
   )
-  .unwrap()
   |> ignore
   (reference, request, definition)
 }
