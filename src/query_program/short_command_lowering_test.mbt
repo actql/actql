@@ -626,7 +626,7 @@ test "short COMMAND nested input ID uses one existing typed property projection"
   let values = @wire.admit(
     @source.parse_json(
       (
-        #|{"values":{"schema":{"operation":{"type":"object","nullable":false,"additional_properties":false,"fields":{"id":{"type":"string","nullable":false}}},"body":{"type":"string","nullable":false}},"rows":[{"operation":{"id":"original-id"},"body":"original body"}]},"as":"messages"}
+        #|{"values":{"schema":{"operation":{"type":"object","nullable":false,"fields":{"id":{"type":"string","nullable":false}}},"body":{"type":"string","nullable":false}},"rows":[{"operation":{"id":"original-id"},"body":"original body"}]},"as":"messages"}
       ),
       construction_limits().source.source,
     ).unwrap(),
