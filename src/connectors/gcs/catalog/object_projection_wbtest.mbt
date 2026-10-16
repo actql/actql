@@ -12,6 +12,13 @@ test "GCS logical JSON keeps exact integer text and excludes only private metada
   assert_true(
     object_metadata_logical_json(original, {
       ..metadata_limits(),
+      max_metadata_entries: 2,
+    })
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    object_metadata_logical_json(original, {
+      ..metadata_limits(),
       max_bytes: 1,
     })
     is Err(BudgetExceeded),

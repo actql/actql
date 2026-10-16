@@ -47,7 +47,7 @@ pub fn gcs_object_metadata(
     max_nodes,
     max_depth,
     max_metadata_entries: max_entries,
-  }).map_err(Metadata)
+  }).map_err(issue => Metadata(issue))
 }
 
 ///|
@@ -64,7 +64,7 @@ pub fn gcs_object_metadata_json(
     max_nodes,
     max_depth,
     max_metadata_entries: max_entries,
-  }).map_err(Metadata)
+  }).map_err(issue => Metadata(issue))
 }
 
 ///|
@@ -109,7 +109,7 @@ pub fn gcs_object_mutation_binding(
       max_body_bytes,
       max_identity_bytes,
     },
-  ).map_err(Request)
+  ).map_err(issue => Request(issue))
 }
 
 ///|
@@ -120,8 +120,9 @@ pub fn gcs_object_prepare_patch(
   changes : Bytes,
   marker : String,
 ) -> Result[@catalog.ObjectMutationRequest, GcsFailure] {
-  @catalog.prepare_object_metadata_patch(binding, original, changes, marker).map_err(
-    Request,
+  @catalog.prepare_object_metadata_patch(binding, original, changes, marker).map_err(issue => {
+      Request(issue)
+    },
   )
 }
 
@@ -131,7 +132,9 @@ pub fn gcs_object_prepare_delete(
   binding : @catalog.ObjectMutationBinding,
   original : @catalog.ObjectMetadata,
 ) -> Result[@catalog.ObjectMutationRequest, GcsFailure] {
-  @catalog.prepare_object_delete(binding, original).map_err(Request)
+  @catalog.prepare_object_delete(binding, original).map_err(issue => {
+    Request(issue)
+  })
 }
 
 ///|
@@ -141,8 +144,9 @@ pub fn gcs_object_request_projection(
   request : @catalog.ObjectMutationRequest,
   max_bytes : Int,
 ) -> Result[String, GcsFailure] {
-  @catalog.object_mutation_projection_json(binding, request, max_bytes).map_err(
-    Request,
+  @catalog.object_mutation_projection_json(binding, request, max_bytes).map_err(issue => {
+      Request(issue)
+    },
   )
 }
 
@@ -152,7 +156,9 @@ pub fn gcs_object_request_body(
   binding : @catalog.ObjectMutationBinding,
   request : @catalog.ObjectMutationRequest,
 ) -> Result[String, GcsFailure] {
-  @catalog.object_mutation_body_for(binding, request).map_err(Request)
+  @catalog.object_mutation_body_for(binding, request).map_err(issue => {
+    Request(issue)
+  })
 }
 
 ///|
@@ -161,7 +167,9 @@ pub fn gcs_object_request_changes(
   binding : @catalog.ObjectMutationBinding,
   request : @catalog.ObjectMutationRequest,
 ) -> Result[String, GcsFailure] {
-  @catalog.object_mutation_changes_json(binding, request).map_err(Request)
+  @catalog.object_mutation_changes_json(binding, request).map_err(issue => {
+    Request(issue)
+  })
 }
 
 ///|
@@ -171,5 +179,7 @@ pub fn gcs_object_recheck(
   request : @catalog.ObjectMutationRequest,
   current : @catalog.ObjectMetadata,
 ) -> Result[Unit, GcsFailure] {
-  @catalog.recheck_object_mutation(binding, request, current).map_err(Request)
+  @catalog.recheck_object_mutation(binding, request, current).map_err(issue => {
+    Request(issue)
+  })
 }

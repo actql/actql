@@ -38,8 +38,15 @@ pub fn object_metadata_logical_json(
   original : ObjectMetadata,
   limits : ObjectMetadataLimits,
 ) -> Result[String, ObjectMetadataIssue] {
-  if limits.max_bytes < 1 || limits.max_nodes < 1 || limits.max_depth < 1 {
+  if limits.max_bytes < 1 ||
+    limits.max_nodes < 1 ||
+    limits.max_depth < 1 ||
+    limits.max_metadata_entries < 0 {
     return Err(InvalidLimits)
+  }
+  if original.fields.metadata is Some(entries) &&
+    entries.length() > limits.max_metadata_entries {
+    return Err(BudgetExceeded)
   }
   mutation_json(
     metadata_fields_json(object_metadata_fields(original)),
