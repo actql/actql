@@ -107,9 +107,8 @@ rows = execution.result("updates").all(max_rows=10_000)
 ```
 
 Reads are bounded; pass `max_rows` or stream with `rows()`. To validate and
-type the rows, pass a `schema=` that follows the Standard Schema interface
-(for example a pydantic model); a row that does not match raises, nothing is
-coerced.
+type the rows, pass a `schema=`: a pydantic model, or any validator the
+Python SDK accepts; a row that does not match raises, nothing is coerced.
 
 ## Checkpoints
 

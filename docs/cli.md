@@ -154,7 +154,7 @@ override the configured files, and `--bindings <file>` for pre-bound inputs.
 ## Operations on a Run
 
 ```text
-actql status <run> [--watch] [--timeout <duration>] [--json] [--redact]
+actql status <run> [--watch [--until <state>]] [--timeout <duration>] [--json] [--redact]
 actql approve <checkpoint> [--signer <id>] [--wait] [--json]
 actql reject <checkpoint> [--signer <id>] [--json]
 actql cancel <run> [--json]
