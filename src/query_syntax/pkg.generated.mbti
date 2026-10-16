@@ -382,6 +382,12 @@ pub(all) struct KeepItem {
   name : NamePart?
 }
 
+pub(all) enum KeyedEffectKind {
+  Update
+  Upsert
+  Delete
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Lexeme {
   Word(String)
   QuotedName(String)
@@ -637,11 +643,13 @@ pub(all) enum UnpivotRowLabel {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct UpdateEffectClause {
+  kind : KeyedEffectKind
   name : NamePart?
   target : UpdateEffectTarget
   mapping : NamePart?
   result : NamePart?
   id : NamePart
+  id_expression : Expression?
   set : Array[(NamePart, Expression)]
 }
 

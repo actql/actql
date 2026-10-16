@@ -624,6 +624,7 @@ fn compile_query_script_with_source(
         // Leave the original direct-field/literal explicit Result spelling
         // unchanged. New computed and cross-Stage forms use a private branch.
         if clause.result is None ||
+          clause.id_expression is Some(_) ||
           !clause.set.all(pair => update_direct_value(pair.1)) ||
           !earlier.is_empty() {
           let (producer, fields) = if selected.get(0) is Some(selected) {

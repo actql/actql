@@ -161,12 +161,23 @@ pub(all) enum UpdateEffectTarget {
 }
 
 ///|
+// These are the existing canonical keyed record operations. The historical
+// clause name retains its API lineage; it does not widen an installed grant.
+pub(all) enum KeyedEffectKind {
+  Update
+  Upsert
+  Delete
+} derive(Eq, Debug)
+
+///|
 pub(all) struct UpdateEffectClause {
+  kind : KeyedEffectKind
   name : NamePart?
   target : UpdateEffectTarget
   mapping : NamePart?
   result : NamePart?
   id : NamePart
+  id_expression : Expression?
   set : Array[(NamePart, Expression)]
 }
 
@@ -3799,6 +3810,8 @@ fn QueryParser::effect_is_store(self : QueryParser) -> Bool {
   if third.map(token => token.value != Symbol(46)).unwrap_or(false) &&
     (
       keyword(second, "UPDATE") ||
+      keyword(second, "UPSERT") ||
+      keyword(second, "DELETE") ||
       keyword(second, "CREATE") ||
       keyword(second, "STORE") ||
       keyword(second, "COMMAND")
@@ -3952,21 +3965,29 @@ fn QueryParser::update_effect_clause(
   self : QueryParser,
 ) -> UpdateEffectClause raise QueryAbort {
   self.keyword("EFFECT")
-  // UPDATE remains a valid explicit Effect name in EFFECT UPDATE UPDATE.
-  let name = if self.has("UPDATE") &&
-    (
-      !token_at(self.source, self.index + 1)
-      .map(token => keyword(token, "UPDATE"))
-      .unwrap_or(false) ||
-      token_at(self.source, self.index + 2)
-      .map(token => token.value == Symbol(46))
-      .unwrap_or(false)
-    ) {
+  let name = if keyed_effect_word(self.peek()) &&
+    !(token_at(self.source, self.index + 1)
+    .map(keyed_effect_word)
+    .unwrap_or(false) &&
+    token_at(self.source, self.index + 2)
+    .map(token => token.value != Symbol(46))
+    .unwrap_or(false)) {
     None
   } else {
     Some(self.name())
   }
-  self.keyword("UPDATE")
+  let kind = if self.has("UPDATE") {
+    self.keyword("UPDATE")
+    KeyedEffectKind::Update
+  } else if self.has("UPSERT") {
+    self.keyword("UPSERT")
+    KeyedEffectKind::Upsert
+  } else if self.has("DELETE") {
+    self.keyword("DELETE")
+    KeyedEffectKind::Delete
+  } else {
+    raise QueryAbort("Expected UPDATE, UPSERT or DELETE", self.peek().start)
+  }
   let (target, mapping) = if self.has("TARGET") &&
     !token_at(self.source, self.index + 1)
     .map(token => token.value == Symbol(46))
@@ -4008,20 +4029,37 @@ fn QueryParser::update_effect_clause(
     None
   }
   self.keyword("ID")
-  let id = self.name()
-  self.keyword("SET")
-  self.symbol(40)
-  let assignments : Array[(NamePart, Expression)] = []
-  while true {
-    self.node()
-    let field = self.name()
-    self.symbol(61)
-    assignments.push((field, self.expression()))
-    if self.peek().value != Symbol(44) {
-      break
+  let (id, id_expression) = if token_at(self.source, self.index + 1)
+    .map(token => token.value == Symbol(46))
+    .unwrap_or(false) {
+    let id_start = self.peek().start
+    let original_id = self.expression()
+    let path = match
+      expression_node(original_id, expression_root(original_id)).unwrap().kind {
+      Reference(path) => path
+      _ => raise QueryAbort("Record Effect ID requires a field path", id_start)
     }
-    ignore(self.advance())
+    (path.last().unwrap(), Some(original_id))
+  } else {
+    // The original single-field UPDATE consumes exactly its historical tokens
+    // and budget; only new qualified/property paths use an expression owner.
+    (self.name(), None)
   }
-  self.symbol(41)
-  { name, target, mapping, result, id, set: assignments, }
+  let assignments : Array[(NamePart, Expression)] = []
+  if kind != Delete {
+    self.keyword("SET")
+    self.symbol(40)
+    while true {
+      self.node()
+      let field = self.name()
+      self.symbol(61)
+      assignments.push((field, self.expression()))
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+    self.symbol(41)
+  }
+  { kind, name, target, mapping, result, id, id_expression, set: assignments, }
 }

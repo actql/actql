@@ -80,6 +80,7 @@ pub(all) struct Lowered {
   update_targets : @query_program.UpdateTargetPublication?
   store_targets : @query_program.StoreTargetPublication?
   command_selection : @query_program.ShortCommandSelection?
+  keyed_effect_kind : @query_syntax.KeyedEffectKind?
 }
 
 pub(all) struct PublishedAlias {

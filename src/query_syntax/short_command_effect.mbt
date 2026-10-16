@@ -34,6 +34,8 @@ fn QueryParser::effect_is_short_command(self : QueryParser) -> Bool {
   if third.map(token => token.value != Symbol(46)).unwrap_or(false) &&
     (
       keyword(second, "UPDATE") ||
+      keyword(second, "UPSERT") ||
+      keyword(second, "DELETE") ||
       keyword(second, "CREATE") ||
       keyword(second, "STORE") ||
       keyword(second, "COMMAND")

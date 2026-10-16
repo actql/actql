@@ -26,6 +26,7 @@ pub(all) struct Lowered {
   update_targets : @query.UpdateTargetPublication?
   store_targets : @query.StoreTargetPublication?
   command_selection : @query.ShortCommandSelection?
+  keyed_effect_kind : @syntax.KeyedEffectKind?
 }
 
 ///|
@@ -299,6 +300,7 @@ fn emit(
   update_targets : @query.UpdateTargetPublication?,
   store_targets : @query.StoreTargetPublication?,
   command_selection : @query.ShortCommandSelection?,
+  keyed_effect_kind : @syntax.KeyedEffectKind?,
 ) -> Result[Lowered, Issue] {
   let document = try {
     let writer = @encode.writer(65536, 8192, 64)
@@ -314,6 +316,7 @@ fn emit(
     update_targets,
     store_targets,
     command_selection,
+    keyed_effect_kind,
   })
 }
 
@@ -388,6 +391,7 @@ pub fn lower_with_source(
             update_targets: None,
             store_targets: None,
             command_selection: None,
+            keyed_effect_kind: None,
           },
           None,
         ),
@@ -402,6 +406,7 @@ pub fn lower_with_source(
             update_targets: None,
             store_targets: None,
             command_selection: None,
+            keyed_effect_kind: None,
           },
           None,
         ),
@@ -445,9 +450,13 @@ pub fn lower_with_source(
           Err(issue) => return Err(QueryLowering(issue))
         }
       }
-      emit(program, update_targets, store_targets, command_selection).map(lowered => {
-        (lowered, Some(source))
-      })
+      emit(
+        program,
+        update_targets,
+        store_targets,
+        command_selection,
+        @syntax.terminal_effect(parsed).map(clause => clause.kind),
+      ).map(lowered => (lowered, Some(source)))
     }
   }
 }
