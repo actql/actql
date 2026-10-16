@@ -309,7 +309,7 @@ test "GCS request Preview preserves user removals and declares fresh private mar
     mutation_binding(kind=DeleteObject),
     mutation_original(),
   ).unwrap()
-  assert_eq(object_mutation_after(deletion), None)
+  assert_true(object_mutation_after(deletion) is None)
   assert_eq(object_mutation_protocol_behavior(deletion), None)
 }
 
