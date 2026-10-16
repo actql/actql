@@ -142,6 +142,32 @@ test('typed empty content retains its exact empty checksum and size', async () =
   assert.equal(state.calls.length, 2);
 });
 
+test('JSON object names retain legal controls through both original versioned requests', async () => {
+  const objectName = 'fixture/e\u0301\t\u0000\u007f%2F#?.json';
+  const {options, state} = fixture({target: {objectName}});
+  const result = await readGcsVersionedContent(options);
+  assert.equal(result.metadata.objectName, objectName);
+  assert.equal(result.digests.contentCid, contentCid);
+  assert.equal(state.handoffs.length, 1);
+  assert.deepEqual(state.handoffs[0].bytes, body);
+  const path = '/storage/v1/b/actql-fixture/o/fixture%2Fe%CC%81%09%00%7F%252F%23%3F.json' +
+    '?generation=9007199254740993&ifGenerationMatch=9007199254740993';
+  assert.deepEqual(state.calls.map(call => call.operations.get(scope.operation).path),
+    [path, path + '&alt=media&ifMetagenerationMatch=9007199254740995']);
+  assert.equal(JSON.parse(state.charges[0].bytes).name, objectName);
+  assert.deepEqual(state.verificationBytes, [9]);
+});
+
+test('CR and LF in an original object locator still refuse before credential entry', async () => {
+  for (const objectName of ['fixture/a\rb', 'fixture/a\nb']) {
+    const {options, state} = fixture({target: {objectName}});
+    await assert.rejects(readGcsVersionedContent(options), {code: 'InvalidGcsContentRead'});
+    assert.equal(state.calls.length, 0);
+    assert.equal(state.charges.length, 0);
+    assert.equal(state.handoffs.length, 0);
+  }
+});
+
 for (const [name, change] of [
   ['generation', {generation: '9007199254740992'}],
   ['numeric generation', {generation: 9007199254740992}],

@@ -34,7 +34,8 @@ const profile = {version:'actql-installed-gcs-source/0.1',connectorId:'storage',
     maxListingBytes:32768,maxDurationMs:10000,maxPathBytes:1024,maxPageBytes:8192,
     maxPageItems:3,maxRequestBytes:4096,maxContentBytes:4096}};
 
-async function fixture(t, {gzip = false} = {}) {
+async function fixture(t, {gzip = false, objectName = name} = {}) {
+  const name = objectName;
   const scratch = await createOwnedScratch({parent:new URL('../../../../_build/',import.meta.url).pathname,
     prefix:'gcs-content-columns-',label:'original five-column GCS Content RowRun and encrypted Store'});
   const core = runtimeCore(moon), control = core.contentCaptureControl;
@@ -246,5 +247,28 @@ test('five-column GCS capture refuses original insufficient capacity before gran
   assert.equal(f.state.calls.length,0);
   assert.equal(f.state.operations.length,0);
   assert.equal(f.state.captures,0);
+  await f.dispose();f.scratch.passed();
+});
+
+test('JSON object names retain legal controls through actual same-Ledger capture and encrypted Store',async t=>{
+  const name='in/e\u0301\t\u0000\u007f%2F#?.pdf';
+  const f=await fixture(t,{objectName:name});
+  const {lookup,expectedRef}=await f.start();
+  assert.equal(lookup.capture.identity(),cid([{resource:f.resource,version:generation,name,
+    media_type:f.reportedMediaType,content:expectedRef}]));
+  assert.equal(f.state.calls.length,3);
+  const path='/storage/v1/b/actql-fixture/o/in%2Fe%CC%81%09%00%7F%252F%23%3F.pdf'+
+    '?generation=9007199254740993&ifGenerationMatch=9007199254740993';
+  assert.equal(f.state.calls[1].operations.get('gcs:file:read').path,path);
+  assert.equal(f.state.calls[2].operations.get('gcs:file:read').path,
+    path+'&alt=media&ifMetagenerationMatch=9007199254740995');
+  assert.deepEqual(await f.readStored(),f.payload);
+  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(f.ledger)[3],
+    BigInt(f.state.raw.reduce((sum,body)=>sum+body.length,0)));
+  await f.closeRows();
+  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(f.ledger).slice(4,8),[0n,0n,0n,0n]);
+  await f.reopenStore();
+  assert.deepEqual(await f.readStored(),f.payload);
+  assert.equal(f.state.calls.length,3);
   await f.dispose();f.scratch.passed();
 });
