@@ -118,8 +118,9 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       const restored = restoreRun(original, runDefinition, identity);
       if (!same(capturePrepared(prepared, compilation),
         capturePrepared(restored.prepared, restored.compilation))) fail();
-      return {updateTargetSelections: restored.updateTargetSelections,
-        assertUpdateSelectionCurrent: restored.assertUpdateSelectionCurrent};
+      // The restored pair authenticates the saved material. Execution keeps
+      // this caller's preparation, so retain its own nominal selection too.
+      return bind(selections, original.installations);
     },
   });
 }

@@ -437,7 +437,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "98a9bd1100fe84487fd5e250a05135d490e1af757f821dbd11ecd3eb883630ed",
+      "sha256": "a38caae7aaa04eb4f18a75e708dfd9b25609db7f6268e6f99df6051df09a2e22",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -710,6 +710,10 @@
               {
                 "path": "src/run_publication_host/client_effect_target_selections.mbt",
                 "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual validated Run selection stays with the original caller preparation through installation checks'"
               }
             ]
           }
