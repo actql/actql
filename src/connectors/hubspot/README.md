@@ -1,4 +1,4 @@
-# HubSpot property observation
+# HubSpot property and record observations
 
 `catalog` projects one bounded, complete HubSpot properties response into
 Connector metadata and the existing Common value contracts. It does not perform
@@ -28,9 +28,20 @@ projection. A truncated response, duplicate property/JSON key, malformed flag or
 exhausted bound is refused rather than becoming a partial Catalog. These are
 physical bounds, not language limits or a numeric-profile adoption.
 
+`project_object_page` consumes that exact property projection and uses Common
+admission for each selected value. Provider numbers stay decimal text; the
+shared exact source-text normalizer emits the fixed-scale Common spelling
+without binary64 or rounding. Boolean text, explicit unset/null values,
+semicolon-separated checkbox values and UTC/millisecond date/time values keep
+their respective typed meanings. Missing selected fields, inexact decimals,
+archived/duplicate records and malformed continuation cursors refuse the complete
+page. The continuation contains only the opaque `after` token: a returned URL
+is never permission to follow another origin. Input parsing and simultaneous
+output-value budgets remain distinct from physical funding.
+
 Provider reference:
 [HubSpot properties API](https://developers.hubspot.com/docs/api-reference/legacy/crm/properties/guide).
-Record paging, exact value conversion, authenticated discovery/current binding,
-installed publication, record Effects, associations and enrolment still need
-their physical caller connections; these pure metadata checks do not establish
-ordinary installed or real-service acceptance.
+Authenticated paging transport, discovery/current binding, installed publication,
+record Effects, associations and enrolment still need their physical caller
+connections; these pure observations do not establish ordinary installed or
+real-service acceptance.
