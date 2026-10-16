@@ -11,7 +11,10 @@ import csv
 import hashlib
 import io
 import json
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
+import subprocess
+import sys
+import tomllib
 import zipfile
 
 
@@ -99,7 +102,74 @@ def wheel_interfaces(path) -> dict:
         return {'entrance': records[0], 'modules': modules}
 
 
+def source_projects(root: Path, files=None) -> dict:
+    """Source-only projection of normal setuptools declarations, not a wheel PASS."""
+    root = root.resolve()
+    if files is None:
+        files = sorted(set(subprocess.check_output(
+            ['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+            cwd=root).decode().split('\0')) - {''})
+    roots = []
+    modules = {}
+    for manifest in files:
+        path = PurePosixPath(manifest)
+        if path.name != 'pyproject.toml' or 'fixtures' in path.parts:
+            continue
+        manifest_path = (root / manifest).resolve()
+        if not manifest_path.is_relative_to(root):
+            raise ValueError('Escaped Python distribution manifest')
+        data = tomllib.loads(manifest_path.read_text())
+        project = data.get('project')
+        if project is None:
+            continue
+        discovery = data.get('tool', {}).get('setuptools', {}).get('packages', {}).get('find')
+        if not isinstance(discovery, dict) or not isinstance(discovery.get('where'), list):
+            raise ValueError('Unregistered Python distribution discovery: ' + manifest)
+        directories = [(root / path.parent / where).resolve() for where in discovery['where']]
+        if any(not directory.is_relative_to(root) for directory in directories):
+            raise ValueError('Escaped Python distribution source')
+        members = []
+        for name in files:
+            if not name.endswith(('.py', '.pyi')):
+                continue
+            source_path = (root / name).resolve()
+            if any(source_path.is_relative_to(directory) for directory in directories):
+                if not source_path.is_relative_to(root):
+                    raise ValueError('Escaped Python interface member')
+                raw = source_path.read_bytes()
+                members.append(name)
+                modules[name] = {'module': name, 'sha256': hashlib.sha256(raw).hexdigest(),
+                                 **python_interface(raw.decode('utf-8'))}
+        roots.append({'kind': 'python-wheel', 'name': project['name'], 'manifest': manifest,
+                      'entrances': sorted(members), 'scripts': project.get('scripts', {})})
+    return {'qualification': 'source-input-coverage-only', 'roots': roots,
+            'modules': [modules[name] for name in sorted(modules)]}
+
+
+def module_interfaces(root: Path, names) -> list:
+    root = root.resolve()
+    if not isinstance(names, list) or not all(isinstance(name, str) for name in names):
+        raise ValueError('Invalid Python module projection request')
+    modules = []
+    for name in sorted(set(names)):
+        path = (root / name).resolve()
+        if not path.is_relative_to(root) or not name.endswith(('.py', '.pyi')):
+            raise ValueError('Escaped Python interface module')
+        raw = path.read_bytes()
+        modules.append({'module': name, 'sha256': hashlib.sha256(raw).hexdigest(),
+                        **python_interface(raw.decode('utf-8'))})
+    return modules
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('wheel')
-    print(json.dumps(wheel_interfaces(parser.parse_args().wheel), sort_keys=True))
+    parser.add_argument('wheel', nargs='?')
+    parser.add_argument('--source-root', type=Path)
+    parser.add_argument('--modules-root', type=Path)
+    args = parser.parse_args()
+    if sum(value is not None for value in [args.wheel, args.source_root, args.modules_root]) != 1:
+        parser.error('Choose exactly one normal wheel, source root or module projection')
+    result = (source_projects(args.source_root) if args.source_root else
+              module_interfaces(args.modules_root, json.load(sys.stdin)) if args.modules_root else
+              wheel_interfaces(args.wheel))
+    print(json.dumps(result, sort_keys=True))

@@ -137,9 +137,9 @@ test('namespace reexports and class methods retain their actual public names', (
   assert.notDeepEqual(before.operations, after.operations);
 });
 
-test('real stdlib wheel reader verifies five independent Python controls', () => {
+test('real stdlib wheel and source readers verify seven independent Python controls', () => {
   const result = spawnSync('python3', ['-B', '-m', 'unittest', 'discover', '-s', 'scripts',
     '-p', 'test_python_interface_inventory.py', '-v'], {encoding: 'utf8', timeout: 30000});
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stderr, /Ran 5 tests/u);
+  assert.match(result.stderr, /Ran 7 tests/u);
 });

@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import zipfile
-from python_interface_inventory import python_interface, wheel_interfaces
+from python_interface_inventory import python_interface, wheel_interfaces, source_projects
 
 
 class InterfaceInventoryTests(unittest.TestCase):
@@ -53,6 +53,22 @@ class InterfaceInventoryTests(unittest.TestCase):
     def test_unknown_dynamic_export_requires_owner_projection(self):
         with self.assertRaisesRegex(ValueError, 'requires owner projection'):
             python_interface('__all__ = choose_exports()\n')
+
+    def test_new_python_project_outside_conventional_package_directory_is_discovered(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'outside/src/new_sdk').mkdir(parents=True)
+            (root / 'outside/pyproject.toml').write_text(
+                '[project]\nname="new-sdk"\n[tool.setuptools.packages.find]\nwhere=["src"]\n')
+            (root / 'outside/src/new_sdk/__init__.py').write_text('def decide(value):\n    return value\n')
+            result = source_projects(root, ['outside/pyproject.toml', 'outside/src/new_sdk/__init__.py'])
+            self.assertEqual(result['roots'][0]['name'], 'new-sdk')
+            self.assertEqual(result['modules'][0]['operations'][0]['name'], 'decide')
+
+    def test_current_three_python_projects_are_actual_source_roots(self):
+        result = source_projects(Path(__file__).resolve().parent.parent)
+        self.assertEqual({value['name'] for value in result['roots']}, {'actql', 'actql-sdk', 'actql-local-runtime'})
+        self.assertTrue(any(value['module'].endswith('/_wire.py') for value in result['modules']))
 
 
 if __name__ == '__main__':
