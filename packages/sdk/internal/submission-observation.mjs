@@ -321,7 +321,6 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       retainQueryResult, retainQueryFailure, 'sql', text, parameters, options),
     aql: (text, parameters, options) => sourceQuery(startSource, ClientError,
       retainQueryResult, retainQueryFailure, 'aql-text', text, parameters, options),
-    newSubmission,
     lookupSubmission: async (submissionRef, {signal} = {}) => {
       let owned;
       try {owned = freezeInput(snapshotClientRequest(submissionRef));}
