@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "651c4ec74d87b937ddde47d5d8f06f404229edbaa4619da8c7c8b8862deb6b2d",
+      "sha256": "e9b42f4358ead95df827878244695c9a21945fbd95b0786f82356be9fc1a9e86",
       "exports": [
         "installedConnectors"
       ],
@@ -17,6 +17,13 @@
         },
         {
           "name": "installedConnectors/installedConnectors/installedConnectors",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#10",
           "parameters": [
             "module"
           ],
@@ -76,6 +83,11 @@
           "parameters": [
             "module"
           ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#10",
+          "parameters": [],
           "async": false
         },
         {
@@ -139,6 +151,7 @@
             "<module>",
             "installedConnectors/installedConnectors",
             "installedConnectors/installedConnectors/installedConnectors",
+            "installedConnectors/installedConnectors/installedConnectors#10",
             "installedConnectors/installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors/installedConnectors#4",
@@ -147,6 +160,7 @@
             "installedConnectors/installedConnectors/installedConnectors#7",
             "installedConnectors/installedConnectors/installedConnectors#8",
             "installedConnectors/installedConnectors/installedConnectors#9",
+            "installedConnectors/installedConnectors#10",
             "installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors#4",

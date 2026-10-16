@@ -41,7 +41,7 @@ export function resultBody({handle = 'query-original', parts = [2],
       partitionInfo: parts.map(rowCount => ({rowCount}))}, data: rows}));
 }
 
-function metadataBody() {
+export function metadataBody() {
   const names = ['TABLE_CATALOG', 'TABLE_SCHEMA', 'TABLE_NAME', 'COLUMN_NAME',
     'ORDINAL_POSITION', 'IS_NULLABLE', 'DATA_TYPE', 'NUMERIC_PRECISION',
     'NUMERIC_SCALE', 'CHARACTER_MAXIMUM_LENGTH'];
