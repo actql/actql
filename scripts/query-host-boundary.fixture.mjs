@@ -23,8 +23,13 @@ function fixture() {
 // owns its argument refactoring; only this test adapter needs to follow it.
 function invoke(run, f, entries, {authorization, observeCompletion,
   beforeCompute, retainPreflightCleanup} = {}) {
-  return run(f.setup, f.core, entries, undefined, observeCompletion, undefined,
-    beforeCompute, authorization, undefined, undefined, retainPreflightCleanup);
+  return run({
+    setup: f.setup,
+    runtime: {core: f.core, contributions: entries, authorization},
+    control: {observeCompletion},
+    publication: {beforeCompute},
+    cleanup: {retainPreflightCleanup},
+  });
 }
 
 export async function hostApprovalBoundary({runInstalledStrategy: run}) {

@@ -12,6 +12,8 @@ import {sourceFreeValuesPlan} from './local-values-plan.mjs';
 import {inspect} from 'node:util';
 import * as cancellationMoon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {createInProcessExecutionSite, executionSiteDescription,
+  installExecutionSites, prepareExecutionSitePolicy} from '../host-common/execution-sites.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 // Reuse the existing distribution-client gate for bounded two-source owners.
 import './two-source-capture-boundaries.test.mjs';
@@ -744,7 +746,9 @@ test('an acquisition failure without a stated end is never inferred stopped',
 // real setup stop/usage and Store capacity owner. The journal is a protocol
 // double; no Compute contribution or provider may enter. This deliberately
 // tiny synthetic Store is not public publication history or a production limit.
-async function preflightDispatchFixture(t, {blocked, unowned = false} = {}) {
+async function preflightDispatchFixture(t, {
+  blocked, unowned = false, partialSiteInstallation = false, sanitize = false,
+} = {}) {
   const [document, environmentWire, registry, contract] = await Promise.all([
     readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'),
     readFile(new URL('../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8'),
@@ -754,7 +758,24 @@ async function preflightDispatchFixture(t, {blocked, unowned = false} = {}) {
   let setup, stopCalls = 0, stopped = 0, closeCalls = 0, closed = 0;
   let custodyTransfers = 0, capacityChecks = 0, originalFailure, retainedCleanupOwner;
   const cleanupFailure = new Error('exact setup cleanup pending');
+  const siteFailure = new Error('second new Site create failed');
+  let siteCreates = 0, siteCleanupBlocked = true, firstNewHandle;
+  const siteTeardowns = [];
   const runtime = {...cancellationMoon,
+    strategySiteCreate(...args) {
+      siteCreates++;
+      if (partialSiteInstallation && siteCreates === 3) throw siteFailure;
+      const handle = cancellationMoon.strategySiteCreate(...args);
+      if (partialSiteInstallation && siteCreates === 2) firstNewHandle = handle;
+      return handle;
+    },
+    strategySiteBeginTeardown(handle) {
+      siteTeardowns.push(handle);
+      if (partialSiteInstallation && handle === firstNewHandle && siteCleanupBlocked) {
+        throw cleanupFailure;
+      }
+      return cancellationMoon.strategySiteBeginTeardown(handle);
+    },
     clientProgramOpenSourceFreeLocalHost(...args) {
       setup = cancellationMoon.clientProgramOpenSourceFreeLocalHost(...args);
       assert.ok(setup);
@@ -814,17 +835,31 @@ async function preflightDispatchFixture(t, {blocked, unowned = false} = {}) {
   const requirement = {objectCount: 19, requiredBytes: 190000000, maxObjectBytes: 10000000};
   await physicalStore.putBytes(Buffer.from('independent retained object A'));
   assert.equal(physicalStore.publicationCapacitySupports(requirement), true);
-  await physicalStore.putBytes(Buffer.from('independent retained object B'));
-  assert.equal(physicalStore.status().objectCount, 2);
+  if (!partialSiteInstallation) {
+    await physicalStore.putBytes(Buffer.from('independent retained object B'));
+  }
+  assert.equal(physicalStore.status().objectCount, partialSiteInstallation ? 1 : 2);
   assert.equal(physicalStore.status().reservedObjects, 0);
-  assert.equal(physicalStore.publicationCapacitySupports(requirement), false);
+  assert.equal(physicalStore.publicationCapacitySupports(requirement), partialSiteInstallation);
   const store = {...physicalStore,
     publicationCapacitySupports(actual) {
       capacityChecks++;
       assert.deepEqual(actual, requirement);
       return physicalStore.publicationCapacitySupports(actual);
     }};
-  const entry = createNodeHostEntry(async () => runtime, async () => []);
+  let existingSite, installationOptions = {};
+  const contributions = partialSiteInstallation ? [{registration: {},
+    run() { assert.fail('partial installation must not enter Compute'); }}] : [];
+  if (partialSiteInstallation) {
+    const site = key => createInProcessExecutionSite({key, generation: 1, runtimeRevision: 'fixture/1'});
+    existingSite = site('existing');
+    installExecutionSites(prepareExecutionSitePolicy({sites: [existingSite]}),
+      contributions, runtimeCore(runtime).siteControl);
+    installationOptions = {executionSitePolicy: prepareExecutionSitePolicy({
+      sites: [existingSite, site('first-new'), site('second-new')],
+    })};
+  }
+  const entry = createNodeHostEntry(async () => runtime, async () => contributions);
   const unownedFailure = Object.assign(new Error('unowned capacity-shaped error'),
     {code: 'RunPublicationCapacityUnsupported'});
   const owner = installNodeClientDispatchOwner({moon: runtime, control, journal, store,
@@ -836,7 +871,7 @@ async function preflightDispatchFixture(t, {blocked, unowned = false} = {}) {
       if (unowned) throw unownedFailure;
       try {
         return await entry.runPublishedCapturedStrategy(actualSetup, publication,
-          options, signal, observer, cleanupOwner => {
+          {...options, ...installationOptions}, signal, observer, cleanupOwner => {
             custodyTransfers++;
             assert.equal(custodyTransfers, 1);
             assert.equal(stopCalls, 0, 'transfer precedes either cleanup path');
@@ -846,7 +881,11 @@ async function preflightDispatchFixture(t, {blocked, unowned = false} = {}) {
             retainedCleanupOwner = cleanupOwner;
             retainOwner(cleanupOwner);
           }, tasks);
-      } catch (error) { originalFailure = error; throw error; }
+      } catch (error) {
+        originalFailure = error;
+        if (sanitize) throw new Error('outer boundary withheld error details');
+        throw error;
+      }
     },
   });
   return {owner, ref, state, stops, cleanupFailure,
@@ -857,9 +896,41 @@ async function preflightDispatchFixture(t, {blocked, unowned = false} = {}) {
     counts: () => ({stopCalls, stopped, closeCalls, closed, custodyTransfers, capacityChecks}),
     failure: () => originalFailure,
     cleanupOwner: () => retainedCleanupOwner,
-    reenter: () => runInstalledStrategy(setup, runtimeCore(runtime), []),
+    siteFailure,
+    allowSiteCleanup: () => { siteCleanupBlocked = false; },
+    siteFacts: () => ({creates: siteCreates,
+      onlyOriginalNewHandle: siteTeardowns.every(handle => handle === firstNewHandle),
+      existingAccepting: executionSiteDescription(existingSite).accepting}),
+    reenter: () => runInstalledStrategy({setup, runtime: {core: runtimeCore(runtime), contributions: []}}),
   };
 }
+
+test('partial Site installation transfers same cleanup custody even when its error is sanitized', async t => {
+  const f = await preflightDispatchFixture(t, {partialSiteInstallation: true, sanitize: true});
+  await f.start();
+  await f.owner.operation(f.ref);
+  const primary = f.failure();
+  assert.equal(primary.primaryFailure.cause, f.siteFailure);
+  assert.equal(primary.cleanupHandle, f.cleanupOwner());
+  assert.equal(f.cleanupOwner().cleanupPending(), true);
+  assert.deepEqual(f.stops, []);
+  assert.equal(f.state.physicalCloseConfirmed, false);
+  assert.deepEqual(f.siteFacts(), {creates: 3, onlyOriginalNewHandle: true, existingAccepting: true});
+  await assert.rejects(f.owner.drain(), {code: 'ClientDispatchCleanupPending'});
+  assert.equal(f.counts().stopped, 1);
+  assert.equal(f.counts().closed, 1);
+  assert.equal(f.counts().custodyTransfers, 1);
+  f.allowSiteCleanup();
+  await f.owner.drain();
+  assert.deepEqual(f.stops, [[f.ref, 'failed']]);
+  assert.equal(f.state.physicalCloseConfirmed, true);
+  assert.equal(f.cleanupOwner().cleanupPending(), false);
+  assert.deepEqual(f.siteFacts(), {creates: 3, onlyOriginalNewHandle: true, existingAccepting: true});
+  const counts = f.counts();
+  await f.owner.drain();
+  assert.deepEqual(f.counts(), counts);
+  assert.equal(f.failure(), primary);
+});
 
 test('preflight setup custody confirms actual stop once without entering Compute', async t => {
   const f = await preflightDispatchFixture(t);
@@ -937,11 +1008,21 @@ test('a rejected preflight custody handoff cannot stop or release its setup', as
   const core = {stop() { stops++; }, closeOutputs() { closes++; },
     usage: () => ({reservedTransferBytes: 0n, heldBytes: 0n,
       reservedRetentionBytes: 0n, reservedExecutionBytes: 0n})};
-  await assert.rejects(runInstalledStrategy(setup, core, [],
-    undefined, undefined, undefined, () => { throw primary; },
-    undefined, undefined, undefined, owner => {
-      handoffs++; rejectedOwner = owner; throw rejection;
-    }), error => {
+  await assert.rejects(runInstalledStrategy({
+    setup,
+    runtime: {
+      core,
+      contributions: [],
+    },
+    publication: {
+      beforeCompute: () => { throw primary; },
+    },
+    cleanup: {
+      retainPreflightCleanup: owner => {
+        handoffs++; rejectedOwner = owner; throw rejection;
+      },
+    },
+  }), error => {
       assert.equal(error.primaryFailure, primary);
       assert.equal(error.cause, primary);
       assert.deepEqual(error.cleanupErrors, [rejection]);
@@ -951,7 +1032,7 @@ test('a rejected preflight custody handoff cannot stop or release its setup', as
     });
   assert.deepEqual({handoffs, stops, closes}, {handoffs: 1, stops: 0, closes: 0});
   assert.equal(rejectedOwner.status().pending, true);
-  await assert.rejects(runInstalledStrategy(setup, core, []), {code: 'StrategyAlreadyRunning'});
+  await assert.rejects(runInstalledStrategy({setup, runtime: {core, contributions: []}}), {code: 'StrategyAlreadyRunning'});
   assert.deepEqual({handoffs, stops, closes}, {handoffs: 1, stops: 0, closes: 0});
 });
 
