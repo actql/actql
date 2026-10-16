@@ -260,3 +260,33 @@ test "STORE relationship rejects a real foreign connection even when its exact C
     is Err(StoreCommandIssue::ForeignCatalog),
   )
 }
+
+///|
+test "STORE relationship changes cannot retain the old Mapping self identity" {
+  let (_, wire) = store_command_fixture()
+  guard @json.parse(wire) is Object(environment_fields) &&
+    environment_fields["mapping_contracts"] is Array(mappings) &&
+    mappings[0] is Object(mapping_fields) &&
+    mapping_fields["store_command"] is Object(relationship) else {
+    abort("fixture originals")
+  }
+  relationship["catalog_cid"] = ("sha256:" + "a".repeat(64)).to_json()
+  ignore(environment_fields.remove("evidence_bundle_cid"))
+  let changed = sealed_fixture(
+    Json::object(environment_fields),
+    "evidence_bundle_cid",
+  )
+  guard @json.parse(changed) is Object(changed_fields) &&
+    changed_fields["evidence_bundle_cid"] is String(changed_cid) else {
+    abort("fixture environment identity")
+  }
+  let environment = read(
+    @utf8.encode(changed),
+    changed_cid,
+    mapping_shape_limits(),
+  ).unwrap()
+  assert_true(
+    check_mapping_contract_shapes(environment, mapping_shape_limits(), 100)
+    is Err(IdentityMismatch(0)),
+  )
+}
