@@ -451,6 +451,9 @@ async function acquireStoreOwnership(root, bootstrap) {
   const ownershipDirectory = resolve(root, 'owner');
   const ownerPath = resolve(ownershipDirectory, 'owner.json');
   const token = randomUUID();
+  // Read before acquiring ownership: a failed identity observation cannot
+  // strand a newly created owner. Keep scalars, not the entire Stats object.
+  const {dev: rootDevice, ino: rootInode} = await lstat(root, {bigint: true});
   while (true) {
     try {
       await mkdir(ownershipDirectory, {mode: 0o700});
@@ -462,21 +465,47 @@ async function acquireStoreOwnership(root, bootstrap) {
       await writeFile(ownerPath, owner, {flag: 'wx', mode: 0o600});
       await syncDirectoryPath(ownershipDirectory);
       await syncDirectoryPath(root);
-      let released = false;
+      let released = false, ownerRemoved = false, directoryRemoved = false;
+      let ownershipDevice, ownershipInode;
       return Object.freeze({
         async release() {
           if (released) return false;
-          let existing;
-          try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
-          catch (error) {
-            if (error?.code === 'ENOENT') return false;
-            throw error;
+          const currentRoot = await lstat(root, {bigint: true});
+          if (!currentRoot.isDirectory() || currentRoot.dev !== rootDevice ||
+              currentRoot.ino !== rootInode) fail('PublicationStoreOwnershipLost');
+          if (!directoryRemoved) {
+            const directory = await lstat(ownershipDirectory, {bigint: true});
+            if (!directory.isDirectory() || directory.isSymbolicLink()) {
+              fail('PublicationStoreOwnershipLost');
+            }
+            if (!ownerRemoved) {
+              let existing;
+              try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
+              catch (error) {
+                if (error?.code === 'ENOENT') return false;
+                throw error;
+              }
+              if (existing?.token !== token || existing?.pid !== process.pid) {
+                fail('PublicationStoreOwnershipLost');
+              }
+            }
+            if (ownershipDevice === undefined) {
+              ownershipDevice = directory.dev;
+              ownershipInode = directory.ino;
+            } else if (directory.dev !== ownershipDevice || directory.ino !== ownershipInode) {
+              fail('PublicationStoreOwnershipLost');
+            }
+            // Record only actually acknowledged phases in this original
+            // handle. Never reconstruct an absent record or unlink again.
+            if (!ownerRemoved) {
+              await unlink(ownerPath);
+              ownerRemoved = true;
+            }
+            await rmdir(ownershipDirectory);
+            directoryRemoved = true;
           }
-          if (existing?.token !== token || existing?.pid !== process.pid) {
-            fail('PublicationStoreOwnershipLost');
-          }
-          await unlink(ownerPath);
-          await rmdir(ownershipDirectory);
+          // A successor may now own root/owner. It must never be inspected
+          // or removed by this old handle's remaining durability retry.
           await syncDirectoryPath(root);
           released = true;
           return true;

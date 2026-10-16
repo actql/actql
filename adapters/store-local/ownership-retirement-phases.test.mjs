@@ -113,3 +113,44 @@ test('retiring old ownership never unlinks a healthy successor after original di
   await next.close();
   f.scratch.passed();
 });
+
+test('pending original retirement refuses a replacement ownership directory', async t => {
+  const f = await fixture(t, 'rmdir');
+  await assert.rejects(f.store.close(), error => error === f.primary);
+  const saved = join(f.scratch.path, 'same-original-owner');
+  await fs.rename(f.owner, saved);
+  await fs.mkdir(f.owner);
+  const replacement = await fs.lstat(f.owner);
+  try {
+    await assert.rejects(f.store.close(), {code: 'PublicationStoreOwnershipLost'});
+    assert.equal((await fs.lstat(f.owner)).ino, replacement.ino);
+    assert.deepEqual(f.ownedKey, Buffer.alloc(32, 7));
+  } finally {
+    // Only this known-empty disposable replacement is removed. Restore the
+    // original directory inode, never manufacture its removed owner record.
+    await fs.rmdir(f.owner);
+    await fs.rename(saved, f.owner);
+  }
+  assert.equal(await f.store.close(), true);
+  f.scratch.passed();
+});
+
+test('pending old root durability cannot retire against a replacement Store directory', async t => {
+  const f = await fixture(t, 'sync');
+  await assert.rejects(f.store.close(), error => error === f.primary);
+  const saved = join(f.scratch.path, 'same-original-root');
+  await fs.rename(f.directory, saved);
+  await fs.mkdir(f.directory);
+  const replacement = await fs.lstat(f.directory);
+  try {
+    await assert.rejects(f.store.close(), {code: 'PublicationStoreOwnershipLost'});
+    assert.equal((await fs.lstat(f.directory)).ino, replacement.ino);
+    assert.deepEqual(f.ownedKey, Buffer.alloc(32, 7));
+    assert.equal(f.counts().rootSyncs, 1, 'foreign root must not receive old durability I/O');
+  } finally {
+    await fs.rmdir(f.directory);
+    await fs.rename(saved, f.directory);
+  }
+  assert.equal(await f.store.close(), true);
+  f.scratch.passed();
+});
