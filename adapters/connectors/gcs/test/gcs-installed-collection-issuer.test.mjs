@@ -3,6 +3,7 @@ import {generateKeyPairSync} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {userInfo} from 'node:os';
+import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as fixtureMoon from '../../../../_build/js/release/build/connectors/gcs/fixtures/original_reference_node/original_reference_node.js';
@@ -46,10 +47,10 @@ async function fixture(t) {
   const loaded = [];
   const options = {root: scratch.path, principalId: userInfo().username, moon, runtimeUrl,
     baseEnvironmentWire, resolveSecret() { secrets++; assert.fail('No credential or GCS I/O'); }};
-  const open = async (name, changes = {}) => {
+  const open = async (name, changes = {}, overrides = {}) => {
     const path = join(scratch.path, name);
     await writeFile(path, JSON.stringify({...profile, ...changes}));
-    const source = await loadInstalledSource(path, options);
+    const source = await loadInstalledSource(path, {...options, ...overrides});
     loaded.push(source);
     return source;
   };
@@ -156,3 +157,71 @@ test('only an explicitly source-only legacy installation can omit the collection
   assert.equal(JSON.parse(legacy.environmentWire).connector_catalogs[0].commands.length, 0);
   assert.equal(legacy.sourceReadAccesses.length, 2);
 });
+
+for (const variant of ['resource issuer throws', 'collection issuer throws', 'issuer ABI missing']) {
+  test(`acquired original Site retains cleanup when ${variant}`, async t => {
+    const {open} = await fixture(t);
+    const primary = Object.freeze(new Error(`original ${variant}`));
+    const closeFailure = Object.freeze(new Error('same original SQLite close pending'));
+    const originalExec = DatabaseSync.prototype.exec;
+    const originalClose = DatabaseSync.prototype.close;
+    let database, databaseClosed = false, closeAttempts = 0, issuerCalls = 0;
+    // Observe only this fresh fixture's actual connection. No replacement
+    // journal, credential grant, historical DB or physical operation is used.
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql.includes('CREATE TABLE IF NOT EXISTS journal_metadata')) {
+        assert.equal(database ?? this, this);
+        database = this;
+      }
+      return originalExec.call(this, sql);
+    });
+    t.mock.method(DatabaseSync.prototype, 'close', function() {
+      assert.equal(this, database, 'cleanup must keep the acquired original database');
+      closeAttempts++;
+      if (closeAttempts === 1) throw closeFailure;
+      originalClose.call(this);
+      databaseClosed = true;
+    });
+    // A failing pre-fix diagnostic has no exported Site carrier. Its test
+    // teardown still closes the exact observed fresh DB, never an old Run.
+    t.after(() => {
+      if (database !== undefined && !databaseClosed) {
+        originalClose.call(database);
+        databaseClosed = true;
+      }
+    });
+    const originalIssuer = moon.clientProgramResourceReferenceIssuer;
+    const testMoon = {...moon, clientProgramResourceReferenceIssuer:
+      variant === 'issuer ABI missing' ? undefined : (...args) => {
+        issuerCalls++;
+        if (issuerCalls === (variant === 'resource issuer throws' ? 1 : 2)) throw primary;
+        return originalIssuer(...args);
+      }};
+    let failure;
+    await assert.rejects(open('constructor-failure.json', {}, {moon: testMoon}), error => {
+      failure = error;
+      assert.equal(error.code, 'InstalledHostInitializationFailed');
+      assert.equal(error.cleanupPending, true);
+      if (variant === 'issuer ABI missing') assert.ok(error.primaryFailure instanceof TypeError);
+      else assert.equal(error.primaryFailure, primary);
+      return true;
+    });
+    assert.notEqual(database, undefined, 'the actual Site was acquired before failure');
+    assert.equal(issuerCalls, variant === 'resource issuer throws' ? 1 :
+      variant === 'collection issuer throws' ? 2 : 0);
+    assert.equal(closeAttempts, 1);
+    const pending = failure.cleanupHandle.status();
+    assert.equal(pending.pending, true);
+    assert.deepEqual(pending.owners, ['source-profile']);
+    assert.equal(pending.errors[0].error, closeFailure);
+    assert.equal(databaseClosed, false, 'failed close does not retire its handle');
+    const retry = failure.cleanupHandle.retry();
+    assert.equal(failure.cleanupHandle.retry(), retry, 'the existing cleanup stays single-flight');
+    assert.equal((await retry).pending, false);
+    assert.equal(closeAttempts, 2, 'retry closes the same acquired Site without reconstruction');
+    assert.equal(databaseClosed, true);
+    await failure.cleanupHandle.retry();
+    assert.equal(closeAttempts, 2, 'settled cleanup does not close or construct another Site');
+    assert.equal(pending.pending, true, 'the previously returned status snapshot remains frozen');
+  });
+}
