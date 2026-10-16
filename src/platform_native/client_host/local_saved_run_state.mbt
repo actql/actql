@@ -27,6 +27,28 @@ pub(all) enum NativeClientSavedRunStateIssue {
 }
 
 ///|
+// Original issuer metadata plus the actual counter from the same retained row.
+// Preparation is not current authority or a COMMIT acknowledgement.
+fn native_saved_state_observation(
+  run : NativeClientRunRecord,
+  state : @host.ClientRunStateOriginal,
+  revision : Int64,
+) -> Result[@publication.RunStateObservation, NativeClientRunJournalIssue] {
+  let run_id = match @publication.run_definition_run_id(run.definition) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  @publication.prepare_run_state_observation(
+    state.state_wire(),
+    run_id,
+    revision,
+    65536,
+    8192,
+    64,
+  ).map_err(_ => CustodyLost)
+}
+
+///|
 fn NativeClientRunJournal::saved_run_state_locked(
   self : NativeClientRunJournal,
   reference : NativeClientSubmissionReference,
@@ -107,11 +129,39 @@ fn NativeClientRunJournal::retain_observed_run_state(
     if run.publication_binding != publication.binding {
       return Err(ForeignRun)
     }
+    guard original.run_state_observation is Some((prior_revision, prior_key)) else {
+      // Historical absence is not the original issuance of counter zero.
+      return Err(CustodyLost)
+    }
+    let run_id = match @publication.run_definition_run_id(run.definition) {
+      Ok(value) => value
+      Err(_) => return Err(CustodyLost)
+    }
+    let observation = match
+      @publication.prepare_run_state_observation(
+        observed.wire(),
+        run_id,
+        prior_revision,
+        65536,
+        8192,
+        64,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(CustodyLost)
+    }
+    let revision = match observation.next_revision(prior_key, prior_revision) {
+      Ok(value) => value
+      Err(_) => return Err(CustodyLost)
+    }
+    let state_wire = match observation.wire(revision) {
+      Ok(value) => value
+      Err(_) => return Err(CapacityExceeded)
+    }
     let state = match
       @host.prepare_client_run_state_original(
         run.definition,
         observed.original_manifest(),
-        observed.wire(),
+        state_wire,
       ) {
       Ok(value) => value
       Err(_) => return Err(CustodyLost)
@@ -123,6 +173,7 @@ fn NativeClientRunJournal::retain_observed_run_state(
         original.intent,
         run_admission=original.run_admission,
         run_state_original=Some(wire),
+        run_state_observation=Some((revision, Some(observation.key()))),
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -133,8 +184,7 @@ fn NativeClientRunJournal::retain_observed_run_state(
     }
     match original.run_state_original {
       Some(prior) if prior == wire => ()
-      Some(_) => return Err(ChangedIntent)
-      None =>
+      _ =>
         match
           self.database.compare_exchange(
             "client_submitted_intents",
@@ -262,14 +312,24 @@ pub fn NativeLocalHostConnection::lookup_submitted_run_state(
     let read : Result[NativeClientSavedRunState?, NativeClientRunJournalIssue] = match
       self.journal.saved_run_state_locked(reference, request) {
       Ok((original, run)) =>
-        match original.run_state_original {
-          None => Ok(None)
-          Some(wire) =>
+        match (original.run_state_original, original.run_state_observation) {
+          (Some(wire), Some((revision, Some(key)))) =>
             @host.restore_client_run_state_original(run.definition, wire)
-            .map(value => {
-              Some({ original: value, control_revision: run.revision, })
+            .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
+            .bind(value => {
+              let observation = match
+                native_saved_state_observation(run, value, revision) {
+                Ok(result) => result
+                Err(issue) => return Err(issue)
+              }
+              if observation.key() != key ||
+                observation.wire(revision).to_option() !=
+                Some(value.state_wire()) {
+                return Err(CustodyLost)
+              }
+              Ok(Some({ original: value, control_revision: run.revision, }))
             })
-            .map_err(_ => CustodyLost)
+          _ => Ok(None)
         }
       Err(issue) => Err(issue)
     }

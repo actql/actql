@@ -8,7 +8,19 @@ import {
 // Values
 pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]
 
+pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]
+
+pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]
+
+pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String
+
+pub fn object_collection_identity_json(ObjectCollectionBinding) -> String
+
+pub fn object_collection_resource_json(ObjectCollectionBinding) -> String
+
 pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields
+
+pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
 pub fn object_metadata_response_sha256(ObjectMetadata) -> String
 
@@ -20,13 +32,21 @@ pub fn object_mutation_before(ObjectMutationRequest) -> ObjectMetadataFields
 
 pub fn object_mutation_body(ObjectMutationRequest) -> String
 
+pub fn object_mutation_body_for(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]
+
+pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]
+
 pub fn object_mutation_cid(ObjectMutationRequest) -> String
 
 pub fn object_mutation_method(ObjectMutationRequest) -> String
 
 pub fn object_mutation_path(ObjectMutationRequest) -> String
 
+pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]
+
 pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?
+
+pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]
 
 pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
@@ -39,6 +59,26 @@ pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, Obj
 // Errors
 
 // Types and methods
+pub struct ObjectCollectionBinding {
+  installation_cid : String
+  target_ref : String
+  identity_wire : String
+  identity_cid : String
+  resource_wire : String
+}
+
+pub(all) enum ObjectCollectionIssue {
+  InvalidBinding
+  CapacityExceeded
+  ForeignBinding
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ObjectCollectionLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
 pub struct ObjectMetadata {
   fields : ObjectMetadataFields
   response_sha256 : String
@@ -97,6 +137,7 @@ pub struct ObjectMutationRequest {
   body : String
   cid : String
   logical_after : ObjectMetadataFields?
+  authored_changes : String
 }
 
 pub(all) enum ObjectRequestIssue {

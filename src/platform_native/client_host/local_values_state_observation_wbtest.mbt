@@ -256,12 +256,15 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     .retained_submission(reference)
     .unwrap()
     .unwrap()
+  assert_eq(submitted_before.run_state_observation, Some((0L, None)))
   let saved = host
     .retain_submitted_run_state(
       crypto, "operator", "cli", reference, request, observed, 1002.0,
     )
     .unwrap()
-  assert_eq(saved.wire(), observed.wire())
+  let saved_wire = saved.wire()
+  assert_true(saved_wire.contains("\"revision\":0"))
+  assert_eq(saved_wire.replace(old="\"revision\":0,", new=""), observed.wire())
   assert_eq(saved.control_revision(), run_before.revision)
   let submitted_after = journal.retained_submission(reference).unwrap().unwrap()
   assert_eq(submitted_after.revision, submitted_before.revision + 1L)
@@ -277,8 +280,8 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     journal.retained(request).unwrap().unwrap().revision,
     run_before.revision,
   )
-  // Same original bytes reuse the saved row after lost-response reconciliation;
-  // another observation time cannot replace the immutable first observation.
+  // Same original bytes reuse the saved row after lost-response reconciliation.
+  // A different observation timestamp can be stored without logical progress.
   host
   .retain_submitted_run_state(
     crypto, "operator", "cli", reference, request, observed, 1003.0,
@@ -315,12 +318,24 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
       1000,
     )
     .unwrap()
-  assert_true(
-    host.retain_submitted_run_state(
+  let changed_saved = host
+    .retain_submitted_run_state(
       crypto, "operator", "cli", reference, request, changed, 1003.0,
     )
-    is Err(ChangedIntent),
+    .unwrap()
+  let latest_saved_wire = changed_saved.wire()
+  assert_true(latest_saved_wire.contains("\"revision\":0"))
+  assert_true(latest_saved_wire.contains("2026-10-15T00:00:03.000Z"))
+  let submitted_changed = journal
+    .retained_submission(reference)
+    .unwrap()
+    .unwrap()
+  assert_eq(submitted_changed.revision, submitted_after.revision + 1L)
+  assert_eq(
+    submitted_changed.run_state_observation,
+    submitted_after.run_state_observation,
   )
+  assert_eq(submitted_changed.run_state_observation.unwrap().0, 0L)
   let cancellation_publication = install_native_client_cancellation_publication(
     store, "local-test", 65536, 8192, 64,
   ).unwrap()
@@ -346,7 +361,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
         crypto, "operator", "cli", reference, request, 1003.0,
       )
       .unwrap()
-    assert_eq(restored.wire(), observed.wire())
+    assert_eq(restored.wire(), latest_saved_wire)
     assert_eq(restored.control_revision(), run_before.revision)
   }
   let selected = host
@@ -354,7 +369,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
       crypto, "operator", "cli", "values-state-original", 1003.0,
     )
     .unwrap()
-  assert_eq(selected.state().wire(), observed.wire())
+  assert_eq(selected.state().wire(), latest_saved_wire)
   assert_eq(
     native_client_submission_reference_wire(selected.reference()),
     reference.wire,
@@ -377,7 +392,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   // Independent status/availability oracle; this is not a payload read grant.
   let source = @source.parse_json_bytes_preserving(
-    @utf8.encode(observed.wire()),
+    @utf8.encode(latest_saved_wire),
     { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
   ).unwrap()
   let cursor = @decode.admit(source, {
@@ -389,8 +404,8 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   let body = @decode.open_object(cursor).unwrap()
   assert_eq(epoch_text(body, "run_id"), Some("values-state-original"))
   assert_eq(epoch_text(body, "status"), Some("succeeded"))
-  assert_true(observed.wire().contains("unknown"))
-  assert_true(observed.wire().contains("verification_pending"))
+  assert_true(latest_saved_wire.contains("unknown"))
+  assert_true(latest_saved_wire.contains("verification_pending"))
   assert_true(
     host.observe_publication_run_state(
       publisher, pending, "2026-10-15T00:00:02.000Z", 1, 16, 1000,
@@ -446,7 +461,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   assert_eq(
     journal.retained_submission(reference).unwrap().unwrap().revision,
-    submitted_after.revision,
+    submitted_changed.revision,
   )
 
   assert_true(
@@ -504,14 +519,14 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
       crypto, "operator", "cli", reference, request, 1004.0,
     )
     .unwrap()
-  assert_eq(recovered.wire(), observed.wire())
+  assert_eq(recovered.wire(), latest_saved_wire)
   assert_eq(recovered.control_revision(), expected_reopen_revision)
   let selected_after_restart = reopened
     .lookup_submitted_run_state_by_id(
       crypto, "operator", "cli", "values-state-original", 1004.0,
     )
     .unwrap()
-  assert_eq(selected_after_restart.state().wire(), observed.wire())
+  assert_eq(selected_after_restart.state().wire(), latest_saved_wire)
   assert_eq(
     selected_after_restart.state().control_revision(),
     expected_reopen_revision,
@@ -637,9 +652,39 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     )
     .unwrap()
     .wire(),
-    observed.wire(),
+    latest_saved_wire,
   )
+  // Historical metadata absence stays unavailable, even when authentic state
+  // bytes exist. Do not turn this disposable legacy row into a fresh zero row.
+  reopened_journal
+  .transaction(() => {
+    let row = reopened_journal.retained_submission(reference).unwrap().unwrap()
+    let body = submitted_intent_body(
+      reference,
+      row.intent,
+      run_admission=row.run_admission,
+      run_state_original=row.run_state_original.map(wire => {
+        wire.replace(old="\\\"revision\\\":0,", new="")
+      }),
+    ).unwrap()
+    reopened_journal.database
+    .compare_exchange(
+      "client_submitted_intents",
+      reference.request_id,
+      row.revision,
+      body,
+    )
+    .map_err(issue => NativeClientRunJournalIssue::Physical(issue))
+  })
+  .unwrap()
+  |> ignore
+  let legacy_read = reopened.lookup_submitted_run_state(
+    crypto, "operator", "cli", reference, request, 1004.0,
+  )
+  let legacy_record = reopened_journal.retained_submission(reference)
   reopened.close().unwrap() |> ignore
+  assert_true(legacy_read is Err(Unavailable))
+  assert_true(legacy_record.unwrap().unwrap().run_state_observation is None)
 }
 
 ///|

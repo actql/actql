@@ -12,6 +12,14 @@ const schema: StandardSchemaV1<{id: number}, {label: string; at: Date}> = {
 };
 const query = client.sql('SELECT 1 AS id');
 const result: Result = await query;
+const observedState = await result.execution.status();
+const stateRevision: number = observedState.revision;
+await result.execution.wait({since: stateRevision});
+await result.execution.wait({since: null});
+// @ts-expect-error A state revision is not a string token.
+result.execution.wait({since: '1'});
+// @ts-expect-error A control handle cannot substitute for a state revision.
+result.execution.wait({since: {revision: 1}});
 const recovery: RequestRecovery = client.recoverRequest(result);
 const savedTarget: RequestLookupTarget = recovery.target;
 const restoredRecovery = client.recoverRequest(savedTarget);
