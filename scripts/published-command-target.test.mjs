@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {publishedCommandTargetSchema,publishedCommandTargetSchemas} from './published-command-target.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
@@ -47,4 +48,26 @@ test('independent complete selector Programs retain authored ID-free input and s
     assert.equal(Object.hasOwn(member,'input_key'),false,'Identifier selection does not invent ID correspondence');
   }
   assert.notEqual(vectors.programs[0].cid,vectors.programs[1].cid);
+});
+
+test('actual Common fixture inputs retain independently authored complete Command Catalog and environment identities',()=>{
+  const fixtures=read('portability/corpus/published-command-targets.json');
+  const without=(v,key)=>Object.fromEntries(Object.entries(v).filter(([name])=>name!==key));
+  const moon=readFileSync('src/stage_results/published_command_fixture_test.mbt','utf8');
+  for(const c of Object.values(fixtures)) {
+    const environment=c.environment;
+    assert.equal(machineCid(without(environment,'evidence_bundle_cid')),c.environment_cid);
+    assert.equal(environment.evidence_bundle_cid,c.environment_cid);
+    const selected=environment.command_contracts[0];
+    assert.equal(machineCid(without(selected,'contract_cid')),c.command_cid);
+    assert.equal(selected.contract_cid,c.command_cid);
+    assert.deepEqual(selected.target.binding ?? null,c.binding);
+    const catalog=environment.connector_catalogs[0];
+    assert.equal(machineCid(without(catalog,'catalog_cid')),c.catalog_cid);
+    assert.equal(catalog.catalog_cid,c.catalog_cid);
+    assert.deepEqual(catalog.commands[0],selected);
+    // Canonical wire equality is a test-input correspondence check, not an
+    // assertion about implementation spelling, function names or behavior.
+    assert.ok(moon.includes(canonicalText(environment)),'Exact independent original is an actual Common test input');
+  }
 });
