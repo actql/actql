@@ -42,8 +42,8 @@ const refuse = (code, cause) => {
 
 // Bound profile and identity-part reads before buffering, including files that
 // grow after opening. This limit is distinct from Check Environment admission.
-async function readProfileJson(path) {
-  try { return await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024}); }
+async function readProfileJson(path, {maxBytes = 8 * 1024 * 1024} = {}) {
+  try { return await readSourceProfileJson(path, {maxBytes}); }
   catch (cause) {
     if (cause?.cleanupHandle !== undefined) {
       // The same acquired reader supplies its primary; do not infer it from

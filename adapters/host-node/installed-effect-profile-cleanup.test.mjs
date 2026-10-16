@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import * as loader from './installed-effect.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {createInstalledConnectorTable} from './installed-connectors.mjs';
 
 // Exercise the actual bounded reader with real files. Only the physical close
 // call is faulted on the actual imported reader; no parser or Owner is replaced.
@@ -58,6 +59,28 @@ test('Effect false close remains in same initialization custody without a reread
   assert.equal(f.io.state.opens, 1);
   assert.equal(f.io.state.reads, reads);
   assert.equal(f.io.state.released, 1);
+});
+
+test('Effect identity callback forwards its Connector ceiling to shared acquisition', async t => {
+  const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-identity-limit-'));
+  t.after(() => fs.rm(root, {recursive: true, force: true}));
+  const profilePath = join(root, 'profile.json'), metadataPath = join(root, 'publication.json');
+  const version = 'actql-installed-effect-ceiling-fixture/0.1';
+  const profile = {version, metadataPath};
+  await fs.writeFile(profilePath, JSON.stringify(profile));
+  const connectorTable = createInstalledConnectorTable([{name: 'ceiling_fixture', effect: {
+    profileVersion: version, load: async () => ({check: value => value,
+      identityParts: async (value, read) => [value, await read(value.metadataPath, {maxBytes: 1048576})],
+      load() { assert.fail('identity cannot acquire an Effect adapter'); },
+    }),
+  }}]);
+  await fs.writeFile(metadataPath, '{}');
+  const original = await loader.installedEffectIdentity(profilePath, {connectorTable});
+  await fs.appendFile(metadataPath, ' '.repeat(1048576 - 2));
+  assert.equal(await loader.installedEffectIdentity(profilePath, {connectorTable}), original);
+  await fs.appendFile(metadataPath, ' ');
+  await assert.rejects(loader.installedEffectIdentity(profilePath, {connectorTable}),
+    {code: 'InvalidInstalledEffectProfile'});
 });
 
 for (const malformed of [false, true]) {

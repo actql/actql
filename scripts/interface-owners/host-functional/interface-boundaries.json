@@ -30005,7 +30005,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b20b89f1ada7e0bbf69b3676caaee7d0a0392029ee19cfc79a91586a09e9fe32",
+      "sha256": "5e3abaccab1c47ce4bea59cece044fe8c7417d1072ed6ecdd95353b2da21c757",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -30117,7 +30117,8 @@
         {
           "name": "readProfileJson",
           "parameters": [
-            "path"
+            "path",
+            "maxBytes"
           ],
           "async": true
         },
