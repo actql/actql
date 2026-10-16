@@ -1,0 +1,65 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/hubspot/catalog"
+
+import {
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn project_properties(Bytes, String, PropertyLimits) -> Result[PropertyCatalog, PropertyIssue]
+
+pub fn property_contract(PropertyCatalog, String) -> Result[@value_contract.Contract, PropertyIssue]
+
+pub fn property_named(PropertyCatalog, String) -> PropertyMetadata?
+
+pub fn property_names(PropertyCatalog) -> Array[String]
+
+pub fn property_option_values(PropertyMetadata) -> Array[String]
+
+pub fn require_property_write(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
+
+pub fn require_unique_property(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
+
+// Errors
+
+// Types and methods
+pub struct PropertyCatalog {
+  object_type : String
+  response_sha256 : String
+  // private fields
+}
+
+pub(all) enum PropertyIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  DuplicateProperty(String)
+  InvalidProperty(String)
+  PropertyUnconfirmed(String)
+  UnsupportedProperty(String)
+  WriteUnconfirmed(String)
+  ReadOnlyProperty(String)
+  UniqueKeyUnconfirmed(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PropertyLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_properties : Int
+  max_name_units : Int
+}
+
+pub struct PropertyMetadata {
+  name : String
+  native_type : String
+  field_type : String
+  unique : Bool
+  writable : Bool?
+  // private fields
+}
+
+// Type aliases
+
+// Traits
