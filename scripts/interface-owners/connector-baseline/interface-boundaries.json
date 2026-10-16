@@ -5263,7 +5263,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c1e815ac8d9a54e4f67bc7abbc2da6aec561e96d164831492ee4ea5e266dad3f",
+      "sha256": "35a52e4bfad54e863c2f4b556f8d259fcea83740b8c2f89c19c29a6a7c4b13ae",
       "role": "physical-io",
       "owner": "Exact GCS generation/metageneration bytes and checksums; original capture owns ContentRef issuance",
       "exports": [
@@ -5371,7 +5371,8 @@
             "target",
             "phase",
             "metageneration",
-            "contentEncoding"
+            "contentEncoding",
+            "sizeBytes"
           ],
           "async": false
         },
@@ -5388,7 +5389,8 @@
             "phase",
             "maxBytes",
             "metageneration",
-            "contentEncoding"
+            "contentEncoding",
+            "sizeBytes"
           ],
           "async": true
         },
@@ -5396,7 +5398,8 @@
           "name": "responseHeaders",
           "parameters": [
             "response",
-            "expectedEncoding"
+            "expectedEncoding",
+            "rangeSize"
           ],
           "async": false
         },

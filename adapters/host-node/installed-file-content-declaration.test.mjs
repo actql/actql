@@ -2645,9 +2645,11 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
         callResource: async call => {
           const media = ++calls === 2;
           assert.deepEqual(call.operations.get('gcs:file:read').headers,
-            [['accept-encoding', media ? storedEncoding : 'identity']]);
-          return {accepted: true, statusCode: 200,
-            headers: media && storedEncoding === 'gzip' ? [['content-encoding', 'gzip']] : [],
+            [['accept-encoding', media ? storedEncoding : 'identity'],
+              ...(media && storedEncoding === 'gzip' ? [['range', 'bytes=0-28']] : [])]);
+          return {accepted: true, statusCode: media && storedEncoding === 'gzip' ? 206 : 200,
+            headers: media && storedEncoding === 'gzip'
+              ? [['content-encoding', 'gzip'], ['content-range', 'bytes 0-28/29']] : [],
             body: media ? payload : metadataBody};
         }});
     }});

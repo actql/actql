@@ -46,8 +46,10 @@ function fixture({metadata = {}, media = body, metadataResponse = {},
       assert.equal(invocation.returnRejectedResponse, true);
       assert.equal(request.method, 'GET');
       const mediaRead = state.calls.length === 2;
-      assert.deepEqual(request.headers, [['accept-encoding', mediaRead &&
-        originalMetadata.contentEncoding === 'gzip' ? 'gzip' : 'identity']]);
+      const gzip = mediaRead && originalMetadata.contentEncoding === 'gzip';
+      assert.deepEqual(request.headers, [['accept-encoding', gzip ? 'gzip' : 'identity'],
+        ...(gzip && BigInt(originalMetadata.size) > 0n
+          ? [['range', `bytes=0-${BigInt(originalMetadata.size) - 1n}`]] : [])]);
       assert.equal(request.body, undefined);
       return {accepted: true, statusCode: 200, headers: [],
         useCid: `fixture-use-${state.calls.length}`,

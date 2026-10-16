@@ -19,7 +19,7 @@ const scope = Object.freeze({operation: 'gcs:file:read',
   runInvocationCid: 'fixture', taskAttempt: 1, dispatchRequestCid: 'fixture'});
 
 function fixture({media = gzip, mediaHeaders = [['content-encoding', 'gzip']],
-  maxBytes = 29, metadata = {}} = {}) {
+  maxBytes = 29, metadata = {}, mediaStatus = 200} = {}) {
   const state = {calls: [], requests: [], charges: [], verified: [], received: [], events: []};
   const options = {target: {bucket: 'bucket', prefix: 'in/', objectName: 'in/e\u0301%2F.json', generation},
     limits: {maxMetadataBytes: 4096, maxContentBytes: maxBytes, maxRequestBytes: 4096,
@@ -42,7 +42,7 @@ function fixture({media = gzip, mediaHeaders = [['content-encoding', 'gzip']],
     callResource: async call => {
       state.calls.push(call); state.events.push(`send:${state.calls.length}`);
       const mediaRead = state.calls.length === 2;
-      return {accepted: true, statusCode: 200,
+      return {accepted: true, statusCode: mediaRead ? mediaStatus : 200,
         headers: mediaRead ? mediaHeaders : [],
         body: mediaRead ? media : Buffer.from(JSON.stringify({bucket: 'bucket',
           name: 'in/e\u0301%2F.json', generation, metageneration, size: '29',
@@ -58,7 +58,7 @@ test('stored gzip bytes retain exact version CRC byte CID and capture loan witho
   assert.equal(state.calls.length, 2);
   const requests = state.calls.map(call => call.operations.get(scope.operation));
   assert.deepEqual(requests.map(request => request.headers),
-    [[['accept-encoding', 'identity']], [['accept-encoding', 'gzip']]]);
+    [[['accept-encoding', 'identity']], [['accept-encoding', 'gzip'], ['range', 'bytes=0-28']]]);
   assert.equal(requests[1].path,
     '/storage/v1/b/bucket/o/in%2Fe%CC%81%252F.json?generation=9007199254740993&ifGenerationMatch=9007199254740993&alt=media&ifMetagenerationMatch=9007199254740995');
   const observedRequest = JSON.parse(state.requests[0].requestWire);
@@ -77,6 +77,18 @@ test('stored gzip bytes retain exact version CRC byte CID and capture loan witho
   assert.deepEqual(state.events, ['send:1', 'charged:metadata', 'send:2', 'charged:media', 'capture']);
 });
 
+test('stored gzip complete Range response proves the same bounded object bytes, never a partial ContentRef', async () => {
+  const {state, options} = fixture({mediaStatus: 206,
+    mediaHeaders: [['content-encoding', 'gzip'], ['content-range', 'bytes 0-28/29']]});
+  const result = await readGcsVersionedContent(options);
+  assert.equal(result.digests.contentCid, sha);
+  assert.equal(state.received[0].bytes, gzip);
+  assert.equal(state.received[0].observation.contentCharge, state.charges[1]);
+  assert.equal(state.calls.length, 2);
+  assert.deepEqual(state.calls[1].operations.get(scope.operation).headers,
+    [['accept-encoding', 'gzip'], ['range', 'bytes=0-28']]);
+});
+
 for (const [name, change, code, calls] of [
   ['missing stored representation header', {mediaHeaders: []}, 'GcsContentRepresentationUnsupported', 2],
   ['identity transformed response', {mediaHeaders: [['content-encoding', 'identity']]}, 'GcsContentRepresentationUnsupported', 2],
@@ -86,6 +98,9 @@ for (const [name, change, code, calls] of [
   ['one-short acquisition capacity', {maxBytes: 28}, 'GcsContentMetadataMismatch', 1],
   ['unsupported metadata encoding', {metadata: {contentEncoding: 'br'}}, 'GcsContentRepresentationUnsupported', 1],
   ['partial Range response', {mediaHeaders: [['content-encoding', 'gzip'], ['content-range', 'bytes 0-28/30']]}, 'GcsContentRepresentationUnsupported', 2],
+  ['partial 206 bytes', {mediaStatus: 206, mediaHeaders: [['content-encoding', 'gzip'], ['content-range', 'bytes 0-27/29']]}, 'GcsContentRepresentationUnsupported', 2],
+  ['unknown 206 extent', {mediaStatus: 206, mediaHeaders: [['content-encoding', 'gzip'], ['content-range', 'bytes 0-28/*']]}, 'GcsContentRepresentationUnsupported', 2],
+  ['missing 206 range', {mediaStatus: 206}, 'GcsContentRepresentationUnsupported', 2],
 ]) {
   test(`stored gzip ${name} retains original charge and refuses handoff`, async () => {
     const {state, options} = fixture(change);

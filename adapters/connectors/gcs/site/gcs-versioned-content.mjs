@@ -17,7 +17,7 @@ const size = value => typeof value === 'string' && /^(0|[1-9][0-9]{0,19})$/u.tes
 const encode = value => encodeURIComponent(value).replace(/[!'()*]/gu,
   char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 
-function physicalRequest(target, phase, metageneration, contentEncoding = 'identity') {
+function physicalRequest(target, phase, metageneration, contentEncoding = 'identity', sizeBytes) {
   return ownHttpRequest({method: 'GET',
     path: `/storage/v1/b/${encode(target.bucket)}/o/${encode(target.objectName)}`,
     query: [['generation', target.generation], ['ifGenerationMatch', target.generation],
@@ -25,7 +25,9 @@ function physicalRequest(target, phase, metageneration, contentEncoding = 'ident
     // GCS may otherwise transparently decompress a stored gzip object. The
     // selected original metadata fixes this request's exact representation;
     // the existing HTTP adapter returns raw bytes and must not decode them.
-    headers: [['accept-encoding', phase === 'media' ? contentEncoding : 'identity']]});
+    headers: [['accept-encoding', phase === 'media' ? contentEncoding : 'identity'],
+      ...(phase === 'media' && contentEncoding === 'gzip' && sizeBytes > 0n
+        ? [['range', `bytes=0-${sizeBytes - 1n}`]] : [])]});
 }
 
 // The same immutable operation envelope is observed by the existing keyed
@@ -83,7 +85,7 @@ function setup(options) {
   return Object.freeze({...context, target});
 }
 
-function responseHeaders(response, expectedEncoding = 'identity') {
+function responseHeaders(response, expectedEncoding = 'identity', rangeSize) {
   if (!Array.isArray(response.headers)) fail('InvalidGcsContentResponse');
   const result = new Map();
   for (const pair of response.headers) {
@@ -93,7 +95,14 @@ function responseHeaders(response, expectedEncoding = 'identity') {
     result.set(pair[0], pair[1]);
   }
   const encoding = result.get('content-encoding');
-  if (result.has('content-range') || (expectedEncoding === 'gzip'
+  const range = result.get('content-range');
+  // Only the one complete stored-byte interval selected from original
+  // metadata can be a complete ContentRef. No partial/multipart assembly,
+  // suffix/unsatisfied range, wildcard extent or server-derived size is used.
+  const rangeMatches = response.statusCode === 206
+    ? rangeSize !== undefined && range === `bytes 0-${rangeSize - 1n}/${rangeSize}`
+    : range === undefined;
+  if (!rangeMatches || (expectedEncoding === 'gzip'
     ? encoding !== 'gzip' : encoding !== undefined && encoding !== 'identity')) {
     fail('GcsContentRepresentationUnsupported');
   }
@@ -181,9 +190,11 @@ export async function readGcsVersionedContent(options) {
   const signal = AbortSignal.any([AbortSignal.timeout(limits.maxTimeMs),
     ...(options.signal === undefined ? [] : [options.signal])]);
   const observations = [];
-  async function request(phase, maxBytes, metageneration, contentEncoding = 'identity') {
+  async function request(phase, maxBytes, metageneration, contentEncoding = 'identity', sizeBytes) {
     signal.throwIfAborted();
-    const selected = physicalRequest(target, phase, metageneration, contentEncoding);
+    const rangeSize = phase === 'media' && contentEncoding === 'gzip' && sizeBytes > 0n
+      ? sizeBytes : undefined;
+    const selected = physicalRequest(target, phase, metageneration, contentEncoding, sizeBytes);
     const auth = phase === 'metadata' ? context.authorization
       : authorization(ownInvocationAuthorization(
         await callbacks.authorizationForRequest(Object.freeze({phase, target,
@@ -203,8 +214,9 @@ export async function readGcsVersionedContent(options) {
     signal.throwIfAborted();
     if (charge === undefined || charge === null) fail('GcsContentChargeMissing');
     if (response.body.length > maxBytes) fail('GcsContentResponseBytesExceeded');
-    if (!response.accepted || response.statusCode !== 200) fail('GcsContentResourceRejected');
-    const headers = responseHeaders(response, phase === 'media' ? contentEncoding : 'identity');
+    if (!response.accepted || (response.statusCode !== 200 &&
+        !(response.statusCode === 206 && rangeSize !== undefined))) fail('GcsContentResourceRejected');
+    const headers = responseHeaders(response, phase === 'media' ? contentEncoding : 'identity', rangeSize);
     if (headers.has('x-goog-generation') &&
         headers.get('x-goog-generation') !== target.generation) {
       fail('GcsContentMetadataMismatch');
@@ -220,7 +232,7 @@ export async function readGcsVersionedContent(options) {
     fail('GcsContentMetadataMismatch');
   }
   const media = await request('media', limits.maxContentBytes, meta.metageneration,
-    meta.contentEncoding);
+    meta.contentEncoding, meta.sizeBytes);
   if (media.headers.has('x-goog-metageneration') &&
       media.headers.get('x-goog-metageneration') !== meta.metageneration) {
     fail('GcsContentMetadataMismatch');

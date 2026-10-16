@@ -81,6 +81,10 @@ unordered refusal and uses an explicit checked uniqueness/sort for publication.
 The version-fixed content transport admits `contentEncoding: gzip` only as a
 stored representation selected by the original metadata response. Its media
 request explicitly uses `Accept-Encoding: gzip`; metadata still uses identity.
+For a nonempty gzip object, the same request selects the one complete stored
+byte range `0..size-1` derived from that metadata, with no added attempt. A 206
+reply must declare exactly that full interval and total; a 200 reply is usable
+only without a Content-Range and still must pass the same complete byte checks.
 Generation and metageneration conditions, original request observation and
 current Credential/Run scope are unchanged. A matching gzip response header,
 the original stored size and checksums are required before the same raw Buffer
@@ -88,7 +92,7 @@ is handed to the existing Content capture owner. No gzip codec, transparent
 decompression, new attempt or alternative latest-version request is used.
 Identity reads keep their original request bytes and behavior.
 
-Missing/changed media representation, partial `Content-Range`, transformed or
+Missing/changed media representation, incomplete/foreign `Content-Range`, transformed or
 corrupt bytes, over-limit metadata and changed version headers still refuse.
 All actual response tickets and already-transferred bytes remain with the same
 RowRun/capture/Store cleanup owner; refusal or callback return is not cleanup
@@ -97,8 +101,8 @@ and its request/response/header views overlap under the existing envelope.
 It is not a new reservation, grant or normal numeric profile.
 
 This closes the exact full-object gzip representation path, not general
-partial-range assembly or live GCS/installed acceptance. An unsolicited partial
-response still cannot become a complete ContentRef. The Google Cloud
+partial-range assembly or live GCS/installed acceptance. A partial response
+still cannot become a complete ContentRef. The Google Cloud
 [transcoding contract](https://docs.cloud.google.com/storage/docs/transcoding)
 explains why identity negotiation or an ignored Range cannot prove stored-byte
 fidelity. A provider representation that does not satisfy the retained size,
