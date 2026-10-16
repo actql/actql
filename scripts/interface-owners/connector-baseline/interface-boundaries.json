@@ -4106,7 +4106,7 @@
     {
       "module": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "41fb4bae06574bfea8f0307febe414895bdf466467492b42abb033afd5950248",
+      "sha256": "fd3db0ec5923f84cccbab83232f812070500189b3cb34907b96763352dcd5710",
       "role": "connector-semantics",
       "owner": "GCS profile and declaration inputs; Common RowSource declaration seals catalogs/schema/capabilities",
       "exports": [
@@ -4270,6 +4270,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact content companion columns"
               }
             ],
             "inputsOutputs": [
@@ -4361,6 +4365,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact content companion columns"
               }
             ],
             "extension": [
@@ -4397,6 +4405,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
+                "anchor": "ordinary contents declares five public fields and retains its original lookup identity"
               }
             ]
           }
@@ -5124,7 +5136,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "74cfe82c8dfee49c70f5f6ec0a80fed2ca273799f77d7598e8f29fb6730eea36",
+      "sha256": "10880cfe13c49b511d65909e7a329abb60321769add229a1c5e6cc5aa22801df",
       "role": "physical-io",
       "owner": "Version-keyed metadata/media sequencing through the original RowRun charge and capture owner",
       "exports": [
@@ -5217,6 +5229,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Selected Content metadata admission"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact content companion columns"
               }
             ],
             "inputsOutputs": [
@@ -5267,6 +5283,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Selected Content metadata admission"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact content companion columns"
               }
             ],
             "extension": [
@@ -5279,6 +5299,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-keyed-content.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-keyed-content.test.mjs",
+                "anchor": "the public name and media type borrow original metadata across the asynchronous capture"
               }
             ]
           }

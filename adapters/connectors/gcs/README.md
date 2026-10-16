@@ -77,6 +77,29 @@ same-Run restart and live GCS acceptance remain separate required work. A JSON
 Result needs its original ordering evidence; the caller test retains the
 unordered refusal and uses an explicit checked uniqueness/sort for publication.
 
+## Exact content companion columns
+
+The ordinary `contents` carrier includes `name` and `media_type` beside the
+original `resource`, exact generation `version` and issued `content_ref`.
+Both strings are borrowed from the same checked metadata that preceded the
+verified media read. They are not copied from configuration, normalized or
+resolved again after capture. In particular the reported MIME spelling stays
+unchanged in the string column; ContentRef's checked descriptor projection
+remains with the existing capture/Value Owner.
+
+The explicit source-only legacy installation and its body-only transport keep
+their earlier three-column carrier. The ordinary carrier and Catalog have
+different identities; an old capture cannot be relabelled with the new schema.
+The seven-column file listing, resource/version lookup correlation, read
+authorization, original charge tickets and no-retry behavior are unchanged.
+
+Two additional String references in the emitted row extend the original
+metadata/report lifetime through capture; bounded row serialization, encoded
+bytes and retained output still overlap the same Source reservation. No
+clamp, successful callback, timer or weak reference is a capacity grant or
+physical release ACK. A failed/cancelled handoff retains the same Content
+custody and pending media charge rather than manufacturing a partial row.
+
 ## Original object request
 
 ### Retained upload target observations
