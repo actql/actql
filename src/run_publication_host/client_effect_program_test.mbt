@@ -111,6 +111,30 @@ fn client_effect_fixture() -> (
 }
 
 ///|
+test "original submitted read-only restriction rejects the same complete Effect preparation" {
+  let (document, environment, limits) = client_effect_fixture()
+  let read = prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":{},\"parameters\":null,\"readOnly\":true}",
+    4096, 128, 16,
+  ).unwrap()
+  let ordinary = prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":{},\"parameters\":null}", 4096, 128, 16,
+  ).unwrap()
+  for source in [document, document.replace(old="[{\"value\":1}]", new="[]")] {
+    let prepared = prepare_client_effect_computation(
+      source,
+      @syntax.Json,
+      environment,
+      None,
+      [],
+      limits,
+    ).unwrap()
+    assert_false(client_submitted_intent_effect_compatible(read, prepared))
+    assert_true(client_submitted_intent_effect_compatible(ordinary, prepared))
+  }
+}
+
+///|
 test "Effect-only compilation retains checked tasks without a public Result root" {
   let (source, environment, limits) = client_effect_fixture()
   let document = source

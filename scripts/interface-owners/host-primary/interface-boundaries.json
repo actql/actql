@@ -3195,7 +3195,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -3222,7 +3222,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "95ba37207a00f544e9d019e419bdd4a9a26ce394b24fac407800b3a7a65faae4",
+      "sha256": "300259c200b5ae36a4b7bce3f16d520e577b8627cefbda9d8af39ad3d48a7ac4",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -5113,6 +5113,10 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "pub fn run_wait_ready("
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -5131,6 +5135,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"run_wait\": {"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -5145,6 +5153,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "state.run_id !== latestState.runId"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -5159,6 +5171,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -5177,6 +5193,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const observeStep = async promise => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -5191,6 +5211,10 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "return Err(InvalidSince)"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -5205,6 +5229,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -5227,6 +5255,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -5241,6 +5273,10 @@
               {
                 "path": "scripts/generate-client-host-wire.mjs",
                 "anchor": "const wait = requestRules.run_wait;"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -5267,6 +5303,14 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
