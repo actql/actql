@@ -49250,7 +49250,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3e2871142b10c10b356662d1c7d785919e4dc8d014da092737682022307accb8",
+      "sha256": "49a8f637490a01339dda4191c792122cd883d42fee5f1c53bb9fd9e55a0ccb7c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -49703,6 +49703,7 @@
             "targetReads",
             "own",
             "ownInputs",
+            "ownChildren",
             "assertCurrent"
           ],
           "async": true
@@ -49775,6 +49776,18 @@
         {
           "name": "createRowEffectStage/captureStage/captureStage#7",
           "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/captureStage/childrenPending/childrenPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -49810,7 +49823,7 @@
         {
           "name": "createRowEffectStage/captureStage/entries/entries",
           "parameters": [
-            "proposal"
+            "rows"
           ],
           "async": false
         },
@@ -49818,13 +49831,6 @@
           "name": "createRowEffectStage/captureStage/entries/entries/entries",
           "parameters": [
             "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/entries/entries#2",
-          "parameters": [
-            "rows"
           ],
           "async": false
         },
@@ -49858,6 +49864,11 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/proposals/proposals",
           "parameters": [],
           "async": false
@@ -49865,12 +49876,19 @@
         {
           "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/route/route",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/rows/rows",
+          "parameters": [
+            "proposal"
           ],
           "async": false
         },
@@ -50236,12 +50254,19 @@
         {
           "name": "createRowEffectStage/prepareCaptured/prepareCaptured#2",
           "parameters": [
-            "release"
+            "value"
           ],
           "async": false
         },
         {
           "name": "createRowEffectStage/prepareCaptured/prepareCaptured#3",
+          "parameters": [
+            "release"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareCaptured/prepareCaptured#4",
           "parameters": [],
           "async": true
         },
@@ -50459,6 +50484,15 @@
           "parameters": [
             "member",
             "dispatch"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/requestEntry/requestEntry",
+          "parameters": [
+            "member",
+            "row",
+            "prepared"
           ],
           "async": false
         },
@@ -51749,7 +51783,6 @@
             "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
             "createRowEffectStage/captureStage/entries/entries",
             "createRowEffectStage/captureStage/entries/entries/entries",
-            "createRowEffectStage/captureStage/entries/entries#2",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
             "createRowEffectStage/captureStage/payloads/payloads",
@@ -51844,7 +51877,13 @@
             "createRowEffectStage/selectOwner/selectOwner",
             "createRowEffectStage/selectOwner/selectOwner/route/route",
             "createRowEffectStage/settle/settle",
-            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent"
+            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
+            "createRowEffectStage/captureStage/childrenPending/childrenPending",
+            "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
+            "createRowEffectStage/captureStage/rows/rows",
+            "createRowEffectStage/prepareCaptured/prepareCaptured#4",
+            "createRowEffectStage/requestEntry/requestEntry"
           ],
           "exports": [],
           "attributes": {
@@ -51860,6 +51899,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "// The existing capture retains this original child before any fallible current"
               }
             ],
             "inputsOutputs": [
@@ -51874,6 +51917,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
               }
             ],
             "identity": [
@@ -51888,6 +51935,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "let child = create();"
               }
             ],
             "ownership": [
@@ -51902,6 +51953,14 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "export async function releasePreparedResults(exported, primary, control)"
               }
             ],
             "synchronization": [
@@ -51916,6 +51975,14 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "if (result !== false && !preparing &&"
+              },
+              {
+                "path": "src/run_publication/cleanup_progress.mbt",
+                "anchor": "pub fn publication_cleanup_owner_action_code("
               }
             ],
             "failure": [
@@ -51930,6 +51997,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               }
             ],
             "cancellation": [
@@ -51944,6 +52015,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -51962,6 +52037,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "if (childPending()) return false;"
               }
             ],
             "extension": [
@@ -51976,6 +52055,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               }
             ],
             "verification": [
@@ -51998,6 +52081,14 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.test.mjs",
+                "anchor": "test('request child is retained before current refusal"
+              },
+              {
+                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
+                "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
               }
             ]
           }
