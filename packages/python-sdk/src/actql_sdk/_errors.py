@@ -14,5 +14,6 @@ class ClientError(Exception):
         self.rows_yielded = None
         self.original_error = None
         self.cleanup_error = None
+        self.validation_error = None
         for key, value in facts.items():
             setattr(self, key, value)

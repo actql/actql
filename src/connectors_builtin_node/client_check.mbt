@@ -1374,6 +1374,32 @@ fn write_check_report(
   if template_report_limited {
     limits.push("reporting_budget_exhausted")
   }
+  // Runnable is an observation in this same checking context, not execution
+  // admission. Reuse the Owner's findings; never infer missing bindings from
+  // validity, disclose protected facts, or turn the report into a permit.
+  let runnable_reasons = violations.copy()
+  for code in limits {
+    if !runnable_reasons.contains(code) {
+      runnable_reasons.push(code)
+    }
+  }
+  if !unresolved.is_empty() {
+    runnable_reasons.push("unresolved_protected")
+  }
+  for
+    code in check_codes(findings, finding => {
+      match finding {
+        RequiredValue(_, _) => Some("parameter_value_required")
+        CapacityPolicyRequired => Some("host_capacity_policy_required")
+        NumericProfileRequired => Some("numeric_reduction_profile_required")
+        _ => None
+      }
+    }) {
+    if !runnable_reasons.contains(code) {
+      runnable_reasons.push(code)
+    }
+  }
+  runnable_reasons.sort()
   @encode.begin_object(writer)
   @encode.key(writer, "context_ref")
   @encode.string_value(writer, context_ref)
@@ -1953,6 +1979,27 @@ fn write_check_report(
     }
   }
   @encode.end_array(writer)
+  @encode.key(writer, "runnable")
+  @encode.begin_object(writer)
+  @encode.key(writer, "reasons")
+  @encode.begin_array(writer)
+  for code in runnable_reasons {
+    @encode.begin_object(writer)
+    @encode.key(writer, "code")
+    @encode.string_value(writer, code)
+    @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "verdict")
+  @encode.string_value(
+    writer,
+    if reported_verdict == "verified" && runnable_reasons.is_empty() {
+      "yes"
+    } else {
+      "no"
+    },
+  )
+  @encode.end_object(writer)
   @encode.key(writer, "scope")
   @encode.begin_object(writer)
   @encode.key(writer, "kind")

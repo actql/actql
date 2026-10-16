@@ -108,19 +108,37 @@ assert 'wasmtime' not in sys.modules and 'duckdb' not in sys.modules
             root = Path(directory)
             artifact = root / 'original'
             artifact.mkdir()
-            names = ('artifact.json','client_host_wasm.wasm','libduckdb.dylib',
-                     'LICENSE','DUCKDB-LICENSE','MOONBIT-CORE-LICENSE','MOONBIT-CORE-NOTICE')
+            stage = root / 'stage'
+            package = stage / 'src/actql_local_runtime'
+            private = package / '_wasmtime'
+            (private / 'darwin-aarch64').mkdir(parents=True)
+            names = ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
+                     'client_host_wasm.wasm', 'libduckdb.dylib',
+                     'LICENSE', 'DUCKDB-LICENSE','MOONBIT-CORE-LICENSE','MOONBIT-CORE-NOTICE')
+            originals = []
             wheel = root / 'runtime.whl'
             with zipfile.ZipFile(wheel, 'w') as archive:
                 for name in names:
                     raw = b'independent fixture '+name.encode()
                     (artifact / name).write_bytes(raw)
                     archive.writestr('actql_local_runtime/'+name, raw)
-            cohort.runtime_wheel_components(wheel, artifact)
-            # Same length, different bytes must fail; size agreement is not digest evidence.
-            file = artifact/'client_host_wasm.wasm'
-            file.write_bytes(b'X'+file.read_bytes()[1:])
-            with self.assertRaisesRegex(ValueError,'digest'): cohort.runtime_wheel_components(wheel,artifact)
+                    originals.append(artifact / name)
+                for relative in ('WASMTIME-LICENSE', '_wasmtime/bindings.py',
+                                 '_wasmtime/darwin-aarch64/_libwasmtime.dylib'):
+                    original = package / relative
+                    original.write_bytes(b'independent private fixture '+relative.encode())
+                    archive.writestr('actql_local_runtime/'+relative, original.read_bytes())
+                    originals.append(original)
+            self.assertEqual(set(cohort.runtime_wheel_components(wheel, artifact, stage)),
+                             {'actql_local_runtime/_wasmtime/bindings.py'})
+            # Same length is insufficient for either artifact or private stage bytes.
+            for original in originals:
+                with self.subTest(member=original.name):
+                    before = original.read_bytes()
+                    original.write_bytes(b'X'+before[1:])
+                    with self.assertRaisesRegex(ValueError, 'digest'):
+                        cohort.runtime_wheel_components(wheel, artifact, stage)
+                    original.write_bytes(before)
 
 
 if __name__ == '__main__':
