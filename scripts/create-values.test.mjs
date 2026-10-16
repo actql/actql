@@ -50,7 +50,7 @@ test('normal schema gate refuses absent values, missing source relationship, wea
   }
 });
 
-test('independent input-wire and actual emitted header preimages preserve legacy raw business objects', () => {
+test('independent input-wire/header preimages and generated decisions preserve legacy raw business objects', () => {
   const text = checkCreateValuesVectors(vectors);
   assert.equal(readFileSync('src/stage_syntax/create_values.generated_test.mbt', 'utf8'), text);
   assert.equal(vectors.programs.length, 12);
