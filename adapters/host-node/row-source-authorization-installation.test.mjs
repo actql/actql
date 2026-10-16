@@ -264,7 +264,8 @@ test('Salesforce shared original issuer reaches unchanged loopback Describe and 
   const observed = await f.site.describeEffectCatalog({resources: [resource],
     occurrence: 'shared-issuer-description', runInvocationCid: cid('3'),
     dispatchRequestCid: cid('4')});
-  assert.equal(observed.names.length, 1);
+  assert.deepEqual(observed.evidence.names, [resource]);
+  assert.match(observed.observationCid, /^sha256:[0-9a-f]{64}$/u);
   const decision = await authorize(f.authorization);
   const preview = await f.site.peek({decision, resource, fields: ['Id'], maxRows: 1});
   assert.deepEqual(preview.rows, [{Id: 'a00000000000001'}]);
