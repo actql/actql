@@ -10,7 +10,7 @@ test('catalog generates current facts wire, SDK metadata and reference outputs w
   assert.equal(registry.artifact_schema_cids.check_reason,
     'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742');
   assert.equal(registry.artifact_schema_cids.check_outcome,
-    'sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a');
+    'sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce');
   assert.deepEqual(catalog.reason_schema, registry.artifact_schemas.check_reason);
   assert.equal(buildCheckReasonCatalog(catalog, registry).size, 3);
   generateCheckReasonCatalog();

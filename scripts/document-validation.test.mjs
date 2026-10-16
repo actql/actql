@@ -101,8 +101,8 @@ test('Unicode business values and quoted version fields are accepted', () => {
   const p = programs('version: "actql/0.1"\nid: demo\nvalue: 日本語', 'demo.aql');
   assert.equal(p[0].value, '\u65e5\u672c\u8a9e');
 });
-test('README Graph excerpt uses the current independent public Program', () => {
-  const readme = readFileSync('README.md', 'utf8');
+test('Development Graph excerpt uses the current independent public Program', () => {
+  const readme = readFileSync('docs/development.md', 'utf8');
   const section = readme.split('**Graph.**')[1]?.split('**Vector search.**')[0];
   assert.ok(section, 'the current Graph example is present');
   const blocks = nodes(markdown(section)).filter(node => node.type === 'code');
@@ -115,10 +115,10 @@ test('README Graph excerpt uses the current independent public Program', () => {
   // or replace those execution checks with this documentation comparison.
   assert.deepEqual(decodeYaml(blocks[0].value, 'README Graph'),
     fixture.stages[0].steps.slice(2));
-  assert.ok(section.includes(`](${fixturePath})`));
+  assert.ok(section.includes(`](../${fixturePath})`));
   assert.ok(section.includes("format: 'json'"));
   assert.ok(section.includes('`answer` Result'));
-  assert.equal(validateLocalLinks('README.md', section), 2);
+  assert.equal(validateLocalLinks('docs/development.md', section), 2);
 });
 test('Markdown code fences are not links and duplicate headings have distinct anchors', () => {
   const tree = markdown('# Hello world\n# Hello world\n[link][x]\n\n[x]: target.md\n\n```text\n[not a link](missing.md)\n```');

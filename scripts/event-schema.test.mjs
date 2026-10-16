@@ -23,7 +23,10 @@ test('calendar literal selectors enforce week origin and preserve field provenan
 
 test('sequence shares predicate grammar and never inserts implicit match limits',()=>{
   const s=eventSchemas().sequence;
-  assert.deepEqual(s.required,['by','id','time','pattern','within','overlap','contiguity']);
+  assert.deepEqual(s.required,['id','time','pattern','within']);
+  assert.deepEqual(s.properties.by.default,[]);
+  assert.equal(s.properties.overlap.default,'disallow');
+  assert.equal(s.properties.contiguity.default,'adjacent');
   assert.equal(s.additionalProperties,false);
   assert.equal(s.properties.by.minItems,undefined);
   assert.equal(s.properties.by.uniqueItems,undefined);
@@ -72,10 +75,10 @@ test('session schema pairs relation roles and shares positive millisecond syntax
   assert.equal(s.properties.by.minItems,undefined);
 });
 
-test('watermark event options require literal threshold and explicit policy',()=>{
+test('watermark event options admit a whole Parameter and require explicit policy',()=>{
   assert.deepEqual(eventSchemas().watermark_events, {
     type:'object',additionalProperties:false,required:['watermark_ms','policy'],
-    properties:{watermark_ms:{type:'number'},policy:{enum:['drop','mark']}},
+    properties:{watermark_ms:{oneOf:[{type:'number'},{type:'object',additionalProperties:false,required:['$param'],properties:{$param:{type:'string',pattern:'^[A-Za-z_][A-Za-z0-9_]*$'}}}]},policy:{enum:['drop','mark']}},
   });
 });
 test('embedded event schemas and identity pins reject drift',()=>{

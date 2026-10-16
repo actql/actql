@@ -139,8 +139,9 @@ does not alone invalidate static Catalog identity.
 
 #### Authoring and execution verification
 
-The adopted source syntax uses explicit stages, map/ordered-array derive, and
-select. Authoring evaluation measures intent preservation, successful checking,
+The authoring surface is SQL with Pipe syntax ([query text](query-text.md));
+the stage model with map/ordered-array derive and select is the canonical
+lowered form it compiles to. Authoring evaluation measures intent preservation, successful checking,
 diagnostic repair, field leakage, shadowed-value confusion, coverage and cost.
 Evaluation does not introduce unregistered source spellings. Explicit frontend
 profiles and their implementation evidence are tracked in the
