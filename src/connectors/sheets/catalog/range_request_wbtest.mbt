@@ -4,6 +4,37 @@ fn owned_limits() -> Limits {
 }
 
 ///|
+test "Sheets append preimage remains exact and target independent of update domain" {
+  let body = append_request(
+    7,
+    [
+      { name: "text", cell_type: Text, nullable: false, },
+      { name: "number", cell_type: Number, nullable: true, },
+      { name: "flag", cell_type: Boolean, nullable: true, },
+    ],
+    ["=é\r\n".to_json(), (-2.5).to_json(), false.to_json()],
+    owned_limits(),
+  ).unwrap()
+  let origin = "https://sheets.example.test"
+  let path = "/v4/spreadsheets/book:batchUpdate"
+  let expected = "sha256:781fc348a15e612ff4b0bbec9d7309981e1b5151ccebcbc377c56cc47cab8d5a"
+  assert_eq(append_request_identity(origin, path, body), Ok(expected))
+  assert_not_eq(
+    append_request_identity(origin, path, body + "\n"),
+    Ok(expected),
+  )
+  assert_not_eq(
+    append_request_identity(origin, path + "?foreign=1", body),
+    Ok(expected),
+  )
+  assert_not_eq(
+    append_request_identity(origin + "/foreign", path, body),
+    Ok(expected),
+  )
+  assert_not_eq(range_request_cid(origin, path, body, "{}"), Ok(expected))
+}
+
+///|
 fn owned_configuration() -> String {
   "{\"origin\":\"https://sheets.example.test\",\"spreadsheetId\":\"book\",\"range\":{\"sheetId\":7,\"startRow\":2,\"endRow\":4,\"startColumn\":1,\"endColumn\":3},\"columns\":[{\"name\":\"text\",\"type\":\"string\",\"nullable\":false},{\"name\":\"flag\",\"type\":\"boolean\",\"nullable\":true}]}"
 }
