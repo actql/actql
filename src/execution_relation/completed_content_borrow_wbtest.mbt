@@ -86,10 +86,10 @@ test "Content export borrow rechecks custody after original authorization callba
   let schema = @schema.from_fields(
     [
       (@schema.Unqualified("id"), id_contract),
-      (@schema.Unqualified("content"), contract),
+      (@schema.Unqualified("p"), contract),
     ],
     max_fields=2,
-    max_name_bytes=9,
+    max_name_bytes=3,
   ).unwrap()
   let owner = presence_output_owner(schema~)
   let admitted = prepare_admitted_output(
