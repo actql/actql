@@ -88,6 +88,37 @@ test('flat GCS listing refuses unexpected prefix pages without partial admission
     '/storage/v1/b/actql-fixture/o?prefix=test%2F&maxResults=3&projection=noAcl');
 });
 
+test('JSON object names retain legal controls in original listing metadata and Resource input', async () => {
+  const names = ['test/a\tb', 'test/a\u0000\u007fb', 'test/e\u0301%2F#?.csv'];
+  const {options, state} = fixture([{kind: 'storage#objects',
+    items: names.map(name => ({...metadata, name}))}]);
+  const originals = [];
+  options.resourceFor = target => {
+    originals.push(target);
+    return {$fixtureResource: target};
+  };
+  await readGcsFileListing(options);
+  assert.deepEqual(originals, names.map(objectName => ({bucket: 'actql-fixture', objectName})));
+  assert.deepEqual(state.envelopes[0].items.map(row => [row.name, row.path]),
+    names.map(name => [name, name]));
+  assert.deepEqual(JSON.parse(state.charges[0].bytes).items.map(item => item.name), names);
+  assert.equal(state.calls.length, 1);
+});
+
+test('CR and LF in original listing metadata retain charges without Resource admission', async () => {
+  for (const name of ['test/a\rb', 'test/a\nb']) {
+    const {options, state} = fixture([{kind: 'storage#objects', items: [{...metadata, name}]}]);
+    let resources = 0;
+    options.resourceFor = () => { resources++; assert.fail('Invalid object name'); };
+    await assert.rejects(readGcsFileListing(options), {code: 'GcsFileListingMetadataMismatch'});
+    assert.equal(state.calls.length, 1);
+    assert.equal(state.charges.length, 1);
+    assert.equal(JSON.parse(state.charges[0].bytes).items[0].name, name);
+    assert.equal(state.envelopes.length, 0);
+    assert.equal(resources, 0);
+  }
+});
+
 test('flat GCS listing accepts empty prefixes but follows an empty continuation page', async () => {
   const {options, state} = fixture([
     {kind: 'storage#objects', items: [], prefixes: [], nextPageToken: 'empty'},

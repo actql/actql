@@ -4949,7 +4949,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-file-listing.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "88c86ddd743e3a2d6e9e306b402fdec6199debc5a42ef34bc9ff0f678bfcd785",
+      "sha256": "f61c0f731236407d346e887f93bfc19379ff1a18255a4474ad4a60ade370c0b0",
       "role": "physical-io",
       "owner": "Scoped flat GCS listing transport; Common selector/cursor/duplicate/completion owner is not replaced",
       "exports": [
@@ -5327,7 +5327,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0d13911b3c118fd1be9fcba1de3210a3e17bb5102703aabb51bbc570c3f487e5",
+      "sha256": "c9153f2fea378c340a797ee28c86b3c3995d9b02198eb0f6c9195605ea65d5aa",
       "role": "physical-io",
       "owner": "Exact GCS generation/metageneration bytes and checksums; original capture owns ContentRef issuance",
       "exports": [
