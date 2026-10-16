@@ -146,8 +146,14 @@ test('GCS ordinary metadata reaches actual accounted Source capture with exact t
     value.issuer, undefined)),
   {code: 'MoonBitHostFailure'});
   assert.ok(custodyChecks > 0, 'the rejection must reach original custody, not exhaust the test Ledger');
-  const restored = checked(moon.clientProgramRestoreSourceCapture(original.requirement,
-    ...saved, value.ledger, original.capacity, () => true, value.issuer, undefined));
+  let restored;
+  try {
+    restored = checked(moon.clientProgramRestoreSourceCapture(original.requirement,
+      ...saved, value.ledger, original.capacity, () => true, value.issuer, undefined));
+  } catch (error) {
+    t.diagnostic(inspect(error, {depth: 12, maxStringLength: 1000}).slice(0, 8000));
+    throw error;
+  }
   t.after(() => moon.clientProgramCloseSourceCapture(restored));
   const again = checked(moon.clientProgramExportSourceCapture(
     moon.clientProgramSourceCaptureSource(restored), original.requirement, binding));
