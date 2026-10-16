@@ -378,8 +378,15 @@ fn execute_native_local_adoption(
     }
     if operation == "start" || operation == "aql" {
       local_submission_start(
-        host, settings, crypto, sqlite, check_environment, input_root, operation,
+        host,
+        settings,
+        crypto,
+        sqlite,
+        check_environment,
+        input_root,
+        operation,
         child,
+        public_run=matches.subcommand is Some(("run", _)),
       )
     } else if operation == "upgrade-policy" ||
       operation == "lookup-policy-upgrade" {
