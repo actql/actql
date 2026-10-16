@@ -214,6 +214,7 @@ fn lower_update_capture(
       terminal: false,
       carrier_complete: false,
       update: Some((id, assignments)),
+      store: false,
     },
     body,
   )
