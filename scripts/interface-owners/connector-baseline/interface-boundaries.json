@@ -9,6 +9,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "63081d6004172da73f54bf0bde7c185f772cae7611795f427574cb03101b11c9",
       "role": "connector-semantics",
       "owner": "DuckDB installation estimates; connector_sdk selects owned acquisition candidates, not this diagnostic",
@@ -248,6 +249,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "7459b6ad213f33c2fb69da509b54b193b0d34ce87990d97b43cc2ea5713ab963",
       "role": "physical-io",
       "owner": "Pinned Neo variable-width predecode boundary; no logical value admission",
@@ -347,6 +349,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/broad-acquisition.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "eb3f52807f12e16e5419cd3f99fee85d982114a7c5fbce6976a889f9fad067c2",
       "role": "physical-io",
       "owner": "Broad scan sequencing; DuckDB BroadReceiving owns schema/value/retention admission",
@@ -483,6 +486,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/broad-query.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "17cd4f0104f0dce005b83a77770c96de3046bcb8a6b94ce8fd0f48b3a613c5ec",
       "role": "physical-io",
       "owner": "Trusted broad-query factory; original MoonBit attempt and settled read-view remain the issuer",
@@ -587,6 +591,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/configuration.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5052bf862cca6f7dbe3d9d10c1283429ec9c7d04b0ef72eb9cf4c20be8ae9a1a",
       "role": "connector-semantics",
       "owner": "Pure DuckDB transport and strategy configuration, not source or runtime authority",
@@ -717,6 +722,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/failure-envelope.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "38035ee9623ecf733da0f8c00b359877d544003e2c2cd06c20a825c2dcc39a33",
       "role": "observation-presentation",
       "owner": "Host-owned failure and cleanup facet projection; original cause and same cleanup handle are retained",
@@ -817,6 +823,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/fixed-compute.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ffe9fccf138616ff8926ad5d4d8d5cb2fdcba930a9fd8fc4afa3af7f20e147b2",
       "role": "physical-io",
       "owner": "Fresh/resident fixed-input transport; MoonBit FixedCompute and common completion retain semantic authority",
@@ -1063,6 +1070,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/import-batch.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "780e7a42ab670966258900d5bfa71487b273572ada6a0ef3e70df6311667664b",
       "role": "physical-io",
       "owner": "Bounded parameter batching beneath the original FixedCompute port",
@@ -1195,6 +1203,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "73dfe06cbe43b32b1589be5f08824779593eff8d08f773342d4264f11df41183",
       "role": "physical-io",
       "owner": "Managed DOUBLE/VARCHAR frame conversion under the original Store borrow, not logical content identity",
@@ -1423,6 +1432,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/managed-failure.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "1e550c8bd1e69f1b3880a4ed25c25cd8c83292941a1a4f01fe60e750c54dcba4",
       "role": "physical-io",
       "owner": "Node resource observations and cleanup actions selected by the portable DuckDB failure progression",
@@ -1643,6 +1653,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/managed-parquet-codec.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "bfe49856534506ef8b369484a5d0db35d1fb9da678ef5ea148dd375f7dfe321d",
       "role": "physical-io",
       "owner": "Static exact Parquet representation identifier, not an execution or content issuer",
@@ -1716,6 +1727,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5183001f9950e221fc70fc96aabb1b990de7dcedd8d3285e41b1c4612e332017",
       "role": "physical-io",
       "owner": "Installed managed-column/Parquet realization; portable setup, capacity and completion stay owned by DuckDB/Common",
@@ -2108,6 +2120,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/native-acquisition.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "544b1837eab929941f10f07d5e75641d74b8dc4a4b65be5e1f6411be9814e879",
       "role": "physical-io",
       "owner": "Two-receipt sequencing; DuckDB NativeReceiving owns validation before native filtering",
@@ -2254,6 +2267,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/native-query.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "6da20e068979799990224c2efd21c5eb986854d091ae8b619bd4b2ea4ff4699d",
       "role": "physical-io",
       "owner": "Trusted native-query factory; original MoonBit attempt and settled read-view remain the issuer",
@@ -2358,6 +2372,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/native-runtime.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "8d74d3b7e65af7442ca386b2f12d8717b690638f525962aec9bc6e26b6400703",
       "role": "physical-io",
       "owner": "Explicit optional Neo runtime loader; no installation or capability fallback",
@@ -2444,6 +2459,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/physical-appender.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b90f66307c5e9bc8629413d46db9f28ef3d3c345a4e858f97836baf72121b3b0",
       "role": "physical-io",
       "owner": "Neo row/column appender conversion and poisoned partial-write lifetime",
@@ -2610,6 +2626,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/physical-capacity.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "34299dc65aac2230071f7abd63b72f658c52af329982548106243421b1fcfcd0",
       "role": "connector-semantics",
       "owner": "Selected Host physical capacity estimate, not RSS measurement or a reservation grant",
@@ -2695,6 +2712,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/physical-values.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "86d82c448e7ea817eb497ce0620139273c901c21dfd46f0e20a242052340f3dc",
       "role": "physical-io",
       "owner": "Private Neo scalar/type transport; MoonBit retains ActQL value admission",
@@ -2881,6 +2899,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/retained-configuration.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "fc9bb8d5aef15651cd42ffc839229241a11ffb5a42aaf6a8ec08c2bb1d6cfe8d",
       "role": "connector-semantics",
       "owner": "Retained operator configuration plus exact installed process-Store binding, not a caller Store factory",
@@ -3006,6 +3025,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/session.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2c5c961406b34e0c5258f185510badb725ecafe48aa78389baac7d1ce87573bc",
       "role": "physical-io",
       "owner": "Opaque read-only file grants and Neo native session/transaction/statement/cleanup custody",
@@ -3661,6 +3681,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/settled-query.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "0651c7358982ff750fc330247829701e60562a907c6bdc1afe44926ced2e2086",
       "role": "physical-io",
       "owner": "Exact settled transport-to-MoonBit issuer relationship with original unknown cleanup custody",
@@ -3802,6 +3823,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "62d5606e2839fd60c10ee0c711fe9f2044f268ab319ef925a5a81653cbefffea",
       "role": "physical-io",
       "owner": "One-shot physical Source receipt provenance and original stopped/unknown cleanup, not capture admission",
@@ -3993,6 +4015,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/transport-bounds.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4441ab8061e196191c2b7b3cf728d3b1aae805a35f592f26e2fb05e02d506f62",
       "role": "physical-io",
       "owner": "Static pinned Neo vector layout and bounded-mode selection, not logical limits or authority",
@@ -4082,6 +4105,7 @@
     },
     {
       "module": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "17efc0e863498428ea710b2a33219bb875883dd1746e49a860d63f4758d67d69",
       "role": "connector-semantics",
       "owner": "GCS profile and declaration inputs; Common RowSource declaration seals catalogs/schema/capabilities",
@@ -4300,6 +4324,7 @@
     },
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a434ce08ba0a918a496a04cc8792d3e46fa4b779637662af47b3e42703bfe991",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
@@ -4595,6 +4620,7 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-file-listing.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "88c86ddd743e3a2d6e9e306b402fdec6199debc5a42ef34bc9ff0f678bfcd785",
       "role": "physical-io",
       "owner": "Scoped flat GCS listing transport; Common selector/cursor/duplicate/completion owner is not replaced",
@@ -4781,6 +4807,7 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3f3055f18a5297cb9d54fe03dcb583f3a3a7ea40ffb2b6ad6300432e99318c59",
       "role": "physical-io",
       "owner": "Version-keyed metadata/media sequencing through the original RowRun charge and capture owner",
@@ -4931,6 +4958,7 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "11484d7d399fc6e7f7d1cfed1800c5c013b9129d93379ea932d9a84301f91290",
       "role": "physical-io",
       "owner": "Exact GCS generation/metageneration bytes and checksums; original capture owns ContentRef issuance",
@@ -5194,6 +5222,7 @@
     },
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4bfa9c71baffa0aa9dc44d759241ee1568d3164bdc4c57e0218d1b3a3f9c70a2",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
@@ -5532,6 +5561,7 @@
     },
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f3b40c34031c1aea94c83dc124834691ad92bf21fc59e69e34216a2df4a94f02",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
@@ -5838,6 +5868,7 @@
     },
     {
       "module": "adapters/connectors/github/site/github-comment-create.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2d17a67b63f58627f1fba278195082a74d1cab22947aa9348b059c94e7e10caf",
       "role": "physical-io",
       "owner": "Exact GitHub comment requests and Site exchange; MoonBit classifies subjects/responses, Common Ledger owns send-once",
@@ -6131,6 +6162,7 @@
     },
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5028d3f73b955d9b21e4016c483f37a5a12255c0cce794ae014543d15d6ec806",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
@@ -6301,6 +6333,7 @@
     },
     {
       "module": "adapters/connectors/github/site/github-issue-read.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "de1e253e2db38b9c5e7376e482001789e8b2cb0a356ad7a7c48580c27a96c345",
       "role": "physical-io",
       "owner": "REST Issue pagination and scoped exchange; provider MoonBit owns projection, Link and failure classification",
@@ -6481,6 +6514,7 @@
     },
     {
       "module": "adapters/connectors/local/host/installed-local-table.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "369f8f5d327991aca9d448e73603c620db0cff6b3003438a7c68156fa3d597c3",
       "role": "connector-semantics",
       "owner": "Local Table Source/Effect installation through generic Host; no separate Table scheduler or approval owner",
@@ -6897,6 +6931,7 @@
     },
     {
       "module": "adapters/connectors/local/iceberg/catalog.py",
+      "responsibilityFacet": "primary",
       "sha256": "5d8ea6e74e0d3775a6730f5a946925d2e6d480e5cb4463342759ebb529bbdb6d",
       "role": "physical-io",
       "owner": "Iceberg metadata/Parquet and same SQLite head-CAS/original-receipt transaction; no Effect authority",
@@ -7324,6 +7359,7 @@
     },
     {
       "module": "adapters/connectors/local/iceberg/custody.py",
+      "responsibilityFacet": "primary",
       "sha256": "b05e26f0135d5ad554a52060eca47d95027fe3724ad6ec9be72d6717a341e1e3",
       "role": "physical-io",
       "owner": "Persistent physical file allocation/fence/deletion records in the same Catalog, not another Effect state",
@@ -7643,6 +7679,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4e3e50048cfeaddcd210bd3c18e7838aa0b2f0260113c9a5490662a8b937eba5",
       "role": "connector-semantics",
       "owner": "Exact installed Host facts projected to the existing Salesforce captured/recovered Effect factory",
@@ -7758,6 +7795,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3267446bb98e3eaec21d81fabfb805bbb71353674d6d40f4569c38c7da200f52",
       "role": "connector-semantics",
       "owner": "Salesforce factory entries in the generated Host connector table, not an independent Effect runtime",
@@ -7894,6 +7932,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "28fa21977fb8a774fe4a0c2a2de2759fb6fd4dda43608579cccb4db67e83a04c",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
@@ -8521,6 +8560,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "e094014e54c8d2ec237c875520ff92f0f9aa679330e2310468cd762265604337",
       "role": "connector-semantics",
       "owner": "Salesforce original request recovery and physical-response custody under existing Preview/Effect Ledger, never restored send authority",
@@ -8923,6 +8963,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c1bcb5aff4ed979a0c6f939000a2104c8475fefbf4db4b4f9d674fd70304b8d7",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
@@ -9169,6 +9210,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "87929671a351981c66ca50a3827c2030a0e979a680d785880bc091cf097ad664",
       "role": "observation-presentation",
       "owner": "Disclosure-checked discovery over the same published Catalog observation; no provider refresh or resource absence inference",
@@ -9372,6 +9414,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b12889245f1bf24bc52dc7d89a3951dcc117b7003f40fe10ad2fa617689a551c",
       "role": "connector-semantics",
       "owner": "Disclosure-checked candidate from one exact Catalog observation; portable read/write projection does not grant dispatch",
@@ -9519,6 +9562,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c48b070a02c5e4d0964a9e42b3a43b1e1d25b4b037cd70802c09b172e6dbf40d",
       "role": "observation-presentation",
       "owner": "Public resources/inspect/peek projection over current installed Salesforce Sites, not a Catalog sync or read grant",
@@ -9735,6 +9779,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2bd3b0113b5aaf8b5d17533aadde93f77a40a2af7821cd466902a523c29f797e",
       "role": "connector-semantics",
       "owner": "Bounded retained Catalog reprojection through the original MoonBit observation owner, without credentials or grants",
@@ -9883,6 +9928,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "cfec7148c1f79b1e3381bd09a4b8af66e2d06700c96eee5728d8c133e51032b8",
       "role": "physical-io",
       "owner": "Scoped listing/describe exchange sequencing; MoonBit owns Catalog identity, completeness, outcomes and retained reprojection",
@@ -10044,6 +10090,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b44be0439c55c26a5a68a1aaa998eca0941cb70c68ed3c732c13402993ce81ac",
       "role": "physical-io",
       "owner": "Bounded installed sf CLI secret supplier pinned to original non-secret org/user/origin; no read or write authority",
@@ -10323,6 +10370,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "666df2e5f6d801b6d0cec60b021098c25f3c9af0f734d40950770278113865ec",
       "role": "physical-io",
       "owner": "Salesforce salesforce-collection-write physical request/response; MoonBit classifies outcomes and existing Effect Ledger owns dispatch",
@@ -10525,6 +10573,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-credential-binding.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b618b51d154ac1e2d351f16f98227ec324cf2df15a7ab5274f0ec628702ab8ff",
       "role": "connector-semantics",
       "owner": "Non-secret exact org consistency predicate; credential Owner remains the grant/use authority",
@@ -10608,6 +10657,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-effect-capability.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "bab8a345a0cd43f28356ca2b35f4782858b76d6bd241393b062afb054be7ce40",
       "role": "connector-semantics",
       "owner": "Opaque installed Site capability attestation and current exact write Mapping checks; no credential use grant",
@@ -10753,6 +10803,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "bebd191efc1ddd69eef7fac04215400abc32db63244bb07d5ef600ea437e7775",
       "role": "physical-io",
       "owner": "Named describe exchange and historical evidence reprojection; MoonBit keeps incomplete Catalog semantics and original scope",
@@ -10943,6 +10994,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "19d626c51f306fcdfaf015dd11f56ad9e8f34d9b2bf78d73efb6181bfc9b2634",
       "role": "physical-io",
       "owner": "Salesforce salesforce-single-write physical request/response; MoonBit classifies outcomes and existing Effect Ledger owns dispatch",
@@ -11145,6 +11197,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4f833f75a9a501eb97762898b0cce6ab1503235ae778906991427aaaebb97375",
       "role": "physical-io",
       "owner": "Separately authorized prospective target reads, not Preview/apply or absence proof; original owner admits guards",

@@ -4,12 +4,22 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {readFileSync, realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {compilerBindingTargets, generateCompilerBindings} from './generate-js-compiler-bindings.mjs';
 import {generateActionBindings} from './generate-js-action-bindings.mjs';
 import {checkCredentialScopeBinding} from './generate-credential-scope-binding.mjs';
+
+// In-process evidence from this existing checker, not serialized sidecar data.
+// Retain original-root identity and immutable output records after checks run.
+const checkedBindings = new WeakMap();
+export function trustedCompilerBindingOutputs(root, generated) {
+  if (generated === undefined || generated === null || Array.isArray(generated) && generated.length === 0) return [];
+  assert(checkedBindings.has(generated), 'Untrusted generated interface qualification');
+  assert.equal(checkedBindings.get(generated), realpathSync(root), 'Generated interface qualification belongs to another source root');
+  return generated;
+}
 
 export function interfaceGenerationFreshness(root) {
   const url = pathToFileURL(join(root, '/'));
@@ -33,6 +43,11 @@ export function interfaceGenerationFreshness(root) {
     generator: {path: 'scripts/generate-js-compiler-bindings.mjs', anchor: 'generateCompilerBindings'},
     freshness: {path: 'scripts/generate-js-compiler-bindings.mjs', anchor: "['--check', '--write']"}}));
   assert.equal(generated.length, new Set(generated.map(value => value.module)).size, 'Duplicate generated compiler binding');
+  for (const proof of generated) {
+    Object.freeze(proof.generator); Object.freeze(proof.freshness); Object.freeze(proof);
+  }
+  Object.freeze(generated);
+  checkedBindings.set(generated, realpathSync(root));
   return {qualification: 'read-only-generation-freshness; not-target-or-artifact-admission', generated,
     checked: ['compiler-bindings', 'action-bindings', 'credential-fields', ...generators, ...localGenerators, ...assemblies]};
 }

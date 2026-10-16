@@ -4,6 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "e2e775f292fe963418f7624197f58e58d250e85c3b4dc54fd1f239b6e8dbd2bd",
       "exports": [
         "installedConnectors"
@@ -369,6 +370,7 @@
     },
     {
       "module": "adapters/connectors-builtin/strategy.generated.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "9986e33ab7066485c353e025029fe02e00e830704d2ba70a37870f7da03f3f9f",
       "exports": [
         "installStrategyContributions"
@@ -659,6 +661,7 @@
     },
     {
       "module": "adapters/connectors-workers/strategy.generated.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c71a4131e6e7742a289477bb20a4e7646ad7723bca5bbeacef8cfe017b3efee8",
       "exports": [
         "installStrategyContributions"
