@@ -948,7 +948,7 @@ unknown classification before any provider call. Resolution MUST validate store/
 availability, expiry, size/range, and content CID. Raw bytes remain in host
 artifact storage.
 
-<!-- requirement-block: store-normalization.original-selection-retained store-normalization.mapping-not-discarded -->
+<!-- requirement-block: store-normalization.original-issuer-retained store-normalization.missing-original-refusal store-normalization.no-current-reconstruction store-normalization.original-selection-retained store-normalization.mapping-not-discarded -->
 The canonical `store` opcode remains relation materialization.
 The authored [`EFFECT STORE`](../query-text.md)
 spelling also admits object/file/stage writes with an original typed ContentRef;

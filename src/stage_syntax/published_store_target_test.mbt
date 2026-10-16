@@ -18,6 +18,10 @@ test "published STORE Command target retains its original closed selector" {
   assert_eq(effect_header_kind(header), "command")
   assert_eq(effect_header_source_result(header), Some("rows"))
   assert_eq(effect_header_contract_ref(header), "command:storage.upload.v1")
+  assert_eq(
+    effect_header_published_store_target(header),
+    Some(("connector://storage/objects", "mapping:storage.upload.v1")),
+  )
   assert_eq(effect_headers_work(headers), 1)
   assert_true(collect_effect_headers(program, 1, 0) is Err(_))
 }

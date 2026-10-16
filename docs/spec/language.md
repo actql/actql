@@ -8813,7 +8813,7 @@ The kind determines its authority class:
   are refused; serialization
   is an explicit preceding operation.
 
-<!-- requirement-block: effects.every-data-effect-must-explicitly-declare-target-and-a-typed-qualified effects.every-command-must-explicitly-declare-a-resourceref-result-field-and effects.preview-must-enforce-that-limit-on-the-complete-resolved-scope -->
+<!-- requirement-block: effects.every-data-effect-must-explicitly-declare-target-and-a-typed-qualified effects.every-command-must-explicitly-declare-a-resourceref-result-field-and effects.published-store-original-pair effects.published-store-original-issuer effects.published-store-no-substitute effects.published-store-missing-originals effects.published-store-no-current-restore effects.preview-must-enforce-that-limit-on-the-complete-resolved-scope -->
 Every normalized data Effect MUST retain an explicit `target` and a
 typed-qualified Mapping Contract reference in `mapping`, whether authored in
 the long form or uniquely resolved from the published short-form binding. Every command MUST explicitly declare
@@ -10765,7 +10765,7 @@ EffectValue := { literal: JsonValue } | { field: ResultField }
 EffectPredicate := SelectorPredicate<SelectorOperand>   (see [Predicates](#predicates); target-field scope in [Effect declarations](#effects))
 ```
 
-<!-- requirement-block: structural-grammar.every-literal-in-set-must-use-literal-an-object -->
+<!-- requirement-block: structural-grammar.published-store-closed-target structural-grammar.every-literal-in-set-must-use-literal-an-object -->
 The grammar alternatives are exclusive. `create` accepts exactly one of a
 named result or payload; `update` and `delete` accept exactly one selector. A
 `command` consumes its named Result and Connector-owned typed contract. Its
