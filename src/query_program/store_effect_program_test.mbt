@@ -59,6 +59,11 @@ fn store_capture_issue_label(issue : Issue) -> String {
     BindingPreparationSource(LocalProgram(Pipeline(_, detail)), _) =>
       @debug.to_string(detail.kind)
     BindingPreparation(LocalProgram(Order(_, _))) => "LocalProgram.Order"
+    BindingPreparation(LocalProgram(_)) => "LocalProgram.other"
+    BindingPreparation(Demand(_)) => "Demand"
+    BindingPreparation(SourceDeclarations(_)) => "SourceDeclarations"
+    BindingPreparation(MissingSourceCatalog(_)) => "MissingSourceCatalog"
+    BindingPreparation(Declarations(_)) => "Declarations"
     _ => private_update_issue_label(issue)
   }
 }
