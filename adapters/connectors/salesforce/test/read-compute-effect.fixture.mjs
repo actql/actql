@@ -180,7 +180,7 @@ export const checkpointAuthorization = (accountConfiguration, extra) => ({
 // 'delegate' (a deferred read, which this path refuses).
 // `writes` are the installed Effect writes (default: an update of Name).
 export async function readComputeEffectInstallation(t, {org: orgOptions = {},
-  records = storedRecords, sourceRead = 'allow',
+  records = storedRecords, sourceRead = 'allow', effect = 'delegate',
   writes = [{resource: 'Test_Record__c', kind: 'update',
     fields: ['Name']}]} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
@@ -256,14 +256,14 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
       publicationPath: join(root, 'effect-publication.json'),
       connectorId: 'crm-main', accountConfigurationWire,
       writes}));
-  await writeEffectProfile(hostAccountConfiguration(org.orgId));
+  await writeEffectProfile(hostAccountConfiguration(org.orgId, {effect}));
   const published = await publishInstalledEffect({effectProfilePath,
     directory: hostRoot, resolveEffectSecret: secret});
   const mappingRef = published.mappings[0].mappingRef;
 
   // Open the Remote HTTP Host over this installation.
   const openHost = async ({accountConfiguration =
-    hostAccountConfiguration(org.orgId), authorization: extra,
+    hostAccountConfiguration(org.orgId, {effect}), authorization: extra,
   diagnostics = []} = {}) => {
     const host = await openInstalledRemoteHttpHost({directory: hostRoot,
       authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),

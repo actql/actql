@@ -437,7 +437,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "a38caae7aaa04eb4f18a75e708dfd9b25609db7f6268e6f99df6051df09a2e22",
+      "sha256": "33dc5ef39a5e962ec9c387b36b772ffb082e67b6a981ccb3289c43031c2f705f",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -516,6 +516,15 @@
           "async": false
         },
         {
+          "name": "installUpdateTargetOriginals/init:captureEffectMaterials/init:captureEffectMaterials",
+          "parameters": [
+            "allowed",
+            "definition",
+            "identity"
+          ],
+          "async": false
+        },
+        {
           "name": "installUpdateTargetOriginals/init:captureRun/init:captureRun",
           "parameters": [
             "prepared",
@@ -547,6 +556,15 @@
           "name": "installUpdateTargetOriginals/installUpdateTargetOriginals",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/restoreEffectMaterials/restoreEffectMaterials",
+          "parameters": [
+            "wire",
+            "runDefinition",
+            "identity"
           ],
           "async": false
         },
@@ -606,7 +624,9 @@
             "installUpdateTargetOriginals/restorePrepared/restorePrepared",
             "installUpdateTargetOriginals/restoreRun/restoreRun",
             "installUpdateTargetOriginals/same/same",
-            "installUpdateTargetOriginals/selectionsOf/selectionsOf"
+            "installUpdateTargetOriginals/selectionsOf/selectionsOf",
+            "installUpdateTargetOriginals/init:captureEffectMaterials/init:captureEffectMaterials",
+            "installUpdateTargetOriginals/restoreEffectMaterials/restoreEffectMaterials"
           ],
           "exports": [
             "installUpdateTargetOriginals"
@@ -620,6 +640,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -630,6 +654,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -640,6 +668,10 @@
               {
                 "path": "src/run_publication_host/client_effect_target_original_data.mbt",
                 "anchor": "pub fn client_effect_target_selection_current("
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -650,6 +682,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -660,6 +696,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -670,6 +710,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -680,6 +724,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -690,6 +738,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -700,6 +756,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -714,6 +774,14 @@
               {
                 "path": "adapters/host-node/installed-update-targets.test.mjs",
                 "anchor": "test('actual validated Run selection stays with the original caller preparation through installation checks'"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }

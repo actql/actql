@@ -353,20 +353,23 @@ class AsyncClient:
         value = await self._request('check', body)
         return bind_check(value, body)
 
-    def start(self, program, *, submission_ref, parameters=None, attempt_id=None):
-        return self._prepare_start('program', program, submission_ref, parameters, attempt_id)
+    def start(self, program, *, submission_ref, parameters=None, attempt_id=None, stop_before=_MISSING):
+        return self._prepare_start('program', program, submission_ref, parameters, attempt_id, stop_before)
 
-    def start_source(self, text, *, format, submission_ref, parameters=None, parameter_declarations=_MISSING, attempt_id=None):
+    def start_source(self, text, *, format, submission_ref, parameters=None, parameter_declarations=_MISSING, attempt_id=None, stop_before=_MISSING):
         item = {'text': text, 'format': format}
         if parameter_declarations is not _MISSING:
             item['parameterDeclarations'] = parameter_declarations
-        return self._prepare_start('aql', item, submission_ref, parameters, attempt_id)
+        return self._prepare_start('aql', item, submission_ref, parameters, attempt_id, stop_before)
 
-    def _prepare_start(self, kind, input, reference, parameters, attempt_id):
+    def _prepare_start(self, kind, input, reference, parameters, attempt_id, stop_before):
         body = snapshot({'kind': kind, 'input': input, 'submissionRef': thaw(reference), 'parameters': parameters,
                          'attemptRef': {'operation': 'submit', 'attemptId': str(uuid.uuid4()) if attempt_id is None else attempt_id}})
+        intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
+        if stop_before is not _MISSING:
+            body['stopBefore'] = intent['stopBefore'] = snapshot(stop_before)
         body['intentCid'] = content_cid({'version': 'actql-submitted-intent/0.1',
-                                      'intent': {key: body[key] for key in ('kind', 'input', 'parameters')}}, data_keys=True)
+                                      'intent': intent}, data_keys=True)
         self._body('submit-intent', body)
         return self._start(body)
 

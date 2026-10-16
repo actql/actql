@@ -164,7 +164,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "abdafb589e9e636b9f200c49377f42c73e9d12a5e77bb1c29a22d1138dcf5f4f",
+      "sha256": "43eab3570778d3da461ebf7e4231e7fb001d5904004e71c3d396504fd8e06fdd",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -3969,6 +3969,32 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
+          "parameters": [
+            "original",
+            "identity",
+            "materials",
+            "invocation",
+            "preview",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:resultAccessProgressAction/init:resultAccessProgressAction",
           "parameters": [
             "progress"
@@ -4096,6 +4122,16 @@
           "parameters": [
             "name",
             "bodyWire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
+          "parameters": [
+            "original",
+            "bodyWire",
+            "continuationWire",
             "limits"
           ],
           "async": false
@@ -7304,7 +7340,11 @@
             "siteControl/siteControl/siteControl",
             "siteControl/siteControl#2",
             "siteControl/siteControl#3",
-            "tuplePair/tuplePair"
+            "tuplePair/tuplePair",
+            "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
+            "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
+            "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
+            "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop"
           ],
           "exports": [
             "contentCaptureControl",
@@ -7324,6 +7364,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -7334,16 +7378,24 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -7354,6 +7406,10 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -7364,16 +7420,24 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -7384,6 +7448,10 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -7394,6 +7462,14 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -7404,6 +7480,10 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -7414,6 +7494,14 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
