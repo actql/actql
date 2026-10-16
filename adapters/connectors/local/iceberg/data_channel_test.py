@@ -55,15 +55,17 @@ class DataChannelTests(unittest.TestCase):
         contract = mapping()
         producer = encode_rows(contract, [{"id": 1, "p": "first"}, {"id": 2}])
         original_buffer = producer.column("id").chunk(0).buffers()[1]
+        address, size = original_buffer.address, original_buffer.size
         borrowed = producer.slice(1, 1)
         self.assertEqual(borrowed.column("id").chunk(0).buffers()[1].address,
-                         original_buffer.address)
-        del producer
+                         address)
+        del original_buffer, producer
         gc.collect()
         # A live borrower remains valid; GC opportunity is not physical cleanup
         # acknowledgement or proof that an admitted reservation can be returned.
         self.assertEqual(decode_physical(contract, borrowed), [{"id": 2}])
-        self.assertGreaterEqual(original_buffer.size, 16)
+        self.assertEqual(borrowed.column("id").chunk(0).buffers()[1].address, address)
+        self.assertGreaterEqual(size, 16)
 
     def test_parquet_field_ids_types_and_presence_are_not_defaulted(self):
         contract = mapping()
