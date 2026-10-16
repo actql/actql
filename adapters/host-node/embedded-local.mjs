@@ -1022,6 +1022,7 @@ async function openInstalledHost(originalInstallation) {
       finally { signal?.removeEventListener('abort', abort); }
     };
     for (;;) {
+      if (signal?.aborted) throw interruption();
       // Reuse the original read/authorization owner. A caller timeout does
       // not retire an unfinished Store read or the original physical work.
       const current = await observeStep(observeRun({ref, principalId:actual}));
