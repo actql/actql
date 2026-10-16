@@ -329,3 +329,45 @@ class SyncQueryTests(unittest.TestCase):
                 transport=httpx.MockTransport(peer.handle)) as client:
             query = client.sql('SELECT 1'); reader = query.rows(); reader.close()
         self.assertEqual(peer.operations(), ['connect'])
+
+
+class ReadOnlyChoiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_general_start_absence_keeps_legacy_canonical_intent(self):
+        peer = Peer()
+        async with await AsyncClient.connect('https://host.invalid/', peer.token,
+                transport=httpx.MockTransport(peer.handle)) as client:
+            await client.start_source('SELECT 1 AS n', format='sql',
+                submission_ref=reference('legacy'), attempt_id='legacy-attempt')
+        body = peer.requests[1][1]
+        self.assertNotIn('readOnly', body); self.assertNotIn('stopBefore', body)
+        legacy = {'version': 'actql-submitted-intent/0.1', 'intent': {
+            'kind': 'aql', 'input': {'text': 'SELECT 1 AS n', 'format': 'sql'}, 'parameters': None}}
+        expected = 'sha256:' + hashlib.sha256(rfc8785.dumps(legacy)).hexdigest()
+        self.assertEqual(body['intentCid'], expected)
+
+    async def test_explicit_true_and_stop_before_are_same_original_fingerprint_choices(self):
+        peer = Peer()
+        async with await AsyncClient.connect('https://host.invalid/', peer.token,
+                transport=httpx.MockTransport(peer.handle)) as client:
+            await client.start_source('SELECT 1 AS n', format='sql',
+                submission_ref=reference('both-choices'), read_only=True, stop_before='commit')
+        body = peer.requests[1][1]
+        self.assertIs(body['readOnly'], True); self.assertEqual(body['stopBefore'], 'commit')
+        original = {'kind': 'aql', 'input': {'text': 'SELECT 1 AS n', 'format': 'sql'},
+                    'parameters': None, 'stopBefore': 'commit', 'readOnly': True}
+        expected = 'sha256:' + hashlib.sha256(rfc8785.dumps({
+            'version': 'actql-submitted-intent/0.1', 'intent': original})).hexdigest()
+        self.assertEqual(body['intentCid'], expected)
+        absent = original.copy(); absent.pop('readOnly')
+        self.assertNotEqual(body['intentCid'], 'sha256:' + hashlib.sha256(rfc8785.dumps({
+            'version': 'actql-submitted-intent/0.1', 'intent': absent})).hexdigest())
+
+    async def test_false_null_and_nonliteral_refuse_before_credentials_or_send(self):
+        peer = Peer()
+        async with await AsyncClient.connect('https://host.invalid/', peer.token,
+                transport=httpx.MockTransport(peer.handle)) as client:
+            for value in [False, None, 1, 'true', {}, [], 0]:
+                with self.subTest(value=value), self.assertRaises(ClientError):
+                    client.start_source('SELECT 1', format='sql',
+                        submission_ref=reference(), read_only=value)
+        self.assertEqual((peer.operations(), peer.credentials), (['connect'], 1))
