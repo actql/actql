@@ -132,6 +132,15 @@ Public wheel entry points are compared with the same committed project manifest.
 Bootstrap and script members without a normal source mapping stay explicitly
 unresolved; RECORD digest consistency alone cannot classify them.
 
+The Native CLI release builder checks the real staged members before packing,
+and normal verification repeats the same correspondence on unpacked members.
+Launcher copy bindings come from the ordinary staging inputs; an unexpected
+authored helper or changed original body refuses. Native binaries and bundled
+libraries stay with the existing artifact/header/local-runtime validators and
+their original Source identity. An unchanged authored copy may retain its older
+artifact Source only when it also matches the current checked source input;
+this is not current-Source Native execution or compiler-provenance evidence.
+
 Runtime-dependent imports are never silently dropped. Lexical single-write
 references only provide candidate targets; the existing manifest/builder or
 installation Owner must map them to its actual dependency or artifact inventory.

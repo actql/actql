@@ -10,6 +10,7 @@ import {build} from 'esbuild';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
 import {javascriptInterface} from './interface-inventory.mjs';
 import {moonInterfaceClosure} from './moon-interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
@@ -56,6 +57,10 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
     .filter(path => !/\.d\.[cm]?ts$/u.test(path)),
     ...(includesLocal ? local.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path)),
     ...authoredEntrances])];
+  const native = nativeCliPackageInputs(root);
+  if (native && roots.some(value => value.manifest === native.manifest)) {
+    entrances.push(...native.copies.map(value => value.source));
+  }
   const sourceEntrances = [], artifactReferences = new Set(), unresolvedEntrances = [];
   const dataEntrances = [], pythonEntrances = [], scriptEntrances = new Set();
   const copyReferences = new Map();
