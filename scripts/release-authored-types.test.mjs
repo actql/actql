@@ -39,7 +39,7 @@ function fixture(t) {
         : 'export type Format = "sql" | "json"; export const formats: readonly Format[];\n';
       put(module, text);
       const syntax = file.endsWith('.mjs') ? javascriptInterface(text) : typescriptInterface(text, module);
-      declarations.push({module, sha256: hash(text), ...syntax, role: 'wire-boundary',
+      declarations.push({module, sha256: hash(text), ...syntax, role: 'public-wire-codec',
         responsibilityFacet: 'primary', owner: 'original fixture type/runtime boundary',
         contracts: [{operations: ['<module>'], exports: syntax.exports,
           attributes: Object.fromEntries(interfaceAttributes.map(attribute => [attribute,
