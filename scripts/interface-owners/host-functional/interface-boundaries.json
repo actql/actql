@@ -4506,7 +4506,7 @@
     {
       "module": "adapters/host-common/http-exchange.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9308a51c1a4c14425aa28d1a3ea5b2f912eb114bd6b13da697d6fa03f0cac745",
+      "sha256": "93242239546c1a9e4af45b86eaccc9376f48324e3b9418f67ed433d19643be27",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [

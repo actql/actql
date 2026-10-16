@@ -164,6 +164,9 @@ export function ownHttpByteRequest({method, path, query, headers, body,
   // The existing body-bearing method rules and exact target/header admission
   // apply unchanged. The temporary empty String is shape-only, never sent.
   const {body: _, ...request} = ownHttpRequest({method, path, query, headers, body: ''});
+  // Query/header getters run during metadata admission. They can resize or
+  // detach an unshared input; never return an incompletely initialized copy.
+  if (viewByteLength.call(bodyBytes) !== length) fail('InvalidHttpRequestBody');
   const owned = Buffer.allocUnsafeSlow(length);
   try { copyViewBytes.call(owned, bodyBytes); }
   catch { fail('InvalidHttpRequestBody'); }

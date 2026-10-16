@@ -156,6 +156,10 @@ test('byte length/backing properties cannot disguise an over-limit or shared sou
   structuredClone(detached.buffer, {transfer: [detached.buffer]});
   assert.throws(() => ownHttpByteRequest({...shape, bodyBytes: detached}),
     {code: 'InvalidHttpRequestBody'});
+  const stable = new Uint8Array(new ArrayBuffer(4, {maxByteLength: 8}));
+  stable.set([0, 255, 13, 10]);
+  assert.deepEqual([...ownHttpByteRequest({...shape, bodyBytes: stable,
+    maxBodyBytes: 4}).bodyBytes], [0, 255, 13, 10]);
 });
 
 test('resizable shrink after metadata admission cannot expose uninitialized body bytes', () => {

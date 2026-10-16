@@ -29,6 +29,10 @@ selected unshared Uint8Array range into dedicated backing. Caller-written
 `byteLength`/`buffer` properties cannot hide shared or over-limit backing. A
 shared or detached source refuses; the request cannot acquire an inconsistent
 concurrent snapshot. The original caller may retain its own view and backing.
+Metadata admission can invoke caller query/header getters. The same intrinsic
+view extent is rechecked immediately before copying, so a resized source cannot
+leave an uninitialized tail or substitute a larger snapshot. An unchanged
+resizable view is not rejected merely for having resizable backing.
 
 The invoker snapshots its body before yielding to the physical port. The
 Credential receiver independently snapshots its registered operation before
