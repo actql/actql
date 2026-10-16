@@ -128,6 +128,9 @@ Private external runtime bindings retain the exact member/digest results of the
 existing runtime-component validator; neither a directory prefix nor a name
 grants that qualification. Source Owner coverage, component provenance, wheel
 correspondence and actual installed execution remain separate requirements.
+Public wheel entry points are compared with the same committed project manifest.
+Bootstrap and script members without a normal source mapping stay explicitly
+unresolved; RECORD digest consistency alone cannot classify them.
 
 Runtime-dependent imports are never silently dropped. Lexical single-write
 references only provide candidate targets; the existing manifest/builder or

@@ -131,6 +131,33 @@ class Client:
         with self.assertRaisesRegex(ValueError, 'Changed verified Python component'):
             wheel_source_correspondence(root, self.wheel(files), 'outside/pyproject.toml', source, verified)
 
+    def test_wheel_bootstrap_cannot_hide_an_unregistered_executable_entrance(self):
+        root, source, body = self.source()
+        for member in ['owner.pth', 'owner-0.1.data/scripts/hidden']:
+            with self.subTest(member=member), self.assertRaisesRegex(
+                    ValueError, 'Unbound executable wheel entrance'):
+                wheel_source_correspondence(root, self.wheel({
+                    'owner/__init__.py': body, member: b'import owner\n'}),
+                    'outside/pyproject.toml', source)
+
+    def test_wheel_entry_points_keep_the_original_project_declaration(self):
+        root, source, body = self.source()
+        metadata = 'owner-0.1.dist-info/entry_points.txt'
+        files = {'owner/__init__.py': body, metadata: b'[console_scripts]\nowner = owner:read\n'}
+        with self.assertRaisesRegex(ValueError, 'Changed wheel entry-point inventory'):
+            wheel_source_correspondence(root, self.wheel(files), 'outside/pyproject.toml', source)
+        with (root / 'outside/pyproject.toml').open('a') as manifest:
+            manifest.write('[project.scripts]\nowner="owner:read"\n')
+        subprocess.run(['git', 'add', '.'], cwd=root, check=True)
+        subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                        'commit', '-qm', 'Declare original public command'], cwd=root, check=True)
+        source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+        self.assertEqual(wheel_source_correspondence(root, self.wheel(files),
+                         'outside/pyproject.toml', source)['authored_modules'], 1)
+        files[metadata] = b'[console_scripts]\nowner = owner:replace\n'
+        with self.assertRaisesRegex(ValueError, 'Changed wheel entry-point inventory'):
+            wheel_source_correspondence(root, self.wheel(files), 'outside/pyproject.toml', source)
+
     def test_unknown_dynamic_export_requires_owner_projection(self):
         with self.assertRaisesRegex(ValueError, 'requires owner projection'):
             python_interface('__all__ = choose_exports()\n')

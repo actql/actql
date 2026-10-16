@@ -8,6 +8,7 @@ import argparse
 import ast
 import base64
 import csv
+import configparser
 import hashlib
 import io
 import json
@@ -94,6 +95,8 @@ def wheel_interfaces(path) -> dict:
         if len(by_name) != len(rows) or set(by_name) != files:
             raise ValueError('Incomplete wheel RECORD coverage')
         modules = []
+        entry_points = {}
+        unresolved_entrances = []
         for name in sorted(files):
             data = wheel.read(name)
             row = by_name[name]
@@ -103,10 +106,20 @@ def wheel_interfaces(path) -> dict:
                 expected = 'sha256=' + base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip('=')
                 if row[1] != expected or row[2] != str(len(data)):
                     raise ValueError('Wheel original digest mismatch: ' + name)
+            if name.endswith('.dist-info/entry_points.txt'):
+                parser = configparser.ConfigParser(interpolation=None, delimiters=('=',), strict=True)
+                parser.optionxform = str
+                parser.read_string(data.decode('utf-8'))
+                if entry_points:
+                    raise ValueError('Multiple wheel entry-point inventories')
+                entry_points = {section: dict(parser.items(section)) for section in parser.sections()}
+            if name.endswith('.pth') or '.data/scripts/' in name:
+                unresolved_entrances.append(name)
             if name.endswith(('.py', '.pyi')):
                 modules.append({'module': name, 'sha256': hashlib.sha256(data).hexdigest(),
                                 **python_interface(data.decode('utf-8'))})
-        return {'entrance': records[0], 'modules': modules}
+        return {'entrance': records[0], 'modules': modules, 'entry_points': entry_points,
+                'unresolved_entrances': unresolved_entrances}
 
 
 def source_projects(root: Path, files=None, read_source=None) -> dict:
@@ -161,9 +174,15 @@ def source_projects(root: Path, files=None, read_source=None) -> dict:
                 bindings[member] = name
                 modules[name] = {'module': name, 'sha256': hashlib.sha256(raw).hexdigest(),
                                  **python_interface(raw.decode('utf-8'))}
+        entry_points = dict(project.get('entry-points', {}))
+        for group, key in [('console_scripts', 'scripts'), ('gui_scripts', 'gui-scripts')]:
+            if project.get(key):
+                if group in entry_points:
+                    raise ValueError('Conflicting Python entry-point inventory')
+                entry_points[group] = project[key]
         roots.append({'kind': 'python-wheel-source-candidate', 'name': project['name'], 'manifest': manifest,
                       'entrances': sorted(members), 'scripts': project.get('scripts', {}),
-                      'bindings': bindings})
+                      'bindings': bindings, 'entry_points': entry_points})
     return {'qualification': 'source-input-coverage-only', 'roots': roots,
             'modules': [modules[name] for name in sorted(modules)]}
 
@@ -191,6 +210,10 @@ def wheel_source_correspondence(root: Path, wheel: Path, manifest: str, source: 
         raise ValueError('Unknown Python wheel source manifest')
     bindings = selected[0]['bindings']
     actual = wheel_interfaces(wheel)
+    if actual['unresolved_entrances']:
+        raise ValueError('Unbound executable wheel entrance: ' + actual['unresolved_entrances'][0])
+    if actual['entry_points'] != selected[0]['entry_points']:
+        raise ValueError('Changed wheel entry-point inventory')
     original_components = {} if verified_components is None else verified_components
     seen = set()
     component_names = set()
