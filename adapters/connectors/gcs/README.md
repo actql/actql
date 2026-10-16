@@ -76,6 +76,32 @@ unordered refusal and uses an explicit checked uniqueness/sort for publication.
 
 ## Original object request
 
+### Retained upload target observations
+
+The upload-target receiver consumes the complete retained before-GET response,
+not just an arbitrary metadata body. The Node physical bridge requires the
+original accepted-use observation before calling the portable provider owner.
+That observed flag/CID is DATA and does not authenticate the Credential or
+capture Owner, issue permission, acknowledge cleanup or establish funding.
+Missing selected ABI refuses; it does not fall back to body-only admission.
+
+The provider admits only identity metadata representation and the three
+selected lower-case response header names. Duplicates, foreign headers and
+over-budget header values refuse. Reported generation/metageneration must
+match the exact original parsed Int64 values. A contradictory version header
+on a 404 cannot become an absent-object observation. Other statuses never
+become absence. The original body and headers remain retained on every refusal;
+the receiver neither retries nor clears them. Existing request bytes/CIDs and
+the separate legacy body-only primitive are unchanged.
+
+The bounded header-array/three compiler tuples, borrowed header Strings, raw
+body, portable metadata parser/tree, exact version projections and original
+observation can overlap. They belong to the same funded read/capture envelope;
+the metadata/header clamps are not that reservation. The installed async
+driver must register its original cleanup child and acquire the real resource
+borrow before the GET. This receiver alone does not connect those suppliers or
+establish installed STORE, recovery or live-service acceptance.
+
 ### Exact stored gzip Content
 
 The version-fixed content transport admits `contentEncoding: gzip` only as a

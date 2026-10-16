@@ -89,6 +89,8 @@ pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.Object
 
 pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]
 
+pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]
+
 // Errors
 
 // Types and methods

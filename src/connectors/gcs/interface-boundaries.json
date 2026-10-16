@@ -5706,9 +5706,10 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-      "sha256": "b5640a5a999d53f35034a1b4e3e6a0af42909ad5c8ea57267c02bead7a08591f",
+      "sha256": "30af23982f73dc05ca826fb30bd2934c9c76ed3a66935d2a8b149792a7ad8ec8",
       "exports": [
         "admitGcsUploadObservation",
+        "admitGcsUploadTargetObservation",
         "gcsUploadResult",
         "ownedGcsUploadBody",
         "ownedGcsUploadResponseMatches",
@@ -5727,6 +5728,31 @@
             "name",
             "statusCode",
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitGcsUploadTargetObservation",
+          "parameters": [
+            "moon",
+            "binding",
+            "name",
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitGcsUploadTargetObservation/admitGcsUploadTargetObservation",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitGcsUploadTargetObservation/admitGcsUploadTargetObservation#2",
+          "parameters": [
+            "key",
+            "value"
           ],
           "async": false
         },
@@ -5854,6 +5880,7 @@
         }
       ],
       "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs"
       ],
@@ -5867,6 +5894,9 @@
           "operations": [
             "<module>",
             "admitGcsUploadObservation",
+            "admitGcsUploadTargetObservation",
+            "admitGcsUploadTargetObservation/admitGcsUploadTargetObservation",
+            "admitGcsUploadTargetObservation/admitGcsUploadTargetObservation#2",
             "bytes",
             "fail/fail",
             "gcsUploadResult",
@@ -5883,6 +5913,7 @@
           ],
           "exports": [
             "admitGcsUploadObservation",
+            "admitGcsUploadTargetObservation",
             "gcsUploadResult",
             "ownedGcsUploadBody",
             "ownedGcsUploadResponseMatches",
@@ -5913,6 +5944,10 @@
               {
                 "path": "adapters/host-node/effect-physical-dispatch.mjs",
                 "anchor": "Provider interpretation follows durable custody"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained upload target observations"
               }
             ],
             "inputsOutputs": [
@@ -5939,6 +5974,10 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_response_projection"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_target_observation.mbt",
+                "anchor": "pub fn admit_object_upload_target_observation"
               }
             ],
             "identity": [
@@ -6031,6 +6070,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Other statuses or malformed"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained upload target observations"
               }
             ],
             "cancellation": [
@@ -6075,6 +6118,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "During response classification"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained upload target observations"
               }
             ],
             "extension": [
@@ -6127,6 +6174,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
                 "anchor": "actual Core unknown upload retains"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_target_observation_wbtest.mbt",
+                "anchor": "GCS target read accepts only the original full metadata representation"
               }
             ]
           }
