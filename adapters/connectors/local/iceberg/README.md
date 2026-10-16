@@ -48,8 +48,13 @@ mapping binds physical field IDs and types. `physical.py` validates the actual
 Parquet fields before projection, including the presence companions. It does
 not repair a missing companion, substitute an Iceberg default, or infer an
 ActQL field from its position. Duplicate rows and exact data text survive the
-physical conversion. Number fields are binary64, including negative zero;
-Python integers must be exactly representable, and booleans are not numbers.
+physical conversion. Physical Number fields are binary64; Python integers must
+be exactly representable, and booleans are not numbers. A direct physical
+Arrow/Parquet probe also verifies negative-zero bit preservation. That probe is
+not ActQL value admission: `docs/design/json-encoding.md`'s scalar spelling
+rejects negative zero at the existing canonical JSON boundary. Checked input
+and original captured material must still pass their authoritative owners;
+the physical encoder does not enlarge the set of admissible logical values.
 Invalid UTF-8/surrogates and nonfinite numbers refuse rather than normalize.
 
 Arrow chunks and process frames are different boundaries. `decode_physical`
