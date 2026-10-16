@@ -1380,6 +1380,8 @@
             "gcs_collection_failure_code",
             "gcs_collection_identity_cid",
             "gcs_collection_identity_json",
+            "gcs_collection_issue_reference",
+            "gcs_collection_reference_failure_code",
             "gcs_collection_resource_json",
             "gcs_object_failure_code",
             "gcs_object_metadata",
@@ -1402,6 +1404,8 @@
             "pub fn gcs_collection_failure_code(@catalog.ObjectCollectionIssue) -> String",
             "pub fn gcs_collection_identity_cid(@catalog.ObjectCollectionBinding) -> String",
             "pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String",
+            "pub fn gcs_collection_issue_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @original_reference.CollectionReferenceIssue]",
+            "pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String",
             "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
             "pub fn gcs_object_failure_code(GcsFailure) -> String",
             "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
@@ -1444,6 +1448,14 @@
               {
                 "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
                 "anchor": "pub fn object_upload_catalog_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub fn issue_collection_reference"
               }
             ],
             "inputsOutputs": [
@@ -1470,6 +1482,18 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_mapping_json"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "selected : @environment.StoreCommandBinding"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "issuer : @admitted.ReferenceIssuer"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/pkg.generated.mbti",
+                "anchor": "pub fn issue_collection_reference"
               }
             ],
             "identity": [
@@ -1500,6 +1524,18 @@
               {
                 "path": "src/check_environment/command_input_contract.mbt",
                 "anchor": "pub fn command_target_input_contract"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_mapping != expected_mapping"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "physical_equal"
               }
             ],
             "ownership": [
@@ -1526,6 +1562,18 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
                 "anchor": "const owner = originals.get(original)"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "@admitted.issue_reference"
+              },
+              {
+                "path": "src/value_admission/reference.mbt",
+                "anchor": "pub fn bind_reference_issuer"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
               }
             ],
             "synchronization": [
@@ -1552,6 +1600,14 @@
               {
                 "path": "src/check_environment/store_command.mbt",
                 "anchor": "member_environment(mapping.item)"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "member_environment(mapping)"
+              },
+              {
+                "path": "src/value_admission/reference.mbt",
+                "anchor": "pub fn reference_available"
               }
             ],
             "failure": [
@@ -1578,6 +1634,14 @@
               {
                 "path": "src/connectors/gcs/host_node/upload.mbt",
                 "anchor": "pub fn gcs_upload_declaration_failure_code"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub(all) enum CollectionReferenceIssue"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS equal collection bytes never replace the original issuer authorization"
               }
             ],
             "cancellation": [
@@ -1614,6 +1678,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Declaration construction retains input wire"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub(all) struct CollectionReferenceLimits"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "budget.remaining -= 1"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
               }
             ],
             "extension": [
@@ -1640,6 +1716,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The new `published_store` canonical selector"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "pub fn bind_store_command"
               }
             ],
             "verification": [
@@ -1670,6 +1754,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
                 "anchor": "real GCS upload declares the independent complete presence role"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS original collection pair issues the existing checked ResourceRef"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS original collection rejects a different scope"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS reference comparison refuses exhausted work"
               }
             ]
           }
@@ -1681,6 +1777,8 @@
         "pub fn gcs_collection_failure_code(@catalog.ObjectCollectionIssue) -> String",
         "pub fn gcs_collection_identity_cid(@catalog.ObjectCollectionBinding) -> String",
         "pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String",
+        "pub fn gcs_collection_issue_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @original_reference.CollectionReferenceIssue]",
+        "pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String",
         "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
         "pub fn gcs_object_failure_code(GcsFailure) -> String",
         "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
@@ -1718,6 +1816,14 @@
         {
           "name": "gcs_collection_identity_json",
           "declaration": "pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "gcs_collection_issue_reference",
+          "declaration": "pub fn gcs_collection_issue_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @original_reference.CollectionReferenceIssue]"
+        },
+        {
+          "name": "gcs_collection_reference_failure_code",
+          "declaration": "pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String"
         },
         {
           "name": "gcs_collection_resource_json",
@@ -1780,7 +1886,7 @@
           "declaration": "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]"
         }
       ],
-      "sha256": "5f56845dbcd9685a7078534ba857d86c612cd5e09547518a34ce838c5e7c14dd"
+      "sha256": "1d0d4fb9dc855472e1445e8f07bd9fed0f4ab2a2a3d3a50d143449faaf84d9eb"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -3338,6 +3444,439 @@
       ],
       "exports": [],
       "sha256": "492920935f0f66beeb26295c5f9c02d9f089a157b9d2cecc118a03c19ef501de"
+    },
+    {
+      "module": "src/connectors/gcs/original_reference/collection.mbt",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing GCS collection selection and trusted Host ResourceReference issuer; Common retains original pair/capture/Run and physical approval/custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "contract",
+            "cursor_wire",
+            "issue_collection_reference"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub fn issue_collection_reference"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "selected : @environment.StoreCommandBinding"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "issuer : @admitted.ReferenceIssuer"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/pkg.generated.mbti",
+                "anchor": "pub fn issue_collection_reference"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_mapping != expected_mapping"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "physical_equal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "@admitted.issue_reference"
+              },
+              {
+                "path": "src/value_admission/reference.mbt",
+                "anchor": "pub fn bind_reference_issuer"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "member_environment(mapping)"
+              },
+              {
+                "path": "src/value_admission/reference.mbt",
+                "anchor": "pub fn reference_available"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub(all) enum CollectionReferenceIssue"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS equal collection bytes never replace the original issuer authorization"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded original-pair selection and existing issuer invocation only. No asynchronous I/O, new send permission, cleanup ACK or restore authority is issued; original Site/Run/capture owners retain those responsibilities."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub(all) struct CollectionReferenceLimits"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "budget.remaining -= 1"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "pub fn bind_store_command"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS original collection pair issues the existing checked ResourceRef"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS original collection rejects a different scope"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS reference comparison refuses exhausted work"
+              }
+            ]
+          }
+        }
+      ],
+      "operations": [
+        {
+          "name": "contract",
+          "declaration": "contract ( limits : CollectionReferenceLimits ) - > @ contract . Contract ?"
+        },
+        {
+          "name": "cursor_wire",
+          "declaration": "cursor_wire ( cursor : @ decode . Cursor , limits : CollectionReferenceLimits , budget : ComparisonBudget , ) - > Result [ String , CollectionReferenceIssue ]"
+        },
+        {
+          "name": "issue_collection_reference",
+          "declaration": "issue_collection_reference ( original : @ gcs . ObjectCollectionBinding , selected : @ environment . StoreCommandBinding , declared_wire : String , connector_id : String , issuer : @ admitted . ReferenceIssuer , limits : CollectionReferenceLimits , ) - > Result [ @ admitted . CheckedValue , CollectionReferenceIssue ]"
+        }
+      ],
+      "exports": [],
+      "sha256": "d91e13e813ac4d3ca84898271763b188e3d5e97d27a8639d8ca34152d648865c"
+    },
+    {
+      "module": "src/connectors/gcs/original_reference/pkg.generated.mbti",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing GCS collection selection and trusted Host ResourceReference issuer; Common retains original pair/capture/Run and physical approval/custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "issue_collection_reference"
+          ],
+          "exports": [
+            "pub fn issue_collection_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, CollectionReferenceLimits) -> Result[@value_admission.CheckedValue, CollectionReferenceIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub fn issue_collection_reference"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "selected : @environment.StoreCommandBinding"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "issuer : @admitted.ReferenceIssuer"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/pkg.generated.mbti",
+                "anchor": "pub fn issue_collection_reference"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_mapping != expected_mapping"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "physical_equal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "@admitted.issue_reference"
+              },
+              {
+                "path": "src/value_admission/reference.mbt",
+                "anchor": "pub fn bind_reference_issuer"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "member_environment(mapping)"
+              },
+              {
+                "path": "src/value_admission/reference.mbt",
+                "anchor": "pub fn reference_available"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub(all) enum CollectionReferenceIssue"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS equal collection bytes never replace the original issuer authorization"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded original-pair selection and existing issuer invocation only. No asynchronous I/O, new send permission, cleanup ACK or restore authority is issued; original Site/Run/capture owners retain those responsibilities."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub(all) struct CollectionReferenceLimits"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "budget.remaining -= 1"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "pub fn bind_store_command"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS original collection pair issues the existing checked ResourceRef"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS original collection rejects a different scope"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS reference comparison refuses exhausted work"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "pub fn issue_collection_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, CollectionReferenceLimits) -> Result[@value_admission.CheckedValue, CollectionReferenceIssue]"
+      ],
+      "operations": [
+        {
+          "name": "issue_collection_reference",
+          "declaration": "pub fn issue_collection_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, CollectionReferenceLimits) -> Result[@value_admission.CheckedValue, CollectionReferenceIssue]"
+        }
+      ],
+      "sha256": "bc8d2ccf816f0d05fdaf680f1eadb2d4d97c8256c1f2ee2de8036c28db8fa72e"
+    },
+    {
+      "module": "src/connectors/gcs/host_node/original_reference.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing GCS collection selection and trusted Host ResourceReference issuer; Common retains original pair/capture/Run and physical approval/custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gcs_collection_issue_reference",
+            "gcs_collection_reference_failure_code"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub fn issue_collection_reference"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "selected : @environment.StoreCommandBinding"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "issuer : @admitted.ReferenceIssuer"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/pkg.generated.mbti",
+                "anchor": "pub fn issue_collection_reference"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_mapping != expected_mapping"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "physical_equal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "@admitted.issue_reference"
+              },
+              {
+                "path": "src/value_admission/reference.mbt",
+                "anchor": "pub fn bind_reference_issuer"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "member_environment(mapping)"
+              },
+              {
+                "path": "src/value_admission/reference.mbt",
+                "anchor": "pub fn reference_available"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub(all) enum CollectionReferenceIssue"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS equal collection bytes never replace the original issuer authorization"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded original-pair selection and existing issuer invocation only. No asynchronous I/O, new send permission, cleanup ACK or restore authority is issued; original Site/Run/capture owners retain those responsibilities."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "pub(all) struct CollectionReferenceLimits"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "budget.remaining -= 1"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "pub fn bind_store_command"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS original collection pair issues the existing checked ResourceRef"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS original collection rejects a different scope"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
+                "anchor": "GCS reference comparison refuses exhausted work"
+              }
+            ]
+          }
+        }
+      ],
+      "operations": [
+        {
+          "name": "gcs_collection_issue_reference",
+          "declaration": "gcs_collection_issue_reference ( original : @ catalog . ObjectCollectionBinding , selected : @ environment . StoreCommandBinding , declared_wire : String , connector_id : String , issuer : @ admitted . ReferenceIssuer , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , ) - > Result [ @ admitted . CheckedValue , @ original . CollectionReferenceIssue ]"
+        },
+        {
+          "name": "gcs_collection_reference_failure_code",
+          "declaration": "gcs_collection_reference_failure_code ( issue : @ original . CollectionReferenceIssue , ) - > String"
+        }
+      ],
+      "exports": [],
+      "sha256": "369a9586065dea609648c7dd5f086de7f8afeccfc3187acf4e9c0a78dceb947b"
     }
   ]
 }
