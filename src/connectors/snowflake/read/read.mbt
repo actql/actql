@@ -7,6 +7,7 @@ pub(all) enum ReadIssue {
   Response(@response.ResponseIssue)
   SchemaMismatch(String)
   WrongPartition
+  WrongStatement
   Incomplete
   Closed
   TransportUnsettled
@@ -125,6 +126,7 @@ pub struct Read {
   priv mut finished : Bool
   priv mut interrupted : Bool
   priv mut closed : Bool
+  priv mut statement_bound : Bool
 }
 
 ///|
@@ -178,6 +180,7 @@ pub fn start_accounted_read(
     finished: false,
     interrupted: false,
     closed: false,
+    statement_bound: false,
   }
   match
     @rows.begin_row_run(
@@ -220,6 +223,9 @@ fn first_values(
 /// Charge the exact provider envelope before parsing. The response's contracts
 /// must equal the selected original metadata contracts, not just its names.
 pub fn accept_first_result(read : Read, body : Bytes) -> Result[Int, ReadIssue] {
+  if read.statement_bound {
+    return Err(WrongStatement)
+  }
   if read.closed || read.interrupted || read.finished {
     return Err(Closed)
   }
@@ -229,6 +235,22 @@ pub fn accept_first_result(read : Read, body : Bytes) -> Result[Int, ReadIssue] 
   let charge = match @rows.charge_row_run_page(read.run, body) {
     Ok(value) => value
     Err(issue) => return fail_read(read, Host(issue))
+  }
+  accept_charged_first_result(read, charge, body, None)
+}
+
+///|
+fn accept_charged_first_result(
+  read : Read,
+  charge : @rows.RowPageCharge,
+  body : Bytes,
+  expected_handle : String?,
+) -> Result[Int, ReadIssue] {
+  if read.closed || read.interrupted || read.finished {
+    return Err(Closed)
+  }
+  if read.original is Some(_) {
+    return fail_read(read, WrongPartition)
   }
   let acquisition = read.prepared.acquisition
   let contracts = []
@@ -250,6 +272,10 @@ pub fn accept_first_result(read : Read, body : Bytes) -> Result[Int, ReadIssue] 
     Err(@response.ContractMismatch(name)) =>
       return fail_read(read, SchemaMismatch(name))
     Err(issue) => return fail_read(read, Response(issue))
+  }
+  if expected_handle is Some(expected) &&
+    @response.result_set_handle(result) != expected {
+    return fail_read(read, WrongStatement)
   }
   let accepted = match
     @rows.accept_charged_row_run_values(
@@ -275,6 +301,9 @@ pub fn accept_result_partition(
   ordinal : Int,
   body : Bytes,
 ) -> Result[Int, ReadIssue] {
+  if read.statement_bound {
+    return Err(WrongStatement)
+  }
   if read.closed || read.interrupted || read.finished {
     return Err(Closed)
   }
@@ -286,6 +315,24 @@ pub fn accept_result_partition(
   let charge = match @rows.charge_row_run_page(read.run, body) {
     Ok(value) => value
     Err(issue) => return fail_read(read, Host(issue))
+  }
+  accept_charged_result_partition(read, charge, ordinal, body)
+}
+
+///|
+fn accept_charged_result_partition(
+  read : Read,
+  charge : @rows.RowPageCharge,
+  ordinal : Int,
+  body : Bytes,
+) -> Result[Int, ReadIssue] {
+  if read.closed || read.interrupted || read.finished {
+    return Err(Closed)
+  }
+  guard read.original is Some(original) &&
+    ordinal == read.pages &&
+    ordinal < @response.result_set_partition_count(original) else {
+    return fail_read(read, WrongPartition)
   }
   let page = match
     @response.project_partition(body, original, ordinal, read.limits) {

@@ -24,6 +24,8 @@ pub fn project_result_set(Bytes, ResponseLimits) -> Result[ResultSet, ResponseIs
 
 pub fn project_result_set_with_contracts(Bytes, ResponseLimits, Array[(String, @value_contract.Contract)], Int) -> Result[ResultSet, ResponseIssue]
 
+pub fn project_running_statement(Bytes, ResponseLimits) -> Result[String, ResponseIssue]
+
 pub fn result_set_cell(ResultSet, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn result_set_column_contract(ResultSet, Int) -> @value_contract.Contract?

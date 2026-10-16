@@ -87,9 +87,94 @@
       ]
     },
     {
+      "module": "src/client_row_source_host/response_charge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "4b43835d064d7bf76370dcab23787fdc37429f0c8cc0a0ccfee478003f0ab2eb",
+      "role": "common-semantics",
+      "owner": "Existing Common checked row acquisition/input/capture and resource lifetime Owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "consume_row_run_response_charge",
+          "declaration": "consume_row_run_response_charge ( run : RowRun , charge : RowPageCharge , ) - > Result [ Unit , RowHostIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "consume_row_run_response_charge"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "b8c4551fa5a5aea5a0e98f026cd3ca56ac9d6f3da12587517dc17c1f61c1a99c",
+      "sha256": "c269d683f57fc7039d2c55f0207f688b3fa1285fb99c83308688a3bb1a8d6884",
       "role": "common-semantics",
       "owner": "Existing Common checked row acquisition/input/capture and resource lifetime Owner",
       "exports": [
@@ -123,6 +208,7 @@
         "pub fn close_row_run(RowRun) -> Unit",
         "pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]",
         "pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
+        "pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
         "pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView",
         "pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]",
@@ -306,6 +392,10 @@
         {
           "name": "consume_row_run_observation_charge",
           "declaration": "pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "consume_row_run_response_charge",
+          "declaration": "pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "declared_row_view",
@@ -570,6 +660,7 @@
             "close_row_run",
             "complete_keyed_row_read",
             "consume_row_run_observation_charge",
+            "consume_row_run_response_charge",
             "declared_row_view",
             "export_row_original_read",
             "finish_row_run",
@@ -659,6 +750,7 @@
             "pub fn close_row_run(RowRun) -> Unit",
             "pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]",
             "pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
+            "pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
             "pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView",
             "pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
             "pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]",

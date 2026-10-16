@@ -14,6 +14,7 @@ pub(all) enum PropertyIssue {
   InvalidLimits
   BudgetExceeded
   InvalidResponse
+  ForeignCatalog
   DuplicateProperty(String)
   InvalidProperty(String)
   PropertyUnconfirmed(String)
@@ -34,7 +35,7 @@ pub struct PropertyMetadata {
   priv options : Array[String]
   unique : Bool
   writable : Bool?
-}
+} derive(Eq)
 
 ///|
 /// Pure projection, not an admitted Catalog or a credential. The physical
