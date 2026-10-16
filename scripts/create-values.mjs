@@ -66,7 +66,11 @@ export function createValuesHeaderVectors(vectors) {
       `test ${JSON.stringify('independent create values header: ' + value.name)} {`,
       `  let program = parse(${JSON.stringify(JSON.stringify(value.program))}, limits(), format=Json).unwrap()`,
       '  let result = collect_effect_headers(program, 1, 100)',
-      value.header_valid ? '  assert_true(result is Ok(_))'
+      value.header_valid ? [
+        '  let out = @encode.hashing_writer(10000, 1000, 40)',
+        '  emit_effect_header_semantics(effect_header_at(result.unwrap(), 0).unwrap(), out)',
+        `  assert_eq("sha256:" + @encode.finish_hash(out), ${JSON.stringify(value.header_cid)})`,
+      ].join('\n')
         : `  assert_eq(effect_header_issue_kind(result.unwrap_err()), ${value.header_issue})`,
       '}', '']),
   ].join('\n');
@@ -77,7 +81,10 @@ export function checkCreateValuesVectors(vectors) {
     'Independent Python canonical JSON SHA-256; no product output or runtime acceptance');
   assert.equal(machineCid(vectors.previous_create_body), vectors.previous_create_body_cid);
   assert.deepEqual(vectors.previous_create_body, originalBody());
-  for (const value of vectors.programs) assert.equal(machineCid(value.program), value.program_cid);
+  for (const value of vectors.programs) {
+    assert.equal(machineCid(value.program), value.input_wire_cid);
+    if (value.header_valid) assert.equal(machineCid(value.header_preimage), value.header_cid);
+  }
   return createValuesHeaderVectors(vectors);
 }
 

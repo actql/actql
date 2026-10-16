@@ -250,10 +250,23 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:22e5061021a71b6b764295b1879669c843f39f22cef15a1da3c763195dfa9c77",
       "header_valid": true,
       "header_issue": null,
-      "legacy": true
+      "legacy": true,
+      "input_wire_cid": "sha256:22e5061021a71b6b764295b1879669c843f39f22cef15a1da3c763195dfa9c77",
+      "header_preimage": {
+        "body": {
+          "target": "connector://crm/account",
+          "mapping": "mapping:crm.account.v1",
+          "from": {
+            "result": "original"
+          }
+        },
+        "failure_policy": "halt",
+        "kind": "create",
+        "source_result": "original"
+      },
+      "header_cid": "sha256:4d164f5c91779202d13b8c77248ddc75cbafd45a83738eb5488de53b9000accf"
     },
     {
       "name": "legacy_raw_payload",
@@ -313,10 +326,28 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:a8283f357ad496798668b538d51d16246e71ebb62116a6ff71e42c33ae1aacfd",
       "header_valid": true,
       "header_issue": null,
-      "legacy": true
+      "legacy": true,
+      "input_wire_cid": "sha256:a8283f357ad496798668b538d51d16246e71ebb62116a6ff71e42c33ae1aacfd",
+      "header_preimage": {
+        "body": {
+          "target": "connector://crm/account",
+          "mapping": "mapping:crm.account.v1",
+          "payload": {
+            "Name": {
+              "$param": "business_data"
+            },
+            "values": {
+              "field": "opaque_business"
+            }
+          }
+        },
+        "failure_policy": "halt",
+        "kind": "create",
+        "source_result": null
+      },
+      "header_cid": "sha256:e24862857e4ab58d531154e55418ee9607e0dee9e75d44f71c8d86fb232bfcda"
     },
     {
       "name": "field_subset",
@@ -376,10 +407,28 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:836b2cf0430e5039eb9d30a0dac777a91da3ffcef613229558aff116e0f0d817",
       "header_valid": true,
       "header_issue": null,
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:836b2cf0430e5039eb9d30a0dac777a91da3ffcef613229558aff116e0f0d817",
+      "header_preimage": {
+        "body": {
+          "target": "connector://crm/account",
+          "mapping": "mapping:crm.account.v1",
+          "from": {
+            "result": "original"
+          },
+          "values": {
+            "Name": {
+              "field": "name"
+            }
+          }
+        },
+        "failure_policy": "halt",
+        "kind": "create",
+        "source_result": "original"
+      },
+      "header_cid": "sha256:46148e73c6fd44e896c84daac325e4d2d6d1e9bc499a0d5acfc71acc7dffee07"
     },
     {
       "name": "independent_target_values",
@@ -442,10 +491,31 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:25ce80d2a60d3b4d38f198e39fec4e0097bd0a747ab0469212bf994fdb1094bf",
       "header_valid": true,
       "header_issue": null,
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:25ce80d2a60d3b4d38f198e39fec4e0097bd0a747ab0469212bf994fdb1094bf",
+      "header_preimage": {
+        "body": {
+          "target": "connector://crm/account",
+          "mapping": "mapping:crm.account.v1",
+          "from": {
+            "result": "original"
+          },
+          "values": {
+            "Name": {
+              "field": "name"
+            },
+            "City": {
+              "literal": "Kyoto"
+            }
+          }
+        },
+        "failure_policy": "halt",
+        "kind": "create",
+        "source_result": "original"
+      },
+      "header_cid": "sha256:6af9b6765998297a47d28de1f0c3ca31cece612255a1253d5ba3d658eb554013"
     },
     {
       "name": "empty_map",
@@ -501,10 +571,24 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:bd62f46a1811f39c97720e63424e7216c173c95993f0ec0c2e1da319565f586b",
       "header_valid": true,
       "header_issue": null,
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:bd62f46a1811f39c97720e63424e7216c173c95993f0ec0c2e1da319565f586b",
+      "header_preimage": {
+        "body": {
+          "target": "connector://crm/account",
+          "mapping": "mapping:crm.account.v1",
+          "from": {
+            "result": "original"
+          },
+          "values": {}
+        },
+        "failure_policy": "halt",
+        "kind": "create",
+        "source_result": "original"
+      },
+      "header_cid": "sha256:7a08706c0be636e34383f7dded91b65ca4618257b2091541a5a1de0b3f12c3ce"
     },
     {
       "name": "nullable_literal",
@@ -564,10 +648,28 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:ac73bfacca2021cba1a2ec1b83d17bb42060e4ad775dbdb0dea969f1255a64d6",
       "header_valid": true,
       "header_issue": null,
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:ac73bfacca2021cba1a2ec1b83d17bb42060e4ad775dbdb0dea969f1255a64d6",
+      "header_preimage": {
+        "body": {
+          "target": "connector://crm/account",
+          "mapping": "mapping:crm.account.v1",
+          "from": {
+            "result": "original"
+          },
+          "values": {
+            "Name": {
+              "literal": null
+            }
+          }
+        },
+        "failure_policy": "halt",
+        "kind": "create",
+        "source_result": "original"
+      },
+      "header_cid": "sha256:8f5d4f907453e0ec10df91e90ec6a44cc5ec140af4b8b6c8db72e5454e741cb0"
     },
     {
       "name": "immediate_parameter",
@@ -635,10 +737,30 @@
           }
         }
       },
-      "program_cid": "sha256:788c191108dbef368e21820ae0b789bbb2fa60c65bcca9c80d46873e7c63cb9f",
       "header_valid": true,
       "header_issue": null,
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:788c191108dbef368e21820ae0b789bbb2fa60c65bcca9c80d46873e7c63cb9f",
+      "header_preimage": {
+        "body": {
+          "target": "connector://crm/account",
+          "mapping": "mapping:crm.account.v1",
+          "from": {
+            "result": "original"
+          },
+          "values": {
+            "Name": {
+              "literal": {
+                "$param": "name"
+              }
+            }
+          }
+        },
+        "failure_policy": "halt",
+        "kind": "create",
+        "source_result": "original"
+      },
+      "header_cid": "sha256:ebb76c93aced99f20e6d265947d88bdc228b235cd9f14a6c33e34d4e9bdc3cc9"
     },
     {
       "name": "missing_from",
@@ -695,10 +817,10 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:07e4965976f57483418d3653ad6b04c7d017469245957dc8a8b486aedb8e9258",
       "header_valid": false,
       "header_issue": "InvalidSourceResult",
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:07e4965976f57483418d3653ad6b04c7d017469245957dc8a8b486aedb8e9258"
     },
     {
       "name": "raw_payload_conflict",
@@ -757,10 +879,10 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:a61c9ea4264919237894fdd1a74aea85e483c138b04508ad90c80fba6aa4e381",
       "header_valid": false,
       "header_issue": "InvalidSourceResult",
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:a61c9ea4264919237894fdd1a74aea85e483c138b04508ad90c80fba6aa4e381"
     },
     {
       "name": "raw_payload_without_from",
@@ -816,10 +938,10 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:98f1d104a43769c4d8a160ca1702f9984f7552f5dea599db86a4b4bf03eeeee6",
       "header_valid": false,
       "header_issue": "InvalidSourceResult",
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:98f1d104a43769c4d8a160ca1702f9984f7552f5dea599db86a4b4bf03eeeee6"
     },
     {
       "name": "plain_untyped_value",
@@ -877,10 +999,10 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:389f7c60fed9fb0e72c2a82c3849a7827fc97d59c3a90b2405851a76a7e41a4f",
       "header_valid": false,
       "header_issue": "InvalidBody",
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:389f7c60fed9fb0e72c2a82c3849a7827fc97d59c3a90b2405851a76a7e41a4f"
     },
     {
       "name": "ambiguous_value_form",
@@ -941,10 +1063,10 @@
         ],
         "results": {}
       },
-      "program_cid": "sha256:d490e8e8b3f4bbe68e30c1bf06eff6bbc9fd35db3b064725ed831781baae682e",
       "header_valid": false,
       "header_issue": "InvalidBody",
-      "legacy": false
+      "legacy": false,
+      "input_wire_cid": "sha256:d490e8e8b3f4bbe68e30c1bf06eff6bbc9fd35db3b064725ed831781baae682e"
     }
   ]
 }

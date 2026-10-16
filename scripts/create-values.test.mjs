@@ -50,7 +50,7 @@ test('normal schema gate refuses absent values, missing source relationship, wea
   }
 });
 
-test('independent complete input identities and generated header decisions preserve legacy raw business objects', () => {
+test('independent input-wire and actual emitted header preimages preserve legacy raw business objects', () => {
   const text = checkCreateValuesVectors(vectors);
   assert.equal(readFileSync('src/stage_syntax/create_values.generated_test.mbt', 'utf8'), text);
   assert.equal(vectors.programs.length, 12);
@@ -60,7 +60,7 @@ test('independent complete input identities and generated header decisions prese
   const raw = legacy.find(value => value.name === 'legacy_raw_payload').program.stages[0].effects.save.create.payload;
   assert.deepEqual(raw.Name, {$param: 'business_data'});
   assert.deepEqual(raw.values, {field: 'opaque_business'});
-  assert.notEqual(vectors.programs.find(value => value.name === 'legacy_from').program_cid,
-    vectors.programs.find(value => value.name === 'field_subset').program_cid);
+  assert.notEqual(vectors.programs.find(value => value.name === 'legacy_from').input_wire_cid,
+    vectors.programs.find(value => value.name === 'field_subset').input_wire_cid);
   assert.equal(vectors.programs.find(value => value.name === 'raw_payload_conflict').header_issue, 'InvalidSourceResult');
 });
