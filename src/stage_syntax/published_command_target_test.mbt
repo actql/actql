@@ -1,7 +1,7 @@
 ///|
 fn published_command_header(selector : String) -> Program raise {
   effect_program(
-    "    invoke: {command: {from: {result: rows}, target: " +
+    "    create: {command: {from: {result: rows}, target: " +
     selector +
     ", contract: command:mailbox.send.v1, input: {}}}",
   )
