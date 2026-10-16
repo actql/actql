@@ -10,6 +10,7 @@ import {runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {createGeneratedContentFixture} from './fixtures/generated-content.fixture.mjs';
 import {openContentCommandHost} from './fixtures/content-command-host.fixture.mjs';
+import {setImmediate as turn} from 'node:timers/promises';
 
 test('actual Content preparation borrows the original captured Command input and rejects copied or retired views', async t => {
   const scratch = await createOwnedScratch({
@@ -74,6 +75,49 @@ test('actual Content preparation borrows the original captured Command input and
   assert.throws(() => borrowed.wire());
   assert.equal(borrowed.release(), undefined, 'alias retirement is not a physical ACK');
   assert.equal(borrowed.release(), undefined);
+  await generated.store.retirePhysicalHolding(generated.holding.holding_cid);
+  scratch.passed();
+});
+
+test('actual Content capture keeps the same original parent through an async preparation child', async t => {
+  const scratch = await createOwnedScratch({
+    parent: new URL('../../_build/', import.meta.url).pathname,
+    prefix: 'effect-content-child-', label: 'Original Content async child',
+  });
+  const generated = await createGeneratedContentFixture(t);
+  await generated.store.commitPhysicalHolding(generated.holding, [generated.physical.prepared]);
+  await generated.issue();
+  let borrowed, preparations = 0, closes = 0, pending = true;
+  const host = await openContentCommandHost({scratch, generated,
+    keys: generateKeyPairSync('ed25519'), entrance: 'Local',
+    onPrepareContent() { assert.fail('The async child must not start a second synchronous preparation'); },
+    prepareContentChild({originalContent, value, preparedRequest}) {
+      const release = async () => { closes++; pending = false; return true; };
+      return Object.freeze({async prepare() {
+        preparations++;
+        borrowed = originalContent('content');
+        assert.equal(borrowed.current(), true);
+        await turn();
+        assert.equal(borrowed.current(), true);
+        assert.strictEqual(originalContent('content'), borrowed);
+        assert.deepEqual(JSON.parse(borrowed.wire()), value.content);
+        return preparedRequest;
+      }, release, retry: release, status: () => ({pending})});
+    }});
+  t.after(host.close);
+  const run = await host.client.start(host.fixture.program);
+  const state = await run.wait({signal: AbortSignal.timeout(15000)});
+  assert.equal(state.status, 'waiting_checkpoint');
+  assert.equal(preparations, 1);
+  assert.equal(host.reads(), 1);
+  assert.equal(host.sends(), 0);
+  assert.equal(closes, 0, 'A returned request and captured Preview do not retire its original child');
+  assert.equal(borrowed.current(), true, 'The original source/pin remains current until the last borrower');
+  await host.close();
+  assert.equal(closes, 1);
+  assert.equal(pending, false);
+  assert.equal(borrowed.current(), false);
+  assert.throws(() => borrowed.wire());
   await generated.store.retirePhysicalHolding(generated.holding.holding_cid);
   scratch.passed();
 });

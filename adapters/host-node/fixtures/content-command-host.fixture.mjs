@@ -24,7 +24,7 @@ import {canonical, cid, resource, token} from './file-listing-source.fixture.mjs
 export async function openContentCommandHost({scratch, generated, keys, entrance,
   allowSourceRead = true, fault, modelInstallation, registerModelProviders, hostCapacityPolicy,
   faultInjection, modelApprovalRequired = false, generatedCommand = false,
-  onPrepareContent}) {
+  onPrepareContent, prepareContentChild}) {
   const content = JSON.parse(generated.description.wire);
   const destination = resource('d');
   const fixture = contentCommandFixture({contentMime: 'text/csv', inputMime: 'text/csv',
@@ -154,7 +154,12 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
               onPrepareContent?.({value, selector, originalContent});
               const request = requestOf(value, selector);
               return {request, requestCid: cid(request)};
-            }, requestFacts: request => request, requestCid: cid,
+            }, ...(prepareContentChild === undefined ? {} : {
+              prepareRequestChild(context) {
+                const request = requestOf(context.value, context.selector);
+                return prepareContentChild({...context, originalContent: context.content,
+                  preparedRequest: {request, requestCid: cid(request)}});
+              }}), requestFacts: request => request, requestCid: cid,
             async recheckRequests({entries}) {
               for (const entry of entries) {
                 try { await checkReference(entry.request); }
