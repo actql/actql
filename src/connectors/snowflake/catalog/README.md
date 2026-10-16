@@ -42,6 +42,11 @@ contracts do not relabel existing CheckedValues. Later partitions retain the
 same original contracts. Contract mismatch and comparison-budget exhaustion
 remain distinct refusals.
 
+`project_running_statement` admits only a bounded pending-query handle with the
+SQL API pending code and no result rows, metadata or multi-statement handles.
+It supplies lookup material only; its status URL is not an installation target
+and it issues no retry, completion, cancellation or cleanup authority.
+
 ## Interface responsibilities
 
 - Responsibility: provider response spelling and bounded page projection belong

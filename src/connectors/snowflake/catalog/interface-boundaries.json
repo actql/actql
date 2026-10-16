@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/snowflake/catalog/response.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "f1a43a871cc60c12b5ed24730d343b317f7594d91984bc0df330850224b1ad14",
+      "sha256": "53941fad7abfc2bc53df95c597215c55f815194f9f8a4dc23c32d45b56d4e07e",
       "role": "connector-semantics",
       "owner": "Snowflake bounded original SQL API response spelling; Common retains scalar contract and value admission",
       "exports": [],
@@ -52,6 +52,10 @@
         {
           "name": "project_result_set_with_contracts",
           "declaration": "project_result_set_with_contracts ( bytes : Bytes , limits : ResponseLimits , contracts : Array [ ( String , @ contract . Contract ) ] , max_contract_pairs : Int , ) - > Result [ ResultSet , ResponseIssue ]"
+        },
+        {
+          "name": "project_running_statement",
+          "declaration": "project_running_statement ( bytes : Bytes , limits : ResponseLimits , ) - > Result [ String , ResponseIssue ]"
         },
         {
           "name": "required_text",
@@ -125,6 +129,7 @@
             "project_result_set",
             "project_result_set_original",
             "project_result_set_with_contracts",
+            "project_running_statement",
             "required_text",
             "response_root",
             "result_set_cell",
@@ -209,7 +214,7 @@
     {
       "module": "src/connectors/snowflake/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "bcaf69f9cb525c872daa37d8548a831bfd8d643f1f33e40a38b393c4e80bf320",
+      "sha256": "f9902feed04a34f07968847e67c9b900bf673ce940a6b34d211232f1b97e0158",
       "role": "connector-semantics",
       "owner": "Snowflake bounded original SQL API response spelling; Common retains scalar contract and value admission",
       "exports": [
@@ -221,6 +226,7 @@
         "pub fn project_partition(Bytes, ResultSet, Int, ResponseLimits) -> Result[Partition, ResponseIssue]",
         "pub fn project_result_set(Bytes, ResponseLimits) -> Result[ResultSet, ResponseIssue]",
         "pub fn project_result_set_with_contracts(Bytes, ResponseLimits, Array[(String, @value_contract.Contract)], Int) -> Result[ResultSet, ResponseIssue]",
+        "pub fn project_running_statement(Bytes, ResponseLimits) -> Result[String, ResponseIssue]",
         "pub fn result_set_cell(ResultSet, Int, Int) -> @value_admission.CheckedValue?",
         "pub fn result_set_column_contract(ResultSet, Int) -> @value_contract.Contract?",
         "pub fn result_set_column_count(ResultSet) -> Int",
@@ -267,6 +273,10 @@
         {
           "name": "project_result_set_with_contracts",
           "declaration": "pub fn project_result_set_with_contracts(Bytes, ResponseLimits, Array[(String, @value_contract.Contract)], Int) -> Result[ResultSet, ResponseIssue]"
+        },
+        {
+          "name": "project_running_statement",
+          "declaration": "pub fn project_running_statement(Bytes, ResponseLimits) -> Result[String, ResponseIssue]"
         },
         {
           "name": "result_set_cell",
@@ -321,6 +331,7 @@
             "project_partition",
             "project_result_set",
             "project_result_set_with_contracts",
+            "project_running_statement",
             "result_set_cell",
             "result_set_column_contract",
             "result_set_column_count",
@@ -341,6 +352,7 @@
             "pub fn project_partition(Bytes, ResultSet, Int, ResponseLimits) -> Result[Partition, ResponseIssue]",
             "pub fn project_result_set(Bytes, ResponseLimits) -> Result[ResultSet, ResponseIssue]",
             "pub fn project_result_set_with_contracts(Bytes, ResponseLimits, Array[(String, @value_contract.Contract)], Int) -> Result[ResultSet, ResponseIssue]",
+            "pub fn project_running_statement(Bytes, ResponseLimits) -> Result[String, ResponseIssue]",
             "pub fn result_set_cell(ResultSet, Int, Int) -> @value_admission.CheckedValue?",
             "pub fn result_set_column_contract(ResultSet, Int) -> @value_contract.Contract?",
             "pub fn result_set_column_count(ResultSet) -> Int",
