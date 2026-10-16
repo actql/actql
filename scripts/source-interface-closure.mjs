@@ -11,7 +11,7 @@ import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {javascriptInterface} from './interface-inventory.mjs';
 import {moonInterfaceClosure} from './moon-interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
-import {typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
+import {typescriptInterface, typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
 
 export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = [],
   reportUnresolvedEntrances = false} = {}) {
@@ -74,21 +74,27 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
         }
       });
     }}]});
-  const modules = Object.keys(graph.metafile.inputs).sort().map(path => {
+  const assets = [], modules = Object.keys(graph.metafile.inputs).sort().flatMap(path => {
     const module = relative(root, realpathSync(resolve(root, path)));
     assert(!module.startsWith('..'), `Escaped source interface: ${module}`);
     assert(!isConnectorTestFixture(module) && !/(?:\.test|_test|_wbtest)\./u.test(module),
       `Test authority in source interface: ${module}`);
     const bytes = readFileSync(resolve(root, module));
-    return {module, sha256: createHash('sha256').update(bytes).digest('hex'),
-      ...javascriptInterface(bytes.toString('utf8'))};
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    if (!/\.[cm]?[jt]sx?$/u.test(module)) {
+      assets.push({module, sha256, qualification: 'resolved-distribution-data'});
+      return [];
+    }
+    return [{module, sha256,
+      ...(/\.[cm]?tsx?$/u.test(module) ? typescriptInterface(bytes.toString('utf8'), module)
+        : javascriptInterface(bytes.toString('utf8')))}];
   });
   const moon = moonInterfaceClosure(root, [...new Set([...artifactReferences]
     .flatMap(path => artifacts.get(path).sourcePackages))]);
   const types = typescriptInterfaceClosure(root, roots.flatMap(value => value.entrances)
     .filter(path => /\.d\.[cm]?ts$/u.test(path)));
   return {qualification: unresolvedEntrances.length ? 'incomplete-source-input-coverage' : 'source-input-coverage-only',
-    unresolvedEntrances, roots, modules, types, moon,
+    unresolvedEntrances, roots, modules, assets, types, moon,
     copies: [...copyReferences.values()].sort((a, b) => a.destination.localeCompare(b.destination)),
     artifacts: [...artifactReferences].sort().map(path => artifacts.get(path))};
 }

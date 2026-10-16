@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {join, relative} from 'node:path';
 import {test} from 'node:test';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
@@ -49,6 +50,21 @@ test('actual coordinator source graph records its generated artifact without pre
   assert(result.artifacts.some(value => value.module === 'packages/coordinator-core/dist/remote_coordinator_abi.js'));
   assert(result.moon.packages.includes('remote_coordinator_abi'));
   assert(result.types.some(value => value.module === 'packages/coordinator-core/index.d.ts'));
+});
+
+test('source graph retains imported contract data without parsing it as executable JavaScript', async t => {
+  // The actual ordinary readers still own runtime input declarations.
+  const root = process.cwd(), directory = mkdtempSync(join(root, '_build/interface-source-data-'));
+  const name = relative(root, directory);
+  t.after(() => rmSync(directory, {recursive: true}));
+  writeFileSync(join(directory, 'entry.mjs'), 'import contract from "./schema.json"; export const value = contract;');
+  writeFileSync(join(directory, 'schema.json'), '{"type":"object","properties":{"_0":{"type":"string"}}}');
+  const result = await sourceInterfaceClosure(root, {distributionRoots: [
+    {name: '@actql/source-control', entrances: [`${name}/entry.mjs`]}]});
+  assert.equal(result.modules.length, 1);
+  assert.equal(result.assets[0].module, `${name}/schema.json`);
+  assert.equal(result.assets[0].qualification, 'resolved-distribution-data');
+  assert.deepEqual(result.modules[0].compilerFields, []);
 });
 
 test('pinned TypeScript parser inventories named declaration roles and relative public type closure', () => {
