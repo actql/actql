@@ -4157,7 +4157,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "1cbb136595da776ab7c8ede9b3fbe2fece595ec09c5d4a8f57009446d57b47d6",
+      "sha256": "cbe61186d2ea1805209fbdac106e7eb4858717de3922a6faeb2564b37af213b2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5079,6 +5079,11 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/dispatches/dispatches",
           "parameters": [
             "member"
@@ -5784,7 +5789,8 @@
             "retainInstalledRowEffectAdapter",
             "sameValue/sameValue",
             "targeted/targeted",
-            "text/text"
+            "text/text",
+            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -5798,60 +5804,108 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "provider-neutral installed Effect"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "createInstalledRowEffect"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "profileOf"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "retainInstalledRowEffectAdapter"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "durable claim"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "unknown, never resent"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "signal"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "retainedLimits"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "checkDriver"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }

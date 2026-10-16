@@ -1478,7 +1478,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2341df0b07d3dc9aa0ed1a4c3de203edaefaac52c2144476898d9b864b3f2921",
+      "sha256": "351667b067183292f5a83cfbb514ed82ec6dd93abcff4cdd9263026a6c61b2e2",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2482,6 +2482,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -2496,6 +2500,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "#### Run-bound publication chain"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -2510,6 +2518,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -2524,6 +2536,10 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "# Retained result execution boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -2538,6 +2554,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -2552,6 +2572,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -2566,6 +2590,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "#### Run-bound publication chain"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -2580,6 +2608,14 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "# Retained result execution boundary"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -2594,6 +2630,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "#### Run-bound publication chain"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -2608,6 +2648,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -11435,7 +11483,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "13164c3c705cade8cf49d6c06146c26353d11f2832e1ec9ea7b3c594281b2dff",
+      "sha256": "9f66e62306ec3d2d990ed17ece73364ccb50ddeb6b86a778871daa1aa08bf079",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -11982,9 +12030,19 @@
             "continuationWire",
             "beforeDefer",
             "targetReads",
+            "requestedStop",
+            "assertRequestedStopCurrent",
             "journalPort"
           ],
           "async": true
+        },
+        {
+          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/checkedStopView/checkedStopView",
+          "parameters": [
+            "resumption",
+            "subjectCid"
+          ],
+          "async": false
         },
         {
           "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/cleanupPending/cleanupPending",
@@ -12016,6 +12074,23 @@
           "async": false
         },
         {
+          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:authorize/init:authorize",
+          "parameters": [
+            "boundary",
+            "scope",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:continuationAdmission/init:continuationAdmission",
+          "parameters": [
+            "resumption",
+            "subjectCid"
+          ],
+          "async": false
+        },
+        {
           "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:describe/init:describe",
           "parameters": [
             "view"
@@ -12023,25 +12098,32 @@
           "async": true
         },
         {
-          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:effectAuthorization",
+          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:resume/init:resume",
           "parameters": [
             "boundary",
-            "args"
+            "scope",
+            "options"
           ],
-          "async": false
+          "async": true
         },
         {
-          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:effectAuthorization#2",
+          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/requestStop/requestStop",
           "parameters": [
-            "args"
+            "decision",
+            "options"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/scopes/scopes",
           "parameters": [
             "owner"
           ],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/stopCurrent/stopCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -12955,8 +13037,6 @@
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/close/close",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/common/common",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:describe/init:describe",
-            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:effectAuthorization",
-            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:effectAuthorization#2",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/scopes/scopes",
             "installRemoteCheckpoints/init:effectContinuation/init:effectContinuation",
             "installRemoteCheckpoints/init:effectRunState/init:effectRunState",
@@ -13073,7 +13153,13 @@
             "without/without/without",
             "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#4",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:assertCurrent/init:assertCurrent",
-            "installRemoteCheckpoints/init:effectTargetAuthorization/init:effectTargetAuthorization/init:effectTargetAuthorization#7"
+            "installRemoteCheckpoints/init:effectTargetAuthorization/init:effectTargetAuthorization/init:effectTargetAuthorization#7",
+            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/checkedStopView/checkedStopView",
+            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:authorize/init:authorize",
+            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:continuationAdmission/init:continuationAdmission",
+            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:resume/init:resume",
+            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/requestStop/requestStop",
+            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/stopCurrent/stopCurrent"
           ],
           "exports": [
             "MAX_MODEL_INPUT_BYTES",
@@ -13096,6 +13182,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -13114,6 +13204,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -13132,6 +13226,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -13150,6 +13248,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -13168,6 +13270,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -13186,6 +13292,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -13200,6 +13310,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Checkpoint and Resolution admission"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -13214,6 +13328,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -13232,6 +13354,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -13246,6 +13372,14 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -13512,7 +13646,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "81448b8d265e98caa70f81496b962c363d99df9aabaa075cdb9c367554adf5bb",
+      "sha256": "8ab3b091be17891b3d7776fd8e7eaf23e8822def15e83eb288bbe53bbe6d476a",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -13711,6 +13845,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "capturePreparedOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -13729,6 +13867,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "capturePreparedOriginal(prepared) {"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -13747,6 +13889,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "capturePreparedOriginal(prepared) {"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -13765,6 +13911,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "capturePreparedOriginal(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -13783,6 +13933,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "capturePreparedOriginal(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -13801,6 +13955,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "capturePreparedOriginal(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -13815,6 +13973,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -13829,6 +13991,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -13847,6 +14017,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "capturePreparedOriginal(prepared) {"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -13857,6 +14031,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -15851,7 +16033,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0310bba73100e9e8617dc661d52f8770b20e14212f1a4ad4f4ef16baa8883e57",
+      "sha256": "a3cfbbacd71496568a0973b16e3bbb95c6b643510e64fc5881df1009cc6b1fd6",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -16569,6 +16751,26 @@
           "parameters": [
             "key"
           ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
+          "parameters": [
+            "identity",
+            "namespaceId",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal",
+          "parameters": [],
           "async": false
         },
         {
@@ -17295,7 +17497,10 @@
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#3",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#4",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
-            "validEpochAuthority"
+            "validEpochAuthority",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -17322,6 +17527,10 @@
               {
                 "path": "src/run_publication/run_state_observation.mbt",
                 "anchor": "pub fn prepare_run_state_observation("
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -17344,6 +17553,10 @@
               {
                 "path": "src/run_publication/run_state_observation.mbt",
                 "anchor": "pub fn RunStateObservation::wire("
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -17370,6 +17583,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -17396,6 +17613,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -17422,6 +17643,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -17448,6 +17673,10 @@
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -17474,6 +17703,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "cancellationRequested: current.cancellationRequested,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -17504,6 +17737,14 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -17530,6 +17771,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -17556,6 +17801,14 @@
               {
                 "path": "adapters/host-node/client-run-state-revision-public.test.mjs",
                 "anchor": "test('actual Local Run state revision survives Host release and attach without another computation'"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -18566,7 +18819,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3d54c2eedc4a1265c56922254068f98fa896b11734eecbd90d52e54b46ddadec",
+      "sha256": "e322d54004d2ebe57d94ed0a279b3823cdd1bf65afc1e85f3fcdb93c01d3318b",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -18856,6 +19109,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -18870,6 +19127,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -18884,6 +19145,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -18898,6 +19163,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -18912,6 +19181,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -18926,6 +19199,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -18940,6 +19217,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -18954,6 +19235,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -18968,6 +19257,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -18978,6 +19271,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -29127,7 +29428,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c0959c5539a53979a40ac0f033be6623e0cbba41bf13338bc475267021f770f6",
+      "sha256": "2342792acfe7f1c075a4617a4776c914371ee97620a7e3f86bca9ed2504dfa12",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -29148,6 +29449,11 @@
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "authorization/authorization#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -29270,7 +29576,8 @@
           "parameters": [
             "facts",
             "stage",
-            "settlementOnly"
+            "settlementOnly",
+            "requestedStop"
           ],
           "async": false
         },
@@ -29413,6 +29720,14 @@
           "async": false
         },
         {
+          "name": "requestedStopOriginal",
+          "parameters": [
+            "facts",
+            "stage"
+          ],
+          "async": false
+        },
+        {
           "name": "terminalPreSendRefusal",
           "parameters": [
             "error",
@@ -29464,7 +29779,9 @@
             "ownedStage",
             "recordUnknown",
             "terminalPreSendRefusal",
-            "createInstalledEffectSite/init:resume/init:resume/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent"
+            "createInstalledEffectSite/init:resume/init:resume/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
+            "authorization/authorization#2",
+            "requestedStopOriginal"
           ],
           "exports": [
             "createInstalledEffectSite"
@@ -29486,6 +29803,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
               }
             ],
             "inputsOutputs": [
@@ -29504,6 +29825,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
               }
             ],
             "identity": [
@@ -29522,6 +29847,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
               }
             ],
             "ownership": [
@@ -29540,6 +29869,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
               }
             ],
             "synchronization": [
@@ -29558,6 +29891,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
@@ -29576,6 +29913,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
@@ -29590,6 +29931,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -29604,6 +29949,14 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
@@ -29622,6 +29975,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
               }
             ],
             "verification": [
@@ -29632,6 +29989,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
               }
             ]
           }
@@ -48541,6 +48906,100 @@
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+    },
+    {
+      "module": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "b04a3b71427b5dbf3cba7f3e8e0ef603fb91b7390e1d8c9ad913025d3e131dd0",
+      "role": "common-semantics",
+      "owner": "Existing bounded Checkpoint codec and installed Effect continuation Owners",
+      "exports": [
+        "INSTALLED_EFFECT_CHECKPOINT_LIMITS"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "INSTALLED_EFFECT_CHECKPOINT_LIMITS"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
