@@ -25,26 +25,26 @@ const hash = value => `sha256:${createHash('sha256').update(canonicalJson(value)
 const project = () => checked(moon.hubspotProjectProperties(Buffer.from(JSON.stringify(metadata)),
   'companies', 4096, 1000, 20, 100, 100));
 
-function declaration(catalog) {
+function declaration(catalog, resource = 'companies') {
   const schemaWire = checked(moon.hubspotObjectSchemaWire(catalog, ['amount', 'tags', 'external_key'],
     10, 100, 10000, 1000, 20));
   const original = checked(common.clientProgramRowSourceRestoreRelationDeclaration('hubspot',
-    'hubspot', 'hubspot/0.1', JSON.stringify({views: [{resource: 'companies', resource_kind: 'object',
+    'hubspot', 'hubspot/0.1', JSON.stringify({views: [{resource, resource_kind: 'object',
       schema_wire: schemaWire, schema_cid: `sha256:${createHash('sha256').update(schemaWire).digest('hex')}`,
       facts_wire: moon.hubspotObjectRelationFactsWire()}]}), undefined));
   const declared = JSON.parse(common.clientProgramRowSourceDeclarationJson(original));
   return {original, declared, manifest: hash(JSON.parse(declared.manifest_entry))};
 }
 
-function mapping(catalog, declared, kind = 0, fields = ['amount', 'tags'], sources) {
+function mapping(catalog, declared, kind = 0, fields = ['amount', 'tags'], sources, resource = 'companies') {
   return checked(moon.hubspotPrepareExecutionMapping(catalog, 'hubspot', declared.manifest,
-    'companies', kind, ['', 'id', 'external_key'][kind], fields,
+    resource, kind, ['', 'id', 'external_key'][kind], fields,
     sources ?? (kind === 0 ? fields.map(name => moon.hubspotMappingSource(name, name, 'reject')) : []),
     ...limits));
 }
 
-async function environment(catalog, derived) {
-  const {declared} = declaration(catalog);
+async function environment(catalog, derived, resource = 'companies') {
+  const {declared} = declaration(catalog, resource);
   const base = await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
   const environment = rowSourceCheckEnvironment(base, declared,
     derived.map(value => moon.hubspotExecutionMappingBody(value)));
@@ -80,13 +80,13 @@ test('actual Common admits original full Decimal38/array create update upsert ma
   }
 });
 
-function effectProgram(prepared, kind = 0) {
+function effectProgram(prepared, kind = 0, target = 'connector://hubspot/companies') {
   const schema = {id: {type: 'string', nullable: false},
     external_key: {type: 'string', nullable: false},
     amount: {type: 'decimal', precision: 38, scale: 10, nullable: false},
     tags: {type: 'array', nullable: false, items: {type: 'string', nullable: false}}};
   const operation = ['create', 'update', 'upsert'][kind];
-  const effect = {target: 'connector://hubspot/companies',
+  const effect = {target,
     mapping: moon.hubspotExecutionMappingRef(prepared), from: {result: 'rows'}};
   if (kind !== 0) Object.assign(effect, {set: {amount: {field: 'amount'}, tags: {field: 'tags'}},
     ...(kind === 1 ? {id: 'id'} : {key: 'external_key'})});
@@ -97,9 +97,9 @@ function effectProgram(prepared, kind = 0) {
     results: {answer: {from: {stage: 'source', result: 'rows'}}}});
 }
 
-function prepareEffect(environmentHandle, prepared, kind = 0) {
+function prepareEffect(environmentHandle, prepared, kind = 0, target = 'connector://hubspot/companies') {
   const outcome = common.clientProgramPrepareEffectComputationWithParameters(
-    effectProgram(prepared, kind), 'json', environmentHandle, undefined, []);
+    effectProgram(prepared, kind, target), 'json', environmentHandle, undefined, []);
   return {value: common.clientProgramEffectPreparationReady(outcome),
     issue: common.clientProgramEffectPreparationIssueCode(outcome)};
 }
@@ -158,4 +158,30 @@ test('actual original mapped value reaches one Credential/Account/SQLite/TLS POS
   assert.equal(f.project(raw.observation).kind, 'typed-success-response');
   assert.equal(moon.hubspotExecutionMappingFields(derived).length, 2);
   f.row.assertNoCapture();
+});
+
+test('actual Common admits declared logical aliases without changing the original physical object type', async () => {
+  const catalog = project();
+  const declared = declaration(catalog, 'company_alias');
+  const prepared = mapping(catalog, declared, 0, ['amount', 'tags'], undefined, 'company_alias');
+  const environmentHandle = await environment(catalog, [prepared], 'company_alias');
+  const result = prepareEffect(environmentHandle, prepared, 0, 'connector://hubspot/company_alias');
+  assert.ok(result.value, result.issue);
+  const descriptor = checked(common.clientProgramEffectMemberDescriptor(result.value, 0, 'save', 1000));
+  assert.equal(runtimeField(descriptor, 3), 'connector://hubspot/company_alias');
+  assert.equal(runtimeField(descriptor, 4), moon.hubspotExecutionMappingRef(prepared));
+  assert.ok(checked(common.clientProgramCompileLocalEffects(result.value)));
+  const body = checked(moon.hubspotPrepareExecutionWriteBody(prepared, catalog,
+    Buffer.from(JSON.stringify(original)), 100, ...bodyLimits));
+  const request = checked(moon.hubspotPrepareRecordBatch(catalog, 0, '',
+    [moon.hubspotCreateRecordWriteInput(body, 'original-alias')], 100, 100, 100, 4096, 1000, 20));
+  assert.equal(moon.hubspotRecordBatchObjectType(request), 'companies');
+  const foreignCatalog = checked(moon.hubspotProjectProperties(Buffer.from(JSON.stringify(metadata)),
+    'contacts', 4096, 1000, 20, 100, 100));
+  assert.throws(() => checked(moon.hubspotRecheckExecutionMapping(prepared, foreignCatalog, 100)),
+    {code: 'MoonBitHostFailure'});
+  // Logical aliases do not change the original contract's target or permit
+  // another connection. Common still checks the exact Mapping/manifest pair.
+  assert.equal(prepareEffect(environmentHandle, prepared, 0,
+    'connector://foreign/company_alias').value === undefined, true);
 });

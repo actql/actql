@@ -135,8 +135,7 @@ pub fn prepare_execution_mapping(
     sources.length() > limits.max_fields {
     return Err(BudgetExceeded)
   }
-  if resource != catalog.object_type ||
-    !mapping_identifier(connector_id, limits.max_name_bytes) ||
+  if !mapping_identifier(connector_id, limits.max_name_bytes) ||
     !mapping_identifier(resource, limits.max_name_bytes) ||
     !mapping_cid_valid(manifest_cid) {
     return Err(InvalidBinding)

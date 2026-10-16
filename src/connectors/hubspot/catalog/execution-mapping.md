@@ -23,7 +23,11 @@ operation permission rule. Common remains responsible for interpreting it at
 Program preparation and compilation. Encoder-owned preimages and final bodies
 use checked UTF-16 key order; the tests independently hash their literal
 preimages. Common also owns connector identifier grammar; this derivation
-only bounds scalar input and requires the original Catalog resource.
+only bounds scalar input. The logical target is a declared resource alias;
+it need not equal HubSpot's physical object type. Common checks that target
+against the same actual declaration/manifest. The retained original Catalog
+still fixes the physical object type used by request preparation and current
+metadata checks; changing a logical alias cannot relabel that physical type.
 Changing a manifest, selected type or source Mapping
 changes identity; DATA equality does not substitute current Site/Account or
 credential checks. No old Run is re-prepared here.

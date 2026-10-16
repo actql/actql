@@ -293,21 +293,26 @@ test "invalid mapping bindings sources duplicates and output ceilings cannot yie
 }
 
 ///|
-test "mapping cannot relabel original property metadata as another resource" {
+test "mapping retains physical catalog while logical target aliases remain Common-owned" {
+  let mapping = prepare_execution_mapping(
+    mapping_catalog(),
+    "hubspot",
+    mapping_manifest(),
+    "company_alias",
+    Update,
+    ["amount"],
+    [],
+    mapping_limits(),
+  ).unwrap()
+  assert_eq(mapping.catalog.object_type, "companies")
   assert_true(
-    prepare_execution_mapping(
-      mapping_catalog(),
-      "hubspot",
-      mapping_manifest(),
-      "contacts",
-      Update,
-      ["amount"],
-      [],
-      mapping_limits(),
-    )
-    is Err(InvalidBinding),
+    execution_mapping_body(mapping).contains(
+      "connector://hubspot/company_alias",
+    ),
   )
-  // Connection identifier grammar remains owned by Common admission.
+  // A candidate does not establish membership in a connector declaration.
+  // The actual Common consuming case admits the alias and refuses a changed
+  // physical Catalog or another connection under the original Mapping.
   assert_true(
     prepare_execution_mapping(
       mapping_catalog(),
