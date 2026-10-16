@@ -2,7 +2,7 @@
 test "GCS target read accepts only the original full metadata representation and exact version headers" {
   let binding = upload_request_binding()
   let name = "in/é%2F.bin"
-  let body = b"{\"bucket\":\"bucket\",\"name\":\"in/e\u0301%2F.bin\",\"generation\":\"9007199254740993\",\"metageneration\":\"2\",\"size\":\"7\"}"
+  let body = b"{\"bucket\":\"bucket\",\"name\":\"in/e\xCC\x81%2F.bin\",\"generation\":\"9007199254740993\",\"metageneration\":\"2\",\"size\":\"7\"}"
   let original = admit_object_upload_target_observation(
     binding,
     name,
