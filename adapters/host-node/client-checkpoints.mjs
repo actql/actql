@@ -1084,6 +1084,28 @@ export async function installRemoteCheckpoints({root, namespaceId,
     originals.set(reference.holding_cid, original);
     return observation;
   }
+  function originalModelStateSavedRecord(observation) {
+    const original = originalStateSavedObservations.get(observation);
+    if (original === undefined) fail('ForeignOriginalModelStateSavedObservation');
+    if (original.facts === undefined) fail('OriginalModelStateSavedObservationRetired');
+    return original;
+  }
+  function retireOriginalModelStateSavedObservation(observation) {
+    const original = originalStateSavedObservations.get(observation);
+    if (original === undefined) fail('ForeignOriginalModelStateSavedObservation');
+    if (original.facts === undefined) return;
+    const originals = originalStateSavedByBinding.get(original.storageBinding);
+    if (originals?.get(original.facts.holdingCid) !== original) {
+      fail('ForeignOriginalModelStateSavedObservation');
+    }
+    originals.delete(original.facts.holdingCid);
+    if (originals.size === 0) originalStateSavedByBinding.delete(original.storageBinding);
+    // Keep only the original nominal shell for idempotent retirement. Neither
+    // an escaped token nor the Store-wide binding may retain the Run graph.
+    original.facts = undefined;
+    original.storageBinding = undefined;
+    original.runDefinition = undefined;
+  }
   // Errors that a later attempt may clear (a busy Store, a transient read);
   // anything else is permanent for this item and only observed.
   const PERMANENT = new Set(['ArtifactIntegrityFailed',
@@ -1541,15 +1563,19 @@ export async function installRemoteCheckpoints({root, namespaceId,
       selectOriginalInferMetadataAcquisition(acquisition);
       return confirmOriginalModelStateSavedBytes(args, acquisition);
     },
+    // The original private caller must first finish all users and unresolved
+    // cut/cleanup duties, then retire this view BEFORE returning its READ
+    // reservation. This drops references only: no Store deletion, physical ACK,
+    // Journal mutation, Resource settlement or send grant. Stop does not block
+    // this cleanup-only path, and durable bytes still require a fresh read.
+    retireOriginalModelStateSavedObservation,
     originalModelStateSavedFacts(observation) {
       if (closed) fail('OriginalModelStateHostStopped');
-      const original = originalStateSavedObservations.get(observation);
-      if (original === undefined) fail('ForeignOriginalModelStateSavedObservation');
-      return original.facts;
+      return originalModelStateSavedRecord(observation).facts;
     },
     originalModelStateSavedObservationCurrent(observation) {
       if (closed) fail('OriginalModelStateHostStopped');
-      if (!originalStateSavedObservations.has(observation)) fail('ForeignOriginalModelStateSavedObservation');
+      originalModelStateSavedRecord(observation);
       // Currentness is nominal installation lifetime only. The saved fact is
       // historical; callers reconfirm bytes asynchronously before using it,
       // and separately validate current Resource/authorization/retention.

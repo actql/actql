@@ -130,6 +130,58 @@ nonexecution or settlement. Reconciliation and restart preserve that custody
 without repeating Source, Compute or append. Revoked authorization or a changed
 numeric target refuses an approved write before physical send.
 
+### Range-write codec boundary
+
+The provider's pure `update_request` codec and `sheetsUpdateRequestJson`
+bridge prepare a single `UpdateCells` request for an explicit numeric,
+zero-based, end-exclusive rectangle. Every row and declared column must be
+supplied. Google's [UpdateCellsRequest](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/request#UpdateCellsRequest)
+can clear masked cells when the supplied rows do not cover its range; this
+codec rejects partial rectangles instead. It masks only `userEnteredValue`
+and uses the same literal Text/Number/Boolean encoding and NULL/empty-Text
+refusals as append. Cell count, complete outgoing bytes, nodes and depth are
+bounded before a request can be returned.
+
+The codec itself grants no write capability. Neither grid coordinates nor
+observed cell values establish stable row IDs, and existing append profiles
+retain their original Catalog and Mapping identities.
+
+### Opt-in range Command installation
+
+A separate installation can set `rangeCommand: true` in both its Source and
+Effect profiles. The Effect profile then omits `sources`; combining those
+closed alternatives is refused. This opt-in publishes the `range_target`
+Source and a `command:<connectorId>.sheets.update_range.v0` Command. It does
+not turn the append Mapping into an update Mapping or reinterpret saved Runs.
+Use a separate publication path when retaining an append installation.
+
+`range_target` exposes one `target` ResourceRef after the existing Source
+owner has charged and validated a metadata response for the declared grid.
+The current installation's reference issuer binds the exact spreadsheet,
+numeric rectangle, schema/Catalog, account context and Site generation. A
+Program captures that Ref and supplies Command input
+`{rows: [{...all declared columns...}, ...]}`. It cannot author a replacement
+Ref envelope. Every cell is required and nonnull in this write contract,
+including columns whose read contract is nullable. The current account must
+independently authorize `range_target` reads and its approved Effect;
+`sheets:cells:update` is the scoped physical write operation.
+
+The existing Command/Effect Owner produces the sealed Preview, requires Set
+approval, claims each request durably, captures its response and controls
+settlement/recovery. The driver retains original binding/range/schema data
+with that continuation, reconstructs requests from that data and the sealed
+Preview, and leaves exact request-CID/value/target comparison to the same
+Owner. A changed installation or foreign reference is refused; a possibly
+sent request without an exact acknowledgement remains unknown and is not
+resent. This is a coordinate-addressed overwrite, not a cell-version CAS or
+a promise that concurrent Google edits cannot change those cells.
+
+Working-source controls exercise the existing Local/HTTPS approval owners,
+the successful range write, and fresh-process success/unknown recovery without
+reacquisition or resend. They are distinct from normally installed release
+archives and authorized Google mutation, which remain unverified for range
+writes. Earlier append/read receipts do not establish those range boundaries.
+
 ## Ordinary Programs
 
 For the installation above, set the Source profile's `connectorId` to
@@ -207,6 +259,18 @@ node scripts/local-checks.mjs test node -- \
   adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs
 node scripts/test-packed-sheets.mjs
 ```
+
+To share an already prepared normal four-package cohort, supply
+`--release-dir /absolute/cohort`. Source SHA, normal prepack, complete archive
+inventory and digests must match the clean runner checkout; a foreign or
+modified cohort is refused before creating a Site or Run. This route does not
+start a producer. The default selection retains all fourteen original cases
+and both range Command cases. Adding `--range-command-only` selects only the
+two authored range cases (Local/HTTPS success and saved Unknown recovery) and
+requires `--release-dir`; it does not establish the omitted cases. The runner
+retains its external installation and diagnostics, including the deliberately
+uncertain range request's original private custody. Controlled-service range
+acceptance remains separate from real Google mutation.
 
 The packed command requires clean committed build inputs, uses the existing
 four-package release recipe with normal prepack, verifies the exact source SHA,

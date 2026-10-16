@@ -91,6 +91,19 @@ It neither accepts a success Bool nor turns CID/JSON values into output handles.
 Third-party code in the same process remains part of the trusted runtime; opaque
 types alone do not sandbox a malicious implementation.
 
+The selected original Node startup also owns the V8 implementation backing of
+its private `associations` WeakMap and `generations` WeakSet through the actual
+module and escaped-handle lifetime. This exact identity-index duty is distinct
+from fixed input-independent SDK storage. It does not cover other growing
+caches or move ActQL records, keys/value references, Host/Scope borrow controls,
+closures and construction/check workspace out of their original managed
+bootstrap/Host/Run obligations. Multiple Hosts and Runs retain their original
+nominal/current/generation checks; no singleton is inferred. Weak keys,
+deletion, logical close or a GC opportunity do not prove physical table shrink
+or release. This responsibility is not memory zero, a numerical lease,
+reservation, whole-RSS bound, cleanup ACK or permission to send. Missing actual
+selected startup remains unavailable rather than reconstructed at Host open.
+
 Common DAG, Host and capture handoff dependencies exclude concrete connectors
 transitively. `scripts/check-core-without-connectors.mjs` copies only the common
 dependency closure into an isolated module and runs the pinned-toolchain check;

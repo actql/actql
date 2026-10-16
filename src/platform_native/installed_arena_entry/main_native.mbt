@@ -168,6 +168,272 @@ extern "C" fn register_original_worker_selection_roots(
 ) -> Unit = "actql_native_control_register_worker_selection_roots"
 
 ///|
+/// Code registration only. Actual regular emission must establish the callback
+/// prototypes and reference ownership before a private transport is linked.
+extern "C" fn register_original_sqlite_roots(
+  prepare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      String,
+      Int64,
+      Int,
+    ) -> @control.InstalledArenaSqliteReply,
+  ],
+  current : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLibrary) -> @control.InstalledArenaSqliteReply,
+  ],
+  close : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLibrary) -> @control.InstalledArenaSqliteReply,
+  ],
+  host : FuncRef[
+    (@control.InstalledArenaSqliteReply) -> @control.InstalledArenaHost,
+  ],
+  domain : FuncRef[
+    (@control.InstalledArenaSqliteReply) -> @control.InstalledArenaDomain,
+  ],
+  original : FuncRef[
+    (@control.InstalledArenaSqliteReply) -> @control.InstalledArenaSqliteLibrary?,
+  ],
+  operation : FuncRef[(@control.InstalledArenaSqliteReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaSqliteReply) -> Int],
+) -> Unit = "actql_native_control_register_sqlite_roots"
+
+///|
+/// Register only exact code roots; matching emitted C must establish the ABI.
+extern "C" fn register_original_sqlite_database_roots(
+  restore : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLibrary,
+      String,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  initialize : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLibrary,
+      String,
+      Int64,
+      UInt64,
+      UInt64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  observe : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  read : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  insert : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Bytes,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  compare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+      Bytes,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  transaction : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase, Int) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  close : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  fence : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  host : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> @control.InstalledArenaHost,
+  ],
+  library : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> @control.InstalledArenaSqliteLibrary,
+  ],
+  database : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> @control.InstalledArenaSqliteDatabase?,
+  ],
+  operation : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int],
+  stage : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int],
+  after : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int],
+  has_row : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int],
+  revision : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int64],
+  body : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Bytes],
+  bound : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int64],
+  scan : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  key : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Bytes],
+  reserve_capacity : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  capacity_usage : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase, String) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  release_capacity : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  capacity_changed : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int,
+  ],
+  reserved_bytes : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int64,
+  ],
+  reserved_objects : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int64,
+  ],
+  read_capacity : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  database_usage : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  transaction_state : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  record_count : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int64],
+  record_body_bytes : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int64,
+  ],
+  reservation_count : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int64,
+  ],
+  transaction_active : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int,
+  ],
+  header : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  has_header : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int],
+  header_body_bytes : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int64,
+  ],
+  begin_read : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  reserve_bounded : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_start : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_observe : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_read : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLookup,
+      String,
+      String,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_scan : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLookup,
+      String,
+      String,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_header : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLookup,
+      String,
+      String,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_capacity : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLookup,
+      String,
+      String,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_capacity_usage : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup, String) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_database_usage : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_finish : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_close : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  original_lookup : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> @control.InstalledArenaSqliteLookup?,
+  ],
+  revalidate_copy : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+) -> Unit = "actql_native_control_register_sqlite_database_roots"
+
+///|
 fn original_host(
   reply : @control.InstalledArenaReply,
 ) -> @control.InstalledArenaHost? {
@@ -252,6 +518,106 @@ extern "C" fn register_original_live_channel_roots(
 ) -> Unit = "actql_native_control_register_live_channel_roots"
 
 ///|
+/// Matching regular C emission determines the callback ABI before its private
+/// transport is declared or linked. Registration contains code references only.
+extern "C" fn register_original_parent_read_roots(
+  prepare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  current : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  enter : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  leave : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  cleanup : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  close : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  host : FuncRef[
+    (@control.InstalledArenaOriginalReadReply) -> @control.InstalledArenaHost,
+  ],
+  domain : FuncRef[
+    (@control.InstalledArenaOriginalReadReply) -> @control.InstalledArenaDomain,
+  ],
+  original : FuncRef[
+    (@control.InstalledArenaOriginalReadReply) -> @control.InstalledArenaOriginalRead?,
+  ],
+  operation : FuncRef[(@control.InstalledArenaOriginalReadReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaOriginalReadReply) -> Int],
+) -> Unit = "actql_native_control_register_parent_read_roots"
+
+///|
+/// Code roots only. The matching generated C and ownership must be observed
+/// before a runtime shim can be linked; registration does not capture files.
+extern "C" fn register_original_packaged_runtime_roots(
+  capture : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaOriginalRead,
+      String,
+      String,
+      String,
+      String,
+      Int,
+    ) -> @runtime.NativeLocalPackagedRuntimeReply,
+  ],
+  current : FuncRef[
+    (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedRuntimeReply,
+  ],
+  close : FuncRef[
+    (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedRuntimeReply,
+  ],
+  host : FuncRef[
+    (@runtime.NativeLocalPackagedRuntimeReply) -> @control.InstalledArenaHost?,
+  ],
+  original : FuncRef[
+    (@runtime.NativeLocalPackagedRuntimeReply) -> @control.InstalledArenaOriginalRead?,
+  ],
+  runtime : FuncRef[
+    (@runtime.NativeLocalPackagedRuntimeReply) -> @runtime.NativeLocalPackagedRuntime?,
+  ],
+  operation : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int],
+  issue : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int],
+) -> Unit = "actql_native_control_register_packaged_runtime_roots"
+
+///|
+extern "C" fn register_original_packaged_product_roots(
+  observe : FuncRef[
+    (@runtime.NativeLocalPackagedRuntime, String, String, String, Int) -> @runtime.NativeLocalPackagedProductReply,
+  ],
+  identity : FuncRef[
+    (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedProductReply,
+  ],
+  host : FuncRef[
+    (@runtime.NativeLocalPackagedProductReply) -> @control.InstalledArenaHost?,
+  ],
+  original : FuncRef[
+    (@runtime.NativeLocalPackagedProductReply) -> @control.InstalledArenaOriginalRead?,
+  ],
+  runtime : FuncRef[
+    (@runtime.NativeLocalPackagedProductReply) -> @runtime.NativeLocalPackagedRuntime,
+  ],
+  operation : FuncRef[(@runtime.NativeLocalPackagedProductReply) -> Int],
+  issue : FuncRef[(@runtime.NativeLocalPackagedProductReply) -> Int],
+  length : FuncRef[(@runtime.NativeLocalPackagedProductReply) -> Int],
+  unit_at : FuncRef[(@runtime.NativeLocalPackagedProductReply, Int) -> Int],
+) -> Unit = "actql_native_control_register_packaged_product_roots"
+
+///|
 fn operation_tag(reply : @control.InstalledArenaReply) -> Int {
   reply.operation_tag()
 }
@@ -270,6 +636,174 @@ fn description(reply : @control.InstalledArenaReply) -> String {
 /// This initializes code references only. Registration is not supplier adoption,
 /// original arena acquisition, Root creation, Run admission or VM permission.
 fn main {
+  register_original_sqlite_database_roots(
+    fn(host, library, path, bound) {
+      @control.restore_installed_sqlite_database_reply(
+        host, library, path, bound,
+      )
+    },
+    fn(host, library, path, bound, device, inode) {
+      @control.initialize_installed_sqlite_database_reply(
+        host, library, path, bound, device, inode,
+      )
+    },
+    fn(host, original) {
+      @control.observe_installed_sqlite_database_reply(host, original)
+    },
+    fn(host, original, scope, key, bound) {
+      @control.read_installed_sqlite_database_reply(
+        host, original, scope, key, bound,
+      )
+    },
+    fn(host, original, scope, key, body) {
+      @control.insert_installed_sqlite_database_reply(
+        host, original, scope, key, body,
+      )
+    },
+    fn(host, original, scope, key, expected, body) {
+      @control.compare_installed_sqlite_database_reply(
+        host, original, scope, key, expected, body,
+      )
+    },
+    fn(host, original, operation) {
+      @control.transaction_installed_sqlite_database_reply(
+        host, original, operation,
+      )
+    },
+    fn(host, original) {
+      @control.close_installed_sqlite_database_reply(host, original)
+    },
+    fn(host, original) {
+      @control.fence_installed_sqlite_database_reply(host, original)
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_library() },
+    fn(reply) { reply.original_database() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.stage_tag() },
+    fn(reply) { reply.issue_family() },
+    fn(reply) { reply.after_issue_family() },
+    fn(reply) { reply.has_row() },
+    fn(reply) { reply.revision() },
+    fn(reply) { reply.body() },
+    fn(reply) { reply.body_bound() },
+    fn(host, original, scope, after_key, bound) {
+      @control.scan_installed_sqlite_database_reply(
+        host, original, scope, after_key, bound,
+      )
+    },
+    fn(reply) { reply.row_key_bytes() },
+    fn(host, original, scope, key, bytes, objects, max_bytes, max_objects) {
+      @control.reserve_installed_sqlite_capacity_reply(
+        host, original, scope, key, bytes, objects, max_bytes, max_objects,
+      )
+    },
+    fn(host, original, scope) {
+      @control.observe_installed_sqlite_capacity_reply(host, original, scope)
+    },
+    fn(host, original, scope, key, bytes, objects) {
+      @control.release_installed_sqlite_capacity_reply(
+        host, original, scope, key, bytes, objects,
+      )
+    },
+    fn(reply) { reply.capacity_changed() },
+    fn(reply) { reply.reserved_bytes() },
+    fn(reply) { reply.reserved_objects() },
+    fn(host, original, scope, key) {
+      @control.read_installed_sqlite_capacity_reply(host, original, scope, key)
+    },
+    fn(host, original) {
+      @control.observe_installed_sqlite_database_usage_reply(host, original)
+    },
+    fn(host, original) {
+      @control.observe_installed_sqlite_transaction_state_reply(host, original)
+    },
+    fn(reply) { reply.record_count() },
+    fn(reply) { reply.record_body_bytes() },
+    fn(reply) { reply.reservation_count() },
+    fn(reply) { reply.transaction_active() },
+    fn(host, original, scope, key) {
+      @control.read_installed_sqlite_header_reply(host, original, scope, key)
+    },
+    fn(reply) { reply.has_header() },
+    fn(reply) { reply.header_body_bytes() },
+    fn(host, original) {
+      @control.begin_installed_sqlite_read_reply(host, original)
+    },
+    fn(
+      host,
+      original,
+      scope,
+      key,
+      bytes,
+      objects,
+      max_bytes,
+      max_objects,
+      max_reservations,
+    ) {
+      @control.reserve_installed_sqlite_bounded_capacity_reply(
+        host, original, scope, key, bytes, objects, max_bytes, max_objects, max_reservations,
+      )
+    },
+    fn(host, original) {
+      @control.start_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(host, original) {
+      @control.observe_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(host, original, scope, key, bound) {
+      @control.read_installed_sqlite_lookup_reply(
+        host, original, scope, key, bound,
+      )
+    },
+    fn(host, original, scope, cursor, bound) {
+      @control.scan_installed_sqlite_lookup_reply(
+        host, original, scope, cursor, bound,
+      )
+    },
+    fn(host, original, scope, key) {
+      @control.header_installed_sqlite_lookup_reply(host, original, scope, key)
+    },
+    fn(host, original, scope, key) {
+      @control.capacity_installed_sqlite_lookup_reply(
+        host, original, scope, key,
+      )
+    },
+    fn(host, original, scope) {
+      @control.capacity_usage_installed_sqlite_lookup_reply(
+        host, original, scope,
+      )
+    },
+    fn(host, original) {
+      @control.database_usage_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(host, original) {
+      @control.finish_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(host, original) {
+      @control.close_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(reply) { reply.original_lookup() },
+    fn(reply) { reply.revalidate_copy() },
+  )
+  register_original_sqlite_roots(
+    fn(host, domain, path, heap, diagnostic) {
+      @control.prepare_installed_arena_sqlite_reply(
+        host, domain, path, heap, diagnostic,
+      )
+    },
+    fn(host, original) {
+      @control.current_installed_arena_sqlite_reply(host, original)
+    },
+    fn(host, original) {
+      @control.close_installed_arena_sqlite_reply(host, original)
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_domain() },
+    fn(reply) { reply.original_library() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+  )
   register_original_live_channel_roots(
     fn(host, domain, pid, read_fd, write_fd, nonce) {
       @control.prepare_installed_arena_live_channel_reply(
@@ -444,5 +978,77 @@ fn main {
     fn(host, domain) {
       @control.close_installed_arena_domain_read_reply(host, domain)
     },
+  )
+  register_original_parent_read_roots(
+    fn(
+      host,
+      domain,
+      bootstrap_retained,
+      bootstrap_execution,
+      workspace_execution,
+      read_retained,
+      read_execution,
+    ) {
+      @control.prepare_installed_arena_original_read_reply(
+        host, domain, bootstrap_retained, bootstrap_execution, workspace_execution,
+        read_retained, read_execution,
+      )
+    },
+    fn(host, original) {
+      @control.current_installed_arena_original_read_reply(host, original)
+    },
+    fn(host, original) {
+      @control.enter_installed_arena_original_read_reply(host, original)
+    },
+    fn(host, original) {
+      @control.leave_installed_arena_original_read_reply(host, original)
+    },
+    fn(host, original) {
+      @control.cleanup_installed_arena_original_read_reply(host, original)
+    },
+    fn(host, original) {
+      @control.close_installed_arena_original_read_reply(host, original)
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_domain() },
+    fn(reply) { reply.original_read() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+  )
+  register_original_packaged_runtime_roots(
+    fn(host, original, root, source, platform, manifest, ceiling) {
+      @runtime.capture_native_local_packaged_runtime_reply(
+        Some((host, original)),
+        root,
+        source,
+        platform,
+        manifest,
+        ceiling,
+      )
+    },
+    fn(runtime) {
+      @runtime.current_native_local_packaged_runtime_reply(runtime)
+    },
+    fn(runtime) { @runtime.close_native_local_packaged_runtime_reply(runtime) },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_read() },
+    fn(reply) { reply.original_runtime() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+  )
+  register_original_packaged_product_roots(
+    fn(runtime, root, launcher_hash, platform_hash, ceiling) {
+      @runtime.observe_native_local_packaged_product_reply(
+        runtime, root, launcher_hash, platform_hash, ceiling,
+      )
+    },
+    fn(runtime) { @runtime.read_native_local_packaged_product_reply(runtime) },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_read() },
+    fn(reply) { reply.original_runtime() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+    fn(reply) { reply.metadata_units() },
+    fn(reply, index) { reply.metadata_unit_at(index) },
   )
 }

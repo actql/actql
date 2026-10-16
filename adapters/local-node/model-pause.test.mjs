@@ -102,7 +102,7 @@ test('strategy returns durable Waiting and prevents every later task and publica
     stop() { stops++; }, closeOutputs() {}, output: () => undefined,
     usage: () => ({}), explain: () => ({}),
   };
-  const result = await runInstalledStrategy(f.setup, core, [f.entry]);
+  const result = await runInstalledStrategy({setup: f.setup, runtime: {core, contributions: [f.entry]}});
   assert.equal(result.status, 'host-tasks-waiting');
   assert.equal(result.checkpoint, checkpoint);
   assert.equal(result.failure, undefined);

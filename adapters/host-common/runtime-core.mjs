@@ -2811,6 +2811,21 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindInferRun(execution,
         value, token(definition)));
     },
+    // Inspect only the original Core execution's issued value. Wire admission
+    // remains a separate path; this view does not issue Store or send authority.
+    inspectInferInvocationEvidence(originalMoon, execution, slot) {
+      if (originalMoon !== moon || !Number.isSafeInteger(slot) || slot < 0 ||
+          slot > 2147483647 ||
+          typeof moon.clientProgramInferInvocationEvidence !== 'function') {
+        throw new TypeError('Foreign Infer invocation evidence');
+      }
+      const evidence = moon.clientProgramInferInvocationEvidence(execution, slot);
+      if (evidence === undefined) return undefined;
+      if (moon.strategyRunEvidenceName(evidence) !== 'model_invocation_evidence') {
+        throw new TypeError('Foreign Infer invocation evidence');
+      }
+      return inspectEvidence(evidence);
+    },
     bindCheckedClientInferDispatch(compiled, execution, definition,
       {account, principalId, at, delegated, observeAccount, observeAt}) {
       const value = compiledRunTokens.get(compiled);
@@ -3599,6 +3614,30 @@ function publicationControl(moon) {
           receipt, token(retention), ...localEffectContext(context),
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
     },
+    issueDependentLocalEffectTableArtifact(owner, inputs, memberIndex,
+      importing, dependency, definition, receipt, retention, context, limits) {
+      issuanceLimits(limits, 'dependent private Table semantic Artifact');
+      const owned = localEffectDependencyTokens.get(dependency);
+      if (owned === undefined || !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Foreign private Table dependency evidence');
+      }
+      const exactContext = localEffectContext(context);
+      const result = owned.kind === 'source_free'
+        ? moon.clientProgramIssueSourceFreeLocalEffectTableArtifact(
+          owner, inputs, memberIndex, importing, definition, owned.issued,
+          receipt, token(retention), ...exactContext,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : owned.kind === 'imported'
+        ? moon.clientProgramIssueImportedLocalEffectTableArtifact(
+          owner, inputs, memberIndex, importing, definition, owned.issued,
+          receipt, token(retention), ...exactContext,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : undefined;
+      if (result === undefined) {
+        throw new TypeError('UnavailableAcquiredPrivateTableEvidence');
+      }
+      return inspectLocalEffectArtifact(checked(result));
+    },
     issueLocalEffectResultManifest(owner, invocation, artifacts, limits) {
       issuanceLimits(limits, 'local Effect Result Manifest');
       if (!Array.isArray(artifacts) || artifacts.length === 0) {
@@ -4109,9 +4148,25 @@ function publicationControl(moon) {
       return Object.freeze({artifactCid: artifact.identity,
         physicalCid: binding._0, byteCount: binding._1});
     },
-    // Physical custody metadata from the authenticated private capture, not
-    // semantic identity or permission. Callers first validate the Captured
-    // Run chain. Issuance obtains these bindings from exact export receipts.
+    // Schema material from the authenticated capture, not current configuration.
+    capturedEffectDependencySchemas(capturedRun) {
+      const captured = inspect(token(capturedRun));
+      const inventory = JSON.parse(captured.wire).effect_context?.effect_dependency_inventory;
+      if (captured.name !== 'captured_run' || !Array.isArray(inventory) || inventory.length > 4096) {
+        throw new TypeError('InvalidEffectDependencySchemas');
+      }
+      // Original canonical bodies admitted by the CapturedRun/dependency Owner,
+      // never reconstructed from current Catalogs or observed row values.
+      return Object.freeze(inventory.filter(entry => entry.kind === 'relation_schema').map(entry => {
+        if (typeof entry.cid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(entry.cid) ||
+            entry.body === null || typeof entry.body !== 'object' || Array.isArray(entry.body)) {
+          throw new TypeError('InvalidEffectDependencySchemas');
+        }
+        return Object.freeze({cid: entry.cid, wire: JSON.stringify(entry.body)});
+      }));
+    },
+    // Physical custody metadata is not semantic identity or permission.
+    // Callers first validate the Captured Run chain; issuance binds receipts.
     capturedEffectDependencyPayloadBindings(capturedRun, bindings) {
       const captured = inspect(token(capturedRun));
       const inventory = JSON.parse(captured.wire).effect_context
@@ -4121,7 +4176,8 @@ function publicationControl(moon) {
         throw new TypeError('InvalidEffectDependencyPayloadBindings');
       }
       const required = new Set(inventory.filter(entry =>
-        entry.kind === 'result_artifact').map(entry => entry.cid));
+        entry.kind === 'result_artifact' || entry.kind === 'table_input_artifact')
+        .map(entry => entry.cid));
       const seen = new Set();
       const owned = bindings.map(binding => {
         if (binding === null || typeof binding !== 'object' ||

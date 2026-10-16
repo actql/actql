@@ -1,7 +1,7 @@
 ///|
 struct SortCompletion {
   key : @evidence.KeyedRelation
-  appended : Array[@schema.FieldName]
+  appended : Array[@evidence.KeyField]
 }
 
 ///|
@@ -25,7 +25,17 @@ pub fn sort_completion_field(
   c : SortCompletion,
   index : Int,
 ) -> @schema.FieldName? {
-  c.appended.get(index)
+  c.appended.get(index).map(field => field.name)
+}
+
+///|
+/// Only a checked producer's canonical completion carries a positional domain.
+pub fn sort_completion_positional_count(c : SortCompletion, index : Int) -> Int {
+  c.appended
+  .get(index)
+  .bind(field => field.positional_identity)
+  .map(@carrier.vector_identity_count)
+  .unwrap_or(0)
 }
 
 ///|
@@ -147,7 +157,7 @@ fn complete_key_order(
     charge(b, term.source, @schema.reference_name(term.field))
     seen[order_field_key(term.field)] = true
   }
-  let appended : Array[@schema.FieldName] = []
+  let appended : Array[@evidence.KeyField] = []
   spend(b, source, @evidence.key_field_count(key))
   for i in 0..<@evidence.key_field_count(key) {
     let mut covered = false
@@ -161,8 +171,8 @@ fn complete_key_order(
       }
     }
     if !covered {
-      let field = @evidence.key_field_at(key, i).unwrap().name
-      charge(b, source, @schema.reference_name(field))
+      let field = @evidence.key_field_at(key, i).unwrap()
+      charge(b, source, @schema.reference_name(field.name))
       appended.push(field)
     }
   }

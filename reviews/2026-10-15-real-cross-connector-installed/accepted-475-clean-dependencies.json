@@ -1,0 +1,452 @@
+{
+  "source": "475eb446dc5dc0ce3f5c4237618b9fe3aa975f9b",
+  "tree": "9a902d912db22c7be67faea614bf1f3669ee52a2",
+  "format": "sql",
+  "transport": "https",
+  "sourceQualification": "Exact normal475 product/harness archives with freshly installed documented optional Python dependencies outside every Git checkout; not the proof child/latest-main or npm-alone bundling",
+  "run": "run-WD9EOC",
+  "complete": true,
+  "exitCode": 0,
+  "actualTests": {
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "budget": {
+    "outerSeconds": 300,
+    "termGraceSeconds": 5,
+    "normalInstallSeconds": 90,
+    "childSeconds": 180,
+    "freshSubmissions": 1
+  },
+  "manifestSHA256": "5662bed70db34891807d78948ea931dd98b61c93351465cab6430a19cf3d5724",
+  "directory": "/private/tmp/actql-g-node-rc-475eb446-20261016",
+  "producer": {
+    "owner": "G",
+    "run": "run-wlgPdR",
+    "outerSeconds": 1800,
+    "termGraceSeconds": 5,
+    "normalPrepack": true,
+    "buildTasks": 29,
+    "newProducerByB": 0
+  },
+  "packages": [
+    {
+      "name": "@actql/client-wire",
+      "file": "actql-client-wire-0.0.1.tgz",
+      "sha256": "226a4baf10634215875da7b38a8ac767ed9e666f478db56ef42f94d5fa0799d7",
+      "integrity": "sha512-plZvWCPxXaQWAng9fAiDR0c0x7bCi8hLAnbIIn2gpUODkM2ZPL5zirqzkrXBCzJIBWTqAB8q8FfxDKCr3TDPsg==",
+      "originalSha256": "2e33afceb219108ca72eec3b43f54abcc023e12c27482335179eeac627a11990",
+      "bytes": 89321,
+      "members": 11
+    },
+    {
+      "name": "@actql/sdk",
+      "file": "actql-sdk-0.0.1.tgz",
+      "sha256": "5ca3ccb912eca9c1bbcc1f03918151e59bcbe46c9cd26aaa6e6804dbe55893fb",
+      "integrity": "sha512-2/jZzZ+0pPd/Xd76zzlOxM8/VyfFiCSOJXDHYcCKqIzlbQVIkjvkLYlxVtOlt1x3pgETQEeWc0mHJ77OJzZk1Q==",
+      "originalSha256": "3fa8112ae328864ac38f42b91378cbdb9c5872eeedda44038a162b039cf37fcb",
+      "bytes": 111246,
+      "members": 21
+    },
+    {
+      "name": "@actql/local-node",
+      "file": "actql-local-node-0.0.1.tgz",
+      "sha256": "c939bf03fa6ad9b101b4d6d5523a220c67fcdf5fc2a5aaacad6540df1678e1d8",
+      "integrity": "sha512-Abt3N/xRvZKh/wIY3/bRZDN8q0EJwlcVBroFCHOMzQP8xJkRjvu0jsyIK2ac3T2CCPVZRcAsiNt7Wdf8CPzgXA==",
+      "originalSha256": "afeccf4d0ec658761e7d5a5f210d43da855eb1b5e693d8342148f4613422a3fd",
+      "bytes": 4696762,
+      "members": 281
+    },
+    {
+      "name": "@actql/node",
+      "file": "actql-node-0.0.1.tgz",
+      "sha256": "0e892db9f465f5b575c255cf16c950ede0507a72afb2b95942714d5d6b825483",
+      "integrity": "sha512-Uq3YQVnoV0I4ZAbdeiATUkOQPme74YmupGHvklU8YWsFYSNtx1MGIWQhlGATY6lfmSn0o3F1lREvN1/5IsAKFg==",
+      "originalSha256": "85cb7328069c2fe1b068715989fa3b640770cd52f42667997e688571d673d2cd",
+      "bytes": 9179,
+      "members": 6
+    }
+  ],
+  "expectedAndActualJoined": {
+    "name": "joined",
+    "rows": [
+      {
+        "id": 1,
+        "tag": "actql-content-test/a.csv"
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "tag",
+        "contract": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "primarySourceCounts": {
+    "gcs": {
+      "requests": 1,
+      "responses": 1,
+      "responseBytes": 1927
+    },
+    "duckdb": {
+      "sourceReadSessions": 1,
+      "sourceReadStatements": 1
+    }
+  },
+  "acceptedRuns": 1,
+  "submissions": 1,
+  "initialProcessPid": 13021,
+  "approvalChild": {
+    "pid": 13132,
+    "status": "succeeded",
+    "format": "sql",
+    "transport": "https",
+    "approval": "committed",
+    "sameRun": true,
+    "sameSealedPreview": true,
+    "sourceRequests": 0,
+    "credentialResolutions": 0,
+    "newSubmissions": 0
+  },
+  "postCommitFreshProcess": {
+    "pid": 13176,
+    "status": "succeeded",
+    "format": "sql",
+    "transport": "https",
+    "sameRun": true,
+    "sourceRequests": 0,
+    "credentialResolutions": 0,
+    "newSubmissions": 0,
+    "physicalTableWorkerStarts": 0
+  },
+  "actualTable": {
+    "catalogCommits": 1,
+    "rows": 1,
+    "independentParquetRead": {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/g-475eb446-clean-dependencies-independent-committed-parquet.json",
+      "sha256": "e95506f1e99238a894d71d3a45eacb1856fb71c4ce30b31ba66cd8272fa44e11"
+    },
+    "physicalSchema": [
+      {
+        "name": "id",
+        "type": "double",
+        "nullable": false
+      },
+      {
+        "name": "tag",
+        "type": "string",
+        "nullable": false
+      }
+    ]
+  },
+  "preApprovalPublicResult": "unavailable",
+  "preApprovalPayload": "unavailable_in_existing_review_projection",
+  "transportSetup": {
+    "listener": "numeric loopback 127.0.0.1",
+    "trust": "Fresh explicitly selected TLS certificate, no verification bypass",
+    "client": "Public remote Client with original authenticated principal",
+    "installation": "Original durable profiles, proof key and authority in each fresh installed HTTP Host",
+    "secretMaterial": "Retained only in private mode0600 scratch, absent from this proof"
+  },
+  "transportClose": {
+    "initial": {
+      "transport": "https",
+      "clientCloseResolved": true,
+      "serverClosed": true,
+      "hostClose": {
+        "storeCleanupPending": false,
+        "pendingRetention": [],
+        "authorizationCleanupPending": false,
+        "diagnosticDeliveryPending": false
+      }
+    },
+    "final": {
+      "transport": "https",
+      "clientCloseResolved": true,
+      "serverClosed": true,
+      "hostClose": {
+        "storeCleanupPending": false,
+        "pendingRetention": [],
+        "authorizationCleanupPending": false,
+        "diagnosticDeliveryPending": false
+      }
+    },
+    "approval": {
+      "transport": "https",
+      "clientCloseResolved": true,
+      "serverClosed": true,
+      "hostClose": {
+        "storeCleanupPending": false,
+        "pendingRetention": [],
+        "authorizationCleanupPending": false,
+        "diagnosticDeliveryPending": false
+      }
+    },
+    "terminal": {
+      "transport": "https",
+      "clientCloseResolved": true,
+      "serverClosed": true,
+      "hostClose": {
+        "storeCleanupPending": false,
+        "pendingRetention": [],
+        "authorizationCleanupPending": false,
+        "diagnosticDeliveryPending": false
+      }
+    }
+  },
+  "cleanup": {
+    "clientCloseResolved": true,
+    "physicalRequestCustodyClosed": true,
+    "credentialClosed": true,
+    "actualObservedOwnerChildrenGroupsAbsent": true,
+    "originalWorktreeAndSharedOwnerTokensReturned": true,
+    "fixtureOpenFiles": 0,
+    "optionalMissingCleanupMetadataNotInvented": true
+  },
+  "installedMembersByteModeSRI": 319,
+  "fixtureCopies": 24,
+  "sourceInputs": 28,
+  "raw": [
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/receipt.json",
+      "sha256": "86ac5eefc1ad5e2861d58e16bbac0f2e21585b01de1cc64948d0b6af70940999",
+      "bytes": 83256
+    },
+    {
+      "path": "/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-table-process-yNjSCY/real-cross-connector-observation.json",
+      "sha256": "23956b648c9f748c7bb813956ae95755969417e4adf68ccc452d56c543fbc37a",
+      "bytes": 9556
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-b-ctas-retained-result-20261015/_build/local-checks/attempts/run-WD9EOC/summary.json",
+      "sha256": "d8b25dead8b1a9361a458768b2b4a30780583b9bed7ebcbc18e8e41cb903fcc8",
+      "bytes": 2558
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-475-clean-dependencies-custody-inventory.json",
+      "sha256": "8855fc37edb2f8d6e749e28cfad60a555c24892bf771af17afe033068bf398c8",
+      "bytes": 31196
+    },
+    {
+      "path": "/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-table-process-yNjSCY/restart-observation.approve.json",
+      "sha256": "23781b55d389dce0c465fe7a1ea7d57df3d674ca10d28534a3cef4d10dfb6aa4",
+      "bytes": 3072
+    },
+    {
+      "path": "/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-table-process-yNjSCY/restart-observation.terminal.json",
+      "sha256": "2497d6e45e09cb44ca443f6e04ea4d5203db0b63601242413762a39c5521a077",
+      "bytes": 1358
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-475-clean-dependencies-consumer.log",
+      "sha256": "812ebcbb7480aced2f30478be20f82864088cf2140e4bb0ebf44bae0b1315eef",
+      "bytes": 66968
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/consumer.stdout.log",
+      "sha256": "2c81de6f7e000bae640d906f1a326984847e3baf72c1289cc40e7c36f472592a",
+      "bytes": 6119
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/consumer.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "finalHandoff": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-475-clean-dependencies-final-handoff.json",
+    "sha256": "feec453a76927a48c57a38825fd575b7d93ad8880802dd15f499c7e95f2143e2"
+  },
+  "externalScope": {
+    "gcsMetadataRequests": 10,
+    "gcsMetadataResponseBytes": 1048576,
+    "authAndMetadataTotalSeconds": 60,
+    "costUsd": 1,
+    "normalAuthorizedTokenSubprocess": 1,
+    "authSubprocessSeconds": 30,
+    "authOutputBytes": 16384,
+    "authInternalHttp": "Unmeasured trusted authentication, not zero or part of the measured GCS counter",
+    "contentRetrieval": false,
+    "externalWrite": false,
+    "newExternalCredentialOrGrant": false
+  },
+  "retainedCustody": {
+    "application": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/application",
+    "tableRoot": "/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-table-process-yNjSCY",
+    "files": 139,
+    "keysAndDatabasePreserved": true
+  },
+  "additionalDistinctBusinessScenarios": 0,
+  "sameBusinessScenarioWithSql6fAndAqlFa": true,
+  "oldLocalEntrypointsCountedAgain": 0,
+  "unverified": [
+    "Full Preview row-value inspection",
+    "All seventeen Connector Read/Write profiles",
+    "Whole Frontend/latest-main product acceptance",
+    "Ordinary numerical funding",
+    "Native/Python/Cloud acceptance",
+    "Hosted CI and formal publication"
+  ],
+  "command": [
+    "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+    "reviews/2026-10-15-real-cross-connector-installed/prepared-public.mjs",
+    "475eb446dc5dc0ce3f5c4237618b9fe3aa975f9b",
+    "/private/tmp/actql-g-node-rc-475eb446-20261016",
+    "/private/tmp/actql-b-clean-table-dependencies-475-20261016/venv/bin/python",
+    "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-metadata-scope.json",
+    "--format",
+    "sql",
+    "--transport",
+    "https"
+  ],
+  "sourceInputInventory": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-475-clean-dependencies-consumer-preflight.json",
+    "sha256": "1b030f117ce0e19c8ec9eecbde6dd6fa0ff46b0d4abc5cf4cc47063c66ccbcce",
+    "inputs": 28,
+    "fixtureCopies": 24
+  },
+  "independentOracle": {
+    "path": "scripts/fixtures/real-cross-connector-control.mjs",
+    "source": "475eb446dc5dc0ce3f5c4237618b9fe3aa975f9b",
+    "gitBlob": "2cfc5d5ee960d34f84366d6579c0bcd399d57b43",
+    "sha256": "5a51df1048f308063b4327d8d041aa78069d50bf42d3cabfd07569b0bf534c9c",
+    "expectedRowsAndSchemaUnchangedFromSql6fAndAqlFa": true
+  },
+  "newSharedRealSqlHttpsEntry": 0,
+  "oldAqlHttpsEntryCountedAgain": 0,
+  "acceptanceQualification": "Fresh documented optional dependency installation and same-business reacceptance",
+  "newCleanDocumentedDependencyQualification": 1,
+  "oldSqlHttpsEntryCountedAgain": 0,
+  "environmentDelta": {
+    "CLOUDSDK_PYTHON": "/private/tmp/actql-b-clean-table-dependencies-475-20261016/venv/bin/python"
+  },
+  "documentedOptionalDependencies": {
+    "directory": "/private/tmp/actql-b-clean-table-dependencies-475-20261016",
+    "preparationRun": "run-e63ljY",
+    "outerSeconds": 180,
+    "termGraceSeconds": 5,
+    "venvSeconds": 30,
+    "installSeconds": 120,
+    "normalPreparation": "Python3.12 -m venv; uv pip --require-hashes using the README/lock extracted byte-identically from the normal archive, public PyPI and no ambient uv/pip/project configuration",
+    "oldVenvCopied": false,
+    "newProducer": 0,
+    "distributions": 29,
+    "lockPinnedDistributions": 28,
+    "ordinaryVenvEnsurepip": "25.0.1",
+    "verifiedWheelRecordMembers": 3073,
+    "independentAudit": {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/g-475eb446-clean-table-dependency-independent-audit.json",
+      "sha256": "9eba583539f6167638b552fd33b4f61396a71e7f3c7cea2c80b4a5cdda170668"
+    },
+    "preparationHandoff": {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/clean-dependencies-475-preparation-handoff.json",
+      "sha256": "ef6e9b3242f4d64f12d736b0879cb44fbba01bb3c6c6145730320e6401d8f180"
+    },
+    "dependencyPreparationScope": "Preparation only: ordinary package dependency installation and import checks, no Host/Source/Run/Provider",
+    "hostDeploymentTrust": "Published lock and interpreter selection do not attest external library immutability; the Host retains that deployment responsibility"
+  },
+  "noCheckoutProductPathQualification": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-475-clean-dependencies-path-qualification.json",
+    "sha256": "74e6a3095b360572bdc949b800a4efedccba5f598c1fa212f80161e933bb8124",
+    "productPaths": {
+      "application": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/application",
+      "installedLocalPackage": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/application/node_modules/@actql/local-node",
+      "worker": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/application/node_modules/@actql/local-node/adapters/connectors/local/iceberg/process_worker.py",
+      "pythonProfile": "/private/tmp/actql-b-clean-table-dependencies-475-20261016/venv/bin/python",
+      "pythonEnvironment": "/private/tmp/actql-b-clean-table-dependencies-475-20261016/venv",
+      "normalSystemPython": "/Users/t14i/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/bin/python3.12",
+      "allOutsideEveryGitCheckout": true,
+      "checkedGitWorktreeCount": 874
+    },
+    "freshInstallation": {
+      "profilePath": "/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-table-process-yNjSCY/table-effect.json",
+      "profileSHA256": "3bbb6d1cafe96f588c14dab08d3bc786839e6a9d5d7073707fedfeea2ec3e34d",
+      "oldProfileSHA256": "39eb2ec8c327595bfdb5e476d3cf936d31d30dfaf1ad1d9e79048b8d4eb81de9",
+      "qualification": "Fresh explicit profile/Python and installation binding; no old profile/CID/Run qualification is transferred",
+      "sameNewRunAcrossAllThreePIDs": true,
+      "newRunDiffersFromOldSqlHttps": true
+    },
+    "actualCwdObservation": {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-475-clean-dependencies-running-processes.json",
+      "sha256": "59f0d0606e44b5e250b7d1ce716a6c70c42745513639edeed491619d7834c254",
+      "observedProductProcesses": [
+        {
+          "pid": 13021,
+          "ppid": 13020,
+          "pgid": 12623,
+          "comm": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+          "cwdObservation": {
+            "status": 0,
+            "paths": [
+              "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/application"
+            ]
+          }
+        },
+        {
+          "pid": 13176,
+          "ppid": 13021,
+          "pgid": 12623,
+          "comm": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+          "cwdObservation": {
+            "status": 0,
+            "paths": [
+              "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/application"
+            ]
+          }
+        },
+        {
+          "pid": 13210,
+          "ppid": 13021,
+          "pgid": 12623,
+          "comm": "/private/tmp/actql-b-clean-table-dependencies-475-20261016/venv/bin/python",
+          "cwdObservation": {
+            "status": 0,
+            "paths": [
+              "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/application"
+            ]
+          }
+        },
+        {
+          "pid": 13216,
+          "ppid": 13021,
+          "pgid": 12623,
+          "comm": "/private/tmp/actql-b-clean-table-dependencies-475-20261016/venv/bin/python",
+          "cwdObservation": {
+            "status": 0,
+            "paths": [
+              "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-sxEn2P/application"
+            ]
+          }
+        }
+      ],
+      "allObservedProductCwdsOutsideCheckout": true,
+      "unobservedTransientCwdsNotInvented": true,
+      "verificationDriver": "Guard, archive/member verifier and esbuild are checkout test tooling; they are not installed product execution or optional Table runtime"
+    },
+    "qualification": "Does not claim npm archives bundle a system Python or attest external library immutability; Host owns the explicit trusted deployment environment"
+  },
+  "historicalQualification": "The four earlier entrance receipts retain their original existing test-venv selection. This fresh dependency/profile binding is never attached to old Runs or their archived evidence.",
+  "independentAudit": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/g-475eb446-B-clean-dependencies-independent-acceptance.json",
+    "sha256": "d837c23043c5183c58f2922f7893ee8b38f09faa5a77b9576ee9e4ffd38a3269",
+    "additionalExternalOperations": 0
+  },
+  "independentCompletedUnit": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/g-475eb446-clean-dependencies-completed-unit-handoff.json",
+    "sha256": "0cec707c3ac774a24aabaf7e66ab89ecf9bdb29dc726e3ee12315fed5ec5e9b4"
+  }
+}

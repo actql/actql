@@ -177,8 +177,16 @@ for (const boundary of ['success','cleanup-failure','snapshot-cancel','factory-t
         return {$tag:1,_0:wrapper};
       };
     }});
-    const execution = await runInstalledStrategy(setup,runtimeCore(moon),
-      [localStrategyContribution(observed,setup,checked,configuration)],controller.signal);
+    const execution = await runInstalledStrategy({
+      setup,
+      runtime: {
+        core: runtimeCore(moon),
+        contributions: [localStrategyContribution(observed,setup,checked,configuration)],
+      },
+      control: {
+        signal: controller.signal,
+      },
+    });
     assert.equal(leases,1);
     if (factoryRejected) {
       // The common settlement returns the original reason unchanged when no
@@ -244,8 +252,16 @@ test('keyed constructor Host in-flight cancellation never publishes partial Grap
       return {$tag:1,_0:observed};
     };
   }});
-  const execution = await runInstalledStrategy(setup,runtimeCore(moon),
-    [localStrategyContribution(observedRuntime,setup,checked)],cancellation.signal);
+  const execution = await runInstalledStrategy({
+    setup,
+    runtime: {
+      core: runtimeCore(moon),
+      contributions: [localStrategyContribution(observedRuntime,setup,checked)],
+    },
+    control: {
+      signal: cancellation.signal,
+    },
+  });
   try {
     assert.equal(graphStarted,true);
     assert.equal(sawPositiveWork,true);
@@ -317,8 +333,16 @@ for (const scenario of [
         }})};
       };
     }});
-    const execution = await runInstalledStrategy(setup,runtimeCore(moon),
-      [localStrategyContribution(observed,setup,checked)],controller.signal);
+    const execution = await runInstalledStrategy({
+      setup,
+      runtime: {
+        core: runtimeCore(moon),
+        contributions: [localStrategyContribution(observed,setup,checked)],
+      },
+      control: {
+        signal: controller.signal,
+      },
+    });
     try {
       assert.equal(sawWork,true);
       assert.equal(controller.signal.aborted,true);
@@ -410,8 +434,16 @@ for (const scenario of [
           }})};
         };
       }});
-      const execution=await runInstalledStrategy(setup,runtimeCore(moon),
-        [localStrategyContribution(observed,setup,checked)],controller.signal);
+      const execution=await runInstalledStrategy({
+        setup,
+        runtime: {
+          core: runtimeCore(moon),
+          contributions: [localStrategyContribution(observed,setup,checked)],
+        },
+        control: {
+          signal: controller.signal,
+        },
+      });
       try{
         assert.equal(sawPrivateWork,true);
         if(cancel){

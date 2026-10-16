@@ -137,6 +137,9 @@ fn read_effect_material_original_packet(
 /// Material binding and current submit authorization are existing Owners.
 /// An existing equal packet is reused; missing accepted custody is not backfilled
 /// even before physical start. The existing record capacity is unchanged.
+/// A source_free_run_file selects an authenticated installation original only
+/// for first acceptance. Repeated accepted operations keep the saved policy;
+/// the filename is never a read grant or a replacement policy on restoration.
 pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
   self : NativeLocalHostConnection,
   crypto : @crypto.Library,
@@ -149,6 +152,48 @@ pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
   definition : @publication.PublicationContract,
   issued : @host.ClientEffectIssuedNormalizationMaterials,
   now : Double,
+  source_free_run_file? : String? = None,
+) -> Result[
+  NativeClientSubmittedIntentRecord,
+  NativeClientSubmittedEffectMaterialsIssue,
+] {
+  self.accept_submitted_effect_material_with_policy(
+    crypto,
+    principal,
+    connection,
+    reference,
+    preparation,
+    request,
+    allowed,
+    definition,
+    issued,
+    now,
+    source_free_run_file,
+    None,
+  )
+}
+
+///|
+// Both public entry points retain the same existing acceptance transaction.
+// The optional finite original can only enter with its current selected Host
+// binding; Common metadata by itself never supplies that physical authority.
+fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  issued : @host.ClientEffectIssuedNormalizationMaterials,
+  now : Double,
+  source_free_run_file : String?,
+  local_policy : (
+    NativeLocalRunPolicyBinding,
+    @host.ClientLocalRunPolicyOriginal,
+  )?,
 ) -> Result[
   NativeClientSubmittedIntentRecord,
   NativeClientSubmittedEffectMaterialsIssue,
@@ -212,6 +257,71 @@ pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
+  let (policy_wire, policy_selection) = match source_free_run_file {
+    None => (None, None)
+    Some(file) => {
+      let graph = @strategy.checked_effect_computation_graph(
+        @host.prepared_client_effect_computation_graph(prepared),
+      )
+      // The existing Work retains Values-family admission and actual funding.
+      // This finite metadata connection does not claim that those are present.
+      if !@strategy.graph_source_free_inputs_complete(graph) ||
+        @strategy.graph_captured_prefix(graph) != 0 ||
+        @strategy.graph_task_count(graph) != 1 ||
+        @strategy.graph_task_input_count(graph, 0) != Some(0) ||
+        @host.prepared_client_effect_infer_occurrence(prepared) is Some(_) {
+        return Err(ForeignPreparation)
+      }
+      match
+        self.select_effect_values_policy_originals(
+          reference, request, definition, file,
+        ) {
+        Ok((wire, selection)) => (Some(wire), selection)
+        Err(issue) => return Err(Journal(issue))
+      }
+    }
+  }
+  let local_run_policy_original = match local_policy {
+    None => None
+    Some((binding, original)) => {
+      if !physical_equal(binding.host, self) ||
+        binding.principal != principal ||
+        binding.connection != connection ||
+        binding.scope != authority.scope {
+        return Err(Journal(AuthorizationDenied))
+      }
+      let ref_record = match
+        @host.admit_client_submission_reference_record(reference.wire) {
+        Ok(value) => value
+        Err(_) => return Err(Journal(InvalidSubmission))
+      }
+      if @host.admit_client_local_run_policy_original(
+          @host.client_local_run_policy_original_body(original),
+          binding.profile,
+          ref_record,
+          request,
+          definition,
+          self.adoption_cid(),
+          binding.read_selection_cid,
+        )
+        is Err(_) {
+        return Err(Journal(CustodyLost))
+      }
+      Some(original)
+    }
+  }
+  let current = () => {
+    authority.current_for(self.journal, request) &&
+    (match policy_selection {
+      None => true
+      Some(selection) => selection.current()
+    }) &&
+    (match local_policy {
+      None => true
+      Some((binding, _)) =>
+        binding.current_for(self.journal, Some(request), true)
+    })
+  }
   self.journal
   .accept_original_submitted_run(
     self.epoch,
@@ -222,7 +332,9 @@ pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
     authority.scope,
     authority.current_for(self.journal, request),
     effect_material_originals=Some(wire),
-    current_fence=Some(() => authority.current_for(self.journal, request)),
+    publication_policy_originals=policy_wire,
+    local_run_policy_original~,
+    current_fence=Some(current),
   )
   .map_err(issue => Journal(issue))
 }

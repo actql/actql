@@ -83,6 +83,9 @@ pub struct ModelPhysicalCall {
   mut polling : Bool
   mut cancel_requested : Bool
   mut retired : Bool
+  // Same child cleanup ACK cached through later Resource/holding retries.
+  // This is NOT retirement of this Call, raw receipt or escaped views.
+  priv mut cleanup_acknowledged : Bool
   mut settlement_acknowledged : Bool
   mut usage_result : Result[Unit, ModelExecutionIssue]?
   mut decoded_response : ModelPhysicalResponse?
@@ -107,12 +110,13 @@ pub fn model_physical_call(
   guard physical_equal(entry.prepared, prepared) &&
     state.prepared_call_set is Some(original) &&
     physical_equal(original, prepared) &&
-    state.entering is Some(original) &&
+    model_slot_progress_owned(state, entry.progress) &&
+    entry.progress.entry is Some(original) &&
     physical_equal(original, entry) &&
     !state.reclaimed &&
     entry.send_started &&
-    state.phase is DispatchSlot &&
-    state.next_slot == entry.slot &&
+    entry.progress.phase is DispatchSlot &&
+    entry.progress.slot == entry.slot &&
     state.attempts.get(entry.slot) is Some(trace) &&
     physical_equal(trace, entry.trace) &&
     state.physical_plans.get(entry.slot) is Some(plan) &&
@@ -121,7 +125,7 @@ pub fn model_physical_call(
     @resources.reservation_open(reservation) else {
     return None
   }
-  if state.pending_response is Some(original) {
+  if entry.progress.call is Some(original) {
     return if original.entry is Some(owner) && physical_equal(owner, entry) {
       Some(original)
     } else {
@@ -137,6 +141,7 @@ pub fn model_physical_call(
     polling: false,
     cancel_requested: false,
     retired: false,
+    cleanup_acknowledged: false,
     settlement_acknowledged: false,
     usage_result: None,
     decoded_response: None,
@@ -146,7 +151,7 @@ pub fn model_physical_call(
     io_observation: None,
     poll_issue: None,
   }
-  state.pending_response = Some(call)
+  entry.progress.call = Some(call)
   Some(call)
 }
 
@@ -177,7 +182,8 @@ fn poll_model_physical_call(
         return Err(RequestIdentity)
       }
       let state = entry.prepared.owner.state
-      guard state.pending_response is Some(current) &&
+      guard model_slot_progress_owned(state, entry.progress) &&
+        entry.progress.call is Some(current) &&
         physical_equal(current, call) &&
         state.prepared_call_set is Some(prepared) &&
         physical_equal(prepared, entry.prepared) &&
@@ -204,6 +210,12 @@ fn poll_model_physical_call(
       if observed is PhysicalIoQuiescent(_, _) && call.io_observation is None {
         call.io_observation = Some(binding)
       }
+      if call.io_observation is Some(_) {
+        match retire_model_slot_io_after_call_observation(state, call) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+      }
       inner
     }
     original => original
@@ -228,7 +240,7 @@ fn poll_model_physical_call(
 
 ///|
 fn cancel_model_physical_call(call : ModelPhysicalCall) -> Unit {
-  if !call.retired && !call.cancel_requested {
+  if !call.retired && !call.cleanup_acknowledged && !call.cancel_requested {
     call.cancel_requested = true
     if call.cancel is Some(cancel) {
       cancel()
@@ -241,11 +253,11 @@ fn cancel_model_physical_call(call : ModelPhysicalCall) -> Unit {
 // This path also runs after the bounded kernel has stopped. A terminal poll
 // does not prove local cleanup, response persistence or remote cancellation.
 fn cleanup_model_physical_call(state : ModelState) -> Bool {
-  guard state.pending_response is Some(call) else { return true }
+  guard state.progress.call is Some(call) else { return true }
   if call.polling || (call.raw_capture is Some(raw) && raw.usage_advancing) {
     return false
   }
-  if !call.retired {
+  if !call.cleanup_acknowledged {
     if !call.settlement_acknowledged {
       cancel_model_physical_call(call)
     }
@@ -272,6 +284,14 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     // Actual physical cleanup retires the original accounting child, retaining
     // any usage already scanned. It cannot turn Unknown into a response.
     retire_model_raw_usage_child(call) |> ignore
+    // Remember this original physical ACK even if later Resource retirement
+    // is fenced. Retry the same remaining duty, never re-clean the SDK child.
+    call.cleanup_acknowledged = true
+  }
+  if !retire_model_slot_io_holding(state, call) {
+    return false
+  }
+  if !call.retired {
     call.cleanup = None
     call.cancel = None
     call.poll = None
@@ -285,7 +305,7 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     call.poll_issue = None
     call.retired = true
   }
-  state.pending_response = None
+  state.progress.call = None
   true
 }
 
@@ -369,16 +389,16 @@ fn advance_model_physical_response(
   state : ModelState,
   reader : @bounded.Reader,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
-  if state.pending_response is Some(call) && call.poll_issue is Some(issue) {
+  if state.progress.call is Some(call) && call.poll_issue is Some(issue) {
     // A malformed physical carrier stops through the existing bounded Owner,
     // retaining its original call for cleanup instead of escaping a live child.
     return @bounded.Failed(issue, 1, 1)
   }
-  guard state.pending_response is Some(call) &&
+  guard state.progress.call is Some(call) &&
     call.entry is Some(entry) &&
-    entry.slot == state.next_slot &&
+    entry.slot == state.progress.slot &&
     call.terminal is Some(observed) &&
-    state.requests.get(state.next_slot) is Some(prepared) else {
+    state.requests.get(state.progress.slot) is Some(prepared) else {
     return @bounded.Failed(RequestIdentity, 1, 1)
   }
   match observe_model_physical_usage(state, call, observed) {
@@ -389,12 +409,12 @@ fn advance_model_physical_response(
     PhysicalPending | PhysicalIoPending(_, _) | PhysicalIoQuiescent(_, _) =>
       @bounded.Failed(RequestIdentity, 1, 1)
     PhysicalUnknown(_) => {
-      state.observing_response = false
-      state.outcomes.push(UnresolvedUnknown)
+      state.progress.observing_response = false
+      adopt_model_outcome(state, UnresolvedUnknown)
       @bounded.Failed(UnknownCalls, 1, 1)
     }
     PhysicalRejected(failure, _) => {
-      state.observing_response = false
+      state.progress.observing_response = false
       observe_model_physical(state, InvokeFailed)
       if state.stop_requested || failure == Cancelled {
         @bounded.Stopped(@bounded.Cancelled, 1, 1)

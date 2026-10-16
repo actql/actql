@@ -641,6 +641,19 @@ and at most `settings.files.length + 1`; reservation ceilings do not increase.
 Missing/changed packets, dependencies, reservations or unknown physical profiles
 refuse. A saved successor cannot be repaired from current files or copied CIDs.
 
+A narrow Common metadata reader may reconstruct only the historical old109/a3b
+pair represented by the retained build-time complete-body proof. Its generator
+revalidates the fixed proof and exact original/historical manifest, source,
+platform, library/ABI/license/dependency closure and all six asset role/size/hash
+bindings. The saved pair body must remain byte-identical. Callers cannot select
+a proof CID, Boolean or latest default assets. The ordinary generic inspect and
+restore paths retain their actual-body requirements. This logical metadata does
+not issue physical custody, a formal corrective release choice, current
+compatibility/authority, or missing Run/Prepared/data materials. Native still
+performs the independent authentic packet/adoption/scope, current whole-package,
+transaction/HMAC and current authorization checks. Missing originals remain
+Unavailable; recompilation and recapture do not fill them.
+
 Under that retained context, old operation lookup validates and returns the
 unchanged original bytes/CID against its original a3b pair, separately from the
 successor's current package. Response loss retains the same operation/Unknown

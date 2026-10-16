@@ -4153,3 +4153,46 @@ test('complete publication composes every unresolved cleanup owner',
     assert.equal(preparedRetries, 1);
     assert.equal(primaryRetries, 2);
   });
+
+
+// This adapter-only control isolates physical custody metadata classification.
+// Contract admission is stubbed; it does not claim a Captured Run chain, Store
+// custody or recovery authority. Actual Table/import inventory admission is
+// covered by the existing real Common Host controls and installed campaign.
+test('portable dependency payload custody retains Table and Result roots with exact coverage', () => {
+  const metadataMoon = {...moon,
+    strategyPublicationAdmit(name, wire) { return {$tag: 1, _0: {name, wire}}; },
+    strategyPublicationContractName: value => value.name,
+    strategyPublicationContractIdentityField: () => 'captured_run_cid',
+    strategyPublicationContractIdentity: () => cid('f'),
+    strategyPublicationContractJson: value => value.wire};
+  const control = runtimeCore(metadataMoon).publicationControl;
+  const capture = inventory => control.admit('captured_run', JSON.stringify({
+    effect_context: {effect_dependency_inventory: inventory}}), limits);
+  const table = {artifact_cid: cid('a'), physical_cid: cid('c'), byte_count: 13};
+  const result = {artifact_cid: cid('b'), physical_cid: cid('d'), byte_count: 21};
+  const inventory = [{kind: 'table_input_artifact', cid: table.artifact_cid},
+    {kind: 'result_artifact', cid: result.artifact_cid},
+    {kind: 'relation_schema', cid: cid('e')}];
+  const captured = capture(inventory);
+  const bind = values => control.capturedEffectDependencyPayloadBindings(captured, values);
+  assert.deepEqual(bind([table, result]), [table, result]);
+  assert.deepEqual(bind([result, table]), [result, table]);
+  assert.deepEqual(control.capturedEffectDependencyPayloadBindings(capture([]), []), []);
+  assert.deepEqual(control.capturedEffectDependencyPayloadBindings(
+    capture([{kind: 'result_artifact', cid: result.artifact_cid}]), [result]), [result]);
+  assert.deepEqual(control.capturedEffectDependencyPayloadBindings(
+    capture([{kind: 'table_input_artifact', cid: table.artifact_cid}]), [table]), [table]);
+  for (const omitted of [[table], [result], []]) {
+    assert.throws(() => bind(omitted), /IncompleteEffectDependencyPayloadBindings/);
+  }
+  for (const changed of [[table, result, result], [{...table, artifact_cid: cid('e')}, result],
+    [{...table, extra: true}, result], [{...table, byte_count: -1}, result],
+    [{...table, physical_cid: 'not-a-cid'}, result]]) {
+    assert.throws(() => bind(changed), /InvalidEffectDependencyPayloadBindings/);
+  }
+  assert.throws(() => control.capturedEffectDependencyPayloadBindings({...captured}, [table, result]),
+    /Foreign publication contract/);
+  assert(Object.isFrozen(bind([table, result])));
+  assert(bind([table, result]).every(Object.isFrozen));
+});

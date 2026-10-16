@@ -19,12 +19,26 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/platform_native/installed_arena_entry'
 LIBRARY = 'libactql_native_control.dylib'
-PACKAGES = frozenset('actql/actql/' + name for name in (
-    'decode_scalar', 'decode_shape', 'source_span', 'canonical_value', 'source_value',
-    'decode_core', 'sha256', 'encode_core', 'physical_resources',
-    'platform_native/host_bootstrap', 'platform_native/installed_arena_control',
-    'platform_native/installed_arena_entry',
-))
+PACKAGE_INPUT = ROOT / 'scripts/python-native-provider-packages.json'
+# Exact ordinary entry dependency closure observed at source 9f1a948d. This is
+# compiler recipe selection, never runtime compatibility or resource authority.
+_packages = json.loads(PACKAGE_INPUT.read_bytes())
+if (type(_packages) is not list or len(_packages) != 161
+        or any(type(p) is not str or not p.startswith('actql/actql/') for p in _packages)
+        or len(set(_packages)) != len(_packages)):
+    raise ValueError('Selected Native package inventory is unavailable')
+PACKAGES = frozenset(_packages)
+FOREIGN_SOURCES = (
+    ('platform_native/host_bootstrap/bootstrap_stub.c', 'bootstrap'),
+    ('platform_native/filesystem/filesystem_stub.c', 'filesystem'),
+    ('platform_native/http_client/http_client_stub.c', 'http'),
+    ('platform_native/signature/signature_stub.c', 'signature'),
+    ('platform_native/sqlite/sqlite_stub.c', 'sqlite'),
+    ('platform_native/publication_store/store_format_stub.c', 'publication-store'),
+    ('platform_native/remote_journal/inspection_stub.c', 'journal'),
+    ('connectors/duckdb/adapters/native/duckdb_stub.c', 'duckdb'),
+    ('platform_native/remote_transfer_client/retry_wait_stub.c', 'transfer'),
+)
 
 
 def original(path: Path) -> dict[str, object]:
@@ -32,6 +46,17 @@ def original(path: Path) -> dict[str, object]:
         raise ValueError('Original Native provider input is unavailable: ' + str(path))
     raw = path.read_bytes()
     return {'path': str(path), 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+
+
+def original_dependency(path: Path, sdk: Path) -> dict[str, object]:
+    # SDK aliases are compiler inputs, not source/provider discovery. Preserve
+    # the requested spelling and allow resolution only within this exact SDK.
+    if path.is_relative_to(sdk):
+        resolved = path.resolve(strict=True)
+        if not resolved.is_relative_to(sdk.resolve(strict=True)):
+            raise ValueError('Selected Native SDK dependency escapes original SDK')
+        return {'requested_path': str(path), **original(resolved)}
+    return original(path)
 
 
 def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
@@ -48,19 +73,48 @@ def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
             raise ValueError('Unresolved selected Native toolchain placeholder')
         if '-target' not in parts or parts[parts.index('-target') + 1] != 'native':
             raise ValueError('Foreign selected Native emission target')
-        # Match the existing regular-C diagnostic: dry-run does not materialize
-        # its optional debug package registry. Keep the omission in the receipt.
-        if '-all-pkgs' in parts:
-            index = parts.index('-all-pkgs')
-            del parts[index:index + 2]
+        # Transitive trait implementations require the original package
+        # registry. The broader Runtime closure must not drop this argument.
+        if parts[1] == 'build-package' and '-all-pkgs' not in parts:
+            raise ValueError('Selected Native package registry is missing')
         parts[0] = str(moon_home / 'bin/moonc')
         commands.append(parts)
-    if (sum(c[1] == 'build-package' for c in commands) != 12
+    if (sum(c[1] == 'build-package' for c in commands) != 161
             or sum(c[1] == 'link-core' for c in commands) != 1):
         raise ValueError('Selected Native emission inventory changed')
     if {c[c.index('-pkg') + 1] for c in commands if c[1] == 'build-package'} != PACKAGES:
         raise ValueError('Selected Native package closure changed')
     return commands
+
+
+def relocated_registry(raw: bytes, check_root: Path, build_root: Path,
+                       moon_home: Path) -> bytes:
+    """Preserve ordinary Moon metadata with only its artifact target relocated."""
+    body = json.loads(raw)
+    if type(body) is not dict or set(body) != {'packages'} or type(body['packages']) is not list:
+        raise ValueError('Selected Native package registry changed')
+    seen = set()
+    for entry in body['packages']:
+        if type(entry) is not dict or set(entry) != {'root', 'rel', 'artifact'}:
+            raise ValueError('Selected Native package registry entry changed')
+        root, rel, artifact = entry['root'], entry['rel'], entry['artifact']
+        if (type(root) is not str or type(rel) is not str or type(artifact) is not str
+                or rel.startswith('/') or (rel and any(p in ('', '.', '..') for p in rel.split('/')))
+                or (root, rel) in seen):
+            raise ValueError('Selected Native package registry identity changed')
+        seen.add((root, rel))
+        path = Path(artifact)
+        if root == 'actql/actql':
+            expected = check_root / rel / ((Path(rel).name if rel else 'actql') + '.mi')
+            if path != expected:
+                raise ValueError('Selected Native registry artifact changed')
+            entry['artifact'] = str(build_root / path.relative_to(check_root))
+        elif root != 'moonbitlang/core' or not path.is_relative_to(
+                moon_home / 'lib/core/_build/native/release/bundle'):
+            raise ValueError('Foreign selected Native registry package')
+    if not PACKAGES.issubset(root + '/' + rel for root, rel in seen):
+        raise ValueError('Selected Native registry closure is incomplete')
+    return (json.dumps(body, indent=2) + '\n').encode()
 
 
 
@@ -121,25 +175,40 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     # toolchain/default source or supplies a trusted installed capacity grant.
     allocator, allocator_record = prepare_allocator_source(moon_home, destination, scoped_read)
     generated = destination / 'emission'
+    # Let the pinned Moon produce the complete package graph. This check does
+    # not execute C or initialize a supplier, and introduces no hand-written MI.
+    metadata = destination / 'metadata'
+    run([str(moon_home / 'bin/moon'), 'check', '--target', 'native',
+         '--target-dir', str(metadata), '-j', '1', ENTRY])
+    check_root = metadata / 'native/debug/check'
+    registry_source = check_root / 'all_pkgs.json'
     dry = run([str(moon_home / 'bin/moon'), 'build', '--target', 'native',
                '--target-dir', str(generated), '--dry-run', '-j', '1', ENTRY], capture=True)
     (destination / 'moon-dry-run.txt').write_text(dry)
     commands = emission_commands(dry, moon_home)
-    source_inputs = [original(path) for path in sorted((ROOT / 'src').rglob('*'))
-                     if path.is_file() and path.suffix in ('.mbt', '.pkg')
-                     and any(str(path).startswith(str(ROOT / package) + '/')
-                             for package in ('src/decode_scalar', 'src/decode_shape',
-                                'src/source_span', 'src/canonical_value', 'src/source_value',
-                                'src/decode_core', 'src/sha256', 'src/encode_core',
-                                'src/physical_resources', 'src/platform_native/host_bootstrap',
-                                'src/platform_native/installed_arena_control', ENTRY))]
+    registry = generated / 'native/debug/build/all_pkgs.json'
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    registry.write_bytes(relocated_registry(registry_source.read_bytes(), check_root,
+                                          registry.parent, moon_home))
+    if any(Path(c[c.index('-all-pkgs') + 1]) != registry
+           for c in commands if '-all-pkgs' in c):
+        raise ValueError('Selected Native compiler registry binding changed')
+    source_roots = [ROOT / 'src' / name.removeprefix('actql/actql/') for name in PACKAGES]
+    source_inputs = [original(path) for directory in sorted(source_roots)
+                     for path in sorted(directory.iterdir())
+                     if path.is_file() and path.suffix in ('.mbt', '.pkg')]
+    source_inputs += [original(PACKAGE_INPUT), original(registry_source), original(registry)]
     inputs = source_inputs + [original(clang), original(sdk / 'SDKSettings.json'),
                               original(ROOT / 'toolchain.json'), original(ROOT / 'moon.mod'),
                               original(moon_home / 'installed.json')]
+    foreign_directories = { (ROOT / 'src' / path).parent for path, _ in FOREIGN_SOURCES }
     for directory in (moon_home / 'include', moon_home / 'lib/runtime',
+                      *sorted(foreign_directories),
                       ROOT / 'packages/python-local-runtime/native/pre-root', ROOT / ENTRY):
         inputs += [original(path) for path in sorted(directory.rglob('*'))
                    if path.is_file() and path.suffix in ('.c', '.h', '.inc')]
+    inputs += [original(ROOT / 'vendor/duckdb/1.4.3' / name)
+               for name in ('duckdb.h', 'LICENSE', 'manifest.json')]
     if allocator is not None:
         inputs += [original(path) for path in sorted(allocator.iterdir()) if path.is_file()]
         candidate = ROOT / 'packages/python-local-runtime/native/pre-root'
@@ -156,11 +225,15 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         output.parent.mkdir(parents=True, exist_ok=True)
         run(command)
     emitted = generated / 'native/debug/build/platform_native/installed_arena_entry/installed_arena_entry.c'
-    c_sources = [(emitted, 'original'),
-                 (ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c', 'bootstrap')]
+    c_sources = [(emitted, 'original')]
+    # Same ordinary Native foreign closure. Only host_bootstrap supplies the
+    # selected scoped allocator; other stubs do not create another provider.
+    c_sources += [(ROOT / 'src' / path, name) for path, name in FOREIGN_SOURCES]
     c_sources += [(ROOT / ENTRY / (name + '.c'), name)
                   for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim',
-                               'worker_selection_shim', 'live_channel_shim')]
+                               'worker_selection_shim', 'live_channel_shim', 'sqlite_shim',
+                               'sqlite_database_shim', 'original_read_shim', 'packaged_runtime_shim',
+                               'packaged_product_shim')]
     runtime_source = allocator if allocator is not None else moon_home / 'lib/runtime'
     c_sources += [(runtime_source / (name + '.c'), 'runtime-' + name)
                   for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')]
@@ -182,7 +255,12 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             common += ['-Wno-unused-value', '-Dmain=actql_original_control_initialize',
                        '-include', str(ROOT / ENTRY / 'domain_read_shim.h'),
                        '-include', str(ROOT / ENTRY / 'worker_selection_shim.h'),
-                       '-include', str(ROOT / ENTRY / 'live_channel_shim.h')]
+                       '-include', str(ROOT / ENTRY / 'live_channel_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'sqlite_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'sqlite_database_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'original_read_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'packaged_runtime_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'packaged_product_shim.h')]
         elif name.startswith('runtime-'):
             common += ['-Wno-unused-value', '-DMOONBIT_ALLOW_STACKTRACE']
         else:
@@ -193,7 +271,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         run(command)
         objects.append(obj)
         dependency_paths = shlex.split(deps.read_text().replace('\\\n', ' '))[1:]
-        compiler_inputs += [original(Path(name)) for name in dependency_paths]
+        compiler_inputs += [original_dependency(Path(name), sdk) for name in dependency_paths]
         (destination / 'compiled-inputs.json').write_text(json.dumps(compiler_inputs, indent=2) + '\n')
     library = destination / LIBRARY
     link = [str(clang), '-isysroot', str(sdk), '-mmacosx-version-min=11.0',
@@ -216,8 +294,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             or run(['git', 'status', '--porcelain'], capture=True)):
         raise ValueError('Original Native provider source changed during build')
     record = {'source': source, 'target': 'aarch64-apple-darwin', 'deployment_target': '11.0',
-              'emission_build_packages': 12, 'emission_link_core': 1,
-              'diagnostic_debug_registry_omitted': True,
+              'emission_build_packages': 161, 'emission_link_core': 1,
+              'diagnostic_debug_registry_omitted': False,
               'c_compile': len(objects), 'c_link': 1, 'emitted_c': original(emitted),
               'library': original(library), 'objects': [original(path) for path in objects],
               'initializer_calls': 0, 'Engine': 0, 'VM': 0, 'worker': 0,

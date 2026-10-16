@@ -109,7 +109,7 @@ int main(void) {
   assert(actql_native_sqlite_database_transaction_fenced(&db) == 1);
   expect_bytes(actql_native_sqlite_database_error(&db), "");
   puts("commit reply loss retains fence: PASS");
-  actql_replace_error(&library.error, library.diagnostic_ceiling, "longer");
+  actql_replace_error_for(NULL, &library.error, library.diagnostic_ceiling, "longer");
   expect_bytes(actql_native_sqlite_library_error(&library), "");
   free(db.error); free(library.error);
   puts("library diagnostic uses same ceiling: PASS");

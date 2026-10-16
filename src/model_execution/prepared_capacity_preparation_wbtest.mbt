@@ -25,7 +25,7 @@ test "Model prepared capacity: every masked row remains prepared before dispatch
     let claim = active.state.prepared_capacity.unwrap()
     let mut ready = false
     for _ in 0..<1000 {
-      if active.state.phase is DispatchSlot {
+      if active.state.progress.phase is DispatchSlot {
         ready = true
         break
       }

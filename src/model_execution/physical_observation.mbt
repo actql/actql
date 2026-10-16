@@ -33,9 +33,9 @@ pub fn bind_prepared_model_observation(
     return false
   }
   if !prepared_model_current(value) ||
-    !(state.phase is DispatchSlot) ||
-    state.entering is Some(_) ||
-    state.settlement_pending is Some(_) ||
+    !(state.progress.phase is DispatchSlot) ||
+    state.progress.entry is Some(_) ||
+    state.progress.settlement is Some(_) ||
     state.physical_observer is Some(_) {
     return false
   }
@@ -49,9 +49,9 @@ fn observe_model_physical(
   event : ModelPhysicalEvent,
 ) -> Unit {
   if state.physical_observer is Some(observe) &&
-    state.attempts.get(state.next_slot) is Some(trace) {
+    state.attempts.get(state.progress.slot) is Some(trace) {
     observe({
-      slot: state.next_slot,
+      slot: state.progress.slot,
       attempt_cid: @publication.run_evidence_value_identity(trace.attempt),
       event,
     })

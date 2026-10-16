@@ -275,7 +275,7 @@ pub fn admit_prepared_client_effect_run_publication(
 /// Bind the prepared computation to its admitted exact Run. This preserves
 /// the Effect closure instead of passing only its graph to a source-free Host.
 pub(all) enum ClientEffectRunIssue {
-  Admission(@checked.EffectProgramRunIssue)
+  Admission(@effect_binding.EffectProgramRunIssue)
   Binding(@strategy.RunIssue)
   TargetSelection
 }
@@ -299,7 +299,7 @@ pub fn bind_prepared_client_effect_run(
     return Err(TargetSelection)
   }
   let owner = match
-    @checked.bind_effect_program_static_run(
+    @effect_binding.bind_effect_program_static_run(
       computation.candidate,
       admission,
       run_definition,

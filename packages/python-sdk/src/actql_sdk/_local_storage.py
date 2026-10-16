@@ -8,6 +8,9 @@ import stat
 from threading import RLock, get_ident
 
 from ._local_files import LocalFileRoot, _PayloadFile
+from ._local_storage_physical import (
+    _PhysicalByteDatabase, _SQLiteByteDatabase,
+    _PhysicalCapacityCollision, _PhysicalCapacityExceeded)
 
 _APPLICATION_ID = 0x41514C42
 _SCHEMA = '''CREATE TABLE core_bytes (
@@ -108,34 +111,19 @@ class LocalByteStore:
     must reserve SQLite/Python workspace separately from the payload limits.
     """
 
+    _physical: _PhysicalByteDatabase
+    _physical_path: Path
+    _physical_original: tuple[int, int] | None
+    _opening_descriptor: int | None
+    _native_file_root: LocalFileRoot | None
+
     def __init__(self, path: Path, *, max_records: int,
                  max_record_bytes: int, max_payload_bytes: int,
                  _new_file: tuple[LocalFileRoot, _PayloadFile] | None = None) -> None:
-        if (type(max_records) is not int or not 1 <= max_records <= 1024
-                or type(max_record_bytes) is not int
-                or not 1 <= max_record_bytes <= 1_048_576
-                or type(max_payload_bytes) is not int
-                or not max_record_bytes <= max_payload_bytes <= 16_777_216):
-            raise ValueError('Invalid Local physical storage limits')
-        self._lock = RLock()
-        self._closed = False
-        self._ready = False
-        self._created = False
-        self._creation_claimed = False
-        self._opening_descriptor: int | None = None
-        self._max_records = max_records
-        self._max_record_bytes = max_record_bytes
-        self._max_payload_bytes = max_payload_bytes
-        # The path is installed trusted Host configuration, never Program input.
-        path = path.absolute()
-        parent = path.parent.lstat()
-        if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
-                or parent.st_uid != os.getuid()):
-            raise LocalStorageError('Local storage requires a private owned directory')
-        self._physical_path = path
-        self._physical_parent = (parent.st_dev, parent.st_ino)
-        self._physical_original: tuple[int, int] | None = None
-        self._physical_owner = self
+        self._prepare_physical_path(path, max_records=max_records,
+                                    max_record_bytes=max_record_bytes,
+                                    max_payload_bytes=max_payload_bytes)
+        path = self._physical_path
         if _new_file is not None:
             if (type(_new_file) is not tuple or len(_new_file) != 2
                     or type(_new_file[0]) is not LocalFileRoot
@@ -165,6 +153,7 @@ class LocalByteStore:
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False)
         try:
+            self._physical = _SQLiteByteDatabase(self._connection)
             self._observe_generation()
             self._connection.execute('BEGIN IMMEDIATE')
             try:
@@ -184,7 +173,7 @@ class LocalByteStore:
                     raise LocalStorageError('Unknown Local physical storage format')
                 self._connection.execute('COMMIT')
             except BaseException:
-                if self._connection.in_transaction:
+                if self._physical.in_transaction:
                     self._connection.execute('ROLLBACK')
                 raise
             self._connection.execute('PRAGMA journal_mode = DELETE')
@@ -200,6 +189,37 @@ class LocalByteStore:
             except BaseException:
                 raise LocalStorageInitializationError(self) from original
             raise
+
+    def _prepare_physical_path(self, path: Path, *, max_records: int,
+                               max_record_bytes: int, max_payload_bytes: int) -> None:
+        # Shared physical metadata only. No file, SQL connection, adoption or
+        # fresh-file claim is acquired by this helper.
+        if (type(max_records) is not int or not 1 <= max_records <= 1024
+                or type(max_record_bytes) is not int
+                or not 1 <= max_record_bytes <= 1_048_576
+                or type(max_payload_bytes) is not int
+                or not max_record_bytes <= max_payload_bytes <= 16_777_216):
+            raise ValueError('Invalid Local physical storage limits')
+        self._lock = RLock()
+        self._closed = False
+        self._ready = False
+        self._created = False
+        self._creation_claimed = False
+        self._opening_descriptor = None
+        self._max_records = max_records
+        self._max_record_bytes = max_record_bytes
+        self._max_payload_bytes = max_payload_bytes
+        # The path is installed trusted Host configuration, never Program input.
+        path = path.absolute()
+        parent = path.parent.lstat()
+        if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
+                or parent.st_uid != os.getuid()):
+            raise LocalStorageError('Local storage requires a private owned directory')
+        self._physical_path = path
+        self._physical_parent = (parent.st_dev, parent.st_ino)
+        self._physical_original = None
+        self._physical_owner = self
+        self._native_file_root = None
 
     @classmethod
     def initialize_owned_file(cls, path: Path, root: LocalFileRoot, original: _PayloadFile, *,
@@ -231,6 +251,10 @@ class LocalByteStore:
     def _observe_generation(self) -> tuple[int, int]:
         if self._physical_owner is not self:
             raise ValueError('Copied or foreign Local physical Store generation')
+        if self._native_file_root is not None:
+            root = os.fstat(self._native_file_root._open())
+            if (root.st_dev, root.st_ino) != self._physical_parent:
+                raise LocalStorageError('Original Native Store file root changed')
         parent = self._physical_path.parent.lstat()
         if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
                 or parent.st_uid != os.getuid()
@@ -270,14 +294,14 @@ class LocalByteStore:
             if not self._created or self._creation_claimed:
                 return False
             self._creation_claimed = True
-            return bool(self._connection.execute('''SELECT
-                EXISTS(SELECT 1 FROM core_bytes) OR
-                EXISTS(SELECT 1 FROM actql_capacity)''').fetchone()[0] == 0)
+            return not self._physical.has_records_or_capacity()
 
     def _open(self) -> None:
         if self._closed or not self._ready:
             raise LocalStorageError('Local physical storage is closed')
-        if self._connection.in_transaction:
+        if self._native_file_root is not None:
+            self._observe_generation()
+        if self._physical.in_transaction:
             raise LocalStorageError('Local physical storage transaction cleanup is pending')
 
     @staticmethod
@@ -311,12 +335,8 @@ class LocalByteStore:
     def _read_bytes_locked(self, key: str, *, max_bytes: int | None = None) -> StoredBytes | None:
         # CASE bounds the Python allocation even for a corrupted/foreign
         # oversized row. SQLite length(BLOB) reads its size, not its value.
-        row = self._connection.execute('''SELECT generation,
-            CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
-            typeof(payload), length(payload)
-            FROM core_bytes WHERE key = ?''',
-            (self._max_record_bytes if max_bytes is None else
-             min(self._max_record_bytes, max_bytes), key)).fetchone()
+        row = self._physical.read_row(key, self._max_record_bytes if max_bytes is None else
+                                      min(self._max_record_bytes, max_bytes))
         if row is None:
             return None
         generation, payload, kind, length = row
@@ -381,9 +401,7 @@ class LocalByteStore:
             return self._read_capacity_locked(namespace, key)
 
     def _read_capacity_locked(self, namespace: str, key: str) -> CapacityReservation | None:
-        row = self._connection.execute('''SELECT reserved_bytes, reserved_objects
-            FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
-            (namespace, key)).fetchone()
+        row = self._physical.read_capacity(namespace, key)
         if row is None:
             return None
         if any(type(amount) is not int or not 0 <= amount <= 2**63 - 1 for amount in row):
@@ -397,9 +415,7 @@ class LocalByteStore:
             return self._capacity_usage_locked(namespace)
 
     def _capacity_usage_locked(self, namespace: str) -> CapacityUsage:
-        row = self._connection.execute('''SELECT coalesce(sum(reserved_bytes), 0),
-            coalesce(sum(reserved_objects), 0) FROM actql_capacity WHERE namespace = ?''',
-            (namespace,)).fetchone()
+        row = self._physical.capacity_usage(namespace)
         if any(type(amount) is not int or not 0 <= amount <= 2**63 - 1 for amount in row):
             raise LocalStorageError('Invalid retained Local physical capacity usage')
         return CapacityUsage(row[0], row[1])
@@ -445,8 +461,8 @@ class LocalByteStore:
             raise LocalStorageError('Local physical capacity exceeded')
         with self._lock:
             self._open()
-            database = self._connection
-            database.execute('BEGIN IMMEDIATE')
+            database = self._physical
+            database.begin_immediate()
             commit_attempted = False
             try:
                 self._fenced_current(current)
@@ -454,39 +470,25 @@ class LocalByteStore:
                     raise LocalStorageError('Original Local capacity fences changed')
                 if inspect is not None:
                     self._inspect_namespace_locked(inspect, fences, current)
-                existing = database.execute('''SELECT reserved_bytes, reserved_objects
-                    FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
-                    (namespace, key)).fetchone()
-                if existing is not None:
-                    if existing != (reserved_bytes, reserved_objects):
-                        raise LocalStorageError('Local physical capacity reservation collision')
-                    self._fenced_current(current)
-                    if fences and not self._fences_match_locked(fences):
-                        raise LocalStorageError('Original Local capacity fences changed')
-                    commit_attempted = True
-                    database.execute('COMMIT')
-                    self._fenced_current(current)
-                    return False
-                used = self._capacity_usage_locked(namespace)
-                count = database.execute('SELECT count(*) FROM actql_capacity').fetchone()[0]
-                if (count >= self._max_records or used.reserved_bytes > max_bytes
-                        or used.reserved_objects > max_objects
-                        or reserved_bytes > max_bytes - used.reserved_bytes
-                        or reserved_objects > max_objects - used.reserved_objects):
-                    raise LocalStorageError('Local physical capacity exceeded')
-                database.execute('INSERT INTO actql_capacity VALUES (?, ?, ?, ?)',
-                                 (namespace, key, reserved_bytes, reserved_objects))
+                try:
+                    changed = database.reserve_capacity_in_transaction(
+                        namespace, key, reserved_bytes, reserved_objects,
+                        max_bytes, max_objects, self._max_records)
+                except _PhysicalCapacityCollision as collision:
+                    raise LocalStorageError('Local physical capacity reservation collision') from collision
+                except _PhysicalCapacityExceeded as exceeded:
+                    raise LocalStorageError('Local physical capacity exceeded') from exceeded
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences):
                     raise LocalStorageError('Original Local capacity fences changed')
                 commit_attempted = True
-                database.execute('COMMIT')
+                database.commit()
                 self._fenced_current(current)
-                return True
+                return changed
             except BaseException as failure:
                 try:
                     if database.in_transaction:
-                        database.execute('ROLLBACK')
+                        database.rollback()
                 except BaseException as cleanup:
                     if current is not None and commit_attempted:
                         raise LocalStorageCommitUnknown(self) from cleanup
@@ -508,24 +510,19 @@ class LocalByteStore:
         self._capacity_amount(reserved_objects)
         with self._lock:
             self._open()
-            database = self._connection
-            database.execute('BEGIN IMMEDIATE')
+            database = self._physical
+            database.begin_immediate()
             try:
-                existing = database.execute('''SELECT reserved_bytes, reserved_objects
-                    FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
-                    (namespace, key)).fetchone()
-                if existing is None:
-                    database.execute('COMMIT')
-                    return False
-                if existing != (reserved_bytes, reserved_objects):
-                    raise LocalStorageError('Local physical capacity reservation collision')
-                database.execute('''DELETE FROM actql_capacity
-                    WHERE namespace = ? AND reservation_key = ?''', (namespace, key))
-                database.execute('COMMIT')
-                return True
+                try:
+                    changed = database.release_capacity_in_transaction(
+                        namespace, key, reserved_bytes, reserved_objects)
+                except _PhysicalCapacityCollision as collision:
+                    raise LocalStorageError('Local physical capacity reservation collision') from collision
+                database.commit()
+                return changed
             except BaseException:
                 if database.in_transaction:
-                    database.execute('ROLLBACK')
+                    database.rollback()
                 raise
 
     def compare_exchange_reserved(self, write: ByteWrite,
@@ -724,8 +721,8 @@ class LocalByteStore:
             self._validate_fences(fences, writes)
         with self._lock:
             self._open()
-            database = self._connection
-            database.execute('BEGIN')
+            database = self._physical
+            database.begin_read()
             try:
                 self._fenced_current(current)
                 result: tuple[StoredBytes, ...] | None = None
@@ -747,12 +744,11 @@ class LocalByteStore:
                 if fences and not self._fences_match_locked(fences, writes):
                     result = None
             except BaseException:
-                if database.in_transaction:
-                    database.execute('ROLLBACK')
+                database.cleanup_read()
                 raise
             else:
                 # Do not publish observations or repeat cleanup if this fails.
-                database.execute('ROLLBACK')
+                database.finish_read()
                 return result
 
     def inspect_namespaces(self, fences: tuple[ByteFence, ...], *,
@@ -770,8 +766,8 @@ class LocalByteStore:
         self._validate_metadata_fences(fences, ())
         with self._lock:
             self._open()
-            database = self._connection
-            database.execute('BEGIN')
+            database = self._physical
+            database.begin_read()
             try:
                 self._fenced_current(current)
                 if not self._fences_match_locked(fences, ()):
@@ -781,13 +777,12 @@ class LocalByteStore:
                 if not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local namespace fences changed')
             except BaseException:
-                if database.in_transaction:
-                    database.execute('ROLLBACK')
+                database.cleanup_read()
                 raise
             else:
                 # A failed physical stop keeps this same connection pending.
                 # No observation escapes and no cleanup is automatically repeated.
-                database.execute('ROLLBACK')
+                database.finish_read()
 
     def inspect_capacity_inspected(
             self, namespace: str, key: str, fences: tuple[ByteFence, ...], *,
@@ -945,16 +940,9 @@ class LocalByteStore:
                 fence()
                 # A malformed empty logical key must be observed and refused,
                 # not silently excluded from the original namespace inventory.
-                relation = ('>' if after else '>=') if scan else '='
-                row = self._connection.execute(f'''SELECT
-                    CASE WHEN length(CAST(key AS BLOB)) <= 4096 THEN key ELSE NULL END,
-                    generation,
-                    CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
-                    typeof(payload), length(payload)
-                    FROM core_bytes WHERE key {relation} ? AND key < ?
-                    ORDER BY key COLLATE BINARY LIMIT 1''',
-                    (min(self._max_record_bytes, self._max_payload_bytes - copied),
-                     lower, upper)).fetchone()
+                row = self._physical.scan_range(lower, upper,
+                    min(self._max_record_bytes, self._max_payload_bytes - copied),
+                    inclusive=not after, exact=not scan)
                 reads += 1
                 observation: tuple[str, StoredBytes] | None = None
                 if row is not None:
@@ -1064,8 +1052,8 @@ class LocalByteStore:
         self._validate_originals(originals, set())
         with self._lock:
             self._open()
-            database = self._connection
-            database.execute('BEGIN')
+            database = self._physical
+            database.begin_read()
             active = True
             reading = False
             thread = get_ident()
@@ -1148,13 +1136,12 @@ class LocalByteStore:
                 if fences and not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local publication metadata changed')
             except BaseException:
-                if database.in_transaction:
-                    database.execute('ROLLBACK')
+                database.cleanup_read()
                 raise
             else:
                 # Read-only transaction end, never a Store commit or durable ACK.
                 # Failure leaves this same connection pending; no automatic retry.
-                database.execute('ROLLBACK')
+                database.finish_read()
             finally:
                 active = False
 
@@ -1270,19 +1257,17 @@ class LocalByteStore:
         original_keys = {fence.key for fence, _ in originals} | {fence.key for fence in fences}
         with self._lock:
             self._open()
-            database = self._connection
-            database.execute('BEGIN IMMEDIATE')
+            database = self._physical
+            database.begin_immediate()
             commit_attempted = False
             try:
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local publication metadata changed')
                 if not self._originals_match_locked(originals):
-                    database.execute('ROLLBACK')
+                    database.rollback()
                     return None
-                record_count, payload_bytes = database.execute(
-                    'SELECT count(*), coalesce(sum(length(payload)), 0) FROM core_bytes'
-                ).fetchone()
+                record_count, payload_bytes = database.record_usage()
                 generations: list[int] = []
                 keys: set[str] = set()
                 thread = get_ident()
@@ -1304,9 +1289,7 @@ class LocalByteStore:
                                 raise ValueError('Duplicate or original Local physical projection key')
                             if reuse_identical and write.expected_generation is not None:
                                 raise ValueError('Publication physical projection is insert-only')
-                            existing = database.execute(
-                                'SELECT generation, length(payload) FROM core_bytes WHERE key = ?',
-                                (write.key,)).fetchone()
+                            existing = database.read_header(write.key)
                             if reuse_identical and existing is not None:
                                 # Bound the stored equality copy before fetching bytes.
                                 # This does not validate any Core identity or chain.
@@ -1314,10 +1297,8 @@ class LocalByteStore:
                                     raise LocalStorageError('Local physical payload capacity exceeded')
                                 if existing[1] != len(write.payload):
                                     raise _ProjectedWriteConflict()
-                                stored = database.execute(
-                                    'SELECT payload FROM core_bytes WHERE key = ?',
-                                    (write.key,)).fetchone()
-                                if stored is None or stored[0] != write.payload:
+                                stored = self._read_bytes_locked(write.key)
+                                if stored is None or stored.payload != write.payload:
                                     raise _ProjectedWriteConflict()
                                 del stored
                                 keys.add(write.key)
@@ -1333,12 +1314,9 @@ class LocalByteStore:
                             next_bytes = payload_bytes - (0 if existing is None else existing[1]) + len(write.payload)
                             if next_count > self._max_records or next_bytes > self._max_payload_bytes:
                                 raise LocalStorageError('Local physical payload capacity exceeded')
-                            if existing is None:
-                                database.execute('INSERT INTO core_bytes VALUES (?, ?, ?)',
-                                                 (write.key, generation, write.payload))
-                            else:
-                                database.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
-                                                 (generation, write.payload, write.key))
+                            actual = database.write_record(write.key, write.expected_generation, write.payload)
+                            if actual != generation:
+                                raise LocalStorageError('Original Local physical CAS generation changed')
                             keys.add(write.key)
                             generations.append(generation)
                             record_count, payload_bytes = next_count, next_bytes
@@ -1389,10 +1367,10 @@ class LocalByteStore:
                 if fences and not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local publication metadata changed')
                 if not self._originals_match_locked(originals):
-                    database.execute('ROLLBACK')
+                    database.rollback()
                     return None
                 commit_attempted = True
-                database.execute('COMMIT')
+                database.commit()
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local publication metadata changed')
@@ -1400,7 +1378,7 @@ class LocalByteStore:
             except _ProjectedWriteConflict as original:
                 try:
                     if database.in_transaction:
-                        database.execute('ROLLBACK')
+                        database.rollback()
                 except BaseException as cleanup_failure:
                     if current is not None and commit_attempted:
                         raise LocalStorageCommitUnknown(self) from cleanup_failure
@@ -1411,7 +1389,7 @@ class LocalByteStore:
             except BaseException as original:
                 try:
                     if database.in_transaction:
-                        database.execute('ROLLBACK')
+                        database.rollback()
                 except BaseException as cleanup_failure:
                     if current is not None and commit_attempted:
                         raise LocalStorageCommitUnknown(self) from cleanup_failure
@@ -1467,18 +1445,13 @@ class LocalByteStore:
 
     def _originals_match_locked(
             self, originals: tuple[tuple[ByteFence, CapacityReservation], ...]) -> bool:
-        database = self._connection
+        database = self._physical
         for fence, reservation in originals:
-            retained = database.execute('''SELECT reserved_bytes, reserved_objects
-                FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
-                (reservation.namespace, reservation.key)).fetchone()
+            retained = database.read_capacity(reservation.namespace, reservation.key)
             if retained != (reservation.reserved_bytes, reservation.reserved_objects):
                 return False
-            original = database.execute('''SELECT generation,
-                CASE WHEN length(payload) <= ? THEN payload ELSE NULL END
-                FROM core_bytes WHERE key = ?''',
-                (self._max_record_bytes, fence.key)).fetchone()
-            if original != (fence.generation, fence.payload):
+            original = self._read_bytes_locked(fence.key)
+            if original != StoredBytes(fence.generation, fence.payload):
                 return False
         return True
 
@@ -1552,33 +1525,29 @@ class LocalByteStore:
             self._validate_fences(fences, writes)
         with self._lock:
             self._open()
-            database = self._connection
-            database.execute('BEGIN IMMEDIATE')
+            database = self._physical
+            database.begin_immediate()
             commit_attempted = False
             try:
                 self._fenced_current(current)
                 if capacity is not None:
-                    retained = database.execute('''SELECT reserved_bytes, reserved_objects
-                        FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
-                        (capacity.namespace, capacity.key)).fetchone()
+                    retained = database.read_capacity(capacity.namespace, capacity.key)
                     if retained != (capacity.reserved_bytes, capacity.reserved_objects):
-                        database.execute('ROLLBACK')
+                        database.rollback()
                         return None
                 if (not self._originals_match_locked(originals)
                         or not self._fences_match_locked(fences)):
-                    database.execute('ROLLBACK')
+                    database.rollback()
                     return None
                 if inspect is not None:
                     self._inspect_namespace_locked(inspect, fences, current)
                 generations: list[int] = []
                 inserted = replaced = 0
                 for write in writes:
-                    existing = database.execute(
-                        'SELECT generation, length(payload) FROM core_bytes WHERE key = ?',
-                        (write.key,)).fetchone()
+                    existing = database.read_header(write.key)
                     if (existing is None) != (write.expected_generation is None) or (
                             existing is not None and existing[0] != write.expected_generation):
-                        database.execute('ROLLBACK')
+                        database.rollback()
                         return None
                     if existing is None:
                         inserted += 1
@@ -1586,26 +1555,21 @@ class LocalByteStore:
                     else:
                         replaced += existing[1]
                         generations.append(existing[0] + 1)
-                count, total = database.execute(
-                    'SELECT count(*), coalesce(sum(length(payload)), 0) FROM core_bytes'
-                ).fetchone()
+                count, total = database.record_usage()
                 if (count + inserted > self._max_records or
                         total - replaced + sum(len(write.payload) for write in writes)
                         > self._max_payload_bytes):
                     raise LocalStorageError('Local physical payload capacity exceeded')
                 for write, generation in zip(writes, generations):
-                    if write.expected_generation is None:
-                        database.execute('INSERT INTO core_bytes VALUES (?, ?, ?)',
-                                         (write.key, generation, write.payload))
-                    else:
-                        database.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
-                                         (generation, write.payload, write.key))
+                    actual = database.write_record(write.key, write.expected_generation, write.payload)
+                    if actual != generation:
+                        raise LocalStorageError('Original Local physical CAS generation changed')
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences, writes):
-                    database.execute('ROLLBACK')
+                    database.rollback()
                     return None
                 commit_attempted = True
-                database.execute('COMMIT')
+                database.commit()
                 self._fenced_current(current)
                 return tuple(generations)
             except BaseException as failure:
@@ -1613,7 +1577,7 @@ class LocalByteStore:
                 # resend. Preserve the exception and the original store handle.
                 try:
                     if database.in_transaction:
-                        database.execute('ROLLBACK')
+                        database.rollback()
                 except BaseException as cleanup_failure:
                     if current is not None and commit_attempted:
                         raise LocalStorageCommitUnknown(self) from cleanup_failure
@@ -1626,7 +1590,11 @@ class LocalByteStore:
         with self._lock:
             if not self._closed:
                 self._close_descriptor()
-                if hasattr(self, '_connection'):
+                if hasattr(self, '_physical'):
+                    self._physical.close()
+                elif hasattr(self, '_connection'):
+                    # Legacy acquisition may fail before the typed wrapper was
+                    # constructed; keep cleanup on that same connection.
                     self._connection.close()
                 self._closed = True
 

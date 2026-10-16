@@ -10,6 +10,10 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+const httpOnly = process.argv.length === 3 && process.argv[2] === '--http-only';
+if (process.argv.length !== 2 && !httpOnly) {
+  throw new Error('Usage: test-packed-infer-provider-entries.mjs [--http-only]');
+}
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const npm = join(dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js');
 const scratch = await realpath(await mkdtemp(join(tmpdir(), 'actql-a-optional-provider-')));
@@ -40,7 +44,7 @@ const results = [];
 for (const [directory, name, factory] of [
   ['provider-http', '@actql/provider-http', 'createInstalledHttpChatRegistration'],
   ['provider-ai-sdk', '@actql/provider-ai-sdk', 'createInstalledOpenAIChatRegistration'],
-]) {
+].filter(([directory]) => !httpOnly || directory === 'provider-http')) {
   const exports = directory === 'provider-ai-sdk'
     ? ['createInstalledOpenAIChatRegistration', 'createInstalledUndiciOpenAIChatRegistration']
     : [factory];
@@ -56,14 +60,15 @@ for (const [directory, name, factory] of [
   assert.equal(metadata.integrity, 'sha512-' + createHash('sha512').update(bytes).digest('base64'));
   const paths = metadata.files.map(entry => entry.path);
   for (const path of ['index.mjs', 'index.d.ts', 'LICENSE', 'README.md']) assert.ok(paths.includes(path));
-  if (directory === 'provider-ai-sdk') assert.ok(paths.includes('_internal/original-materials.mjs'));
+  assert.ok(paths.includes('_internal/original-materials.mjs'));
   assert.ok(paths.every(path => !path.startsWith('node_modules/') && !path.includes('.test.')));
   const consumer = join(scratch, directory);
   await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
   // Explicit package installation. Scripts are disabled for consumers only;
   // no implicit package acquisition occurs during ActQL request execution.
-  run(process.execPath, [npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund', tarball], consumer);
+  run(process.execPath, [npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund',
+    ...(directory === 'provider-http' ? ['--offline'] : []), tarball], consumer);
   const installed = join(consumer, 'node_modules', name);
   assert.equal(await realpath(installed), installed, 'Consumer must not borrow a repository symlink');
   for (const path of paths) {
@@ -87,7 +92,7 @@ test('missing original Host binding refuses before physical fetch',()=>{
     requestLimits:{maxBytes:1000,maxHeaderBytes:128,maxHeaders:4},
     responseLimits:{maxBytes:1000,maxChunkBytes:128,maxChunks:10,maxHeaderBytes:128},
     fetch(){sends++;throw Error('UnexpectedProviderIO');},observeAt:()=> '2026-10-14T00:00:00.000Z',observeEgress(){},
-    ${directory === 'provider-http' ? "endpoint:'https://fixture.invalid/v1/chat/completions',headers:[]" : "baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only'"}};
+    ${directory === 'provider-http' ? "endpoint:'https://fixture.invalid/v1/chat/completions',headers:[]" : "baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',originalStringLimits:{maxApiKeyCodeUnits:64,maxBaseURLCodeUnits:256,maxModelIdCodeUnits:64}"}};
   assert.throws(()=>entry[${JSON.stringify(factory)}](config),
     {message:${JSON.stringify(directory === 'provider-http' ? 'HTTPChatOriginalInstallationUnavailable' : 'OpenAIOriginalInstallationUnavailable')}});
   assert.equal(sends,0);
@@ -137,6 +142,71 @@ test('external HTTP installer binds its exact selected ceilings before any physi
     }else assert.throws(()=>register(runtime),{message:'HTTPChatOriginalTransportLimitsMismatch'});
   }
   assert.equal(matches,3);assert.equal(physical,0);
+});
+function httpMaterialsConfiguration() {
+  const cid='sha256:'+'0'.repeat(64),original={cid,wire:'{}'};
+  return {providerId:'models/fixture',modelSelector:'fixture',modelId:'fixture',
+    endpoint:'https://fixture.invalid/v1/chat/completions',headers:[],
+    taskCid:cid,promptCid:cid,outputSchemaCid:cid,promptPayloadWire:'{}',
+    fetch(){assert.fail('No physical request');},observeAt:()=> '2026-10-14T00:00:00.000Z',observeEgress(){},
+    bindingOriginals:Object.freeze({configuration:Object.freeze({...original}),
+      configurationContract:Object.freeze({...original}),installationRevision:Object.freeze({...original})}),
+    quantityCapacity:Object.freeze({limits:Object.freeze({tokens:1n,costUnits:0n,durationMs:1n}),
+      perAttempt:Object.freeze({tokens:1n,costUnits:0n,durationMs:1n})}),
+    projectionLimits:{maxBytes:1000,maxNodes:100,maxDepth:10,maxFrames:20,maxWork:1000},
+    requestLimits:{maxBytes:1000,maxHeaderBytes:128,maxHeaders:4},
+    responseLimits:{maxBytes:1000,maxChunkBytes:128,maxChunks:10,maxHeaderBytes:128},
+    originalMaterials:{responseProfile:{...original},
+      policyOriginals:{retention:{...original},metadata:{...original},clock:{...original},data:{...original}},
+      readerLimits:{maxBytes:1000,maxNodes:100,maxDepth:10,maxMembers:100,maxWork:1000},
+      installation:{builder_id:'fixture',builder_revision:'1',codec_id:'fixture',codec_revision:'1',
+        build_artifact_cid:cid,sdk:null,endpoint:'https://fixture.invalid/v1/chat/completions',
+        http_method:'POST',streaming:false,validator_id:'fixture',validator_revision:'1',
+        validator_artifact_cid:cid,completion_basis:'generation_finish'},
+      originalReadInstallation:{bootstrap:{bootstrapRetainedBytes:1n,bootstrapExecutionBytes:0n,
+        maxReservations:1,maxHoldings:1,maxDelegations:1},modelRetainedBytes:1n,modelExecutionBytes:0n,
+        nodeInstallation:{runtimeArtifactCid:cid,layoutArtifactCid:cid,layout:{runtime_artifact_cid:cid,
+          layout_artifact_cid:cid,program_definition_cid:cid,parameter_values_cid:cid,barrier_cid:cid,
+          prepared_rows:1n,retained_bytes:1n,execution_bytes:0n}}},
+      rawCaptureSelection:{selectedAt:'selection',availableUntil:'availability',deleteBy:'deletion',
+        extensionCeilingAt:'ceiling',metadataDeleteBy:'metadata',selectionAvailable:()=>true}}};
+}
+test('external HTTP materials need no internal runtime and reject null missing policy or mixed opaque',()=>{
+  const config=httpMaterialsConfiguration();
+  const register=entry.createInstalledHttpChatRegistration(config);
+  assert.equal(typeof register,'function');
+  assert.throws(()=>register(null),{message:'HTTPChatOriginalRuntimeUnavailable'});
+  assert.throws(()=>entry.createInstalledHttpChatRegistration({...config,rawCaptureSelection:{}}),
+    {message:'InvalidInstalledHTTPChatConfiguration'});
+  const missing=httpMaterialsConfiguration();delete missing.originalMaterials.policyOriginals.clock;
+  assert.throws(()=>entry.createInstalledHttpChatRegistration(missing),{code:'InvalidHTTPOriginalMaterials'});
+});
+test('external HTTP material callback preserves original opaque identity and a spent refusal without I/O',()=>{
+  const config=httpMaterialsConfiguration(),profile=Object.freeze({originalRuntime:{}});
+  const calls=[];
+  const runtime=Object.fromEntries(['clientProgramProjectHTTPChatRequest','clientProgramInstallAsyncModelProvider',
+    'clientProgramModelRequestPreflight','clientProgramModelAsyncPhysicalRequestPlan',
+    'clientProgramModelPhysicalCallForRequest','clientProgramModelPhysicalPending',
+    'clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat']
+    .map(name=>[name,()=>assert.fail('No physical callback')]));
+  runtime.clientProgramReadModelResponseProfile=(wire,cid)=>{calls.push(['profile',wire,cid]);return {$tag:1,_0:profile};};
+  runtime.clientProgramAdmitEffectDependencyBody=(kind,cid,wire)=>{calls.push([kind,cid,wire]);return {$tag:1,_0:Object.freeze({kind})};};
+  runtime.clientProgramModelResponseProfileTransportMatches=actual=>{assert.strictEqual(actual,profile);return true;};
+  const register=entry.createInstalledHttpChatRegistration(config);
+  config.originalMaterials.responseProfile.wire='replacement';
+  const [declaration]=register(runtime);
+  assert.ok(declaration);
+  assert.equal(calls.length,5);assert.equal(calls[0][1],'{}');
+  assert.strictEqual(declaration.rawCaptureSelection.profile,profile);
+  assert.strictEqual(declaration.originalReadInstallation.nodeInstallation.layout.response_profile,profile);
+  assert.equal(declaration.rawCaptureSelection.installation.sdk,null);
+  assert.equal(declaration.entryPersistence,'async');
+  assert.equal(Object.hasOwn(declaration,'invoke'),false);
+  assert.throws(()=>register({...runtime}),{message:'HTTPOriginalInstallationReused'});
+  const refused=entry.createInstalledHttpChatRegistration(httpMaterialsConfiguration());
+  runtime.clientProgramReadModelResponseProfile=()=>({$tag:0,_0:{}});
+  assert.throws(()=>refused(runtime),{code:'HTTPOriginalMaterialsRefused'});
+  assert.throws(()=>refused(runtime),{message:'HTTPOriginalInstallationReused'});
 });
 ` : ''}
 ${directory === 'provider-ai-sdk' ? `
@@ -204,7 +274,7 @@ test('installed DATA callback preserves Common refusal without physical work or 
   console.log(output.trim());
   const summary = output.split('\n').filter(line => line.startsWith('ACTQL_TEST_SUMMARY '))
     .map(line => JSON.parse(line.slice('ACTQL_TEST_SUMMARY '.length))).at(-1);
-  const tests = directory === 'provider-ai-sdk' ? 5 : 4;
+  const tests = directory === 'provider-ai-sdk' ? 5 : 6;
   assert.equal(summary.success, true); assert.equal(summary.counts.tests, tests); assert.equal(summary.counts.passed, tests);
   const declaration = `import {${factory},type ${directory === 'provider-http' ? 'HttpChatRegistrationOptions' : 'OpenAIChatRegistrationOptions'}} from ${JSON.stringify(name)};
 declare const original: ${directory === 'provider-http' ? 'HttpChatRegistrationOptions' : 'OpenAIChatRegistrationOptions'};
@@ -222,6 +292,17 @@ const suppliedByHost: (runtime:unknown)=>readonly object[]=createInstalledUndici
 void suppliedByHost;
 // @ts-expect-error DATA and opaque selections are mutually exclusive.
 createInstalledUndiciOpenAIChatRegistration({...materials,rawCaptureSelection:{}});
+` : ''}
+${directory === 'provider-http' ? `
+import type {HttpChatMaterialsRegistrationOptions} from '@actql/provider-http';
+declare const materials: HttpChatMaterialsRegistrationOptions;
+const suppliedByHost: (runtime:unknown)=>readonly object[]=createInstalledHttpChatRegistration(materials);
+void suppliedByHost;
+// @ts-expect-error DATA and opaque selections are mutually exclusive.
+createInstalledHttpChatRegistration({...materials,rawCaptureSelection:{}});
+// @ts-expect-error The independent installation has an explicit null SDK.
+const sdk: HttpChatMaterialsRegistrationOptions['originalMaterials']['installation']['sdk']={};
+void sdk;
 ` : ''}
 `;
   await writeFile(join(consumer, 'consumer.typecheck.mts'), declaration);
@@ -269,7 +350,7 @@ createInstalledUndiciOpenAIChatRegistration({...materials,rawCaptureSelection:{}
 }
 assert.equal(run('git', ['rev-parse', 'HEAD'], repository).trim(), source);
 assert.equal(run('git', ['status', '--porcelain'], repository).trim(), '');
-const receipt = {source,packages:results,newPublicE2E:0,normalNumericProfile:null,
+const receipt = {source,selection:httpOnly?'http-only':'both',packages:results,newPublicE2E:0,normalNumericProfile:null,
   providerIO:0,moonOrRuntimeBuild:0,qualification:'External optional installer/import/refusal only; no Host Run, ACK/current-cut, live model or Named Result.'};
 await writeFile(join(scratch, 'receipt.json'), JSON.stringify(receipt,null,2)+'\n');
 console.log('OPTIONAL_PROVIDER_PACKS', JSON.stringify(receipt));

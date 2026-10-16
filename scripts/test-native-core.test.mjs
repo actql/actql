@@ -375,6 +375,22 @@ test('relative caller roots resolve before changing the child working directory'
   f.verifyExternal();
 });
 
+test('owned Native namespace uses its canonical path through a caller parent alias', t => {
+  const f = fixture(t);
+  const alias = join(f.root, 'sqlite-alias');
+  symlinkSync(f.parent, alias, 'dir');
+  const result = run(f, {ACTQL_TEST_NATIVE_SQLITE_ROOT: alias});
+  assert.equal(result.status, 0, result.stderr);
+  const path = /CHILD_ROOT=(.*)/u.exec(result.stdout)?.[1];
+  assert.ok(path?.startsWith(join(f.parent, 'native-')),
+    'existing-only SQLite must receive the canonical owned directory, not its parent alias');
+  assert.equal(result.path, path);
+  assert.equal(existsSync(path), false);
+  assert.equal(realpathSync(alias), f.parent);
+  assert.deepEqual(readdirSync(f.parent).sort(), f.originals.sort());
+  f.verifyExternal();
+});
+
 // Check the actual native owner with strict C declarations. Feature selection
 // belongs to the source, not a developer's compiler wrapper.
 test('native journal inspection declares required interfaces', () => {

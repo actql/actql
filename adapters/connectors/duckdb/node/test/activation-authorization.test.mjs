@@ -212,7 +212,7 @@ test('the captured Run refuses every realization start that the Host did not gra
       let starts = 0;
       // A Host loop that claims coverage without installing the MoonBit grant.
       const core = { ...runtimeCore(moon), coverActivation: () => { starts++; return true; } };
-      const result = await runInstalledStrategy(opened.setup, core, installed);
+      const result = await runInstalledStrategy({setup: opened.setup, runtime: {core, contributions: installed}});
       assert.equal(result.status, 'host-tasks-failed', nativeMilliseconds);
       assert(activationRefused(result.failure?.cause), nativeMilliseconds);
       assert.equal(result.completed.length, 0, nativeMilliseconds);

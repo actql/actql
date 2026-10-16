@@ -218,6 +218,10 @@ export function forgetInferTrustedRuntimeView(view, actualHost, actualGeneration
 
 // Associate the actual early startup original with this existing eight-ref
 // view. A late embedded import returns None, never reconstructed coverage.
+// Its exact runtime duty includes only V8 internal backing of that startup's
+// associations/generations indices, through module/escaped-handle lifetime.
+// ActQL records/references/controls and workspace still need managed funding;
+// this is neither fixed SDK classification nor numerical/physical-close ACK.
 export function associateInferTrustedStartupView(view, actualOriginals) {
   TrustedRuntimeView.check(view, actualOriginals);
   return startup.associateHost(view, actualOriginals);

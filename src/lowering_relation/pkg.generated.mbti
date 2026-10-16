@@ -654,6 +654,8 @@ pub fn kernel_sort_term_at(PreparedKernel, Int) -> (@relation_schema.FieldName, 
 
 pub fn kernel_sort_term_count(PreparedKernel) -> Int
 
+pub fn kernel_sort_term_positional_count(PreparedKernel, Int) -> Int
+
 pub fn kernel_step(PreparedKernel) -> Int
 
 pub fn kernel_take(PreparedKernel) -> (Int64, Int64)?

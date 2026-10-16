@@ -126,6 +126,13 @@ test('current query rules bind the manifest while prior rules retain their ident
   assert.equal(nearestCid, 'sha256:8a917f82be481357f130f80f78c53f039dbf306b785233c800f978528d99a798');
   assert.equal(sha(canonicalText(nearestBody)), nearestCid);
   assert.notEqual(nearestCid, current);
+  const tableRules = read('scripts/fixtures/terminal-table-query-rules/manifest-identities.json');
+  assert.deepEqual(nearest.manifest, tableRules.grammar);
+  assert.notDeepEqual(tableRules.grammar, tableRules.current_grammar);
+  const {grammar_manifest_cid: tableRulesCid, ...tableRulesBody} = tableRules.current_grammar;
+  assert.equal(tableRulesCid, 'sha256:0d08abc8e9c5cb12a80d77e43b9bdc4e1bf3aed9967b1831b3b9d7fc4d341411');
+  assert.equal(sha(canonicalText(tableRulesBody)), tableRulesCid);
+  assert.notEqual(tableRulesCid, current);
   const update = read('scripts/fixtures/private-update-capture/manifest-identity.json');
   const {grammar_manifest_cid: priorUpdate, ...priorUpdateBody} = update.after;
   assert.equal(priorUpdate, 'sha256:913d9e69aa87096a497cbf163a2fb9bb019b13a765f28792b734fa5f1a367361');

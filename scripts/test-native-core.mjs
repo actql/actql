@@ -1,7 +1,7 @@
 // One owned Native fixture namespace per invocation, including local CI reruns.
 // A caller-supplied root is a parent, never a directory we adopt or remove.
 import {spawnSync} from 'node:child_process';
-import {mkdirSync} from 'node:fs';
+import {mkdirSync, realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -17,30 +17,35 @@ const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
   join(process.env.RUNNER_TEMP ?? tmpdir(), 'core-sqlite');
 const scratch = await createOwnedScratch({parent: resolve(parent),
   prefix: 'native-', label: 'Native core SQLite'});
-console.log(`Native core SQLite namespace: ${scratch.path}`);
+// Resolve only the newly created owned directory. SQLite's existing-only
+// NOFOLLOW boundary must not receive a parent alias such as macOS /var.
+// Cleanup still belongs to the original scratch handle; caller data is never
+// adopted and the product's path/identity checks remain unchanged.
+const namespace = realpathSync(scratch.path);
+console.log(`Native core SQLite namespace: ${namespace}`);
 // These unconditional fixtures share the existing restoration owner, not the
 // optional publication Store root. Enabling that global root would let unrelated
 // packages contend on one Store lock and contaminate its format admission.
 for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file']) {
-  mkdirSync(join(scratch.path, name), {mode: 0o700});
+  mkdirSync(join(namespace, name), {mode: 0o700});
 }
 const bundle = nativeCompletedRestorationBundle();
 const args = process.argv.slice(2);
 const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
 const privateHost = full || args.some(arg => arg.includes('platform_native/filesystem'))
-  ? nativePrivateHostFixture(scratch.path) : {};
+  ? nativePrivateHostFixture(namespace) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
   ? nativeClientCheckpointFixture(root) : {};
 // Only the final Native test child receives the injection environment. The
 // existing checkpoint producers and other preparation commands do not.
 const readerCustody = full || args.some(arg =>
   arg.includes('platform_native/client_host') || arg.includes('cmd/native_client'))
-  ? nativeRuntimeReaderCustodyFixture(root, scratch.path) : {};
+  ? nativeRuntimeReaderCustodyFixture(root, namespace) : {};
 // The WAL inspection fixture must use exec, not SQLite in a forked child.
 // macOS system SQLite calls platform services that are unsafe before exec.
 let walFixture;
 if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
-  walFixture = join(scratch.path, 'unclosed-sqlite-fixture');
+  walFixture = join(namespace, 'unclosed-sqlite-fixture');
   const compiled = spawnSync('cc', ['-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
     join(root, 'scripts/fixtures/native-unclosed-sqlite.c'), '-o', walFixture,
     ...(process.platform === 'linux' ? ['-ldl'] : [])], {stdio: 'inherit'});
@@ -59,10 +64,10 @@ const result = spawnSync(full ? process.execPath : 'moon', full
   ...privateHost,
   ...readerCustody,
   ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),
-  ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(scratch.path, 'standard'),
-  ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(scratch.path, 'bundles'),
-  ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: join(scratch.path, 'executor-slot'),
-  ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT: join(scratch.path, 'retained-task-file'),
+  ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(namespace, 'standard'),
+  ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(namespace, 'bundles'),
+  ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: join(namespace, 'executor-slot'),
+  ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT: join(namespace, 'retained-task-file'),
   ACTQL_REQUIRE_NATIVE_RETAINED_TEST: '1',
   ACTQL_TEST_NATIVE_CRYPTO_LIBRARY:
     process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
@@ -71,7 +76,7 @@ const result = spawnSync(full ? process.execPath : 'moon', full
   ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
     process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
     (process.platform === 'darwin' ? '/usr/lib/libsqlite3.dylib' : 'libsqlite3.so.0'),
-  ACTQL_TEST_NATIVE_SQLITE_ROOT: scratch.path,
+  ACTQL_TEST_NATIVE_SQLITE_ROOT: namespace,
 }});
 if (result.error) throw result.error;
 if (result.status !== 0) {

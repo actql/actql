@@ -1,11 +1,21 @@
 import {createInstalledHttpChatRegistration,
-  type HttpChatRegistrationOptions, type ModelProviderRegistration} from '@actql/provider-http';
+  type HttpChatRegistrationOptions, type HttpChatMaterialsRegistrationOptions,
+  type ModelProviderRegistration} from '@actql/provider-http';
 import type {HostInstallation} from '../local-node/index.js';
 
 declare const options: HttpChatRegistrationOptions;
 const registration: ModelProviderRegistration = createInstalledHttpChatRegistration(options);
 const installed: HostInstallation['registerModelProviders'] = registration;
 void installed;
+declare const materials: HttpChatMaterialsRegistrationOptions;
+const installedMaterials: HostInstallation['registerModelProviders'] =
+  createInstalledHttpChatRegistration(materials);
+void installedMaterials;
+// @ts-expect-error The opaque and material selection paths are mutually exclusive.
+createInstalledHttpChatRegistration({...materials, originalReadInstallation: {}});
+// @ts-expect-error Independent HTTP installation does not fabricate an SDK identity.
+const sdk: HttpChatMaterialsRegistrationOptions['originalMaterials']['installation']['sdk'] = {};
+void sdk;
 
 // @ts-expect-error Original Host selections are required; defaults cannot fund a Run.
 createInstalledHttpChatRegistration({providerId: 'models/unfunded'});

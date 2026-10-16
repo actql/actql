@@ -23,6 +23,10 @@ function child(args, mode, extra = {}) {
 test('late ordinary embedded import cannot issue stock-startup responsibility', () => child([], 'absent'));
 test('selected real Node preload retains exact Host and borrowed Scope reference originals', () =>
   child(['--require', preload], 'selected'));
+for (const args of [['--require', preload], ['--no-lazy', '--require', preload]]) {
+  test(`selected identity indices retain multiple Host/Scope lifetimes (${args[0]})`, () =>
+    child(args, 'identity-index-lifetime'));
+}
 test('selected startup excludes pool/allocator replacement and retains invalidation through restoration', () =>
   child(['--require', preload], 'mutation'));
 test('selected TLS adapter originals cannot be replaced and its peer error keeps the original graph', () =>
@@ -31,6 +35,20 @@ test('selected startup retains the native Promise constructor, methods and speci
   child(['--require', preload], 'promise-originals'));
 test('ordinary embedded import does not freeze application Promise originals', () =>
   child([], 'promise-unselected'));
+test('selected READ preserves the original UTF16 character primitive', () =>
+  child(['--require', preload], 'read-string-charcode'));
+test('ordinary embedded import preserves application String method selection', () =>
+  child([], 'string-unselected'));
+test('selected Common builder preserves original String constructor and code-point primitive', () =>
+  child(['--require', preload], 'builder-codepoint-originals'));
+test('selected eager Common builder retains the same original code-point primitive', () =>
+  child(['--no-lazy', '--require', preload], 'builder-codepoint-originals'));
+test('ordinary embedded import preserves application code-point and constructor selection', () =>
+  child([], 'codepoint-unselected'));
+test('selected BODY preserves its original Readable iterator and native next', () =>
+  child(['--require', preload], 'read-body-iterator'));
+test('ordinary embedded import preserves application iterator method selection', () =>
+  child([], 'iterator-unselected'));
 for (const mode of ['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray']) {
   test(`selected startup retains the actual strict READ original ${mode}`, () =>
     child(['--require', preload], mode));

@@ -7,6 +7,11 @@ priv struct HolderEffectHostSetupProfile {
   // The reviewed current-read composition covers this caller ceiling. SQLite
   // also preserves the original Store limit; neither quantity is permission.
   catalog_read_ceiling : Int64
+  // Positive physical parse/admission bounds; not a catalog language limit.
+  catalog_json_limits : @decode.Limits
+  // Exact original selected SQLite component heap, not a diagnostic/row bound.
+  // This observation does not establish the simultaneous funding envelope.
+  catalog_sqlite_heap_bytes : Int64
   // Independent physical diagnostic bound, not inferred from Account body size.
   diagnostic_ceiling : Int
   setup_retained_bytes : Int64
@@ -88,6 +93,12 @@ fn holder_effect_host_setup_profile_valid(
   profile.read_ceiling > 0 &&
   profile.read_ceiling <= 1000000 &&
   profile.catalog_read_ceiling > 0L &&
+  profile.catalog_json_limits.max_nodes > 0 &&
+  profile.catalog_json_limits.max_depth > 0 &&
+  profile.catalog_json_limits.max_string_bytes > 0 &&
+  profile.catalog_json_limits.max_total_string_bytes > 0 &&
+  profile.catalog_sqlite_heap_bytes >= 4096L &&
+  profile.catalog_sqlite_heap_bytes <= 2147483647L &&
   profile.setup_retained_bytes > 0L &&
   profile.current_retained_bytes > 0L &&
   profile.caller_retained_bytes >= profile.current_retained_bytes &&
@@ -239,6 +250,58 @@ fn holder_effect_host_read_scope_current(
 }
 
 ///|
+extern "C" fn holder_effect_host_control_scope_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
+
+///|
+/// The existing Site Owner's holding/cleanup tokens outlive the read child.
+/// Allocate those controls in the original caller context, not in the child
+/// whose retirement waits for them. This is accounting, never read permission.
+/// Keep a committed token even when restoration of the same context refuses.
+fn with_holder_effect_host_site_metadata(
+  scope : HolderEffectHostSetupScope,
+  update : () -> Bool,
+) -> Bool {
+  guard scope.read_domain is Some(read) else {
+    guard holder_effect_host_control_scope_clear_ffi() == 1 else {
+      scope.retiring = true
+      return false
+    }
+    return update()
+  }
+  guard scope.caller_operation is Some(operation) &&
+    physical_equal(operation, read.operation) else {
+    return false
+  }
+  let was_active = read.active
+  if was_active && !leave_holder_effect_host_read_domain(read) {
+    scope.retiring = true
+    return false
+  }
+  // One leave ends one borrow, not every physical nesting. The original
+  // provider must observe the whole allocator scope clear before accounting.
+  if holder_effect_host_control_scope_clear_ffi() != 1 {
+    if was_active {
+      ignore(enter_holder_effect_host_read_domain(read))
+    }
+    scope.retiring = true
+    return false
+  }
+  let updated = update()
+  if !was_active {
+    return updated
+  }
+  guard scope.read_domain is Some(same) &&
+    physical_equal(same, read) &&
+    scope.caller_operation is Some(same_operation) &&
+    physical_equal(operation, same_operation) &&
+    enter_holder_effect_host_read_domain(read) else {
+    scope.retiring = true
+    return false
+  }
+  updated
+}
+
+///|
 fn observe_holder_effect_host_read_failure(
   scope : HolderEffectHostSetupScope,
   failure : @bounded_files.NativeBoundedTextFailure,
@@ -248,7 +311,14 @@ fn observe_holder_effect_host_read_failure(
   if scope.pending is None {
     scope.pending = Some(failure)
     if scope.cleanup is None {
-      scope.cleanup = Some(@site.retain_site_cleanup(scope.site))
+      // The original pending failure and caller reservation remain retained
+      // even if a failed physical leave postpones this accounting token.
+      ignore(
+        with_holder_effect_host_site_metadata(scope, () => {
+          scope.cleanup = Some(@site.retain_site_cleanup(scope.site))
+          true
+        }),
+      )
     }
   }
 }
@@ -427,11 +497,67 @@ fn retain_holder_effect_host_snapshot(
     is Some(bytes) &&
     holder_effect_host_extent_add(bytes, scope.profile.caller_retained_bytes)
     is Some(partition) &&
-    partition <= scope.profile.setup_retained_bytes &&
-    @site.retain_site_operation_holding(operation, bytes) is Some(holding) else {
+    partition <= scope.profile.setup_retained_bytes else {
     return false
   }
-  scope.holding = Some(holding)
+  with_holder_effect_host_site_metadata(scope, () => {
+    guard @site.retain_site_operation_holding(operation, bytes) is Some(holding) else {
+      return false
+    }
+    scope.holding = Some(holding)
+    true
+  })
+}
+
+///|
+/// Stop new reads without invoking the Store-backed current callback. This is
+/// a cleanup transition of the same reservation, not successful current or a
+/// physical close ACK. A nested caller or failed leave retains this scope.
+fn quiesce_holder_effect_host_setup_scope(
+  scope : HolderEffectHostSetupScope,
+) -> Bool {
+  scope.retiring = true
+  guard scope.caller_operation is Some(caller) &&
+    scope.depth >= 0 &&
+    scope.depth <= 1 else {
+    return false
+  }
+  if scope.depth == 1 {
+    guard scope.operation is Some(operation) &&
+      physical_equal(operation, caller) else {
+      return false
+    }
+  } else if scope.operation is Some(operation) {
+    // A failed read keeps this exact operation after its logical frame ends.
+    // A pending failure or still-active original leave is not a fresh borrow.
+    guard physical_equal(operation, caller) &&
+      (
+        scope.pending is Some(_) ||
+        (scope.read_domain is Some(read) && read.active)
+      ) else {
+      return false
+    }
+  }
+  if scope.read_domain is Some(read) && !physical_equal(read.operation, caller) {
+    return false
+  }
+  if scope.read_parent is Some(parent) &&
+    !physical_equal(parent.operation, caller) {
+    return false
+  }
+  // A previous cleanup pass can fail its leave at depth zero. Retry that SAME
+  // leave before another cleanup entry; do not look up Store current again.
+  if scope.read_domain is Some(read) &&
+    !leave_holder_effect_host_read_domain(read) {
+    return false
+  }
+  scope.depth = 0
+  scope.operation = None
+  // The full current closure can itself retain a Store/Database. End those
+  // references before closing the original Library in a later frame. Original
+  // Host/domain cleanup validates its own handles; it needs no new Store read.
+  scope.preparation_binding = None
+  scope.current_binding = None
   true
 }
 
@@ -446,11 +572,20 @@ fn prepare_holder_effect_host_scope_retirement(
   if scope.depth > 0 {
     return false
   }
-  if scope.read_domain is Some(read) &&
-    !leave_holder_effect_host_read_domain(read) {
-    return false
+  if scope.depth == 0 &&
+    scope.operation is None &&
+    scope.pending is None &&
+    scope.read_domain is None &&
+    scope.read_parent is None {
+    // No child allocator owns these callbacks. Preserve the existing caller
+    // handoff until take moves them; a duplicate physical no-op remains safe
+    // after that move. This acknowledges neither holding nor another Owner.
+    return true
   }
-  guard retry_holder_effect_host_read_failure(scope) &&
+  // Retained current closures can themselves belong to the child allocator.
+  // End those aliases before asking the same domain/parent for physical ACK.
+  guard quiesce_holder_effect_host_setup_scope(scope) &&
+    retry_holder_effect_host_read_failure(scope) &&
     close_holder_effect_host_read_domain(scope) &&
     close_holder_effect_host_read_parent(scope) else {
     return false
@@ -482,7 +617,12 @@ fn retire_holder_effect_host_scope(
 ) -> HolderEffectHostScopeRetirement {
   guard prepare_holder_effect_host_scope_retirement(scope) else {
     if scope.cleanup is None {
-      scope.cleanup = Some(@site.retain_site_cleanup(scope.site))
+      ignore(
+        with_holder_effect_host_site_metadata(scope, () => {
+          scope.cleanup = Some(@site.retain_site_cleanup(scope.site))
+          true
+        }),
+      )
     }
     return HostSetupScopePending(scope)
   }

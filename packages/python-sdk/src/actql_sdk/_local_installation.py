@@ -16,6 +16,7 @@ from ._local_files import (
 from ._local_host_binding import OriginalHostBinding, LocalHostBindingCleanupPending, _body
 from ._local_host_files import LocalHostFiles, _HostFile
 from ._local_storage import LocalByteStore, LocalStorageInitializationError, ByteWrite
+from ._local_native_store import _OriginalNativeStoreSelection
 from ._local_submission import LocalSubmissionAuthority
 
 _T = TypeVar('_T')
@@ -68,12 +69,18 @@ class OriginalLocalInstallation:
 
     def __init__(self, core: LocalCore, parent: Path, *, observed_at: str,
                  now: Callable[[], int], project_epoch: Callable[[int, bytes], bytes],
-                 sdk_finite: bool = False) -> None:
+                 sdk_finite: bool = False,
+                 native_store: _OriginalNativeStoreSelection | None = None) -> None:
         if (type(core) is not LocalCore or not callable(now) or not callable(project_epoch)
                 or type(sdk_finite) is not bool):
             raise ValueError('Invalid original Local installation supplier')
+        if native_store is not None:
+            if type(native_store) is not _OriginalNativeStoreSelection:
+                raise ValueError('Invalid original Native installation Store')
+            native_store.require_core(core)
         self._original = self
         self._core = core
+        self._native_store = native_store
         self._path = parent.absolute()
         self._roots: list[LocalFileRoot] = []
         self._root_names: list[tuple[LocalFileRoot, Path]] = []
@@ -196,7 +203,11 @@ class OriginalLocalInstallation:
                     'device': str(info.st_dev), 'inode': str(info.st_ino)})
                 self._save_or_check(state, 'journal-custody.json', journal, fresh)
                 self._save_or_check(state, 'journal-initializing.json', journal, fresh)
-                if fresh:
+                if native_store is not None:
+                    store = native_store.open(core, self._path / 'state' / 'client.sqlite3',
+                        state, new_file=db_file, max_records=1024,
+                        max_record_bytes=1048576, max_payload_bytes=8388608)
+                elif fresh:
                     assert db_file is not None
                     store = LocalByteStore.initialize_owned_file(self._path / 'state' / 'client.sqlite3',
                         state, db_file, max_records=1024, max_record_bytes=1048576, max_payload_bytes=8388608)

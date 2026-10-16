@@ -525,18 +525,9 @@ pub fn append_request(
   if columns.length() > limits.max_cells {
     return Err(BudgetExceeded)
   }
-  let cells : Array[Json] = []
-  for index, column in columns {
-    let extended : Json = match (column.cell_type, values[index]) {
-      (Text, String(value)) if !value.is_empty() =>
-        { "stringValue": value.to_json() }
-      (Number, Number(value, ..)) if !value.is_nan() && !value.is_inf() =>
-        { "numberValue": value.to_json() }
-      (Boolean, True) => { "boolValue": true }
-      (Boolean, False) => { "boolValue": false }
-      _ => return Err(UnrepresentableWrite(column.name))
-    }
-    cells.push({ "userEnteredValue": extended })
+  let cells = match literal_cells(columns, values) {
+    Ok(cells) => cells
+    Err(issue) => return Err(issue)
   }
   let body = (
     {
@@ -554,6 +545,85 @@ pub fn append_request(
     return Err(BudgetExceeded)
   }
   // Reuse the common bounded validator for the complete outgoing tree.
+  match admit(@utf8.encode(body), limits) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  Ok(body)
+}
+
+///|
+fn literal_cells(
+  columns : Array[Column],
+  values : Array[Json],
+) -> Result[Array[Json], Issue] {
+  if values.length() != columns.length() {
+    return Err(InvalidSchema)
+  }
+  let cells : Array[Json] = []
+  for index, column in columns {
+    let extended : Json = match (column.cell_type, values[index]) {
+      (Text, String(value)) if !value.is_empty() =>
+        { "stringValue": value.to_json() }
+      (Number, Number(value, ..)) if !value.is_nan() && !value.is_inf() =>
+        { "numberValue": value.to_json() }
+      (Boolean, True) => { "boolValue": true }
+      (Boolean, False) => { "boolValue": false }
+      _ => return Err(UnrepresentableWrite(column.name))
+    }
+    cells.push({ "userEnteredValue": extended })
+  }
+  Ok(cells)
+}
+
+///|
+/// Overwrite exactly one complete rectangle with literal scalar values.
+/// Sheets clears masked cells when a range has fewer supplied cells, so a
+/// partial rectangle is refused rather than interpreted as a clear operation.
+/// Coordinates identify this operation's range, never a stable row identity.
+pub fn update_request(
+  range : GridRange,
+  columns : Array[Column],
+  rows : Array[Array[Json]],
+  limits : Limits,
+) -> Result[String, Issue] {
+  match check_range(range, columns, limits) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if rows.length() != range.end_row - range.start_row {
+    return Err(InvalidRange)
+  }
+  let encoded_rows : Array[Json] = []
+  for row in rows {
+    let cells = match literal_cells(columns, row) {
+      Ok(cells) => cells
+      Err(issue) => return Err(issue)
+    }
+    encoded_rows.push({ "values": Json::array(cells) })
+  }
+  let body = (
+    {
+      "requests": [
+        {
+          "updateCells": {
+            "range": {
+              "sheetId": range.sheet_id.to_json(),
+              "startRowIndex": range.start_row.to_json(),
+              "endRowIndex": range.end_row.to_json(),
+              "startColumnIndex": range.start_column.to_json(),
+              "endColumnIndex": range.end_column.to_json(),
+            },
+            "rows": Json::array(encoded_rows),
+            "fields": "userEnteredValue",
+          },
+        },
+      ],
+    } : Json).stringify()
+  if @utf8.encode(body).length() > limits.max_bytes {
+    return Err(BudgetExceeded)
+  }
+  // Account for the complete request envelope, not only the input cells.
   match admit(@utf8.encode(body), limits) {
     Ok(_) => ()
     Err(issue) => return Err(issue)

@@ -22,6 +22,8 @@ fn main {
   let page = page_bytes()
   let bytes = page * 64L
   let original : ConformanceOriginal = { marker: 1, }
+  // Matching original metadata is not the same physical supplier reference.
+  let foreign_original : ConformanceOriginal = { marker: original.marker, }
   let source = "0123456789012345678901234567890123456789"
   let recipe = Bytes::make(32, 29)
   let supplier = @bootstrap.prepare_installed_arena_supplier(
@@ -45,7 +47,8 @@ fn main {
     Pending(_, _) => abort("original private FD was not acquired")
   }
   require(
-    host.usage().reserved_execution_bytes == bytes,
+    host.usage().reserved_execution_bytes == bytes &&
+    host.require_current(foreign_original) is Err(ForeignOriginal),
     "one original full reservation",
   )
   require(

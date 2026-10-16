@@ -12,6 +12,7 @@ import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
 import {blankGridRows, columns, errorGridRows, expectedRows, sheetsRoutes}
   from './sheets-api.fixture.mjs';
+import {rangeProgram} from './sheets-range-program.fixture.mjs';
 
 export async function registerSheetsAcceptance({connect, connectEmbeddedLocal,
   openInstalledRemoteHttpHost, publishInstalledSource, publishInstalledEffect,
@@ -37,14 +38,16 @@ const entry = (entry_id, outcome, connection, resource, operation) => ({
   connection: {any_of: [connection]}, resource: {any_of: [resource]},
   operation: {any_of: [operation]},
 });
-const configuration = (connection, commit = 'delegate') => canonicalJson({version: 'actql-execution-account-config/0.1',
+const configuration = (connection, commit = 'delegate', rangeCommand = false) => canonicalJson({version: 'actql-execution-account-config/0.1',
   account_id: 'sheets-fixture', entries: [
     entry('append', commit, connection, 'append_rows', 'effect'),
     entry('append-read', 'allow', connection, 'append_rows', 'read'),
     entry('read', 'allow', connection, 'rows', 'read'),
+    ...(rangeCommand ? [entry('range-read', 'allow', connection, 'range_target', 'read'),
+      entry('range-effect', commit, connection, 'range_target', 'effect')] : []),
     {entry_id: 'run', outcome: 'allow', exclusions: [], principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}},
-  ]});
+  ].sort((a, b) => a.entry_id < b.entry_id ? -1 : a.entry_id > b.entry_id ? 1 : 0)});
 const authorization = (accountConfiguration, reviewerPrincipal = 'reviewer-principal') => ({accountConfiguration,
   reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
     principalId: reviewerPrincipal, publicKey: pem(reviewerKeys.publicKey)}],
@@ -82,34 +85,41 @@ const settled = execution => until(async () => {
   return terminal.has(current.status) || current.status === 'waiting_checkpoint' ? current : undefined;
 });
 
-async function installation(t, {faults = [], commit = 'delegate', reviewerPrincipal} = {}) {
-  const state = {appended: []};
+async function installation(t, {faults = [], commit = 'delegate', reviewerPrincipal,
+  rangeCommand = false, resumeAfterAnswer = false} = {}) {
+  const state = {appended: [], ...(rangeCommand ? {rangeCommand: true, updated: []} : {})};
   const observations = [];
   const api = await openHttpsExchangeFixture(t, {routes: sheetsRoutes(state), faults});
   const root = await mkdtemp(join(scratch, 'host-'));
   const closers = [];
   t.after(async () => {
     try { for (const close of closers.reverse()) await close(); }
-    finally { await rm(root, {recursive: true, force: true}); }
+    finally {
+      if (!rangeCommand || state.acceptanceComplete) await rm(root, {recursive: true, force: true});
+      else t.diagnostic(`Retained range acceptance custody: ${root}`);
+    }
   });
   const credential = generateKeyPairSync('ed25519');
-  await writeFile(join(root, 'credential.key'), pem(credential.privateKey));
+  await writeFile(join(root, 'credential.key'), pem(credential.privateKey), {mode: 0o600});
   const siteProfilePath = join(root, 'site.json');
   await writeFile(siteProfilePath, JSON.stringify({version: SHEETS_SITE_VERSION,
     apiOrigin: api.origin, spreadsheetId: 'book', appendSheetId: 7,
-    gridRange: {sheetId: 0, startRow: 0, endRow: 4, startColumn: 0, endColumn: 3}, columns,
+    gridRange: rangeCommand ? {sheetId: 7, startRow: 2, endRow: 4, startColumn: 0, endColumn: 3}
+      : {sheetId: 0, startRow: 0, endRow: 4, startColumn: 0, endColumn: 3}, columns,
     namespaceId: 'fixture-namespace', environment: 'test', siteKey: 'sheet-site', siteGeneration: 1,
     credentialAuthorityId: 'authority', credentialKeyId: 'credential-key',
     credentialPrivateKeyPath: join(root, 'credential.key'), journalRoot: join(root, 'credential-journal'),
     tokenEnvironment: 'ACTQL_TEST_SHEETS_TOKEN', caPath: api.caPath}));
   const connection = `sheets:${new URL(api.origin).host}/book`;
-  let account = configuration(connection, commit);
+  let account = configuration(connection, commit, rangeCommand);
   const base = {siteProfilePath, publicationPath: join(root, 'publication.json'),
     connectorId: 'sheet-book', accountConfigurationWire: account};
   const sourceProfilePath = join(root, 'source.json'), effectProfilePath = join(root, 'effect.json');
-  await writeFile(sourceProfilePath, JSON.stringify({...base, version: SHEETS_SOURCE_VERSION}));
+  await writeFile(sourceProfilePath, JSON.stringify({...base, version: SHEETS_SOURCE_VERSION,
+    ...(rangeCommand ? {rangeCommand: true} : {})}));
   await writeFile(effectProfilePath, JSON.stringify({...base, version: SHEETS_EFFECT_VERSION,
-    sources: columns.map(column => ({target: column.name, field: column.name, null_behavior: 'reject'}))}));
+    ...(rangeCommand ? {rangeCommand: true}
+      : {sources: columns.map(column => ({target: column.name, field: column.name, null_behavior: 'reject'}))})}));
   const directory = join(root, 'state');
   const publish = async effect => {
     try {
@@ -126,20 +136,35 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     }
   };
   async function open(effect, local = false) {
+    const openObserved = async action => {
+      try { return await action(); }
+      catch (error) {
+        const tag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
+          ? value : undefined;
+        const causes = [];
+        for (let cause = error, depth = 0; cause && depth < 4; cause = cause.cause, depth++) {
+          causes.push({code: tag(cause.code), messageTag: tag(cause.message),
+            primaryCode: tag(cause.primaryFailure?.code),
+            primaryTag: tag(cause.primaryFailure?.message), cleanupPending: cause.cleanupPending});
+        }
+        t.diagnostic(JSON.stringify({initialization: causes}));
+        throw error;
+      }
+    };
     const options = {directory, ...(effect ? {effectProfilePath, resolveEffectSecret: secret}
-      : {sourceProfilePath, resolveSourceSecret: secret}), authorization: {...authorization(account, reviewerPrincipal),
+      : {sourceProfilePath, resolveSourceSecret: secret}), authorization: {...authorization(account, reviewerPrincipal), resumeAfterAnswer,
         observe(name, detail) {
           observations.push([name, detail]);
-        }}};
+        }}, ...(effect && rangeCommand ? {sourceProfilePath, resolveSourceSecret: secret} : {})};
     if (local) {
-      const client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
-        installation: options});
+      const client = await openObserved(() => connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
+        installation: options}));
       closers.push(() => client.close());
       return {client};
     }
-    const host = await openInstalledRemoteHttpHost({...options,
+    const host = await openObserved(() => openInstalledRemoteHttpHost({...options,
       authenticate: header => new Map([['owner-token', owner], ['reviewer-token', 'reviewer-principal']])
-        .get(header?.replace(/^Bearer /u, ''))});
+        .get(header?.replace(/^Bearer /u, ''))}));
     const server = createServer({key: tls.key, cert: tls.cert}, host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     let closed = false;
@@ -167,10 +192,12 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     return {as, close};
   }
   return {api, state, publish, open, root, observations,
-    async replayInNewProcess(ref, expectedStatus) {
+    async replayInNewProcess(ref, expectedStatus, expectedRows) {
       const configPath = join(root, 'replay-fixture.json');
       await writeFile(configPath, JSON.stringify({ref, expectedStatus,
+        ...(expectedRows === undefined ? {} : {expectedRows}),
         installation: {directory, effectProfilePath,
+          ...(rangeCommand ? {sourceProfilePath} : {}),
           authorization: authorization(account, reviewerPrincipal)}}), {mode: 0o600});
       const {stdout} = await promisify(execFile)(process.execPath,
         [fileURLToPath(replayEntry), configPath], {timeout: 60_000,
@@ -178,7 +205,7 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
       assert.match(stdout, /SHEETS_REPLAY_VERIFIED/u);
     },
     async revoke() {
-      account = configuration(connection, 'deny');
+      account = configuration(connection, 'deny', rangeCommand);
       const profile = JSON.parse(await readFile(effectProfilePath, 'utf8'));
       await writeFile(effectProfilePath, JSON.stringify({...profile, accountConfigurationWire: account}));
     }};
@@ -214,6 +241,77 @@ async function approvedAppend(setup, rows) {
   return initial.execution;
 }
 const row = {text: '=literal e\u0301\r\n', number: 0, flag: false};
+
+test('Sheets range Command uses the real Local and HTTPS approval owners and original saved request', async t => {
+  const rows = [row, {...row, text: 'second', number: -2.5, flag: true}];
+  for (const local of [true, false]) {
+    const setup = await installation(t, {rangeCommand: true, resumeAfterAnswer: true,
+      ...(local ? {reviewerPrincipal: owner} : {})});
+    const [command] = (await setup.publish(true)).commands;
+    assert.equal(command.resource, 'range_target');
+    const first = await setup.open(true, local);
+    const client = first.client ?? await first.as('owner-token');
+    const execution = await client.startSource(rangeProgram(command.commandRef, rows),
+      {format: 'json', submissionRef: client.newSubmission({nonce: 'range-once'})});
+    const waiting = await settled(execution);
+    assert.equal(waiting.status, 'waiting_checkpoint', JSON.stringify(waiting));
+    assert.equal(setup.state.updated.length, 0, 'metadata admission is not a write grant');
+    await approve(first, execution);
+    await execution.reconcile();
+    const done = await until(async () => {
+      const current = await execution.status();
+      return terminal.has(current.status) || current.status === 'needs_reconciliation' ||
+        setup.observations.some(([name]) => name === 'effect_resume_failed')
+        ? current : undefined;
+    });
+    const safeTag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
+      ? value : undefined;
+    assert.equal(done.status, 'succeeded', JSON.stringify({status: done.status,
+      nextAction: done.next_action?.kind, updates: setup.state.updated.length,
+      observations: setup.observations.map(([name, detail]) => ({name,
+        code: safeTag(detail?.code), cause: safeTag(detail?.cause?.code),
+        error: safeTag(detail?.error?.code), reason: safeTag(detail?.reason)}))}));
+    assert.deepEqual(await execution.result('answer').all(), [{rows}]);
+    assert.deepEqual(setup.state.updated, [[
+      [{stringValue: '=literal e\u0301\r\n'}, {numberValue: 0}, {boolValue: false}],
+      [{stringValue: 'second'}, {numberValue: -2.5}, {boolValue: true}],
+    ]]);
+    const before = setup.api.seen().length;
+    if (first.client) await first.client.close(); else await first.close();
+    await setup.replayInNewProcess(execution.ref, 'succeeded', [{rows}]);
+    assert.equal(setup.api.seen().length, before, 'restart does not reacquire or resend');
+    setup.state.acceptanceComplete = true;
+  }
+});
+
+test('Sheets range Command retains an unknown acknowledgement across process restart without resend', async t => {
+  const setup = await installation(t, {rangeCommand: true, reviewerPrincipal: owner,
+    faults: [{kind: 'apply-then-lose-reply', method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}]});
+  const [command] = (await setup.publish(true)).commands;
+  const first = await setup.open(true, true);
+  const client = first.client;
+  const rows = [row, {...row, text: 'second', number: -2.5, flag: true}];
+  const execution = await client.startSource(rangeProgram(command.commandRef, rows),
+    {format: 'json', submissionRef: client.newSubmission({nonce: 'range-unknown'})});
+  assert.equal((await settled(execution)).status, 'waiting_checkpoint');
+  assert.equal(setup.state.updated.length, 0);
+  await approve(first, execution);
+  await execution.reconcile();
+  const unknown = await until(async () => {
+    const value = await execution.status();
+    return value.status === 'needs_reconciliation' ? value : undefined;
+  });
+  assert.equal(unknown.result_available, false);
+  assert.equal(setup.state.updated.length, 1);
+  const before = setup.api.seen().length;
+  await client.close();
+  await setup.replayInNewProcess(execution.ref, 'needs_reconciliation');
+  assert.equal(setup.api.seen().length, before, 'the saved request is neither reacquired nor resent');
+  await writeFile(join(setup.root, 'range-unknown.json'), JSON.stringify({ref: execution.ref,
+    status: unknown.status, resultAvailable: false, appliedBatches: 1,
+    additionalRequestsAfterRestart: 0}), {mode: 0o600});
+  // Deliberately retain this original Unknown/DB/key custody after test closure.
+});
 
 test('Sheets rejects out-of-domain grid indexes before provider I/O', async t => {
   for (const field of ['appendSheetId', 'gridRange']) {
@@ -268,12 +366,13 @@ test('Sheets partial success retains the successful prefix and stops after an un
 });
 
 test('Sheets Local append approves a complete Set and retains equal rows as separate sends', async t => {
-  const setup = await installation(t, {reviewerPrincipal: owner});
+  const setup = await installation(t, {reviewerPrincipal: owner, resumeAfterAnswer: true});
   const {first, execution, state} = await preparedAppend(setup, [row, row], {local: true});
   assert.equal(state.status, 'waiting_checkpoint', JSON.stringify(state));
   assert.equal(setup.state.appended.length, 0);
   await approve(first, execution);
-  // Explicit reconcile uses the original Run and the existing continuation owner.
+  // This executing Host resumes its committed answer through the existing Owner.
+  // reconcile observes the original Run; it does not start a disabled continuation.
   await execution.reconcile();
   const done = await settled(execution);
   assert.equal(done.status, 'succeeded', JSON.stringify(done));

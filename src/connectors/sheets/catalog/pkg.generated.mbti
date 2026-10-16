@@ -20,6 +20,8 @@ pub fn project_grid(Bytes, String, GridRange, Array[Column], Limits) -> Result[P
 
 pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]
 
+pub fn update_request(GridRange, Array[Column], Array[Array[Json]], Limits) -> Result[String, Issue]
+
 // Errors
 
 // Types and methods

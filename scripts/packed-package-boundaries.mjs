@@ -4,6 +4,7 @@ import {existsSync, lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isBuiltin, createRequire} from 'node:module';
 import {dirname, isAbsolute, join, relative, resolve} from 'node:path';
 import {buildSync} from 'esbuild';
+import {parse} from 'acorn';
 
 const inside = (parent, path) => {
   const child = relative(parent, path);
@@ -13,6 +14,19 @@ const targets = entry => typeof entry === 'string' ? [entry]
   : Object.values(entry).flatMap(targets);
 const packageName = specifier => specifier.startsWith('@')
   ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
+
+function compilerRuntimeImport(imported, metadata, path) {
+  if (imported.path !== '<runtime>' || imported.kind !== 'import-statement' ||
+      metadata.format !== 'cjs' || Object.hasOwn(imported, 'original')) return false;
+  // esbuild adds this helper for CommonJS require properties (for example
+  // require.cache). An authored import can have identical metafile fields:
+  // inspect the original syntax before classifying it as a compiler helper.
+  const syntax = parse(readFileSync(path, 'utf8'), {ecmaVersion: 'latest',
+    sourceType: 'script', allowReturnOutsideFunction: true, allowImportExportEverywhere: true});
+  return !syntax.body.some(node =>
+    ['ImportDeclaration', 'ExportNamedDeclaration', 'ExportAllDeclaration'].includes(node.type) &&
+    node.source?.value === '<runtime>');
+}
 
 export function auditPackedPackages(root, names) {
   const owned = realpathSync(root);
@@ -38,6 +52,7 @@ export function auditPackedPackages(root, names) {
         `Source-tree fallback: ${name}/${input}`);
       for (const imported of metadata.imports.filter(item => item.external)) {
         if (isBuiltin(imported.path)) continue;
+        if (compilerRuntimeImport(imported, metadata, path)) continue;
         const dependency = packageName(imported.path);
         const required = Object.hasOwn(manifest.dependencies ?? {}, dependency);
         const peer = Object.hasOwn(manifest.peerDependencies ?? {}, dependency);

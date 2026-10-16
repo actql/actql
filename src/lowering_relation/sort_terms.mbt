@@ -30,6 +30,49 @@ pub fn kernel_sort_term_count(kernel : PreparedKernel) -> Int {
 }
 
 ///|
+/// Positional domains belong exclusively to compiler-appended canonical terms.
+/// An authored object sort never obtains this producer-bound capability.
+pub fn kernel_sort_term_positional_count(
+  kernel : PreparedKernel,
+  index : Int,
+) -> Int {
+  if index < 0 {
+    return 0
+  }
+  if kernel.body is Limit(_, _, _) {
+    return take_completion(kernel.owner.prepared.owner, kernel.step_index)
+      .bind(key => @evidence.key_field_at(key, index))
+      .bind(field => field.positional_identity)
+      .map(@carrier.vector_identity_count)
+      .unwrap_or(0)
+  }
+  if top_k_order(kernel) is Some(order) {
+    return @pipeline.order_sort_completion(order)
+      .map(completion => {
+        @pipeline.sort_completion_positional_count(
+          completion,
+          index - @relation.ranking_term_count(kernel.checked),
+        )
+      })
+      .unwrap_or(0)
+  }
+  if kernel.body is Lag(_, completion) {
+    return @pipeline.sort_completion_positional_count(
+      completion,
+      index - @relation.lag_term_count(kernel.checked),
+    )
+  }
+  match kernel.body {
+    StableSort(Some(CandidateKey(completion))) =>
+      @pipeline.sort_completion_positional_count(
+        completion,
+        index - @relation.sort_term_count(kernel.checked),
+      )
+    _ => 0
+  }
+}
+
+///|
 /// (checked field, descending, nulls first). No complete order array is copied.
 pub fn kernel_sort_term_at(
   kernel : PreparedKernel,
