@@ -59,18 +59,7 @@ fn validate_original_succeeded_run_state_body(
     return Err(InvalidWire)
   }
   let shape = if historical && @json.object_field(value, "revision") is None {
-    // Reuse the current closed shape for every other field. This bounded
-    // temporary projection is discarded: no zero revision or new wire leaves
-    // historical validation, and current readers still require the field.
-    prepare_run_state_observation(
-      wire,
-      contract_string(definition, "run_id").unwrap_or(""),
-      0L,
-      max_bytes,
-      max_nodes,
-      max_depth,
-    )
-    is Ok(_)
+    validate_historical_run_state_shape(value, max_bytes, max_nodes, max_depth)
   } else {
     validate_generated_protocol_shape(
       "run_state", value, true, max_bytes, max_nodes, max_depth,

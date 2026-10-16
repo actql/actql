@@ -678,17 +678,13 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   })
   .unwrap()
   |> ignore
-  assert_true(
-    reopened.lookup_submitted_run_state(
-      crypto, "operator", "cli", reference, request, 1004.0,
-    )
-    is Err(Unavailable),
+  let legacy_read = reopened.lookup_submitted_run_state(
+    crypto, "operator", "cli", reference, request, 1004.0,
   )
-  assert_true(
-    reopened_journal.retained_submission(reference).unwrap().unwrap().run_state_observation
-    is None,
-  )
+  let legacy_record = reopened_journal.retained_submission(reference)
   reopened.close().unwrap() |> ignore
+  assert_true(legacy_read is Err(Unavailable))
+  assert_true(legacy_record.unwrap().unwrap().run_state_observation is None)
 }
 
 ///|
