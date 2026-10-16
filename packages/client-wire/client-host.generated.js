@@ -17798,6 +17798,24 @@ const operationKeys = {
   ]
 };
 
+const optionalRequestFields = {
+  "submit": {
+    "stopBefore": {
+      "const": "commit"
+    }
+  },
+  "submit-intent": {
+    "stopBefore": {
+      "const": "commit"
+    }
+  },
+  "restart-intent": {
+    "stopBefore": {
+      "const": "commit"
+    }
+  }
+};
+
 export const checkReasonSchemaCid = "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742";
 export const checkOutcomeSchemaCid = "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
@@ -17857,7 +17875,8 @@ function valid(value, schema) {
 }
 
 export const clientHostOperations = Object.freeze(Object.keys(operationKeys));
-export const clientHostRequestKeys = operation => (Object.hasOwn(operationKeys, operation) ? operationKeys[operation] : undefined);
+export const clientHostRequestKeys = (operation, body = {}) => (Object.hasOwn(operationKeys, operation) ? [...operationKeys[operation], ...Object.keys(optionalRequestFields[operation] ?? {}).filter(key => body !== null && typeof body === 'object' && Object.hasOwn(body, key))] : undefined);
+export const validClientRequestOptionalFields = (operation, body) => Object.entries(optionalRequestFields[operation] ?? {}).every(([key, schema]) => !Object.hasOwn(body, key) || valid(body[key], schema));
 export const validSubmissionEpochShape = value => valid(value, schemas.submission_epoch);
 export const validSubmissionRefShape = value => valid(value, schemas.submission_ref);
 export const validSubmissionOutcomeShape = value => valid(value, schemas.submission_outcome);

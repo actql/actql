@@ -113,7 +113,22 @@ not execute.
 `actql-submitted-intent/0.1` identifies the original JSON submission before a
 checked Program or Run definition exists. Its canonical preimage contains
 `intent` and `version`. The intent has exactly `input`, `kind` (`program` or
-`aql`) and `parameters` (object or null). Source text, declarations, parameter
+`aql`) and `parameters` (object or null), with an optional `stopBefore` whose
+only admitted value is `"commit"`. Omitting that choice preserves the existing
+three-field canonical original and CID. Selecting it adds the field to the same
+preimage; it cannot be changed for an already retained submission identity.
+The choice restricts the original Run's first Effect continuation through the
+existing Checkpoint owner. Its approval releases that user-requested restriction,
+not Account authorization; current Deny and genuine Delegate requirements remain.
+The closed DATA shapes are registered as `submitted_intent` and
+`installed_effect_continuation` in the existing Client–Host machine contract.
+The selected private continuation carries `requested_stop.intent_cid`, the same
+Run Definition, explicit Effect Unit and sealed Preview, alongside the original
+provider DATA and optional target-read binding. The existing evidence owner hashes
+the exact canonical bytes. A requested-stop Checkpoint must bind that exact
+continuation content CID; omission, substitution or a noncanonical rewrite is
+not an alternative representation of that selected original.
+Source text, declarations, parameter
 values and data member names are preserved by the common value canonicalizer.
 This receipt provides no checker verdict, execution authority or Run CID.
 

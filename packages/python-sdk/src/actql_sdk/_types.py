@@ -2,6 +2,12 @@
 from __future__ import annotations
 from typing import Any, Literal, NotRequired, Required, TypedDict
 
+SubmittedIntent = TypedDict("SubmittedIntent", {"kind": Required["Literal[\"program\", \"aql\"]"], "input": Required["dict[str, Any]"], "parameters": Required["None | dict[str, Any]"], "stopBefore": NotRequired["Literal[\"commit\"]"]}, total=False)
+
+InstalledEffectContinuationRequestedStop = TypedDict("InstalledEffectContinuationRequestedStop", {"intent_cid": Required["str"]}, total=False)
+
+InstalledEffectContinuation = TypedDict("InstalledEffectContinuation", {"version": Required["Literal[\"actql-installed-effect-continuation/0.1\"]"], "run_definition_cid": Required["str"], "unit_id": Required["str"], "preview_cid": Required["str"], "provider": Required["dict[str, Any]"], "target_read_binding": NotRequired["dict[str, Any]"], "requested_stop": NotRequired["InstalledEffectContinuationRequestedStop"]}, total=False)
+
 SubmissionEpoch = TypedDict("SubmissionEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
 
 SubmissionRefEpoch = TypedDict("SubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)

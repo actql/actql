@@ -51,6 +51,7 @@ function runInstallationFixture() {
   const originals = installUpdateTargetOriginals({moon, control, limits});
   return {moon, originals, calls, options: {moon, publicationControl: control,
     journal: {lookupDefinition: forbidden('journal lookup'),
+      originalSubmittedIntent: forbidden('original submitted content lookup'),
       reserveDispatch: forbidden('dispatch reservation'),
       reservePhysicalStart: forbidden('physical start reservation')},
     authorizeRequest: forbidden('request authorization'),
@@ -83,6 +84,14 @@ test('a current selection accessor may return no context without original or pro
 test('an Effect Run without installed original custody does not require the accessor', () => {
   const f = runInstallationFixture();
   assert.equal(typeof installNodeClientEffectRun(f.options).checkSupported, 'function');
+  assert.deepEqual(f.calls, []);
+});
+
+test('an Effect Run requires its original journal content port before installation work', () => {
+  const f = runInstallationFixture();
+  delete f.options.journal.originalSubmittedIntent;
+  assert.throws(() => installNodeClientEffectRun(f.options),
+    {name: 'TypeError', message: 'InvalidClientEffectRunInstallation'});
   assert.deepEqual(f.calls, []);
 });
 

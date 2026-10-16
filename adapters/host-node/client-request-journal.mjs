@@ -300,9 +300,11 @@ function admissionEvidenceShape(value, updateOriginalControl) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   if (Object.keys(value).some(key => !['authorization', 'prepared',
     'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
-    'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal'].includes(key)) ||
+    'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal',
+    'submittedIntentCid'].includes(key)) ||
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
+  if (value.submittedIntentCid !== undefined && !cid(value.submittedIntentCid)) return false;
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
   if (value.updateTargetRunOriginal !== undefined &&
       updateOriginalControl?.run(value.updateTargetRunOriginal, value) !== true) return false;
@@ -1506,13 +1508,30 @@ export function openClientRequestJournal(directory, {
       if (selectRun.get(runDefinitionCid) !== undefined) {
         fail('ClientRequestRunAlreadyAssigned');
       }
+      // Only this original acceptance transaction may associate submitted
+      // content with a new Run. Equal caller CIDs or later configuration are
+      // not a way to attach a restriction to an already issued Run.
+      let originalAdmissionEvidence = admissionEvidence;
+      const admittedEvidence = admissionEvidence === null ? undefined : JSON.parse(admissionEvidence);
+      if (submission?.intentCid !== undefined && admittedEvidence !== undefined) {
+        const original = retainedIntent(intentSelect.get(fields.requestId), control);
+        if (admittedEvidence.submittedIntentCid !== undefined &&
+            admittedEvidence.submittedIntentCid !== original.intentCid) {
+          fail('ClientRequestSubmittedIntentMismatch');
+        }
+        originalAdmissionEvidence = evidenceJson({...admittedEvidence,
+          submittedIntentCid: original.intentCid},
+        maxRunDefinitionWireBytes, updateOriginalControl);
+      } else if (admittedEvidence?.submittedIntentCid !== undefined) {
+        fail('ClientRequestSubmittedIntentMismatch');
+      }
       insert.run(fields.authorityScopeCid, fields.requestId,
         fields.logicalRequestScopeCid, fields.intentFingerprintCid,
         fields.programDefinitionCid, fields.parameterValuesCid,
         fields.callerInputIntentCid, namespaceId, runDefinitionCid,
         runDefinitionWire ?? null, revision, lookupExpiresAt,
         resultNames === undefined ? null : JSON.stringify(resultNames),
-        admissionEvidence);
+        originalAdmissionEvidence);
       if (Number(advanceSubmissionCustody.run(retainedCount).changes) !== 1) {
         fail('ClientRequestSubmissionCustodyLost');
       }
@@ -1521,8 +1540,8 @@ export function openClientRequestJournal(directory, {
         runDefinitionCid,
       }), durability: 'durable', revision, lookupExpiresAt,
       ...(runDefinitionWire === undefined ? {} : {runDefinitionWire}),
-      resultNames, runAdmissionEvidence: admissionEvidence === null ? undefined :
-        freezeAdmissionEvidence(JSON.parse(admissionEvidence))});
+      resultNames, runAdmissionEvidence: originalAdmissionEvidence === null ? undefined :
+        freezeAdmissionEvidence(JSON.parse(originalAdmissionEvidence))});
     });
     if (outcome.epochRejected !== undefined) refuseEpoch(outcome.epochRejected);
     return outcome;
@@ -1876,6 +1895,66 @@ export function openClientRequestJournal(directory, {
       const row = readRunDefinitionRow(ref, requestControl);
       if (row === undefined) return undefined;
       return admitRunDefinitionRow(row, requestControl, publicationControl);
+    },
+    // Private original-content projection for this journal's admitted Run.
+    // It grants neither current authorization nor a physical/resume claim.
+    // Historical unselected Runs remain readable without a new reference;
+    // missing selected custody cannot be repaired from current caller options.
+    originalSubmittedIntent(identity, {namespaceId}, requestControl,
+      publicationControl) {
+      ensureOpen();
+      if (!text(namespaceId) ||
+          typeof requestControl?.clientSubmittedIntentRequestsCommitStop !== 'function') {
+        fail('InvalidClientRequestJournalControl');
+      }
+      const fields = checkedIdentity(identity, requestControl);
+      const readOriginal = () => {
+        assertSubmissionCustody();
+        assertIntentCustody();
+        const run = lookupRecord({namespaceId, authorityScopeCid: fields.authorityScopeCid,
+          requestId: fields.requestId}, requestControl);
+        if (run === undefined || requestControl.clientRequestRelation(identity,
+          run.identity) !== 1) fail('ClientRequestSubmittedIntentMismatch');
+        // Re-admit the retained Definition/evidence through the existing Owner
+        // before using its private submitted-content reference.
+        const facts = retainedRunFacts(run.row, publicationControl,
+          maxRunDefinitionWireBytes, updateOriginalControl);
+        const expectedCid = facts.runAdmissionEvidence?.submittedIntentCid;
+        const row = intentSelect.get(fields.requestId);
+        if (row === undefined) {
+          if (expectedCid !== undefined) fail('ClientSubmittedIntentCustodyLost');
+          return undefined;
+        }
+        const original = retainedIntent(row, requestControl);
+        const intent = requestControl.clientSubmittedIntent(original.intentWire,
+          1048576, 65536, 64);
+        if (intent === undefined || !['preparing', 'held', 'ready'].includes(original.phase)) {
+          fail('ClientRequestSubmittedIntentMismatch');
+        }
+        if (expectedCid === undefined) {
+          if (requestControl.clientSubmittedIntentRequestsCommitStop(intent)) {
+            fail('ClientRequestSubmittedIntentBindingMissing');
+          }
+          return undefined;
+        }
+        if (expectedCid !== original.intentCid) fail('ClientRequestSubmittedIntentMismatch');
+        return {intent, intentCid: original.intentCid, intentWire: original.intentWire,
+          referenceWire: canonicalValueJson(original.submissionRef, {dataKeys: true}),
+          runDefinitionCid: run.row.run_definition_cid};
+      };
+      const original = transaction.run(readOriginal);
+      if (original === undefined) return undefined;
+      return Object.freeze({intent: original.intent, referenceWire: original.referenceWire,
+        assertCurrent() {
+          ensureOpen();
+          const current = transaction.run(readOriginal);
+          if (current === undefined || current.intentCid !== original.intentCid ||
+              current.intentWire !== original.intentWire ||
+              current.referenceWire !== original.referenceWire ||
+              current.runDefinitionCid !== original.runDefinitionCid) {
+            fail('ClientRequestSubmittedIntentMismatch');
+          }
+        }});
     },
     // Advance only published logical/control/availability facts. The same
     // original accepted row, complete observation fence and confirmed COMMIT

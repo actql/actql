@@ -564,6 +564,8 @@ type SubmissionIdentityOptions = (
 export type SubmissionOptions = SubmissionIdentityOptions & Readonly<{
   attemptId?: string;
   parameters?: unknown;
+  /** Persist an explicit review stop before the original Run's first Effect. */
+  stopBefore?: 'commit';
   signal?: AbortSignal;
 }>;
 

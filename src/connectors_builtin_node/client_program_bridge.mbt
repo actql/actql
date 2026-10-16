@@ -3966,6 +3966,75 @@ pub fn client_program_bind_table_preview(
 }
 
 ///|
+/// The installed journal supplies its original authenticated reference/intent.
+/// This projection adds no storage, authorization, approval or resume authority.
+#export_name("clientProgramRequestedEffectStop")
+pub fn client_program_requested_effect_stop(
+  intent : @publication_host.ClientSubmittedIntent,
+  reference_wire : String,
+  request : @publication_host.ClientRequestIdentity,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  preview : @strategy.CapturedEffectPreviewInputs,
+) -> Result[
+  @publication_host.ClientRequestedEffectStop?,
+  @publication_host.ClientRequestedEffectStopIssue,
+] {
+  let reference = match
+    @publication_host.admit_client_submission_reference_record(reference_wire) {
+    Ok(value) => value
+    Err(_) => return Err(@publication_host.ForeignRequest)
+  }
+  @publication_host.issue_client_requested_effect_stop(
+    intent, reference, request, allowed, definition, preview,
+  )
+}
+
+///|
+#export_name("clientProgramRequestedEffectStopIntentCid")
+pub fn client_program_requested_effect_stop_intent_cid(
+  original : @publication_host.ClientRequestedEffectStop,
+) -> String {
+  @publication_host.client_requested_effect_stop_intent_cid(original)
+}
+
+///|
+#export_name("clientProgramRequestedEffectStopCheckpoint")
+pub fn client_program_requested_effect_stop_checkpoint(
+  original : @publication_host.ClientRequestedEffectStop,
+  body_wire : String,
+  continuation_wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientRequestedEffectStopIssue] {
+  @publication_host.seal_client_requested_effect_stop_body(
+    original,
+    body_wire,
+    continuation_wire,
+    { max_wire_bytes: max_bytes, max_nodes, max_depth, },
+  )
+}
+
+///|
+#export_name("clientProgramRequestedEffectStopContinuation")
+pub fn client_program_requested_effect_stop_continuation(
+  original : @publication_host.ClientRequestedEffectStop,
+  provider_wire : String,
+  target_read_binding_wire : String?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientRequestedEffectStopIssue] {
+  @publication_host.issue_client_requested_effect_stop_continuation(
+    original,
+    provider_wire,
+    target_read_binding_wire,
+    { max_wire_bytes: max_bytes, max_nodes, max_depth, },
+  )
+}
+
+///|
 #export_name("clientProgramTablePreviewSubjectCid")
 pub fn client_program_table_preview_subject_cid(
   value : @publication_host.ClientTablePreview,

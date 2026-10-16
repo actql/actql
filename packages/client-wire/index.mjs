@@ -5,7 +5,7 @@ export * from './interactive-control.generated.js';
 // identities, authorization, state transitions, publication and retry.
 import {validDeliveryAttempt, validDeliveryRecord,
   validHostReleaseReceipt} from './publication.generated.js';
-import {clientHostOperations, clientHostRequestKeys,
+import {clientHostOperations, clientHostRequestKeys, validClientRequestOptionalFields,
   validProfileContract, validAdmissionContract, validCancellationShape,
   validCancellationRefShape, validCancellationLookupShape, validCheckpointReviewShape,
   validCheckpointSummaryShape, validConnectionShape, validHeldContract,
@@ -347,13 +347,14 @@ function validProgramInput(body) {
 }
 
 export function validClientBody(operation, body) {
-  const bodyKeys = clientHostRequestKeys(operation);
+  const bodyKeys = clientHostRequestKeys(operation, body);
   // Template requests contain no submitted bindings. The scope is selected
   // before input admission; even null or an empty binding object is refused.
   const selectedKeys = operation === 'check' && body?.scope === 'template_only'
     ? bodyKeys?.filter(key => key !== 'parameters') : bodyKeys;
   if (selectedKeys === undefined || !exact(body, selectedKeys) ||
-      !validClientConnection(body.connection)) return false;
+      !validClientConnection(body.connection) ||
+      !validClientRequestOptionalFields(operation, body)) return false;
   if (operation === 'connect') return true;
   if (operation === 'submit-intent' || operation === 'restart-intent') {
     if (!validSubmissionRef(body.submissionRef) || !cid.test(body.intentCid) ||
@@ -361,7 +362,8 @@ export function validClientBody(operation, body) {
     if (operation === 'restart-intent' && !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) return false;
     return validClientBody('submit', {connection: body.connection,
       requestId: body.submissionRef.nonce, kind: body.kind,
-      input: body.input, parameters: body.parameters}) &&
+      input: body.input, parameters: body.parameters,
+      ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {})}) &&
       (body.parameters === null || typeof body.parameters === 'object' &&
         !Array.isArray(body.parameters));
   }

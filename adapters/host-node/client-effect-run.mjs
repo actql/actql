@@ -37,6 +37,7 @@ export function installNodeClientEffectRun({moon,
          typeof moon?.clientProgramEffectTargetSelectionOriginal !== 'function')) ||
       typeof execute !== 'function' ||
       typeof journal?.reservePhysicalStart !== 'function' ||
+      typeof journal?.originalSubmittedIntent !== 'function' ||
       typeof now !== 'function' ||
       typeof moon?.clientProgramEffectRunStartCurrent !== 'function') {
     throw new TypeError('InvalidClientEffectRunInstallation');
@@ -185,6 +186,8 @@ export function installNodeClientEffectRun({moon,
         throw Object.assign(new Error('ClientEffectRunEvidenceMissing'),
           {code: 'ClientEffectRunEvidenceMissing', ref: retained.ref});
       }
+      const originalSubmittedIntent = journal.originalSubmittedIntent(identity,
+        {namespaceId}, moon, control);
       const compilation = compile();
       const original = updateTargetOriginals?.validateRun({prepared, compilation,
         evidence, runDefinition: retained.runDefinition, identity}) ?? {};
@@ -202,6 +205,7 @@ export function installNodeClientEffectRun({moon,
           principalId, connection, ref: retained.ref,
           runDefinition: retained.runDefinition}));
       } catch { /* A failed current authority observation fails closed. */ }
+      originalSubmittedIntent?.assertCurrent();
       if (authorized === true &&
           !moon.clientProgramEffectRunStartCurrent(allowed,
             definition, now())) {
@@ -226,6 +230,7 @@ export function installNodeClientEffectRun({moon,
           preparedExecution = prepareExecution(Object.freeze({ref: start.ref,
             identity, owner, prepared, compilation, allowed, definition,
             runDefinition: retained.runDefinition,
+            originalSubmittedIntent,
             ...original,
             resultPolicyOriginal: evidence.resultPolicyOriginal}));
           if (typeof preparedExecution?.then === 'function') {
@@ -254,6 +259,7 @@ export function installNodeClientEffectRun({moon,
       // durable physical-start reservation. The answer alone is not a send
       // permit; no asynchronous work separates these two admissions.
       beforePhysicalStart?.();
+      originalSubmittedIntent?.assertCurrent();
       original.assertUpdateSelectionCurrent?.();
       if (!journal.reservePhysicalStart(identity, {namespaceId, ref: start.ref,
         currentAuthorization: authorized === true}, moon, control)) {
@@ -266,7 +272,8 @@ export function installNodeClientEffectRun({moon,
       const value = await execute(Object.freeze({ref: start.ref, identity,
         owner, prepared, compilation, allowed, definition,
         ...original,
-        runDefinition: retained.runDefinition, preparedExecution, signal}));
+        runDefinition: retained.runDefinition, originalSubmittedIntent,
+        preparedExecution, signal}));
       return Object.freeze({kind: 'started', ref: start.ref, value});
     },
     // Rebind a previously admitted computation for the existing Checkpoint
@@ -284,6 +291,8 @@ export function installNodeClientEffectRun({moon,
           retained.observedTerminalOutcome !== null) throw denied();
       const evidence = retained.runAdmissionEvidence;
       if (evidence === undefined) throw denied();
+      const originalSubmittedIntent = journal.originalSubmittedIntent(identity,
+        {namespaceId}, moon, control);
       const compilation = compile();
       const original = updateTargetOriginals?.validateRun({prepared, compilation,
         evidence, runDefinition: retained.runDefinition, identity}) ?? {};
@@ -295,6 +304,7 @@ export function installNodeClientEffectRun({moon,
       const current = await authorizeRunStart(Object.freeze({namespaceId,
         principalId, connection, ref: retained.ref, runDefinition: retained.runDefinition}));
       if (current !== true) throw denied();
+      originalSubmittedIntent?.assertCurrent();
       original.assertUpdateSelectionCurrent?.();
       if (!moon.clientProgramEffectRunStartCurrent(allowed, definition, now())) {
         throw expired(retained.ref);
@@ -302,6 +312,7 @@ export function installNodeClientEffectRun({moon,
       const facts = {ref: retained.ref, identity, owner, prepared, compilation,
         ...original,
         allowed, definition, runDefinition: retained.runDefinition,
+        originalSubmittedIntent,
         resultPolicyOriginal: evidence.resultPolicyOriginal};
       const preparedExecution = prepareExecution?.(Object.freeze(facts));
       if (typeof preparedExecution?.then === 'function') {

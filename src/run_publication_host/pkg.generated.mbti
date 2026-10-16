@@ -909,6 +909,8 @@ pub fn client_request_program_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_scope_cid(ClientRequestIdentity) -> String
 
+pub fn client_requested_effect_stop_intent_cid(ClientRequestedEffectStop) -> String
+
 pub fn client_result_plan_cid(ClientResultPlanIdentity) -> String
 
 pub fn client_result_plan_name(ClientResultPlanIdentity) -> String
@@ -1052,6 +1054,8 @@ pub fn client_submission_reference_record_wire(ClientSubmissionReferenceRecord) 
 pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
 pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
+
+pub fn client_submitted_intent_requests_commit_stop(ClientSubmittedIntent) -> Bool
 
 pub fn client_submitted_intent_transition(String, String) -> Bool
 
@@ -1342,6 +1346,10 @@ pub fn issue_client_model_provider_binding(String, String, String, String) -> Re
 pub fn issue_client_model_raw_capture_policy(ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, String, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, String, String, String, String, String) -> Result[@run_publication.BoundModelRawCapturePolicy, ClientModelRawCaptureIssue]
 
 pub fn issue_client_multi_task_invocation(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_requested_effect_stop(ClientSubmittedIntent, ClientSubmissionReferenceRecord, ClientRequestIdentity, ClientEffectAllowedRun, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs) -> Result[ClientRequestedEffectStop?, ClientRequestedEffectStopIssue]
+
+pub fn issue_client_requested_effect_stop_continuation(ClientRequestedEffectStop, String, String?, @checkpoint_runtime.WireLimits) -> Result[String, ClientRequestedEffectStopIssue]
 
 pub fn issue_client_run_policy_originals(PreparedClientProgram, compiled? : ClientCompiledRun) -> Result[String, ClientRunPolicyOriginalsIssue]
 
@@ -1816,6 +1824,10 @@ pub fn retire_client_model_current_state_match(@physical_resources.OriginalCurre
 pub fn retire_client_model_resource_park(@physical_resources.OriginalResourcePark[ClientModelReadOrigin]) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn reuse_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest, Int) -> Result[Unit, ClientKeyedRequestIssue]
+
+pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_runtime.CheckpointRequest, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientRequestedEffectStopIssue]
+
+pub fn seal_client_requested_effect_stop_body(ClientRequestedEffectStop, String, String, @checkpoint_runtime.WireLimits) -> Result[String, ClientRequestedEffectStopIssue]
 
 pub fn select_client_single_keyed_acquisition(PreparedClientProgram) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue]
 
@@ -3230,6 +3242,18 @@ pub(all) enum ClientRequestIdentityRelation {
   SameRequest
   ChangedIntent
 } derive(Eq, @debug.Debug)
+
+type ClientRequestedEffectStop
+
+pub(all) enum ClientRequestedEffectStopIssue {
+  ForeignRequest
+  ForeignRun
+  ForeignPreview
+  ForeignContinuation
+  Limit
+  OriginalLifetime
+  Checkpoint(@checkpoint_runtime.CheckpointIssue)
+}
 
 pub(all) enum ClientResultPlanAdmissionIssue {
   Issue(ClientResultPlanIssue)

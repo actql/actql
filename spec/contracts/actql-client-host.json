@@ -1,5 +1,16 @@
 {
   "version": "actql-client-host/0.1",
+  "request_optional_fields": {
+    "submit": {
+      "stopBefore": {"const": "commit"}
+    },
+    "submit-intent": {
+      "stopBefore": {"const": "commit"}
+    },
+    "restart-intent": {
+      "stopBefore": {"const": "commit"}
+    }
+  },
   "operations": {
     "connect": [
       "connection"
@@ -169,6 +180,42 @@
     ]
   },
   "schemas": {
+    "submitted_intent": {
+      "title": "Original submitted intent DATA, not acceptance or execution authority",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "input", "parameters"],
+      "properties": {
+        "kind": {"enum": ["program", "aql"]},
+        "input": {"type": "object", "additionalProperties": true},
+        "parameters": {"oneOf": [
+          {"const": null}, {"type": "object", "additionalProperties": true}
+        ]},
+        "stopBefore": {"const": "commit"}
+      }
+    },
+    "installed_effect_continuation": {
+      "title": "Existing private installed Effect continuation DATA",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "run_definition_cid", "unit_id", "preview_cid", "provider"],
+      "properties": {
+        "version": {"const": "actql-installed-effect-continuation/0.1"},
+        "run_definition_cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "unit_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+        "preview_cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "provider": {"type": "object", "additionalProperties": true},
+        "target_read_binding": {"type": "object", "additionalProperties": true},
+        "requested_stop": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["intent_cid"],
+          "properties": {
+            "intent_cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+          }
+        }
+      }
+    },
     "submission_epoch": {
       "type": "object",
       "additionalProperties": false,

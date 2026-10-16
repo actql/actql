@@ -3,8 +3,10 @@ fn verify_captured_private_table_input(
   empty : Bool,
   repeated? : Bool = false,
   original_subject? : Bool = false,
+  requested_stop? : Bool = false,
 ) -> Unit raise {
   assert_false(repeated && original_subject)
+  assert_true(!requested_stop || original_subject)
   let (document, environment, limits) = local_effect_export_fixture(
     table=true,
     empty~,
@@ -869,6 +871,19 @@ fn verify_captured_private_table_input(
         ),
       )
   }
+  let requested_stop_read = if requested_stop {
+    Some(
+      check_requested_effect_stop_projection(
+        document,
+        prepared,
+        subject_allowed.unwrap(),
+        run_definition,
+        captured_preview,
+      ),
+    )
+  } else {
+    None
+  }
   assert_true(
     @strategy.captured_effect_preview_input_at(captured_preview, 0) is None,
   )
@@ -967,6 +982,17 @@ fn verify_captured_private_table_input(
   if subject_read is Some(read) {
     assert_true(
       read.original_subject_after_current()
+      is Err(@publication_host.OriginalLifetime),
+    )
+  }
+  if requested_stop_read is Some((original, body, continuation)) {
+    assert_true(
+      @publication_host.seal_client_requested_effect_stop(
+        original,
+        body,
+        continuation,
+        { max_wire_bytes: 65536, max_nodes: 4096, max_depth: 64, },
+      )
       is Err(@publication_host.OriginalLifetime),
     )
   }
@@ -1077,7 +1103,7 @@ fn private_table_test_preview(
       mapping +
       "\",\"max_items\":1,\"on_item_failure\":\"" +
       failure +
-      "\",\"preview_strength\":\"blind\",\"required_permissions\":[\"scope:create\"],\"resolved_mapping_contract_cid\":\"" +
+      "\",\"preview_strength\":\"full_diff\",\"required_permissions\":[\"scope:create\"],\"resolved_mapping_contract_cid\":\"" +
       mapping_cid +
       "\",\"result_artifact_cid\":\"" +
       @publication_host.client_effect_local_result_artifact_cid(artifact) +
@@ -1124,9 +1150,14 @@ fn private_table_test_preview(
     "\",\"retention_class\":\"authority-evidence\",\"run_identity_cid\":\"" +
     run_cid +
     "\",\"sensitivity\":\"private\",\"version\":\"actql-effect-preview/0.1\"}"
-  let (semantic_wire, semantic) = @publication.author_effect_preview_semantic_wire(
-    raw, run_cid, authoring, 65536, 4096, 32,
-  ).unwrap()
+  let (semantic_wire, semantic) = match
+    @publication.author_effect_preview_semantic_wire(
+      raw, run_cid, authoring, 65536, 4096, 32,
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      fail("Private Table Preview admission failed: " + @debug.to_string(issue))
+  }
   let key = @effect.prepare_effect_dispatch_key(
     scope,
     @publication.effect_preview_semantic_identity(semantic),

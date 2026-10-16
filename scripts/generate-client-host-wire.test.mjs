@@ -9,6 +9,33 @@ const registry = JSON.parse(await readFile(new URL(
 const protocol = JSON.parse(await readFile(new URL(
   '../spec/contracts/actql-protocol-schemas.json', import.meta.url), 'utf8'));
 
+test('optional request fields are closed projections of the registered operation', async () => {
+  const {validClientBody} = await import('../packages/client-wire/index.mjs');
+  const body = {connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []}, requestId: 'original',
+    kind: 'program', input: {}, parameters: null};
+  assert.equal(validClientBody('submit', body), true);
+  assert.equal(validClientBody('submit', {...body, stopBefore: 'commit'}), true);
+  for (const stopBefore of [undefined, null, '', 'prepare', false, 1, {}, ['commit']]) {
+    assert.equal(validClientBody('submit', {...body, stopBefore}), false);
+  }
+  assert.equal(validClientBody('submit', {...body, stopBefore: 'commit', extra: 1}), false);
+  assert.equal(validClientBody('status', {connection: body.connection, stopBefore: 'commit'}), false);
+  const output = buildClientHostWire(registry, protocol);
+  const changed = structuredClone(registry);
+  changed.request_optional_fields.submit.stopBefore.const = 'independent-mutated-stop';
+  assert.notEqual(buildClientHostWire(changed, protocol).module, output.module);
+  for (const mutate of [
+    value => {delete value.request_optional_fields;},
+    value => {value.request_optional_fields = null;},
+    value => {value.request_optional_fields.unknown = {stopBefore: {const: 'commit'}};},
+    value => {value.request_optional_fields.submit.parameters = {const: null};},
+    value => {value.request_optional_fields.submit = [];},
+  ]) {
+    const bad = structuredClone(registry); mutate(bad);
+    assert.throws(() => buildClientHostWire(bad, protocol), /InvalidClientHostOptionalFields/);
+  }
+});
+
 test('generated Client–Host guards and types match the machine contract',
   async () => {
     const outputs = buildClientHostWire(registry, protocol);

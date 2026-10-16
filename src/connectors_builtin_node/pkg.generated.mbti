@@ -1762,6 +1762,14 @@ pub fn client_program_request_identity(@run_publication_host.PreparedClientProgr
 
 pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
 
+pub fn client_program_requested_effect_stop(@run_publication_host.ClientSubmittedIntent, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs) -> Result[@run_publication_host.ClientRequestedEffectStop?, @run_publication_host.ClientRequestedEffectStopIssue]
+
+pub fn client_program_requested_effect_stop_checkpoint(@run_publication_host.ClientRequestedEffectStop, String, String, Int, Int, Int) -> Result[String, @run_publication_host.ClientRequestedEffectStopIssue]
+
+pub fn client_program_requested_effect_stop_continuation(@run_publication_host.ClientRequestedEffectStop, String, String?, Int, Int, Int) -> Result[String, @run_publication_host.ClientRequestedEffectStopIssue]
+
+pub fn client_program_requested_effect_stop_intent_cid(@run_publication_host.ClientRequestedEffectStop) -> String
+
 pub fn client_program_require_infer_call_entry(@client_infer_host.Execution) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
 pub fn client_program_requires_acquisition_result_publication(@run_publication_host.PreparedClientProgram) -> Bool
@@ -2259,6 +2267,8 @@ pub fn client_submission_request_id(@logical_request_scope.SubmissionEpoch, Stri
 pub fn client_submitted_intent(String, Int, Int, Int) -> @run_publication_host.ClientSubmittedIntent?
 
 pub fn client_submitted_intent_cid(@run_publication_host.ClientSubmittedIntent) -> String
+
+pub fn client_submitted_intent_requests_commit_stop(@run_publication_host.ClientSubmittedIntent) -> Bool
 
 pub fn client_submitted_intent_transition(String, String) -> Bool
 
