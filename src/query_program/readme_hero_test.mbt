@@ -50,16 +50,36 @@ fn readme_hero_text() -> String {
 ///|
 fn readme_hero_inputs() -> Array[Input] {
   let declarations = [
-    ("salesforce.accounts", (
-      #|{"carrier":"relation","primary_key":["id"],"schema":{"description":{"nullable":false,"type":"string"},"id":{"nullable":false,"type":"string"}}}
-    )),
-    ("snowflake.usage_30d", (
-      #|{"carrier":"relation","primary_key":["account_id"],"schema":{"account_id":{"nullable":false,"type":"string"},"active_users":{"nullable":false,"type":"int64"},"trend":{"nullable":false,"type":"string"}}}
-    )),
+    (
+      "salesforce.accounts",
+      (
+        #|{"carrier":"relation","primary_key":["id"],"schema":{"description":{"nullable":false,"type":"string"},"id":{"nullable":false,"type":"string"}}}
+      ),
+    ),
+    (
+      "snowflake.usage_30d",
+      (
+        #|{"carrier":"relation","primary_key":["account_id"],"schema":{"account_id":{"nullable":false,"type":"string"},"active_users":{"nullable":false,"type":"int64"},"trend":{"nullable":false,"type":"string"}}}
+      ),
+    ),
   ]
   declarations.map(entry => {
-    let declaration = @wire.admit(@source.parse_json(entry.1,construction_limits().source.source).unwrap(),construction_limits().source.tree).unwrap()
-    {relation:entry.0.split(".").map(value => {value,quoted:false}),name:entry.0.replace(old=".",new="_"),source:Captured(declaration),visible_fields:match entry.0 {"salesforce.accounts" => ["id","description"] _ => ["account_id","active_users","trend"]},graph_bindings:[]}
+    let declaration = @wire.admit(
+      @source.parse_json(entry.1, construction_limits().source.source).unwrap(),
+      construction_limits().source.tree,
+    ).unwrap()
+    {
+      relation: entry.0
+      .split(".")
+      .map(value => { value: value.to_string(), quoted: false, }),
+      name: entry.0.replace(old=".", new="_"),
+      source: Captured(declaration),
+      visible_fields: match entry.0 {
+        "salesforce.accounts" => ["id", "description"]
+        _ => ["account_id", "active_users", "trend"]
+      },
+      graph_bindings: [],
+    }
   })
 }
 
@@ -101,25 +121,53 @@ fn readme_hero_publication(
 
 ///|
 test "exact README hero defaults retain the Common key and original UPDATE scope" {
-  let environment=readme_hero_environment()
-  let context=readme_hero_context(environment)
-  let publication=readme_hero_publication(environment)
-  let source=readme_hero_text()
-  let explicit=source.replace(old:"INPUT (notes, active_users, trend)",new:"ITEM KEY (id) INPUT (notes = notes, active_users = active_users, trend = trend) KEEP (id, notes, active_users, trend)")
-  let prepare=fn(text) {compile(@query.parse_query(text,syntax_limits()).unwrap(),context,construction_limits(),update_targets=Some(publication))}
-  let actual=match prepare(source) {Ok(value)=>value Err(issue)=>fail("exact README hero: "+infer_defaults_issue_tag(issue))}
-  let expanded=match prepare(explicit) {Ok(value)=>value Err(issue)=>fail("independent expanded control: "+infer_defaults_issue_tag(issue))}
-  assert_eq(semantic(actual),semantic(expanded))
-  assert_eq(@program.exports(actual).map(value=>value.0),["updates"])
-  let headers=@program.collect_effect_headers(actual,10,100000).unwrap()
-  assert_eq(@program.effect_header_count(headers),1)
-  assert_eq(@program.effect_header_kind(@program.effect_header_at(headers,0).unwrap()),"update")
+  let environment = readme_hero_environment()
+  let context = readme_hero_context(environment)
+  let publication = readme_hero_publication(environment)
+  let source = readme_hero_text()
+  let explicit = source.replace(
+    old="INPUT (notes, active_users, trend)",
+    new="ITEM KEY (id) INPUT (notes = notes, active_users = active_users, trend = trend) KEEP (id, notes, active_users, trend)",
+  )
+  let prepare = fn(text) {
+    compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      context,
+      construction_limits(),
+      update_targets=Some(publication),
+    )
+  }
+  let actual = match prepare(source) {
+    Ok(value) => value
+    Err(issue) => fail("exact README hero: " + infer_defaults_issue_tag(issue))
+  }
+  let expanded = match prepare(explicit) {
+    Ok(value) => value
+    Err(issue) =>
+      fail("independent expanded control: " + infer_defaults_issue_tag(issue))
+  }
+  assert_eq(semantic(actual), semantic(expanded))
+  assert_eq(@program.exports(actual).map(value => value.0), ["updates"])
+  let headers = @program.collect_effect_headers(actual, 10, 100000).unwrap()
+  assert_eq(@program.effect_header_count(headers), 1)
+  assert_eq(
+    @program.effect_header_kind(@program.effect_header_at(headers, 0).unwrap()),
+    "update",
+  )
 }
 
 ///|
 test "README hero omission never borrows a key from unprojected JOIN or observed values" {
-  let environment=readme_hero_environment()
-  let source=readme_hero_text().replace(old:"a.id AS id",new:"a.description AS id")
-  let result=compile(@query.parse_query(source,syntax_limits()).unwrap(),readme_hero_context(environment),construction_limits(),update_targets=Some(readme_hero_publication(environment)))
+  let environment = readme_hero_environment()
+  let source = readme_hero_text().replace(
+    old="a.id AS id",
+    new="a.description AS id",
+  )
+  let result = compile(
+    @query.parse_query(source, syntax_limits()).unwrap(),
+    readme_hero_context(environment),
+    construction_limits(),
+    update_targets=Some(readme_hero_publication(environment)),
+  )
   assert_true(result is Err(_))
 }
