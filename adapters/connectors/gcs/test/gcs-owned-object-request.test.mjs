@@ -132,7 +132,7 @@ test('foreign scope and invalid physical clamps refuse before invoking a port', 
 });
 
 test('bodyless delete preserves a rejected original response without creating a receipt', async () => {
-  const binding = prepareGcsObjectBinding(moon, config({kind: 'delete'}));
+  const binding = prepareGcsObjectBinding(moon, config({kind: 'delete', permissions: ['storage.objects.delete']}));
   const r = prepareOwnedGcsObjectDelete({moon, binding, original: read(), maxProjectionBytes: 8192});
   const body = Buffer.from('precondition failed');
   const result = await send(r, async invocation => {

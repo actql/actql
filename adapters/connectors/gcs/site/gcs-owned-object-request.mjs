@@ -38,6 +38,11 @@ function metadataArguments(limits) {
 export function prepareGcsObjectBinding(moon, {kind, bucket, prefix, catalogCid,
   installationCid, contractCid, permissions, metadata, maxPathBytes,
   maxBodyBytes, maxIdentityBytes}) {
+  if ([kind, bucket, prefix, catalogCid, installationCid, contractCid]
+    .some(value => typeof value !== 'string') || !Array.isArray(permissions) ||
+      permissions.some(value => typeof value !== 'string')) {
+    fail('InvalidGcsObjectAbiBinding');
+  }
   if (![maxPathBytes, maxBodyBytes, maxIdentityBytes].every(value => integer(value))) {
     fail('InvalidGcsObjectAbiLimits');
   }
