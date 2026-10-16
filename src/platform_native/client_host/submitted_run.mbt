@@ -48,11 +48,39 @@ fn NativeClientRunJournal::validate_submitted_run_admission(
   }
   match self.retained(admission.request) {
     Ok(Some(run)) => {
+      if record.run_state_observation is Some(_) &&
+        run.run_observation_originals is None {
+        return Err(CustodyLost)
+      }
       if record.run_state_original is Some(wire) {
-        if run.run_observation_originals is None ||
-          @host.restore_client_run_state_original(run.definition, wire)
-          is Err(_) {
+        if run.run_observation_originals is None {
           return Err(CustodyLost)
+        }
+        match record.run_state_observation {
+          None =>
+            if @host.validate_client_historical_run_state_original(
+                run.definition,
+                wire,
+              )
+              is Err(_) {
+              return Err(CustodyLost)
+            }
+          Some((revision, key)) => {
+            let state = match
+              @host.restore_client_run_state_original(run.definition, wire) {
+              Ok(value) => value
+              Err(_) => return Err(CustodyLost)
+            }
+            let observation = match
+              native_saved_state_observation(run, state, revision) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            }
+            if key != Some(observation.key()) ||
+              observation.wire(revision).to_option() != Some(state.state_wire()) {
+              return Err(CustodyLost)
+            }
+          }
         }
       }
       @host.validate_client_submitted_retained_run(
@@ -415,11 +443,19 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       run_definition_cid: @publication.publication_contract_identity(definition),
       revision: run.revision,
     }
+    // Only this fresh acceptance has proved the original Run did not exist.
+    // Old accepted rows take the retained branch above, without initialization.
+    let run_state_observation = if observation_wire is Some(_) {
+      Some((0L, None))
+    } else {
+      None
+    }
     let body = match
       submitted_intent_body(
         reference,
         original.intent,
         run_admission=Some(run_admission),
+        run_state_observation~,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -437,6 +473,7 @@ fn NativeClientRunJournal::accept_original_submitted_run(
     .map(revision => {
       ..original,
       run_admission: Some(run_admission),
+      run_state_observation,
       revision,
     })
     .map_err(issue => Physical(issue))

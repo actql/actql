@@ -10,6 +10,38 @@ pub fn validate_original_succeeded_run_state(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, PublicationContractIssue] {
+  validate_original_succeeded_run_state_body(
+    definition, manifest, wire, max_bytes, max_nodes, max_depth, false,
+  )
+}
+
+///|
+/// Historical custody only. An absent journal revision is never issued,
+/// persisted as zero, or admitted as current public RunState by this reader.
+/// All original bytes, Run/Manifest joins and state laws remain mandatory.
+pub fn validate_historical_original_succeeded_run_state(
+  definition : PublicationContract,
+  manifest : PublicationContract,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, PublicationContractIssue] {
+  validate_original_succeeded_run_state_body(
+    definition, manifest, wire, max_bytes, max_nodes, max_depth, true,
+  )
+}
+
+///|
+fn validate_original_succeeded_run_state_body(
+  definition : PublicationContract,
+  manifest : PublicationContract,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  historical : Bool,
+) -> Result[Unit, PublicationContractIssue] {
   if definition.name != "run_definition" ||
     manifest.name != "result_manifest" ||
     contract_string(manifest, "run_definition_cid") != Some(definition.identity) {
@@ -23,10 +55,17 @@ pub fn validate_original_succeeded_run_state(
   let original = @json.stringify_value(value, max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  if original != wire ||
-    !validate_generated_protocol_shape(
+  if original != wire {
+    return Err(InvalidWire)
+  }
+  let shape = if historical && @json.object_field(value, "revision") is None {
+    validate_historical_run_state_shape(value, max_bytes, max_nodes, max_depth)
+  } else {
+    validate_generated_protocol_shape(
       "run_state", value, true, max_bytes, max_nodes, max_depth,
-    ) {
+    )
+  }
+  if !shape {
     return Err(InvalidWire)
   }
   if contract_string_from_value(value, "status") != Some("succeeded") ||
