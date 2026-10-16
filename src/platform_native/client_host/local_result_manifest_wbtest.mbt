@@ -1,4 +1,56 @@
 ///|
+// Report only the original API phase and typed issue kind. A setup refusal
+// retires the same acquired Host/Stores; a missing close ACK stays pending.
+fn[T, E] result_manifest_checked(
+  host : NativeLocalHostConnection,
+  stores : Array[@publication_store.Store],
+  value : Result[T, E],
+  phase : String,
+  kind : (E) -> String,
+) -> T raise {
+  match value {
+    Ok(value) => value
+    Err(issue) => {
+      let issue_kind = kind(issue)
+      let host_cleanup = if host.close() is Ok(_) {
+        "confirmed"
+      } else {
+        "pending"
+      }
+      let mut stores_confirmed = true
+      for store in stores {
+        if !(store.close() is Ok(true)) {
+          stores_confirmed = false
+        }
+      }
+      fail(
+        "original Result inventory phase=" +
+        phase +
+        " kind=" +
+        issue_kind +
+        " host_cleanup=" +
+        host_cleanup +
+        " stores_cleanup=" +
+        (if stores_confirmed { "confirmed" } else { "pending" }),
+      )
+    }
+  }
+}
+
+///|
+fn result_manifest_publisher_kind(
+  issue : NativeLocalPublisherBindingIssue,
+) -> String {
+  match issue {
+    Adoption(_) => "Adoption"
+    Journal(issue) => original_selection_journal_kind(issue)
+    InvalidOriginal => "InvalidOriginal"
+    SelectionMismatch => "SelectionMismatch"
+    AuthorizationDenied => "AuthorizationDenied"
+  }
+}
+
+///|
 test "original Result inventory refuses foreign custody and retains empty publication as unknown" {
   let name = "original-result-manifest"
   let host = observed_state_host_fixture(name, true)
@@ -38,17 +90,60 @@ test "original Result inventory refuses foreign custody and retains empty public
     )
     is Err(ForeignRun),
   )
-  host
-  .bind_run_publisher(
-    crypto,
-    "operator",
-    "cli",
-    request,
-    definition,
-    name + ".run.json",
-    store,
+  // Binding a publisher does not install a missing journal/Store original.
+  // Retain the original setup refusal as an explicit counterexample.
+  assert_true(
+    host.bind_run_publisher(
+      crypto,
+      "operator",
+      "cli",
+      request,
+      definition,
+      name + ".run.json",
+      store,
+    )
+    is Err(Journal(CustodyLost)),
   )
-  .unwrap()
+  let publication = result_manifest_checked(
+    host,
+    [store, foreign],
+    install_native_client_cancellation_publication(
+      store, "local-test", 65536, 8192, 64,
+    ),
+    "install_cancellation_publication",
+    original_selection_journal_kind,
+  )
+  result_manifest_checked(
+    host,
+    [store, foreign],
+    host.journal.bind_installed_publication(request, publication, () => {
+      host.authorize({
+        principal: "operator",
+        connection: "cli",
+        resource: "run",
+        operation: "publish",
+      })
+      is Ok(Allow(_))
+    }),
+    "bind_installed_publication",
+    original_selection_journal_kind,
+  )
+  |> ignore
+  result_manifest_checked(
+    host,
+    [store, foreign],
+    host.bind_run_publisher(
+      crypto,
+      "operator",
+      "cli",
+      request,
+      definition,
+      name + ".run.json",
+      store,
+    ),
+    "bind_run_publisher",
+    result_manifest_publisher_kind,
+  )
   |> ignore
   let before = run_record_body(host.journal.retained(request).unwrap().unwrap()).unwrap()
   assert_eq(
