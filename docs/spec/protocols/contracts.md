@@ -1190,11 +1190,36 @@ A command resolves to a canonical `actql.command_contract/0.1` containing:
 
 ```text
 command_id, version, connector_id,
-target {resource_kind, cardinality, max_items},
+target {resource_kind, cardinality, max_items, optional binding},
 input_schema and closed input_contract, output_schema, permissions,
 idempotency {support, key_schema, retention}, preview strength,
 reversibility, atomicity, outcome, reconciliation, cancellation, contract_cid
 ```
+
+<!-- requirement-block: command-contracts.target-binding-declaration command-contracts.target-binding-domain -->
+The optional Command `target.binding` MUST be one complete closed record:
+`{kind:"installation"}` for the original fixed installation target, or
+`{kind:"identifier",identity_contract:<checked ValueContract>}` for a target
+identified by an original input value. The identifier contract MUST be
+non-null and KeyComparable under the existing value-domain law; every supplied
+child contract is checked and budgeted before that domain is accepted. The
+Command self-CID and its original Catalog include the complete declaration.
+An absent binding retains the legacy field ResourceRef meaning and bytes;
+absence, NULL, unknown kinds and malformed records never become a fixed-target
+default. A published-mode selection and a legacy field/STORE selection are
+separate checked interpretations of that original Command.
+
+<!-- requirement-block: command-contracts.target-binding-custody -->
+Static selection MUST retain the exact original Command member, Catalog and
+Check Environment, together with the declared mode and complete checked
+identifier domain when present. Equal self-CIDs alone do not establish that
+original occurrence. This type declaration and original selection do not issue
+a ResourceRef, select a current installation or grant permission. Fixed and
+identifier targets still require their trusted installed issuer and original
+installation relationship, current scope/generation, capture, approval, apply
+and restore checks. An identifier value, literal, alias or compatible schema
+cannot replace that issuer. Authored ID correspondence remains separate from
+the existing mutation identity of contract, target and canonical payload.
 
 <!-- requirement-block: command-contracts.input-presence -->
 The closed inline `input_contract` contains `additional_properties: false`
@@ -2418,8 +2443,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_ref sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_envelope sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/source_view sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:089b4bb20d9b047805d2176852265c3a4f4fd3822eaab80359b9e1bac8ca9a1b
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:5777408c086b03bc0a7d049c75797a633daa0ec9662dab0c462bfb572600eca6
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:b0d71becff026232f333383340906b34dcc02da645a9d3394daa21e9f8eff171
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:aa24ef07a561f8b60e3dfbb1238b8a70e237e43ef4c404003205f9f92f7d136f
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/lock sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3

@@ -57,6 +57,18 @@ pub fn select_command_target(
   reference : String,
   max_work : Int,
 ) -> Result[CommandTarget, CommandTargetIssue] {
+  select_command_target_parts(contents, reference, max_work, false).map(v => v.0)
+}
+
+///|
+// Both public selections keep the exact same original Command/Catalog walk.
+// The legacy field/STORE entry does not silently accept a published mode.
+fn select_command_target_parts(
+  contents : CatalogContents,
+  reference : String,
+  max_work : Int,
+  published : Bool,
+) -> Result[(CommandTarget, @decode.Cursor?), CommandTargetIssue] {
   if max_work < 0 {
     return Err(InvalidLimit)
   }
@@ -97,9 +109,14 @@ pub fn select_command_target(
         None => return Err(InvalidCommand(reference))
       }
       let target = match
-        @decode.closed_object(target, [
-          "resource_kind", "cardinality", "max_items",
-        ]) {
+        @decode.closed_object(
+          target,
+          if published {
+            ["resource_kind", "cardinality", "max_items", "binding"]
+          } else {
+            ["resource_kind", "cardinality", "max_items"]
+          },
+        ) {
         Ok(value) => value
         Err(_) => return Err(InvalidCommand(reference))
       }
@@ -128,14 +145,19 @@ pub fn select_command_target(
           _ => return Err(InvalidCommand(reference))
         }
       }
-      return Ok({
-        catalog,
-        item,
-        command_id: command,
-        contract_cid,
-        resource_kind: kind,
-        work: max_work - remaining,
-      })
+      return Ok(
+        (
+          {
+            catalog,
+            item,
+            command_id: command,
+            contract_cid,
+            resource_kind: kind,
+            work: max_work - remaining,
+          },
+          @decode.lookup(target, "binding"),
+        ),
+      )
     }
   }
   Err(MissingCommand(reference))
