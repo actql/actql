@@ -48,7 +48,7 @@ def exercise(client):
         state = yield run.wait()
         assert state.status == 'waiting_checkpoint', state.status
         save({'submission': dict(submission, epoch=dict(submission['epoch'])),
-              'run': dict(run.ref), 'revision': state.revision,
+              'run': dict(run.ref), 'run_id': state.run_id, 'revision': state.revision,
               'checkpoint': dict(state.checkpoint)})
         assert not signed
         return
@@ -62,7 +62,8 @@ def exercise(client):
         resolution = json.loads(item['resolutionWire'])
         assert resolution['checkpoint_id'] == original['checkpoint']['checkpoint_id']
         assert resolution['checkpoint_cid'] == original['checkpoint']['checkpoint_cid']
-        assert resolution['run_id'] == original['run']['runId']
+        assert resolution['run_id'] == original['run_id']
+        assert resolution['run_definition_cid'] == original['run']['runDefinitionCid']
         assert resolution['decision'] == ('approved' if decision == 'approve' else 'rejected')
         if decision == 'approve':
             assert item['approvalEvidenceWire'] != ''
