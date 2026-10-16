@@ -28,11 +28,11 @@ Old R8 results remain historical. New runtime tests executed: **0**.
 | --- | --- | --- | --- |
 | A Core/connector/Compute | C/B | Connector-neutral Core; independent Source and Command extension with original scheduler/approval/recovery unchanged; preserve third-Compute acceptance. | scripts/check-connector-addition.mjs; scripts/check-connector-dispatch-boundary.mjs; scripts/backend-semantic-boundary.test.mjs |
 | B Core/Store/Journal | F | Prepared transition and physical committed/conflict/outcome-unknown differ; lost commit reply reconciles the same original attempt; physical DB/fsync/corruption stay physical. | adapters/host-node/sqlite-checkpoint-journal.test.mjs; adapters/host-node/sqlite-effect-history-page.test.mjs; Cloud test/effect-run-custody.test.ts |
-| C Control/data | C/E | Bounded DTOs distinct from buffers/data; schema, missing/NULL, numeric/encoding, order/chunk/EOS, ownership, maxima and copy accounting; no forced full materialization. | adapters/connectors/sheets; adapters/connectors/table; packages/python-sdk/src/actql_sdk/_local_core.py |
+| C Control/data | C/E | Bounded DTOs distinct from buffers/data; schema, missing/NULL, numeric/encoding, order/chunk/EOS, ownership, maxima and copy accounting; no forced full materialization. | adapters/connectors/sheets; adapters/connectors/local/host/iceberg-process.mjs; adapters/connectors/local/iceberg/physical.py; packages/python-sdk/src/actql_sdk/_local_core.py |
 | D Host/Credential | F | External authentication does not grant ActQL authority; all owner scope fields plus operation/time/revocation/limits; recheck after await at final irreversible operation. | src/remote_credential/credential.mbt; adapters/host-common/owned-invocation-context.mjs; adapters/site-node/https-credential-resource.mjs |
 | E Coordinator/Site/Transfer | F | Admission/start/external outcome/publication/physical release distinct; authenticated durable identity covers lost/duplicate/reordered/stale generation/delayed ACK/failed cleanup. | adapters/host-common/remote-coordinator-abi.test.mjs; adapters/host-node/remote-site-coordinator.test.mjs; Cloud test/site-response-custody.test.ts |
 | F Core/INFER Provider | F/A | Original request/prompt meaning, response interpretation, raw capture/retention and physical transport distinct; provider bytes issue no success/retry/completion/permission. | packages/provider-http/_internal/installed-http-chat.mjs; packages/provider-ai-sdk; adapters/host-node/infer-operation-approval.test.mjs |
-| G Core/observation | F/E | Use owner projections; observer/UI faults cannot change confirmed state, permission or success; copied bounded observations retain no authority. | adapters/host-common/task-observation.mjs; adapters/host-common/observation.mjs; packages/sdk/internal/operation-ports.mjs |
+| G Core/observation | F/E | Use owner projections; observer/UI faults cannot change confirmed state, permission or success; copied bounded observations retain no authority. | adapters/host-common/task-observation.mjs; adapters/host-common/observation.mjs; packages/sdk/internal/run-observation.mjs |
 | H Source/binding/artifact | D/G/all producers | Adopt matching source, compiler, generator, contract, wrapper, public types and actual artifact; separate wire/private ABI/package/toolchain versions. | scripts/package-release.mjs; scripts/check-python-local-core.mjs; scripts/native-cli-release.mjs; Cloud vendor/oss-artifacts.json |
 
 ## Ten attributes for each discovered operation
@@ -100,9 +100,11 @@ code; the two handwritten lists must never be their own oracle.
 After Root freezes an integrated cut, bind actual source/compiler/generator/
 contract/wrapper/type/artifact identities, normal prepack/install, and necessary
 actual JS/Wasm/Native diagnostics. Reuse only proven unchanged inputs. Perform
-the existing real DuckDB + bounded GCS read -> SQL/AQL JOIN -> Named Result ->
-same sealed Preview approval -> Local Iceberg commit -> fresh post-commit
-same-Run recovery with independent rows/schema and no Source/Effect replay.
+the existing real DuckDB + bounded GCS read -> SQL/AQL JOIN with a declared
+Named Result -> original sealed Preview approval -> Local Iceberg commit ->
+public Named Result read -> fresh post-commit process same-Run attach/read,
+with independent rows/schema and no Source/Effect replay. Before approval,
+Named Result is declared/retained; its row body is not publicly readable.
 This is a regression of the existing business, not new distinct business.
 
 No per-PR full Core/all-target/pack repetition. No paid LLM, deployment, public
