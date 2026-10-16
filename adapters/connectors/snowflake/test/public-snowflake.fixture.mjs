@@ -79,4 +79,3 @@ export async function publicSnowflakeFixture(t, entrance) {
     remote: endpoint === undefined ? undefined : Object.freeze({endpoint,
       token: 'snowflake-public-test', caPath: join(f.root, 'server.crt')})};
 }
-
