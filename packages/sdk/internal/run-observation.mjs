@@ -9,7 +9,7 @@ import {ClientError, fail, requestCancellationCause} from './errors.mjs';
 import {createResultFactory} from './result-read.mjs';
 import {ownerObservationLimits, runStateProtocol, snapshotClientRequest, validCancellationAttempt,
   validCancellationLookup, validCancellationRef, validClientAdmission, validClientBody,
-  validOperationAttemptRef, validOwnerObservations, validRunState, validWireRunPlanViewShape,
+  validOperationAttemptRef, validOwnerObservations, validRunState, validRunWaitContract, validWireRunPlanViewShape,
   validWireRunViewShape} from '@actql/client-wire';
 
 const runObservationFailures = new WeakMap();
@@ -109,6 +109,7 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
     // Compare only this Owner's control component. Its revision is not an
     // Effect, publication or whole-Run revision, and carries no retry authority.
     let latestControl;
+    let latestState;
     const readRunObservation = async (operation, body, signal) => {
       // Failure to obtain an observation admits no Run facts, including when
       // credentials or a closed connection prevent dispatch entirely.
@@ -123,6 +124,13 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
       const problem = rejectedRunProblem(state);
       try {
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        if (latestState !== undefined && (state.run_id !== latestState.runId ||
+            state.revision < latestState.revision)) {
+          throw rejectedRunObservation(ref, operation, 'stale_observation');
+        }
+        if (operation === 'wait' && !validRunWaitContract(state, body.since)) {
+          throw rejectedRunObservation(ref, operation, 'malformed_response');
+        }
         // Each observation owns its value even if a Local port reuses a reply.
         const observation = state;
         const observedKey = structuralKey(state);
@@ -143,6 +151,7 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
           }
           latestControl = freezeInput({...control});
         }
+        latestState = Object.freeze({runId:observation.run_id, revision:observation.revision});
         return retainEffectUncertainty(observation, ref);
       } catch (cause) {
         if (runObservationFailures.has(cause)) throw cause;
@@ -220,8 +229,20 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
       status: async ({signal} = {}) => {
         return readRunObservation('status', {}, signal);
       },
-      wait: async ({until, signal} = {}) => {
-        return readRunObservation('wait', {until: until ?? null}, signal);
+      wait: async ({until, since, signal} = {}) => {
+        const body = {until:until ?? null, since:since ?? null};
+        if (!validClientBody('wait', {connection:selected.wire, ref, ...body})) {
+          fail('InvalidWaitRevision');
+        }
+        if (signal?.aborted) fail(signal.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted');
+        try { return await readRunObservation('wait', body, signal); }
+        catch (failure) {
+          if (signal?.aborted && (failure?.code === 'ClientTransportUnknown' ||
+              failure?.code === 'WaitAborted')) {
+            fail(signal.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted');
+          }
+          throw failure;
+        }
       },
       cancel: async ({signal, cancelId = crypto.randomUUID(), expectedRevision,
         attemptId = crypto.randomUUID()} = {}) => {

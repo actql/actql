@@ -678,6 +678,18 @@ fn request_body(
         Some(value) => Json::string(value)
         None => Json::null()
       }
+      fields["since"] = match optional(child, "since") {
+        None => Json::null()
+        Some(value) => {
+          let revision : Int64 = @string.from_str(value) catch {
+            _ => stop("InvalidWaitRevision")
+          }
+          if revision < 0L || revision > 9007199254740991L {
+            stop("InvalidWaitRevision")
+          }
+          Json::number(revision.to_double())
+        }
+      }
     }
     "read" | "delivery-attempt" => {
       fields["ref"] = json_file(root, required(child, "ref-file"), 8192L)
@@ -861,6 +873,7 @@ fn command() -> @argparse.Command {
       @argparse.Command("wait", options=[
         @argparse.OptionArg("ref-file", required=true),
         @argparse.OptionArg("until"),
+        @argparse.OptionArg("since"),
       ]),
       @argparse.Command("cancel", options=[
         @argparse.OptionArg("ref-file", required=true),
