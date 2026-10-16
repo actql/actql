@@ -306,7 +306,21 @@ test "short COMMAND Source lower retains the exact original publication only for
     Some(short_command_context()),
     command_targets=Some(publication),
   ).unwrap()
-  assert_true(physical_equal(lowered.command_targets.unwrap(), publication))
+  let selection = lowered.command_selection.unwrap()
+  let selected = short_command_selection_target(selection)
+  let expected = resolve_command_target_binding(
+    publication,
+    command_publication_alias().name,
+    100,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      resolved_command_target_contract(selected),
+      resolved_command_target_contract(expected),
+    ),
+  )
+  assert_eq(short_command_selection_stage(selection), 0)
+  assert_eq(short_command_selection_effect(selection), "aql_command_effect")
   assert_true(lowered.update_targets is None)
   assert_true(lowered.store_targets is None)
   let ordinary = @frontend.lower(
@@ -315,14 +329,14 @@ test "short COMMAND Source lower retains the exact original publication only for
     Some(short_command_context()),
     command_targets=Some(publication),
   ).unwrap()
-  assert_true(ordinary.command_targets is None)
+  assert_true(ordinary.command_selection is None)
   let machine = @frontend.lower(
     lowered.document,
     @frontend.Json,
     None,
     command_targets=Some(publication),
   ).unwrap()
-  assert_true(machine.command_targets is None)
+  assert_true(machine.command_selection is None)
 }
 
 ///|
@@ -474,4 +488,75 @@ test "short COMMAND actual Common enforces the original identifier domain beyond
     @stage_results.effect_command_target_issue_kind(issue),
     @stage_results.PublishedCommandIdentifierMismatch,
   )
+}
+
+///|
+test "short COMMAND legacy selection retains installation occurrence absent from canonical field target" {
+  let first = command_publication_alias()
+  let other = {
+    ..first,
+    name: [
+      { value: "other", quoted: false, },
+      { value: "send", quoted: false, },
+    ],
+    target_ref: "connector://other/mailbox",
+    installation_owner_cid: "sha256:" + "f".repeat(64),
+  }
+  let publication = command_publication_bind("legacy-field", aliases=[
+    first, other,
+  ])
+  let lowered = ["mail.send", "other.send"].map(operation => {
+    @frontend.lower(
+      "FROM messages |> EFFECT COMMAND " +
+      operation +
+      " TARGET mailbox ID id INPUT (body = body)",
+      @frontend.Text,
+      Some(short_command_context()),
+      command_targets=Some(publication),
+    ).unwrap()
+  })
+  assert_eq(
+    semantic(lowered[0].program.unwrap()),
+    semantic(lowered[1].program.unwrap()),
+  )
+  for (index, original) in [first, other] {
+    let selected = lowered[index].command_selection.unwrap()
+    let target = short_command_selection_target(selected)
+    assert_eq(
+      resolved_command_target(target),
+      (original.target_ref, original.command_ref),
+    )
+    assert_eq(
+      resolved_command_target_identity(target).3,
+      original.installation_owner_cid,
+    )
+    assert_true(resolved_command_target_binding(target) is None)
+    assert_eq(short_command_selection_stage(selected), 0)
+    assert_eq(short_command_selection_effect(selected), "aql_command_effect")
+  }
+}
+
+///|
+test "short COMMAND retained occurrence comes from the actual Model continuation emission" {
+  let source = "FROM messages |> ASSERT UNIQUE BY (id) |> INFER score ITEM KEY (id) INPUT (n = body) KEEP (id, body) AS assessment |> RESULT classified |> WHERE body != '' |> EFFECT send COMMAND mail.send ID id INPUT (body = body)"
+  let lowered = @frontend.lower(
+    source,
+    @frontend.Text,
+    Some(short_command_context()),
+    command_targets=Some(command_publication_bind("installation")),
+  ).unwrap()
+  let selected = lowered.command_selection.unwrap()
+  let program = lowered.program.unwrap()
+  assert_eq(@program.stage_count(program), 2)
+  let header = short_command_header(program)
+  assert_eq(
+    short_command_selection_stage(selected),
+    @program.effect_header_stage(header),
+  )
+  assert_eq(short_command_selection_stage(selected), 1)
+  assert_eq(
+    short_command_selection_effect(selected),
+    @program.effect_header_id(header),
+  )
+  assert_eq(short_command_selection_effect(selected), "send")
 }

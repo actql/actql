@@ -335,7 +335,7 @@ pub fn client_program_prepare_source_computation_with_parameters(
       // The static publication is not installed target custody. Until the
       // existing Effect owner consumes that exact original selection, refuse
       // rather than discard it or reconstruct authority from canonical text.
-      if lowered.command_targets is Some(_) {
+      if lowered.command_selection is Some(_) {
         return SourcePure(
           Rejected(SourcePreparation(CommandTargetOriginalsUnavailable)),
         )

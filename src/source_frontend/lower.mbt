@@ -25,7 +25,7 @@ pub(all) struct Lowered {
   // Retain the trusted publication for the original checked Effect owner.
   update_targets : @query.UpdateTargetPublication?
   store_targets : @query.StoreTargetPublication?
-  command_targets : @query.CommandTargetPublication?
+  command_selection : @query.ShortCommandSelection?
 }
 
 ///|
@@ -298,7 +298,7 @@ fn emit(
   program : @program.Program,
   update_targets : @query.UpdateTargetPublication?,
   store_targets : @query.StoreTargetPublication?,
-  command_targets : @query.CommandTargetPublication?,
+  command_selection : @query.ShortCommandSelection?,
 ) -> Result[Lowered, Issue] {
   let document = try {
     let writer = @encode.writer(65536, 8192, 64)
@@ -313,7 +313,7 @@ fn emit(
     program: Some(program),
     update_targets,
     store_targets,
-    command_targets,
+    command_selection,
   })
 }
 
@@ -387,7 +387,7 @@ pub fn lower_with_source(
             program: None,
             update_targets: None,
             store_targets: None,
-            command_targets: None,
+            command_selection: None,
           },
           None,
         ),
@@ -401,7 +401,7 @@ pub fn lower_with_source(
             program: None,
             update_targets: None,
             store_targets: None,
-            command_targets: None,
+            command_selection: None,
           },
           None,
         ),
@@ -412,26 +412,40 @@ pub fn lower_with_source(
         Err(issue) => return Err(issue)
       }
       guard context is Some(context) else { return Err(MissingQueryContext) }
-      let (program, source) = match
-        @query.compile_with_source(
+      let (program, source, command_selection) = if @syntax.terminal_short_command_effect(
           parsed,
-          context,
-          query_limits(),
-          table_writes~,
-          update_targets~,
-          store_targets~,
-          command_targets~,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(QueryLowering(issue))
-      }
-      let retained_commands = if @syntax.terminal_short_command_effect(parsed)
-        is Some(_) {
-        command_targets
+        )
+        is Some(_) &&
+        command_targets is Some(publication) {
+        match
+          @query.compile_short_command_with_source(
+            parsed,
+            context,
+            query_limits(),
+            publication,
+            table_writes~,
+            update_targets~,
+            store_targets~,
+          ) {
+          Ok((program, source, selection)) => (program, source, Some(selection))
+          Err(issue) => return Err(QueryLowering(issue))
+        }
       } else {
-        None
+        match
+          @query.compile_with_source(
+            parsed,
+            context,
+            query_limits(),
+            table_writes~,
+            update_targets~,
+            store_targets~,
+            command_targets~,
+          ) {
+          Ok((program, source)) => (program, source, None)
+          Err(issue) => return Err(QueryLowering(issue))
+        }
       }
-      emit(program, update_targets, store_targets, retained_commands).map(lowered => {
+      emit(program, update_targets, store_targets, command_selection).map(lowered => {
         (lowered, Some(source))
       })
     }

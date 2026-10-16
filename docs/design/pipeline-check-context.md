@@ -1318,9 +1318,13 @@ continuation feeds the same private capture without re-evaluating its producer.
 An omitted effect name is `aql_command_effect`; explicit and completed names
 share the existing uniqueness rules with long Command postludes.
 
-Source lowering retains the exact opaque Command publication, not only its
-canonical target and contract strings. Re-parsing a machine Program cannot
-create that publication. A missing installed original/capture connection is an
+Source lowering retains the exact opaque Command selection and the Stage/Effect
+occurrence actually emitted by the same compiler, not only canonical target and
+contract strings. The selected legacy field mode therefore does not lose its
+original installation when the canonical target encodes only a Result field.
+The compiler resolves the logical operation once before expressions; its
+private emission path binds that original to the actual occurrence. Re-parsing
+a machine Program cannot create that selection. A missing installed original/capture connection is an
 explicit preparation limitation, not permission to discard the selection,
 reconstruct it from current configuration or treat a pure query as a successful
 Effect. Static normalization and type closure do not prove current authority,

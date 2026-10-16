@@ -653,7 +653,7 @@ fn check_source_findings(
       if scope == BoundInput &&
         @program_check.diagnostic_cause(diagnostic)
         is Source(UnsupportedEffects(_)) {
-        if lowered.command_targets is Some(_) {
+        if lowered.command_selection is Some(_) {
           findings.push(Limit("implementation_limit"))
           return Report
         }

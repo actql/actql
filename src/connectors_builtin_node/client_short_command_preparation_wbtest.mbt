@@ -46,18 +46,22 @@ test "actual public Source lowerer retains the original Command publication and 
     publication,
     None,
   ).unwrap()
-  let original = lowered.command_targets.unwrap()
+  let selection = lowered.command_selection.unwrap()
+  let target = @query_program.short_command_selection_target(selection)
+  assert_eq(@query_program.short_command_selection_stage(selection), 0)
+  assert_eq(
+    @query_program.short_command_selection_effect(selection),
+    "aql_command_effect",
+  )
+  let contract = @query_program.resolved_command_target_contract(target)
   assert_true(
     physical_equal(
-      @query_program.command_target_publication_environment(original),
+      @check_environment.member_environment(
+        @check_environment.command_target_member(contract),
+      ),
       @program_check.checking_environment_wire(environment),
     ),
   )
-  let target = @query_program.resolve_command_target_binding(
-    original,
-    [{ value: "mail", quoted: false, }, { value: "send", quoted: false, }],
-    1000,
-  ).unwrap()
   let (_, _, binding, owner) = @query_program.resolved_command_target_identity(
     target,
   )

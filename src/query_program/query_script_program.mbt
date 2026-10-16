@@ -396,6 +396,7 @@ fn compile_query_script_with_source(
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
   command_targets? : CommandTargetPublication? = None,
+  command_occurrences? : Array[ShortCommandSelection]? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
   if context.program_id.is_empty() ||
     context.stage_id.is_empty() ||
@@ -813,15 +814,21 @@ fn compile_query_script_with_source(
         ) {
         let commands : Array[(String, @builder.Node)] = []
         if @query.terminal_short_command_effect(current) is Some(clause) {
-          commands.push(
-            lower_short_command_effect(
-              construction,
-              clause,
-              command_target.unwrap(),
-              stage_context.stage_result,
-              retained,
-            ),
+          let command = lower_short_command_effect(
+            construction,
+            clause,
+            command_target.unwrap(),
+            stage_context.stage_result,
+            retained,
           )
+          commands.push(command)
+          if command_occurrences is Some(occurrences) {
+            occurrences.push({
+              target: command_target.unwrap(),
+              stage_index: stages.length(),
+              effect_id: command.0,
+            })
+          }
         }
         for index in 0..<@query.terminal_command_effect_count(current) {
           let command = lower_command_effect(
