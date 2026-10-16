@@ -4325,7 +4325,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d0b01daa5ed34d03f97a79315dfe034c973e51926baa1f3faa9b0271df725897",
+      "sha256": "fb13e0611d1c0b59360da3c06b7c311b126aa86d9516af04668258f30a3d7ed2",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
