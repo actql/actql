@@ -21,7 +21,6 @@ test "same Run continuation retains the admitted observation revision without is
     assert_true(admit_run_state_wire(wire, limits) is Err(_))
   }
   assert_true(
-    admit_run_state_wire("{\"other_counter\":4," + legacy[1:], limits)
-    is Err(_),
+    admit_run_state_wire("{\"other_counter\":4," + legacy[1:], limits) is Err(_),
   )
 }
