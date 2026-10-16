@@ -343,7 +343,7 @@ test "short COMMAND Source lower retains the exact original publication only for
 fn short_command_checked_candidate(
   text : String,
   mode : String,
-) -> @check.EffectComputationCandidate raise {
+) -> @check.EffectComputationCandidate {
   let environment = short_command_checked_environment(mode)
   let publication = @source_publication.published_command_targets(
       environment,
@@ -432,9 +432,15 @@ test "short COMMAND actual Common binding keeps typed payload and original ID di
 test "short COMMAND actual Common rejects absent or incompatible required payload without defaults" {
   for
     (input, kind) in [
-      ("", @stage_results.MissingField("body")),
-      (" INPUT ()", @stage_results.MissingField("body")),
-      (" INPUT (body = 1)", @stage_results.IncompatibleField("body")),
+      ("", @stage_results.EffectCommandInputIssueKind::MissingField("body")),
+      (
+        " INPUT ()",
+        @stage_results.EffectCommandInputIssueKind::MissingField("body"),
+      ),
+      (
+        " INPUT (body = 1)",
+        @stage_results.EffectCommandInputIssueKind::IncompatibleField("body"),
+      ),
     ] {
     let candidate = short_command_checked_candidate(
       "FROM messages |> EFFECT COMMAND mail.send ID id" + input,
@@ -519,7 +525,7 @@ test "short COMMAND legacy selection retains installation occurrence absent from
     semantic(lowered[0].program.unwrap()),
     semantic(lowered[1].program.unwrap()),
   )
-  for (index, original) in [first, other] {
+  for index, original in [first, other] {
     let selected = lowered[index].command_selection.unwrap()
     let target = short_command_selection_target(selected)
     assert_eq(
@@ -590,12 +596,16 @@ test "short COMMAND private port does not reserve the same public Result spellin
   assert_eq(@program.export_count(program), 1)
   let headers = @program.collect_effect_headers(program, 10, 10000).unwrap()
   assert_eq(@program.effect_header_count(headers), 2)
-  let audit = (0..<2)
-    .iter()
-    .map(index => @program.effect_header_at(headers, index).unwrap())
-    .find(header => @program.effect_header_id(header) == "audit")
-    .unwrap()
-  assert_true(
-    @program.effect_header_source_result(audit) != Some("aql_private_command"),
-  )
+  let observed : Array[String] = []
+  for index in 0..<@program.effect_header_count(headers) {
+    let header = @program.effect_header_at(headers, index).unwrap()
+    if @program.effect_header_id(header) == "audit" {
+      observed.push(@program.effect_header_id(header))
+      assert_true(
+        @program.effect_header_source_result(header) !=
+        Some("aql_private_command"),
+      )
+    }
+  }
+  assert_eq(observed, ["audit"])
 }
