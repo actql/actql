@@ -279,11 +279,15 @@ export async function openRowSourceCredentialSite({profile, principalId,
 
 // The installed source adapter of one row declaration (see
 // `installed-source.mjs`). `readPages({resource, columns, requestWire, operation,
-// authorizationFor, chargePage, consumePage, listing, signal})` is the Site driver.
+// authorizationFor, chargePage, consumeObservation, consumePage, listing, signal})`
+// is the Site driver.
 // A checked listing uses listing.beginRequest(token) before each actual send
 // and awaits listing.consumePage(fullEnvelope, {charge}) for all observed items.
 // Provider translation charges the original response before decoding; its
 // exact ticket carries physical bytes into the common listing budget.
+// An accounted ordinary acquisition can consume a non-row observation's exact
+// ticket without adding a data page. Its request authorization/count and typed
+// observation remain the installed driver's responsibility; this is no grant.
 // ordinary rows use consumePage. Completion is never the driver's return alone;
 // `physicalTarget(resource, fields)` the exact target an approval covers.
 export async function createInstalledRowSource({moon, declaration,
@@ -1094,6 +1098,9 @@ export async function createInstalledRowSource({moon, declaration,
         },
         chargePage: body => checked(moon.clientProgramRowSourceChargePage(
           run, body)),
+        consumeObservation: ledger === undefined ? undefined : function consumeObservation(charge) {
+          return checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge));
+        },
         consumePage: (rows, {charge} = {}) => {
           const bytes = Buffer.from(JSON.stringify(rows), 'utf8');
           return checked(charge === undefined

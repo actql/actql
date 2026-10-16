@@ -1,5 +1,5 @@
 import {credentialInvocationBindingKeys as bindingKeys} from './credential-scope-fields.generated.mjs';
-import {ownHttpRequest, ownResponseHeaderNames} from './http-exchange.mjs';
+import {ownHttpRequest, ownHttpByteRequest, ownResponseHeaderNames} from './http-exchange.mjs';
 
 const fail = () => {
   throw Object.assign(new Error('InvalidOwnedInvocationContext'), {
@@ -74,6 +74,8 @@ export function invokeScopedCredentialOperation({
   query,
   headers,
   body,
+  bodyBytes,
+  bodyMediaType,
   responseHeaders,
   maxRequestBytes,
   maxResponseBytes,
@@ -83,7 +85,11 @@ export function invokeScopedCredentialOperation({
       typeof operation !== 'string' || operation.length === 0 ||
       typeof method !== 'string' || typeof path !== 'string' ||
       (body !== undefined && typeof body !== 'string')) fail();
-  const request = ownHttpRequest({method, path, query, headers, body});
+  const binary = bodyBytes !== undefined || bodyMediaType !== undefined;
+  const request = binary
+    ? ownHttpByteRequest({method, path, query, headers, body, bodyBytes,
+      bodyMediaType, maxBodyBytes: maxRequestBytes})
+    : ownHttpRequest({method, path, query, headers, body});
   const observed = ownResponseHeaderNames(responseHeaders);
   const context = ownInvocationContext({
     authorization, credential,
@@ -97,6 +103,8 @@ export function invokeScopedCredentialOperation({
     operations: new Map([[operation, Object.freeze({
       method: request.method, path: request.target,
       ...(request.body === undefined ? {} : {body: request.body}),
+      ...(binary ? {bodyBytes: request.bodyBytes, bodyMediaType: request.bodyMediaType,
+        maxBodyBytes: request.maxBodyBytes} : {}),
       ...(request.headers.length === 0 ? {} : {headers: request.headers}),
       ...(observed.length === 0 ? {} : {responseHeaders: observed}),
     })]]),

@@ -58,11 +58,12 @@ pub fn resolved_update_target_identity(
 }
 
 ///|
-pub fn bind_update_target_publication(
-  mappings : @environment.MappingContractShapes,
+// Shared immutable alias representation from the installed Effect publisher.
+// This neither selects an operation nor admits current installation/authority.
+fn copy_effect_target_aliases(
   aliases : Array[UpdateTargetAlias],
   max_work : Int,
-) -> Result[UpdateTargetPublication, UpdateTargetIssue] {
+) -> Result[(Array[UpdateTargetAlias], Int), UpdateTargetIssue] {
   if aliases.length() > 1024 || max_work < 0 {
     return Err(InvalidPublication)
   }
@@ -88,6 +89,21 @@ pub fn bind_update_target_publication(
     }
     owned.push({ ..target_alias, name: target_alias.name.copy(), })
   }
+  Ok((owned, max_work - remaining))
+}
+
+///|
+pub fn bind_update_target_publication(
+  mappings : @environment.MappingContractShapes,
+  aliases : Array[UpdateTargetAlias],
+  max_work : Int,
+) -> Result[UpdateTargetPublication, UpdateTargetIssue] {
+  let (owned, alias_work) = match
+    copy_effect_target_aliases(aliases, max_work) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let mut remaining = max_work - alias_work
   let candidates : Array[@environment.MappingContractShape] = []
   for index in 0..<@environment.mapping_shape_count(mappings) {
     if remaining < 1 {
