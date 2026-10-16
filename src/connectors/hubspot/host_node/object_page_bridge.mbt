@@ -22,6 +22,24 @@ pub fn hubspot_project_properties(
 }
 
 ///|
+#export_name("hubspotRecheckPropertyCatalog")
+pub fn hubspot_recheck_property_catalog(
+  original : @catalog.PropertyCatalog,
+  current : @catalog.PropertyCatalog,
+  max_properties : Int,
+) -> Result[Unit, @catalog.PropertyIssue] {
+  @catalog.recheck_property_catalog(original, current, max_properties)
+}
+
+///|
+#export_name("hubspotPropertyCatalogObjectType")
+pub fn hubspot_property_catalog_object_type(
+  catalog : @catalog.PropertyCatalog,
+) -> String {
+  catalog.object_type
+}
+
+///|
 #export_name("hubspotProjectObjectPage")
 pub fn hubspot_project_object_page(
   bytes : Bytes,
