@@ -67,12 +67,103 @@ function names(pattern) {
   return [];
 }
 
+// Resolve only lexical, single-write references. The normal builder must still
+// admit each resulting target; this AST projection never loads product code.
+function runtimeImportReferences(tree) {
+  const scopes = new WeakMap(), assignments = [];
+  const scope = (parent, functionScope = false) => ({parent, functionScope, bindings: new Map()});
+  const lookup = (current, name) => {
+    for (; current; current = current.parent) if (current.bindings.has(name)) return current.bindings.get(name);
+  };
+  function declare(current, name, value = {}) {
+    const prior = current.bindings.get(name);
+    if (prior) prior.invalid = true;
+    else current.bindings.set(name, {initializers: [], ...value});
+    return current.bindings.get(name);
+  }
+  function collect(node, current) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') {
+      if (node.id) declare(current, node.id.name);
+    }
+    if (/^(?:FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/u.test(node.type)) {
+      current = scope(current, true);
+      for (const parameter of node.params.flatMap(names)) declare(current, parameter);
+      if (node.type === 'FunctionExpression' && node.id) declare(current, node.id.name);
+    } else if (['BlockStatement', 'CatchClause'].includes(node.type)) {
+      current = scope(current);
+      if (node.param) for (const name of names(node.param)) declare(current, name);
+    }
+    scopes.set(node, current);
+    if (node.type === 'ImportDeclaration') for (const value of node.specifiers) {
+      declare(current, value.local.name, {imported: {source: node.source.value,
+        name: value.type === 'ImportSpecifier' ? value.imported.name ?? value.imported.value : undefined}});
+    }
+    if (node.type === 'VariableDeclaration') for (const value of node.declarations) {
+      let target = current;
+      if (node.kind === 'var') while (target.parent && !target.functionScope) target = target.parent;
+      for (const name of names(value.id)) {
+        const binding = declare(target, name);
+        if (value.id.type !== 'Identifier') binding.invalid = true;
+        else if (value.init) binding.initializers.push(value.init);
+      }
+    }
+    if (['AssignmentExpression', 'UpdateExpression', 'UnaryExpression'].includes(node.type)) assignments.push(node);
+    for (const [key, value] of Object.entries(node)) {
+      if (['loc', 'start', 'end'].includes(key)) continue;
+      if (Array.isArray(value)) value.forEach(child => collect(child, current));
+      else if (value && typeof value === 'object') collect(value, current);
+    }
+  }
+  collect(tree, scope(undefined, true));
+  for (const node of assignments) {
+    let left = node.left ?? node.argument;
+    if (node.type === 'UnaryExpression' && node.operator !== 'delete') continue;
+    const member = left?.type === 'MemberExpression';
+    while (left?.type === 'MemberExpression') left = left.object;
+    if (left?.type !== 'Identifier') continue;
+    const binding = lookup(scopes.get(node), left.name);
+    if (!binding) continue;
+    if (!member && node.type === 'AssignmentExpression' && node.operator === '=') binding.initializers.push(node.right);
+    else binding.invalid = true;
+  }
+  const meta = node => node?.type === 'MetaProperty' && node.meta.name === 'import' && node.property.name === 'meta';
+  function reference(node, depth = 0) {
+    if (!node || depth > 8) return;
+    const literal = literalValue(node);
+    if (typeof literal === 'string') return {kind: 'literal', specifier: literal};
+    if (node.type === 'Identifier') {
+      const binding = lookup(scopes.get(node), node.name);
+      if (binding && !binding.invalid && binding.initializers.length === 1) return reference(binding.initializers[0], depth + 1);
+    }
+    if (node.type === 'NewExpression' && node.callee.type === 'Identifier' && node.callee.name === 'URL' &&
+        !lookup(scopes.get(node), 'URL') && node.arguments.length === 2 &&
+        node.arguments[1].type === 'MemberExpression' && meta(node.arguments[1].object) &&
+        propertyName(node.arguments[1]) === 'url') {
+      const specifier = literalValue(node.arguments[0]);
+      if (typeof specifier === 'string') return {kind: 'module-url', specifier};
+    }
+    if (node.type === 'MemberExpression' && propertyName(node) === 'href') return reference(node.object, depth + 1);
+    if (node.type === 'CallExpression' && node.arguments.length === 1 &&
+        node.callee.type === 'MemberExpression' && meta(node.callee.object) && propertyName(node.callee) === 'resolve') {
+      const specifier = literalValue(node.arguments[0]);
+      if (typeof specifier === 'string') return {kind: 'package-resolution', specifier};
+    }
+    if (node.type === 'CallExpression' && node.callee.type === 'Identifier') {
+      const imported = lookup(scopes.get(node), node.callee.name)?.imported;
+      if (imported?.name) return {kind: 'owner-projection', source: imported.source, name: imported.name};
+    }
+  }
+  return reference;
+}
+
 // Private helpers are inventoried too: a new decision helper must not hide
 // under an already classified file. Locations are diagnostic, not identity.
-export function javascriptInterface(source) {
+export function javascriptInterface(source, {resolveRuntimeImport} = {}) {
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module',
     allowHashBang: true, locations: true});
   const operations = [], exports = [], imports = [], compilerFields = [], unresolvedSyntax = [], occurrences = new Map();
+  const runtimeReference = resolveRuntimeImport && runtimeImportReferences(tree);
   function commonJsMembers(value) {
     if (value?.type === 'CallExpression' && value.callee.type === 'MemberExpression' &&
         value.callee.object.name === 'Object' && propertyName(value.callee) === 'freeze') value = value.arguments[0];
@@ -109,9 +200,15 @@ export function javascriptInterface(source) {
         node.type === 'ExportNamedDeclaration' && node.source) imports.push(node.source.value);
     if (node.type === 'ImportExpression' || node.type === 'CallExpression' &&
         node.callee.type === 'Identifier' && node.callee.name === 'require') {
-      const target = literalValue(node.type === 'ImportExpression' ? node.source : node.arguments[0]);
+      const argument = node.type === 'ImportExpression' ? node.source : node.arguments[0];
+      const target = literalValue(argument);
       if (typeof target === 'string') imports.push(target);
-      else unresolvedSyntax.push('runtime-dependent module dependency requires original owner/artifact mapping');
+      else {
+        const reference = runtimeReference?.(argument);
+        const resolved = reference && resolveRuntimeImport(reference);
+        if (Array.isArray(resolved) && resolved.length && resolved.every(value => typeof value === 'string')) imports.push(...resolved);
+        else unresolvedSyntax.push('runtime-dependent module dependency requires original owner/artifact mapping');
+      }
     }
     if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
         node.callee.object.name === 'Reflect' && propertyName(node.callee) === 'get' &&

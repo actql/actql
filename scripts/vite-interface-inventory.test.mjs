@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {dirname, join} from 'node:path';
+import {createRequire} from 'node:module';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {test} from 'node:test';
 import {viteInterfaceInventory} from './vite-interface-inventory.mjs';
 import {assertInterfaceCoverage, interfaceAttributes} from './interface-inventory.mjs';
@@ -47,6 +50,29 @@ test('configured Vite closure refuses outside-directory test authority at its po
   put('other/authority.test.mjs', 'export function read(value) {return value;}');
   await assert.rejects(viteInterfaceInventory(directory, ['vite.config.mjs']),
     /Test authority in Vite interface: other\/authority.test.mjs/u);
+});
+
+test('configured Vite dependencies match ordinary manifest working directories without ignoring changed output', async t => {
+  const {directory, put} = fixture(t);
+  put('library/package.json', '{"type":"module"}');
+  put('library/source.mjs', 'export function read(value) {return value + 1;}');
+  put('library/vite.config.mjs', `export default {root: import.meta.dirname, build: {
+    minify: false, lib: {entry: new URL('./source.mjs', import.meta.url).pathname,
+      formats: ['es'], fileName: 'library'}}};`);
+  put('sdk/entry.mjs', 'export {read} from "../library/dist/library.js";');
+  const vite = join(dirname(createRequire(import.meta.url).resolve('vite/package.json')), 'bin/vite.js');
+  execFileSync(process.execPath, [vite, 'build', '--config', 'vite.config.mjs'], {
+    cwd: join(directory, 'library'), timeout: 30000, stdio: 'pipe'});
+  const configs = ['library/vite.config.mjs', 'vite.config.mjs'];
+  await assert.rejects(viteInterfaceInventory(directory, configs), /Mixed configured Vite dependency/u);
+  const checked = await viteInterfaceInventory(directory, configs,
+    {workingDirectories: {'library/vite.config.mjs': 'library'}});
+  assert.equal(checked.consumedCompiled.length, 1);
+  assert.equal(checked.consumedCompiled[0].sha256, createHash('sha256')
+    .update(readFileSync(join(directory, 'library/dist/library.js'))).digest('hex'));
+  put('library/dist/library.js', 'export function read(value) {return value + 2;}');
+  await assert.rejects(viteInterfaceInventory(directory, configs,
+    {workingDirectories: {'library/vite.config.mjs': 'library'}}), /Mixed configured Vite dependency/u);
 });
 
 function foreignFixture(t) {

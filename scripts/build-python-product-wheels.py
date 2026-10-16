@@ -147,6 +147,11 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path,
         raise ValueError('Build Python wheels from committed clean source')
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     version = read_cohort(ROOT)
+    subprocess.run(['node', str(ROOT / 'scripts/check-interface-owners.mjs'),
+                    '--manifest', 'packages/python-product/pyproject.toml',
+                    '--manifest', 'packages/python-sdk/pyproject.toml',
+                    '--manifest', 'packages/python-local-runtime/pyproject.toml'],
+                   cwd=ROOT, check=True, timeout=60)
     spec = importlib.util.spec_from_file_location('python_runtime_recipe', ROOT / 'scripts/prepare-python-local-runtime.py')
     if spec is None or spec.loader is None:
         raise ValueError('Original Python runtime recipe is unavailable')
