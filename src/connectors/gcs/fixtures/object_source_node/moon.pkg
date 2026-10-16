@@ -1,0 +1,13 @@
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/check_environment" @environment,
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/encode_core" @encode,
+  "moonbitlang/core/encoding/utf8",
+}

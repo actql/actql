@@ -45,7 +45,8 @@ duplicate identities, and derives only the next request of that same listing.
 
 Missing/null optional metadata remains unknown. Explicit empty tags and zero
 usage remain distinct. Present malformed metadata refuses the entire page,
-including a malformed nonfirst record. Documented UTC whole seconds receive exact zero milliseconds; all timestamps\nthen use the existing Values calendar/instant admission. An updated timestamp is DATA, never an atomic conditional-write token.
+including a malformed nonfirst record. Documented UTC whole seconds receive exact zero milliseconds; all timestamps
+then use the existing Values calendar/instant admission. An updated timestamp is DATA, never an atomic conditional-write token.
 Catalog timestamps do not stand in for last refresh, last viewed or last flow
 run observations; those require their actual provider suppliers.
 
@@ -60,3 +61,10 @@ Provider references: [Query Workbooks for Site](https://help.tableau.com/current
 [Query Views for Site](https://help.tableau.com/current/api/rest_api/en-us/REST/rest_api_ref_workbooks_and_views.htm#query_views_for_site),
 [Query Data Sources](https://help.tableau.com/current/api/rest_api/en-us/REST/rest_api_ref_data_sources.htm#query_data_sources),
 [Query Flows for a Site](https://help.tableau.com/current/api/rest_api/en-us/REST/rest_api_ref_flow.htm#query_flows_for_site).
+
+The view projection also retains the returned `workbook.id` as `workbook_id`.
+It uses the same bounded LUID admission as project/owner references; a missing or
+null workbook stays unknown, and a malformed present workbook refuses the whole
+page. A name or `contentUrl` is not a substitute for that identity. This is the
+provider relationship needed by the documented views-to-workbooks JOIN, not a
+completed Source, physical capture, or inferred relation from matching names.
