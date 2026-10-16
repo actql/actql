@@ -1045,13 +1045,13 @@ async function openInstalledHost(originalInstallation) {
           throw new Error('InstalledInferOriginalCompilationUnavailable');
         }
         if (originalInfer === null || typeof originalInfer !== 'object' ||
-            [originalInfer._0, originalInfer._1, originalInfer._2]
+            [runtimeField(originalInfer, 0), runtimeField(originalInfer, 1), runtimeField(originalInfer, 2)]
               .some(value => value === undefined || value === null)) {
           throw new Error('InstalledInferOriginalCompilationUnavailable');
         }
         // The reconstructed compilation owns this exact graph, occurrence and
         // execution. Current installation checks below cannot replace them.
-        occurrence = originalInfer._1;
+        occurrence = runtimeField(originalInfer, 1);
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'original_model_compilation',
           code: cause.code, cause});
@@ -1067,7 +1067,7 @@ async function openInstalledHost(originalInstallation) {
         if (originalInfer === undefined) {
           ({execution} = readInstalledModelExecution(moon, preparedProgram,
             modelInstallation, occurrence));
-        } else execution = originalInfer._2;
+        } else execution = runtimeField(originalInfer, 2);
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'model_execution',
           code: cause.code, cause: cause.cause ?? cause,
@@ -1132,11 +1132,11 @@ async function openInstalledHost(originalInstallation) {
         // before admission, without inventing public Result roots.
         const effectGraph = prepareSubmit.kindOf(preparedProgram) === 'effectful' &&
           moon.clientProgramEffectSerializationOccurrences(preparedProgram).length !== 0
-          ? originalInfer?._0 ?? checked(
+          ? runtimeOptionalField(originalInfer, 0) ?? checked(
             moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution))
           : undefined;
         const serializationGraph = originalInfer !== undefined
-          ? control.inferSerializationGraph(originalInfer._0) : effectGraph !== undefined
+          ? control.inferSerializationGraph(runtimeField(originalInfer, 0)) : effectGraph !== undefined
           ? control.inferSerializationGraph(effectGraph)
           : prepareSubmit.kindOf(preparedProgram) !== 'effectful' &&
           moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0
@@ -1183,7 +1183,7 @@ async function openInstalledHost(originalInstallation) {
           }
         }
         admissionBoundary = 'plan_graph';
-        const graph = originalInfer !== undefined ? originalInfer._0
+        const graph = originalInfer !== undefined ? runtimeField(originalInfer, 0)
           : effectGraph !== undefined ? effectGraph : serializationGraph !== undefined
           ? control.prepareCheckedClientSerializedInferGraph(occurrence, serializationGraph, execution)
           : checked(occurrence === undefined
