@@ -95,6 +95,9 @@ class Client:
 
     def test_normal_wheel_record_binds_actual_authored_members_to_git_original(self):
         root, source, body = self.source()
+        # A retained Source is not reinterpreted with today's manifest/body.
+        (root / 'outside/pyproject.toml').write_text('[project]\nname="replacement"\n')
+        (root / 'outside/src/owner/__init__.py').write_text('changed = True\n')
         result = wheel_source_correspondence(root, self.wheel({'owner/__init__.py': body}),
                                               'outside/pyproject.toml', source)
         self.assertEqual(result['authored_modules'], 1)

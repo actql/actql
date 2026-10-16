@@ -11,6 +11,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
@@ -108,7 +109,7 @@ def wheel_interfaces(path) -> dict:
         return {'entrance': records[0], 'modules': modules}
 
 
-def source_projects(root: Path, files=None) -> dict:
+def source_projects(root: Path, files=None, read_source=None) -> dict:
     """Source-only projection of normal setuptools declarations, not a wheel PASS."""
     root = root.resolve()
     if files is None:
@@ -121,10 +122,12 @@ def source_projects(root: Path, files=None) -> dict:
         path = PurePosixPath(manifest)
         if path.name != 'pyproject.toml' or 'fixtures' in path.parts:
             continue
-        manifest_path = (root / manifest).resolve()
+        canonical = lambda path: path.resolve() if read_source is None else Path(os.path.abspath(path))
+        manifest_path = canonical(root / manifest)
         if not manifest_path.is_relative_to(root):
             raise ValueError('Escaped Python distribution manifest')
-        data = tomllib.loads(manifest_path.read_text())
+        data = tomllib.loads(manifest_path.read_text() if read_source is None
+                            else read_source(manifest).decode('utf-8'))
         project = data.get('project')
         if project is None:
             continue
@@ -134,7 +137,7 @@ def source_projects(root: Path, files=None) -> dict:
         discovery = data.get('tool', {}).get('setuptools', {}).get('packages', {}).get('find', {'where': ['.']})
         if not isinstance(discovery, dict) or not isinstance(discovery.get('where'), list) or not discovery['where']:
             raise ValueError('Unregistered Python distribution discovery: ' + manifest)
-        directories = [(root / path.parent / where).resolve() for where in discovery['where']]
+        directories = [canonical(root / path.parent / where) for where in discovery['where']]
         if any(not directory.is_relative_to(root) for directory in directories):
             raise ValueError('Escaped Python distribution source')
         members = []
@@ -142,11 +145,11 @@ def source_projects(root: Path, files=None) -> dict:
         for name in files:
             if not name.endswith(('.py', '.pyi')):
                 continue
-            source_path = (root / name).resolve()
+            source_path = canonical(root / name)
             if any(source_path.is_relative_to(directory) for directory in directories):
                 if not source_path.is_relative_to(root):
                     raise ValueError('Escaped Python interface member')
-                raw = source_path.read_bytes()
+                raw = source_path.read_bytes() if read_source is None else read_source(name)
                 members.append(name)
                 destinations = {source_path.relative_to(directory).as_posix()
                                 for directory in directories if source_path.is_relative_to(directory)}
@@ -176,7 +179,13 @@ def wheel_source_correspondence(root: Path, wheel: Path, manifest: str, source: 
     """
     if re.fullmatch('[0-9a-f]{40}', source) is None:
         raise ValueError('Invalid Python interface source identity')
-    projects = source_projects(root)
+    # Read the selected Source's manifest and files, not today's checkout
+    # configuration applied retroactively to a retained wheel.
+    def original(path):
+        return subprocess.check_output(['git', 'show', source + ':' + path], cwd=root)
+    files = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', '-z', source],
+                                    cwd=root).decode().split('\0')
+    projects = source_projects(root, files, original)
     selected = [value for value in projects['roots'] if value['manifest'] == manifest]
     if len(selected) != 1:
         raise ValueError('Unknown Python wheel source manifest')
@@ -195,8 +204,7 @@ def wheel_source_correspondence(root: Path, wheel: Path, manifest: str, source: 
         if member not in bindings:
             raise ValueError('Unbound authored wheel interface: ' + member)
         path = bindings[member]
-        original = subprocess.check_output(['git', 'show', source + ':' + path], cwd=root)
-        if module['sha256'] != hashlib.sha256(original).hexdigest():
+        if module['sha256'] != hashlib.sha256(original(path)).hexdigest():
             raise ValueError('Changed authored wheel interface: ' + member)
         seen.add(member)
     if component_names != set(original_components):

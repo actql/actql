@@ -17,12 +17,22 @@ if not wheel.is_file() or wheel.is_symlink() or before.st_size != 338850:
 if hashlib.sha256(wheel.read_bytes()).hexdigest() != expected:
     raise ValueError('Changed retained SDK wheel')
 source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-result = wheel_source_correspondence(ROOT, wheel, 'packages/python-sdk/pyproject.toml', source)
+original_source = subprocess.check_output(['git', 'rev-parse', '12747b21'], cwd=ROOT, text=True).strip()
+result = wheel_source_correspondence(ROOT, wheel, 'packages/python-sdk/pyproject.toml', original_source)
+try:
+    wheel_source_correspondence(ROOT, wheel, 'packages/python-sdk/pyproject.toml', source)
+except ValueError as failure:
+    if not str(failure).startswith('Changed authored wheel interface: '):
+        raise
+    current_refusal = str(failure)
+else:
+    raise ValueError('Old SDK component unexpectedly admitted as current source')
 after = wheel.stat()
 if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (
         after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns):
     raise ValueError('Retained SDK wheel changed during read')
 result.update({'artifact_sha256': expected,
+               'current_source': source, 'current_source_refusal': current_refusal,
                'artifact_qualification': 'I5 SDK-only component; original 12747 Source plus test-driver-only flag; not pristine three-wheel cohort',
                'originals': 'R/i5-language-parity-d0ccdb956/manifest.json',
                'new_installed_E2E': 0})
