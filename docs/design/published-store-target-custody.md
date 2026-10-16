@@ -32,3 +32,40 @@ and original saved materials across Preview, apply and restoration. Static
 selection, projection and payload proof issue no permission, durable receipt,
 restoration grant or replacement Run. Unknown, pending cleanup and nonresend
 responsibilities remain with the existing execution and Store owners.
+
+## Preparation, compilation and saved selection
+
+The existing eight-field Effect target selection owner also admits checked
+`command.target.published_store` occurrences. This deliberately extends its
+previous UPDATE-only admission; it is not an interpretation that Commands were
+already admitted. It adds no wire kind, field, identity domain, version or
+second selection registry. Old UPDATE and absent-context instance bytes and
+CIDs remain unchanged. Normative scope and document pins change with this
+acceptance extension even though the closed structural schema remains identical.
+
+Preparation joins the same installed publication to the checked occurrence's
+original Mapping/StoreCommand/Catalog in the same nominal Environment. The
+candidate retains that actual checked pair for capture. The eight fields carry
+the concrete occurrence and installation evidence through the existing
+Executable Plan, Compiled Plan, Run Definition and saved-material owners.
+Restoration matches the saved header and checked pair from the saved Program
+and Environment; it never resolves today's aliases or rebuilds selection from
+current configuration. A saved CID alone cannot replace any opaque original.
+
+One checked Program may contain both UPDATE and published-STORE entries.
+Canonical ordering and occurrence uniqueness apply across both purposes; the
+original header supplies the distinction without adding a discriminator field.
+Cross-purpose or foreign occurrence substitution refuses. Field-target Commands
+and canonical relation STORE keep their prior admission and omission behavior.
+Physical installation generation/currentness, actual reference issuance and
+current approval/send checks remain separate from static selection and saved
+DATA admission.
+
+The existing private current-facts projection distinguishes the actual
+installation's `update` and `store` support observations. Its required purpose
+comes from the original checked header, not a caller-provided selector kind.
+Only the matching purpose is checked for each occurrence; a genuinely shared
+installation may report both. This does not add a field to the eight-field
+selection or change the existing installation canonical body. A Source-only
+installation cannot manufacture a row-effect owner or claim `update:true` to
+stand in for STORE. Missing original installation/current facts remain refused.

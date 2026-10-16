@@ -1,6 +1,7 @@
 ///|
 pub(all) enum ClientEffectUpdateTargetIssue {
   Publication(@update_targets.UpdateTargetIssue)
+  StorePublication(@update_targets.StoreTargetIssue)
   ForeignEnvironment
   ForeignSelection
   InvalidMaterials
@@ -94,12 +95,16 @@ fn encode_client_effect_target_selections(
 /// Join the ordinary checker's concrete Effect inventory to the exact
 /// publication already used during lowering. Full and short spelling use this
 /// same join; resolving a logical alias again here would change the owner.
-fn prepare_client_effect_target_selections(
+fn prepare_client_effect_update_target_entries(
   candidate : @checked.EffectProgramStaticCandidate,
   publication : @update_targets.UpdateTargetPublication?,
   max_work : Int,
-) -> Result[ClientEffectUpdateTargetSelections?, ClientEffectUpdateTargetIssue] {
-  guard publication is Some(publication) else { return Ok(None) }
+  other_count? : Int = 0,
+) -> Result[
+  Array[ClientEffectUpdateTargetSelection],
+  ClientEffectUpdateTargetIssue,
+] {
+  guard publication is Some(publication) else { return Ok([]) }
   let environment = @checked.effect_program_static_environment(candidate)
   if !physical_equal(
       environment,
@@ -117,11 +122,12 @@ fn prepare_client_effect_target_selections(
     ),
   )
   let count = @stage_results.effect_mapping_shape_count(shapes)
-  if count > max_work {
+  if other_count < 0 || count > max_work || other_count > max_work - count {
     return Err(Limit)
   }
   // Each lookup receives a disjoint share of the declared work budget.
-  let lookup_work = if count == 0 { 0 } else { (max_work - count) / count }
+  let total = count + other_count
+  let lookup_work = if total == 0 { 0 } else { (max_work - total) / total }
   let entries : Array[ClientEffectUpdateTargetSelection] = []
   for index in 0..<count {
     let shape = @stage_results.effect_mapping_shape_at(shapes, index).unwrap()
@@ -169,6 +175,151 @@ fn prepare_client_effect_target_selections(
       installation_owner_cid,
     })
   }
+  Ok(entries)
+}
+
+///|
+/// The same selection owner also retains published-STORE Command occurrences.
+/// The exact checked pair remains in the candidate for original capture; the
+/// publication supplies installation evidence, not a replacement pair or Ref.
+fn prepare_client_effect_store_target_entries(
+  candidate : @checked.EffectProgramStaticCandidate,
+  publication : @update_targets.StoreTargetPublication?,
+  max_work : Int,
+  other_count : Int,
+) -> Result[
+  Array[ClientEffectUpdateTargetSelection],
+  ClientEffectUpdateTargetIssue,
+] {
+  guard publication is Some(publication) else { return Ok([]) }
+  let environment = @checked.effect_program_static_environment(candidate)
+  if !physical_equal(
+      environment,
+      @update_targets.store_target_publication_environment(publication),
+    ) {
+    return Err(ForeignEnvironment)
+  }
+  let commands = @stage_results.effect_static_candidate_command_targets(
+    @checked.effect_program_static_effects(candidate),
+  )
+  let count = @stage_results.effect_command_target_count(commands)
+  if other_count < 0 || count > max_work || other_count > max_work - count {
+    return Err(Limit)
+  }
+  let total = count + other_count
+  let lookup_work = if total == 0 { 0 } else { (max_work - total) / total }
+  let entries : Array[ClientEffectUpdateTargetSelection] = []
+  for index in 0..<count {
+    let command = @stage_results.effect_command_target_at(commands, index).unwrap()
+    let header = @stage_results.effect_result_binding_header(
+      @stage_results.effect_command_target_effect(command),
+    )
+    guard @syntax.effect_header_published_store_target(header)
+      is Some((target_ref, mapping_ref)) else {
+      continue
+    }
+    guard @stage_results.effect_command_target_store_binding(command)
+      is Some(pair) else {
+      return Err(ForeignSelection)
+    }
+    let resolved = match
+      @update_targets.resolve_concrete_store_target_binding(
+        publication, target_ref, mapping_ref, lookup_work,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(StorePublication(issue))
+    }
+    guard @update_targets.resolved_store_target_command(resolved)
+      is Some(selected_pair) else {
+      return Err(ForeignSelection)
+    }
+    let (
+      environment_cid,
+      mapping_cid,
+      installation_binding_cid,
+      installation_owner_cid,
+    ) = @update_targets.resolved_store_target_identity(resolved)
+    let mapping = @environment.store_command_mapping(pair)
+    let target = @environment.store_command_target(pair)
+    let selected_target = @environment.store_command_target(selected_pair)
+    // Both checked wrappers derive from this very same immutable Environment;
+    // no caller-supplied pair, schema or digest is accepted as a nominal original.
+    if @update_targets.resolved_store_target(resolved) !=
+      (target_ref, mapping_ref) ||
+      environment_cid != @environment.cid(environment) ||
+      mapping_cid != @environment.mapping_shape_cid(mapping) ||
+      @environment.mapping_shape_reference(mapping) != mapping_ref ||
+      @environment.mapping_shape_target(mapping) != target_ref ||
+      @environment.command_target_id(target) !=
+      @syntax.effect_header_contract_ref(header) ||
+      @environment.command_target_id(selected_target) !=
+      @environment.command_target_id(target) ||
+      @environment.command_target_cid(selected_target) !=
+      @environment.command_target_cid(target) ||
+      @environment.catalog_identity(
+        @environment.command_target_catalog(selected_target),
+      ) !=
+      @environment.catalog_identity(@environment.command_target_catalog(target)) ||
+      !valid_client_request_cid(installation_binding_cid) ||
+      !valid_client_request_cid(installation_owner_cid) {
+      return Err(ForeignSelection)
+    }
+    entries.push({
+      stage_index: @syntax.effect_header_stage(header),
+      effect_id: @syntax.effect_header_id(header),
+      target_ref,
+      mapping_ref,
+      mapping_cid,
+      check_environment_cid: environment_cid,
+      installation_binding_cid,
+      installation_owner_cid,
+    })
+  }
+  Ok(entries)
+}
+
+///|
+fn prepare_client_effect_target_selections(
+  candidate : @checked.EffectProgramStaticCandidate,
+  publication : @update_targets.UpdateTargetPublication?,
+  max_work : Int,
+  store_targets? : @update_targets.StoreTargetPublication? = None,
+) -> Result[ClientEffectUpdateTargetSelections?, ClientEffectUpdateTargetIssue] {
+  let effects = @checked.effect_program_static_effects(candidate)
+  let update_count = if publication is Some(_) {
+    @stage_results.effect_mapping_shape_count(
+      @stage_results.effect_mapping_rules_shapes(
+        @stage_results.effect_static_candidate_mapping_rules(effects),
+      ),
+    )
+  } else {
+    0
+  }
+  let store_count = if store_targets is Some(_) {
+    @stage_results.effect_command_target_count(
+      @stage_results.effect_static_candidate_command_targets(effects),
+    )
+  } else {
+    0
+  }
+  let entries = match
+    prepare_client_effect_update_target_entries(
+      candidate,
+      publication,
+      max_work,
+      other_count=store_count,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let stores = match
+    prepare_client_effect_store_target_entries(
+      candidate, store_targets, max_work, update_count,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  entries.append(stores)
   if entries.is_empty() {
     Ok(None)
   } else {
@@ -266,6 +417,10 @@ fn admit_client_effect_target_selections(
   if values.is_empty() || values.length() > 1024 {
     return Err(InvalidMaterials)
   }
+  let commands = @stage_results.effect_static_candidate_command_targets(
+    @checked.effect_program_static_effects(candidate),
+  )
+  let command_count = @stage_results.effect_command_target_count(commands)
   let shapes = @stage_results.effect_mapping_rules_shapes(
     @stage_results.effect_static_candidate_mapping_rules(
       @checked.effect_program_static_effects(candidate),
@@ -275,7 +430,7 @@ fn admit_client_effect_target_selections(
   let environment_cid = @environment.cid(
     @checked.effect_program_static_environment(candidate),
   )
-  if count > 1024 {
+  if count > 1024 || command_count > 1024 - count {
     return Err(Limit)
   }
   let entries : Array[ClientEffectUpdateTargetSelection] = []
@@ -321,6 +476,35 @@ fn admit_client_effect_target_selections(
         @environment.mapping_shape_target(mapping) == target_ref &&
         @environment.mapping_shape_reference(mapping) == mapping_ref &&
         @environment.mapping_shape_cid(mapping) == mapping_cid {
+        if matched {
+          return Err(ForeignSelection)
+        }
+        matched = true
+      }
+    }
+    for index in 0..<command_count {
+      let command = @stage_results.effect_command_target_at(commands, index).unwrap()
+      let header = @stage_results.effect_result_binding_header(
+        @stage_results.effect_command_target_effect(command),
+      )
+      guard @syntax.effect_header_published_store_target(header)
+        is Some((original_target, original_mapping)) &&
+        @stage_results.effect_command_target_store_binding(command)
+        is Some(pair) else {
+        continue
+      }
+      let mapping = @environment.store_command_mapping(pair)
+      let target = @environment.store_command_target(pair)
+      if @syntax.effect_header_kind(header) == "command" &&
+        @syntax.effect_header_stage(header) == stage_index &&
+        @syntax.effect_header_id(header) == effect_id &&
+        original_target == target_ref &&
+        original_mapping == mapping_ref &&
+        @environment.mapping_shape_target(mapping) == target_ref &&
+        @environment.mapping_shape_reference(mapping) == mapping_ref &&
+        @environment.mapping_shape_cid(mapping) == mapping_cid &&
+        @environment.command_target_id(target) ==
+        @syntax.effect_header_contract_ref(header) {
         if matched {
           return Err(ForeignSelection)
         }

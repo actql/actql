@@ -1223,7 +1223,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "624f7aa1d534366303b9f4577ea22a53159651a466d69909c8bb3a742b570944",
+      "sha256": "60881213ffe3d5b634caee64d95c425fea5296dc1ad288385cb222952fa3b9b2",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -5256,7 +5256,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "inputsOutputs": [
@@ -5266,7 +5266,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "identity": [
@@ -5286,7 +5286,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "synchronization": [
@@ -5296,7 +5296,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "failure": [
@@ -5306,7 +5306,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "cancellation": [
@@ -5316,7 +5316,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "resources": [
@@ -5326,7 +5326,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "extension": [
@@ -5336,7 +5336,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "verification": [

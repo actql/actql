@@ -62,7 +62,7 @@ async function fixture(t) {
       maxListingBytes: 32768, maxDurationMs: 10000, maxPathBytes: 1024,
       maxPageBytes: 8192, maxPageItems: 9, maxRequestBytes: 4096, maxContentBytes: 4096}};
   const profilePath = join(scratch.path, 'source.json');
-  const declared = restoreGcsSourceDeclaration(moon, profile).declared;
+  const declared = restoreGcsSourceDeclaration(moon, profile, undefined, {includeObjects: true}).declared;
   const queryAliases = declared.views.map(view => ({name: `docs.${view.resource}`,
     sourceRef: view.source_ref, sourceViewContractCid: view.view_cid,
     schemaContractCid: view.carrier_schema_cid}));
@@ -90,18 +90,18 @@ async function fixture(t) {
       baseEnvironmentWire, resolveSecret}};
 }
 
-test('standard GCS Connector loads both declared Resources without provider or credential I/O', async t => {
+test('standard GCS Connector loads its three declared read Resources without provider or credential I/O', async t => {
   const value = await fixture(t);
   const source = await loadInstalledSource(value.profilePath, value.options);
   value.loaded.push(source);
   assert.equal(source.connectorRegistration, 'gcs');
   assert.equal(source.connectorRevision, 'gcs/0.1');
-  assert.deepEqual(source.sourceReadAccesses.map(({resource}) => resource).sort(), ['contents', 'files']);
+  assert.deepEqual(source.sourceReadAccesses.map(({resource}) => resource).sort(), ['contents', 'files', 'objects']);
   assert.ok(source.admitsSource(value.declared.views.find(view => view.resource === 'files').source_ref));
   assert.ok(source.admitsSource(value.declared.views.find(view => view.resource === 'contents').source_ref));
   assert.equal(source.admitsSource('source:foreign'), false);
   const environment = JSON.parse(source.environmentWire);
-  assert.equal(environment.connector_catalogs[0].source_views.length, 2);
+  assert.equal(environment.connector_catalogs[0].source_views.length, 3);
   assert.equal(value.secretCalls(), 0);
 });
 

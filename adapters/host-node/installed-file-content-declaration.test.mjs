@@ -2640,11 +2640,16 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
           body: ++calls === 1 ? metadataBody : payload})});
     }});
   readOperations.contents = 'gcs:file:list';
+  const requestIdentity = moon.clientProgramRequestIdentity(value.preparedProgram,
+    token('a'), 'gcs-original-keyed-rowrun', moon.clientProgramSourceFreeInputIntentCid());
+  assert.ok(requestIdentity);
+  const selectedRead = await value.adapter.prepareKeyed({preparedProgram: value.preparedProgram,
+    keyedAcquisition: value.acquisition, requestIdentity});
   selectedCapture = value.keyedContent === undefined ? undefined : {...value.keyedContent};
   const ledger = lookupLedger();
   lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
     keyedAcquisition: value.acquisition, left: value.left, ledger, originalCapture: value.captured.capture,
-    keyedContent: selectedCapture});
+    keyedContent: selectedCapture, preparedKeyed: selectedRead.prepared});
   assert.equal(calls, 2); assert.equal(captured, 1); assert.equal(verifiedBytes, 9);
   assert.deepEqual(operations, [['files', 'gcs:file:list'], ['contents', 'gcs:file:read']],
     'metadata and content use separate immutable registered credential operations');
@@ -3629,10 +3634,18 @@ test('installed keyed authority keeps canonically equivalent version data distin
         await consumePage([{content: admittedContent, resource: resource('d'), version}]);
       }});
     t.after(value.close);
+    const requestIdentity = moon.clientProgramRequestIdentity(value.preparedProgram,
+      token('a'), 'exact-keyed-version', moon.clientProgramSourceFreeInputIntentCid());
+    assert.ok(requestIdentity);
+    const selectedRead = await value.adapter.prepareKeyed({preparedProgram: value.preparedProgram,
+      keyedAcquisition: value.acquisition, requestIdentity});
+    // Preparation checks the static selected port. The per-request physical
+    // subject below additionally includes its original captured version.
+    ownSubjects.clear();
     const request = await originalKeyedRequest(value);
     const ledger = checked(moon.clientProgramAcquisitionLedger(1, 1, 16384n, 4096n, 100000n));
     const acquired = await value.adapter.openKeyed({preparedProgram: value.preparedProgram,
-      keyedAcquisition: value.acquisition, request, ledger});
+      keyedAcquisition: value.acquisition, request, ledger, preparedKeyed: selectedRead.prepared});
     t.after(acquired.close);
     assert.equal(ownSubjects.size, 1, 'each resume checks the same exact request subject');
     assert.equal(acquired.capture.identity(), cid([

@@ -190,9 +190,8 @@ pub fn open_captured_local_retained_host(
 }
 
 ///|
-/// Compose the single verified capture and retained Compute with the existing
-/// Host root Ledger. This opens no replacement capture or resource Owner.
-pub fn open_captured_local_retained_host_on_ledger(
+/// Keep single captured input and Compute on their original acquisition ledger.
+pub fn open_captured_local_host_on_ledger(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
@@ -200,6 +199,9 @@ pub fn open_captured_local_retained_host_on_ledger(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   open_checked_local_host(
     prepared,
@@ -212,6 +214,38 @@ pub fn open_captured_local_retained_host_on_ledger(
     0L,
     fragment_body~,
     ordered_body~,
+    provider_factory~,
+    acquisition_ledger=Some(ledger),
+  )
+}
+
+///|
+/// Compose the single verified capture and retained Compute with the existing
+/// Host root Ledger. This opens no replacement capture or resource Owner.
+pub fn open_captured_local_retained_host_on_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  open_checked_local_host(
+    prepared,
+    Some(source),
+    registry_body,
+    values_body,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body~,
+    ordered_body~,
+    provider_factory~,
     retained_output=true,
     acquisition_ledger=Some(ledger),
   )

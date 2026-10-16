@@ -16,11 +16,15 @@ pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) 
 
 pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]
 
+pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]
+
 pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String
 
 pub fn object_collection_identity_json(ObjectCollectionBinding) -> String
 
 pub fn object_collection_resource_json(ObjectCollectionBinding) -> String
+
+pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
 pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields
 
@@ -33,6 +37,8 @@ pub fn object_metadata_page_count(ObjectMetadataPage) -> Int
 pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?
 
 pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String
+
+pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
 pub fn object_metadata_response_sha256(ObjectMetadata) -> String
 
@@ -79,6 +85,8 @@ pub fn object_upload_path(ObjectUploadRequest) -> String
 pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]
 
 pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool
+
+pub fn object_upload_response_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]
 
 pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]
 
@@ -250,6 +258,12 @@ pub struct ObjectUploadObservation {
   original : ObjectMetadata?
   response_sha256 : String
 }
+
+pub(all) enum ObjectUploadOutcome {
+  Applied
+  Conflict
+  Unknown
+} derive(Eq, @debug.Debug)
 
 pub struct ObjectUploadRequest {
   binding : ObjectUploadBinding

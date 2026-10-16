@@ -1190,11 +1190,36 @@ A command resolves to a canonical `actql.command_contract/0.1` containing:
 
 ```text
 command_id, version, connector_id,
-target {resource_kind, cardinality, max_items},
+target {resource_kind, cardinality, max_items, optional binding},
 input_schema and closed input_contract, output_schema, permissions,
 idempotency {support, key_schema, retention}, preview strength,
 reversibility, atomicity, outcome, reconciliation, cancellation, contract_cid
 ```
+
+<!-- requirement-block: command-contracts.target-binding-declaration command-contracts.target-binding-domain -->
+The optional Command `target.binding` MUST be one complete closed record:
+`{kind:"installation"}` for the original fixed installation target, or
+`{kind:"identifier",identity_contract:<checked ValueContract>}` for a target
+identified by an original input value. The identifier contract MUST be
+non-null and KeyComparable under the existing value-domain law; every supplied
+child contract is checked and budgeted before that domain is accepted. The
+Command self-CID and its original Catalog include the complete declaration.
+An absent binding retains the legacy field ResourceRef meaning and bytes;
+absence, NULL, unknown kinds and malformed records never become a fixed-target
+default. A published-mode selection and a legacy field/STORE selection are
+separate checked interpretations of that original Command.
+
+<!-- requirement-block: command-contracts.target-binding-custody -->
+Static selection MUST retain the exact original Command member, Catalog and
+Check Environment, together with the declared mode and complete checked
+identifier domain when present. Equal self-CIDs alone do not establish that
+original occurrence. This type declaration and original selection do not issue
+a ResourceRef, select a current installation or grant permission. Fixed and
+identifier targets still require their trusted installed issuer and original
+installation relationship, current scope/generation, capture, approval, apply
+and restore checks. An identifier value, literal, alias or compatible schema
+cannot replace that issuer. Authored ID correspondence remains separate from
+the existing mutation identity of contract, target and canonical payload.
 
 <!-- requirement-block: command-contracts.input-presence -->
 The closed inline `input_contract` contains `additional_properties: false`
@@ -1509,7 +1534,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:7a44c89ae598d9d40115046a4864854446625473c88ea4b5d13f7727cc88b54a -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:254406b934e64600fdb5c92b07e8d2cff1fe0af41acf0ce0ab328ca8eb1d3917 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
 
 <a id="parameter-value-projection"></a>
@@ -1925,7 +1950,7 @@ remain mandatory even though this compilation envelope references them through
 `executable_plan_cid`. Neither envelope contains a later receipt CID.
 
 <!-- requirement-block: compilation-identities.effect-target-selection-shape -->
-When logical UPDATE target selection is retained, `execution_material` MUST
+When logical UPDATE or `command.target.published_store` target selection is retained, `execution_material` MUST
 include `effect_target_selections` as a nonempty canonical JSON array whose
 closed entries contain exactly `check_environment_cid`, `effect_id`,
 `installation_binding_cid`, `installation_owner_cid`, `mapping_cid`,
@@ -1943,11 +1968,21 @@ replace this occurrence-level admission check.
 <!-- requirement-block: compilation-identities.effect-target-selection-original -->
 Each selection MUST bind the original concrete target, exact Mapping reference
 and resolved Mapping CID, selected Check Environment CID, physical installation
-binding CID, and installed row-effect owner CID to that checked UPDATE
-occurrence. Full and short spellings selecting the same target, Mapping,
+binding CID, and installed Effect owner CID to that exact checked occurrence.
+Full and short spellings selecting the same target, Mapping,
 environment and installation have equal selection bytes; alias spelling is
 excluded. Different selected evidence changes compilation identity even when
 the lowered concrete Program text happens to be equal.
+
+<!-- requirement-block: compilation-identities.published-store-selection-original -->
+For a published-STORE Command, the original header, StoreCommand pair and
+Catalog MUST agree with the saved Program and Check Environment; field-target
+Commands and canonical relation STORE do not enter this selection domain.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-mixed-purpose -->
+Valid UPDATE and published-STORE occurrences MAY coexist in the same array,
+but one occurrence's selection MUST NOT substitute for another purpose or
+original occurrence.
 
 <!-- requirement-block: compilation-identities.effect-target-selection-owner -->
 The `installation_owner_cid` MUST hash the canonical existing `installationFacts`
@@ -2408,8 +2443,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_ref sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_envelope sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/source_view sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:089b4bb20d9b047805d2176852265c3a4f4fd3822eaab80359b9e1bac8ca9a1b
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:5777408c086b03bc0a7d049c75797a633daa0ec9662dab0c462bfb572600eca6
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:b0d71becff026232f333383340906b34dcc02da645a9d3394daa21e9f8eff171
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:aa24ef07a561f8b60e3dfbb1238b8a70e237e43ef4c404003205f9f92f7d136f
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/lock sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3

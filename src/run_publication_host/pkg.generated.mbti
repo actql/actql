@@ -1537,7 +1537,7 @@ pub fn prepare_client_coordinator_retained_input_producer(ClientRetainedInputEdg
 
 pub fn prepare_client_effect_captured_run(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], @run_publication.CapturedEffectDependencyInventory, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int) -> Result[@run_publication.CapturedRunIssuancePreparation, ClientEffectCapturedRunIssue]
 
-pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
+pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
 
 pub fn prepare_client_effect_keyed_acquisition(PreparedClientEffectComputation, Int, Int, Int, join_step? : Int?) -> Result[ClientKeyedAcquisition, ClientKeyedAcquisitionIssue]
 
@@ -1647,7 +1647,7 @@ pub fn prepare_client_transfer_input(@remote_transfer.RemoteTransferRequest, Str
 
 pub fn prepare_effect_free_client_program(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, ClientProgramPreparationLimits) -> Result[PreparedClientProgram, ClientProgramPreparationIssue]
 
-pub fn prepare_parsed_client_effect_computation(@stage_syntax.Program, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
+pub fn prepare_parsed_client_effect_computation(@stage_syntax.Program, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
 
 pub fn prepare_parsed_effect_free_client_program(@stage_syntax.Program, @program_check.CheckEnvironment, @decode_core.Cursor?, ClientProgramPreparationLimits) -> Result[PreparedClientProgram, ClientProgramPreparationIssue]
 
@@ -2435,6 +2435,7 @@ pub(all) enum ClientEffectTransferredArtifactIssue {
 
 pub(all) enum ClientEffectUpdateTargetIssue {
   Publication(@query_program.UpdateTargetIssue)
+  StorePublication(@query_program.StoreTargetIssue)
   ForeignEnvironment
   ForeignSelection
   InvalidMaterials

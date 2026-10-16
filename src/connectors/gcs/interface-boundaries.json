@@ -457,7 +457,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "32f772bb9fbdc1dfd06d9ff4227ca6115051e8ee302ebedf4a718c98bfe178c0",
+      "sha256": "115033cff92be86fd5e6f874a6d6b4b936a2dfb06a101a6af280ff1e392784db",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -466,15 +466,18 @@
         "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
         "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
         "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+        "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
         "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
         "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
         "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
+        "pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
         "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
         "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
         "pub fn object_metadata_page_at(ObjectMetadataPage, Int) -> ObjectMetadataFields?",
         "pub fn object_metadata_page_count(ObjectMetadataPage) -> Int",
         "pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?",
         "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String",
+        "pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
         "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
         "pub fn object_metadata_version(ObjectMetadata) -> String",
         "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
@@ -498,6 +501,7 @@
         "pub fn object_upload_path(ObjectUploadRequest) -> String",
         "pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]",
         "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool",
+        "pub fn object_upload_response_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]",
         "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
         "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
@@ -537,6 +541,10 @@
           "declaration": "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]"
         },
         {
+          "name": "classify_object_upload_response",
+          "declaration": "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]"
+        },
+        {
           "name": "object_collection_identity_cid",
           "declaration": "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String"
         },
@@ -547,6 +555,10 @@
         {
           "name": "object_collection_resource_json",
           "declaration": "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "object_listing_prefix",
+          "declaration": "pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]"
         },
         {
           "name": "object_metadata_fields",
@@ -571,6 +583,10 @@
         {
           "name": "object_metadata_page_response_sha256",
           "declaration": "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String"
+        },
+        {
+          "name": "object_metadata_page_row_json",
+          "declaration": "pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]"
         },
         {
           "name": "object_metadata_response_sha256",
@@ -665,6 +681,10 @@
           "declaration": "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool"
         },
         {
+          "name": "object_upload_response_projection_json",
+          "declaration": "pub fn object_upload_response_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]"
+        },
+        {
           "name": "prepare_object_collection_binding",
           "declaration": "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]"
         },
@@ -706,15 +726,18 @@
             "admit_object_mutation_request",
             "admit_object_upload_observation",
             "check_object_collection_binding",
+            "classify_object_upload_response",
             "object_collection_identity_cid",
             "object_collection_identity_json",
             "object_collection_resource_json",
+            "object_listing_prefix",
             "object_metadata_fields",
             "object_metadata_logical_json",
             "object_metadata_page_at",
             "object_metadata_page_count",
             "object_metadata_page_next_token",
             "object_metadata_page_response_sha256",
+            "object_metadata_page_row_json",
             "object_metadata_response_sha256",
             "object_metadata_version",
             "object_mutation_after",
@@ -738,6 +761,7 @@
             "object_upload_path",
             "object_upload_projection_json",
             "object_upload_response_matches",
+            "object_upload_response_projection_json",
             "prepare_object_collection_binding",
             "prepare_object_delete",
             "prepare_object_metadata_patch",
@@ -753,15 +777,18 @@
             "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
             "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
             "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+            "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
             "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
             "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
             "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
+            "pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
             "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
             "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
             "pub fn object_metadata_page_at(ObjectMetadataPage, Int) -> ObjectMetadataFields?",
             "pub fn object_metadata_page_count(ObjectMetadataPage) -> Int",
             "pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?",
             "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String",
+            "pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
             "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
             "pub fn object_metadata_version(ObjectMetadata) -> String",
             "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
@@ -785,6 +812,7 @@
             "pub fn object_upload_path(ObjectUploadRequest) -> String",
             "pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]",
             "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool",
+            "pub fn object_upload_response_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]",
             "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
             "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
@@ -851,6 +879,22 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The same original upload binding also supplies"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "Provider response interpretation only"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "Provider interpretation follows durable custody"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Detached Source DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "Ordinary object rows share"
               }
             ],
             "inputsOutputs": [
@@ -897,6 +941,22 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_metadata_path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_upload_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_response_projection"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_metadata_page_row_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "anchor": "type: 'decimal', precision: 19"
               }
             ],
             "identity": [
@@ -947,6 +1007,22 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
                 "anchor": "fn upload_name"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "prefix.has_prefix(installed_prefix)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "identity_cid: cid({"
               }
             ],
             "ownership": [
@@ -1001,6 +1077,22 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The parsed observation and its raw response"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "introduces no second"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "projectStored: stored =>"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact ordinary object rows"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "startInstalledRowRun"
               }
             ],
             "synchronization": [
@@ -1047,6 +1139,22 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "export async function readGcsUploadTarget"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "ledger.recordResponse"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "readAuthorizedEffectResponse"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await verifyRead()"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await consumePage(rows, {charge})"
               }
             ],
             "failure": [
@@ -1093,6 +1201,22 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "target metadata read refuses foreign scope"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Other statuses or malformed"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "GcsObjectListingLimit"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Err(ObjectMismatch)"
               }
             ],
             "cancellation": {
@@ -1154,6 +1278,26 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Its path/encoded-name strings"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "During response classification"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "start_accounted_row_acquisition"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await chargePage(response.body)"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "per-row canonical writer/String"
               }
             ],
             "extension": [
@@ -1200,6 +1344,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The actual Content borrow and same-Site driver integration remain unfinished"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "A later metadata GET uses original metadata matching"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "options.resource === 'objects'"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed nonempty service reads"
               }
             ],
             "verification": [
@@ -1258,6 +1414,30 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "target metadata read uses the original scoped path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome_wbtest.mbt",
+                "anchor": "GCS original direct upload outcome requires exact marker"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core upload response reopens"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core unknown upload retains"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object Source projection is exact Decimal DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
+                "anchor": "actual installed object contracts consume"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "anchor": "original cancellation and physical failure"
               }
             ]
           }
@@ -1424,8 +1604,13 @@
           "operations": [
             "<module>",
             "gcs_object_failure_code",
+            "gcs_object_listing_prefix",
             "gcs_object_metadata",
             "gcs_object_metadata_json",
+            "gcs_object_metadata_page",
+            "gcs_object_metadata_page_count",
+            "gcs_object_metadata_page_next_token",
+            "gcs_object_metadata_page_row_json",
             "gcs_object_mutation_binding",
             "gcs_object_prepare_delete",
             "gcs_object_prepare_patch",
@@ -1444,6 +1629,14 @@
               {
                 "path": "docs/spec/protocols/contracts.md",
                 "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Detached Source DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "Ordinary object rows share"
               }
             ],
             "inputsOutputs": [
@@ -1454,6 +1647,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_object_request_projection"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_metadata_page_row_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "anchor": "type: 'decimal', precision: 19"
               }
             ],
             "identity": [
@@ -1464,6 +1665,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_projection.mbt",
                 "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "prefix.has_prefix(installed_prefix)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "identity_cid: cid({"
               }
             ],
             "ownership": [
@@ -1474,6 +1683,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact ordinary object rows"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "startInstalledRowRun"
               }
             ],
             "synchronization": [
@@ -1484,6 +1701,14 @@
               {
                 "path": "adapters/host-common/owned-invocation-context.mjs",
                 "anchor": "export function invokeScopedCredentialOperation"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await verifyRead()"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await consumePage(rows, {charge})"
               }
             ],
             "failure": [
@@ -1494,6 +1719,14 @@
               {
                 "path": "src/connectors/gcs/host_node/object.mbt",
                 "anchor": "pub fn gcs_object_failure_code"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "GcsObjectListingLimit"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Err(ObjectMismatch)"
               }
             ],
             "cancellation": [
@@ -1504,6 +1737,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "physical cleanup ACK"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "signal.throwIfAborted()"
               }
             ],
             "resources": [
@@ -1514,6 +1751,18 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
                 "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "start_accounted_row_acquisition"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await chargePage(response.body)"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "per-row canonical writer/String"
               }
             ],
             "extension": [
@@ -1524,6 +1773,14 @@
               {
                 "path": "src/connectors/gcs/host_node/object.mbt",
                 "anchor": "Typed ABI projection only"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "options.resource === 'objects'"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed nonempty service reads"
               }
             ],
             "verification": [
@@ -1534,6 +1791,18 @@
               {
                 "path": "src/connectors/gcs/catalog/object_projection_wbtest.mbt",
                 "anchor": "GCS physical projection borrows the same request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object Source projection is exact Decimal DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
+                "anchor": "actual installed object contracts consume"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "anchor": "original cancellation and physical failure"
               }
             ]
           }
@@ -1545,12 +1814,32 @@
           "declaration": "gcs_object_failure_code ( issue : GcsFailure ) - > String"
         },
         {
+          "name": "gcs_object_listing_prefix",
+          "declaration": "gcs_object_listing_prefix ( installed_prefix : String , request : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , GcsFailure ]"
+        },
+        {
           "name": "gcs_object_metadata",
           "declaration": "gcs_object_metadata ( bytes : Bytes , bucket : String , prefix : String , name : String ? , max_bytes : Int , max_nodes : Int , max_depth : Int , max_entries : Int , ) - > Result [ @ catalog . ObjectMetadata , GcsFailure ]"
         },
         {
           "name": "gcs_object_metadata_json",
           "declaration": "gcs_object_metadata_json ( original : @ catalog . ObjectMetadata , max_bytes : Int , max_nodes : Int , max_depth : Int , max_entries : Int , ) - > Result [ String , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_metadata_page",
+          "declaration": "gcs_object_metadata_page ( bytes : Bytes , bucket : String , prefix : String , max_items : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , max_entries : Int , ) - > Result [ @ catalog . ObjectMetadataPage , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_metadata_page_count",
+          "declaration": "gcs_object_metadata_page_count ( page : @ catalog . ObjectMetadataPage , ) - > Int"
+        },
+        {
+          "name": "gcs_object_metadata_page_next_token",
+          "declaration": "gcs_object_metadata_page_next_token ( page : @ catalog . ObjectMetadataPage , ) - > String ?"
+        },
+        {
+          "name": "gcs_object_metadata_page_row_json",
+          "declaration": "gcs_object_metadata_page_row_json ( page : @ catalog . ObjectMetadataPage , index : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , GcsFailure ]"
         },
         {
           "name": "gcs_object_mutation_binding",
@@ -1582,7 +1871,7 @@
         }
       ],
       "exports": [],
-      "sha256": "726e29519fcf50fe80a5f20050c71d0249dfd1d479286f86854eee96773e0327"
+      "sha256": "594b40c12220ebdc4f7e6a758f67046e3fea1356a39d53ee6f28fa2ed6211f0d"
     },
     {
       "module": "src/connectors/gcs/host_node/pkg.generated.mbti",
@@ -1602,8 +1891,13 @@
             "gcs_collection_reference_failure_code",
             "gcs_collection_resource_json",
             "gcs_object_failure_code",
+            "gcs_object_listing_prefix",
             "gcs_object_metadata",
             "gcs_object_metadata_json",
+            "gcs_object_metadata_page",
+            "gcs_object_metadata_page_count",
+            "gcs_object_metadata_page_next_token",
+            "gcs_object_metadata_page_row_json",
             "gcs_object_mutation_binding",
             "gcs_object_prepare_delete",
             "gcs_object_prepare_patch",
@@ -1624,7 +1918,8 @@
             "gcs_upload_prepare_multipart",
             "gcs_upload_projection",
             "gcs_upload_recheck",
-            "gcs_upload_response_matches"
+            "gcs_upload_response_matches",
+            "gcs_upload_response_projection"
           ],
           "exports": [
             "pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]",
@@ -1636,8 +1931,13 @@
             "pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String",
             "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
             "pub fn gcs_object_failure_code(GcsFailure) -> String",
+            "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
             "pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]",
+            "pub fn gcs_object_metadata_page(Bytes, String, String, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadataPage, GcsFailure]",
+            "pub fn gcs_object_metadata_page_count(@catalog.ObjectMetadataPage) -> Int",
+            "pub fn gcs_object_metadata_page_next_token(@catalog.ObjectMetadataPage) -> String?",
+            "pub fn gcs_object_metadata_page_row_json(@catalog.ObjectMetadataPage, Int, Int, Int, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
             "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
             "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
@@ -1659,6 +1959,7 @@
             "pub fn gcs_upload_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool",
+            "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]",
             "pub enum GcsFailure {"
           ],
           "attributes": {
@@ -1706,6 +2007,22 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The same original upload binding also supplies"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "Provider response interpretation only"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "Provider interpretation follows durable custody"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Detached Source DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "Ordinary object rows share"
               }
             ],
             "inputsOutputs": [
@@ -1760,6 +2077,22 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_metadata_path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_upload_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_response_projection"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_metadata_page_row_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "anchor": "type: 'decimal', precision: 19"
               }
             ],
             "identity": [
@@ -1814,6 +2147,22 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
                 "anchor": "fn upload_name"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "prefix.has_prefix(installed_prefix)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "identity_cid: cid({"
               }
             ],
             "ownership": [
@@ -1868,6 +2217,22 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The parsed observation and its raw response"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "introduces no second"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "projectStored: stored =>"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact ordinary object rows"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "startInstalledRowRun"
               }
             ],
             "synchronization": [
@@ -1914,6 +2279,22 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "export async function readGcsUploadTarget"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "ledger.recordResponse"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "readAuthorizedEffectResponse"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await verifyRead()"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await consumePage(rows, {charge})"
               }
             ],
             "failure": [
@@ -1960,6 +2341,22 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "target metadata read refuses foreign scope"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Other statuses or malformed"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "GcsObjectListingLimit"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Err(ObjectMismatch)"
               }
             ],
             "cancellation": [
@@ -1982,6 +2379,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "does not acknowledge native cleanup"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "classification, Promise completion or a weak reference is not cleanup ACK"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "signal.throwIfAborted()"
               }
             ],
             "resources": [
@@ -2036,6 +2441,26 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Its path/encoded-name strings"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "During response classification"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "start_accounted_row_acquisition"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await chargePage(response.body)"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "per-row canonical writer/String"
               }
             ],
             "extension": [
@@ -2082,6 +2507,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The actual Content borrow and same-Site driver integration remain unfinished"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "A later metadata GET uses original metadata matching"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "options.resource === 'objects'"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed nonempty service reads"
               }
             ],
             "verification": [
@@ -2144,6 +2581,30 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "target metadata read uses the original scoped path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome_wbtest.mbt",
+                "anchor": "GCS original direct upload outcome requires exact marker"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core upload response reopens"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core unknown upload retains"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object Source projection is exact Decimal DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
+                "anchor": "actual installed object contracts consume"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "anchor": "original cancellation and physical failure"
               }
             ]
           }
@@ -2159,8 +2620,13 @@
         "pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String",
         "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
         "pub fn gcs_object_failure_code(GcsFailure) -> String",
+        "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
         "pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_metadata_page(Bytes, String, String, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadataPage, GcsFailure]",
+        "pub fn gcs_object_metadata_page_count(@catalog.ObjectMetadataPage) -> Int",
+        "pub fn gcs_object_metadata_page_next_token(@catalog.ObjectMetadataPage) -> String?",
+        "pub fn gcs_object_metadata_page_row_json(@catalog.ObjectMetadataPage, Int, Int, Int, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
         "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
@@ -2182,6 +2648,7 @@
         "pub fn gcs_upload_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool",
+        "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]",
         "pub enum GcsFailure {"
       ],
       "operations": [
@@ -2222,12 +2689,32 @@
           "declaration": "pub fn gcs_object_failure_code(GcsFailure) -> String"
         },
         {
+          "name": "gcs_object_listing_prefix",
+          "declaration": "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]"
+        },
+        {
           "name": "gcs_object_metadata",
           "declaration": "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]"
         },
         {
           "name": "gcs_object_metadata_json",
           "declaration": "pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_metadata_page",
+          "declaration": "pub fn gcs_object_metadata_page(Bytes, String, String, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadataPage, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_metadata_page_count",
+          "declaration": "pub fn gcs_object_metadata_page_count(@catalog.ObjectMetadataPage) -> Int"
+        },
+        {
+          "name": "gcs_object_metadata_page_next_token",
+          "declaration": "pub fn gcs_object_metadata_page_next_token(@catalog.ObjectMetadataPage) -> String?"
+        },
+        {
+          "name": "gcs_object_metadata_page_row_json",
+          "declaration": "pub fn gcs_object_metadata_page_row_json(@catalog.ObjectMetadataPage, Int, Int, Int, Int) -> Result[String, GcsFailure]"
         },
         {
           "name": "gcs_object_mutation_binding",
@@ -2312,9 +2799,13 @@
         {
           "name": "gcs_upload_response_matches",
           "declaration": "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool"
+        },
+        {
+          "name": "gcs_upload_response_projection",
+          "declaration": "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "d221dee2c9765c28daf9a58beb8325e10758ccac103ab14af16fdef442767f39"
+      "sha256": "c423243471cd828bd0b380a567a051ff8868ddc3364ad14db1202e312812d2f7"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -3960,10 +4451,13 @@
           "operations": [
             "<module>",
             "admit_object_metadata_page",
+            "object_listing_prefix",
             "object_metadata_page_at",
             "object_metadata_page_count",
             "object_metadata_page_next_token",
-            "object_metadata_page_response_sha256"
+            "object_metadata_page_response_sha256",
+            "object_metadata_page_row_json",
+            "object_source_timestamp"
           ],
           "exports": [],
           "attributes": {
@@ -3975,6 +4469,18 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "Common retains those responsibilities"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Detached Source DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "RFC 3339 provider text becomes the same UTC instant"
               }
             ],
             "inputsOutputs": [
@@ -3985,6 +4491,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_metadata.mbt",
                 "anchor": "pub(all) struct ObjectMetadataFields"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_metadata_page_row_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "anchor": "type: 'decimal', precision: 19"
               }
             ],
             "identity": [
@@ -3995,6 +4509,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_metadata.mbt",
                 "anchor": "integer.to_string() == text"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "prefix.has_prefix(installed_prefix)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "identity_cid: cid({"
               }
             ],
             "ownership": [
@@ -4005,6 +4527,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "metadata: logical_metadata(fields.metadata)"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact ordinary object rows"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "startInstalledRowRun"
               }
             ],
             "synchronization": [
@@ -4015,6 +4545,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "not object GET"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await verifyRead()"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await consumePage(rows, {charge})"
               }
             ],
             "failure": [
@@ -4025,6 +4563,18 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "if count > max_items"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "GcsObjectListingLimit"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Err(ObjectMismatch)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "An unrepresentable instant refuses"
               }
             ],
             "cancellation": {
@@ -4042,6 +4592,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The physical raw page, strict parser/decode trees"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "start_accounted_row_acquisition"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await chargePage(response.body)"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "per-row canonical writer/String"
               }
             ],
             "extension": [
@@ -4052,6 +4614,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "pub fn object_metadata_page_at"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "options.resource === 'objects'"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed nonempty service reads"
               }
             ],
             "verification": [
@@ -4062,6 +4632,22 @@
               {
                 "path": "src/connectors/gcs/contract_acceptance/object_page_test.mbt",
                 "anchor": "GCS original page integers reach real Decimal admission"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object Source projection is exact Decimal DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
+                "anchor": "actual installed object contracts consume"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS updated timestamp uses the same UTC instant without rounding"
               }
             ]
           }
@@ -4071,6 +4657,10 @@
         {
           "name": "admit_object_metadata_page",
           "declaration": "admit_object_metadata_page ( bytes : Bytes , expected_bucket : String , expected_prefix : String , max_items : Int , limits : ObjectMetadataLimits , ) - > Result [ ObjectMetadataPage , ObjectMetadataIssue ]"
+        },
+        {
+          "name": "object_listing_prefix",
+          "declaration": "object_listing_prefix ( installed_prefix : String , request : Bytes , limits : ObjectMetadataLimits , ) - > Result [ String , ObjectMetadataIssue ]"
         },
         {
           "name": "object_metadata_page_at",
@@ -4087,10 +4677,18 @@
         {
           "name": "object_metadata_page_response_sha256",
           "declaration": "object_metadata_page_response_sha256 ( page : ObjectMetadataPage , ) - > String"
+        },
+        {
+          "name": "object_metadata_page_row_json",
+          "declaration": "object_metadata_page_row_json ( page : ObjectMetadataPage , index : Int , max_bytes : Int , limits : ObjectMetadataLimits , ) - > Result [ String , ObjectMetadataIssue ]"
+        },
+        {
+          "name": "object_source_timestamp",
+          "declaration": "object_source_timestamp ( text : String ) - > String ?"
         }
       ],
       "exports": [],
-      "sha256": "492920935f0f66beeb26295c5f9c02d9f089a157b9d2cecc118a03c19ef501de"
+      "sha256": "96404de1d2402ab287680e4abf470fd642683872d8a91113c9a7a2c514d72bc1"
     },
     {
       "module": "src/connectors/gcs/original_reference/collection.mbt",
@@ -4797,7 +5395,7 @@
     },
     {
       "module": "src/connectors/gcs/host_node/upload_request.mbt",
-      "sha256": "86d0f2f71935154040dfbe94b975dfa45755611cfa0e43555c31f018fc254ed0",
+      "sha256": "31f6b1a0018754caf0441b3002719f08efa142c5c80ce6184230a6c9a78e650f",
       "operations": [
         {
           "name": "gcs_upload_binding",
@@ -4838,6 +5436,10 @@
         {
           "name": "gcs_upload_response_matches",
           "declaration": "gcs_upload_response_matches ( binding : @ catalog . ObjectUploadBinding , request : @ catalog . ObjectUploadRequest , response : @ catalog . ObjectMetadata , ) - > Bool"
+        },
+        {
+          "name": "gcs_upload_response_projection",
+          "declaration": "gcs_upload_response_projection ( binding : @ catalog . ObjectUploadBinding , request : @ catalog . ObjectUploadRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , @ catalog . ObjectUploadIssue ]"
         }
       ],
       "exports": [],
@@ -4857,7 +5459,8 @@
             "gcs_upload_prepare_multipart",
             "gcs_upload_projection",
             "gcs_upload_recheck",
-            "gcs_upload_response_matches"
+            "gcs_upload_response_matches",
+            "gcs_upload_response_projection"
           ],
           "exports": [],
           "attributes": {
@@ -4873,6 +5476,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The same original upload binding also supplies"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "Provider response interpretation only"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "Provider interpretation follows durable custody"
               }
             ],
             "inputsOutputs": [
@@ -4891,6 +5502,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_metadata_path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_upload_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_response_projection"
               }
             ],
             "identity": [
@@ -4905,6 +5524,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
                 "anchor": "fn upload_name"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               }
             ],
             "ownership": [
@@ -4923,6 +5550,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The parsed observation and its raw response"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "introduces no second"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "projectStored: stored =>"
               }
             ],
             "synchronization": [
@@ -4937,6 +5572,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "export async function readGcsUploadTarget"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "ledger.recordResponse"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "readAuthorizedEffectResponse"
               }
             ],
             "failure": [
@@ -4951,6 +5594,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "target metadata read refuses foreign scope"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Other statuses or malformed"
               }
             ],
             "cancellation": [
@@ -4965,6 +5616,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "does not acknowledge native cleanup"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "classification, Promise completion or a weak reference is not cleanup ACK"
               }
             ],
             "resources": [
@@ -4983,6 +5638,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Its path/encoded-name strings"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "During response classification"
               }
             ],
             "extension": [
@@ -4997,6 +5660,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The actual Content borrow and same-Site driver integration remain unfinished"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "A later metadata GET uses original metadata matching"
               }
             ],
             "verification": [
@@ -5019,6 +5686,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "target metadata read uses the original scoped path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome_wbtest.mbt",
+                "anchor": "GCS original direct upload outcome requires exact marker"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core upload response reopens"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core unknown upload retains"
               }
             ]
           }
@@ -5027,13 +5706,14 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-      "sha256": "3598380d86384bf9bd14398f46e8518ce512ccf141574651f59def3edba942b0",
+      "sha256": "b5640a5a999d53f35034a1b4e3e6a0af42909ad5c8ea57267c02bead7a08591f",
       "exports": [
         "admitGcsUploadObservation",
         "gcsUploadResult",
         "ownedGcsUploadBody",
         "ownedGcsUploadResponseMatches",
         "prepareOwnedGcsMultipartUpload",
+        "projectOwnedGcsUploadResponse",
         "readGcsUploadTarget",
         "recheckOwnedGcsUpload",
         "sendOwnedGcsUpload"
@@ -5128,6 +5808,15 @@
           "async": false
         },
         {
+          "name": "projectOwnedGcsUploadResponse",
+          "parameters": [
+            "request",
+            "observation",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "readGcsUploadTarget",
           "parameters": [
             "moon",
@@ -5187,6 +5876,7 @@
             "ownedGcsUploadResponseMatches",
             "prepareOwnedGcsMultipartUpload",
             "prepareOwnedGcsMultipartUpload/prepareOwnedGcsMultipartUpload",
+            "projectOwnedGcsUploadResponse",
             "readGcsUploadTarget",
             "recheckOwnedGcsUpload",
             "sendOwnedGcsUpload"
@@ -5197,6 +5887,7 @@
             "ownedGcsUploadBody",
             "ownedGcsUploadResponseMatches",
             "prepareOwnedGcsMultipartUpload",
+            "projectOwnedGcsUploadResponse",
             "readGcsUploadTarget",
             "recheckOwnedGcsUpload",
             "sendOwnedGcsUpload"
@@ -5214,6 +5905,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The same original upload binding also supplies"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "Provider response interpretation only"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "Provider interpretation follows durable custody"
               }
             ],
             "inputsOutputs": [
@@ -5232,6 +5931,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_upload_metadata_path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_upload_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_response_projection"
               }
             ],
             "identity": [
@@ -5246,6 +5953,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
                 "anchor": "fn upload_name"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               }
             ],
             "ownership": [
@@ -5264,6 +5979,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The parsed observation and its raw response"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "introduces no second"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "projectStored: stored =>"
               }
             ],
             "synchronization": [
@@ -5278,6 +6001,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
                 "anchor": "export async function readGcsUploadTarget"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "ledger.recordResponse"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "readAuthorizedEffectResponse"
               }
             ],
             "failure": [
@@ -5292,6 +6023,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "target metadata read refuses foreign scope"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Other statuses or malformed"
               }
             ],
             "cancellation": [
@@ -5306,6 +6045,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "does not acknowledge native cleanup"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "classification, Promise completion or a weak reference is not cleanup ACK"
               }
             ],
             "resources": [
@@ -5324,6 +6067,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Its path/encoded-name strings"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "During response classification"
               }
             ],
             "extension": [
@@ -5338,6 +6089,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The actual Content borrow and same-Site driver integration remain unfinished"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "A later metadata GET uses original metadata matching"
               }
             ],
             "verification": [
@@ -5360,6 +6115,386 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
                 "anchor": "target metadata read uses the original scoped path"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome_wbtest.mbt",
+                "anchor": "GCS original direct upload outcome requires exact marker"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core upload response reopens"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core unknown upload retains"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+      "sha256": "5e584bc3de73c4555094d566c598e5457f04c1f6e526c1ac4ce4a920e91fa3b9",
+      "operations": [
+        {
+          "name": "classify_object_upload_response",
+          "declaration": "classify_object_upload_response ( binding : ObjectUploadBinding , request : ObjectUploadRequest , status : Int , body : Bytes , ) - > Result [ ObjectUploadOutcome , ObjectUploadIssue ]"
+        },
+        {
+          "name": "object_upload_response_projection_json",
+          "declaration": "object_upload_response_projection_json ( binding : ObjectUploadBinding , request : ObjectUploadRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , ObjectUploadIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing GCS Connector direct upload response meaning; original Effect Ledger/capture/Store authenticate claims, response custody and settlement",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "classify_object_upload_response",
+            "object_upload_response_projection_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "Provider response interpretation only"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "Provider interpretation follows durable custody"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_upload_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_response_projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "introduces no second"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "projectStored: stored =>"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "ledger.recordResponse"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "readAuthorizedEffectResponse"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Other statuses or malformed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "classification, Promise completion or a weak reference is not cleanup ACK"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "During response classification"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "A later metadata GET uses original metadata matching"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_outcome_wbtest.mbt",
+                "anchor": "GCS original direct upload outcome requires exact marker"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core upload response reopens"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-ledger-response.test.mjs",
+                "anchor": "actual Core unknown upload retains"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+      "sha256": "2bca5ddca6810638848a727cd757610ec49bf24c0f89992d8fe74a7e61db7883",
+      "exports": [
+        "readGcsObjects"
+      ],
+      "operations": [
+        {
+          "name": "encode/encode",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "encode/encode/encode",
+          "parameters": [
+            "character"
+          ],
+          "async": false
+        },
+        {
+          "name": "exact/exact",
+          "parameters": [
+            "value",
+            "maximum",
+            "empty"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGcsObjects",
+          "parameters": [
+            "moon",
+            "target",
+            "limits",
+            "credential",
+            "authorizationFor",
+            "chargePage",
+            "consumePage",
+            "resourceFor",
+            "callResource",
+            "verifyRead",
+            "requestWire",
+            "parentSignal"
+          ],
+          "async": true
+        },
+        {
+          "name": "readGcsObjects/readGcsObjects",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGcsObjects/readGcsObjects#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGcsObjects/readGcsObjects#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGcsObjects/readGcsObjects#4",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "result",
+          "parameters": [
+            "moon",
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "./gcs-file-listing.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing GCS object Source transport; Common RowRun, Credential, ReferenceIssuer and Source publication retain their original responsibilities",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "encode/encode",
+            "encode/encode/encode",
+            "exact/exact",
+            "fail/fail",
+            "positive/positive",
+            "readGcsObjects",
+            "readGcsObjects/readGcsObjects",
+            "readGcsObjects/readGcsObjects#2",
+            "readGcsObjects/readGcsObjects#3",
+            "readGcsObjects/readGcsObjects#4",
+            "result"
+          ],
+          "exports": [
+            "readGcsObjects"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Detached Source DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "Ordinary object rows share"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_metadata_page_row_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "anchor": "type: 'decimal', precision: 19"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "prefix.has_prefix(installed_prefix)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "identity_cid: cid({"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact ordinary object rows"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "startInstalledRowRun"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await verifyRead()"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await consumePage(rows, {charge})"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "GcsObjectListingLimit"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Err(ObjectMismatch)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "signal.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "physical cleanup ACK"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "start_accounted_row_acquisition"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await chargePage(response.body)"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "per-row canonical writer/String"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "options.resource === 'objects'"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed nonempty service reads"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object Source projection is exact Decimal DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
+                "anchor": "actual installed object contracts consume"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "anchor": "original cancellation and physical failure"
               }
             ]
           }

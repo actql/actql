@@ -8,6 +8,72 @@ owners continue to own admission, approval, durable claims, response capture,
 reconciliation and cleanup. A private function's existence does not publish a
 capability or make an installation available.
 
+## Exact ordinary object rows
+
+The ordinary `updated` field enters the existing millisecond UTC Timestamp
+contract. The portable GCS owner converts RFC 3339 whole seconds, exact
+millisecond fractions and offsets to the same UTC instant, with no Host Date
+parser. Extra fractional digits are accepted only when they are zero; a
+sub-millisecond instant is refused rather than rounded or silently omitted.
+The original provider spelling and physical page digest remain unchanged.
+Such refused precision remains a representation limitation, not completed
+coverage of every possible GCS timestamp. The bounded temporary timestamp
+prefix/fraction/zone/output strings and existing calendar conversion workspace
+belong to the same Source parser/row envelope, not a free byte grant.
+
+Ordinary and keyed physical RowRun pages use the shared preserving UTF-8/JSON
+decoder, then the existing checked row and Value contracts. JSON payload keys
+are data, including distinct NFC/NFD spellings and a literal `$json` key. The
+decoder does not repair physical field names into the schema: undeclared keys,
+missing required fields, exact duplicates, invalid UTF-8 and all original
+page/node/depth/capture limits still refuse the complete attempt. Source
+capture/export/reopen must preserve these original admitted values, not use a
+newly reconstructed provider response or a freshly issued permission.
+
+The standard provider-backed installation publishes `objects` as a genuine
+ordinary Source beside `files` and `contents`. It does not fabricate a Source
+field to carry a collection STORE target. The earlier two view declarations
+remain byte-identical, while the complete extended Catalog has its own CID.
+An explicitly supplied source-only legacy installation keeps its two views.
+
+`object_listing_prefix` interprets the original typed Request before I/O.
+Absent or NULL prefix selects the installed prefix; an explicit prefix may
+only narrow it. Unicode, percent text and page tokens are never normalized or
+translated into a glob. The ordinary scan follows empty continuation pages
+and refuses repeated tokens or an exhausted page/row ceiling without issuing
+completion. The existing Source/Credential owns current read admission before
+each send, original physical response charges, RowRun capture and cleanup.
+Flat scans request no delimiter; unexpected nonempty prefix pages still refuse.
+
+The portable parser checks every item and preserves exact Int64 generation,
+metageneration and size before projection. `objects` declares these fields with
+the existing Decimal(19,0) carrier, not Number or String: the provider's narrower
+signed Int64 check remains authoritative. Ordinary Source DATA contains an
+unwrapped metadata object; only the Value Owner emits the `$json` wire envelope.
+User keys literally named `$json`, decomposed text and CR/LF values stay DATA.
+Only the exact reserved `actql-request` key is hidden from logical reads; the
+physical page and its digest retain it. Missing provider metadata becomes SQL
+NULL, while an empty reported object remains `{}`; explicit provider null is
+invalid metadata. This is not a general missing-to-null repair.
+
+The original physical page and RowPageCharge, bounded parser tree, detached
+metadata fields and filtered entry array, per-row canonical writer/String,
+parsed row objects, Resource DATA, row array, normalized UTF-8 encoding and
+retained capture may overlap. They remain in the original acquisition's
+retained/execution and caller workspace inventory until their actual retirement;
+clamps, callback return, weak references and GC opportunities are not funding or
+physical cleanup ACK. No new reservation, numerical profile or Model grant is
+introduced. The Source still uses the existing before-I/O RowRun reservation
+and transfers the same raw charge into ordinary page admission.
+
+Focused tests distinguish actual compiled GCS parsing and actual Value/Command
+schema consumption from the controlled physical port and reference callback.
+Existing public Local/HTTPS empty-path checks prove no-I/O connectivity only.
+Installed nonempty service reads, complete pushdown/ordering obligations,
+same-Run restart and live GCS acceptance remain separate required work. A JSON
+Result needs its original ordering evidence; the caller test retains the
+unordered refusal and uses an explicit checked uniqueness/sort for publication.
+
 ## Original object request
 
 `ObjectMetadata` retains the admitted physical fields and digest of the actual
@@ -251,6 +317,31 @@ page clamps do not establish that aggregate funding or retire an outstanding
 read/cleanup responsibility. No normal numerical profile is introduced.
 
 ## Original multipart upload request
+
+`classify_object_upload_response` interprets a direct response only after the
+existing Effect Ledger has authenticated and retained it for the same original
+request. The original 200 object metadata must match the request marker,
+checksum, media type, byte count and replacement generation/metageneration;
+unexpected content encoding remains unknown. The direct conditional 412
+response projects the existing `conflict` error. Other statuses or malformed
+or mismatched success bodies remain unclassified; no retry follows.
+
+`projectOwnedGcsUploadResponse` consumes that existing Owner's status/body
+observation, including its authorized saved-response projection after reopen.
+It requires the original opaque provider request but introduces no second
+response issuer, hot-only token or journal. Observation DATA and this pure
+projection cannot authenticate a claim, record a Receipt or make a row terminal.
+A later metadata GET uses original metadata matching, never the direct-response
+conflict classifier; absence or failure of that read does not prove non-apply.
+
+During response classification, the retained original raw response overlaps
+the bounded metadata tree, detached metadata fields, original request/binding,
+projected outcome tree and UTF-8/String outputs. Those aliases/workspaces stay
+in the existing Effect/capture/Store inventory until their actual retirement;
+classification, Promise completion or a weak reference is not cleanup ACK or
+free capacity. The selected JS runtime tests cover real Core Ledger/SQLite
+response reopening and Unknown nonresend with a controlled physical port, not
+an installed STORE, real GCS, approval or a numerical profile.
 
 The same original upload binding also supplies the checked current-object
 metadata path (`object_upload_metadata_path`) and its declared metadata byte

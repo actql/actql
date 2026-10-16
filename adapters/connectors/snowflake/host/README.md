@@ -37,7 +37,11 @@ bounded metadata snapshot; it does not refresh that snapshot or contact Snowflak
   SQL admission are not duplicated in this installation or a new validator.
 - Verification: real standard installation selection, Common SQL/decimal38/NULL,
   Account, SQLite credential journal, loopback TLS, original Host capture and
-  cleanup are exercised. Normal package/source gates do not establish a live
+  cleanup are exercised. Public Client Local/HTTPS fixtures also check SQL to
+  Named Result, repeated reads, attach and same-submission lookup without a
+  second Provider request. They use the same preplanned acquisition/Compute
+  Ledger and confirm its original reservations retire after client close.
+  Normal package/source gates do not establish a live
   service, installed npm release, Python Local/wheel, write or recovery campaign.
 
 ## Stored inputs
@@ -66,3 +70,38 @@ The required limits are `maxBytes`, `maxNodes`, `maxDepth`, `maxColumns`,
 `maxDeclarationNodes`. They are bounded caller selections, not grants. Source
 metadata type refusals remain named Common refusals; unsupported time/offset/bytes
 are not disguised as strings or JSON.
+
+## Lightweight Python Remote consumer
+
+For a Host already configured with the `snowflake.usage_30d` alias, the ordinary
+SDK-only installation uses the public Remote API. Source credentials stay with
+the Host's existing credential Site; they are not Python client options.
+
+```python
+from actql_sdk import Client
+
+with Client.connect(endpoint, token) as client:
+    original = client.new_submission()
+    execution = client.start_source(
+        "SELECT ACCOUNT_ID AS account_id, ACTIVE_USERS AS active_users, "
+        "TREND AS trend FROM snowflake.usage_30d |> RESULT usage",
+        format="sql", submission_ref=original,
+    )
+    state = execution.wait()
+    if state.status != "succeeded":
+        raise RuntimeError(state.status)
+    rows = execution.result("usage").all(max_rows=100)
+```
+
+Decimal values use their exact public decimal spelling, including values beyond
+binary64 precision; NULL remains `None`. The matching async methods use the same
+wire and original Run. Save both `execution.ref` and the original submission
+reference when another process needs lookup/attach. Lookup and attach do not
+restart the Source query or replace its original custody.
+
+The bounded Python consumer tests use a normally installed SDK-only wheel, with
+its RECORD and current source/generator inputs checked independently. They cover
+sync/async reads, application-owned typed rows without Pydantic, reader close,
+separate Python processes and a fresh Host process reopening the same new Store.
+These fixture results do not establish live Snowflake service, Python Local
+startup, an automatically acquired metadata snapshot or a new release cohort.
