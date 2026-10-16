@@ -52598,7 +52598,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "49403dc6e15502bee0ee12a05666497aff77d0e95454f06538c28813644a1fda",
+      "sha256": "27b4cf48827e91c0c6e3dea839e02874336a68ebc9d054e83fbeaf80f798eaae",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -53246,6 +53246,11 @@
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite#3",
+          "parameters": [],
           "async": false
         },
         {
@@ -54049,6 +54054,7 @@
             "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
             "openRowSourceCredentialSite/openRowSourceCredentialSite",
             "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
+            "openRowSourceCredentialSite/openRowSourceCredentialSite#3",
             "openRowSourceCredentialSite/sign"
           ],
           "exports": [
