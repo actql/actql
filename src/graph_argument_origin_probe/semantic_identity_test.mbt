@@ -33,8 +33,8 @@ test "argument provenance leaves the independent complete Graph Program preimage
   for
     (operation, args, body, selected, fields) in [
       (
-        "degree", "direction: 'both'", "{\"direction\":\"both\"}", "degree, node",
-        "[\"degree\",\"node\"]",
+        "degree", "direction: 'both'", "{\"direction\":\"both\"}", "degree, node_id",
+        "[\"degree\",\"node_id\"]",
       ),
       (
         "graph_bounds", "max_nodes: 0, max_edges: 0, max_degree: 0", "{\"max_nodes\":0,\"max_edges\":0,\"max_degree\":0}",

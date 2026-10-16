@@ -240,7 +240,7 @@ pub fn check_degree(
     let output = diagnostic_rows(
       source,
       [
-        (@row.Unqualified("node"), Some(@carrier.graph_identity(graph))),
+        (@row.Unqualified("node_id"), Some(@carrier.graph_identity(graph))),
         (
           @row.Unqualified("degree"),
           Some(@contract.primitive(NumberType, nullable=false)),
