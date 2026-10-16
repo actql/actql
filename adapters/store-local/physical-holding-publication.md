@@ -1,5 +1,26 @@
 # Physical holding metadata publication
 
+## Bounded metadata reader close acknowledgement
+
+The existing bounded metadata reader does not publish bytes or invoke its FD
+retirement callback after an explicit false close. Its existing cleanup facade
+keeps the same native handle and callback through rejected or false close-only
+retries, without reopening the pathname or repeating a read. Only successful
+original close clears the reference and acknowledges that same reader duty.
+The ordinary mutable primary failure is retained where diagnostics can safely
+be attached; readonly diagnostic fields use a fresh wrapper with the original
+failure as its cause. Field inspection or attachment must not mask that failure
+or discard the cleanup facade. Existing frozen status snapshots stay unchanged.
+
+The three-name descriptor-check Array, temporary property descriptors and an
+optional error wrapper/cause can overlap the original error, raw metadata,
+callback and pending retry Promise. Their finite reference count is not a byte
+price or a bound on arbitrary Error graphs. The original read reservation and
+Store reader count remain responsible until actual acknowledgement; no new
+grant, reservation, Owner or normal numerical profile is supplied here.
+
+## Existing atomic metadata publication
+
 Physical holding creation, sharing and deletion intent use the existing Store's
 staging directory and exclusive hard-link publication. The complete original
 record is written, file-synced and closed before it receives a final name.
