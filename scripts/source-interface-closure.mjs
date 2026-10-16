@@ -13,7 +13,8 @@ import {moonInterfaceClosure} from './moon-interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 import {typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
 
-export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = []} = {}) {
+export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = [],
+  reportUnresolvedEntrances = false} = {}) {
   root = realpathSync(root);
   const roots = distributionRoots, plans = runtimePackageInputs(root);
   const local = localNodePackageInputs(root), artifacts = new Map();
@@ -35,11 +36,16 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   const entrances = [...new Set([...roots.flatMap(value => value.entrances)
     .filter(path => /\.[cm]?js$/u.test(path)),
     ...(roots.some(value => value.name === '@actql/local-node') ? local.adapterEntries : [])])];
-  const sourceEntrances = [], artifactReferences = new Set();
+  const sourceEntrances = [], artifactReferences = new Set(), unresolvedEntrances = [];
+  const copyReferences = new Map();
   for (const entrance of entrances) {
     if (artifacts.has(resolve(root, entrance))) artifactReferences.add(resolve(root, entrance));
     else {
-      assert(existsSync(resolve(root, entrance)), `Undeclared generated interface entrance: ${entrance}`);
+      if (!existsSync(resolve(root, entrance))) {
+        assert(reportUnresolvedEntrances, `Undeclared generated interface entrance: ${entrance}`);
+        unresolvedEntrances.push(entrance);
+        continue;
+      }
       sourceEntrances.push(entrance);
     }
   }
@@ -53,6 +59,18 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
         if (artifacts.has(path)) {
           artifactReferences.add(path);
           return {path, external: true};
+        }
+        // The ordinary local-node builder copies these exact source paths.
+        // Resolve the source projection without manufacturing the generated
+        // package tree, then leave actual copied-byte checks to that builder.
+        const destination = relative(resolve(root, 'packages/local-node'), path);
+        if (destination.startsWith('adapters/') || destination.startsWith('src/')) {
+          const source = resolve(root, destination);
+          if (destination.startsWith('src/')) assert(local.dataFiles.includes(destination),
+            `Undeclared local-node source asset: ${destination}`);
+          assert(existsSync(source), `Missing local-node copy source: ${destination}`);
+          copyReferences.set(path, {destination: relative(root, path), source: destination});
+          return {path: source};
         }
       });
     }}]});
@@ -69,6 +87,8 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
     .flatMap(path => artifacts.get(path).sourcePackages))]);
   const types = typescriptInterfaceClosure(root, roots.flatMap(value => value.entrances)
     .filter(path => /\.d\.[cm]?ts$/u.test(path)));
-  return {qualification: 'source-input-coverage-only', roots, modules, types, moon,
+  return {qualification: unresolvedEntrances.length ? 'incomplete-source-input-coverage' : 'source-input-coverage-only',
+    unresolvedEntrances, roots, modules, types, moon,
+    copies: [...copyReferences.values()].sort((a, b) => a.destination.localeCompare(b.destination)),
     artifacts: [...artifactReferences].sort().map(path => artifacts.get(path))};
 }
