@@ -17,6 +17,8 @@ function observation(verdict = 'invalid') {
   return {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
     outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
       context_ref: 'ctx:original', scope: {kind: 'bound_input'}, verdict,
+      runnable: verdict === 'verified' ? {verdict: 'yes', reasons: []} :
+        {verdict: 'no', reasons: [{code: 'query_syntax_invalid'}]},
       inputs: [{document_id: 'source', kind: 'text', revision, byte_length: verdict === 'verified' ? 13 : 16}],
       reasons: verdict === 'invalid' ? [{code: 'query_syntax_invalid', location: {...location}}] : [],
       requirements: [], coverage: {limits: [], unresolved: []}}};
@@ -127,6 +129,7 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
     const report = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
       outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:missing-original', scope: {kind: 'bound_input'}, verdict: 'undetermined',
+        runnable: {verdict: 'no', reasons: [{code: 'bound_values_missing'}, {code: 'parameter_value_required'}]},
         // Independently counted ASCII JSON and source byte lengths.
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 14},
           {document_id: 'parameter_declarations', kind: 'structured',
@@ -173,8 +176,11 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
 
 for (const phase of ['not_accepted', 'preparation_failed']) {
   test(`submission requirements reject the old admission pin without acquiring ${phase} facts`, async t => {
+    let currentPinVerified = false;
     const {error, calls} = await fixture(t, {phase, change(checked) {
       checked.report.verdict = 'undetermined';
+      checked.report.runnable = {verdict: 'no',
+        reasons: [{code: 'bound_values_missing'}, {code: 'parameter_value_required'}]};
       checked.report.reasons = [];
       checked.report.coverage.limits = [{code: 'bound_values_missing'}];
       checked.report.requirements = [{code: 'parameter_value_required', facts: {
@@ -188,7 +194,9 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
       current.report.requirements[0].facts.admission.contract_schema_cid =
         'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947';
       assert.equal(validCheckOutcome(current), true, 'Only the reviewed admission pin differs');
+      currentPinVerified = true;
     }});
+    assert.equal(currentPinVerified, true, 'The current-pin positive control must complete outside transport error handling');
     assert.equal(error.code, 'SubmissionUnknown');
     assert.equal(sdk.getSubmissionOutcome(error), undefined);
     assert.equal(sdk.getSubmissionCheckObservation(error), undefined);
