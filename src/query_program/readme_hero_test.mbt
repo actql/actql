@@ -88,7 +88,7 @@ fn readme_hero_inputs(proven_keys? : Bool = true) -> Array[Input] {
       name: entry.0.replace(old=".", new="_"),
       source: Captured(declaration),
       visible_fields: match entry.0 {
-        "salesforce.accounts" => ["id", "description"]
+        "salesforce.accounts" => ["description", "id"]
         _ => ["account_id", "active_users", "trend"]
       },
       graph_bindings: [],
