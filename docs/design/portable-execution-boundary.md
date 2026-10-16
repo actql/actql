@@ -59,6 +59,55 @@ payload can manufacture a retained successful output. Test-only asynchronous
 composition exercises this boundary without adding I/O to the Local product
 profile.
 
+## Language bindings and artifact correspondence
+
+Existing contracts and owner declarations define an operation. Generated
+bindings project its named arguments, units, scalar widths, result shape and
+calling convention into the consuming language. The actual compiled exports,
+imports, memory conditions and consuming wrapper must agree with that
+declaration. Comparing generated sources alone does not admit an unrelated
+runtime artifact.
+
+The [private JavaScript compiler binding](../development/js-compiler-bindings.md)
+isolates the selected compiler's Result, Option and tuple layouts in one
+template, with generated copies where packages install independently. Product
+consumers use those projections rather than reading compiler fields directly.
+Option representation is qualified by the actual export; a specialized probe
+does not establish a universal boxed or unboxed layout. Action projections read
+the existing MoonBit owner's closed mapping and name its decision; they do not
+maintain another lifecycle or permission table.
+
+The [Python Local boundary](python-local-abi.md) covers Wasm declarations,
+original C/ctypes transport, memory/Rust forwarding and selected DuckDB layouts.
+Names and units remain significant when scalar types match. A matching C or
+Wasm function type alone cannot distinguish reversed argument roles. Binding
+fingerprints identify a physical declaration; original library selection,
+current authority and same-owner custody remain separate checks.
+
+Conversion does not settle a Store attempt, acknowledge a physical stop,
+release a holding or permit replay. A refusal, an uncertain outcome and pending
+cleanup retain their existing meanings and original handles. The selected
+Host's existing reservation, physical-limit and trusted-runtime contract must
+cover borrowed buffers, native allocations, callbacks and overlapping copies
+for their actual lifetime; identical content does not merge reservations. The
+[public wire codec](public-wire-codecs.md) instead validates received DATA from
+registered schemas and does not require a full execution engine for Remote.
+
+Public wire versions, private ABI versions, package releases and toolchain pins
+are independent. A selected distribution must still bind source, generator,
+contract, wrapper, public types and actual runtime artifacts coherently. Cloud
+consumers use the types from their actually adopted packages. Recovery returns
+to the original Run's retained identities, rather than substituting the latest
+installation or current build.
+
+The [interface inventory](../development/interface-inventory.md) discovers
+entrances and their resolved source/artifact dependencies. Existing generation
+checks, actual target probes, independent behavior vectors and intentional
+mutations complement that coverage. A source inventory or component test does
+not establish an installed product profile; the
+[runtime artifact rules](../development.md#runtime-package-artifacts) retain
+their normal packaging and exact-artifact acceptance requirements.
+
 ## Pinned runtime initialization
 
 The selected MoonBit JS builtin uses ambient entropy to initialize its physical

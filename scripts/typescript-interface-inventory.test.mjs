@@ -36,6 +36,26 @@ test('TS destructured exports retain each actual local name instead of the entir
   ['first', 'id', 'renamed', 'rest', 'simple', 'tail']);
 });
 
+for (const [name, source, expected] of [
+  ['typed object alias', 'export const {request: alias}: Protocol = protocol;', ['alias']],
+  ['nested default and rest',
+    'export const {request: {id: local = fallback, ...inner} = {}, ...outer}: Protocol = protocol;',
+    ['inner', 'local', 'outer']],
+  ['typed array holes and rest',
+    'export const [first = fallback, , {id: renamed}, ...tail]: Items = items;',
+    ['first', 'renamed', 'tail']],
+  ['quoted and computed property aliases',
+    'export const {"request-id": requestId, [key]: selected = fallback} = protocol;',
+    ['requestId', 'selected']],
+  ['multiple declarations and private bindings',
+    'const {hidden} = protocol; export const {a: publicA} = protocol, [publicB] = items;',
+    ['publicA', 'publicB']],
+]) {
+  test(`TS binding-pattern exports retain local names: ${name}`, () => {
+    assert.deepEqual(typescriptInterface(source).exports, expected);
+  });
+}
+
 test('TS and reflective compiler field access require the same generated authority', () => {
   assert.deepEqual(typescriptInterface('export const value = Reflect.get(result, "$tag") || result._0;').compilerFields,
     ['$tag', '_0']);
