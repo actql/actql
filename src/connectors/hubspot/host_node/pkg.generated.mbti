@@ -8,6 +8,16 @@ import {
 // Values
 pub fn hubspot_create_record_write_input(@catalog.WriteBody, String) -> @catalog.RecordWriteInput
 
+pub fn hubspot_execution_mapping_body(@catalog.ExecutionMapping) -> String
+
+pub fn hubspot_execution_mapping_cid(@catalog.ExecutionMapping) -> String
+
+pub fn hubspot_execution_mapping_fields(@catalog.ExecutionMapping) -> Array[String]
+
+pub fn hubspot_execution_mapping_ref(@catalog.ExecutionMapping) -> String
+
+pub fn hubspot_mapping_source(String, String, String) -> @catalog.MappingSource
+
 pub fn hubspot_object_page_metadata_json(@catalog.ObjectPage) -> String
 
 pub fn hubspot_object_page_rows_wire(@catalog.ObjectPage, Int, Int, Int) -> Result[String, @catalog.ObjectPageIssue]
@@ -15,6 +25,10 @@ pub fn hubspot_object_page_rows_wire(@catalog.ObjectPage, Int, Int, Int) -> Resu
 pub fn hubspot_object_relation_facts_wire() -> String
 
 pub fn hubspot_object_schema_wire(@catalog.PropertyCatalog, Array[String], Int, Int, Int, Int, Int) -> Result[String, @catalog.ObjectPageIssue]
+
+pub fn hubspot_prepare_execution_mapping(@catalog.PropertyCatalog, String, String, String, Int, String, Array[String], Array[@catalog.MappingSource], Int, Int, Int, Int, Int, Int) -> Result[@catalog.ExecutionMapping, @catalog.MappingIssue]
+
+pub fn hubspot_prepare_execution_write_body(@catalog.ExecutionMapping, @catalog.PropertyCatalog, Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.WriteBody, @catalog.MappingIssue]
 
 pub fn hubspot_prepare_record_batch(@catalog.PropertyCatalog, Int, String, Array[@catalog.RecordWriteInput], Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordBatchRequest, @catalog.RecordRequestIssue]
 
@@ -37,6 +51,8 @@ pub fn hubspot_property_catalog_names(@catalog.PropertyCatalog) -> Array[String]
 pub fn hubspot_property_catalog_object_type(@catalog.PropertyCatalog) -> String
 
 pub fn hubspot_recheck_account_identity_json(Bytes, String, Int, Int, Int) -> String
+
+pub fn hubspot_recheck_execution_mapping(@catalog.ExecutionMapping, @catalog.PropertyCatalog, Int) -> Result[Unit, @catalog.PropertyIssue]
 
 pub fn hubspot_recheck_property_catalog(@catalog.PropertyCatalog, @catalog.PropertyCatalog, Int) -> Result[Unit, @catalog.PropertyIssue]
 

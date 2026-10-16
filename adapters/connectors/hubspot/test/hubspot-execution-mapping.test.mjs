@@ -118,6 +118,10 @@ test('actual Common prepares and compiles Result-backed create update upsert wit
     const compiled = common.clientProgramCompileLocalEffects(result.value);
     assert.equal(common.clientProgramEffectCompilationIssueCode(compiled), undefined);
     assert.ok(checked(compiled));
+    for (const foreignKind of [0, 1, 2].filter(value => value !== kind)) {
+      assert.equal(prepareEffect(environmentHandle, prepared, foreignKind).value, undefined,
+        `Mapping for ${kind} cannot authorize operation ${foreignKind}`);
+    }
   }
 });
 
