@@ -140,6 +140,34 @@ fn readme_hero_publication(
 }
 
 ///|
+fn readme_hero_checked_effect(
+  program : @program.Program,
+  environment : @check.CheckEnvironment,
+) -> @check.EffectProgramStaticCandidate raise {
+  let candidate = @check.prepare_effect_computation_candidate(
+    program,
+    environment,
+    None,
+    [],
+    check_limits(),
+    1,
+    1000,
+  ).unwrap()
+  let mappings = @environment.check_mapping_contract_shapes(
+    @check.checking_environment_wire(environment),
+    { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 100, },
+    100000,
+  ).unwrap()
+  @check.close_effect_computation_static(candidate, mappings, {
+    max_members: 1,
+    max_work: 1000,
+    max_admission_nodes: 100,
+    max_admission_depth: 10,
+    max_admission_text_bytes: 1000,
+  }).unwrap()
+}
+
+///|
 test "exact README hero defaults retain the Common key and original UPDATE scope" {
   let environment = readme_hero_environment()
   let context = readme_hero_context(environment)
@@ -167,9 +195,19 @@ test "exact README hero defaults retain the Common key and original UPDATE scope
       fail("independent expanded control: " + infer_defaults_issue_tag(issue))
   }
   assert_eq(semantic(actual), semantic(expanded))
+  let actual_checked = readme_hero_checked_effect(actual, environment)
+  let expanded_checked = readme_hero_checked_effect(expanded, environment)
   assert_shorthand_checked_identity(
-    check_shorthand_identity_program(actual, environment),
-    check_shorthand_identity_program(expanded, environment),
+    @check.effect_program_static_checked_computation(actual_checked),
+    @check.effect_program_static_checked_computation(expanded_checked),
+  )
+  assert_eq(
+    @check.effect_program_static_definition_cid(actual_checked),
+    @check.effect_program_static_definition_cid(expanded_checked),
+  )
+  assert_eq(
+    @check.effect_program_static_semantics_cid(actual_checked),
+    @check.effect_program_static_semantics_cid(expanded_checked),
   )
   assert_eq(@program.exports(actual).map(value => value.0), ["updates"])
   let headers = @program.collect_effect_headers(actual, 10, 100000).unwrap()
