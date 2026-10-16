@@ -60,3 +60,12 @@ and canonical relation STORE keep their prior admission and omission behavior.
 Physical installation generation/currentness, actual reference issuance and
 current approval/send checks remain separate from static selection and saved
 DATA admission.
+
+The existing private current-facts projection distinguishes the actual
+installation's `update` and `store` support observations. Its required purpose
+comes from the original checked header, not a caller-provided selector kind.
+Only the matching purpose is checked for each occurrence; a genuinely shared
+installation may report both. This does not add a field to the eight-field
+selection or change the existing installation canonical body. A Source-only
+installation cannot manufacture a row-effect owner or claim `update:true` to
+stand in for STORE. Missing original installation/current facts remain refused.

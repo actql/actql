@@ -1,0 +1,96 @@
+{
+  "version": "actql-effect-target-selection-vectors/0.1",
+  "scope": "Independent authored published-STORE and valid mixed selection preimages. Not physical installation, authority or public execution evidence.",
+  "cases": [
+    {
+      "id": "published-store",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:f6c6ba4207cd1ee4f2427e38ac90afbfb6637f8803aea6c85ca6bc25ee25a418",
+          "effect_id": "save",
+          "installation_binding_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "installation_owner_cid": "sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7",
+          "mapping_cid": "sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5",
+          "mapping_ref": "mapping:fixture.archive.v1",
+          "stage_index": 0,
+          "target_ref": "connector://storage/archive"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:f6c6ba4207cd1ee4f2427e38ac90afbfb6637f8803aea6c85ca6bc25ee25a418\",\"effect_id\":\"save\",\"installation_binding_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"installation_owner_cid\":\"sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7\",\"mapping_cid\":\"sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5\",\"mapping_ref\":\"mapping:fixture.archive.v1\",\"stage_index\":0,\"target_ref\":\"connector://storage/archive\"}]",
+      "expected_cid": "sha256:7c7f96bf443bbc1f8494debd51dc7073dc0fc75690be42e1e232bdabf0afa70e"
+    },
+    {
+      "id": "mixed-update-and-published-store",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:f6c6ba4207cd1ee4f2427e38ac90afbfb6637f8803aea6c85ca6bc25ee25a418",
+          "effect_id": "save",
+          "installation_binding_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "installation_owner_cid": "sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7",
+          "mapping_cid": "sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5",
+          "mapping_ref": "mapping:fixture.archive.v1",
+          "stage_index": 0,
+          "target_ref": "connector://storage/archive"
+        },
+        {
+          "check_environment_cid": "sha256:f6c6ba4207cd1ee4f2427e38ac90afbfb6637f8803aea6c85ca6bc25ee25a418",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "installation_owner_cid": "sha256:9fb1b923109be7230392d96d2dd4f3e62dc6ba6a661a8c218148e7858142d506",
+          "mapping_cid": "sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5",
+          "mapping_ref": "mapping:fixture.archive.v1",
+          "stage_index": 0,
+          "target_ref": "connector://storage/archive"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:f6c6ba4207cd1ee4f2427e38ac90afbfb6637f8803aea6c85ca6bc25ee25a418\",\"effect_id\":\"save\",\"installation_binding_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"installation_owner_cid\":\"sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7\",\"mapping_cid\":\"sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5\",\"mapping_ref\":\"mapping:fixture.archive.v1\",\"stage_index\":0,\"target_ref\":\"connector://storage/archive\"},{\"check_environment_cid\":\"sha256:f6c6ba4207cd1ee4f2427e38ac90afbfb6637f8803aea6c85ca6bc25ee25a418\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"installation_owner_cid\":\"sha256:9fb1b923109be7230392d96d2dd4f3e62dc6ba6a661a8c218148e7858142d506\",\"mapping_cid\":\"sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5\",\"mapping_ref\":\"mapping:fixture.archive.v1\",\"stage_index\":0,\"target_ref\":\"connector://storage/archive\"}]",
+      "expected_cid": "sha256:bc7f960cdc6d3a6e2e20c854f291c011ed5e2ac61b74e5150affcf2e4cdb9027"
+    }
+  ],
+  "installation_owners": [
+    {
+      "id": "store-owner",
+      "preimage": {
+        "binding_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "connection": "fixture",
+        "connector_registration": "store_target_fixture",
+        "connector_revision": "store_target_fixture/0.1",
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "continuationBinding": "binding_cid",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1"
+        },
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"connection\":\"fixture\",\"connector_registration\":\"store_target_fixture\",\"connector_revision\":\"store_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7"
+    },
+    {
+      "id": "update-owner",
+      "preimage": {
+        "binding_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "connection": "fixture",
+        "connector_registration": "update_target_fixture",
+        "connector_revision": "update_target_fixture/0.1",
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "continuationBinding": "binding_cid",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1"
+        },
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"connection\":\"fixture\",\"connector_registration\":\"update_target_fixture\",\"connector_revision\":\"update_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:9fb1b923109be7230392d96d2dd4f3e62dc6ba6a661a8c218148e7858142d506"
+    }
+  ]
+}

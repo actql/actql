@@ -53,6 +53,25 @@ const selections = JSON.parse(readFileSync(
   'portability/corpus/effect-target-selection.json', 'utf8',
 ));
 
+test('independent published-STORE and mixed identities preserve the same eight-field schema', () => {
+  const corpus = JSON.parse(readFileSync(
+    'portability/corpus/effect-target-selection-published-store.json', 'utf8'));
+  assert.equal(corpus.version, selections.version);
+  for (const item of [...corpus.cases, ...corpus.installation_owners]) {
+    verifyIdentity(item.preimage, item.expected_cid, item.expected_canonical_bytes);
+  }
+  const keys = Object.keys(selections.cases[0].preimage[0]);
+  for (const item of corpus.cases) for (const entry of item.preimage) {
+    assert.deepEqual(Object.keys(entry), keys);
+  }
+  assert.deepEqual(corpus.cases.map(item => item.preimage.map(entry => entry.effect_id)),
+    [['save'], ['save', 'update']]);
+  assert.equal(new Set(corpus.cases.map(item => item.expected_cid)).size, 2);
+  // Structural schema instance bytes/pins stay unchanged; original purpose
+  // admission, mixed occurrences and saved bindings execute in Common tests.
+  checkResultPlanSchema(registry);
+});
+
 test('original UPDATE selection is optional in both closed Plan schemas', () => {
   const keys = ['check_environment_cid', 'effect_id',
     'installation_binding_cid', 'installation_owner_cid', 'mapping_cid',
