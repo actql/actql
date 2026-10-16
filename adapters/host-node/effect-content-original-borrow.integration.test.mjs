@@ -6,6 +6,7 @@ import {writeFile} from 'node:fs/promises';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {createGeneratedContentFixture} from './fixtures/generated-content.fixture.mjs';
 import {openContentCommandHost} from './fixtures/content-command-host.fixture.mjs';
@@ -51,12 +52,19 @@ test('actual Content preparation borrows the original captured Command input and
   // diagnostic tags before asserting; never print keys, wire or body values.
   const tag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_:]*$/u.test(value)
     ? value.slice(0, 128) : undefined;
+  const issueTag = value => typeof value === 'number' ? value : runtimeTag(value);
+  const issue = preparationFailure?.cause;
   const facts = {state, preparations, reads: host.reads(), sends: host.sends(),
+    preparationIssue: {tag: issueTag(issue),
+      nested: issueTag(runtimeOptionalField(issue, 0))},
     events: host.events.map(({event, detail}) => ({event: tag(event),
       code: tag(detail?.code), issueTag: detail?.issueTag,
       nestedIssueTag: detail?.nestedIssueTag}))};
   await writeFile(scratch.path + '/projection-observation.json', JSON.stringify(facts) + '\n');
-  if (preparationFailure !== undefined) throw preparationFailure;
+  if (preparationFailure !== undefined) {
+    console.error(JSON.stringify({fixture: 'original-content-preparation', facts}));
+    throw preparationFailure;
+  }
   assert.equal(state.status, 'waiting_checkpoint', JSON.stringify(facts));
   assert.equal(preparations, 1);
   assert.equal(host.reads(), 1);
