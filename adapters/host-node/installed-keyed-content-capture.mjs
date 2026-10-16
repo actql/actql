@@ -1,6 +1,7 @@
 // Physical composition under the dispatch owner's existing Source custody.
 // The common Run/Source/candidate and Store owners decide identity, admission,
 // byte retention and resource settlement; there is no capture journal here.
+import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
 import {contentCid} from './local-account-config.mjs';
 import {retainCapturedContent} from './captured-content-holding.mjs';
 import {issueStoredCapturedContent} from './generated-content-holding.mjs';
@@ -18,12 +19,12 @@ export function installRunKeyedContentCapture({moon, publications, control,
   }
   const definition = JSON.parse(plan.runDefinition.wire);
   const facts = moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(acquisition);
-  if (facts?.$tag !== 1 || facts._0.length !== 6) {
+  if (!runtimeIsOk(facts) || runtimeField(facts, 0).length !== 6) {
     throw new TypeError('InstalledKeyedContentSourceUnavailable');
   }
-  const source = facts._0;
+  const source = runtimeField(facts, 0);
   const counts = moon.clientProgramKeyedLookupCapacity(acquisition, maxBytes, maxWork);
-  const inventoryCount = counts === undefined ? undefined : Number(counts._1);
+  const inventoryCount = counts === undefined ? undefined : Number(runtimeField(counts, 1));
   if (!Number.isSafeInteger(inventoryCount) || inventoryCount < 0 || inventoryCount > 2147483647) {
     throw new TypeError('InvalidInstalledContentInventoryCapacity');
   }

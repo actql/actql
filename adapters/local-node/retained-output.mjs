@@ -1,3 +1,4 @@
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {registerRetainedInput} from '../store-local/representations.mjs';
 
 const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -28,13 +29,13 @@ export function prepareLocalRetainedOutput(
       for (;;) {
         signal?.throwIfAborted();
         const poll = checked(prepare(64));
-        if (poll == null || typeof poll._0 !== 'boolean' ||
-            !Number.isSafeInteger(poll._1) || poll._1 < 0 || poll._1 > 64 ||
-            (!poll._0 && poll._1 === 0)) {
+        if (poll == null || typeof runtimeField(poll, 0) !== 'boolean' ||
+            !Number.isSafeInteger(runtimeField(poll, 1)) || runtimeField(poll, 1) < 0 || runtimeField(poll, 1) > 64 ||
+            (!runtimeField(poll, 0) && runtimeField(poll, 1) === 0)) {
           throw new Error('InvalidLocalOutputPreparation');
         }
         signal?.throwIfAborted();
-        if (poll._0) break;
+        if (runtimeField(poll, 0)) break;
         await yieldToHost();
       }
       store = await createLease(key, limits.wire.max_bytes, limits.max_batch_bytes, signal);

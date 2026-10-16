@@ -1,6 +1,7 @@
 // Installed composition of the actual Model owner, immutable input custody,
 // existing Checkpoint journal and Store. This is neither a slot scheduler nor
 // a source of dispatch permission from historical bytes.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
@@ -406,8 +407,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       const coordinates = moon.clientProgramInferPlanBoundary(selected.graph);
       const provider = JSON.parse(binding.wire);
       const context = cp.modelContext;
-      const expectedBoundary = {unit_id: facts.unitId, task_index: coordinates._0,
-        strategy_revision: coordinates._2, inference_barrier_cid: coordinates._3,
+      const expectedBoundary = {unit_id: facts.unitId, task_index: runtimeField(coordinates, 0),
+        strategy_revision: runtimeField(coordinates, 2), inference_barrier_cid: runtimeField(coordinates, 3),
         account_id: context.accountId, configuration_cid: context.configurationCid,
         entry_id: evaluated.entry_id, principal: principalId, connection: facts.providerId,
         resource: facts.modelTaskCid, context_cid: context.contextCid,
@@ -417,8 +418,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       const input = control.admitRunEvidence('model_input_artifact', facts.inputArtifactWire, limits);
       scope = control.sealRunEvidence('model_invocation_scope', canonicalJson({
         version: 'actql-model-invocation-scope/0.1', run_definition_cid: plan.runDefinition.identity,
-        task_index: coordinates._0, strategy_revision: coordinates._2,
-        inference_barrier_cid: coordinates._3, input_artifact_cid: input.identity,
+        task_index: runtimeField(coordinates, 0), strategy_revision: runtimeField(coordinates, 2),
+        inference_barrier_cid: runtimeField(coordinates, 3), input_artifact_cid: input.identity,
         model_call_slot_cids: facts.slotWires.map(wire => control.admitRunEvidence('model_call_slot', wire, limits).identity),
         provider_binding_cid: binding.identity,
         authorization_context: {account_id: context.accountId, configuration_cid: context.configurationCid,
@@ -427,7 +428,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       }), limits);
       const fixedBinding = canonicalJson({version: 'actql-model-fixed-input-binding/0.1',
         run_definition_cid: plan.runDefinition.identity, scope_cid: scope.identity,
-        input_artifact_cid: input.identity, task_index: coordinates._0, strategy_revision: coordinates._2});
+        input_artifact_cid: input.identity, task_index: runtimeField(coordinates, 0), strategy_revision: runtimeField(coordinates, 2)});
       const exported = operation.exportPreparedInput(preparedCallSet, fixedBinding);
       originals = {originalRunWire: originalModelRunWire(plan.compiled, plan.runDefinition),
         preparedInvocationWire: plan.compiled.preparedEvidence.wire, scopeWire: scope.wire,

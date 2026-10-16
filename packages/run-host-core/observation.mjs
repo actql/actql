@@ -1,4 +1,5 @@
 // Portable MoonBit observation custody. No SDK, network, timers, or Run state.
+import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';
 import * as owner from './dist/client_values_host_abi.js';
 
 const scopes = new WeakMap(), budgets = new WeakMap();
@@ -17,9 +18,9 @@ function requireToken(map, handle) {
   return value;
 }
 function checked(result) {
-  if (result?.$tag === 1) return result._0;
-  if (result?.$tag === 0) {
-    throw Object.assign(new Error('ObservationCustodyRejected', {cause: result._0}),
+  if (runtimeIsOk(result)) return runtimeField(result, 0);
+  if (runtimeIsError(result)) {
+    throw Object.assign(new Error('ObservationCustodyRejected', {cause: runtimeField(result, 0)}),
       {code: 'ObservationCustodyRejected'});
   }
   throw new TypeError('InvalidObservationOwnerResult');

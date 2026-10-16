@@ -1,3 +1,4 @@
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 // Salesforce's source installation for the standard installed Host, entered
 // in the Host's installed connector table by `src/connectors/salesforce/
 // host-bundle.json` (`check`, `identityParts`, `publish`, `load`).
@@ -399,7 +400,9 @@ function installedSalesforceAdapter({moon, queryMoon, site, authorization,
         chargePage: body => checked(
           moon.clientProgramRowSourceChargePage(run, body)),
         consumePage: (page, {charge}) => {
-          const {_0: columns, _1: rows} = moon.clientProgramSalesforceQueryPageValues(page);
+          let compilerTuple1 = moon.clientProgramSalesforceQueryPageValues(page);
+          const columns = runtimeField(compilerTuple1, 0), rows = runtimeField(compilerTuple1, 1);
+          compilerTuple1 = undefined;
           checked(moon.clientProgramRowSourceAcceptChargedValues(
             run, charge, columns, rows));
         },

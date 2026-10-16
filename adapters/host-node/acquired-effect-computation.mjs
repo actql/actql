@@ -1,5 +1,6 @@
 // Physical custody while one admitted Effect Run acquires its source and
 // computes. This does not retry acquisition, Compute, or an Effect dispatch.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan,
   acquiredInferEffectPublicationPlan, sourceFreeInferEffectPublicationPlan} from './local-values-plan.mjs';
@@ -149,7 +150,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     if (infer !== undefined) {
       if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
       const runId = acquired.control.runDefinitionRunId(acquired.runDefinition);
-      const taskIndex = moon.clientProgramInferPlanBoundary(infer.graph)._0;
+      const taskIndex = runtimeField(moon.clientProgramInferPlanBoundary(infer.graph), 0);
       modelRecord ??= modelController.discover(runId).find(record => record.inventory.taskIndex === taskIndex);
       if (modelRecord !== undefined) {
         modelToken = await modelController.prime(modelRecord);

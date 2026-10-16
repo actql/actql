@@ -11,6 +11,7 @@
 // Salesforce's write driver (salesforce-write-driver.mjs) and this
 // connector's registered identity profile; this module keeps only the
 // installation: its profile, publication, restore and target-read inventory.
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {mkdir} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -249,16 +250,16 @@ async function restoreGeneration({site, salesforceMoon, profile,
 function resolveMember(moon, prepared, installed, {stageIndex, effectId}) {
   const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
     prepared, stageIndex, effectId, limits.planWork));
-  const kind = descriptor._2;
+  const kind = runtimeField(descriptor, 2);
   const mapping = installed.mappings.find(candidate =>
-    candidate.mappingCid === descriptor._5 &&
-    candidate.mappingRef === descriptor._4);
+    candidate.mappingCid === runtimeField(descriptor, 5) &&
+    candidate.mappingRef === runtimeField(descriptor, 4));
   if (mapping === undefined || writeKinds.get(mapping.write.kind) !== kind ||
-      descriptor._6 === undefined) {
+      runtimeField(descriptor, 6) === undefined) {
     fail('SalesforceEffectMappingNotInstalled');
   }
-  return Object.freeze({stageIndex, effectId: descriptor._1,
-    memberIndex: descriptor._0, kind, mapping,
+  return Object.freeze({stageIndex, effectId: runtimeField(descriptor, 1),
+    memberIndex: runtimeField(descriptor, 0), kind, mapping,
     resource: mapping.write.resource,
     fields: Object.freeze(mapping.write.fields ??
       mapping.write.sources.map(source => source.target)),

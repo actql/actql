@@ -1,6 +1,7 @@
 // Static ModelTask registration shares the installed checker composition.
 // This metadata is neither a provider registration nor an egress grant. The
 // common execution owner must separately admit dependencies and authority.
+import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
@@ -274,13 +275,13 @@ export function readInstalledModelDependencies(moon, execution, installation) {
     // by the common dependency owner; another role or a provider callback
     // cannot manufacture admission from a symbolic contract reference.
     return checked(moon.clientProgramReadInferModelDependenciesWithMedia(execution,
-      bodies.get(references._0), bodies.get(references._1), bodies.get(references._2),
-      media.filter(entry => bodies.has(entry._1)).map(entry =>
-        ({_0: entry._0, _1: bodies.get(entry._1)}))));
+      bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)), bodies.get(runtimeField(references, 2)),
+      media.filter(entry => bodies.has(runtimeField(entry, 1))).map(entry =>
+        (runtimePair(runtimeField(entry, 0), bodies.get(runtimeField(entry, 1)))))));
   }
   return checked(moon.clientProgramReadInferModelDependencies(execution,
-    bodies.get(references._0), bodies.get(references._1),
-    bodies.get(references._2)));
+    bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)),
+    bodies.get(runtimeField(references, 2))));
 }
 
 export function admitInstalledModelProvider(moon, execution, dependencies,
@@ -340,7 +341,7 @@ export function readInstalledModelExecution(moon, prepared, installation,
   occurrence) {
   const step = occurrence === undefined
     ? moon.clientProgramSelectedInferStep(prepared)
-    : moon.clientProgramInferOccurrenceCoordinates(occurrence)._2;
+    : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
   if (step === undefined) return undefined;
   const taskCid = occurrence === undefined
     ? moon.clientProgramInferModelTaskCid(prepared, step)

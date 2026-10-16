@@ -1,3 +1,4 @@
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 
@@ -48,8 +49,8 @@ export async function verifyPinnedEffectPlan({
       signal?.throwIfAborted();
       const progress = checked(moon.clientProgramEffectPlanAdvance(
         preparation, advanceQuantum));
-      if (progress._0) break;
-      if (progress._1 <= 0) throw new Error('EffectPlanDidNotAdvance');
+      if (runtimeField(progress, 0)) break;
+      if (runtimeField(progress, 1) <= 0) throw new Error('EffectPlanDidNotAdvance');
       await yieldEventLoop(undefined, {signal});
     }
     cursor = checked(moon.clientProgramEffectPlanReady(preparation));
@@ -64,12 +65,12 @@ export async function verifyPinnedEffectPlan({
     }
     signal?.throwIfAborted();
     const finished = checked(moon.clientProgramEffectPlanFinish(cursor));
-    receipt = finished._0;
-    await onChunk(finished._1);
+    receipt = runtimeField(finished, 0);
+    await onChunk(runtimeField(finished, 1));
     return Object.freeze({
       fields: moon.clientProgramEffectInputExportFields(receipt),
       logicalCid: moon.clientProgramEffectInputExportLogicalCid(receipt),
-      proof: finished._2,
+      proof: runtimeField(finished, 2),
     });
   } finally {
     if (receipt !== undefined) {

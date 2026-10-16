@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {confirmCompletedEffectfulApplySources} from
@@ -20,9 +21,9 @@ export function isEffectApplyPreflightRejection(error) {
 // Provider observation failures occur before this boundary and remain
 // retryable; they must not be converted into a terminal Run result.
 function checkedPreflight(result) {
-  if (result?.$tag === 0) {
+  if (runtimeIsError(result)) {
     const error = Object.assign(new Error('MoonBitHostFailure', {
-      cause: result._0}), {code: 'MoonBitHostFailure'});
+      cause: runtimeField(result, 0)}), {code: 'MoonBitHostFailure'});
     preflightRejections.add(error);
     throw error;
   }

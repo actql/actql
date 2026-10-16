@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
@@ -192,8 +193,8 @@ export async function readSalesforceQuery(options) {
     nextPath: () => moon.salesforceQueryReadNextPath(read),
     acceptPage: (path, body) => {
       const result = moon.salesforceQueryReadAcceptPage(read, path, body);
-      const violation = result?.$tag === 0
-        ? moon.salesforceQueryReadValueViolation(plan, result._0)
+      const violation = runtimeIsError(result)
+        ? moon.salesforceQueryReadValueViolation(plan, runtimeField(result, 0))
         : undefined;
       if (typeof violation === 'string') {
         throw Object.assign(new Error('SalesforceValueViolation'), {
