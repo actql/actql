@@ -153,6 +153,44 @@ test "custom unique selectors correlate actual record ids independently from pro
 }
 
 ///|
+test "unique decimal selectors correlate by complete typed values without binary64 coercion" {
+  let catalog = catalog(
+    (
+      #|{"results":[{"name":"amount","type":"number","fieldType":"number"},{"name":"number_key","type":"number","fieldType":"number","hasUniqueValue":true}]}
+    ),
+  )
+  let target = prepare_record_target(
+    catalog,
+    "number_key",
+    @utf8.encode("\"9007199254740993.0100000000\""),
+    write_limits(),
+  ).unwrap()
+  let request = prepare_record_read_request(
+    catalog,
+    [target],
+    ["amount"],
+    read_limits(),
+  ).unwrap()
+  let bytes = @utf8.encode(
+    (
+      #|{"status":"COMPLETE","results":[{"id":"1","archived":false,"updatedAt":"2026-10-17T00:00:00.000Z","properties":{"amount":"0","number_key":"9007199254740993.01"}}]}
+    ),
+  )
+  assert_eq(
+    record_read_observation_wire(read_projection(request, bytes).unwrap()),
+    "[{\"id\":\"1\",\"updatedAt\":\"2026-10-17T00:00:00.000Z\",\"properties\":{\"amount\":\"0.0000000000\",\"number_key\":\"9007199254740993.0100000000\"}}]",
+  )
+  let rounded = @utf8.encode(
+    (
+      #|{"status":"COMPLETE","results":[{"id":"1","archived":false,"updatedAt":"2026-10-17T00:00:00.000Z","properties":{"amount":"0","number_key":9007199254740993.01}}]}
+    ),
+  )
+  assert_true(
+    read_projection(request, rounded) is Err(Page(InvalidCell("number_key"))),
+  )
+}
+
+///|
 test "two record ids for one supposedly unique selector are not an arbitrary first match" {
   let catalog = read_catalog()
   let request = prepare_record_read_request(
