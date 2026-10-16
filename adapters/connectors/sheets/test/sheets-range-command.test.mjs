@@ -155,6 +155,28 @@ test('Sheets body projection does not serialize a legal request into a second re
   assert.equal(driver.requestCid(request), request.requestCid);
 });
 
+test('Sheets original configuration and footprint do not follow later caller DTO mutation', () => {
+  const originalSite = structuredClone(site);
+  const range = sheetsRangeCommand(profile.connectorId, originalSite, provider);
+  const target = structuredClone(sheetsRangeReference({site: originalSite,
+    catalogCid: token('a'), bindingCid: token('b'), moon: provider}));
+  const driver = createSheetsRangeDriver({moon: provider, site: originalSite,
+    command: range.installed, bindingCid: token('b'), target, isCurrent: () => true});
+  const request = driver.prepareRequest({member, value, selector: target}).request;
+  originalSite.apiOrigin = 'https://foreign.example.test';
+  originalSite.gridRange.endRow = 9;
+  originalSite.columns.reverse();
+  target.boundary_cid = token('c');
+  const again = driver.prepareRequest({member, value, selector: request.target}).request;
+  assert.equal(again.body, request.body);
+  assert.equal(driver.requestCid(again), request.requestCid);
+  assert.equal(driver.footprint().boundaryCid, token('a'));
+  const saved = JSON.parse(driver.recoveryEntry({member}).wire);
+  assert.equal(saved.origin, site.apiOrigin);
+  assert.deepEqual(saved.range, site.gridRange);
+  assert.deepEqual(saved.columns, site.columns);
+});
+
 test('Sheets range refuses foreign current target installation and partial input before send', () => {
   const {driver, target, revoke, request} = fixture();
   for (const field of ['provider_namespace', 'resource_kind', 'provider_identity_cid',

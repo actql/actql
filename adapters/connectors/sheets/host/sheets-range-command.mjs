@@ -35,6 +35,7 @@ export function createSheetsRangeDriver({moon, site, command, bindingCid, target
     origin: site.apiOrigin, spreadsheetId: site.spreadsheetId,
     range: site.gridRange, columns: site.columns,
   }), command.commandCid, bindingCid, wire(target), ...limits(SHEETS_LIMITS.maxRequestBytes)));
+  const boundaryCid = target.boundary_cid;
   const current = () => { if (!isCurrent()) fail('SheetsRangeReferenceUnavailable'); };
   const admitTarget = target => {
     current();
@@ -71,5 +72,5 @@ export function createSheetsRangeDriver({moon, site, command, bindingCid, target
     async send(options) { admitRequest(options.request); return sendSheetsUpdate(options); },
     project: options => projectSheetsUpdate({...options, moon}),
     footprint: () => ({providerNamespace: 'sheets', resourceKind: 'sheet_range',
-      boundaryCid: target.boundary_cid})});
+      boundaryCid})});
 }
