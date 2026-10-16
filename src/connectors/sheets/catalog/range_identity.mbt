@@ -179,18 +179,38 @@ fn range_request_cid(
   body : String,
   target : String,
 ) -> Result[String, RangeFailure] {
+  framed_request_identity(
+    ["actql-sheets-update-request/0.1", origin, "POST", path, body, target],
+    "InvalidSheetsUpdateBinding",
+  )
+}
+
+///|
+pub fn append_request_identity(
+  origin : String,
+  path : String,
+  body : String,
+) -> Result[String, RangeFailure] {
+  framed_request_identity(
+    ["actql-sheets-append-request/0.1", origin, "POST", path, body],
+    "InvalidSheetsAppendBinding",
+  )
+}
+
+///|
+fn framed_request_identity(
+  parts : Array[String],
+  failure_code : String,
+) -> Result[String, RangeFailure] {
   let hash = @sha.hasher()
   try {
-    for
-      part in [
-        "actql-sheets-update-request/0.1", origin, "POST", path, body, target,
-      ] {
+    for part in parts {
       let bytes = @utf8.encode(part)
       @sha.update(hash, @utf8.encode(bytes.length().to_string() + ":"))
       @sha.update(hash, bytes)
     }
     Ok("sha256:" + @sha.finish_hex(hash))
   } catch {
-    _ => Err(range_failure("InvalidSheetsUpdateBinding"))
+    _ => Err(range_failure(failure_code))
   }
 }

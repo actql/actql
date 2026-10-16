@@ -1,12 +1,11 @@
 // Physical Sheets I/O only. The provider MoonBit projects typed cells and
 // acknowledgements; the common Effect owner decides approval and settlement.
-import {createHash} from 'node:crypto';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 import {refusedEffectPreparation} from
   '../../../host-common/effect-preparation-result.mjs';
 import {canonicalJson as valueJson} from '../../../../packages/sdk/host-port.mjs';
-import {prepareOwnedSheetsRequest, ownedSheetsRequestCid} from './sheets-owned-request.mjs';
+import {prepareOwnedSheetsRequest, ownedSheetsRequestCid, sheetsOwnedResult} from './sheets-owned-request.mjs';
 
 export const SHEETS_READ_OPERATION = 'sheets:grid:read';
 export const SHEETS_APPEND_OPERATION = 'sheets:cells:append';
@@ -100,14 +99,11 @@ export function prepareSheetsAppend({moon, origin, spreadsheetId, sheetId,
     throw cause?.code === 'SheetsContractRefused' ? refusedEffectPreparation(cause) : cause;
   }
   const path = `${basePath(spreadsheetId)}:batchUpdate`;
-  // Exact wire bytes, not the NFC serializer used for configuration identity.
-  const hash = createHash('sha256');
-  for (const part of ['actql-sheets-append-request/0.1', origin, 'POST', path, body]) {
-    const bytes = Buffer.from(part, 'utf8');
-    hash.update(`${bytes.length}:`); hash.update(bytes);
-  }
+  // Exact framing belongs to the same portable provider authority as update.
+  const requestCid = sheetsOwnedResult(moon,
+    moon.sheetsAppendRequestIdentity(origin, path, body));
   return Object.freeze({origin, path, body, spreadsheetId, sheetId,
-    value: Object.freeze({...value}), requestCid: `sha256:${hash.digest('hex')}`});
+    value: Object.freeze({...value}), requestCid});
 }
 
 export async function sendSheetsAppend({request, authorization, credential,

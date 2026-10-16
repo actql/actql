@@ -23,7 +23,9 @@ export function withSheetsRangeCommand(declared, rangeCommand, moon) {
 }
 
 export function sheetsRangeReference({site, catalogCid, bindingCid, moon}) {
-  const range = site.gridRange;
+  // Preserve the existing value codec's representability refusal before the
+  // scalar Int ABI can erase negative zero or another invalid JS number.
+  const range = JSON.parse(wire(site.gridRange));
   return Object.freeze(JSON.parse(sheetsOwnedResult(moon,
     moon.sheetsRangeReferenceJson(site.apiOrigin, site.spreadsheetId,
       range.sheetId, range.startRow, range.endRow, range.startColumn, range.endColumn,
