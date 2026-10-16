@@ -63,11 +63,19 @@ pub fn begin_row_run_listing_page(RowRun, Bytes, Int64) -> Result[Unit, RowHostI
 
 pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]
 
+pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]
+
+pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]
+
 pub fn cancel_keyed_row_read(RowSourceRead) -> Bool
 
 pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]
 
 pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
+
+pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]
+
+pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]
 
 pub fn cleanup_row_capture(RowRun) -> Result[Bool, RowHostIssue]
 
@@ -384,6 +392,10 @@ pub(all) struct RowRelationViewSpec {
 type RowRestoredOriginalInput
 
 type RowRun
+
+pub struct RowRunResponseBorrow {
+  // private fields
+}
 
 type RowSourceCapture
 

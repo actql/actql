@@ -52598,7 +52598,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "06519eeb75b307c36eaf8a17353a445a43477a12430989132c951d0899aa09f6",
+      "sha256": "d60d65d8169f78636d8b498ef1fd251407240c0d4077f789fd479f3456fe34ef",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -52658,7 +52658,8 @@
             "referenceIssuer",
             "listingPolicy",
             "captureContent",
-            "listingReportCapacity"
+            "listingReportCapacity",
+            "prepareAcquisition"
           ],
           "async": true
         },
@@ -52689,20 +52690,25 @@
         },
         {
           "name": "createInstalledRowSource/acquire/acquire#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/acquire#3",
           "parameters": [
             "index"
           ],
           "async": true
         },
         {
-          "name": "createInstalledRowSource/acquire/acquire#3",
+          "name": "createInstalledRowSource/acquire/acquire#4",
           "parameters": [
             "body"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/acquire/acquire#4",
+          "name": "createInstalledRowSource/acquire/acquire#5",
           "parameters": [
             "rows",
             "charge"
@@ -53296,7 +53302,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "createInstalledRowSource/acquire/acquire#5"
           ],
           "exports": [],
           "attributes": {

@@ -6,7 +6,7 @@
       "responsibilityFacet": "primary",
       "sha256": "6c310ac4ee69ade54d34f68e1daa0f67deb19ef6ce105d1c28ca354b63c35505",
       "role": "common-semantics",
-      "owner": "Existing Common checked row acquisition/input/capture and resource lifetime Owner",
+      "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [],
       "operations": [
         {
@@ -91,7 +91,7 @@
       "responsibilityFacet": "primary",
       "sha256": "4b43835d064d7bf76370dcab23787fdc37429f0c8cc0a0ccfee478003f0ab2eb",
       "role": "common-semantics",
-      "owner": "Existing Common checked row acquisition/input/capture and resource lifetime Owner",
+      "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [],
       "operations": [
         {
@@ -174,9 +174,9 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "c269d683f57fc7039d2c55f0207f688b3fa1285fb99c83308688a3bb1a8d6884",
+      "sha256": "f77b40805150c260bc1c2921c415cf745be740c50f65a0d1d70c7eb3b5eb15ed",
       "role": "common-semantics",
-      "owner": "Existing Common checked row acquisition/input/capture and resource lifetime Owner",
+      "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
         "pub fn abort_row_run(RowRun) -> Unit",
         "pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]",
@@ -199,9 +199,13 @@
         "pub fn begin_row_run_keyed_page(RowRun, Bytes) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_listing_page(RowRun, Bytes, Int64) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]",
+        "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]",
+        "pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]",
         "pub fn cancel_keyed_row_read(RowSourceRead) -> Bool",
         "pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]",
         "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
+        "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]",
+        "pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn cleanup_row_capture(RowRun) -> Result[Bool, RowHostIssue]",
         "pub fn close_accounted_row_run(RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn close_restored_row_original_input(RowRestoredOriginalInput, Int) -> Bool",
@@ -270,7 +274,8 @@
         "pub struct RowDeclaredView {",
         "pub enum RowKeyedPagePoll {",
         "pub enum RowListingPagePoll {",
-        "pub struct RowMapping {"
+        "pub struct RowMapping {",
+        "pub struct RowRunResponseBorrow {"
       ],
       "operations": [
         {
@@ -358,6 +363,14 @@
           "declaration": "pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]"
         },
         {
+          "name": "bind_row_run_response_borrow_cleanup",
+          "declaration": "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "borrow_row_run_responses",
+          "declaration": "pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]"
+        },
+        {
           "name": "cancel_keyed_row_read",
           "declaration": "pub fn cancel_keyed_row_read(RowSourceRead) -> Bool"
         },
@@ -368,6 +381,14 @@
         {
           "name": "charge_row_run_page",
           "declaration": "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]"
+        },
+        {
+          "name": "check_row_acquisition_original",
+          "declaration": "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "check_row_run_response_borrow_current",
+          "declaration": "pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "cleanup_row_capture",
@@ -651,9 +672,13 @@
             "begin_row_run_keyed_page",
             "begin_row_run_listing_page",
             "begin_row_run_listing_request",
+            "bind_row_run_response_borrow_cleanup",
+            "borrow_row_run_responses",
             "cancel_keyed_row_read",
             "capture_row_run",
             "charge_row_run_page",
+            "check_row_acquisition_original",
+            "check_row_run_response_borrow_current",
             "cleanup_row_capture",
             "close_accounted_row_run",
             "close_restored_row_original_input",
@@ -741,9 +766,13 @@
             "pub fn begin_row_run_keyed_page(RowRun, Bytes) -> Result[Unit, RowHostIssue]",
             "pub fn begin_row_run_listing_page(RowRun, Bytes, Int64) -> Result[Unit, RowHostIssue]",
             "pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]",
+            "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]",
+            "pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]",
             "pub fn cancel_keyed_row_read(RowSourceRead) -> Bool",
             "pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]",
             "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
+            "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]",
+            "pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
             "pub fn cleanup_row_capture(RowRun) -> Result[Bool, RowHostIssue]",
             "pub fn close_accounted_row_run(RowRun) -> Result[Unit, RowHostIssue]",
             "pub fn close_restored_row_original_input(RowRestoredOriginalInput, Int) -> Bool",
@@ -812,8 +841,109 @@
             "pub struct RowDeclaredView {",
             "pub enum RowKeyedPagePoll {",
             "pub enum RowListingPagePoll {",
-            "pub struct RowMapping {"
+            "pub struct RowMapping {",
+            "pub struct RowRunResponseBorrow {"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/response_borrow.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
+      "sha256": "3b9fc9972f472d9438fc12e222ad36d91282aacf2ca32c54cbd7741f3dfc7b9a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bind_row_run_response_borrow_cleanup",
+          "declaration": "bind_row_run_response_borrow_cleanup ( value : RowRunResponseBorrow , cleanup : ( ) - > Bool , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "borrow_row_run_responses",
+          "declaration": "borrow_row_run_responses ( run : RowRun , acquisition : RowAcquisition , ) - > Result [ RowRunResponseBorrow , RowHostIssue ]"
+        },
+        {
+          "name": "check_row_acquisition_original",
+          "declaration": "check_row_acquisition_original ( value : RowAcquisition , declaration : RowDeclaration , requirement : @ planning . QueryRequirement , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "check_row_run_response_borrow_current",
+          "declaration": "check_row_run_response_borrow_current ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_row_run_response_borrow_cleanup",
+            "borrow_row_run_responses",
+            "check_row_acquisition_original",
+            "check_row_run_response_borrow_current"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
