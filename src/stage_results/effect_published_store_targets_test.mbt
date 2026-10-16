@@ -38,7 +38,7 @@ fn published_store_environment(kind : String) -> @environment.WireEnvironment {
 fn published_store_parts(
   environment : @environment.WireEnvironment,
 ) -> (@environment.MappingContractShapes, @environment.CatalogReferences) {
-  let limits = {
+  let limits : @environment.Limits = {
     max_bytes: 40000,
     max_nodes: 4000,
     max_depth: 100,
@@ -170,15 +170,17 @@ test "published STORE selection refuses missing copied and unrelated original me
     (effects, expected) in [
       (
         published_store_result_bindings(mapping="mapping:fixture.missing.v1"),
-        MissingStoreMapping("mapping:fixture.missing.v1"),
+        EffectCommandTargetIssueKind::MissingStoreMapping(
+          "mapping:fixture.missing.v1",
+        ),
       ),
       (
         published_store_result_bindings(target="connector://storage/other"),
-        StoreTargetMismatch,
+        EffectCommandTargetIssueKind::StoreTargetMismatch,
       ),
       (
         published_store_result_bindings(contract="command:fixture.other.v1"),
-        StoreContractMismatch,
+        EffectCommandTargetIssueKind::StoreContractMismatch,
       ),
     ] {
     let issue = bind_effect_command_targets(

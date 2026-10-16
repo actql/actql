@@ -198,7 +198,9 @@ fn binding_charge(
 /// Bind authored member fields to the admitted Stage Result schema, or a
 /// whole-Relation Store source to its checked private Table declaration.
 /// This retains exact source ownership and checked field contracts, and
-/// rejects a Command target that is not a non-null ResourceRef. It does not establish
+/// rejects an ordinary Command field target that is not a non-null ResourceRef.
+/// A published STORE selector has no row target field; the original pair is
+/// checked separately by bind_effect_command_targets. This does not establish
 /// Mapping/Command compatibility, current authority, Preview, or apply
 /// admission. The binding is not an execution permit.
 pub fn bind_effect_results(
