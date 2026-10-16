@@ -99,7 +99,7 @@ for (const mode of ['false', 'reject']) {
     await assert.rejects(f.store.close(), error => {
       assert.equal(error.primaryFailure, f.syncFailure);
       assert.equal(error.cause, f.syncFailure);
-      assert.equal(error.cleanupError, mode === 'reject' ? f.closeFailure : error.cleanupError);
+      if (mode === 'reject') assert.equal(error.cleanupError, f.closeFailure);
       if (mode === 'false') assert.equal(error.cleanupError.code, 'PublicationStoreCleanupPending');
       return true;
     });

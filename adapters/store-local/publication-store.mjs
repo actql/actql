@@ -492,6 +492,7 @@ async function acquireStoreOwnership(root, bootstrap) {
       await syncDirectoryPath(root);
       let released = false, ownerRemoved = false, directoryRemoved = false;
       let ownershipDevice, ownershipInode;
+      let retirementDirectory, retirementSynced = false;
       return Object.freeze({
         async release() {
           if (released) return false;
@@ -500,6 +501,16 @@ async function acquireStoreOwnership(root, bootstrap) {
           catch (error) { if (error?.code === 'ENOENT') return false; throw error; }
           if (!currentRoot.isDirectory() || currentRoot.dev !== rootDevice ||
               currentRoot.ino !== rootInode) fail('PublicationStoreOwnershipLost');
+          // The same Store still owns a directory whose close was not ACKed.
+          // Drain only that FD before any replacement durability acquisition.
+          if (retirementDirectory !== undefined) {
+            if (await retirementDirectory.close() === false) fail('PublicationStoreCleanupPending');
+            retirementDirectory = undefined;
+          }
+          if (retirementSynced) {
+            released = true;
+            return true;
+          }
           if (!directoryRemoved) {
             let directory;
             try { directory = await lstat(ownershipDirectory, {bigint: true}); }
@@ -535,7 +546,27 @@ async function acquireStoreOwnership(root, bootstrap) {
           }
           // A successor may now own root/owner. It must never be inspected
           // or removed by this old handle's remaining durability retry.
-          await syncDirectoryPath(root);
+          retirementDirectory = await open(root, constants.O_RDONLY);
+          let syncFailure, syncFailed = false;
+          try {
+            const physical = await retirementDirectory.stat({bigint: true});
+            if (!physical.isDirectory() || physical.dev !== rootDevice || physical.ino !== rootInode) {
+              fail('PublicationStoreOwnershipLost');
+            }
+            await retirementDirectory.sync();
+            retirementSynced = true;
+          } catch (cause) { syncFailed = true; syncFailure = cause; }
+          try {
+            if (await retirementDirectory.close() === false) fail('PublicationStoreCleanupPending');
+            retirementDirectory = undefined;
+          } catch (closeFailure) {
+            if (!syncFailed) throw closeFailure;
+            const failure = new PublicationStoreError('PublicationStoreCleanupPending', syncFailure);
+            failure.primaryFailure = syncFailure;
+            failure.cleanupError = closeFailure;
+            throw failure;
+          }
+          if (syncFailed) throw syncFailure;
           released = true;
           return true;
         },
