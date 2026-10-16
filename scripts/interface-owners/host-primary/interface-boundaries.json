@@ -3125,7 +3125,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "87d33ababac4c8e5506e7d77f8f7aba9a3d53e2db683329d8e9608f6b3e76bb6",
+      "sha256": "0d59271fb07382207ecdfcb55ca7237b49511b5ce2ba9a64a7d8f0c18c879dcd",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -4999,6 +4999,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "One installed Local Host for the current OS user"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn prepare_run_state_observation("
               }
             ],
             "inputsOutputs": [
@@ -5009,18 +5013,30 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn RunStateObservation::wire("
               }
             ],
             "identity": [
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "exact submitted intent"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "installedHostShutdown"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
               }
             ],
             "synchronization": [
@@ -5031,30 +5047,54 @@
               {
                 "path": "adapters/host-node/local-account-config.mjs",
                 "anchor": "configuration is always explicit Host installation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-host-cleanup.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/embedded-local-close-public.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "cancellationRequested: current.cancellationRequested,"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-host-policy.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "max_bytes : Int"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/client-check-composition.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "fail('UnknownClientRequestJournalFormat');"
               }
             ],
             "verification": [
@@ -5065,6 +5105,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision persists independently of control and unchanged rereads across reopen'"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision-public.test.mjs",
+                "anchor": "test('actual Local Run state revision survives Host release and attach without another computation'"
               }
             ]
           }
