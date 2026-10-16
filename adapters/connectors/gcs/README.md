@@ -96,6 +96,56 @@ records/references. Three separate representation clamps do not make their
 peak overlap a funded bound. Retain escaped borrowers through the original
 receiver's actual lifetime; WeakMap membership or deletion is not physical ACK.
 
+## Upload declaration closure
+
+The portable `object_upload_command_json` supplies the real GCS upload
+declaration. Its inline Command input and original `command_input` Envelope
+contain the same complete closed presence record. `content` and `name` are
+required; `content_type` and `overwrite` may be absent but are non-null when
+supplied. The typed ContentRef has no media restriction and is never reduced
+to a String, JSON payload or fabricated reference. Array order remains in the
+preimage. The role is the explicitly adopted Command-only extension, not a
+general optional Object ValueContract or an upgrade of legacy role bytes.
+
+`object_upload_catalog_json` preserves the original declaration's SourceViews,
+evidence and manifest while adding complete original roles and the Command to
+its Catalog. It checks the old complete registry correspondence and Catalog
+self-identity, rejects conflicting declarations, and returns `command_bodies`
+for the existing Common environment assembler. The final Catalog is self-sealed
+under the same initial 0.1 identity domain, not the previous Catalog CID.
+
+`object_upload_mapping_json` borrows the original collection binding and emits
+the exact Mapping-to-Command relationship for `connector://<id>/objects`.
+Its complete target schema retains all four field contracts, including the
+ContentRef. `primary_identity: null` remains collection-only `create/none`;
+the four exact field-set rules do not admit row STORE or invent a row key.
+The fixed Command's declared requirements cover both creation and explicit
+replacement/readback: `storage.objects.create`, `storage.objects.delete` and
+`storage.objects.get`. These are static requirements, not inferred permissions
+or a stronger credential identity. Approval/current authorization remain with
+their original owners. Optional fields are never assigned defaults by these
+declarations. Overwrite conditions belong to original Preview/physical request
+preparation, not to a refreshed Catalog observation after approval.
+
+The typed Node adapters use the existing checked Result facade. They return
+bounded immutable wire DATA, not a ResourceRef issuer or an installed original
+selection. The Mapping adapter borrows its original collection association;
+copied JS frames cannot recover that handle. Actual Common admission must
+validate every declared contract, the original Catalog/environment/pair and
+the selected installation before the existing trusted issuer supplies a target.
+The new `published_store` canonical selector is an independent Common change;
+no hidden Source/Result/Values field or Parameter Ref is introduced here.
+
+Declaration construction retains input wire, strict parser tree, ordinary JSON
+tree, canonical/hash/writer workspace, original/new Catalog and registry arrays,
+role/Command/Mapping representations and typed projection/callback records
+through their actual preparation lifetime. Repeated string parsing and escaped
+borrowers are not free. Bounds limit representation sizes, not aggregate
+funding, physical retirement or a normal numerical profile. The read-only
+installation is not silently activated for writes by these DATA functions;
+upload transport, exact Content acquisition, physical issuer/currentness,
+reconciliation and normal installed approval/restart acceptance remain needed.
+
 ## Verification boundary
 
 The catalog white-box tests execute the portable semantics with independent
