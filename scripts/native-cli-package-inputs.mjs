@@ -3,6 +3,7 @@ import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 export const nativeCliLauncherInputs = Object.freeze([
   'README.md', 'bin/actql.mjs', 'lib/local-runtime.mjs', 'lib/product-members.mjs',
+  'lib/project-template.mjs', 'lib/project-scaffold.mjs',
 ]);
 export const nativeCliPlatforms = Object.freeze({'darwin-arm64': {os: 'darwin', cpu: 'arm64'},
   'linux-x64-gnu': {os: 'linux', cpu: 'x64', libc: 'glibc'}});

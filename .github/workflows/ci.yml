@@ -89,7 +89,7 @@ jobs:
         run: node --test proofs/relation-pipeline/ci-artifacts.test.mjs
       - name: Test declaration provenance validators
         if: needs.select-targets.outputs.profile == 'declaration'
-        run: node --test proofs/relation-pipeline/foundation.test.mjs proofs/relation-pipeline/history.test.mjs proofs/relation-pipeline/foundation-integration.test.mjs
+        run: node --test proofs/relation-pipeline/foundation.test.mjs proofs/relation-pipeline/history.test.mjs proofs/relation-pipeline/foundation-integration.test.mjs proofs/relation-pipeline/foundation-historical-input-edit.test.mjs
       - name: Record declaration selection (not semantic campaign evidence)
         if: needs.select-targets.outputs.profile == 'declaration'
         env:

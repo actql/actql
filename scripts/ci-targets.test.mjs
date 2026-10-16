@@ -552,7 +552,7 @@ test('declaration profile requires actual full history and validator regressions
   assert.deepEqual(jobs.preflight.needs, ['select-targets']);
   const tests = jobs.preflight.steps.find(step => step.name === 'Test declaration provenance validators');
   assert.equal(tests.if, "needs.select-targets.outputs.profile == 'declaration'");
-  for (const file of ['foundation.test.mjs', 'history.test.mjs', 'foundation-integration.test.mjs']) {
+  for (const file of ['foundation.test.mjs', 'history.test.mjs', 'foundation-integration.test.mjs', 'foundation-historical-input-edit.test.mjs']) {
     assert(tests.run.includes(`proofs/relation-pipeline/${file}`));
   }
   assert(jobs.preflight.steps.some(step => step.run === 'node proofs/relation-pipeline/history.mjs --write' && !step.if));

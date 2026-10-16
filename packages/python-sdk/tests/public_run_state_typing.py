@@ -14,9 +14,9 @@ def sync_observation(run: Execution) -> dict[str, Any]:
     state.revision = revision + 1  # type: ignore[misc]
     if control is not None:
         control['revision'] = revision  # type: ignore[index]
-    return asdict(run.wait())
+    return asdict(run.wait(since=revision))
 
 
 async def async_observation(run: AsyncExecution) -> int:
     state: RunState = await run.reconcile()
-    return state.revision
+    return (await run.wait(since=state.revision)).revision

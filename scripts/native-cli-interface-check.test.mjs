@@ -22,6 +22,8 @@ async function fixture(t) {
   put('packages/native-cli/bin/actql.mjs', 'import {read} from "../lib/local-runtime.mjs"; export {read};');
   put('packages/native-cli/lib/local-runtime.mjs', 'export function read() {return 7;}');
   put('packages/native-cli/lib/product-members.mjs', 'export const original = 7;');
+  put('packages/native-cli/lib/project-template.mjs', 'export const template = "input-only";');
+  put('packages/native-cli/lib/project-scaffold.mjs', 'import {template} from "./project-template.mjs"; export const scaffold = template;');
   put('owner.md', 'Existing synthetic Source, Unknown and cleanup control');
   const declarations = nativeCliLauncherInputs.filter(name => name.endsWith('.mjs')).map(name => {
     const module = `packages/native-cli/${name}`, bytes = readFileSync(join(root, module));
@@ -47,10 +49,10 @@ async function fixture(t) {
 
 test('normal CLI copy inputs retain actual source and primary correspondence', async t => {
   const f = await fixture(t), result = await f.check();
-  assert.equal(result.correspondence.coverage.modules, 3);
-  assert.equal(result.correspondence.coverage.primaryCovered, 3);
-  assert.equal(result.dependencies.modules, 3);
-  assert.equal(f.checkedSource.modules.length, 3, 'ordinary producer inputs include its dormant helper');
+  assert.equal(result.correspondence.coverage.modules, 5);
+  assert.equal(result.correspondence.coverage.primaryCovered, 5);
+  assert.equal(result.dependencies.modules, 5);
+  assert.equal(f.checkedSource.modules.length, 5, 'ordinary producer inputs include both project helpers and the dormant member helper');
   assert.equal(result.artifactSource, f.source);
 });
 
@@ -111,6 +113,9 @@ test('actual ordinary Native launcher staging includes its dormant product metad
   const repository = fileURLToPath(new URL('../', import.meta.url));
   const checkedSource = await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
   assert(checkedSource.modules.some(value => value.module === 'packages/native-cli/lib/product-members.mjs'));
+  for (const name of ['project-template.mjs', 'project-scaffold.mjs']) {
+    assert(checkedSource.modules.some(value => value.module === `packages/native-cli/lib/${name}`));
+  }
   const directory = mkdtempSync(join(tmpdir(), 'actql-cli-actual-authored-stage-'));
   t.after(() => rmSync(directory, {recursive: true}));
   for (const member of ['package.json', ...nativeCliLauncherInputs]) {
@@ -119,6 +124,6 @@ test('actual ordinary Native launcher staging includes its dormant product metad
   }
   const source = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
   const result = await checkStagedNativeCliInterfaces({repository, directory, source, checkedSource});
-  assert.equal(result.correspondence.coverage.primaryCovered, 3);
-  assert.equal(result.dependencies.modules, 3);
+  assert.equal(result.correspondence.coverage.primaryCovered, 5);
+  assert.equal(result.dependencies.modules, 5);
 });

@@ -91,7 +91,7 @@ class RunStateAsyncConsumerTests(unittest.IsolatedAsyncioTestCase):
             operation = request.url.path.rsplit('/', 1)[-1]
             requests.append(operation)
             return httpx.Response(200, json=PROFILE if operation == 'connect'
-                                  else ADMISSION if operation == 'attach' else state())
+                                  else ADMISSION if operation == 'attach' else state() | ({'status': 'succeeded'} if operation == 'wait' else {}))
         async with await AsyncClient.connect('https://host.invalid/', 'fixture-token',
                 transport=httpx.MockTransport(handler)) as client:
             run = await client.attach(ADMISSION['ref'])
@@ -125,7 +125,7 @@ class RunStateSyncConsumerTests(unittest.TestCase):
             operation = request.url.path.rsplit('/', 1)[-1]
             requests.append(operation)
             return httpx.Response(200, json=PROFILE if operation == 'connect'
-                                  else ADMISSION if operation == 'attach' else state())
+                                  else ADMISSION if operation == 'attach' else state() | ({'status': 'succeeded'} if operation == 'wait' else {}))
         with Client.connect('https://host.invalid/', 'fixture-token',
                 transport=httpx.MockTransport(handler)) as client:
             run = client.attach(ADMISSION['ref'])
