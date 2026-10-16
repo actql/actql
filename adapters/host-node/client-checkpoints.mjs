@@ -35,8 +35,7 @@ import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
   './effect-target-read-inventory.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
-import {clientHostRequestKeys, validClientRequestOptionalFields} from
-  '../../packages/client-wire/client-host.generated.js';
+import {validCheckpointLookup} from '../../packages/client-wire/index.mjs';
 import {selectOriginalInferMetadataAcquisition,
   selectOriginalInferStoreBootstrapAcquisition,
   selectOriginalInferResourceCodecAcquisition} from './infer-operation.mjs';
@@ -2461,9 +2460,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
         fail('CheckpointListDenied');
       }
       const lookup = Object.hasOwn(input, 'checkpointId');
+      // This empty shape probes only the public Owner's identifier class. It
+      // is not a Journal observation or a fabricated lookup return value.
       if (lookup && (after !== '' || limit !== 1 ||
-          !clientHostRequestKeys('checkpoints', {checkpointId}).includes('checkpointId') ||
-          !validClientRequestOptionalFields('checkpoints', {checkpointId}))) {
+          !validCheckpointLookup({items: []}, checkpointId))) {
         fail('InvalidCheckpointLookup');
       }
       journal.expire();
