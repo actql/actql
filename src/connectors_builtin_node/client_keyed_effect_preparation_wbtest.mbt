@@ -20,18 +20,58 @@ fn keyed_source_environment() -> @program_check.CheckEnvironment {
 ///|
 test "actual keyed Source preparation refuses unsupported original purpose without discarding the Effect" {
   let environment = keyed_source_environment()
-  let publication = "{\"environmentCid\":\"" + @program_check.checking_environment_cid(environment) + "\",\"aliases\":[],\"updateTargets\":[{\"name\":\"salesforce.Account\",\"targetRef\":\"connector://crm/account\",\"installationBindingCid\":\"sha256:" + "d".repeat(64) + "\",\"installationOwnerCid\":\"sha256:" + "e".repeat(64) + "\"}]}"
+  let publication = "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[],\"updateTargets\":[{\"name\":\"salesforce.Account\",\"targetRef\":\"connector://crm/account\",\"installationBindingCid\":\"sha256:" +
+    "d".repeat(64) +
+    "\",\"installationOwnerCid\":\"sha256:" +
+    "e".repeat(64) +
+    "\"}]}"
   assert_true(client_program_source_publication_valid(environment, publication))
-  for (word, kind) in [("UPSERT", @query_syntax.KeyedEffectKind::Upsert), ("DELETE", Delete)] {
-    let text = "SELECT 'id' AS id, 'original name' AS name |> EFFECT " + word + " salesforce.Account ID id" + if word == "UPSERT" {" SET (Name = name)"} else {""}
-    let lowered = match client_program_lower_source(text, "sql", environment, publication, None) {
+  for
+    (word, kind) in [
+      ("UPSERT", @query_syntax.KeyedEffectKind::Upsert),
+      ("DELETE", Delete),
+    ] {
+    let suffix = if word == "UPSERT" { " SET (Name = name)" } else { "" }
+    let text = "SELECT 'id' AS id, 'original name' AS name |> EFFECT " +
+      word +
+      " salesforce.Account ID id" +
+      suffix
+    let lowered = match
+      client_program_lower_source(text, "sql", environment, publication, None) {
       Ok(value) => value
       Err(_) => fail("actual record Source lowering")
     }
     assert_eq(lowered.keyed_effect_kind, Some(kind))
-    assert_eq(@stage_syntax.effect_header_count(@stage_syntax.collect_effect_headers(lowered.program.unwrap(), 1, 10000).unwrap()), 1)
-    assert_true(client_program_prepare_source_computation_with_parameters(text, "sql", environment, publication, None, None, true, []) is SourcePure(Rejected(SourcePreparation(RecordTargetOriginalsUnavailable))))
+    assert_eq(
+      @stage_syntax.effect_header_count(
+        @stage_syntax.collect_effect_headers(lowered.program.unwrap(), 1, 10000).unwrap(),
+      ),
+      1,
+    )
+    assert_true(
+      client_program_prepare_source_computation_with_parameters(
+        text,
+        "sql",
+        environment,
+        publication,
+        None,
+        None,
+        true,
+        [],
+      )
+      is SourcePure(
+        Rejected(SourcePreparation(RecordTargetOriginalsUnavailable))
+      ),
+    )
   }
-  let pure = client_program_lower_source("SELECT 'unchanged' AS name", "sql", environment, publication, None).unwrap()
+  let pure = client_program_lower_source(
+    "SELECT 'unchanged' AS name",
+    "sql",
+    environment,
+    publication,
+    None,
+  ).unwrap()
   assert_true(pure.keyed_effect_kind is None)
 }

@@ -158,22 +158,57 @@ test "keyed Mapping ambiguity keeps differently permissioned candidates and exac
 
 ///|
 test "UPSERT and DELETE emit existing canonical selectors and minimal private capture" {
-  for (word, selector, expected_fields, mode) in [
-    ("UPSERT", "key", ["id", "body"], "upsert-only"),
-    ("DELETE", "id", ["id"], "delete-only"),
-  ] {
-    let program = keyed_record_program("FROM messages |> EFFECT " + word + " salesforce.Account ID id" + if word == "UPSERT" {" SET (Name = body)"} else {""}, mode~)
+  for
+    (word, selector, expected_fields, mode) in [
+      ("UPSERT", "key", ["id", "body"], "upsert-only"),
+      ("DELETE", "id", ["id"], "delete-only"),
+    ] {
+    let suffix = if word == "UPSERT" { " SET (Name = body)" } else { "" }
+    let program = keyed_record_program(
+      "FROM messages |> EFFECT " + word + " salesforce.Account ID id" + suffix,
+      mode~,
+    )
     let header = short_command_header(program)
-    assert_eq(@program.effect_header_kind(header), if word == "UPSERT" {"upsert"} else {"delete"})
-    assert_eq(@program.effect_header_id(header), if word == "UPSERT" {"aql_upsert_effect"} else {"aql_delete_effect"})
-    assert_eq(@wire.text(store_capture_field(@program.effect_header_body(header), selector)).unwrap(), "id")
+    assert_eq(
+      @program.effect_header_kind(header),
+      if word == "UPSERT" {
+        "upsert"
+      } else {
+        "delete"
+      },
+    )
+    assert_eq(
+      @program.effect_header_id(header),
+      if word == "UPSERT" {
+        "aql_upsert_effect"
+      } else {
+        "aql_delete_effect"
+      },
+    )
+    assert_eq(
+      @wire.text(
+        store_capture_field(@program.effect_header_body(header), selector),
+      ).unwrap(),
+      "id",
+    )
     assert_eq(private_update_fields(program), expected_fields)
     assert_eq(@program.export_count(program), 0)
     if word == "DELETE" {
-      assert_true(@wire.lookup(@wire.open_object(@program.effect_header_body(header)).unwrap(), "set") is None)
+      assert_true(
+        @wire.lookup(
+          @wire.open_object(@program.effect_header_body(header)).unwrap(),
+          "set",
+        )
+        is None,
+      )
     }
     let checked = keyed_record_static(program, mode)
-    assert_eq(@program.effect_header_count(@check.effect_program_static_headers(checked)), 1)
+    assert_eq(
+      @program.effect_header_count(
+        @check.effect_program_static_headers(checked),
+      ),
+      1,
+    )
   }
 }
 
