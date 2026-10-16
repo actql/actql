@@ -11,7 +11,7 @@ fn client_create_values_prepared(
   let document = if parameter {
     document.replace(
       old="\"id\":\"client-effect\"",
-      new="\"id\":\"client-effect\",\"parameters\":{\"n\":{\"type\":\"number\"}}",
+      new="\"id\":\"client-effect\",\"params\":{\"n\":{\"type\":\"number\"}}",
     )
   } else {
     document
