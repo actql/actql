@@ -32,9 +32,12 @@ newly reconstructed provider response or a freshly issued permission.
 
 The standard provider-backed installation publishes `objects` as a genuine
 ordinary Source beside `files` and `contents`. It does not fabricate a Source
-field to carry a collection STORE target. The earlier two view declarations
-remain byte-identical, while the complete extended Catalog has its own CID.
-An explicitly supplied source-only legacy installation keeps its two views.
+field to carry a collection STORE target. The seven-column listing declaration
+remains byte-identical. Ordinary `contents` declares the five public columns
+`resource`, `version`, `name`, `media_type` and `content`, and the complete
+extended Catalog has its own CID. An explicitly supplied source-only legacy
+installation keeps its original two views, including the three-column
+`contents` carrier.
 
 `object_listing_prefix` interprets the original typed Request before I/O.
 Absent or NULL prefix selects the installed prefix; an explicit prefix may
@@ -73,6 +76,32 @@ Installed nonempty service reads, complete pushdown/ordering obligations,
 same-Run restart and live GCS acceptance remain separate required work. A JSON
 Result needs its original ordering evidence; the caller test retains the
 unordered refusal and uses an explicit checked uniqueness/sort for publication.
+
+## Exact content companion columns
+
+The ordinary `contents` carrier includes `name` and `media_type` beside the
+original `resource`, exact generation `version` and issued `content_ref`.
+Both strings are borrowed from the same checked metadata that preceded the
+verified media read. They are not copied from configuration, normalized or
+resolved again after capture. In particular the reported MIME spelling stays
+unchanged in the string column; ContentRef's checked descriptor projection
+remains with the existing capture/Value Owner.
+
+The explicit source-only legacy installation and its body-only transport keep
+their earlier three-column carrier. The ordinary carrier and Catalog have
+different identities; an old capture cannot be relabelled with the new schema.
+The checked response-port columns are selected before the first await, so a
+three-column declaration using the modern parser still receives no undeclared
+companion fields; a mutable caller Array cannot widen that selection later.
+The seven-column file listing, resource/version lookup correlation, read
+authorization, original charge tickets and no-retry behavior are unchanged.
+
+Two additional String references in the emitted row extend the original
+metadata/report lifetime through capture; bounded row serialization, encoded
+bytes and retained output still overlap the same Source reservation. No
+clamp, successful callback, timer or weak reference is a capacity grant or
+physical release ACK. A failed/cancelled handoff retains the same Content
+custody and pending media charge rather than manufacturing a partial row.
 
 ## Original object request
 
