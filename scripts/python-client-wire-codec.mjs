@@ -1,3 +1,5 @@
+import {pythonCheckReportRules} from './client-check-report-rules.mjs';
+
 // Python projection of the same limited publication/Client–Host schema vocabulary.
 // This source move preserves existing admission; semantic corrections are separate.
 export function pythonStructuralValidatorSource() {
@@ -84,4 +86,29 @@ def valid(value, schema):
         return all(key not in value or valid(value[key], field) for key, field in properties.items())
     return True
 `;
+}
+
+// Generated response checks share the registered rule selection with JS/Native.
+export function pythonResponseValidatorSource(reportRules) {
+  return String.raw`
+
+def negotiated(value, schema, selected):
+    if not valid(value, schema) or not valid(selected, 'connection'):
+        return False
+    rules = CONTRACT['response_rules'][schema]
+    if any(value.get(key) != selected.get(key) for key in rules['matchConnection']):
+        return False
+    if any(selected.get(key) == expected and value.get(key) != expected
+           for key, expected in rules['requireRequested'].items()):
+        return False
+    return True
+
+
+def correlated(value, schema, request_id):
+    rules = CONTRACT['request_response_rules'][schema]
+    return (any(valid(value, name) for name in rules['schemas'])
+            and value.get(rules['matchRequest']) == request_id)
+
+
+` + pythonCheckReportRules(reportRules);
 }

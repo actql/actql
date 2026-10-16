@@ -3,7 +3,7 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join, resolve} from 'node:path';
 import {project} from './generate-client-publication-wire.mjs';
-import {pythonStructuralValidatorSource} from './python-client-wire-codec.mjs';
+import {pythonStructuralValidatorSource, pythonResponseValidatorSource} from './python-client-wire-codec.mjs';
 import {responseRules, requestResponseRules} from './generate-native-client-wire.mjs';
 import {checkReportRules} from './client-check-report-rules.mjs';
 import {clientSourceFormats, checkpointLimits, resultDescriptionLimits} from '../packages/client-wire/index.mjs';
@@ -86,7 +86,7 @@ async function main() {
     await read('spec/contracts/actql-protocol-schemas.json'), await read('spec/contracts/actql-run-publication.json'),
     await read('spec/contracts/actql-check-reason-catalog.json'));
   const outputs = {'_contract.json': JSON.stringify(contract, null, 2) + '\n', '_types.py': pythonTypes(contract.schemas),
-    '_wire_codec.py': pythonStructuralValidatorSource()};
+    '_wire_codec.py': pythonStructuralValidatorSource() + pythonResponseValidatorSource(contract.check_report_rules)};
   for (const [file, content] of Object.entries(outputs)) {
     const path = join(root, 'packages/python-sdk/src/actql_sdk', file);
     if (args[0] === '--write') await writeFile(path, content);
