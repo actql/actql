@@ -8,6 +8,52 @@ owners continue to own admission, approval, durable claims, response capture,
 reconciliation and cleanup. A private function's existence does not publish a
 capability or make an installation available.
 
+## Exact ordinary object rows
+
+The standard provider-backed installation publishes `objects` as a genuine
+ordinary Source beside `files` and `contents`. It does not fabricate a Source
+field to carry a collection STORE target. The earlier two view declarations
+remain byte-identical, while the complete extended Catalog has its own CID.
+An explicitly supplied source-only legacy installation keeps its two views.
+
+`object_listing_prefix` interprets the original typed Request before I/O.
+Absent or NULL prefix selects the installed prefix; an explicit prefix may
+only narrow it. Unicode, percent text and page tokens are never normalized or
+translated into a glob. The ordinary scan follows empty continuation pages
+and refuses repeated tokens or an exhausted page/row ceiling without issuing
+completion. The existing Source/Credential owns current read admission before
+each send, original physical response charges, RowRun capture and cleanup.
+Flat scans request no delimiter; unexpected nonempty prefix pages still refuse.
+
+The portable parser checks every item and preserves exact Int64 generation,
+metageneration and size before projection. `objects` declares these fields with
+the existing Decimal(19,0) carrier, not Number or String: the provider's narrower
+signed Int64 check remains authoritative. Ordinary Source DATA contains an
+unwrapped metadata object; only the Value Owner emits the `$json` wire envelope.
+User keys literally named `$json`, decomposed text and CR/LF values stay DATA.
+Only the exact reserved `actql-request` key is hidden from logical reads; the
+physical page and its digest retain it. Missing provider metadata becomes SQL
+NULL, while an empty reported object remains `{}`; explicit provider null is
+invalid metadata. This is not a general missing-to-null repair.
+
+The original physical page and RowPageCharge, bounded parser tree, detached
+metadata fields and filtered entry array, per-row canonical writer/String,
+parsed row objects, Resource DATA, row array, normalized UTF-8 encoding and
+retained capture may overlap. They remain in the original acquisition's
+retained/execution and caller workspace inventory until their actual retirement;
+clamps, callback return, weak references and GC opportunities are not funding or
+physical cleanup ACK. No new reservation, numerical profile or Model grant is
+introduced. The Source still uses the existing before-I/O RowRun reservation
+and transfers the same raw charge into ordinary page admission.
+
+Focused tests distinguish actual compiled GCS parsing and actual Value/Command
+schema consumption from the controlled physical port and reference callback.
+Existing public Local/HTTPS empty-path checks prove no-I/O connectivity only.
+Installed nonempty service reads, complete pushdown/ordering obligations,
+same-Run restart and live GCS acceptance remain separate required work. A JSON
+Result needs its original ordering evidence; the caller test retains the
+unordered refusal and uses an explicit checked uniqueness/sort for publication.
+
 ## Original object request
 
 `ObjectMetadata` retains the admitted physical fields and digest of the actual

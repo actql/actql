@@ -4106,7 +4106,7 @@
     {
       "module": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17efc0e863498428ea710b2a33219bb875883dd1746e49a860d63f4758d67d69",
+      "sha256": "41fb4bae06574bfea8f0307febe414895bdf466467492b42abb033afd5950248",
       "role": "connector-semantics",
       "owner": "GCS profile and declaration inputs; Common RowSource declaration seals catalogs/schema/capabilities",
       "exports": [
@@ -4186,7 +4186,8 @@
           "parameters": [
             "moon",
             "profile",
-            "expectedCatalogCid"
+            "expectedCatalogCid",
+            "includeObjects"
           ],
           "async": false
         },
@@ -4261,36 +4262,84 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "existing common row-source declaration owner"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Detached Source DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "Ordinary object rows share"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "restoreGcsSourceDeclaration"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_metadata_page_row_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "anchor": "type: 'decimal', precision: 19"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "actql-gcs-resource-scope/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "prefix.has_prefix(installed_prefix)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "identity_cid: cid({"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "Object.freeze"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact ordinary object rows"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "startInstalledRowRun"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "clientProgramRowSourceRestoreRelationDeclaration"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await verifyRead()"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await consumePage(rows, {charge})"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "InvalidInstalledGcsSourceProfile"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "GcsObjectListingLimit"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Err(ObjectMismatch)"
               }
             ],
             "cancellation": {
@@ -4300,6 +4349,18 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "maxListingItems"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "start_accounted_row_acquisition"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await chargePage(response.body)"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "per-row canonical writer/String"
               }
             ],
             "extension": [
@@ -4310,22 +4371,50 @@
               {
                 "path": "scripts/connector-host-bundles.mjs",
                 "anchor": "generateInstallations"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "options.resource === 'objects'"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed nonempty service reads"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object Source projection is exact Decimal DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
+                "anchor": "actual installed object contracts consume"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "anchor": "original cancellation and physical failure"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fb13e0611d1c0b59360da3c06b7c311b126aa86d9516af04668258f30a3d7ed2",
+      "sha256": "44f17446e5c6c9fe14c4b53bfcb21f576d0bf6b95ac08d5c4944046e79adc86c",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4585,6 +4674,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "## Installed collection issuer"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Detached Source DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "Ordinary object rows share"
               }
             ],
             "inputsOutputs": [
@@ -4599,6 +4696,14 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_metadata_page_row_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "anchor": "type: 'decimal', precision: 19"
               }
             ],
             "identity": [
@@ -4613,6 +4718,14 @@
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
                 "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "prefix.has_prefix(installed_prefix)"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "identity_cid: cid({"
               }
             ],
             "ownership": [
@@ -4627,6 +4740,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "referenceCurrent: () => !closing"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact ordinary object rows"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "startInstalledRowRun"
               }
             ],
             "synchronization": [
@@ -4641,6 +4762,14 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "close() { closed = true; adapter.close(); }"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await verifyRead()"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await consumePage(rows, {charge})"
               }
             ],
             "failure": [
@@ -4655,6 +4784,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
                 "anchor": "the same credential Site invalidates reference currentness before failed close"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "GcsObjectListingLimit"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "Err(ObjectMismatch)"
               }
             ],
             "cancellation": [
@@ -4669,6 +4806,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "False means closing, not physical cleanup ACK"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "signal.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "physical cleanup ACK"
               }
             ],
             "resources": [
@@ -4687,6 +4832,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Additional declarations/trees/strings"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "start_accounted_row_acquisition"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "anchor": "await chargePage(response.body)"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "per-row canonical writer/String"
               }
             ],
             "extension": [
@@ -4705,6 +4862,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "An explicitly supplied legacy"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "options.resource === 'objects'"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed nonempty service reads"
               }
             ],
             "verification": [
@@ -4723,6 +4888,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
                 "anchor": "LIST_FILES paths=[]"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS object Source projection is exact Decimal DATA"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
+                "anchor": "actual installed object contracts consume"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "anchor": "original cancellation and physical failure"
               }
             ]
           }
@@ -4734,6 +4911,7 @@
         "../../../host-node/installed-row-source.mjs",
         "../site/gcs-file-listing.mjs",
         "../site/gcs-keyed-content.mjs",
+        "../site/gcs-object-listing.mjs",
         "./gcs-collection-target.mjs",
         "./gcs-source-declaration.mjs",
         "./gcs-upload-declaration.mjs",
