@@ -26,6 +26,38 @@ FAMILIES = (
 )
 
 
+def unit(symbol: str, name: str) -> str:
+    """Name the existing scalar domain, without copying Owner validation."""
+    if name == 'nonce':
+        return 'positive instance nonce; identity only, not authority'
+    if name.endswith('_bytes') or name in {
+        'bytes', 'length', 'transferred', 'uncertain', 'reserved_transfer',
+        'held', 'reserved_retention', 'reserved_execution', 'peak_retention',
+    }:
+        return 'bytes; bounds and retention charge remain with original Owner'
+    if name in {'planning', 'planning_work', 'quantum'}:
+        return 'logical work units; original Owner bounds'
+    if name in {'max_slots', 'attempts', 'holdings', 'count'}:
+        return 'count in ' + symbol + '; original named collection/chunk bounds'
+    if name in {'start', 'index', 'byte'}:
+        return ('byte value0..255' if name == 'byte' else
+                'zero-based position in ' + symbol + '; original Owner bounds')
+    if name in {'kind', 'ordinal', 'field', 'stage', 'binding_index', 'eof'}:
+        return 'closed selector/flag of ' + symbol + '; unknown refused by original Owner'
+    if name in {'ticket', 'physical_ticket', 'physical_input'} or (
+            symbol.startswith('actql_host.') and name == 'input'):
+        return 'original physical callback ticket; no authority or wire identity'
+    if name in {
+        'account_input', 'attempt', 'clock_input', 'compute', 'configuration',
+        'current', 'current_configuration', 'current_handle', 'environment',
+        'first_handle', 'handle', 'input', 'material', 'materials', 'parent',
+        'payload_record', 'preparation', 'publication', 'publisher', 'reader',
+        'request', 'result', 'run', 'source', 'step_handle', 'submission', 'task',
+    }:
+        return 'same-instance original handle of ' + symbol + '.' + name
+    raise ValueError('Unclassified ABI parameter unit: ' + symbol + '.' + name)
+
+
 def parameters(raw: str) -> tuple[tuple[str, str], ...]:
     result = []
     for part in raw.split(','):
@@ -84,7 +116,10 @@ def render(root: Path = ROOT) -> str:
         lines.append('_' + family.upper() + '_SIGNATURES = {')
         lines.extend('    ' + repr(k) + ': ' + repr(v) + ',' for k, v in values.items())
         lines.extend(['}', ''])
-    for label, values in [('ABI_PARAMETERS', names), ('ABI_ORIGINS', origins)]:
+    units = {symbol: tuple((name, unit(symbol, name)) for name, _ in args)
+             for symbol, args in names.items()}
+    for label, values in [('ABI_PARAMETERS', names), ('ABI_PARAMETER_UNITS', units),
+                          ('ABI_ORIGINS', origins)]:
         lines.append(label + ' = {')
         lines.extend('    ' + repr(k) + ': ' + repr(v) + ',' for k, v in sorted(values.items()))
         lines.extend(['}', ''])
