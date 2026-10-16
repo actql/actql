@@ -21,6 +21,15 @@ coverage of every possible GCS timestamp. The bounded temporary timestamp
 prefix/fraction/zone/output strings and existing calendar conversion workspace
 belong to the same Source parser/row envelope, not a free byte grant.
 
+Ordinary and keyed physical RowRun pages use the shared preserving UTF-8/JSON
+decoder, then the existing checked row and Value contracts. JSON payload keys
+are data, including distinct NFC/NFD spellings and a literal `$json` key. The
+decoder does not repair physical field names into the schema: undeclared keys,
+missing required fields, exact duplicates, invalid UTF-8 and all original
+page/node/depth/capture limits still refuse the complete attempt. Source
+capture/export/reopen must preserve these original admitted values, not use a
+newly reconstructed provider response or a freshly issued permission.
+
 The standard provider-backed installation publishes `objects` as a genuine
 ordinary Source beside `files` and `contents`. It does not fabricate a Source
 field to carry a collection STORE target. The earlier two view declarations

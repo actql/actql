@@ -82,7 +82,7 @@ test('GCS timestamp Source DATA uses the same UTC instant while retaining the ex
 test('unrepresentable GCS sub-millisecond timestamps refuse without rounding or issuing a Resource', async () => {
   const reported = '2026-10-17T00:00:00.123001Z';
   const {options, state} = fixture([{kind: 'storage#objects', items: [{...item, updated: reported}]}]);
-  await assert.rejects(readGcsObjects(options), {code: 'InvalidMetadata'});
+  await assert.rejects(readGcsObjects(options), {code: 'GcsInvalidObjectMetadata'});
   assert.equal(state.calls.length, 1);
   assert.equal(state.charges.length, 1);
   assert.equal(JSON.parse(state.charges[0].body).items[0].updated, reported);

@@ -213,13 +213,14 @@ fn object_source_timestamp(text : String) -> String? {
   while fraction.length() < 3 {
     fraction += "0"
   }
-  let local = text[:19].to_owned() + "." + fraction + "Z"
-  guard @admitted.timestamp_epoch_milliseconds(local) is Some(milliseconds) else {
+  let utc_spelling = text[:19].to_owned() + "." + fraction + "Z"
+  guard @admitted.timestamp_epoch_milliseconds(utc_spelling)
+    is Some(milliseconds) else {
     return None
   }
   let zone = text[position:].to_owned()
   if zone == "Z" {
-    return Some(local)
+    return Some(utc_spelling)
   }
   if zone.length() != 6 || (zone[0] != '+' && zone[0] != '-') || zone[3] != ':' {
     return None
