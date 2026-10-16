@@ -231,3 +231,33 @@ test "explicit create projection retains finite field work and output limits" {
     OutputLimit,
   )
 }
+
+///|
+test "explicit create source null uses its target Contract rather than unselected Mapping defaults" {
+  let rules = explicit_create_values_rules(
+    "{\"Name\":{\"field\":\"amount\"}}",
+    amount_nullable=true,
+  ).unwrap()
+  let terminal = effect_create_row_terminal_for_member(rules, 0, 1, 100)
+    .unwrap()
+    .unwrap()
+  let literals = admit_effect_mapping_literals(
+    rules,
+    effect_mapping_literal_limits(),
+  ).unwrap()
+  // The retained original row mapping has reject, and references another
+  // source field. Neither is silently applied to this explicit assignment.
+  assert_eq(
+    effect_create_row_intended_changes_wire(
+      terminal,
+      literals,
+      effect_plan_test_row("{\"amount\":null}"),
+      1,
+      100,
+      100,
+      10,
+      4,
+    ).unwrap(),
+    "{\"state\":\"present\",\"value\":{\"Name\":null}}",
+  )
+}
