@@ -10,7 +10,7 @@ pub(all) enum StoreTargetIssue {
 } derive(Eq, Debug)
 
 ///|
-struct StoreTargetCandidate {
+priv struct StoreTargetCandidate {
   mapping : @environment.MappingContractShape
   command : @environment.StoreCommandBinding?
 }
