@@ -14,16 +14,20 @@ fn readme_hero_environment() -> @check.CheckEnvironment raise {
     Ok(wire) => wire
     Err(issue) => fail("independent environment: " + @debug.to_string(issue))
   }
-  let tasks = @environment.check_model_tasks(wire, {
-    bodies: {
-      max_bytes: 100000,
-      max_nodes: 10000,
-      max_depth: 100,
-      max_members: 100,
-    },
-    contracts: { max_nodes: 1000, max_depth: 100, max_text_bytes: 10000, },
-    max_work: 100000,
-  }).unwrap()
+  let tasks = match
+    @environment.check_model_tasks(wire, {
+      bodies: {
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+        max_members: 100,
+      },
+      contracts: { max_nodes: 1000, max_depth: 100, max_text_bytes: 10000, },
+      max_work: 100000,
+    }) {
+    Ok(tasks) => tasks
+    Err(issue) => fail("independent ModelTask: " + @debug.to_string(issue))
+  }
   @check.checking_environment(
     wire,
     { text_time: false, veca: false, },
@@ -108,12 +112,16 @@ fn readme_hero_context(
 ///|
 fn readme_hero_publication(
   environment : @check.CheckEnvironment,
-) -> UpdateTargetPublication {
-  let mappings = @environment.check_mapping_contract_shapes(
-    @check.checking_environment_wire(environment),
-    { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 100, },
-    100000,
-  ).unwrap()
+) -> UpdateTargetPublication raise {
+  let mappings = match
+    @environment.check_mapping_contract_shapes(
+      @check.checking_environment_wire(environment),
+      { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 100, },
+      100000,
+    ) {
+    Ok(mappings) => mappings
+    Err(issue) => fail("independent Mapping: " + @debug.to_string(issue))
+  }
   bind_update_target_publication(
     mappings,
     [
