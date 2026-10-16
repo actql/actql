@@ -24,6 +24,7 @@ def python_interface(source: str) -> dict:
     operations = []
     imports = []
     exports = set()
+    occurrences = {}
 
     def visit(node, scope=()):
         child_scope = scope
@@ -39,7 +40,11 @@ def python_interface(source: str) -> dict:
                     parameters.append('*' + node.args.vararg.arg)
                 if node.args.kwarg:
                     parameters.append('**' + node.args.kwarg.arg)
-            operations.append({'name': '/'.join(child_scope), 'parameters': parameters,
+            base = '/'.join(child_scope)
+            occurrence = occurrences.get(base, 0) + 1
+            occurrences[base] = occurrence
+            name = base if occurrence == 1 else f'{base}#{occurrence}'
+            operations.append({'name': name, 'parameters': parameters,
                                'async': isinstance(node, ast.AsyncFunctionDef)})
         if isinstance(node, ast.Import):
             imports.extend(alias.name for alias in node.names)

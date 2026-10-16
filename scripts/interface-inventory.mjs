@@ -48,7 +48,7 @@ const propertyName = node => node?.type === 'MemberExpression'
   ? node.computed ? literalValue(node.property) : node.property.name : undefined;
 const compilerField = node => {
   const value = literalValue(node);
-  if (typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value)) return value;
+  if (value !== undefined) return typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value) ? value : undefined;
   if (node?.type === 'TemplateLiteral' && node.expressions.length &&
       node.quasis[0].value.cooked === '_' && node.quasis.at(-1).value.cooked === '') return '_<dynamic>';
   if (node?.type === 'BinaryExpression' && node.operator === '+' && literalValue(node.left) === '_') return '_<dynamic>';
@@ -107,9 +107,12 @@ export function javascriptInterface(source) {
     }
     if (node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration' ||
         node.type === 'ExportNamedDeclaration' && node.source) imports.push(node.source.value);
-    if (node.type === 'ImportExpression' && node.source.type === 'Literal') imports.push(node.source.value);
-    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require' &&
-        node.arguments[0]?.type === 'Literal') imports.push(node.arguments[0].value);
+    if (node.type === 'ImportExpression' || node.type === 'CallExpression' &&
+        node.callee.type === 'Identifier' && node.callee.name === 'require') {
+      const target = literalValue(node.type === 'ImportExpression' ? node.source : node.arguments[0]);
+      if (typeof target === 'string') imports.push(target);
+      else unresolvedSyntax.push('runtime-dependent module dependency requires original owner/artifact mapping');
+    }
     if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
         node.callee.object.name === 'Reflect' && propertyName(node.callee) === 'get' &&
         compilerField(node.arguments[1])) compilerFields.push(compilerField(node.arguments[1]));

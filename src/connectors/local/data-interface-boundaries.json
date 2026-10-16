@@ -35,6 +35,7 @@
       "unicodedata"
     ],
     "module": "adapters/connectors/local/iceberg/physical.py",
+    "responsibilityFacet": "primary",
     "operations": [
       {
         "async": false,
@@ -324,6 +325,7 @@
       "struct"
     ],
     "module": "adapters/connectors/local/iceberg/process_worker.py",
+    "responsibilityFacet": "primary",
     "operations": [
       {
         "async": false,
@@ -594,6 +596,7 @@
   },
   {
     "module": "adapters/connectors/local/host/iceberg-process.mjs",
+    "responsibilityFacet": "primary",
     "sha256": "8153de6636474098d5fc3666fc29a906d3f6353c1dd521c355f9f2e2a2670c58",
     "exports": [
       "admitIcebergStorageMapping",

@@ -1,0 +1,5576 @@
+{
+  "source": "3e626100845be286750e71383ebaad29fcd71208",
+  "qualification": "Existing functional Owner reference index; representation is independently checked",
+  "inputs": [
+    {
+      "file": "f-a15-owner-declarations-v2.json",
+      "sha256": "ada37990d778d34ce202ec3d3266863871a4f56c67ce9a0ba549cfbae3e95e6d"
+    },
+    {
+      "file": "f-3e626-infer-owner-declarations.json",
+      "sha256": "ebb249195076cf734e5c2e56923e679921941319e734a2d1b14a3990dfea731a"
+    }
+  ],
+  "declarations": [
+    {
+      "module": "adapters/host-common/credential-scope-fields.generated.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "3b0cf0bfd34eb7ae66b7ddd74aae103dce0d61d49ba72e30baee5a8efccea73e",
+      "exports": [
+        "credentialInvocationBindingKeys"
+      ],
+      "operations": [],
+      "role": "generated-binding",
+      "owner": "F / existing Credential Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "credentialInvocationBindingKeys"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Immutable generated field-name projection performs no I/O or state transition; current decisions remain in the referenced Credential Owner."
+            },
+            "failure": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Immutable field-name projection has no task, cancellation or cleanup lifecycle."
+            },
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/diagnostic-observer.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "ecdd5938f9f08cbf1e47d15caee46d7d7a46f9b758c4fefdd053b2ef08a72bed",
+      "exports": [
+        "createDiagnosticObserver",
+        "diagnosticObserver"
+      ],
+      "operations": [
+        {
+          "name": "createDiagnosticObserver",
+          "parameters": [
+            "observe",
+            "maxQueued"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDiagnosticObserver/emit/emit",
+          "parameters": [
+            "name",
+            "detail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDiagnosticObserver/pump/pump",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDiagnosticObserver/pump/pump/pump",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDiagnosticObserver/pump/pump/pump#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDiagnosticObserver/pump/pump/pump#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDiagnosticObserver/sink/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDiagnosticObserver/sink/sink",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "diagnosticObserver",
+          "parameters": [
+            "observe"
+          ],
+          "async": false
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "F / existing durable and observation Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createDiagnosticObserver",
+            "createDiagnosticObserver/emit/emit",
+            "createDiagnosticObserver/pump/pump",
+            "createDiagnosticObserver/pump/pump/pump",
+            "createDiagnosticObserver/pump/pump/pump#2",
+            "createDiagnosticObserver/pump/pump/pump#3",
+            "createDiagnosticObserver/sink/init:close/init:close",
+            "createDiagnosticObserver/sink/sink",
+            "diagnosticObserver"
+          ],
+          "exports": [
+            "createDiagnosticObserver",
+            "diagnosticObserver"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "Best-effort diagnostics have no authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "Object.assign(emit"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "installed.get(observe)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "active"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "outside the caller"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "catch"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "active?.abort()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "maxQueued"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "anchor": "InvalidDiagnosticObserver"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "maxQueued: 1"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/observation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "5a16f8a087da52def2779a7fbcfbc399fee713a7ab6c0366f325bb677d1f18fd",
+      "exports": [
+        "createHostObservationConnection",
+        "installHostObservation",
+        "isHostObservationProjection",
+        "observationLimits",
+        "observationTraceParent",
+        "observationVersion",
+        "projectEffectApplication",
+        "snapshotObservationContext",
+        "validObservationContext"
+      ],
+      "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection/allowed/allowed",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection/createHostObservationConnection",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection/createHostObservationConnection#2",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection/createHostObservationConnection#3",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection/createHostObservationConnection#4",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection/createHostObservationConnection#5",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection/selectedMeasurements/selectedMeasurements",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection/token/token",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHostObservationConnection/token/token#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation",
+          "parameters": [
+            "connection",
+            "journal",
+            "runId"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/accepted/accepted",
+          "parameters": [
+            "result",
+            "requestId"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/closeStorage/closeStorage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/drop/drop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/emit/emit",
+          "parameters": [
+            "operation",
+            "event",
+            "facts",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/emit/emit/emit",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installHostObservation/projection/init:close/init:close/init:close",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/init:diagnostic/init:diagnostic",
+          "parameters": [
+            "name",
+            "detail"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/pump/pump",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/pump/pump/pump",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/pump/pump/pump/pump",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/pump/pump/pump/pump#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/run/run",
+          "parameters": [
+            "operation",
+            "trace",
+            "work",
+            "http"
+          ],
+          "async": true
+        },
+        {
+          "name": "installHostObservation/run/run/run",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "isHostObservationProjection/isHostObservationProjection",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationTraceParent",
+          "parameters": [
+            "headers"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectEffectApplication",
+          "parameters": [
+            "projection",
+            "ref",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "recordEvents/recordEvents",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "selection",
+          "parameters": [
+            "value",
+            "names",
+            "defaults"
+          ],
+          "async": false
+        },
+        {
+          "name": "selection/selection",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "selection/selection#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "selection/selection#3",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotObservationContext",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validObservationContext",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "F / existing durable and observation Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cid/cid",
+            "createHostObservationConnection",
+            "createHostObservationConnection/allowed/allowed",
+            "createHostObservationConnection/createHostObservationConnection",
+            "createHostObservationConnection/createHostObservationConnection#2",
+            "createHostObservationConnection/createHostObservationConnection#3",
+            "createHostObservationConnection/createHostObservationConnection#4",
+            "createHostObservationConnection/createHostObservationConnection#5",
+            "createHostObservationConnection/selectedMeasurements/selectedMeasurements",
+            "createHostObservationConnection/token/token",
+            "createHostObservationConnection/token/token#2",
+            "installHostObservation",
+            "installHostObservation/accepted/accepted",
+            "installHostObservation/closeStorage/closeStorage",
+            "installHostObservation/drop/drop",
+            "installHostObservation/emit/emit",
+            "installHostObservation/emit/emit/emit",
+            "installHostObservation/projection/init:close/init:close",
+            "installHostObservation/projection/init:close/init:close/init:close",
+            "installHostObservation/projection/init:diagnostic/init:diagnostic",
+            "installHostObservation/projection/projection",
+            "installHostObservation/projection/projection#2",
+            "installHostObservation/projection/projection#3",
+            "installHostObservation/pump/pump",
+            "installHostObservation/pump/pump/pump",
+            "installHostObservation/pump/pump/pump/pump",
+            "installHostObservation/pump/pump/pump/pump#2",
+            "installHostObservation/run/run",
+            "installHostObservation/run/run/run",
+            "isHostObservationProjection/isHostObservationProjection",
+            "observationTraceParent",
+            "projectEffectApplication",
+            "recordEvents/recordEvents",
+            "selection",
+            "selection/selection",
+            "selection/selection#2",
+            "selection/selection#3",
+            "snapshotObservationContext",
+            "validObservationContext"
+          ],
+          "exports": [
+            "createHostObservationConnection",
+            "installHostObservation",
+            "isHostObservationProjection",
+            "observationLimits",
+            "observationTraceParent",
+            "observationVersion",
+            "projectEffectApplication",
+            "snapshotObservationContext",
+            "validObservationContext"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/owned-invocation-context.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4f1b4483355185661f83d025c11c3ede14d33d1c04c005fd459ecbc5d7f5b0d4",
+      "exports": [
+        "invocationBindingsMatch",
+        "invokeScopedCredentialOperation",
+        "ownInvocationAuthorization",
+        "ownInvocationContext",
+        "ownInvocationLimits"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "invocationBindingsMatch",
+          "parameters": [
+            "scope",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "invocationBindingsMatch/invocationBindingsMatch",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "invokeScopedCredentialOperation",
+          "parameters": [
+            "authorization",
+            "credential",
+            "callResource",
+            "operation",
+            "method",
+            "path",
+            "query",
+            "headers",
+            "body",
+            "responseHeaders",
+            "maxRequestBytes",
+            "maxResponseBytes",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownInvocationAuthorization",
+          "parameters": [
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownInvocationContext",
+          "parameters": [
+            "authorization",
+            "credential",
+            "limits",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownInvocationLimits",
+          "parameters": [
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownInvocationLimits/ownInvocationLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "primitive/primitive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "public-wire-codec",
+      "owner": "F / existing Credential Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "invocationBindingsMatch",
+            "invocationBindingsMatch/invocationBindingsMatch",
+            "invokeScopedCredentialOperation",
+            "ownInvocationAuthorization",
+            "ownInvocationContext",
+            "ownInvocationLimits",
+            "ownInvocationLimits/ownInvocationLimits",
+            "primitive/primitive"
+          ],
+          "exports": [
+            "invocationBindingsMatch",
+            "invokeScopedCredentialOperation",
+            "ownInvocationAuthorization",
+            "ownInvocationContext",
+            "ownInvocationLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/sqlite-transaction.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "5c672cb06df0724c92dceb2958fc48b2a2cc06f11749bc987636f8d74800d7d0",
+      "exports": [
+        "createSqliteTransaction",
+        "throwSqliteInitializationFailure"
+      ],
+      "operations": [
+        {
+          "name": "createSqliteTransaction",
+          "parameters": [
+            "database",
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSqliteTransaction/assertUsable/assertUsable",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSqliteTransaction/createSqliteTransaction",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSqliteTransaction/failure/failure",
+          "parameters": [
+            "code",
+            "cause",
+            "details"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSqliteTransaction/inspect/inspect",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSqliteTransaction/run/run",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "throwSqliteInitializationFailure",
+          "parameters": [
+            "database",
+            "primaryFailure",
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "throwSqliteInitializationFailure/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "throwSqliteInitializationFailure/status/status",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "F / existing durable and observation Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createSqliteTransaction",
+            "createSqliteTransaction/assertUsable/assertUsable",
+            "createSqliteTransaction/createSqliteTransaction",
+            "createSqliteTransaction/failure/failure",
+            "createSqliteTransaction/inspect/inspect",
+            "createSqliteTransaction/run/run",
+            "throwSqliteInitializationFailure",
+            "throwSqliteInitializationFailure/retry/retry",
+            "throwSqliteInitializationFailure/status/status"
+          ],
+          "exports": [
+            "createSqliteTransaction",
+            "throwSqliteInitializationFailure"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/task-observation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "1377573482113b997718e99ae4c4ec05787a4dba80c4eb2a351232a3e9ca698b",
+      "exports": [
+        "installTaskObservation",
+        "projectTaskObservation"
+      ],
+      "operations": [
+        {
+          "name": "installTaskObservation",
+          "parameters": [
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectTaskObservation",
+          "parameters": [
+            "observer",
+            "event",
+            "task",
+            "durationMs"
+          ],
+          "async": false
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "F / existing durable and observation Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installTaskObservation",
+            "projectTaskObservation"
+          ],
+          "exports": [
+            "installTaskObservation",
+            "projectTaskObservation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "Optional copied facts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "Object.freeze({event, task, durationMs})"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "observers.get(observer)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "try { project"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "Optional projection never changes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous optional projection creates no cancellable operation, physical reader, task stop, or release authority."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "new WeakMap()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/task-observation.mjs",
+                "anchor": "InvalidTaskObservation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "queue overflow and delivery failure"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/infer-capture-custody.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "b55747fa9a33570a52fade73235ff07ae4e056b98be0560ab476acf425bf3308",
+      "role": "physical-io",
+      "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
+      "exports": [
+        "openNodeInferCaptureCustody"
+      ],
+      "operations": [
+        {
+          "name": "openNodeInferCaptureCustody",
+          "parameters": [
+            "moon",
+            "control",
+            "operation",
+            "plan",
+            "store",
+            "storeAuthorityCid",
+            "sourceEvidence",
+            "replay",
+            "faultInjection",
+            "publicationFor",
+            "durableCalls",
+            "captureOnly"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/cleanup/cleanup/cleanup",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/cleanup/cleanup/cleanup#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/cleanupOwned/cleanupOwned",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication/cleanupPublication",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication/cleanupPublication#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/cleanupPublicationOwned/cleanupPublicationOwned",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/custody/custody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/custody/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/hold",
+          "parameters": [
+            "name",
+            "slot",
+            "wire",
+            "semanticCid",
+            "entry",
+            "phase"
+          ],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/holdAttachments",
+          "parameters": [
+            "slot",
+            "entry",
+            "phase"
+          ],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/holdEvidence",
+          "parameters": [
+            "name",
+            "slot",
+            "evidence",
+            "entry",
+            "phase"
+          ],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal",
+          "parameters": [
+            "observe",
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal/init:configureModelJournal",
+          "parameters": [
+            "settlement"
+          ],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:evaluationBundle/init:evaluationBundle",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:modelEvidence/init:modelEvidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:persist/init:persist",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:persistSettlement/init:persistSettlement",
+          "parameters": [
+            "settlement",
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/maximumStoredCaptureWire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/openNodeInferCaptureCustody",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/persistSettlement",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/persistSourceObservation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/persistStoppedAttempts",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/retainCompleted",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/retireAliases",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/retirePublication/retirePublication",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/retirePublicationAliases",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "pending/pending",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// Shared private custody for the existing installed Model component. Local"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openNodeInferCaptureCustody",
+            "openNodeInferCaptureCustody/cleanup/cleanup",
+            "openNodeInferCaptureCustody/cleanup/cleanup/cleanup",
+            "openNodeInferCaptureCustody/cleanup/cleanup/cleanup#2",
+            "openNodeInferCaptureCustody/cleanupOwned/cleanupOwned",
+            "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication",
+            "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication/cleanupPublication",
+            "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication/cleanupPublication#2",
+            "openNodeInferCaptureCustody/cleanupPublicationOwned/cleanupPublicationOwned",
+            "openNodeInferCaptureCustody/custody/custody",
+            "openNodeInferCaptureCustody/custody/init:close/init:close",
+            "openNodeInferCaptureCustody/hold",
+            "openNodeInferCaptureCustody/holdAttachments",
+            "openNodeInferCaptureCustody/holdEvidence",
+            "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal",
+            "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal/init:configureModelJournal",
+            "openNodeInferCaptureCustody/init:evaluationBundle/init:evaluationBundle",
+            "openNodeInferCaptureCustody/init:modelEvidence/init:modelEvidence",
+            "openNodeInferCaptureCustody/init:persist/init:persist",
+            "openNodeInferCaptureCustody/init:persistSettlement/init:persistSettlement",
+            "openNodeInferCaptureCustody/maximumStoredCaptureWire",
+            "openNodeInferCaptureCustody/openNodeInferCaptureCustody",
+            "openNodeInferCaptureCustody/persistSettlement",
+            "openNodeInferCaptureCustody/persistSourceObservation",
+            "openNodeInferCaptureCustody/persistStoppedAttempts",
+            "openNodeInferCaptureCustody/retainCompleted",
+            "openNodeInferCaptureCustody/retireAliases",
+            "openNodeInferCaptureCustody/retirePublication/retirePublication",
+            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication",
+            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2",
+            "openNodeInferCaptureCustody/retirePublicationAliases"
+          ],
+          "exports": [
+            "openNodeInferCaptureCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "openNodeInferCaptureCustody"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "pending/pending"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/infer-entry-persistence.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "c6c1c083c7b043df7ef345af5d50460781f450f8f40687235c7268e0dae8869b",
+      "exports": [
+        "createNodeInferEntryPersistence"
+      ],
+      "operations": [
+        {
+          "name": "createNodeInferEntryPersistence",
+          "parameters": [
+            "moon",
+            "preparedCallSet",
+            "journal",
+            "ioNotification",
+            "settled"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/begin",
+          "parameters": [
+            "original",
+            "reference",
+            "provenance",
+            "enter"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/begin/begin",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/begin/finish/finish",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/begin/finish/finish/finish",
+          "parameters": [
+            "key",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/begin/retireSave/retireSave",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/begin/unknown/unknown",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/begin/view/view",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/init:beginImmediate/init:beginImmediate",
+          "parameters": [
+            "original",
+            "reference",
+            "decision",
+            "parentResume"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/init:beginImmediate/init:beginImmediate/init:beginImmediate",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/init:beginResumed/init:beginResumed",
+          "parameters": [
+            "original",
+            "reference",
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInferEntryPersistence/init:beginResumed/init:beginResumed/init:beginResumed",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "F / existing Model and physical custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNodeInferEntryPersistence",
+            "createNodeInferEntryPersistence/begin",
+            "createNodeInferEntryPersistence/begin/begin",
+            "createNodeInferEntryPersistence/begin/finish/finish",
+            "createNodeInferEntryPersistence/begin/finish/finish/finish",
+            "createNodeInferEntryPersistence/begin/retireSave/retireSave",
+            "createNodeInferEntryPersistence/begin/unknown/unknown",
+            "createNodeInferEntryPersistence/begin/view/view",
+            "createNodeInferEntryPersistence/init:beginImmediate/init:beginImmediate",
+            "createNodeInferEntryPersistence/init:beginImmediate/init:beginImmediate/init:beginImmediate",
+            "createNodeInferEntryPersistence/init:beginResumed/init:beginResumed",
+            "createNodeInferEntryPersistence/init:beginResumed/init:beginResumed/init:beginResumed"
+          ],
+          "exports": [
+            "createNodeInferEntryPersistence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/infer-physical-observation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f13eb7b9c6506074cd33deef9e6c67723fe8b208b2b457d7061e5628a2686c65",
+      "exports": [
+        "createInferPhysicalObservation"
+      ],
+      "operations": [
+        {
+          "name": "createInferPhysicalObservation",
+          "parameters": [
+            "observation",
+            "reference",
+            "receiptAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferPhysicalObservation/createInferPhysicalObservation",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "F / existing Model and physical custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInferPhysicalObservation",
+            "createInferPhysicalObservation/createInferPhysicalObservation"
+          ],
+          "exports": [
+            "createInferPhysicalObservation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "Project Common entry facts only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "createInferPhysicalObservation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "reference"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "facts.event === 'started'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "observation.noteLoss()"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "'cancelled'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "let physical"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "anchor": "'returned', 'failed', 'cancelled'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "foreign attempt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/infer-raw-capture.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "99561c228b553fff5b5a987c47854f45dc0b2f5071d0a78b2e6f8da58e363b02",
+      "role": "physical-io",
+      "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
+      "exports": [
+        "createModelRawCaptureStorePort",
+        "createModelRawTransportPersistence",
+        "originalModelRawTransportPersistenceMatches"
+      ],
+      "operations": [
+        {
+          "name": "createModelRawCaptureStorePort",
+          "parameters": [
+            "store",
+            "moon",
+            "view",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelRawCaptureStorePort/confirmRaw/confirmRaw",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelRawCaptureStorePort/confirmRaw/confirmRaw/confirmRaw",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createModelRawCaptureStorePort/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads",
+          "parameters": [
+            "notify"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads/init:cleanupStoreReads",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads/init:cleanupStoreReads#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads/init:cleanupStoreReads#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createModelRawCaptureStorePort/init:persistChat/init:persistChat",
+          "parameters": [
+            "metadata"
+          ],
+          "async": true
+        },
+        {
+          "name": "createModelRawCaptureStorePort/observeStoreRead/observeStoreRead",
+          "parameters": [
+            "read"
+          ],
+          "async": true
+        },
+        {
+          "name": "createModelRawCaptureStorePort/originals/originals",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelRawCaptureStorePort/persist/persist",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createModelRawCaptureStorePort/persist/persist/persist",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createModelRawTransportPersistence",
+          "parameters": [
+            "store",
+            "moon",
+            "registration",
+            "retainHolding",
+            "notify",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelRawTransportPersistence/createModelRawTransportPersistence",
+          "parameters": [
+            "call"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelRawTransportPersistence/createModelRawTransportPersistence/retireView/retireView",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createModelRawTransportPersistence/persist/persist",
+          "parameters": [
+            "call",
+            "raw"
+          ],
+          "async": true
+        },
+        {
+          "name": "createModelRawTransportPersistence/wake/wake",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalModelRawTransportPersistenceMatches",
+          "parameters": [
+            "port",
+            "operation",
+            "registration"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainedRawFailure/retainedRawFailure",
+          "parameters": [
+            "error",
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "tuple/tuple",
+          "parameters": [
+            "value",
+            "length"
+          ],
+          "async": false
+        },
+        {
+          "name": "tuple/tuple/fields/fields",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "tuple/tuple/tuple",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "// Membership of a private physical port"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.test.mjs",
+                "anchor": "raw tuple projection preserves field roles"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createModelRawCaptureStorePort",
+            "createModelRawCaptureStorePort/confirmRaw/confirmRaw",
+            "createModelRawCaptureStorePort/confirmRaw/confirmRaw/confirmRaw",
+            "createModelRawCaptureStorePort/current/current",
+            "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads",
+            "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads/init:cleanupStoreReads",
+            "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads/init:cleanupStoreReads#2",
+            "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads/init:cleanupStoreReads#3",
+            "createModelRawCaptureStorePort/init:persistChat/init:persistChat",
+            "createModelRawCaptureStorePort/observeStoreRead/observeStoreRead",
+            "createModelRawCaptureStorePort/originals/originals",
+            "createModelRawCaptureStorePort/persist/persist",
+            "createModelRawCaptureStorePort/persist/persist/persist"
+          ],
+          "exports": [
+            "createModelRawCaptureStorePort"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawCaptureStorePort"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.test.mjs",
+                "anchor": "raw tuple projection preserves field roles"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createModelRawTransportPersistence",
+            "createModelRawTransportPersistence/createModelRawTransportPersistence",
+            "createModelRawTransportPersistence/createModelRawTransportPersistence/retireView/retireView",
+            "createModelRawTransportPersistence/persist/persist",
+            "createModelRawTransportPersistence/wake/wake"
+          ],
+          "exports": [
+            "createModelRawTransportPersistence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "createModelRawTransportPersistence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.test.mjs",
+                "anchor": "raw tuple projection preserves field roles"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "originalModelRawTransportPersistenceMatches"
+          ],
+          "exports": [
+            "originalModelRawTransportPersistenceMatches"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "originalModelRawTransportPersistenceMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.test.mjs",
+                "anchor": "raw tuple projection preserves field roles"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainedRawFailure/retainedRawFailure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "retainedRawFailure"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.test.mjs",
+                "anchor": "raw tuple projection preserves field roles"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "tuple/tuple",
+            "tuple/tuple/fields/fields",
+            "tuple/tuple/tuple"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "original.entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "receipt binding mutations"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "rawCustodyRetained"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "one original ACK"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "unknown without re-entry"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "cancellation and permission loss"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "maximumStoredCaptureWire"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "anchor": "InferEntryPersistenceUnavailable"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-entry-persistence.test.mjs",
+                "anchor": "wrong original bytes"
+              },
+              {
+                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "anchor": "pre-gate diagnostic is unsent"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "tuple"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-capture.test.mjs",
+                "anchor": "raw tuple projection preserves field roles"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/remote-site-coordinator.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "d30b02e359affad43d1ef21ec27b33cddc844dd55b4405364102194721aba331",
+      "exports": [
+        "createRemoteSiteCoordinator"
+      ],
+      "operations": [
+        {
+          "name": "cleanupState/cleanupState",
+          "parameters": [
+            "handle",
+            "required"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator",
+          "parameters": [
+            "control",
+            "journal",
+            "store",
+            "send",
+            "query",
+            "cancel",
+            "release",
+            "planOutput",
+            "executeOutput",
+            "receiveStoreOutput",
+            "transferControl",
+            "authorization",
+            "currentDispatchContext"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/currentContext/currentContext",
+          "parameters": [
+            "dispatch",
+            "envelope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/dispatchFacts/dispatchFacts",
+          "parameters": [
+            "dispatch"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/enterResumed/enterResumed",
+          "parameters": [
+            "decision",
+            "dispatchIdentity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/exchange/exchange",
+          "parameters": [
+            "request",
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRemoteSiteCoordinator/init:cancel/init:cancel",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/init:completionEvidenceAvailable/init:completionEvidenceAvailable",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/init:dispatch/init:dispatch",
+          "parameters": [
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRemoteSiteCoordinator/init:output/init:output",
+          "parameters": [
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRemoteSiteCoordinator/init:query/init:query",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/init:receiveObservation/init:receiveObservation",
+          "parameters": [
+            "body",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/init:release/init:release",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/observe/observe",
+          "parameters": [
+            "dispatch",
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/observe/observe/init:canRetireCancellationDelivery/init:canRetireCancellationDelivery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/options/options",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/outputKey/outputKey",
+          "parameters": [
+            "dispatch",
+            "intent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/projectOutputRecord/projectOutputRecord",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/recordFor/recordFor",
+          "parameters": [
+            "dispatch"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/records/records",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/recoverDispatch/recoverDispatch",
+          "parameters": [
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRemoteSiteCoordinator/requireDispatch/requireDispatch",
+          "parameters": [
+            "boundary",
+            "scope",
+            "subjectCid",
+            "signal",
+            "resumption"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRemoteSiteCoordinator/requireIntent/requireIntent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/retainedDelivery/retainedDelivery",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation",
+          "parameters": [
+            "key",
+            "request",
+            "payloadRequest",
+            "transferRequest",
+            "record",
+            "transferRoute"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/cleanupHandle/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/destination/destination",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/refresh/refresh",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch/runBranch",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch/runBranch#2",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/source/source",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation#2",
+          "parameters": [
+            "response",
+            "destinationResult"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation#3",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/stopped/stopped",
+          "parameters": [
+            "_",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/stopped/stopped/stopped",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "member/member",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedOutputFailure/ownedOutputFailure",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "F / existing durable and observation Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cleanupState/cleanupState",
+            "createRemoteSiteCoordinator",
+            "createRemoteSiteCoordinator/currentContext/currentContext",
+            "createRemoteSiteCoordinator/dispatchFacts/dispatchFacts",
+            "createRemoteSiteCoordinator/enterResumed/enterResumed",
+            "createRemoteSiteCoordinator/exchange/exchange",
+            "createRemoteSiteCoordinator/init:cancel/init:cancel",
+            "createRemoteSiteCoordinator/init:completionEvidenceAvailable/init:completionEvidenceAvailable",
+            "createRemoteSiteCoordinator/init:dispatch/init:dispatch",
+            "createRemoteSiteCoordinator/init:output/init:output",
+            "createRemoteSiteCoordinator/init:query/init:query",
+            "createRemoteSiteCoordinator/init:receiveObservation/init:receiveObservation",
+            "createRemoteSiteCoordinator/init:release/init:release",
+            "createRemoteSiteCoordinator/observe/observe",
+            "createRemoteSiteCoordinator/observe/observe/init:canRetireCancellationDelivery/init:canRetireCancellationDelivery",
+            "createRemoteSiteCoordinator/options/options",
+            "createRemoteSiteCoordinator/outputKey/outputKey",
+            "createRemoteSiteCoordinator/projectOutputRecord/projectOutputRecord",
+            "createRemoteSiteCoordinator/recordFor/recordFor",
+            "createRemoteSiteCoordinator/records/records",
+            "createRemoteSiteCoordinator/recoverDispatch/recoverDispatch",
+            "createRemoteSiteCoordinator/requireDispatch/requireDispatch",
+            "createRemoteSiteCoordinator/requireIntent/requireIntent",
+            "createRemoteSiteCoordinator/retainedDelivery/retainedDelivery",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/cleanupHandle/init:retry/init:retry",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/destination/destination",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/refresh/refresh",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch/runBranch",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch/runBranch#2",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/source/source",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation#2",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation#3",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation#4",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/stopped/stopped",
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/stopped/stopped/stopped",
+            "fail/fail",
+            "member/member",
+            "ownedOutputFailure/ownedOutputFailure",
+            "text/text"
+          ],
+          "exports": [
+            "createRemoteSiteCoordinator"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "80739e1be7dd600cfa4ac6edec4c773d9ed763b0ff7f7460084ca1837e401ea6",
+      "exports": [
+        "openSqliteCoordinatorDispatchJournal"
+      ],
+      "operations": [
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectCoordinatorFormat",
+          "parameters": [
+            "root",
+            "coordinatorAuthority"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectCoordinatorFormat/inspectCoordinatorFormat",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectCoordinatorFormat/inspectCoordinatorFormat#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal",
+          "parameters": [
+            "root",
+            "coordinatorAuthority",
+            "maxDispatches",
+            "maxRequestBytes",
+            "maxEvidenceBytes",
+            "maxOutputOperations",
+            "maxOutputBytes",
+            "maxTransferChunks",
+            "maxTransferManifestBytes",
+            "maxTransferReferencedBytes",
+            "maxDeliveryBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput",
+          "parameters": [
+            "transition",
+            "result",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput/advanceOutput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/advanceTransition/advanceTransition",
+          "parameters": [
+            "transition",
+            "evidence",
+            "subject",
+            "measurement",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/advanceTransition/advanceTransition/advanceTransition",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/bit/bit",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/checkedOutputKey/checkedOutputKey",
+          "parameters": [
+            "value",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/checkedOutputKey/checkedOutputKey/checkedOutputKey",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/ensureOpen/ensureOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:accept/init:accept",
+          "parameters": [
+            "admission",
+            "request",
+            "control",
+            "deliveryEnvelope"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:acceptOutput/init:acceptOutput",
+          "parameters": [
+            "admission",
+            "payloadRequest",
+            "transferRequest",
+            "control",
+            "transferControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:advance/init:advance",
+          "parameters": [
+            "transition",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:advanceEvidence/init:advanceEvidence",
+          "parameters": [
+            "transition",
+            "evidence",
+            "subject",
+            "measurement",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:advanceOutputSuccess/init:advanceOutputSuccess",
+          "parameters": [
+            "transition",
+            "result",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:advanceOutputUnknown/init:advanceOutputUnknown",
+          "parameters": [
+            "transition",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:contains/init:contains",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:deliveryEnvelope/init:deliveryEnvelope",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:hasOutputOperations/init:hasOutputOperations",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:inspectEvidence/init:inspectEvidence",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:inspectOutput/init:inspectOutput",
+          "parameters": [
+            "outputRecord",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:inspectState/init:inspectState",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:recoverJournal/init:recoverJournal",
+          "parameters": [
+            "journal",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/init:recoverOutputs/init:recoverOutputs",
+          "parameters": [
+            "journal",
+            "control",
+            "transferControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/install/install",
+          "parameters": [
+            "request",
+            "requestJson",
+            "control",
+            "deliveryEnvelope"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/install/install/install",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/install/install/install#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/installOutput/installOutput",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/installOutput/installOutput/installOutput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/openSqliteCoordinatorDispatchJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/outputRowState/outputRowState",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/outputWire/outputWire",
+          "parameters": [
+            "admission",
+            "payloadRequest",
+            "transferRequest",
+            "control",
+            "transferControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/outputWire/outputWire/outputWire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/outputWire/outputWire/outputWire#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition/parseInteger/parseInteger",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition/parseOutputTransition",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseProjection",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/state/state",
+          "parameters": [
+            "offset"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/persistTransition/persistTransition",
+          "parameters": [
+            "prepared",
+            "evidenceJson",
+            "subjectJson",
+            "measurementJson"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition",
+          "parameters": [
+            "transition",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition/prepareTransition",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition/prepareTransition#2",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/restoredState/restoredState",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/restoredState/restoredState/restoredState",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/rowState/rowState",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/sameState/sameState",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCoordinatorDispatchJournal/sameState/sameState/sameState",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncDirectory",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "tableDefinitions/tableDefinitions",
+          "parameters": [
+            "sql",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "F / existing durable and observation Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "count/count",
+            "fail/fail",
+            "inspectCoordinatorFormat",
+            "inspectCoordinatorFormat/inspectCoordinatorFormat",
+            "inspectCoordinatorFormat/inspectCoordinatorFormat#2",
+            "openSqliteCoordinatorDispatchJournal",
+            "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput",
+            "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput/advanceOutput",
+            "openSqliteCoordinatorDispatchJournal/advanceTransition/advanceTransition",
+            "openSqliteCoordinatorDispatchJournal/advanceTransition/advanceTransition/advanceTransition",
+            "openSqliteCoordinatorDispatchJournal/bit/bit",
+            "openSqliteCoordinatorDispatchJournal/checkedOutputKey/checkedOutputKey",
+            "openSqliteCoordinatorDispatchJournal/checkedOutputKey/checkedOutputKey/checkedOutputKey",
+            "openSqliteCoordinatorDispatchJournal/ensureOpen/ensureOpen",
+            "openSqliteCoordinatorDispatchJournal/init:accept/init:accept",
+            "openSqliteCoordinatorDispatchJournal/init:acceptOutput/init:acceptOutput",
+            "openSqliteCoordinatorDispatchJournal/init:advance/init:advance",
+            "openSqliteCoordinatorDispatchJournal/init:advanceEvidence/init:advanceEvidence",
+            "openSqliteCoordinatorDispatchJournal/init:advanceOutputSuccess/init:advanceOutputSuccess",
+            "openSqliteCoordinatorDispatchJournal/init:advanceOutputUnknown/init:advanceOutputUnknown",
+            "openSqliteCoordinatorDispatchJournal/init:close/init:close",
+            "openSqliteCoordinatorDispatchJournal/init:contains/init:contains",
+            "openSqliteCoordinatorDispatchJournal/init:deliveryEnvelope/init:deliveryEnvelope",
+            "openSqliteCoordinatorDispatchJournal/init:hasOutputOperations/init:hasOutputOperations",
+            "openSqliteCoordinatorDispatchJournal/init:inspectEvidence/init:inspectEvidence",
+            "openSqliteCoordinatorDispatchJournal/init:inspectOutput/init:inspectOutput",
+            "openSqliteCoordinatorDispatchJournal/init:inspectState/init:inspectState",
+            "openSqliteCoordinatorDispatchJournal/init:recoverJournal/init:recoverJournal",
+            "openSqliteCoordinatorDispatchJournal/init:recoverOutputs/init:recoverOutputs",
+            "openSqliteCoordinatorDispatchJournal/install/install",
+            "openSqliteCoordinatorDispatchJournal/install/install/install",
+            "openSqliteCoordinatorDispatchJournal/install/install/install#2",
+            "openSqliteCoordinatorDispatchJournal/installOutput/installOutput",
+            "openSqliteCoordinatorDispatchJournal/installOutput/installOutput/installOutput",
+            "openSqliteCoordinatorDispatchJournal/integer/integer",
+            "openSqliteCoordinatorDispatchJournal/openSqliteCoordinatorDispatchJournal",
+            "openSqliteCoordinatorDispatchJournal/outputRowState/outputRowState",
+            "openSqliteCoordinatorDispatchJournal/outputWire/outputWire",
+            "openSqliteCoordinatorDispatchJournal/outputWire/outputWire/outputWire",
+            "openSqliteCoordinatorDispatchJournal/outputWire/outputWire/outputWire#2",
+            "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition",
+            "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition/parseInteger/parseInteger",
+            "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition/parseOutputTransition",
+            "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection",
+            "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
+            "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
+            "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseProjection",
+            "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/state/state",
+            "openSqliteCoordinatorDispatchJournal/persistTransition/persistTransition",
+            "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition",
+            "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition/prepareTransition",
+            "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition/prepareTransition#2",
+            "openSqliteCoordinatorDispatchJournal/restoredState/restoredState",
+            "openSqliteCoordinatorDispatchJournal/restoredState/restoredState/restoredState",
+            "openSqliteCoordinatorDispatchJournal/rowState/rowState",
+            "openSqliteCoordinatorDispatchJournal/sameState/sameState",
+            "openSqliteCoordinatorDispatchJournal/sameState/sameState/sameState",
+            "syncDirectory",
+            "tableDefinitions/tableDefinitions",
+            "text/text"
+          ],
+          "exports": [
+            "openSqliteCoordinatorDispatchJournal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/site-node/https-credential-resource.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "c05d1bd11b22152ee7d398073942da7f96ed5e6cc35922ea83a9830f91890260",
+      "exports": [
+        "callHttpsCredentialResource"
+      ],
+      "operations": [
+        {
+          "name": "callHttpsCredentialResource",
+          "parameters": [
+            "grant",
+            "useId",
+            "scope",
+            "control",
+            "journal",
+            "operations",
+            "resolveSecret",
+            "ca",
+            "cert",
+            "key",
+            "now",
+            "maxRequestBytes",
+            "maxResponseBytes",
+            "returnRejectedResponse",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "exactRequestTarget",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "operationFor",
+          "parameters": [
+            "operations",
+            "scope",
+            "maxRequestBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive",
+          "parameters": [
+            "hostname",
+            "port",
+            "path",
+            "method",
+            "body",
+            "requestBytes",
+            "secret",
+            "headers",
+            "ca",
+            "cert",
+            "key",
+            "signal",
+            "maxResponseBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/finish/finish",
+          "parameters": [
+            "handler",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "F / existing Credential Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "callHttpsCredentialResource",
+            "count/count",
+            "exactRequestTarget",
+            "fail/fail",
+            "operationFor",
+            "receive",
+            "receive/receive",
+            "receive/receive/finish/finish",
+            "receive/receive/receive",
+            "receive/receive/request/request",
+            "receive/receive/request/request/request",
+            "receive/receive/request/request/request#2",
+            "receive/receive/request/request/request#3",
+            "text/text"
+          ],
+          "exports": [
+            "callHttpsCredentialResource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/site-node/sqlite-credential-journal.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "5d626b85cd0dac3e08181fa331e82c4cc912367272df1dba9c96009bfee8746f",
+      "exports": [
+        "openSqliteCredentialJournal"
+      ],
+      "operations": [
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal",
+          "parameters": [
+            "root",
+            "credentialAuthorities",
+            "maxGrants",
+            "maxUses",
+            "maxGrantBytes",
+            "maxUseBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/active/active",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/admitGrant/admitGrant",
+          "parameters": [
+            "row",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/closePhysical/closePhysical",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:acceptGrant/init:acceptGrant",
+          "parameters": [
+            "envelope",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:acceptGrant/init:acceptGrant/init:acceptGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:authorize/init:authorize",
+          "parameters": [
+            "use",
+            "trustedNowMilliseconds",
+            "scope",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:authorize/init:authorize/init:authorize",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:checkGrant/init:checkGrant",
+          "parameters": [
+            "grantCid",
+            "trustedNowMilliseconds",
+            "scope",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:checkGrant/init:checkGrant/init:checkGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:claim/init:claim",
+          "parameters": [
+            "grantCid",
+            "useId",
+            "trustedNowMilliseconds",
+            "scope",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:claim/init:claim/init:claim",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:finish/init:finish",
+          "parameters": [
+            "useCid",
+            "outcome"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:finish/init:finish/init:finish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:inspect/init:inspect",
+          "parameters": [
+            "useCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:recover/init:recover",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:revoke/init:revoke",
+          "parameters": [
+            "grantCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/init:revoke/init:revoke/init:revoke",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/openSqliteCredentialJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/record/record",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/record/record/record",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCredentialJournal/requireControl/requireControl",
+          "parameters": [
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncDirectory",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "F / existing Credential Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "count/count",
+            "fail/fail",
+            "openSqliteCredentialJournal",
+            "openSqliteCredentialJournal/active/active",
+            "openSqliteCredentialJournal/admitGrant/admitGrant",
+            "openSqliteCredentialJournal/closePhysical/closePhysical",
+            "openSqliteCredentialJournal/init:acceptGrant/init:acceptGrant",
+            "openSqliteCredentialJournal/init:acceptGrant/init:acceptGrant/init:acceptGrant",
+            "openSqliteCredentialJournal/init:authorize/init:authorize",
+            "openSqliteCredentialJournal/init:authorize/init:authorize/init:authorize",
+            "openSqliteCredentialJournal/init:checkGrant/init:checkGrant",
+            "openSqliteCredentialJournal/init:checkGrant/init:checkGrant/init:checkGrant",
+            "openSqliteCredentialJournal/init:claim/init:claim",
+            "openSqliteCredentialJournal/init:claim/init:claim/init:claim",
+            "openSqliteCredentialJournal/init:close/init:close",
+            "openSqliteCredentialJournal/init:finish/init:finish",
+            "openSqliteCredentialJournal/init:finish/init:finish/init:finish",
+            "openSqliteCredentialJournal/init:inspect/init:inspect",
+            "openSqliteCredentialJournal/init:recover/init:recover",
+            "openSqliteCredentialJournal/init:revoke/init:revoke",
+            "openSqliteCredentialJournal/init:revoke/init:revoke/init:revoke",
+            "openSqliteCredentialJournal/openSqliteCredentialJournal",
+            "openSqliteCredentialJournal/record/record",
+            "openSqliteCredentialJournal/record/record/record",
+            "openSqliteCredentialJournal/requireControl/requireControl",
+            "syncDirectory",
+            "text/text"
+          ],
+          "exports": [
+            "openSqliteCredentialJournal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4161dce5f8e1d197acd47f96a93bd98de9b9e677d97ec622f79b155ebdd19086",
+      "exports": [
+        "openSqliteDispatchJournal"
+      ],
+      "operations": [
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal",
+          "parameters": [
+            "root",
+            "siteKey",
+            "siteGeneration",
+            "runtimeRevision",
+            "maxDispatches",
+            "maxRequestBytes",
+            "maxEvidenceBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/bit/bit",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/ensureOpen/ensureOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/equalState/equalState",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/equalState/equalState/equalState",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:accept/init:accept",
+          "parameters": [
+            "admission",
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:advance/init:advance",
+          "parameters": [
+            "transition",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:advanceEvidence/init:advanceEvidence",
+          "parameters": [
+            "transition",
+            "evidence",
+            "subject",
+            "measurement",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:advanceEvidence/init:advanceEvidence/init:advanceEvidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:configuration/init:configuration",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:forceLoss/init:forceLoss",
+          "parameters": [
+            "transition",
+            "record",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:inspect/init:inspect",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:inspectEvidence/init:inspectEvidence",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:inspectState/init:inspectState",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:recoverJournal/init:recoverJournal",
+          "parameters": [
+            "journal",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:restart/init:restart",
+          "parameters": [
+            "restart",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:restart/init:restart/init:restart",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/init:restart/init:restart/init:restart#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/install/install",
+          "parameters": [
+            "request",
+            "requestJson",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/install/install/install",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/install/install/install#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/openSqliteDispatchJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/openSqliteDispatchJournal/metadata/metadata",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/openSqliteDispatchJournal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/parseProjection/parseProjection",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/parseProjection/parseProjection/parseProjection",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/parseProjection/parseProjection/state/state",
+          "parameters": [
+            "offset"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/persistPhysicalTransition/persistPhysicalTransition",
+          "parameters": [
+            "prepared",
+            "executionEvidenceJson",
+            "managedOutputSubjectCid",
+            "managedOutputSubjectJson",
+            "managedOutputMeasurementCid",
+            "managedOutputMeasurementJson"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/persistTransition/persistTransition",
+          "parameters": [
+            "key",
+            "projection",
+            "revision"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/persistTransition/persistTransition/persistTransition",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/preparePhysicalTransition/preparePhysicalTransition",
+          "parameters": [
+            "key",
+            "projection",
+            "revision"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/preparePhysicalTransition/preparePhysicalTransition/preparePhysicalTransition",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/requestFromRow/requestFromRow",
+          "parameters": [
+            "row",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/rowState/rowState",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/stateFromRow/stateFromRow",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteDispatchJournal/stateFromRow/stateFromRow/stateFromRow",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncDirectory",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "transaction",
+          "parameters": [
+            "database",
+            "body"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "F / existing durable and observation Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "count/count",
+            "fail/fail",
+            "openSqliteDispatchJournal",
+            "openSqliteDispatchJournal/bit/bit",
+            "openSqliteDispatchJournal/ensureOpen/ensureOpen",
+            "openSqliteDispatchJournal/equalState/equalState",
+            "openSqliteDispatchJournal/equalState/equalState/equalState",
+            "openSqliteDispatchJournal/init:accept/init:accept",
+            "openSqliteDispatchJournal/init:advance/init:advance",
+            "openSqliteDispatchJournal/init:advanceEvidence/init:advanceEvidence",
+            "openSqliteDispatchJournal/init:advanceEvidence/init:advanceEvidence/init:advanceEvidence",
+            "openSqliteDispatchJournal/init:close/init:close",
+            "openSqliteDispatchJournal/init:configuration/init:configuration",
+            "openSqliteDispatchJournal/init:forceLoss/init:forceLoss",
+            "openSqliteDispatchJournal/init:inspect/init:inspect",
+            "openSqliteDispatchJournal/init:inspectEvidence/init:inspectEvidence",
+            "openSqliteDispatchJournal/init:inspectState/init:inspectState",
+            "openSqliteDispatchJournal/init:recoverJournal/init:recoverJournal",
+            "openSqliteDispatchJournal/init:restart/init:restart",
+            "openSqliteDispatchJournal/init:restart/init:restart/init:restart",
+            "openSqliteDispatchJournal/init:restart/init:restart/init:restart#2",
+            "openSqliteDispatchJournal/install/install",
+            "openSqliteDispatchJournal/install/install/install",
+            "openSqliteDispatchJournal/install/install/install#2",
+            "openSqliteDispatchJournal/integer/integer",
+            "openSqliteDispatchJournal/openSqliteDispatchJournal",
+            "openSqliteDispatchJournal/openSqliteDispatchJournal/metadata/metadata",
+            "openSqliteDispatchJournal/openSqliteDispatchJournal#2",
+            "openSqliteDispatchJournal/parseProjection/parseProjection",
+            "openSqliteDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
+            "openSqliteDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
+            "openSqliteDispatchJournal/parseProjection/parseProjection/parseProjection",
+            "openSqliteDispatchJournal/parseProjection/parseProjection/state/state",
+            "openSqliteDispatchJournal/persistPhysicalTransition/persistPhysicalTransition",
+            "openSqliteDispatchJournal/persistTransition/persistTransition",
+            "openSqliteDispatchJournal/persistTransition/persistTransition/persistTransition",
+            "openSqliteDispatchJournal/preparePhysicalTransition/preparePhysicalTransition",
+            "openSqliteDispatchJournal/preparePhysicalTransition/preparePhysicalTransition/preparePhysicalTransition",
+            "openSqliteDispatchJournal/requestFromRow/requestFromRow",
+            "openSqliteDispatchJournal/rowState/rowState",
+            "openSqliteDispatchJournal/stateFromRow/stateFromRow",
+            "openSqliteDispatchJournal/stateFromRow/stateFromRow/stateFromRow",
+            "syncDirectory",
+            "text/text",
+            "transaction"
+          ],
+          "exports": [
+            "openSqliteDispatchJournal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/site-node/sqlite-transfer-journal.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "eed669ee5c2a02eec0a72fb1054233f4a73cdb0ea285f4fd0774ea7cdea6404e",
+      "exports": [
+        "openSqliteTransferJournal"
+      ],
+      "operations": [
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "equal/equal",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "equal/equal/equal",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal",
+          "parameters": [
+            "root",
+            "destinationSiteKey",
+            "destinationSiteGeneration",
+            "maxTransfers",
+            "maxRequestBytes",
+            "maxManifestBytes",
+            "maxChunks",
+            "maxReferencedBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/checkedKey/checkedKey",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/checkedKey/checkedKey/checkedKey",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/ensureOpen/ensureOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:accept/init:accept",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:accept/init:accept/init:accept",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:advance/init:advance",
+          "parameters": [
+            "transition",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:advance/init:advance/init:advance",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:advance/init:advance/init:advance#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:advance/init:advance/init:advance#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:commitDestinationReceipt/init:commitDestinationReceipt",
+          "parameters": [
+            "receipt",
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:commitDestinationReceipt/init:commitDestinationReceipt/init:commitDestinationReceipt",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:commitDestinationReceipt/init:commitDestinationReceipt/init:commitDestinationReceipt#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:inspect/init:inspect",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:inspectDestinationReceipt/init:inspectDestinationReceipt",
+          "parameters": [
+            "request",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:recover/init:recover",
+          "parameters": [
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/init:recover/init:recover/init:recover",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/openSqliteTransferJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/openSqliteTransferJournal/metadata/metadata",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/requireControl/requireControl",
+          "parameters": [
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/restore/restore",
+          "parameters": [
+            "row",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteTransferJournal/state/state",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncDirectory",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "F / existing durable and observation Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "count/count",
+            "equal/equal",
+            "equal/equal/equal",
+            "fail/fail",
+            "openSqliteTransferJournal",
+            "openSqliteTransferJournal/checkedKey/checkedKey",
+            "openSqliteTransferJournal/checkedKey/checkedKey/checkedKey",
+            "openSqliteTransferJournal/ensureOpen/ensureOpen",
+            "openSqliteTransferJournal/init:accept/init:accept",
+            "openSqliteTransferJournal/init:accept/init:accept/init:accept",
+            "openSqliteTransferJournal/init:advance/init:advance",
+            "openSqliteTransferJournal/init:advance/init:advance/init:advance",
+            "openSqliteTransferJournal/init:advance/init:advance/init:advance#2",
+            "openSqliteTransferJournal/init:advance/init:advance/init:advance#3",
+            "openSqliteTransferJournal/init:close/init:close",
+            "openSqliteTransferJournal/init:commitDestinationReceipt/init:commitDestinationReceipt",
+            "openSqliteTransferJournal/init:commitDestinationReceipt/init:commitDestinationReceipt/init:commitDestinationReceipt",
+            "openSqliteTransferJournal/init:commitDestinationReceipt/init:commitDestinationReceipt/init:commitDestinationReceipt#2",
+            "openSqliteTransferJournal/init:inspect/init:inspect",
+            "openSqliteTransferJournal/init:inspectDestinationReceipt/init:inspectDestinationReceipt",
+            "openSqliteTransferJournal/init:recover/init:recover",
+            "openSqliteTransferJournal/init:recover/init:recover/init:recover",
+            "openSqliteTransferJournal/openSqliteTransferJournal",
+            "openSqliteTransferJournal/openSqliteTransferJournal/metadata/metadata",
+            "openSqliteTransferJournal/requireControl/requireControl",
+            "openSqliteTransferJournal/restore/restore",
+            "openSqliteTransferJournal/state/state",
+            "syncDirectory",
+            "text/text"
+          ],
+          "exports": [
+            "openSqliteTransferJournal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Inputs/outputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/development/durable-owner-interface.md",
+                "anchor": "| Verification |"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
