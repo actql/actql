@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openLocalPublicationStore, readBoundedLocalMetadata} from './publication-store.mjs';
-import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 async function fixture(t, {outcomes = ['false', 'false'], primary, openFailure} = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
@@ -144,13 +144,14 @@ test('actual Store original binding keeps its read count through false close and
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'bounded-store-ack-', label: 'same Store metadata FD acknowledgement'});
   const directory = join(scratch.path, 'store'), path = join(directory, 'store.json');
-  // Real Store/FD/ownership; contract admission is the existing explicit
-  // double. These storage observations are DATA, never Core/Run admission.
+  const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+  // Real Store/FD/ownership and the existing Core storage-binding codec.
+  // This observation still issues no Run/resource/Model admission or grant.
   const store = await openLocalPublicationStore({directory,
     storeAuthorityCid: `sha256:${createHash('sha256').update('original metadata FD').digest('hex')}`,
     privateEvidenceKey: Buffer.alloc(32, 7),
     capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
-    maxContractNodes: 256, maxContractDepth: 32}, createPublicationContractControlFixture());
+    maxContractNodes: 256, maxContractDepth: 32}, runtimeCore(moon).publicationControl);
   const originalOpen = fs.open;
   let original, nativeClose, failure, blocked = true, opens = 0, closes = 0;
   fs.open = async (...args) => {
