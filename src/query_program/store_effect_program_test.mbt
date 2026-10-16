@@ -59,7 +59,29 @@ fn store_capture_issue_label(issue : Issue) -> String {
     BindingPreparationSource(LocalProgram(Pipeline(_, detail)), _) =>
       @debug.to_string(detail.kind)
     BindingPreparation(LocalProgram(Order(_, _))) => "LocalProgram.Order"
-    BindingPreparation(LocalProgram(_)) => "LocalProgram.other"
+    BindingPreparation(LocalProgram(cause)) =>
+      match cause {
+        InvalidLimits => "LocalProgram.InvalidLimits"
+        CheckOnlyPrefix => "LocalProgram.CheckOnlyPrefix"
+        BudgetExceeded => "LocalProgram.BudgetExceeded"
+        ForeignEnvironmentSource => "LocalProgram.ForeignEnvironmentSource"
+        ForeignModelEnvironment => "LocalProgram.ForeignModelEnvironment"
+        SourceViewStageCount => "LocalProgram.SourceViewStageCount"
+        MissingSourceViewRegistrations(_) =>
+          "LocalProgram.MissingSourceViewRegistrations"
+        InvalidSourceViewRegistration(_, _) =>
+          "LocalProgram.InvalidSourceViewRegistration"
+        UnsupportedReceipt(_, _) => "LocalProgram.UnsupportedReceipt"
+        LocalInput(_, _) => "LocalProgram.LocalInput"
+        Import(_, _) => "LocalProgram.Import"
+        Pipeline(_, _) => "LocalProgram.Pipeline"
+        Collection(_, _) => "LocalProgram.Collection"
+        Results(_, _) => "LocalProgram.Results"
+        Order(_, _) => "LocalProgram.Order"
+        Ports(_, _) => "LocalProgram.Ports"
+        TableInputs(_, _) => "LocalProgram.TableInputs"
+        Wiring(_) => "LocalProgram.Wiring"
+      }
     BindingPreparation(Demand(_)) => "Demand"
     BindingPreparation(SourceDeclarations(_)) => "SourceDeclarations"
     BindingPreparation(MissingSourceCatalog(_)) => "MissingSourceCatalog"
@@ -221,4 +243,14 @@ test "STORE target admission precedes SET binding and never guesses from rows" {
     )
     is Err(_),
   )
+}
+
+///|
+test "STORE WITH control retains the same captured input before terminal lowering" {
+  let source = "WITH original AS (FROM files) FROM original"
+  let query = @query.parse_query(source, syntax_limits()).unwrap()
+  match compile(query, store_capture_context(), construction_limits()) {
+    Ok(_) => ()
+    Err(issue) => fail(store_capture_issue_label(issue))
+  }
 }
