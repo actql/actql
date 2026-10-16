@@ -140,8 +140,16 @@ pub fn job_start_method(_request : JobStartRequest) -> String {
 ///|
 // The documented default is full refresh / all flow outputs. No parameter,
 // output-step override, incremental flag, idempotency key or CAS is invented.
-pub fn job_start_body(_request : JobStartRequest) -> String {
-  "<tsRequest/>"
+pub fn job_start_body(request : JobStartRequest) -> String {
+  match request.kind {
+    RefreshDataSource => "<tsRequest/>"
+    RunFlow =>
+      // A supplied flow body must name that same selected LUID. The closed
+      // LUID alphabet needs no XML escaping; absent output steps means all.
+      "<tsRequest><flowRunSpec flowId=\"" +
+      request.target_id +
+      "\" runMode=\"full\"/></tsRequest>"
+  }
 }
 
 ///|

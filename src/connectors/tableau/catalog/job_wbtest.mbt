@@ -53,7 +53,25 @@ test "job requests target exact LUIDs and default full operations without creden
     job_start_path(flow),
     "/api/3.29/sites/11111111-1111-1111-1111-111111111111/flows/22222222-2222-2222-2222-222222222222/run",
   )
-  assert_eq(job_start_body(flow), "<tsRequest/>")
+  assert_eq(
+    job_start_body(flow),
+    "<tsRequest><flowRunSpec flowId=\"22222222-2222-2222-2222-222222222222\" runMode=\"full\"/></tsRequest>",
+  )
+  let other = prepare_job_start_request(
+    RunFlow,
+    "3.29",
+    "11111111-1111-1111-1111-111111111111",
+    "44444444-4444-4444-4444-444444444444",
+    256,
+  ).unwrap()
+  assert_eq(
+    job_start_path(other),
+    "/api/3.29/sites/11111111-1111-1111-1111-111111111111/flows/44444444-4444-4444-4444-444444444444/run",
+  )
+  assert_eq(
+    job_start_body(other),
+    "<tsRequest><flowRunSpec flowId=\"44444444-4444-4444-4444-444444444444\" runMode=\"full\"/></tsRequest>",
+  )
 }
 
 ///|
