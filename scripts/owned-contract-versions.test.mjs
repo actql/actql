@@ -5,10 +5,31 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {occurrences, repositoryOccurrences, violations} from
   './check-owned-contract-versions.mjs';
+import {publicWireLanguageVectors} from './fixtures/public-wire-language-vectors.mjs';
 
 const empty = {version: 1, baseline: '0.1', entries: []};
 const future = ['0', '2'].join('.');
 const source = version => `const binding = 'actql-installed-duckdb-target/${version}';`;
+
+test('existing cross-language old-version refusals admit only their two exact negative contexts', () => {
+  const path = 'scripts/fixtures/public-wire-language-vectors.mjs';
+  const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const found = occurrences(text, path);
+  assert.equal(found.length, 2);
+  assert.deepEqual(found.map(value => value.token).sort(),
+    ['actql-cancellation', 'actql-check-outcome'].map(value => `${value}/${['0', '0'].join('.')}`).sort());
+  const selected = inventory.entries.filter(value => value.path === path);
+  assert.equal(selected.length, 2);
+  assert(selected.every(value => value.count === 1));
+  assert.deepEqual(violations(found, inventory), []);
+  assert.equal(violations(occurrences(text, 'scripts/other-writer.mjs'), inventory).length, 2);
+  assert.equal(violations([...found, ...found], inventory).length, 2);
+  for (const name of ['cancellation old protocol version', 'report old version']) {
+    const vector = publicWireLanguageVectors.find(value => value.name === name);
+    assert(vector && vector.expected === false, 'The original vector must remain a refusal');
+  }
+});
 
 test('owned namespaces, schema URNs and law versions reject advances', () => {
   for (const prefix of ['actql/', 'actql-private-target/', 'aoa-pipeline/',
