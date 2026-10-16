@@ -566,6 +566,8 @@ export type SubmissionOptions = SubmissionIdentityOptions & Readonly<{
   parameters?: unknown;
   /** Persist an explicit review stop before the original Run's first Effect. */
   stopBefore?: 'commit';
+  /** Retained read-only continuation choice; never an Account grant. */
+  readOnly?: true;
   signal?: AbortSignal;
 }>;
 

@@ -64,6 +64,7 @@ test('short queries eagerly submit once and share a native Promise Result', asyn
   assert.deepEqual(await query.all(), [{id: 1}]);
   assert.deepEqual(await query.all(), [{id: 1}]);
   assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('wait'), 1);
+  assert.equal(f.calls.find(call => call.operation === 'submit-intent').body.readOnly, true);
   assert.equal(f.count('read'), 2);
   const reads = f.calls.filter(x => x.operation === 'read');
   assert.notEqual(reads[0].body.attemptId, reads[1].body.attemptId);

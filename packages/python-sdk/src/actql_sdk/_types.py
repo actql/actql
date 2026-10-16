@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Any, Literal, NotRequired, Required, TypedDict
 
-SubmittedIntent = TypedDict("SubmittedIntent", {"kind": Required["Literal[\"program\", \"aql\"]"], "input": Required["dict[str, Any]"], "parameters": Required["None | dict[str, Any]"], "stopBefore": NotRequired["Literal[\"commit\"]"]}, total=False)
+SubmittedIntent = TypedDict("SubmittedIntent", {"kind": Required["Literal[\"program\", \"aql\"]"], "input": Required["dict[str, Any]"], "parameters": Required["None | dict[str, Any]"], "stopBefore": NotRequired["Literal[\"commit\"]"], "readOnly": NotRequired["Literal[True]"]}, total=False)
 
 InstalledEffectContinuationRequestedStop = TypedDict("InstalledEffectContinuationRequestedStop", {"intent_cid": Required["str"]}, total=False)
 
