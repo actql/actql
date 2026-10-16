@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from '../../../../_build/f-hubspot-pages/js/release/build/connectors/hubspot/host_node/host_node.js';
+import * as moon from '../../../../_build/js/release/build/connectors/hubspot/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
 import {HUBSPOT_ACCOUNT_DETAILS_OPERATION} from '../site/hubspot-account-read.mjs';

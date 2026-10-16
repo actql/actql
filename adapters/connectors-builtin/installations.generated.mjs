@@ -50,6 +50,22 @@ export const installedConnectors = Object.freeze([
     }),
   }),
   Object.freeze({
+    name: "hubspot", registration: "hubspot",
+    revision: "hubspot/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/hubspot/host/installed-hubspot-source.mjs", href: new URL("../connectors/hubspot/host/installed-hubspot-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-account-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-account-read.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-object-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-object-read.mjs", import.meta.url).href}),
+    ]),
+    providerBundle: "connectors/hubspot/host_node",
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-hubspot-source/0.1",
+      load: () => import("../connectors/hubspot/host/installed-hubspot-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledHubSpotSourceProfile, identityParts: module.installedHubSpotSourceIdentityParts, load: module.loadInstalledHubSpotSource})),
+    }),
+  }),
+  Object.freeze({
     name: "local", registration: "local",
     revision: "local/0.1",
     implementationFiles: Object.freeze([
