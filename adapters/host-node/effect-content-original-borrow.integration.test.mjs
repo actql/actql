@@ -25,24 +25,24 @@ test('actual Content preparation borrows the original captured Command input and
     keys: generateKeyPairSync('ed25519'), entrance: 'Local',
     onPrepareContent({value, originalContent}) {
       try {
-      preparations++;
-      assert.equal(typeof originalContent, 'function');
-      borrowed = originalContent('content');
-      assert.equal(originalContent('content'), borrowed, 'one original view per row/input');
-      assert.equal(borrowed.current(), true);
+        preparations++;
+        assert.equal(typeof originalContent, 'function');
+        borrowed = originalContent('content');
+        assert.equal(originalContent('content'), borrowed, 'one original view per row/input');
+        assert.equal(borrowed.current(), true);
+        assert.deepEqual(JSON.parse(borrowed.wire()), value.content);
+        assert.equal(borrowed.wire(), generated.description.wire);
+        const copied = {...borrowed.binding};
+        assert.throws(() => checked(moon.clientProgramEffectCommandContentWire(copied)));
+        moon.clientProgramEffectCommandContentRelease(copied);
+        assert.equal(borrowed.current(), true, 'foreign retirement cannot retire the original view');
+        assert.throws(() => originalContent('name'), 'a Text input cannot substitute for Content');
+        assert.throws(() => originalContent('missing'), 'a caller name creates no original field');
+        assert.equal(borrowed.current(), true);
       } catch (error) {
         preparationFailure = error;
         throw error;
       }
-      assert.deepEqual(JSON.parse(borrowed.wire()), value.content);
-      assert.equal(borrowed.wire(), generated.description.wire);
-      const copied = {...borrowed.binding};
-      assert.throws(() => checked(moon.clientProgramEffectCommandContentWire(copied)));
-      moon.clientProgramEffectCommandContentRelease(copied);
-      assert.equal(borrowed.current(), true, 'foreign retirement cannot retire the original view');
-      assert.throws(() => originalContent('name'), 'a Text input cannot substitute for Content');
-      assert.throws(() => originalContent('missing'), 'a caller name creates no original field');
-      assert.equal(borrowed.current(), true);
     }});
   t.after(host.close);
   const run = await host.client.start(host.fixture.program);
