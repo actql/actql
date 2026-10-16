@@ -3,7 +3,7 @@
 ///|
 pub fn catalog_grammar_cid(body : CatalogGrammar) -> String {
   match body {
-    EnvironmentBody => "sha256:b72f0e9566ffcb5495e801b342c9c578c90206a63e84761d367e5bd04bc0a13f"
+    EnvironmentBody => "sha256:f2548edea56aa6c71d18bf1213cdef0e63b79569409544aea3e744758bfc0922"
     ValueGrammarBody =>
       "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
     GraphLawBody =>

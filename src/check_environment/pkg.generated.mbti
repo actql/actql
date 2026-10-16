@@ -157,11 +157,25 @@ pub fn check_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -
 
 pub fn cid(WireEnvironment) -> String
 
+pub fn command_input_contract_field_at(CommandInputContract, Int) -> @value_contract.Field?
+
+pub fn command_input_contract_field_count(CommandInputContract) -> Int
+
+pub fn command_input_contract_field_required(CommandInputContract, String) -> Bool
+
+pub fn command_input_contract_field_type(CommandInputContract, String) -> @value_contract.Contract?
+
+pub fn command_input_contract_matches(CommandInputContract, @decode_core.Cursor, Int) -> Result[(Bool, Int), CommandInputContractIssue]
+
+pub fn command_input_contract_usage(CommandInputContract) -> (Int, Int)
+
 pub fn command_target_catalog(CommandTarget) -> Catalog
 
 pub fn command_target_cid(CommandTarget) -> String
 
 pub fn command_target_id(CommandTarget) -> String
+
+pub fn command_target_input_contract(CommandTarget, CatalogReferences, @value_contract.Limits, Int) -> Result[(CommandInputContract, Int), CommandInputContractIssue]
 
 pub fn command_target_member(CommandTarget) -> Member
 
@@ -503,13 +517,15 @@ pub fn model_tasks_usage(ModelTasks) -> (Int, Int, Int, Int, Int, Int)
 
 pub fn program_source_grammar_cid() -> String
 
+pub fn protocol_command_input_type(ProtocolValueContract) -> CommandInputContract?
+
 pub fn protocol_value_at(ProtocolValueContracts, Int) -> ProtocolValueContract?
 
 pub fn protocol_value_envelope(ProtocolValueContract) -> ContractEnvelope
 
 pub fn protocol_value_for(ProtocolValueContracts, ContractEnvelope) -> ProtocolValueContract?
 
-pub fn protocol_value_type(ProtocolValueContract) -> @value_contract.Contract
+pub fn protocol_value_type(ProtocolValueContract) -> @value_contract.Contract?
 
 pub fn protocol_value_usage(ProtocolValueContracts) -> (Int, Int, Int)
 
@@ -532,6 +548,8 @@ pub fn read(Bytes, String, Limits) -> Result[WireEnvironment, Issue]
 pub fn read_calendar_selection(WireEnvironment, Int) -> Result[CalendarSelection, CalendarSelectionIssue]
 
 pub fn read_capacity(WireEnvironment, @capacity_policy.Limits) -> Result[Capacity, CapacityIssue]
+
+pub fn read_command_input_contract(@decode_core.Cursor, @value_contract.Limits) -> Result[CommandInputContract, CommandInputContractIssue]
 
 pub fn read_decision_contract(ModelTaskContract, ModelDependency, DecisionLimits) -> Result[DecisionContract, DecisionIssue]
 
@@ -844,6 +862,26 @@ pub(all) enum CatalogIssue {
 type CatalogReference
 
 type CatalogReferences
+
+pub struct CommandInputContract {
+  fields : @value_contract.Fields
+  by_name : Map[String, @value_contract.Contract]
+  required : Map[String, Bool]
+  source : @decode_core.Cursor
+  nodes : Int
+  text : Int
+}
+
+pub(all) enum CommandInputContractIssue {
+  InvalidCommandInputLimits
+  CommandInputBudget
+  InvalidCommandInputRecord
+  InvalidCommandInputField(String)
+  InvalidCommandInputType(String, @value_contract.AdmissionError)
+  ForeignCommandInputOwner
+  CommandInputRoleMismatch
+  CommandInputBodyMismatch
+} derive(Eq, @debug.Debug)
 
 pub struct CommandTarget {
   catalog : Catalog
@@ -1557,6 +1595,7 @@ pub(all) enum ValueContractIssue {
   InvalidLimits
   EnvelopeLimit
   InvalidContract(Int, @value_contract.AdmissionError)
+  InvalidCommandInput(Int, CommandInputContractIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ValueContractLimits {

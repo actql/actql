@@ -239,7 +239,11 @@ pub fn check_source_request_contracts(
       let obj = request_object(root, b)
       let reference = requests[member_index(view.item)]
       let typed = values.by_cid[reference.contract.cid]
-      let schema = match @row.from_object(typed.contract) {
+      let contract = match protocol_value_type(typed) {
+        Some(value) => value
+        None => request_fail(InvalidRequestContract, reference.contract.body)
+      }
+      let schema = match @row.from_object(contract) {
         Ok(s) => s
         Err(_) => request_fail(InvalidRequestContract, reference.contract.body)
       }
