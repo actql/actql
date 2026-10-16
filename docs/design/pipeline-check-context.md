@@ -1247,3 +1247,30 @@ and generation identities through Run material adoption, Preview, apply and
 restore. Current grants remain independent. SET capture, ContentRef egress and
 availability custody, overwrite guards, Unknown, nonresend and cleanup retain
 their existing owners. Missing installed originals refuse before send.
+
+## Published Command installation names
+
+Mapping-free Commands use a separate `CommandTargetPublication`, bound to the
+original checked Catalog contents. Each positive installed alias supplies its
+complete logical name, concrete target reference, exact Command reference and
+original installation binding/owner CIDs. The existing Common Command reader
+admits the original declared fixed-installation or identifier mode and its
+complete checked identifier domain. Neither a suffix match nor the shape of an
+input value selects a Command, a Mapping or an installation.
+
+The Host's private `commandTargets` publication section is closed and is admitted
+in full before a read context is exposed, including entries unused by that
+query. Missing Command references, legacy field-only declarations and malformed
+installation identities refuse. Logical-name ambiguity has no first-match
+preference. Reconnecting an already normalized target and Command rejects
+conflicting installation originals without reselecting a logical name. Alias
+paths are copied; checked Command/Catalog/environment originals are retained.
+Repeated declarations share the caller's work and checked-type budgets.
+
+This publication is not a ResourceRef, currentness closure or execution grant.
+It cannot stand in for the trusted fixed or identifier issuer at capture, nor
+restore a saved original from today's configuration. The installed and captured
+input owners retain and recheck those originals through Preview, apply and Run
+restoration. Authored input-row ID correspondence remains distinct from target
+identifier selection and mutation identity. A lowerer must not discard that ID
+or turn an unsupported Effect into a successful pure query.
