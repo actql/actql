@@ -30,3 +30,58 @@ A referenced test is not an execution receipt. Compiled runtime source, adapter
 source, toolchain, actual counts and mutation results retain their individual
 qualifications. No new compiled runtime, installed public product acceptance,
 Provider service operation, or numerical profile is established by this index.
+
+
+## Same-acquisition private credential binding
+
+`openHttpsCredentialBinding` is a private physical adapter entry in the existing
+Credential Owner. Its empty opaque handle binds the generated original invocation
+fields to the exact control, journal and trusted resolver. Construction performs
+no resolution, claim or Provider I/O. The installer must supply an explicit
+positive `maxSecretBytes`; it is not a grant, a numerical profile, or a substitute
+for the original acquisition's retained/scratch resource reservation.
+
+Passing this handle as `binding` to `callHttpsCredentialResource` retains the first
+authorized secret privately. Before **every** send the original journal claims a
+separate nominal use, the actual trusted resolver is awaited, the complete secret
+is bounded and compared privately, and the original current authorization is
+checked. The physical request uses the retained original material. A different
+resolver identity or invocation is refused before claiming. A changed resolved
+material makes that acquisition binding permanently unavailable for further
+calls; neither a replacement-token send nor an automatic account re-probe occurs.
+No secret, digest, public reference, or equality oracle is exported to Connectors.
+
+An account identity request is real Provider I/O, not static admission. It must
+have an actually authorized grant and pre-registered operation, and consumes its
+own original nominal use and response budget. A subsequent page has its own use
+and current checks even if the material is equal. Observation of an account or
+portal is not permission, policy classification, or evidence of current authority.
+No extra identity permission or operation is inferred by this adapter.
+
+Only calls selecting the new handle use an owned one-request connection. Their
+full response or original transport error is held until both the request and its
+socket have emitted close. `closeHttpsCredentialBinding` stops new calls and
+returns `pending` while a resolver/call or physical request remains. It destroys
+only that original active request; a sent request's interrupted response remains
+`unknown` in the same journal. Repeated cleanup makes no new request or resolver
+lookup. `closed` is returned only after the same original call and its observed
+physical custody have retired; then the private retained secret is detached.
+The ordinary caller must retain the opaque handle on its existing cleanup carrier
+until this result. An unresolved resolver can therefore remain pending, rather
+than becoming a fabricated close ACK. GC/RSS reclamation is not claimed.
+
+The explicit secret ceiling bounds admitted complete UTF8 material. The trusted
+resolver remains responsible for its own allocation and lookup: checking its
+returned string is not a bound on an oversized string it already allocated.
+Original/current material, Bearer-header construction, request/response buffers,
+and the physical request/socket controls can overlap. The installer must account
+for these along with the original acquisition and cleanup-pending lifetime.
+This entry does not adopt a normal funding profile or classify legacy unbound
+calls as same-acquisition evidence. No public wire, grant, retry or timeout changes.
+
+The real Owner cases in `https-credential-resource.test.mjs` cover separately
+counted identity/page operations, rotation before a page and across resolver or
+response awaits, revocation/expiry despite equal material, every generated scope
+field, bounded UTF8 material, cleanup before/after send, and response loss with the
+original `unknown` use. Local TLS and SQLite cases are physical component evidence;
+they do not establish live HubSpot identity permissions or installed public E2E.
