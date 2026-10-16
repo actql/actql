@@ -5,6 +5,8 @@ This adapter neither loads a DLL nor acquires/adopts an allocator or profile.
 """
 from __future__ import annotations
 
+from ._local_native_memory_abi import bind as bind_memory
+
 from ctypes import byref, c_int, c_void_p, c_uint64, c_ubyte, c_size_t, POINTER
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -75,9 +77,7 @@ class _NativeHoldingLease:
         if (type(generation) is not int or not 0 < generation <= 2**64 - 1
                 or type(recipe) is not bytes or len(recipe) != 32):
             raise ValueError('Invalid original native holding acquisition context')
-        retire = library.actql_owned_try_close
-        retire.argtypes = [POINTER(c_void_p)]
-        retire.restype = c_int
+        retire = bind_memory(library, 'actql_owned_try_close')
         # Retain the same loaded library as long as its native pointer exists.
         self._library = library
         self._pointer = c_void_p(pointer.value)
@@ -141,9 +141,7 @@ class _NativeHoldingLease:
         if self._borrow is not None:
             self._borrow._transfer_holding(self, self._pointer, self._generation, self._recipe)
             return
-        transfer = self._library.actql_owned_transfer
-        transfer.argtypes = [c_void_p, c_uint64, POINTER(c_ubyte)]
-        transfer.restype = c_int
+        transfer = bind_memory(self._library, 'actql_owned_transfer')
         recipe = (c_ubyte * 32).from_buffer_copy(self._recipe)
         code = transfer(self._pointer, self._generation, recipe)
         if type(code) is not int or code != 0:
@@ -177,9 +175,7 @@ class _NativeHoldingLease:
             if not 0 < value <= 2**63 - 1:
                 raise NativeHoldingObservationError('capacity', None)
             return value
-        inspect = self._library.actql_owned_capacity_bytes
-        inspect.argtypes = [c_void_p, POINTER(c_uint64)]
-        inspect.restype = c_int
+        inspect = bind_memory(self._library, 'actql_owned_capacity_bytes')
         observed = c_uint64()
         code = inspect(self._pointer, byref(observed))
         if (type(code) is not int or code != 0
@@ -195,9 +191,7 @@ class _NativeHoldingLease:
             with self._scope():
                 self._borrow._holding_contains(self, address, length)
             return
-        contains = self._library.actql_owned_contains_live_span
-        contains.argtypes = [c_void_p, c_void_p, c_size_t]
-        contains.restype = c_int
+        contains = bind_memory(self._library, 'actql_owned_contains_live_span')
         with self._scope():
             code = contains(self._pointer, address, length)
         if type(code) is not int or code != 0:
@@ -221,11 +215,8 @@ class _NativeHoldingLease:
             with self._borrow._holding_scope(self):
                 yield
             return
-        enter = self._library.actql_owned_enter
-        leave = self._library.actql_owned_leave
-        for function in (enter, leave):
-            function.argtypes = [c_void_p]
-            function.restype = c_int
+        enter = bind_memory(self._library, 'actql_owned_enter')
+        leave = bind_memory(self._library, 'actql_owned_leave')
         code = enter(self._pointer)
         if type(code) is not int or code != 0:
             raise NativeHoldingScopeError('enter', code if type(code) is int else None)

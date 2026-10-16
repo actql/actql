@@ -6,6 +6,8 @@ before this private physical port. Material DATA is not that authorization.
 """
 from __future__ import annotations
 
+from ._local_native_memory_abi import bind as bind_memory
+
 from contextlib import contextmanager
 from collections.abc import Iterator
 from ctypes import Array, POINTER, byref, c_int, c_int64, c_size_t, c_ubyte, c_uint64, c_void_p, alignment, cast
@@ -28,41 +30,20 @@ class _OriginalDomainBorrowFunctions:
     """Only binds the selected original provider; never loads a DLL/fallback."""
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.size = library.actql_native_domain_borrow_storage_bytes
-        self.align = library.actql_native_domain_borrow_storage_alignment
-        for call in (self.size, self.align):
-            call.argtypes = []
-            call.restype = c_size_t
-        self.open = library.actql_native_domain_borrow_open
-        self.open.argtypes = [c_void_p, c_size_t, c_int, POINTER(c_ubyte), POINTER(c_int64)]
-        self.open.restype = c_int
-        self.status = library.actql_native_domain_borrow_status
-        self.enter = library.actql_native_domain_borrow_enter
-        self.leave = library.actql_native_domain_borrow_leave
-        self.close = library.actql_native_domain_borrow_close
-        for call in (self.status, self.enter, self.leave, self.close):
-            call.argtypes = [c_void_p]
-            call.restype = c_int
-        self.pointer = library.actql_native_domain_borrow_pointer
-        self.pointer.argtypes = [c_void_p, POINTER(c_void_p)]
-        self.pointer.restype = c_int
-        self.claim = library.actql_native_domain_borrow_claim_holding
-        self.close_holding = library.actql_native_domain_borrow_close_holding
-        for call in (self.claim, self.close_holding):
-            call.argtypes = [c_void_p, POINTER(c_void_p)]
-            call.restype = c_int
-        self.transfer = library.actql_native_domain_borrow_transfer_holding
-        self.transfer.argtypes = [c_void_p, c_void_p, c_uint64, POINTER(c_ubyte)]
-        self.transfer.restype = c_int
-        self.capacity = library.actql_native_domain_borrow_capacity
-        self.capacity.argtypes = [c_void_p, POINTER(c_uint64)]
-        self.capacity.restype = c_int
-        self.contains = library.actql_native_domain_borrow_contains_live_span
-        self.contains.argtypes = [c_void_p, c_void_p, c_size_t]
-        self.contains.restype = c_int
-        self.span_offset = library.actql_native_domain_borrow_span_offset
-        self.span_offset.argtypes = [c_void_p, c_void_p, c_void_p, c_size_t, POINTER(c_uint64)]
-        self.span_offset.restype = c_int
+        self.size = bind_memory(library, 'actql_native_domain_borrow_storage_bytes')
+        self.align = bind_memory(library, 'actql_native_domain_borrow_storage_alignment')
+        self.open = bind_memory(library, 'actql_native_domain_borrow_open')
+        self.status = bind_memory(library, 'actql_native_domain_borrow_status')
+        self.enter = bind_memory(library, 'actql_native_domain_borrow_enter')
+        self.leave = bind_memory(library, 'actql_native_domain_borrow_leave')
+        self.close = bind_memory(library, 'actql_native_domain_borrow_close')
+        self.pointer = bind_memory(library, 'actql_native_domain_borrow_pointer')
+        self.claim = bind_memory(library, 'actql_native_domain_borrow_claim_holding')
+        self.close_holding = bind_memory(library, 'actql_native_domain_borrow_close_holding')
+        self.transfer = bind_memory(library, 'actql_native_domain_borrow_transfer_holding')
+        self.capacity = bind_memory(library, 'actql_native_domain_borrow_capacity')
+        self.contains = bind_memory(library, 'actql_native_domain_borrow_contains_live_span')
+        self.span_offset = bind_memory(library, 'actql_native_domain_borrow_span_offset')
 
 
 class _OriginalDomainBorrow:
