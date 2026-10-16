@@ -105,4 +105,3 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
   return {...f, site, siteProfilePath, metadata, metadataPath, profile, path,
     load, prepare, ledger, captures, requestBodies};
 }
-
