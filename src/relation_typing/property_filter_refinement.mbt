@@ -35,6 +35,7 @@ fn filter_property_path(
       _ => return None
     }
   }
+  None
 }
 
 ///|
