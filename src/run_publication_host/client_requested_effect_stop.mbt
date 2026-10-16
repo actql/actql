@@ -88,7 +88,9 @@ pub fn restore_client_requested_effect_stop(
   }
   let run = match
     bind_client_effect_compiled_run(
-      materials.prepared, materials.allowed, materials.run_definition,
+      materials.prepared,
+      materials.allowed,
+      materials.run_definition,
     ) {
     Ok(value) => value
     Err(_) => return Err(ForeignRun)
@@ -96,7 +98,12 @@ pub fn restore_client_requested_effect_stop(
   let stages = @syntax.stages(materials.prepared.source)
   let checked = match
     @effect_binding.bind_effect_program_run_preview(
-      run, invocation, stages.length() - 1, preview, limits.max_work, limits.plan,
+      @strategy.checked_effect_run_owner(run.checked),
+      invocation,
+      stages.length() - 1,
+      preview,
+      limits.max_work,
+      limits.plan,
     ) {
     Ok(value) => value
     Err(issue) => return Err(RestoredPreview(issue))
@@ -159,11 +166,14 @@ fn requested_effect_stop_preview_cid(
   original : ClientRequestedEffectStop,
 ) -> String? {
   match original.preview {
-    LiveStopPreview(preview) => @strategy.captured_effect_preview_subject_cid(preview)
+    LiveStopPreview(preview) =>
+      @strategy.captured_effect_preview_subject_cid(preview)
     SavedStopPreview(preview) =>
-      Some(@publication.effect_preview_semantic_identity(
-        @effect_binding.effect_program_run_preview_identity(preview),
-      ))
+      Some(
+        @publication.effect_preview_semantic_identity(
+          @effect_binding.effect_program_run_preview_identity(preview),
+        ),
+      )
   }
 }
 
@@ -247,8 +257,7 @@ fn emit_requested_effect_stop_continuation(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard requested_effect_stop_preview_cid(original)
-    is Some(preview_cid) else {
+  guard requested_effect_stop_preview_cid(original) is Some(preview_cid) else {
     return Err(OriginalLifetime)
   }
   try {
@@ -398,9 +407,7 @@ pub fn seal_client_requested_effect_stop(
     return Err(ForeignRun)
   }
   if body.required_artifact_cid !=
-    requested_effect_stop_preview_cid(original).unwrap_or(
-      "",
-    ) {
+    requested_effect_stop_preview_cid(original).unwrap_or("") {
     return Err(ForeignPreview)
   }
   if !client_effect_run_start_current(

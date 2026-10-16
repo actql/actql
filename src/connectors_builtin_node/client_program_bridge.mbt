@@ -4044,7 +4044,12 @@ pub fn client_program_restore_requested_effect_stop(
     Err(_) => return Err(@publication_host.ForeignRequest)
   }
   @publication_host.restore_client_requested_effect_stop(
-    intent, reference, request, materials, invocation, preview,
+    intent,
+    reference,
+    request,
+    materials,
+    invocation,
+    preview,
     {
       max_work: limits.max_binding_work,
       max_wire_bytes: limits.max_wire_bytes,

@@ -4027,6 +4027,48 @@ pub fn client_program_requested_effect_stop_lifetime(
 }
 
 ///|
+#export_name("clientProgramRestoreRequestedEffectStop")
+pub fn client_program_restore_requested_effect_stop(
+  intent : @publication_host.ClientSubmittedIntent,
+  reference_wire : String,
+  request : @publication_host.ClientRequestIdentity,
+  materials : @publication_host.ClientEffectRunMaterials,
+  invocation : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  limits : ClientEffectPreviewInputLimits,
+) -> Result[
+  @publication_host.ClientRequestedEffectStop?,
+  @publication_host.ClientRequestedEffectStopIssue,
+] {
+  let reference = match
+    @publication_host.admit_client_submission_reference_record(reference_wire) {
+    Ok(value) => value
+    Err(_) => return Err(@publication_host.ForeignRequest)
+  }
+  @publication_host.restore_client_requested_effect_stop(
+    intent,
+    reference,
+    request,
+    materials,
+    invocation,
+    preview,
+    {
+      max_work: limits.max_binding_work,
+      max_wire_bytes: limits.max_wire_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      plan: {
+        max_work: limits.max_binding_work,
+        max_fields: limits.max_plan_fields,
+        max_bytes: limits.max_plan_bytes,
+        max_nodes: limits.max_plan_nodes,
+        max_depth: limits.max_plan_depth,
+      },
+    },
+  )
+}
+
+///|
 #export_name("clientProgramRequestedEffectStopContinuation")
 pub fn client_program_requested_effect_stop_continuation(
   original : @publication_host.ClientRequestedEffectStop,

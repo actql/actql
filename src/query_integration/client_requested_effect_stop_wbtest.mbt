@@ -107,43 +107,60 @@ fn check_requested_effect_stop_projection(
     request: Some(request),
   }
   let restored = @publication_host.restore_client_requested_effect_stop(
-    intent,
-    reference,
-    request,
-    materials,
-    @effect_binding.effect_program_run_preview_invocation(actual_preview),
-    @effect_binding.effect_program_run_preview_identity(actual_preview),
-    {
-      max_work: 10000,
-      max_wire_bytes: 65536,
-      max_nodes: 4096,
-      max_depth: 64,
-      plan: {
+      intent,
+      reference,
+      request,
+      materials,
+      @effect_binding.effect_program_run_preview_invocation(actual_preview),
+      @effect_binding.effect_program_run_preview_identity(actual_preview),
+      {
         max_work: 10000,
-        max_fields: 100,
-        max_bytes: 65536,
+        max_wire_bytes: 65536,
         max_nodes: 4096,
         max_depth: 64,
+        plan: {
+          max_work: 10000,
+          max_fields: 100,
+          max_bytes: 65536,
+          max_nodes: 4096,
+          max_depth: 64,
+        },
       },
-    },
-  ).unwrap().unwrap()
+    )
+    .unwrap()
+    .unwrap()
   assert_eq(
     @publication_host.issue_client_requested_effect_stop_continuation(
-      restored, "{\"opaque_provider_data\":\"unchanged\"}", None, limits,
+      restored,
+      "{\"opaque_provider_data\":\"unchanged\"}",
+      None,
+      limits,
     ).unwrap(),
     continuation,
   )
   assert_true(
     @publication_host.restore_client_requested_effect_stop(
-      intent, foreign_reference, request, materials,
+      intent,
+      foreign_reference,
+      request,
+      materials,
       @effect_binding.effect_program_run_preview_invocation(actual_preview),
       @effect_binding.effect_program_run_preview_identity(actual_preview),
       {
-        max_work: 10000, max_wire_bytes: 65536, max_nodes: 4096, max_depth: 64,
-        plan: { max_work: 10000, max_fields: 100, max_bytes: 65536,
-          max_nodes: 4096, max_depth: 64, },
+        max_work: 10000,
+        max_wire_bytes: 65536,
+        max_nodes: 4096,
+        max_depth: 64,
+        plan: {
+          max_work: 10000,
+          max_fields: 100,
+          max_bytes: 65536,
+          max_nodes: 4096,
+          max_depth: 64,
+        },
       },
-    ) is Err(@publication_host.ForeignRequest),
+    )
+    is Err(@publication_host.ForeignRequest),
   )
   let previous = captured_subject_checkpoint(definition)
   let body : @checkpoint.CheckpointRequest = {
