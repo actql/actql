@@ -1,6 +1,6 @@
 {
   "source": "3e626100845be286750e71383ebaad29fcd71208",
-  "qualification": "Existing functional Owner reference index; representation is independently checked",
+  "qualification": "Existing functional Owner reference index; representation is independently checked. The original source/syntax-input metadata records the initial reference supply, not a new runtime qualification. Explicit bounded HTTP byte-body extensions retain the same existing owners; their source-qualified tests and simultaneous holding inventory are separate from reference coverage and normal funding.",
   "inputs": [
     {
       "file": "f-a15-owner-declarations-v2.json",
@@ -644,7 +644,7 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4f1b4483355185661f83d025c11c3ede14d33d1c04c005fd459ecbc5d7f5b0d4",
+      "sha256": "706d38e795608b668b2573ba6567cbbff9f5e4d9029dfa31b3a9bb676f3cd9e5",
       "exports": [
         "invocationBindingsMatch",
         "invokeScopedCredentialOperation",
@@ -685,6 +685,8 @@
             "query",
             "headers",
             "body",
+            "bodyBytes",
+            "bodyMediaType",
             "responseHeaders",
             "maxRequestBytes",
             "maxResponseBytes",
@@ -759,65 +761,119 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Responsibility |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "# Scoped HTTP body ownership"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Inputs/outputs |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Two explicit shapes"
               }
             ],
             "identity": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Identity |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Original use and currentness"
               }
             ],
             "ownership": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Ownership |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Simultaneous inventory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Synchronization |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "secret-resolution await."
               }
             ],
             "failure": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Failure |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Lost responses retain the same nominal Unknown use."
               }
             ],
             "cancellation": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Cancellation |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Bound\ncleanup retains its existing pending state"
               }
             ],
             "resources": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Resources |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "two distinct dedicated N-byte backings"
               }
             ],
             "extension": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Extension |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "not public JSON wire"
               }
             ],
             "verification": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Verification boundary"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
+              },
+              {
+                "path": "adapters/host-common/http-exchange.test.mjs",
+                "anchor": "byte length/backing properties cannot disguise"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./credential-scope-fields.generated.mjs",
+        "./http-exchange.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/sqlite-transaction.mjs",
@@ -4391,6 +4447,7 @@
             "path",
             "method",
             "body",
+            "bodyMediaType",
             "requestBytes",
             "secret",
             "headers",
@@ -4538,66 +4595,121 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Responsibility |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "# Scoped HTTP body ownership"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Inputs/outputs |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Two explicit shapes"
               }
             ],
             "identity": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Identity |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Original use and currentness"
               }
             ],
             "ownership": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Ownership |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Simultaneous inventory"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Synchronization |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "secret-resolution await."
               }
             ],
             "failure": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Failure |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Lost responses retain the same nominal Unknown use."
               }
             ],
             "cancellation": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Cancellation |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Bound\ncleanup retains its existing pending state"
               }
             ],
             "resources": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Resources |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "two distinct dedicated N-byte backings"
               }
             ],
             "extension": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Extension |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "not public JSON wire"
               }
             ],
             "verification": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Verification boundary"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
+              },
+              {
+                "path": "adapters/host-common/http-exchange.test.mjs",
+                "anchor": "byte length/backing properties cannot disguise"
               }
             ]
           }
         }
       ],
-      "sha256": "12e2806284ca5ee08ab577f053a8db0e7be99cbad0990fa5c6d6ff1ae7d18255"
+      "sha256": "beac9ad12c52fa446929a751794372ab9b5cc8c8c72e5f634a60083383a7caaf",
+      "imports": [
+        "../host-common/credential-scope-fields.generated.mjs",
+        "../host-common/http-exchange.mjs",
+        "node:https"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",

@@ -473,3 +473,49 @@ test "later partition observes tighter caller metadata limits" {
     )
   }
 }
+
+///|
+test "raw cells use the original supplied contract only after exact metadata validation" {
+  let original = @contract.decimal_contract(38, 0, nullable=false).unwrap()
+  let body = test_body(
+    fixed_column(38, 0),
+    "[[\"99999999999999999999999999999999999999\"]]",
+  )
+  let result = project_result_set_with_contracts(
+    body,
+    test_limits(),
+    [("ACTIVE_USERS", original)],
+    10,
+  ).unwrap()
+  assert_true(
+    physical_equal(result_set_cell(result, 0, 0).unwrap().contract, original),
+  )
+  let different = @contract.decimal_contract(37, 0, nullable=false).unwrap()
+  assert_true(
+    project_result_set_with_contracts(
+      body,
+      test_limits(),
+      [("ACTIVE_USERS", different)],
+      10,
+    )
+    is Err(ContractMismatch("ACTIVE_USERS")),
+  )
+  assert_true(
+    project_result_set_with_contracts(
+      body,
+      test_limits(),
+      [("FOREIGN", original)],
+      10,
+    )
+    is Err(ContractMismatch("FOREIGN")),
+  )
+  assert_true(
+    project_result_set_with_contracts(
+      body,
+      test_limits(),
+      [("ACTIVE_USERS", original)],
+      0,
+    )
+    is Err(InvalidLimits),
+  )
+}

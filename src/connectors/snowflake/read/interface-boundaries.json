@@ -1,0 +1,363 @@
+{
+  "qualification": "source-reference and original Owner coverage; not Source authorization, physical transport or installed acceptance",
+  "declarations": [
+    {
+      "module": "src/connectors/snowflake/read/read.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "a1c0b341767999d3775711b575af0041ca6554673e4358da4d334ccab9680423",
+      "role": "connector-semantics",
+      "owner": "Snowflake original page adaptation into the existing Common accounted RowRun; no independent Run or resource Owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]fail_read",
+          "declaration": "[ T ] fail_read ( read : Read , issue : ReadIssue ) - > Result [ T , ReadIssue ]"
+        },
+        {
+          "name": "accept_first_result",
+          "declaration": "accept_first_result ( read : Read , body : Bytes ) - > Result [ Int , ReadIssue ]"
+        },
+        {
+          "name": "accept_result_partition",
+          "declaration": "accept_result_partition ( read : Read , ordinal : Int , body : Bytes , ) - > Result [ Int , ReadIssue ]"
+        },
+        {
+          "name": "capture_result_read",
+          "declaration": "capture_result_read ( read : Read , ) - > Result [ @ rows . RowSourceCapture , ReadIssue ]"
+        },
+        {
+          "name": "close_result_read",
+          "declaration": "close_result_read ( read : Read ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "finish_result_read",
+          "declaration": "finish_result_read ( read : Read ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "first_values",
+          "declaration": "first_values ( result : @ response . ResultSet , ) - > Array [ Array [ @ admitted . CheckedValue ] ]"
+        },
+        {
+          "name": "interrupt_result_read",
+          "declaration": "interrupt_result_read ( read : Read ) - > Unit"
+        },
+        {
+          "name": "prepare_declared_read",
+          "declaration": "prepare_declared_read ( description : @ description . TableDescription , declaration : @ rows . RowDeclaration , requirement : @ planning . QueryRequirement , query_contract : String , evidence_contract : String , limits : @ description . DescriptionLimits , declaration_limits : @ rows . RowDeclarationLimits , ) - > Result [ PreparedRead , ReadIssue ]"
+        },
+        {
+          "name": "prepared_read_acquisition",
+          "declaration": "prepared_read_acquisition ( read : PreparedRead ) - > @ rows . RowAcquisition"
+        },
+        {
+          "name": "prepared_read_projection",
+          "declaration": "prepared_read_projection ( read : PreparedRead , ) - > @ description . ReadProjection"
+        },
+        {
+          "name": "read_start_failure_cleanup",
+          "declaration": "read_start_failure_cleanup ( failure : ReadStartFailure ) - > Read ?"
+        },
+        {
+          "name": "read_start_failure_issue",
+          "declaration": "read_start_failure_issue ( failure : ReadStartFailure ) - > ReadIssue"
+        },
+        {
+          "name": "result_read_original",
+          "declaration": "result_read_original ( read : Read ) - > @ response . ResultSet ?"
+        },
+        {
+          "name": "result_read_statement_handle",
+          "declaration": "result_read_statement_handle ( read : Read ) - > String ?"
+        },
+        {
+          "name": "result_read_usage",
+          "declaration": "result_read_usage ( read : Read ) - > ( Int , Int64 )"
+        },
+        {
+          "name": "start_accounted_read",
+          "declaration": "start_accounted_read ( prepared : PreparedRead , nonce : String , verify_transport : ( @ rows . RowAttempt ) - > Bool , ledger : @ resources . Ledger , transfer_bytes : Int64 , execution_scratch : Int64 , limits : @ response . ResponseLimits , max_contract_pairs : Int , ) - > Result [ Read , ReadStartFailure ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]fail_read",
+            "accept_first_result",
+            "accept_result_partition",
+            "capture_result_read",
+            "close_result_read",
+            "finish_result_read",
+            "first_values",
+            "interrupt_result_read",
+            "prepare_declared_read",
+            "prepared_read_acquisition",
+            "prepared_read_projection",
+            "read_start_failure_cleanup",
+            "read_start_failure_issue",
+            "result_read_original",
+            "result_read_statement_handle",
+            "result_read_usage",
+            "start_accounted_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/snowflake/read/pkg.generated.mbti",
+      "responsibilityFacet": "primary",
+      "sha256": "c5371c6b648a90a7837e9780c7fcc8a616013fe8b281203d9d0d41e8f3019e9b",
+      "role": "connector-semantics",
+      "owner": "Snowflake original page adaptation into the existing Common accounted RowRun; no independent Run or resource Owner",
+      "exports": [
+        "pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]",
+        "pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]",
+        "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
+        "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
+        "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
+        "pub fn interrupt_result_read(Read) -> Unit",
+        "pub fn prepare_declared_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]",
+        "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
+        "pub fn prepared_read_projection(PreparedRead) -> @description.ReadProjection",
+        "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
+        "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
+        "pub fn result_read_original(Read) -> @catalog.ResultSet?",
+        "pub fn result_read_statement_handle(Read) -> String?",
+        "pub fn result_read_usage(Read) -> (Int, Int64)",
+        "pub fn start_accounted_read(PreparedRead, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.ResponseLimits, Int) -> Result[Read, ReadStartFailure]",
+        "pub struct PreparedRead {",
+        "pub struct Read {",
+        "pub struct ReadStartFailure {"
+      ],
+      "operations": [
+        {
+          "name": "accept_first_result",
+          "declaration": "pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]"
+        },
+        {
+          "name": "accept_result_partition",
+          "declaration": "pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]"
+        },
+        {
+          "name": "capture_result_read",
+          "declaration": "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]"
+        },
+        {
+          "name": "close_result_read",
+          "declaration": "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "finish_result_read",
+          "declaration": "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "interrupt_result_read",
+          "declaration": "pub fn interrupt_result_read(Read) -> Unit"
+        },
+        {
+          "name": "prepare_declared_read",
+          "declaration": "pub fn prepare_declared_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]"
+        },
+        {
+          "name": "prepared_read_acquisition",
+          "declaration": "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition"
+        },
+        {
+          "name": "prepared_read_projection",
+          "declaration": "pub fn prepared_read_projection(PreparedRead) -> @description.ReadProjection"
+        },
+        {
+          "name": "read_start_failure_cleanup",
+          "declaration": "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?"
+        },
+        {
+          "name": "read_start_failure_issue",
+          "declaration": "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue"
+        },
+        {
+          "name": "result_read_original",
+          "declaration": "pub fn result_read_original(Read) -> @catalog.ResultSet?"
+        },
+        {
+          "name": "result_read_statement_handle",
+          "declaration": "pub fn result_read_statement_handle(Read) -> String?"
+        },
+        {
+          "name": "result_read_usage",
+          "declaration": "pub fn result_read_usage(Read) -> (Int, Int64)"
+        },
+        {
+          "name": "start_accounted_read",
+          "declaration": "pub fn start_accounted_read(PreparedRead, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.ResponseLimits, Int) -> Result[Read, ReadStartFailure]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "accept_first_result",
+            "accept_result_partition",
+            "capture_result_read",
+            "close_result_read",
+            "finish_result_read",
+            "interrupt_result_read",
+            "prepare_declared_read",
+            "prepared_read_acquisition",
+            "prepared_read_projection",
+            "read_start_failure_cleanup",
+            "read_start_failure_issue",
+            "result_read_original",
+            "result_read_statement_handle",
+            "result_read_usage",
+            "start_accounted_read"
+          ],
+          "exports": [
+            "pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]",
+            "pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]",
+            "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
+            "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
+            "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
+            "pub fn interrupt_result_read(Read) -> Unit",
+            "pub fn prepare_declared_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]",
+            "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
+            "pub fn prepared_read_projection(PreparedRead) -> @description.ReadProjection",
+            "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
+            "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
+            "pub fn result_read_original(Read) -> @catalog.ResultSet?",
+            "pub fn result_read_statement_handle(Read) -> String?",
+            "pub fn result_read_usage(Read) -> (Int, Int64)",
+            "pub fn start_accounted_read(PreparedRead, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.ResponseLimits, Int) -> Result[Read, ReadStartFailure]",
+            "pub struct PreparedRead {",
+            "pub struct Read {",
+            "pub struct ReadStartFailure {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
