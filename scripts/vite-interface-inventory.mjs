@@ -9,7 +9,7 @@ import {javascriptInterface} from './interface-inventory.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
-export async function viteInterfaceInventory(root, configs) {
+export async function viteInterfaceInventory(root, configs, {workingDirectories = {}} = {}) {
   root = realpathSync(root);
   const modules = new Map(), assets = new Map(), generated = [], external = new Map(), buildInputs = [];
   const compiled = new Map(), copied = new Map(), consumed = new Set();
@@ -74,6 +74,12 @@ export async function viteInterfaceInventory(root, configs) {
   for (const config of configs) {
     const configPath = resolve(root, config);
     assert(inside(realpathSync(configPath)), `Escaped Vite config: ${config}`);
+    // npm executes a package script from its manifest directory. Rolldown uses
+    // that working directory in emitted source labels as well as resolution.
+    // Preserve explicit builder configuration; never change process.cwd() for
+    // parallel inventory calls or relax the emitted dependency digest check.
+    const workingDirectory = realpathSync(resolve(root, workingDirectories[config] ?? '.'));
+    assert(inside(workingDirectory), `Escaped Vite working directory: ${config}`);
     buildInputs.push({module: config, sha256: createHash('sha256').update(readFileSync(configPath)).digest('hex'),
       qualification: 'configured-build-input; not-distributed-authored-module'});
     const virtual = new Set();
@@ -82,6 +88,7 @@ export async function viteInterfaceInventory(root, configs) {
       build: {write: false, emptyOutDir: false, reportCompressedSize: false},
       plugins: [{name: 'actql-resolved-interface-inputs', configResolved(config) {
         outputDirectory = resolve(config.root, config.build.outDir);
+        config.build.rolldownOptions.cwd ??= workingDirectory;
       }, generateBundle() {
         for (const id of this.getModuleIds()) {
           if (id.includes('\0')) {virtual.add(id); continue;}

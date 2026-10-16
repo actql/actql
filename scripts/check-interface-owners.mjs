@@ -40,7 +40,9 @@ export async function checkInterfaceOwners(root, {manifests = [], authoredEntran
   let vite = {modules: [], sourceArtifacts: [], generated: [], buildInputs: []};
   if (configs.length) {
     const {viteInterfaceInventory} = await import('./vite-interface-inventory.mjs');
-    vite = await viteInterfaceInventory(root, configs);
+    vite = await viteInterfaceInventory(root, configs, {workingDirectories:
+      Object.fromEntries(configs.map(config => [config,
+        dirname(roots.find(value => dirname(value.manifest) === dirname(config)).manifest)]))});
   }
   const source = await sourceInterfaceClosure(root, {distributionRoots: roots, generatedInputs: vite.sourceArtifacts, authoredEntrances});
   assert.deepEqual(source.unresolvedEntrances, [], 'Unresolved normal distribution entrances');
