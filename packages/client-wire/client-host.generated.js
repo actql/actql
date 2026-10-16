@@ -17802,7 +17802,7 @@ const optionalRequestFields = {
   "checkpoints": {
     "checkpointId": {
       "type": "string",
-      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
       "minLength": 1,
       "maxLength": 256
     }

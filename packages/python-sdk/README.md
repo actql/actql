@@ -193,3 +193,18 @@ retained-value limit continues to count the original decoded rows even when a
 schema returns smaller objects. Objects allocated by application validators
 remain application-owned; their size is not a new SDK memory guarantee. A
 schema cannot supply a missing protocol completion marker or Host receipt.
+
+### Checkpoint decision ownership
+
+| Attribute | Original boundary |
+| --- | --- |
+| responsibility | approve/reject obtain the original pending summary and delegate existing signed resolution; configured signer selection grants no authority. |
+| inputsOutputs | Exact Checkpoint ID and an application Signer produce the existing signed items and per-Checkpoint resolve response. |
+| identity | The lookup response must match the requested ID and original Checkpoint/Preview CIDs; no Client-created summary or substitute intent is accepted. |
+| ownership | Client custody retains the captured callback until original cleanup succeeds; signed Unknown evidence stays with the original error. |
+| synchronization | Capture precedes lookup/signing awaits, and sync methods use the same async owner. Host rechecks current authorization during resolution. |
+| failure | Malformed/foreign metadata, missing signer and unavailable lookup refuse before signing; resolve reply loss retains original signed bytes without automatic resend. |
+| cancellation | Cancellation during the application signer does not issue resolve, cancel the Run or claim an ACK. Client close prevents further requests. |
+| resources | Existing page/control/signature limits remain; the convenience makes one exact lookup, without independent polling, pagination or retained cache. |
+| extension | Optional application signer does not require a Host/token/path for Local open; missing original Local funding still refuses. Remote remains engine-free. |
+| verification | Public sync/async, exact-ID, interruption, close-retry, signature preimage and strict typing cases remain distinct from installed Local acceptance. |

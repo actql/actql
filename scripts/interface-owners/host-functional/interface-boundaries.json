@@ -11483,7 +11483,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9f66e62306ec3d2d990ed17ece73364ccb50ddeb6b86a778871daa1aa08bf079",
+      "sha256": "f03942d32ae01b8f1a0c12acedbc549d91c2d50343b9f089f9432250246bc08f",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -12275,9 +12275,7 @@
         {
           "name": "installRemoteCheckpoints/init:listCheckpoints/init:listCheckpoints",
           "parameters": [
-            "principalId",
-            "after",
-            "limit"
+            "input"
           ],
           "async": true
         },
@@ -14049,7 +14047,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c945497c7972e4b269c179edab28e8d0ebe85c327837ffcaebc364baeb65e55d",
+      "sha256": "6b924f5d10754ed313b14605bafb83f5bea2e83e886d817a2aa7e817a852e409",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -14455,7 +14453,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/client-http.mjs",
-                "anchor": "import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, validCheckpointReview,"
+                "anchor": "validCheckpointLookup"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",

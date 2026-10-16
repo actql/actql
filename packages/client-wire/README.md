@@ -1,20 +1,5 @@
 # ActQL Client–Host wire shapes
 
-## Exact pending Checkpoint lookup
-
-The existing `checkpoints` request optionally selects `checkpointId`, using
-the original Checkpoint-summary ID spelling from the machine contract. This
-mode requires `after: ""` and `limit: 1`. The same Host/Journal returns zero
-or one pending summary, with no `next`; IDs are exact, not CID fallbacks.
-`validCheckpointLookup` checks the original requested ID against that closed
-response. The old paged request is unchanged when the selection is absent.
-
-This is safe metadata from the original Host scope, not permission, a signed
-answer, a new Checkpoint, completed Effect or physical cleanup. The Journal
-retains its ambiguity and lifetime checks; stale/foreign/fulfilled originals
-do not become fresh attempts. Callers use the existing review and signed
-resolution ports, with current authorization still checked by their Owners.
-
 `@actql/client-wire` is the structural request boundary for the public
 Client–Host HTTP protocol. It validates exact operation envelopes, connection
 selection, scoped Run references and bounded text before Host authorization.
@@ -77,3 +62,33 @@ existing check entry point, with its original TypeError spelling. Local takes th
 awaiting authentication. Parser/decode/binding limits still belong to the
 existing checker. A serialization refusal is request admission, not a checker
 verdict. No snapshot is retained beyond the caller's existing request custody.
+
+## Exact pending Checkpoint lookup
+
+The existing `checkpoints` request optionally selects `checkpointId`, using
+the original Checkpoint-summary ID spelling from the machine contract. This
+mode requires `after: ""` and `limit: 1`. The same Host/Journal returns zero
+or one pending summary, with no `next`; IDs are exact, not CID fallbacks.
+`validCheckpointLookup` checks the original requested ID against that closed
+response. The old paged request is unchanged when the selection is absent.
+
+This is safe metadata from the original Host scope, not permission, a signed
+answer, a new Checkpoint, completed Effect or physical cleanup. The Journal
+retains its ambiguity and lifetime checks; stale/foreign/fulfilled originals
+do not become fresh attempts. Callers use the existing review and signed
+resolution ports, with current authorization still checked by their Owners.
+
+### Exact lookup ownership
+
+| Attribute | Original boundary |
+| --- | --- |
+| responsibility | The registered optional selector and existing Checkpoint Journal select pending metadata; no approval is inferred from an ID. |
+| inputsOutputs | One non-control ID, empty cursor and limit 1 produce zero or one summary, without a next cursor. |
+| identity | The original ID must equal the same Journal row ID; CID fallback, copied/foreign identity and a fulfilled row cannot substitute. |
+| ownership | The Host retains the original Journal, attestation and review custody. Consumers borrow the safe summary only. |
+| synchronization | The same row is checked after asynchronous projection; closure during projection prevents publication of stale pending metadata. |
+| failure | Invalid request/response, ambiguous ID and unauthorized principal remain existing refusals. Lookup loss does not authorize resolution or resend. |
+| cancellation | Aborting metadata transport is not Run cancellation, signature acceptance or physical cleanup. |
+| resources | Existing bounded ID, one-summary page and control-response budgets remain in force; no independent page search or cache is added. |
+| extension | The same machine optional-field rule feeds generated JS/Python admission; ordinary absence preserves paged lookup. |
+| verification | Independent request/response counters and original Account/encrypted SQLite Journal caller tests retain their source and runtime qualification. |
