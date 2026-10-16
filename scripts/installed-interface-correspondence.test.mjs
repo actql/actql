@@ -8,6 +8,8 @@ import {test} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
 import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
+import {typescriptInterface} from './typescript-interface-inventory.mjs';
+import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 
 function fixture(t, sourceText = 'export function read(original) {return original;}') {
   const scratch = mkdtempSync(join(tmpdir(), 'actql-if-correspondence-'));
@@ -170,4 +172,62 @@ test('resolved runtime targets remain actual installed obligations and exact com
   assert.equal((await assertInstalledDependencyClosure(input)).modules, 1);
   unlinkSync(join(options.directory, 'runtime.js'));
   await assert.rejects(assertInstalledDependencyClosure(input), /Missing installed runtime dependency/u);
+});
+
+test('declaration-only TS members retain source/Owner coverage without becoming runtime entries', async t => {
+  for (const extension of ['d.ts', 'd.mts', 'd.cts']) {
+    const {options, put, commit, declaration} = fixture(t);
+    const module = `outside/contract.${extension}`, member = `contract.${extension}`;
+    const text = 'export type Format = "sql" | "json"; export const formats: readonly Format[];';
+    put(options.repository, module, text);
+    put(options.directory, member, text);
+    put(options.directory, 'package.json', JSON.stringify({name: '@actql/fixture',
+      exports: {'.': {types: `./${member}`, default: './entry.mjs'}}}));
+    commit();
+    const syntax = typescriptInterface(text, module);
+    const owner = {...declaration, module, sha256: createHash('sha256').update(text).digest('hex'), ...syntax,
+      contracts: [{...declaration.contracts[0], operations: ['<module>'], exports: ['Format', 'formats']}]};
+    options.bindings.push({member, source: module});
+    options.owners[0].declarations.push(owner);
+    const installed = installedInterfaceInventory(options.directory);
+    assert.deepEqual(installed.modules.find(value => value.module === member).exports, ['Format', 'formats']);
+    assert.equal(installedInterfaceCorrespondence(options).coverage.primaryCovered, 2);
+    assert.equal((await assertInstalledDependencyClosure({directory: options.directory, modules: installed.modules})).modules, 1);
+    options.owners[0].declarations.pop();
+    assert.throws(() => installedInterfaceCorrespondence(options), /Unregistered distributed interfaces/u);
+    options.owners[0].declarations.push(owner);
+    owner.sha256 = '0'.repeat(64);
+    assert.throws(() => installedInterfaceCorrespondence(options), /Unreviewed interface implementation/u);
+  }
+});
+
+test('shipped client-wire declaration remains inventoried without an initialized runtime const', async t => {
+  const {options, put} = fixture(t);
+  const text = readFileSync(new URL('../packages/client-wire/index.d.ts', import.meta.url), 'utf8');
+  put(options.directory, 'index.d.ts', text);
+  put(options.directory, 'package.json', JSON.stringify({name: '@actql/fixture',
+    exports: {'.': {types: './index.d.ts', default: './entry.mjs'}}}));
+  const installed = installedInterfaceInventory(options.directory);
+  assert(installed.modules.find(value => value.module === 'index.d.ts').exports.includes('clientSourceFormats'));
+  assert.equal((await assertInstalledDependencyClosure({directory: options.directory, modules: installed.modules})).modules, 1);
+});
+
+test('excluding declarations does not conceal dormant runtime helpers or runtime TypeScript dependencies', async t => {
+  const {options, put} = fixture(t);
+  put(options.directory, 'contract.d.ts', 'export const value: number;');
+  put(options.directory, 'helper.ts', "export const value: number = 7; export {read} from './entry.mjs';");
+  let modules = installedInterfaceInventory(options.directory).modules;
+  assert.equal((await assertInstalledDependencyClosure({directory: options.directory, modules})).modules, 2);
+  put(options.directory, 'helper.ts', "export {value} from './missing.mjs';");
+  modules = installedInterfaceInventory(options.directory).modules;
+  await assert.rejects(assertInstalledDependencyClosure({directory: options.directory, modules}), /Unresolved installed interface dependency/u);
+});
+
+test('a runtime import of a declaration still reaches the real runtime resolver', async t => {
+  const {options, put} = fixture(t);
+  put(options.directory, 'contract.d.ts', 'export const value: number;');
+  put(options.directory, 'entry.mjs', "export {value} from './contract.d.ts';");
+  await assert.rejects(assertInstalledDependencyClosure({directory: options.directory,
+    modules: installedInterfaceInventory(options.directory).modules}), failure =>
+    failure.errors?.some(value => /must be initialized/u.test(value.text)));
 });
