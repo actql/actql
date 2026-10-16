@@ -1016,6 +1016,21 @@ result field or literal and one null behavior (`reject`, `write_null`, or
 `omit`). Contract integrity and these static facts do not establish current
 provider authority, schema freshness, uniqueness, or apply permission.
 
+<!-- requirement-block: store-command.exact-original-catalog-member store-command.invalid-present-relationship store-command.retained-installed-selection -->
+An object/file/stage write Mapping may additionally publish the closed
+`store_command` relationship: `catalog_cid`, `command_ref`, and
+`command_contract_cid`. These exact references are part of the Mapping's canonical
+self preimage. The existing Catalog/selection Owner MUST resolve them to the
+original Command member in the same original Check Environment and the same
+connection and revision identified by the Mapping's connector-manifest entry.
+Absence does not select a Command; null, incomplete, foreign or ambiguous evidence
+MUST fail admission. This relationship neither issues a ResourceRef nor supplies
+installation authority. The installed Owner MUST bind its original target and
+installation to the checked pair and retain the full selection through original
+Run materials, Preview, apply and restore, with current installation and grants
+independently checked. See the authored-vs-canonical
+[STORE distinction](artifacts.md#reference-admission).
+
 <!-- requirement-block: mapping-contracts.the-resolved-mapping-contract-must-derive-exactly-one-non-empty-permission mapping-contracts.preview-and-apply-must-reject-a-mapping-unless-exactly-one mapping-generation.product-c4d159e6b70f mapping-generation.product-9c63aad3384b classification-inheritance.product-340f5cf73a23 -->
 The resolved mapping contract MUST derive exactly one non-empty permission set
 for the effect kind, selector class, and exact write-field set. A resource-wide permission list is evidence
@@ -2346,7 +2361,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:b72f0e9566ffcb5495e801b342c9c578c90206a63e84761d367e5bd04bc0a13f
+../../../spec/contracts/actql-check-environment.json# sha256:26eef3a8e865b3ab2146de992cb4c70c9aa44c4766bdf11d0d0c453116297aeb
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9
