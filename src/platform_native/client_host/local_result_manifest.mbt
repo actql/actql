@@ -14,7 +14,12 @@ pub fn NativeLocalHostConnection::lookup_original_result_names_json(
 ) -> Result[String?, NativeClientRunJournalIssue] {
   let authority = match
     native_local_policy_authority_for(
-      self, crypto, principal, connection, original.request, ReadRunMaterials,
+      self,
+      crypto,
+      principal,
+      connection,
+      original.request,
+      ReadRunMaterials,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -33,7 +38,10 @@ pub fn NativeLocalHostConnection::lookup_original_result_names_json(
         return Err(AuthorizationDenied)
       }
       let (_, run) = match
-        self.journal.saved_run_state_locked(original.reference, original.request) {
+        self.journal.saved_run_state_locked(
+          original.reference,
+          original.request,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -63,18 +71,25 @@ pub fn NativeLocalHostConnection::lookup_original_result_names_json(
   }
   let names = match
     store.inspect_committed_publication(
-      namespace_id, authority.scope, definition_cid, 65536, 8192, 64,
+      namespace_id,
+      authority.scope,
+      definition_cid,
+      65536,
+      8192,
+      64,
     ) {
     Ok(None) => None
     Err(issue) => return Err(PublicationObservation(issue))
     Ok(Some(index)) => {
       let projected = match @publication.project_public_index_read(index) {
         Ok(value) => value
-        Err(issue) => return Err(PublicationObservation(DeliveryIssuance(issue)))
+        Err(issue) =>
+          return Err(PublicationObservation(DeliveryIssuance(issue)))
       }
       let manifest = match
         store.read_publication_contract(
-          "result_manifest", projected.result_manifest_cid,
+          "result_manifest",
+          projected.result_manifest_cid,
         ) {
         Ok(value) => value
         Err(issue) => return Err(PublicationObservation(issue))
@@ -84,7 +99,8 @@ pub fn NativeLocalHostConnection::lookup_original_result_names_json(
           index, manifest, 65536, 8192, 64,
         ) {
         Ok(value) => Some(value)
-        Err(issue) => return Err(PublicationObservation(DeliveryIssuance(issue)))
+        Err(issue) =>
+          return Err(PublicationObservation(DeliveryIssuance(issue)))
       }
     }
   }

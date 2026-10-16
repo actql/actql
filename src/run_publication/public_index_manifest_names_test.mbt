@@ -30,7 +30,9 @@ test "indexed manifest names retain exact bounded existing JSON projection" {
   )
   for (bytes, nodes, depth) in [(9, 2, 1), (10, 1, 1), (10, 2, 0)] {
     assert_true(
-      public_index_manifest_result_names_json(index, manifest, bytes, nodes, depth)
+      public_index_manifest_result_names_json(
+        index, manifest, bytes, nodes, depth,
+      )
       is Err(DeliveryIssuanceEncoding),
     )
   }
@@ -47,10 +49,11 @@ test "indexed manifest names reject wrong contract and each original reference" 
     public_index_manifest_result_names_json(index, artifact, 4096, 64, 8)
     is Err(DeliveryIssuanceWrongContract("result_manifest")),
   )
-  for (field, original) in [
-    ("run_definition_cid", delivery_test_cid("3")),
-    ("invocation_cid", delivery_test_cid("b")),
-  ] {
+  for
+    (field, original) in [
+      ("run_definition_cid", delivery_test_cid("3")),
+      ("invocation_cid", delivery_test_cid("b")),
+    ] {
     let changed = indexed_names_changed_contract(
       manifest,
       publication_contract_json(manifest).replace(
@@ -70,8 +73,11 @@ test "indexed manifest names reject wrong contract and each original reference" 
       ),
     )
     assert_true(
-      public_index_manifest_result_names_json(corresponding, changed, 4096, 64, 8)
-      is Err(DeliveryIssuanceReferenceMismatch(actual)) && actual == field,
+      public_index_manifest_result_names_json(
+        corresponding, changed, 4096, 64, 8,
+      )
+      is Err(DeliveryIssuanceReferenceMismatch(actual)) &&
+      actual == field,
     )
   }
 }
@@ -84,9 +90,9 @@ test "indexed manifest names preserve Unicode names and UTF16 order" {
     publication_contract_json(manifest).replace(
       old="\"answer\":" + publication_contract_json(artifact),
       new="\"\u{e000}\":" +
-      publication_contract_json(artifact) +
-      ",\"\u{10000}\":" +
-      publication_contract_json(artifact),
+        publication_contract_json(artifact) +
+        ",\"\u{10000}\":" +
+        publication_contract_json(artifact),
     ),
   )
   let corresponding = indexed_names_changed_contract(

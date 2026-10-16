@@ -11,9 +11,7 @@ pub fn public_index_manifest_result_names_json(
 ) -> Result[String, DeliveryIssuanceIssue] {
   match validate_public_read_root(index, manifest) {
     Ok(_) =>
-      manifest_result_names_json(
-        manifest, max_wire_bytes, max_nodes, max_depth,
-      )
+      manifest_result_names_json(manifest, max_wire_bytes, max_nodes, max_depth)
     Err(issue) => Err(issue)
   }
 }
