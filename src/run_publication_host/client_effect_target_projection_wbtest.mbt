@@ -100,7 +100,7 @@ test "selection projection is automatic and legacy absence changes no field set"
     }
   }
   let (_, original, original_run, _) = target_selection_fixture()
-  let (_, renamed, renamed_run, _) = target_selection_fixture(alias="customers")
+  let (_, renamed, renamed_run, _) = target_selection_fixture(target_alias="customers")
   assert_eq(
     @publication.publication_contract_json(original_run),
     @publication.publication_contract_json(renamed_run),

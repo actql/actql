@@ -30,7 +30,7 @@ test "selection encoder matches independent identity corpus original preimage" {
 ///|
 fn target_selection_fixture(
   published? : Bool = true,
-  alias? : String = "account",
+  target_alias? : String = "account",
   owner_cid? : String = "sha256:" + "9".repeat(64),
   normalized? : Bool = false,
 ) -> (
@@ -53,7 +53,7 @@ fn target_selection_fixture(
           {
             name: [
               { value: "crm", quoted: false, },
-              { value: alias, quoted: false, },
+              { value: target_alias, quoted: false, },
             ],
             target_ref: "connector://crm/account",
             installation_binding_cid: "sha256:" + "8".repeat(64),
@@ -175,7 +175,7 @@ test "original update selection has an independently fixed canonical concrete tu
   assert_eq(prepared_client_effect_target_selections(prepared), Some(expected))
   assert_true(allowed.compilation.compiled.plan.plan.wire.contains(expected))
   let (renamed, renamed_allowed, _, _) = target_selection_fixture(
-    alias="customers",
+    target_alias="customers",
   )
   assert_eq(
     prepared_client_effect_target_selections(renamed),
@@ -363,9 +363,9 @@ test "selected update Run refuses removed substituted and malformed selection ev
     admit_client_effect_target_selections(
       prepared.candidate,
       "[" +
-      selection[1:selection.length() - 1].to_string() +
+      selection[1:selection.length() - 1].to_owned() +
       "," +
-      selection[1:selection.length() - 1].to_string() +
+      selection[1:selection.length() - 1].to_owned() +
       "]",
     )
     is Err(_),

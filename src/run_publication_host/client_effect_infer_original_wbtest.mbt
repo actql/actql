@@ -218,7 +218,7 @@ test "both Model original readers refuse missing malformed and changed execution
   let (execution_cid, execution_wire) = client_effect_original_infer_input(
     compilation,
   ).unwrap().unwrap()
-  let mutate = fn(wire : String) -> Array[String] {
+  let mutate = fn(wire : String) -> Array[String] raise @encode.EncodeFailure {
     let missing_cid = target_selection_replace_field(
       wire, "infer_execution_contract_cid", None,
     )
@@ -298,7 +298,7 @@ test "both Model original readers refuse missing malformed and changed execution
     )
     is Ok(Some(_)),
   )
-  let replace_execution = fn(wire : String) {
+  let replace_execution = fn(wire : String) -> String raise @encode.EncodeFailure {
     target_selection_replace_field(
       target_selection_replace_field(
         wire, "infer_execution_contract_cid", Some(changed_cid),

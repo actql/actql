@@ -22,7 +22,7 @@ priv struct ClientEffectUpdateTargetSelection {
   check_environment_cid : String
   installation_binding_cid : String
   installation_owner_cid : String
-} derive(Eq)
+}
 
 ///|
 /// Retained by the existing checked preparation, never an execution permit.

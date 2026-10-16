@@ -30,13 +30,13 @@ pub struct UpdateTargetPublication {
 ///|
 pub struct ResolvedUpdateTarget {
   publication : UpdateTargetPublication
-  alias : UpdateTargetAlias
+  target_alias : UpdateTargetAlias
   mapping : @environment.MappingContractShape
 }
 
 ///|
 pub fn resolved_update_target(value : ResolvedUpdateTarget) -> (String, String) {
-  (value.alias.target_ref, @environment.mapping_shape_reference(value.mapping))
+  (value.target_alias.target_ref, @environment.mapping_shape_reference(value.mapping))
 }
 
 ///|
@@ -50,7 +50,7 @@ pub fn resolved_update_target_identity(
       @environment.mapping_shape_environment(value.publication.mappings),
     ),
     @environment.mapping_shape_cid(value.mapping),
-    value.alias.installation_binding_cid,
+    value.target_alias.installation_binding_cid,
   )
 }
 
@@ -65,23 +65,23 @@ pub fn bind_update_target_publication(
   }
   let mut remaining = max_work
   let owned : Array[UpdateTargetAlias] = []
-  for alias in aliases {
-    let cost = alias.name.length() + 1
+  for target_alias in aliases {
+    let cost = target_alias.name.length() + 1
     if cost > remaining {
       return Err(WorkLimit)
     }
     remaining -= cost
-    if alias.name.is_empty() ||
-      alias.name.length() > 16 ||
-      alias.name.any(part => part.value.is_empty() || part.value.length() > 1024) ||
-      !alias.target_ref.has_prefix("connector://") ||
-      alias.target_ref.length() <= 12 ||
-      alias.target_ref.length() > 4096 ||
-      !table_write_cid(alias.installation_binding_cid) ||
-      !table_write_cid(alias.installation_owner_cid) {
+    if target_alias.name.is_empty() ||
+      target_alias.name.length() > 16 ||
+      target_alias.name.any(part => part.value.is_empty() || part.value.length() > 1024) ||
+      !target_alias.target_ref.has_prefix("connector://") ||
+      target_alias.target_ref.length() <= 12 ||
+      target_alias.target_ref.length() > 4096 ||
+      !table_write_cid(target_alias.installation_binding_cid) ||
+      !table_write_cid(target_alias.installation_owner_cid) {
       return Err(InvalidPublication)
     }
-    owned.push({ ..alias, name: alias.name.copy(), })
+    owned.push({ ..target_alias, name: target_alias.name.copy(), })
   }
   let candidates : Array[@environment.MappingContractShape] = []
   for index in 0..<@environment.mapping_shape_count(mappings) {
@@ -122,27 +122,27 @@ pub fn resolve_update_target_binding(
   }
   let mut remaining = max_work
   let mut selected_alias : UpdateTargetAlias? = None
-  for alias in publication.aliases {
-    let cost = alias.name.length() + name.length() + 1
+  for target_alias in publication.aliases {
+    let cost = target_alias.name.length() + name.length() + 1
     if cost > remaining {
       return Err(WorkLimit)
     }
     remaining -= cost
-    if same_relation_path(alias.name, name) {
+    if same_relation_path(target_alias.name, name) {
       if selected_alias is Some(_) {
         return Err(AmbiguousTarget)
       }
-      selected_alias = Some(alias)
+      selected_alias = Some(target_alias)
     }
   }
-  guard selected_alias is Some(alias) else { return Err(UnresolvedTarget) }
+  guard selected_alias is Some(target_alias) else { return Err(UnresolvedTarget) }
   let mut selected_mapping : @environment.MappingContractShape? = None
   for mapping in publication.candidates {
     if remaining < 1 {
       return Err(WorkLimit)
     }
     remaining -= 1
-    if @environment.mapping_shape_target(mapping) != alias.target_ref {
+    if @environment.mapping_shape_target(mapping) != target_alias.target_ref {
       continue
     }
     if explicit_mapping is Some(reference) &&
@@ -155,7 +155,7 @@ pub fn resolve_update_target_binding(
     selected_mapping = Some(mapping)
   }
   match selected_mapping {
-    Some(mapping) => Ok({ publication, alias, mapping, })
+    Some(mapping) => Ok({ publication, target_alias, mapping, })
     None => Err(UnresolvedMapping)
   }
 }
@@ -171,7 +171,7 @@ pub fn update_target_publication_environment(
 ///|
 /// Identity of the existing installed row owner, including its generation.
 pub fn resolved_update_target_owner_cid(value : ResolvedUpdateTarget) -> String {
-  value.alias.installation_owner_cid
+  value.target_alias.installation_owner_cid
 }
 
 ///|
@@ -189,24 +189,24 @@ pub fn resolve_concrete_update_target_binding(
   }
   let mut remaining = max_work
   let mut selected_alias : UpdateTargetAlias? = None
-  for alias in publication.aliases {
+  for target_alias in publication.aliases {
     if remaining < 1 {
       return Err(WorkLimit)
     }
     remaining -= 1
-    if alias.target_ref != target {
+    if target_alias.target_ref != target {
       continue
     }
     match selected_alias {
       Some(previous) =>
-        if previous.installation_binding_cid != alias.installation_binding_cid ||
-          previous.installation_owner_cid != alias.installation_owner_cid {
+        if previous.installation_binding_cid != target_alias.installation_binding_cid ||
+          previous.installation_owner_cid != target_alias.installation_owner_cid {
           return Err(AmbiguousTarget)
         }
-      None => selected_alias = Some(alias)
+      None => selected_alias = Some(target_alias)
     }
   }
-  guard selected_alias is Some(alias) else { return Err(UnresolvedTarget) }
+  guard selected_alias is Some(target_alias) else { return Err(UnresolvedTarget) }
   let mut selected_mapping : @environment.MappingContractShape? = None
   for mapping in publication.candidates {
     if remaining < 1 {
@@ -223,7 +223,7 @@ pub fn resolve_concrete_update_target_binding(
     selected_mapping = Some(mapping)
   }
   match selected_mapping {
-    Some(mapping) => Ok({ publication, alias, mapping, })
+    Some(mapping) => Ok({ publication, target_alias, mapping, })
     None => Err(UnresolvedMapping)
   }
 }

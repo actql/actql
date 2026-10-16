@@ -176,9 +176,9 @@ const updateObservations = owners => owners.map(owner => ({installation: ownerBi
   update: owner.owned.kinds.includes('update'), mappings: owner.installed.map(mapping => ({
     target: mapping.target, mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid,
     update: mapping.rules.some(rule => rule.effect_kind === 'update')}))}));
-const validateOwnerSelections = (owners, selections) => {
+const validateOwnerSelections = (owners, selections, prepared) => {
   if (selections === undefined) return undefined;
-  try { assertUpdateTargetSelectionCurrent(selections, updateObservations(owners)); }
+  try { assertUpdateTargetSelectionCurrent(selections, updateObservations(owners), prepared); }
   catch (cause) { selectionChanged(cause); }
   return selections;
 };
@@ -191,10 +191,10 @@ export function installedRowEffectUpdateObservations(adapter) {
 
 // The Host has already checked the original Core selection owners. This
 // boundary additionally binds those tuples to the actual installed driver.
-export function validateInstalledUpdateOwnerSelections(adapter, selections) {
+export function validateInstalledUpdateOwnerSelections(adapter, selections, prepared) {
   const owner = rowInstallations.get(adapter);
   return validateOwnerSelections(owner === undefined ? [] :
-    Array.isArray(owner) ? owner : [owner], selections);
+    Array.isArray(owner) ? owner : [owner], selections, prepared);
 }
 
 const exportLimits = output => [output.maxResultFields,
@@ -454,20 +454,20 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     return retained;
   };
   const selectionFence = (facts, members, stageIndex) => {
-    const selections = validateOwnerSelections(owners, facts.updateTargetSelections);
+    const selections = validateOwnerSelections(owners, facts.updateTargetSelections, facts.prepared);
     if (selections === undefined) return undefined;
     const liveAssertion = facts.assertUpdateSelectionCurrent;
     if (typeof liveAssertion !== 'function') selectionChanged();
     const updates = members.filter(member => member.kind === 'update');
     const assertCurrent = () => {
-      validateOwnerSelections(owners, selections);
+      validateOwnerSelections(owners, selections, facts.prepared);
       try {
         assertUpdateTargetSelectionMembersCurrent(selections, updates.map(member => {
           ownerOf(member);
           return {stage_index: member.stageIndex ?? stageIndex, effect_id: member.effectId,
             target_ref: member.mapping.target, mapping_ref: member.mapping.mappingRef,
             mapping_cid: member.mapping.mappingCid};
-        }));
+        }), facts.prepared);
       } catch (cause) { selectionChanged(cause); }
       const result = liveAssertion();
       // A live-owner assertion must finish before the physical operation.

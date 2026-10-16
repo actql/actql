@@ -367,7 +367,7 @@ async function openInstalledHost(originalInstallation) {
   function selectedInstalledEffect({prepared, compilation, updateTargetSelections}) {
     const selections = updateTargetSelections ?? updateTargetOriginals?.selectionsOf(prepared);
     if (installedEffect?.effects === undefined) {
-      validateInstalledUpdateOwnerSelections(installedEffect, selections);
+      validateInstalledUpdateOwnerSelections(installedEffect, selections, prepared);
       return installedEffect;
     }
     let selected = effectSelections.get(prepared);
@@ -377,7 +377,7 @@ async function openInstalledHost(originalInstallation) {
       selected.assertPrepared?.({moon, prepared, compilation});
       effectSelections.set(prepared, selected);
     }
-    validateInstalledUpdateOwnerSelections(selected, selections);
+    validateInstalledUpdateOwnerSelections(selected, selections, prepared);
     return selected;
   }
   function recoveredInstalledEffect(facts) {

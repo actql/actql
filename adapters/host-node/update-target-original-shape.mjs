@@ -22,10 +22,10 @@ export function retainUpdateTargetSelection(moon, prepared) {
   return Object.freeze(entries);
 }
 
-export function assertUpdateTargetSelectionCurrent(selections, observations) {
+export function assertUpdateTargetSelectionCurrent(selections, observations, prepared) {
   const binding = selections?.[selectionOriginal];
   if (binding === undefined || !binding.moon.clientProgramEffectTargetSelectionCurrent(
-    binding.original, binding.prepared, encodeUpdateTargetData(observations))) invalid();
+    binding.original, prepared ?? binding.prepared, encodeUpdateTargetData(observations))) invalid();
 }
 
 export function updateTargetSelectionMatchesRun(selections, prepared, definition) {
@@ -35,10 +35,10 @@ export function updateTargetSelectionMatchesRun(selections, prepared, definition
       binding.original, prepared, definition);
 }
 
-export function assertUpdateTargetSelectionMembersCurrent(selections, members) {
+export function assertUpdateTargetSelectionMembersCurrent(selections, members, prepared) {
   const binding = selections?.[selectionOriginal];
   if (binding === undefined || !binding.moon.clientProgramEffectTargetSelectionMembersCurrent(
-    binding.original, binding.prepared, encodeUpdateTargetData(members))) invalid();
+    binding.original, prepared ?? binding.prepared, encodeUpdateTargetData(members))) invalid();
 }
 
 export function issueUpdateTargetInstallation(moon, facts) {

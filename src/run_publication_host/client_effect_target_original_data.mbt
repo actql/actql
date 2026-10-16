@@ -333,7 +333,7 @@ pub fn client_effect_target_selection_matches_run(
 }
 
 ///|
-/// Compare retained physical member facts with the original checked
+/// Compare retained physical entry_facts facts with the original checked
 /// occurrences. This projection does not issue a new selection.
 pub fn client_effect_target_selection_members_current(
   original : ClientEffectUpdateTargetSelections,
@@ -354,16 +354,16 @@ pub fn client_effect_target_selection_members_current(
       let stage = @decode.safe_integer(@decode.required(entry, "stage_index")
         .unwrap_or_else(() => raise InvalidUpdateTargetOriginal)).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
       let mut matches = 0
-      for member in members {
-        let member = @decode.closed_object(member,
+      for entry_facts in members {
+        let entry_facts = @decode.closed_object(entry_facts,
           ["stage_index", "effect_id", "target_ref", "mapping_ref", "mapping_cid"])
           .unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-        if @decode.safe_integer(@decode.required(member, "stage_index")
+        if @decode.safe_integer(@decode.required(entry_facts, "stage_index")
           .unwrap_or_else(() => raise InvalidUpdateTargetOriginal)).unwrap_or_else(() => raise InvalidUpdateTargetOriginal) == stage &&
-          client_effect_target_original_text(member, "effect_id") == client_effect_target_original_text(entry, "effect_id") &&
-          client_effect_target_original_text(member, "target_ref") == client_effect_target_original_text(entry, "target_ref") &&
-          client_effect_target_original_text(member, "mapping_ref") == client_effect_target_original_text(entry, "mapping_ref") &&
-          client_effect_target_original_text(member, "mapping_cid") == client_effect_target_original_text(entry, "mapping_cid") {
+          client_effect_target_original_text(entry_facts, "effect_id") == client_effect_target_original_text(entry, "effect_id") &&
+          client_effect_target_original_text(entry_facts, "target_ref") == client_effect_target_original_text(entry, "target_ref") &&
+          client_effect_target_original_text(entry_facts, "mapping_ref") == client_effect_target_original_text(entry, "mapping_ref") &&
+          client_effect_target_original_text(entry_facts, "mapping_cid") == client_effect_target_original_text(entry, "mapping_cid") {
           matches += 1
         }
       }

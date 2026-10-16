@@ -28,6 +28,8 @@ import {describeSalesforceGeneration, readPublicationFile,
 import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
   validateInstalledUpdateOwnerSelections} from
   '../../../host-node/installed-row-effect.mjs';
+import {assertUpdateTargetSelectionMembersCurrent} from
+  '../../../host-node/update-target-original-shape.mjs';
 import {installedConnectors} from
   '../../../connectors-builtin/installations.generated.mjs';
 import {salesforceRowEffectSite, salesforceWriteDriver} from
@@ -402,20 +404,20 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
     if (runMoon !== moon) fail('InvalidInstalledEffectTargetInventory');
     const unit = providedUnit ?? salesforceEffectUnit(moon, compilation);
     const selections = validateInstalledUpdateOwnerSelections(rowEffect,
-      updateTargetSelections);
+      updateTargetSelections, prepared);
     if (selections !== undefined) {
       const updates = membersOf(moon, prepared, installed, unit)
         .filter(member => member.kind === 'update');
-      if (typeof assertUpdateSelectionCurrent !== 'function' ||
-          updates.length !== selections.length || selections.some(selection => {
-        const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
-          prepared, selection.stage_index, selection.effect_id, limits.planWork));
-        return selection.stage_index !== unit.stageIndex ||
-          !updates.some(member => member.effectId === selection.effect_id) ||
-          descriptor._1 !== selection.effect_id || descriptor._2 !== 'update' ||
-          descriptor._3 !== selection.target_ref ||
-          descriptor._4 !== selection.mapping_ref || descriptor._5 !== selection.mapping_cid;
-      })) {
+      try {
+        if (typeof assertUpdateSelectionCurrent !== 'function') throw new TypeError('MissingOriginalCurrent');
+        assertUpdateTargetSelectionMembersCurrent(selections, updates.map(member => {
+          const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
+            prepared, unit.stageIndex, member.effectId, limits.planWork));
+          return {stage_index: unit.stageIndex, effect_id: runtimeField(descriptor, 1),
+            target_ref: runtimeField(descriptor, 3), mapping_ref: runtimeField(descriptor, 4),
+            mapping_cid: runtimeField(descriptor, 5)};
+        }), prepared);
+      } catch {
         throw refusedEffectPreparation(Object.assign(
           new Error('InstalledRowEffectInstallationChanged'),
           {code: 'InstalledRowEffectInstallationChanged'}));
