@@ -41,7 +41,7 @@ pub struct ObjectMutationBinding {
 pub struct ObjectMutationRequest {
   binding : ObjectMutationBinding
   original : ObjectMetadata
-  method : String
+  verb : String
   path : String
   body : String
   cid : String
@@ -212,7 +212,7 @@ fn mutation_path(
 fn mutation_request(
   binding : ObjectMutationBinding,
   original : ObjectMetadata,
-  method : String,
+  verb : String,
   body : String,
 ) -> Result[ObjectMutationRequest, ObjectRequestIssue] {
   let path = match mutation_path(binding, original) {
@@ -222,7 +222,7 @@ fn mutation_request(
   let preimage : Json = {
     "version": "actql-gcs-object-mutation-request/0.1",
     "resource_origin": "https://storage.googleapis.com",
-    "method": method.to_json(),
+    "method": verb.to_json(),
     "path": path.to_json(),
     "body": body.to_json(),
     "catalog_cid": binding.catalog_cid.to_json(),
@@ -244,7 +244,7 @@ fn mutation_request(
   Ok({
     binding,
     original,
-    method,
+    verb,
     path,
     body,
     cid: "sha256:" + @sha.hex(@utf8.encode(wire)),
@@ -316,7 +316,7 @@ pub fn prepare_object_metadata_patch(
     if original.fields.metadata is Some(entries) {
       for (key, _) in entries {
         if key != "actql-request" && !desired.contains(key) {
-          patch[key] = Null
+          patch[key] = Json::null()
         }
       }
     }
@@ -373,7 +373,7 @@ pub fn recheck_object_mutation(
 
 ///|
 pub fn object_mutation_method(request : ObjectMutationRequest) -> String {
-  request.method
+  request.verb
 }
 
 ///|
