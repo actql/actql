@@ -24,6 +24,7 @@ function fixture(reportedMediaType = 'text/csv') {
       maxAttempts: 2, maxTimeMs: 1000},
     resolveResource: async observed => {
       assert.deepEqual(observed, resource);
+      state.resolvedResource = observed;
       return {bucket: metadata.bucket, objectName: metadata.name, prefix: 'test/'};
     },
     beginRequest: async body => {
@@ -136,7 +137,8 @@ test('the public name and media type borrow original metadata across the asynchr
   assert.deepEqual(row, expectedRow('Text/Plain;Label="e\u0301"'));
   assert.equal(row.name, state.captures[0].metadata.objectName);
   assert.equal(row.media_type, state.captures[0].metadata.mediaType);
-  assert.equal(row.resource, resource);
+  assert.equal(row.resource, state.resolvedResource,
+    'reuse the same original parsed request Resource DATA, not the fixture object before JSON encoding');
   assert.equal(row.content, content);
   assert.equal(state.calls.length, 2);
   assert.equal(state.charges.length, 2);
