@@ -10,6 +10,7 @@ import {fileURLToPath} from 'node:url';
 import {buildHost, buildFiniteRuntime} from './build.mjs';
 import {checkPureRuntime} from './moon-runtime.mjs';
 import {generateCompilerBindings} from '../../scripts/generate-js-compiler-bindings.mjs';
+import {actionBindingOutputs} from '../../scripts/generate-js-action-bindings.mjs';
 
 function graph(dependency, options = {}) {
   return {
@@ -129,6 +130,42 @@ test('generated compiler binding has the exact canonical dependency-free Workers
 test('generated compiler binding review grants no sibling or dependency allowance', () => {
   const binding = 'adapters/host-common/compiler-binding.generated.mjs';
   const sibling = 'adapters/host-common/compiler-binding-unreviewed.mjs';
+  for (const modules of [hostModules, conformanceModules,
+    finiteRuntimeModules, finiteConformanceModules]) {
+    assert.throws(() => checkWorkersArtifact({
+      inputs: {[sibling]: {imports: []}}, outputs: {'bundle.mjs': {imports: []}},
+    }, 'export {};', modules), /WorkersModuleRejected/);
+    for (const dependency of [sibling, 'node:fs']) {
+      assert.throws(() => checkWorkersArtifact({
+        inputs: {[binding]: {imports: [{path: dependency, kind: 'import-statement'}]}},
+        outputs: {'bundle.mjs': {imports: []}},
+      }, 'export {};', modules), /WorkersDependencyRejected/);
+    }
+  }
+});
+
+test('generated strategy actions have the canonical dependency-free Workers graph', async () => {
+  const root = new URL('../../', import.meta.url);
+  const binding = 'adapters/host-common/strategy-actions.mjs';
+  const source = readFileSync(new URL(binding, root), 'utf8');
+  assert.equal(source, actionBindingOutputs(root).get(binding));
+  checkPureRuntime(source);
+  const result = await build({
+    absWorkingDir: fileURLToPath(root), entryPoints: [binding],
+    bundle: true, platform: 'browser', format: 'esm',
+    metafile: true, write: false,
+  });
+  assert.deepEqual(Object.keys(result.metafile.inputs), [binding]);
+  assert.deepEqual(result.metafile.inputs[binding].imports, []);
+  for (const modules of [hostModules, conformanceModules,
+    finiteRuntimeModules, finiteConformanceModules]) {
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+  }
+});
+
+test('generated strategy action review grants no sibling or dependency allowance', () => {
+  const binding = 'adapters/host-common/strategy-actions.mjs';
+  const sibling = 'adapters/host-common/strategy-actions-unreviewed.mjs';
   for (const modules of [hostModules, conformanceModules,
     finiteRuntimeModules, finiteConformanceModules]) {
     assert.throws(() => checkWorkersArtifact({
