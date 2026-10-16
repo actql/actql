@@ -8,4 +8,7 @@ process.exitCode = await runLocalCheck({root, heavy: false, timeoutSeconds: 60, 
       '--', '--test-concurrency=1', 'scripts/native-cli-interface-check.test.mjs', 'scripts/native-cli-release.test.mjs']},
   {name: 'Actual ordinary Native CLI source interface command', command: process.execPath,
     args: ['--input-type=module', '-e',
-      'import {execFileSync} from "node:child_process";execFileSync("npm",["run","check:interfaces","--","--manifest","packages/native-cli/package.json"],{stdio:"inherit",timeout:30000});']}]});
+      'import {execFileSync} from "node:child_process";execFileSync("npm",["run","check:interfaces","--","--manifest","packages/native-cli/package.json"],{stdio:"inherit",timeout:30000});']},
+  {name: 'Required ordinary full source gate including real dormant CLI copies', command: process.execPath,
+    args: ['--input-type=module', '-e',
+      'import {execFileSync} from "node:child_process";execFileSync("npm",["run","check:interfaces"],{stdio:"inherit",timeout:30000});']}]});
