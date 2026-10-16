@@ -489,6 +489,13 @@ authorization binding at apply.
 | `targeted` | Exact target, intended change, target guard, and explicit before-unavailable status |
 | `create`, `command`, `store` | Kind-specific intended operation, payload or typed request, and exact scope |
 
+<!-- requirement-block: effect-outcome-wire.upsert-action -->
+The `effect_row_outcome_receipt` for an applied upsert MUST include
+`typed_outcome.action` as `created` or `updated`, bound by `typed_outcome_cid`
+and the receipt CID to the original dispatch operation.
+The field is not valid for another operation or a non-applied outcome. A
+failed apply-time condition uses the existing typed error with code `conflict`.
+
 <!-- requirement-block: review-artifacts.approval-attestation-must-bind-both-effect-preview-cid-and-the-exact-review-projection-cid review-artifacts.redaction-must-not-substitute-for-an-authority-preview stage-wire.product-36870f813edf policy-risk-acceptance.present-risk-acceptance-evidence-must-bind-issuer-policy-preview-and-scope approval-renewal.product-6542a3eac80f logical-request.product-26cde1934ed3 source-advance-claim.product-026cf595ba1a private-inspection.product-f6c29d1d5272 -->
 Redaction and unavailable evidence are distinct states. Neither is represented
 as an invented empty before object; a redacted projection still binds the
@@ -801,7 +808,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:83add51a9d2c3aa700d512b226f2931e0075304afab4a08e9b32c4da3a31c772
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:e239b0d9b9229efdc67095bbea81ff8bccc0873a6bc277de7857c7955d8719fd
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62

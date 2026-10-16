@@ -13666,7 +13666,7 @@
       ]
     }
   },
-  "artifact_registry_cid": "sha256:e13dd4db9cfb7e5d3e35f739531252560599f205df9800a7a26631dab2955cc4",
+  "artifact_registry_cid": "sha256:373361d694c18d66f11b76c86c76ff886cdcc0120f9dd2bfe47fbdf07b06865f",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -13708,7 +13708,7 @@
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
     "source_input_logical": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea",
-    "effect_row_outcome_receipt": "sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27",
+    "effect_row_outcome_receipt": "sha256:e239b0d9b9229efdc67095bbea81ff8bccc0873a6bc277de7857c7955d8719fd",
     "effect_source_artifact": "sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc",
     "model_effective_inputs": "sha256:b44b64433d41470d143efa8deac6692201804a5714380694a84d66759819a727",
     "model_input_artifact": "sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c",
@@ -81743,8 +81743,15 @@
                 "state": {
                   "const": "applied"
                 },
-                "result": {}
-              }
+                "result": {},
+                "action": {
+                  "enum": [
+                    "created",
+                    "updated"
+                  ]
+                }
+              },
+              "$comment": "action is required exactly for an applied upsert; admission checks the original dispatch operation. It is included in the typed outcome and receipt identities."
             },
             {
               "type": "object",

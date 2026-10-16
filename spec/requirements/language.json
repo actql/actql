@@ -8419,7 +8419,7 @@
     },
     {
       "requirement_id": "actql.language/effects.create-appends-and-must-not-address-existing-rows",
-      "statement_sha256": "962bde0fefce48c0a6792432b93caa26c71f7a1458e649e4db147f92fb78e98e",
+      "statement_sha256": "df9d10ac89db0b9a8d4abba48247e243a4f05fa864635919445db5b9db1bd527",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8430,7 +8430,7 @@
     },
     {
       "requirement_id": "actql.language/effects.create-appends-and-must-not-address-existing-rows.second",
-      "statement_sha256": "8f08f0dd4453bf68ec07103d18529e14ac9172da52dbb5b356d0795b0b5c6554",
+      "statement_sha256": "43fdcb09431b6bf9de60aeb6c2dd40ddaa5639ca234794ae785a054565e76e16",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8441,7 +8441,7 @@
     },
     {
       "requirement_id": "actql.language/effects.every-data-effect-must-explicitly-declare-target-and-a-typed-qualified",
-      "statement_sha256": "84f759562564ae056066039f5ab362a784e65f13e8e2e2c0e6839f400295b7a7",
+      "statement_sha256": "6a7b3be4d8a7e0c39d04048b19fadef1b68eccb507bc3ab4ed14239e1f3a3e56",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

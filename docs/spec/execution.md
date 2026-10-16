@@ -1930,8 +1930,9 @@ Preview is sealed or approved; it is not a third Preview strength.
 
 The resolved item limit counts created rows for create, unique target identities for
 update/delete, unique upsert keys for upsert, logical target-plus-payload items for command,
-and output relation rows for store. ActQL 0.1 has no scalar/file store effect,
-so a relation is not counted as one artifact. Duplicate mutation identities
+and written objects/files/stage items or declared table input rows for store.
+A SERIALIZE result supplies one Content item, not one item per serialized row;
+a table input is counted as its rows rather than as one artifact. Duplicate mutation identities
 are invalid rather than collapsed. Mapping/type failures abort preview before a
 scope is approved and cannot be omitted from the count.
 
@@ -2029,6 +2030,15 @@ can still authorize the stage. Current rights and target-guard checks are not
 themselves new business inputs. A valid template and instantiation produce new
 exact-Preview authorization evidence, not a copied signature. Changed metadata
 requires a new review projection and attestation, even with unchanged computation.
+
+<!-- requirement-block: effect-outcomes.upsert-action-and-conflict -->
+An applied upsert row outcome MUST carry `action: created` or `action: updated`
+in its typed outcome, reflecting the provider-confirmed branch of the original
+operation; no branch is inferred from missing before-state.
+A failed apply-time condition is `failed` with error code `conflict`. It does
+not authorize redispatch, refreshing the approved version, or changing the
+fixed target set. Unknown outcomes still require Connector-recognized evidence
+and are never resolved by blindly resending the mutation.
 
 <a id="reconciliation"></a>
 

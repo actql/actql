@@ -46,8 +46,9 @@ insert SELECT star, rename collisions or reset parsing budgets.
 
 WITH bodies, derived tables and pure set operands retain their Pure rules;
 CTAS retains its existing Compute and whole-wrapper rules. Top-level sql versus
-aql-text selection is unchanged. A semicolon-delimited explicit Result COMMAND
-postlude is a separate statement, not an implicit current-input Pipe.
+aql-text selection is unchanged. Command postludes after the terminating
+semicolon are declarations in the same Stage and Effect Set, not arbitrary
+statement chaining or an implicit current-input Pipe.
 
 ## Content serialization
 
@@ -2343,9 +2344,9 @@ lowers with the fixed Program-local name `aql_update_effect`. An explicit name
 is preserved exactly and remains identity-bearing; an invalid empty name is
 not omission. The omitted form and explicit `aql_update_effect` form normalize
 identically under the same bindings and output contract, independently of
-whitespace or source offsets. Another terminal Effect or a mixed COMMAND
-postlude is rejected, including one using the same completed name. This does
-not introduce implicit naming for multiple Effects.
+whitespace or source offsets. A second terminal Effect is rejected. Command
+postludes may follow the query terminator; their names remain explicit and
+unique across the complete Effect Set, including the completed terminal name.
 
 `FROM RESULT name` may be omitted. Omission consumes the current checked
 Relation, after its authored row operations, through a closed stage-local private
@@ -2387,9 +2388,66 @@ approval, durable capture and cleanup owners remain authoritative. Preparation
 failure produces no partial Preview or write. Approval and restart consume the
 same sealed values without reevaluation or repeated acquisition, Model work or
 confirmed Effects. Syntax admission does not establish those runtime outcomes
-or authorize execution. TARGET and MAPPING remain the explicit static forms
-shown above. COMMAND, STORE, create and upsert do not gain implicit inputs or
-expression evaluation from this UPDATE spelling.
+or authorize execution. The long TARGET/MAPPING form remains available;
+the short forms below resolve to the same existing owners.
+
+### Short Effect forms and SQL statements
+
+<!-- requirement-block: effect-text.short-forms-resolve-the-published-contract -->
+The checker MUST resolve each short `conn.resource` or `conn.operation` form
+against the selected connection's published contracts, refusing unknown,
+ambiguous, type-incompatible or unauthorized bindings before acquisition.
+The author does not name a Mapping in the short form. Explicit long forms
+select among multiple published contracts without broadening their authority.
+Normalization records the resolved target, contract and installation identity.
+
+The admitted terminal forms are:
+
+```text
+|> EFFECT [name] UPDATE conn.resource ID key SET (field = expr, …)
+|> EFFECT [name] INSERT conn.resource (field, …) [VALUES (expr, …)]
+|> EFFECT [name] UPSERT conn.resource ID key SET (field = expr, …)
+|> EFFECT [name] DELETE conn.resource ID key
+|> EFFECT [name] STORE conn.resource [SET (field = expr, …)]
+|> EFFECT [name] COMMAND conn.operation [TARGET expr] ID key [INPUT (field = expr, …)]
+```
+
+<!-- requirement-block: effect-text.current-input-and-evaluated-expressions -->
+These forms MUST consume the current checked Relation through existing private
+Stage Result capture, evaluating pure expressions before Preview and preserving
+explicit public Results without inventing a public Named Result.
+INSERT without VALUES maps same-named input columns; with VALUES, its lists
+have equal arity. UPDATE and UPSERT use the declared record key; DELETE carries
+no SET fields. Omitted single-terminal names are completed deterministically
+by Effect kind, with UPDATE retaining `aql_update_effect`; explicit names remain
+identity-bearing and unique across terminal and postlude declarations.
+
+<!-- requirement-block: effect-text.store-content-and-table-inputs -->
+Object, file and stage STORE MUST require a typed `content_ref` for each output
+object, with destination and overwrite fields checked by the published write
+Mapping; rows without content are refused rather than implicitly serialized.
+Content may come from SERIALIZE or an admitted contents Source. A declared
+table resource instead accepts its typed rows. SET fields are evaluated inputs,
+not codec options: `format` does not turn rows into Content. The sealed Preview
+fixes the destination, exact content identity or row scope, and overwrite guard.
+
+<!-- requirement-block: effect-text.command-target-and-item-identity -->
+A short COMMAND MUST resolve to exactly one versioned Command contract, require
+TARGET when that contract needs a per-row ResourceRef, and refuse TARGET when
+the contract fixes the target.
+ID identifies the input operation row in Preview, status and recovery; it is
+not a recipient or a substitute for the Command's target-plus-payload identity.
+Optional INPUT is checked against the contract, including an empty input.
+
+<!-- requirement-block: effect-text.sql-statements-fix-the-preview-target-set -->
+SQL UPDATE, INSERT INTO and DELETE FROM MUST lower to the same update, create
+and delete Effects as the terminal forms, with the same checks and approval.
+For UPDATE and DELETE, key equality addresses the key directly; any other
+WHERE selects identities and versions at Preview time. Apply consumes that
+fixed set and never re-evaluates WHERE to add newly matching records. A Connector
+unable to fix identities and apply-time conditions refuses the form at check.
+A changed apply-time condition produces `failed` with `conflict`, not a refreshed
+Preview, automatic resend, or a silently omitted row.
 
 ### COMMAND postludes
 
@@ -2413,9 +2471,11 @@ EffectValue fields or scalar literals; computed expressions are refused and
 belong in the preceding Relation pipeline. Unknown Result names, foreign
 aliases, unknown fields, duplicate Effect names and duplicate INPUT fields are
 rejected. An empty INPUT list remains subject to the declared Command schema.
-COMMAND postludes cannot be mixed with an existing terminal UPDATE or Table
-write in the same query. Both the query separator and each postlude terminator
-are required.
+Command postludes may accompany one terminal record, store or Table Effect.
+All declarations in the text are checked as one Stage and one Effect Set,
+with one Checkpoint when approval is required. They do not imply execution
+ordering between members; dependent work uses separate Stages. Both the query
+separator and each postlude terminator are required.
 
 Lowering emits the existing `command` Effect with its original Result port,
 ResourceRef target, CommandContractRef and typed input. The common checker

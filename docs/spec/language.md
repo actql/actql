@@ -8520,10 +8520,10 @@ The output fields, in order, are exactly `name`, `content`, `media_type`,
 The barrier input CID is derivation evidence,
 not business data. Only the host
 Content Store may issue the `content_ref`. ActQL source MUST NOT contain
-bytes, base64, storage locators, or an author-supplied content CID. Upload,
-attachment, and
-resumable transfer remain Connector-owned typed `command` Effects over the
-resulting `content_ref`.
+bytes, base64, storage locators, or an author-supplied content CID.
+Object/file/stage persistence uses the Connector's typed `store` Effect over
+the resulting `content_ref`. Attachment, send and other declared operations
+use typed `command` Effects; neither kind serializes rows implicitly.
 
 `serialize` creates an Invocation-scoped immutable Content. Workspace
 persistence, retention, and later deletion are not serialization semantics;
@@ -8771,12 +8771,15 @@ The kind determines its authority class:
 - `delete` removes only addressed rows and carries no field changes;
 - `command` invokes one Connector-owned typed provider operation against
   named-result `resource_ref` values; it is not arbitrary HTTP or generic CRUD;
-- `store` persists one declared named result, or one private Table input for a
-  Table-capable Mapping.
+- `store` writes typed Content to a declared object, file or stage resource,
+  or persists typed rows into a declared table resource through its Mapping.
+  Object/file/stage inputs without `content_ref` are refused; serialization
+  is an explicit preceding operation.
 
 <!-- requirement-block: effects.every-data-effect-must-explicitly-declare-target-and-a-typed-qualified effects.every-command-must-explicitly-declare-a-resourceref-result-field-and effects.preview-must-enforce-that-limit-on-the-complete-resolved-scope -->
-Every data effect MUST explicitly declare `target` and a typed-qualified
-Mapping Contract reference in `mapping`. Every command MUST explicitly declare
+Every normalized data Effect MUST retain an explicit `target` and a
+typed-qualified Mapping Contract reference in `mapping`, whether authored in
+the long form or uniquely resolved from the published short-form binding. Every command MUST explicitly declare
 a ResourceRef result field and Command Contract.
 Effect `max_items` is an author guard as defined in [Author guards, resolved limits, and Plan facts](#resolved-limits), constraining the
 kind-specific scope units in [Preview strength, scope, and freshness](execution.md#preview-strength). Its resolved limit uses Result or literal

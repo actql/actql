@@ -465,6 +465,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/effect-outcome-wire.upsert-action",
+      "statement_sha256": "2fbba83466d81927ba4dd5e294563f73f45f372e1648ac71a6ab33af11f8acb1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "review-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/review-artifacts.approval-attestation-must-bind-both-effect-preview-cid-and-the-exact-review-projection-cid",
       "statement_sha256": "d3e7d8bc3435f197b30ab3498101d743af3418d295e7cd080a7ef7c4fbc6738f",
       "status": "pending",
@@ -741,7 +752,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "4782252fc1d9268901f93eb84304c6077d67e84de6c80002ce60f8467cd4c737",
+      "statement_sha256": "242cbc48cdf403f5db18ae227914af7083c7b690ed49083b9fa542db0715a741",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

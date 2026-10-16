@@ -1,15 +1,16 @@
 (* GoogleSQL-derived ActQL query surface. Semantic restrictions are in
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
 script        = query_body, ( [ ";" ] | ";", command_postlude, { command_postlude } ) ;
-query_body    = table_create_statement | [ with_clause ], ( sql_query | pipe_query ) ;
-(* A COMMAND postlude follows a semicolon-terminated query and references a
-   retained Result. It does not replace the existing terminal UPDATE syntax. *)
+query_body    = table_create_statement | dml_statement | [ with_clause ], ( sql_query | pipe_query ) ;
+(* A COMMAND postlude follows the query terminator and reads a retained Result.
+   It may coexist with one terminal Effect; all members form one Effect Set.
+   Semicolons do not admit arbitrary statement chaining. *)
 command_postlude = "EFFECT", identifier, "COMMAND", "FROM", "RESULT", identifier,
                    "AS", identifier, "TARGET", expression, "CONTRACT", identifier,
                    "INPUT", "(", [ effect_input, { ",", effect_input } ], ")", ";" ;
 effect_input = identifier, "=", expression ;
 
-query         = ( table_create_statement
+query         = ( table_create_statement | dml_statement
               | [ with_clause ], ( sql_query | pipe_query ) ), [ ";" ] ;
 (* Authored WITH bodies and ordinary parentheses are Pure. The common checker
    determines Relation/Graph/Vectors/Events; syntax does not issue a Carrier.
@@ -200,11 +201,29 @@ sga_value     = query_string | [ "+" | "-" ], numeric_token | "TRUE" | "FALSE"
               | "{", path, ":", query_string, "}" (* only a shorthand OrderKey position *) ;
 result_operator = "RESULT", identifier ;
 assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
-terminal_effect = terminal_update | [ "EFFECT", identifier ], table_create ;
+terminal_effect = terminal_update | terminal_insert | terminal_upsert
+                | terminal_delete | terminal_store | terminal_command
+                | [ "EFFECT", [ identifier ] ], table_create ;
 table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
-terminal_update = "EFFECT", [ identifier ], "UPDATE", "TARGET", query_string,
-                  "MAPPING", identifier, [ "FROM", "RESULT", identifier ],
-                  "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
+effect_prefix = "EFFECT", [ identifier ] ;
+record_target = path | "TARGET", query_string, "MAPPING", identifier ;
+effect_result = "FROM", "RESULT", identifier ;
+effect_set    = "SET", "(", assignment, { ",", assignment }, ")" ;
+terminal_update = effect_prefix, "UPDATE", record_target, [ effect_result ],
+                  "ID", path, effect_set ;
+terminal_upsert = effect_prefix, "UPSERT", record_target, [ effect_result ],
+                  "ID", path, effect_set ;
+terminal_delete = effect_prefix, "DELETE", record_target, [ effect_result ], "ID", path ;
+terminal_insert = effect_prefix, "INSERT", record_target, key_columns,
+                  [ "VALUES", "(", expression, { ",", expression }, ")" ] ;
+terminal_store = effect_prefix, "STORE", record_target, [ effect_set ] ;
+terminal_command = effect_prefix, "COMMAND", path, [ "TARGET", expression ],
+                   "ID", path, [ "INPUT", "(", [ effect_input, { ",", effect_input } ], ")" ] ;
+dml_statement = "UPDATE", path, "SET", assignment, { ",", assignment }, where_clause
+              | "DELETE", "FROM", path, where_clause
+              | "INSERT", "INTO", path, key_columns,
+                ( "VALUES", "(", expression, { ",", expression }, ")"
+                | [ with_clause ], ( sql_query | pipe_query ) ) ;
 (* Pipe WHERE permits supported inline window calls in its predicate. *)
 pipe_where_clause = "WHERE", expression ;
 (* Pipe SET permits supported inline window calls in assignment expressions. *)

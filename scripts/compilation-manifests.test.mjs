@@ -118,7 +118,12 @@ test('current query rules bind the manifest while prior rules retain their ident
   assert.equal(body.query_text_rules_sha256, sha(queryRules).slice(7));
   assert.equal(sha(canonicalText(body)), current);
   const integrated = read('scripts/fixtures/nearest-shorthand/manifest-identity.json');
-  assert.deepEqual({...body, grammar_manifest_cid: current}, integrated.manifest);
+  const {grammar_manifest_cid: integratedCid, ...integratedBody} = integrated.manifest;
+  assert.equal(integratedCid,
+    'sha256:8a917f82be481357f130f80f78c53f039dbf306b785233c800f978528d99a798');
+  assert.equal(sha(canonicalText(integratedBody)), integratedCid);
+  // This historical vector does not freeze later owner-approved syntax.
+  // The current grammar and rule bytes are bound independently above.
   const update = read('scripts/fixtures/private-update-capture/manifest-identity.json');
   const {grammar_manifest_cid: priorUpdate, ...priorUpdateBody} = update.after;
   assert.equal(priorUpdate, 'sha256:913d9e69aa87096a497cbf163a2fb9bb019b13a765f28792b734fa5f1a367361');
@@ -154,7 +159,8 @@ test('private UPDATE capture retains prior grammar identity and binds exact sour
   assert.equal(before.query_text_rules_sha256,
     '935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
   const grammar = readFileSync('spec/grammar/actql-query-0.1.ebnf', 'utf8');
-  assert.match(grammar, /terminal_update = "EFFECT", \[ identifier \], "UPDATE", "TARGET", query_string,\s+"MAPPING", identifier, \[ "FROM", "RESULT", identifier \],/u);
+  assert.match(grammar, /record_target = path \| "TARGET", query_string, "MAPPING", identifier/u);
+  assert.match(grammar, /terminal_update = effect_prefix, "UPDATE", record_target, \[ effect_result \]/u);
   assert.equal(sha(readFileSync('docs/spec/structural-text.md')),
     'sha256:' + vector.after.structural_text_rules_sha256);
   const unchanged = {...vector.after};
