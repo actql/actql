@@ -35,6 +35,8 @@ pub fn effect_header_issue_source(EffectHeaderIssue) -> @decode_core.Cursor
 
 pub fn effect_header_kind(EffectHeader) -> String
 
+pub fn effect_header_published_store_target(EffectHeader) -> (String, String)?
+
 pub fn effect_header_source_result(EffectHeader) -> String?
 
 pub fn effect_header_source_table_input(EffectHeader) -> String?
@@ -117,6 +119,7 @@ pub struct EffectHeader {
   contract_ref : String
   failure_policy : String
   body : @decode_core.Cursor
+  published_store : (String, String)?
 }
 
 pub struct EffectHeaderIssue {
