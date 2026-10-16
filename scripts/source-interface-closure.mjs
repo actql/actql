@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {existsSync, readFileSync, realpathSync} from 'node:fs';
 import {dirname, relative, resolve} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {providerBundleUrl} from '../adapters/host-node/installed-connectors.mjs';
 import {build} from 'esbuild';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
@@ -16,15 +18,18 @@ import {productionRuntimeModules} from '../adapters/workers/moon-runtime.mjs';
 import {pythonModuleInterfaces} from './python-interface-sources.mjs';
 
 export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = [],
-  reportUnresolvedEntrances = false} = {}) {
+  reportUnresolvedEntrances = false, authoredEntrances = []} = {}) {
   root = realpathSync(root);
-  const roots = distributionRoots, plans = runtimePackageInputs(root);
-  const local = localNodePackageInputs(root), artifacts = new Map();
+  const roots = distributionRoots, availablePlans = runtimePackageInputs(root);
+  const includesLocal = roots.some(value => value.name === '@actql/local-node');
+  const plans = Object.fromEntries(Object.keys(availablePlans).filter(name =>
+    roots.some(value => value.name === `@actql/${name}`)).map(name => [name, availablePlans[name]]));
+  const local = includesLocal ? localNodePackageInputs(root) : undefined, artifacts = new Map();
   for (const [name, plan] of Object.entries(plans)) {
     for (const file of plan.files) artifacts.set(resolve(root, file), {module: file,
       sourcePackages: plan.sources, build: `scripts/${plan.script}.mjs`, package: name});
   }
-  for (const file of local.runtimeFiles) {
+  for (const file of local?.runtimeFiles ?? []) {
     artifacts.set(resolve(root, '_build/js/release/build', file), {
       module: `_build/js/release/build/${file}`, sourcePackages: local.runtimePackages,
       build: 'scripts/build-local-node-assets.mjs', package: 'local-node'});
@@ -45,12 +50,12 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
     }
     artifacts.set(path, input);
   }
-  const includesLocal = roots.some(value => value.name === '@actql/local-node');
   const ownedAssets = includesLocal ? local.dataFiles : [];
   const commands = new Set(roots.flatMap(value => value.commands ?? []));
   const entrances = [...new Set([...roots.flatMap(value => value.entrances)
     .filter(path => !/\.d\.[cm]?ts$/u.test(path)),
-    ...(includesLocal ? local.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path))])];
+    ...(includesLocal ? local.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path)),
+    ...authoredEntrances])];
   const sourceEntrances = [], artifactReferences = new Set(), unresolvedEntrances = [];
   const dataEntrances = [], pythonEntrances = [], scriptEntrances = new Set();
   const copyReferences = new Map();
@@ -65,6 +70,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
     return source;
   }
   for (const entrance of entrances) {
+    assert(!relative(root, resolve(root, entrance)).startsWith('..'), `Escaped authored interface entrance: ${entrance}`);
     if (artifacts.has(resolve(root, entrance))) artifactReferences.add(resolve(root, entrance));
     else {
       const source = copiedSource(resolve(root, entrance));
@@ -97,7 +103,13 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       sourceEntrances.push(...plan.embeddedSources ?? []);
     }
   }
-  const graph = sourceEntrances.length ? await build({entryPoints: sourceEntrances, bundle: true,
+  const runtimeBindings = [], extraEntrances = new Set();
+  const parsed = new Map(), assetMap = new Map();
+  let graph;
+  do {
+  for (const entry of extraEntrances) if (!sourceEntrances.includes(entry)) sourceEntrances.push(entry);
+  extraEntrances.clear();
+  graph = sourceEntrances.length ? await build({entryPoints: sourceEntrances, bundle: true,
     packages: 'external', platform: 'node', format: 'esm', target: 'node22',
     metafile: true, write: false, absWorkingDir: root,
     outdir: resolve(root, '_build/unused-interface-discovery'),
@@ -115,7 +127,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
         if (source) return {path: source};
       });
     }}]}) : {metafile: {inputs: {}}};
-  const assets = [], modules = Object.keys(graph.metafile.inputs).sort().flatMap(path => {
+  for (const path of Object.keys(graph.metafile.inputs).sort()) {
     const module = relative(root, realpathSync(resolve(root, path)));
     assert(!module.startsWith('..'), `Escaped source interface: ${module}`);
     assert(!isConnectorTestFixture(module) && !/(?:\.test|_test|_wbtest)\./u.test(module),
@@ -123,13 +135,97 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
     const bytes = readFileSync(resolve(root, module));
     const sha256 = createHash('sha256').update(bytes).digest('hex');
     if (!/\.[cm]?[jt]sx?$/u.test(module) && !scriptEntrances.has(module)) {
-      assets.push({module, sha256, qualification: 'resolved-distribution-data'});
-      return [];
+      assetMap.set(module, {module, sha256, qualification: 'resolved-distribution-data'});
+      continue;
     }
-    return [{module, sha256,
+    if (parsed.has(module)) continue;
+    const admitTarget = specifier => {
+      const target = resolve(dirname(resolve(root, module)), specifier);
+      assert(!relative(root, target).startsWith('..'), `Escaped runtime interface: ${module}`);
+      if (artifacts.has(target)) artifactReferences.add(target);
+      else if (!sourceEntrances.includes(relative(root, target))) extraEntrances.add(relative(root, target));
+      return specifier;
+    };
+    const resolveRuntimeImport = reference => {
+      let targets;
+      if (reference.kind === 'module-url' || reference.kind === 'literal') {
+        if (!reference.specifier.startsWith('./') && !reference.specifier.startsWith('../')) return;
+        targets = [admitTarget(reference.specifier)];
+      } else if (reference.kind === 'package-resolution') {
+        const original = roots.find(value => module.startsWith(dirname(value.manifest) + '/'));
+        const target = roots.find(value => value.name === reference.specifier);
+        if (!original?.dependencies.includes(reference.specifier) || !target) return;
+        targets = [reference.specifier];
+      } else if (reference.kind === 'owner-projection') {
+        const owner = 'adapters/host-node/installed-connectors.mjs';
+        const importedFrom = (value, expected) => value?.source &&
+          relative(root, resolve(dirname(resolve(root, module)), value.source)) === expected;
+        const ownerCall = (value, name) => value?.kind === 'owner-call' && value.name === name && importedFrom(value, owner);
+        if (!importedFrom(reference, owner) || reference.name !== 'providerBundleUrl' ||
+            ![1, 2].includes(reference.arguments?.length)) return;
+        // Reuse the actual installed table Owner and normal checked manifest
+        // inventory. No provider names, target patterns or alternate table.
+        assert(readFileSync(resolve(root, owner)).equals(readFileSync(new URL('../' + owner, import.meta.url))),
+          'Runtime dependency Owner differs from its checked source');
+        const declared = () => local?.providerBundles.map(entry => ({providerBundle: entry.package}));
+        const runtimeTable = value => value?.kind === 'runtime-parameter' ||
+          value?.kind === 'alternatives' && value.values.length && value.values.every(runtimeTable);
+        function entries(value) {
+          if (value?.kind === 'alternatives') {
+            const choices = value.values.map(entries);
+            return choices.every(Array.isArray) ? choices.flat() : undefined;
+          }
+          if (value?.kind === 'object') {
+            const bundle = value.properties.providerBundle;
+            return bundle === undefined ? [{}] : bundle.kind === 'value' && typeof bundle.value === 'string'
+              ? [{providerBundle: bundle.value}] : undefined;
+          }
+          if (value?.kind === 'import' && value.name === 'installedConnectors' &&
+              importedFrom(value, 'adapters/connectors-builtin/installations.generated.mjs')) return declared();
+          if (value?.kind === 'array') {
+            const parts = value.values.map(part => entries(part?.kind === 'spread' ? part.value : part));
+            return parts.every(Array.isArray) ? parts.flat() : undefined;
+          }
+          if ((ownerCall(value, 'installedEffectTable') || ownerCall(value, 'installedConnectorTable')) &&
+              value.arguments.length === 1) return entries(value.arguments[0]);
+          if (ownerCall(value, 'installedConnectorFor') && value.arguments.length >= 2 && value.arguments.length <= 3) {
+            return entries(value.arguments[0]);
+          }
+          // Explicit tables are opaque, Owner-admitted runtime installations.
+          // Their selector's original role/handle obligation stays visible;
+          // this qualifies only the normal builder's finite compiled set, not
+          // an arbitrary foreign table or a new runtime installation.
+          if (ownerCall(value, 'installedConnectorForTable') && value.arguments.length >= 3 && value.arguments.length <= 4 &&
+              runtimeTable(value.arguments[0]) &&
+              value.arguments[1]?.kind === 'value' && ['source', 'effect'].includes(value.arguments[1].value)) return declared();
+        }
+        const actualEntries = entries(reference.arguments[0]);
+        if (!actualEntries) return;
+        let base = pathToFileURL(resolve(root, owner));
+        if (reference.arguments.length === 2) {
+          const actualBase = reference.arguments[1];
+          if (actualBase.kind === 'module-meta-url') base = pathToFileURL(resolve(root, module));
+          else if (actualBase.kind === 'value' && typeof actualBase.value === 'string') base = actualBase.value;
+          else return;
+        }
+        targets = [...new Set(actualEntries.flatMap(entry => {
+          const url = providerBundleUrl(entry, base);
+          if (url === undefined) return [];
+          const target = fileURLToPath(url);
+          assert(artifacts.has(target), `Unregistered provider runtime interface: ${target}`);
+          artifactReferences.add(target);
+          return [relative(dirname(resolve(root, module)), target).replace(/^(?!\.)/u, './')];
+        }))];
+      }
+      if (targets?.length) runtimeBindings.push({module, sourceSha256: sha256, reference, targets});
+      return targets;
+    };
+    parsed.set(module, {module, sha256,
       ...(/\.[cm]?tsx?$/u.test(module) ? typescriptInterface(bytes.toString('utf8'), module)
-        : javascriptInterface(bytes.toString('utf8')))}];
-  });
+        : javascriptInterface(bytes.toString('utf8'), {resolveRuntimeImport}))});
+  }
+  } while (extraEntrances.size);
+  const modules = [...parsed.values()], assets = [...assetMap.values()];
   const pythonAssets = [...new Set([...ownedAssets.filter(path => /\.pyi?$/u.test(path)), ...pythonEntrances])];
   modules.push(...pythonModuleInterfaces(root, pythonAssets));
   for (const module of new Set([...ownedAssets, ...dataEntrances])) {
@@ -144,7 +240,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   const types = typescriptInterfaceClosure(root, roots.flatMap(value => value.entrances)
     .filter(path => /\.d\.[cm]?ts$/u.test(path)));
   return {qualification: unresolvedEntrances.length ? 'incomplete-source-input-coverage' : 'source-input-coverage-only',
-    unresolvedEntrances, roots, modules: modules.sort((a, b) => a.module.localeCompare(b.module)),
+    unresolvedEntrances, runtimeBindings, roots, modules: modules.sort((a, b) => a.module.localeCompare(b.module)),
     assets: assets.sort((a, b) => a.module.localeCompare(b.module)), types, moon,
     copies: [...copyReferences.values()].sort((a, b) => a.destination.localeCompare(b.destination)),
     artifacts: [...artifactReferences].sort().map(path => artifacts.get(path))};

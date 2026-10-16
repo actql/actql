@@ -4,6 +4,7 @@
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
+  "scripts": {"prepack": "node ../../scripts/check-interface-owners.mjs --manifest packages/provider-ai-sdk/package.json"},
   "engines": {"node": ">=22"},
   "exports": {".": {"types": "./index.d.ts", "default": "./index.mjs"}},
   "files": ["_internal", "index.mjs", "index.d.ts", "LICENSE", "npm-shrinkwrap.json", "README.md"],

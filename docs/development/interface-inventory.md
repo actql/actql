@@ -53,6 +53,9 @@ record has the following fields:
 - `role`: one of `common-semantics`, `connector-semantics`, `physical-io`,
   `generated-binding`, `public-wire-codec`, `observation-presentation`.
 - `owner`: the existing responsible owner.
+- `responsibilityFacet`: `primary` for the original functional responsibility,
+  or `supplemental` for an additional representation reference. A supplemental
+  facet cannot replace a missing primary responsibility.
 - `exports`, `operations`: generated syntax inventory, including private helpers.
 - `contracts`: explicit groups of operation names and exports with references.
 
@@ -80,8 +83,50 @@ or accept Unknown as success to make inventory fresh.
 Compiler representation access additionally requires the generated-binding role
 and a matching owner-verified generated output digest, generator reference and
 read-only freshness reference. A `.generated` filename or comment is not proof.
-The caller must execute that generator owner's real freshness check; the reader
-does not execute commands embedded in declarations.
+The caller must execute `interfaceGenerationFreshness(root)`. Only that actual,
+immutable result in the same process and for the same source root can qualify
+compiler outputs. Omitted, `undefined`, or `null` input supplies no qualification;
+serialized sidecar DATA, copied proof records, and generator/freshness references
+cannot approve themselves. The reader does not execute commands embedded in
+declarations. Existing generated action projections retain their own original
+Owner references and actual action-generator freshness.
+
+Module-union `complete` and `primaryComplete` are distinct. Diagnostic
+`requireComplete: false` may report an incomplete set. Required admission uses
+`requireComplete: true` and refuses either missing registration or missing primary
+responsibility, even if a supplemental facet still mentions every module.
+
+## Required normal commands
+
+Run `npm run check:interfaces` for source-side admission from actual package and
+Python manifests, the ordinary builder inputs, and configured Vite metadata.
+`-- --manifest packages/sdk/package.json` selects an actual manifest and follows
+its declared workspace dependencies. This is a source/generation check, not an
+installed-product or all-interface completion receipt. A normal library build
+must precede a dependent application check when the ordinary export resolves a
+compiled library; a stale existing output is refused rather than silently used.
+
+The command requires exact reviewed source hashes, exports, all private
+operations, ten-attribute references and primary responsibilities. A newly
+reachable helper, new Python distribution, unresolved dependency, stale source,
+missing export or operation, and removal of a primary facet are failures of the
+ordinary command itself. Safe extraction may update the existing Owner's
+projection without changing its independent behavior oracle.
+
+`check:spec`, runtime-package builds and normal npm prepack paths require this
+admission. Python's ordinary product-wheel builder and the Native CLI artifact
+and release builders select their actual manifests through the same command/API.
+These are checkout build-tool requirements, not runtime install hooks for users.
+Normal staged release metadata still removes development prepack hooks. Native
+binary package staging retains its existing no-lifecycle-script policy.
+
+Runtime-dependent imports are never silently dropped. Lexical single-write
+references only provide candidate targets; the existing manifest/builder or
+installation Owner must map them to its actual dependency or artifact inventory.
+Unknown expressions, shadowed bindings and replaced targets remain unresolved.
+This does not prohibit a product's dynamic-loading API or prove its runtime
+behavior. Compiled modules stay bound to their compiler and production-source
+inputs rather than gaining a handwritten private-operation inventory.
 
 ## Verification layers
 
