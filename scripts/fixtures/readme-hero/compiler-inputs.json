@@ -112,7 +112,7 @@
         "version": "fixture",
         "connector_id": "models/fixture",
         "task_kind": "structured_generate",
-        "input_schema_cid": "sha256:735d8d91c33e902ce54d02b0f48fac4af82c3e3fd7c3fdc076676ce015d1110b",
+        "input_schema_cid": "sha256:531ab88e8c91e0fe1f1da1f28b82a4f11e9191216e65502ef6efdc6daf57072d",
         "input_contract": {
           "type": "object",
           "nullable": false,
@@ -123,7 +123,7 @@
               "nullable": false
             },
             "active_users": {
-              "type": "int64",
+              "type": "number",
               "nullable": false
             },
             "trend": {
@@ -172,7 +172,7 @@
         "tool_policy": "none",
         "streaming": false,
         "max_items": 2,
-        "contract_cid": "sha256:d913e3e79cef9f65f1c7250e4ca6cf9016ea87b23822e532fb4d907bfcd30782"
+        "contract_cid": "sha256:3c265f2f40fb328acd882856508c8358524f3094b1b8cb4d3ecb5f439198a564"
       }
     ],
     "host_policy_profile": {
@@ -201,9 +201,9 @@
         "version": "actql-capacity-host-policy/0.1"
       }
     },
-    "evidence_bundle_cid": "sha256:e58afc2f58b9c7c3bc9496fdfad593bb120a24ae0bdbc4cf41424be275bc5fcb"
+    "evidence_bundle_cid": "sha256:71323fec3c9abd74d70944f57da798a448adfa0fe440ed8bba1cf495f90abf41"
   },
-  "expected_environment_cid": "sha256:e58afc2f58b9c7c3bc9496fdfad593bb120a24ae0bdbc4cf41424be275bc5fcb",
+  "expected_environment_cid": "sha256:71323fec3c9abd74d70944f57da798a448adfa0fe440ed8bba1cf495f90abf41",
   "declarations": {
     "salesforce.accounts": {
       "carrier": "relation",
@@ -229,7 +229,7 @@
           "nullable": false
         },
         "active_users": {
-          "type": "int64",
+          "type": "number",
           "nullable": false
         },
         "trend": {
