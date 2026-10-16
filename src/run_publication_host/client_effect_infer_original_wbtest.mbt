@@ -39,23 +39,7 @@ fn selected_infer_original_fixture() -> (
     [],
     limits,
     update_targets=Some(publication),
-  )
-  if prepared is Err(Candidate(Computation(Closure(Joins(_))))) {
-    fail("selected Model original fixture: join requirements")
-  }
-  if prepared is Err(Candidate(Computation(cause))) {
-    raise cause
-  }
-  let prepared = match prepared {
-    Ok(value) => value
-    Err(Syntax(_)) => fail("selected Model original fixture: Syntax")
-    Err(Candidate(_)) => fail("selected Model original fixture: Candidate")
-    Err(Mapping(_)) => fail("selected Model original fixture: Mapping")
-    Err(Static(_)) => fail("selected Model original fixture: Static")
-    Err(Stage(_)) => fail("selected Model original fixture: Stage")
-    Err(Graph(_)) => fail("selected Model original fixture: Graph")
-    Err(TargetSelection(_)) => fail("selected Model original fixture: TargetSelection")
-  }
+  ).unwrap()
   let occurrence = prepared_client_effect_infer_occurrence(prepared).unwrap()
   let execution = client_infer_graph_test_execution(
     occurrence.owner,
@@ -69,7 +53,20 @@ fn selected_infer_original_fixture() -> (
     bounds.max_evidence_bytes,
     bounds.max_evidence_nodes,
     bounds.max_evidence_depth,
-  ).unwrap()
+  )
+  let component = match component {
+    Ok(value) => value
+    Err(UnsupportedProgram) => fail("selected Model original component: UnsupportedProgram")
+    Err(ForeignExecution) => fail("selected Model original component: ForeignExecution")
+    Err(InvalidDependency) => fail("selected Model original component: InvalidDependency")
+    Err(Execution(_)) => fail("selected Model original component: Execution")
+    Err(Input(_)) => fail("selected Model original component: Input")
+    Err(Mapping(_)) => fail("selected Model original component: Mapping")
+    Err(Result(_)) => fail("selected Model original component: Result")
+    Err(Encoding) => fail("selected Model original component: Encoding")
+    Err(ItemLimit(_)) => fail("selected Model original component: ItemLimit")
+    Err(Serialization(_)) => fail("selected Model original component: Serialization")
+  }
   let compilation = issue_prepared_client_effect_compilation(
     prepared,
     run_materials_manifests(),
