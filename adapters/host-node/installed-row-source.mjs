@@ -139,9 +139,19 @@ export async function installRowSourceAuthorization({accountConfiguration,
 // `responseHeaders` is the installation's declared response header names
 // (its `host-bundle.json`); the Site's `callResource` refuses, before any
 // credential use, an operation that would observe any other header.
+// Optional `admitsEffectTargetRead(binding, resource, operation)` belongs to
+// the same trusted installation. It validates the driver's exact original
+// physical binding and read operation; it cannot replace Checkpoint facts or
+// current/entry authority. The returned Site accepts that original decision
+// with `admitCheckpointEffectTargetRead(decision, binding, operation)`.
+// Each such approval adds a seven-field record, the bounded canonical binding
+// String and original binding/fence aliases in this Site's existing WeakMap.
+// Canonical comparison and signing overlap the original bounded inventory;
+// these controls do not supply a numerical reservation or physical close ACK.
 export async function openRowSourceCredentialSite({profile, principalId,
   authorization, connection, connectorRegistration, connectorRevision,
   runtimeBundleCid, commonMoon, resolveSecret, ca, admitsApprovalTarget,
+  admitsEffectTargetRead,
   responseHeaders = [],
   now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
   openCredentialJournal = openSqliteCredentialJournal}) {
@@ -156,7 +166,8 @@ export async function openRowSourceCredentialSite({profile, principalId,
       typeof admitsApprovalTarget !== 'function') {
     fail('InvalidRowSourceCredentialSite');
   }
-  if (!Array.isArray(responseHeaders) ||
+  if ((admitsEffectTargetRead !== undefined && typeof admitsEffectTargetRead !== 'function') ||
+      !Array.isArray(responseHeaders) ||
       responseHeaders.some(name => !text(name))) {
     fail('InvalidRowSourceCredentialSite');
   }
@@ -182,12 +193,15 @@ export async function openRowSourceCredentialSite({profile, principalId,
   const ensureOpen = () => {
     if (closing) fail('RowSourceSiteClosed');
   };
-  function sign({operation, runInvocationCid, dispatchRequestCid, maxUses}) {
+  function checkGrantRequest(runInvocationCid, dispatchRequestCid, maxUses) {
     if (!cidPattern.test(runInvocationCid ?? '') ||
         !cidPattern.test(dispatchRequestCid ?? '') ||
         !Number.isSafeInteger(maxUses) || maxUses < 1 || maxUses > 10_000) {
       fail('InvalidRowSourceGrantRequest');
     }
+  }
+  function sign({operation, runInvocationCid, dispatchRequestCid, maxUses}) {
+    checkGrantRequest(runInvocationCid, dispatchRequestCid, maxUses);
     const scope = Object.freeze({
       issuerAuthority: profile.credentialAuthorityId, principal: principalId,
       namespaceId: profile.namespaceId, environment: profile.environment,
@@ -210,6 +224,31 @@ export async function openRowSourceCredentialSite({profile, principalId,
     }
     return callHttpsCredentialResource(options);
   };
+  const bindingWire = value => canonicalValueJson(value, {dataKeys: true});
+  function synchronous(result) {
+    // Checkpoint currency/entry are synchronous Owner operations. An async
+    // callback cannot finish after a credential has already been issued.
+    if (result !== undefined) {
+      if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
+      fail('RowSourceEffectTargetReadApprovalNotAdmitted');
+    }
+  }
+  function currentEffectRead(approved) {
+    ensureOpen();
+    if (bindingWire(approved.binding) !== approved.wire) {
+      fail('RowSourceEffectTargetReadApprovalNotAdmitted');
+    }
+    const admitted = admitsEffectTargetRead(approved.binding, approved.resource, approved.operation);
+    if (admitted !== true) {
+      if (typeof admitted?.then === 'function') void Promise.resolve(admitted).catch(() => {});
+      fail('RowSourceEffectTargetReadApprovalNotAdmitted');
+    }
+    synchronous(approved.assertCurrent());
+    ensureOpen();
+    if (bindingWire(approved.binding) !== approved.wire) {
+      fail('RowSourceEffectTargetReadApprovalNotAdmitted');
+    }
+  }
   return Object.freeze({
     credential, connection, callResource,
     // Borrowed references observe this same Site's lifecycle, not a caller's
@@ -220,7 +259,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
     admitCheckpointReadApproval(decision) {
       ensureOpen();
       const facts = checkpointApprovalFacts(decision);
-      if (facts === undefined || decision.action !== 'dispatch' ||
+      if (facts === undefined || facts.kind === 'effect_target' || decision.action !== 'dispatch' ||
           decision.basis !== 'resumed_approval' ||
           decision.boundary !== 'acquisition' ||
           decision.tuple?.connection !== connection ||
@@ -235,12 +274,57 @@ export async function openRowSourceCredentialSite({profile, principalId,
       approvals.set(decision, decision.tuple.resource);
       return decision;
     },
+    // The existing Checkpoint continuation supplies this exact original
+    // decision and its live entry/current fences. The installed driver checks
+    // its own member/Site binding and read operation; matching DATA alone is
+    // never admission. Keep the original decision, not a replacement grant.
+    admitCheckpointEffectTargetRead(decision, physicalBinding, operation) {
+      ensureOpen();
+      const facts = checkpointApprovalFacts(decision);
+      if (typeof admitsEffectTargetRead !== 'function' || !text(operation) ||
+          facts?.kind !== 'effect_target' || decision.action !== 'dispatch' ||
+          decision.boundary !== 'acquisition' || facts.principalId !== principalId ||
+          !cidPattern.test(authorization.configurationCid ?? '') ||
+          !cidPattern.test(authorization.context?.contextCid ?? '') ||
+          facts.configurationCid !== authorization.configurationCid ||
+          facts.contextCid !== authorization.context.contextCid ||
+          decision.tuple?.connection !== connection || decision.tuple?.operation !== 'read' ||
+          facts.readTuple?.connection !== connection || facts.readTuple?.operation !== 'read' ||
+          facts.readTuple?.resource !== decision.tuple.resource ||
+          typeof facts.assertCurrent !== 'function' || typeof facts.enter !== 'function' ||
+          !Array.isArray(facts.physicalBindings)) {
+        fail('RowSourceEffectTargetReadApprovalNotAdmitted');
+      }
+      const wire = bindingWire(physicalBinding);
+      if (!facts.physicalBindings.some(binding => bindingWire(binding) === wire)) {
+        fail('RowSourceEffectTargetReadApprovalNotAdmitted');
+      }
+      const approved = Object.freeze({kind: 'effect_target', resource: decision.tuple.resource,
+        operation, binding: physicalBinding, wire,
+        assertCurrent: facts.assertCurrent, enter: facts.enter});
+      currentEffectRead(approved);
+      approvals.set(decision, approved);
+      return decision;
+    },
     issueReadGrant({operation, decision, resource, runInvocationCid,
       dispatchRequestCid, maxUses}) {
       ensureOpen();
       const approved = approvals.get(decision);
       if (approved !== undefined) {
-        if (approved !== resource) fail('RowSourceGrantNotAuthorized');
+        if (typeof approved === 'string') {
+          if (approved !== resource) fail('RowSourceGrantNotAuthorized');
+        } else {
+          if (approved.resource !== resource || approved.operation !== operation) {
+            fail('RowSourceGrantNotAuthorized');
+          }
+          // Validate before consuming the original one-shot entry. A malformed
+          // request cannot spend it; journal/signing failures after entry stay
+          // with the existing acquisition/capture cleanup and never reset it.
+          checkGrantRequest(runInvocationCid, dispatchRequestCid, maxUses);
+          currentEffectRead(approved);
+          synchronous(approved.enter());
+          currentEffectRead(approved);
+        }
       } else if (!authorization.issued(decision) ||
           decision.action !== 'dispatch' ||
           decision.boundary !== 'acquisition' ||

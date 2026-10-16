@@ -14,6 +14,8 @@ pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationReques
 
 pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]
 
+pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]
+
 pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]
 
 pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]

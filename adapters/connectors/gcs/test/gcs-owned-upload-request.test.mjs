@@ -9,6 +9,7 @@ import {prepareGcsCollectionTarget, prepareGcsCollectionUploadBinding} from '../
 import {admitGcsUploadObservation, prepareOwnedGcsMultipartUpload, ownedGcsUploadBody,
   recheckOwnedGcsUpload, ownedGcsUploadResponseMatches, sendOwnedGcsUpload,
   readGcsUploadTarget, projectOwnedGcsUploadResponse} from '../site/gcs-owned-upload-request.mjs';
+import {admitGcsUploadTargetObservation} from '../site/gcs-owned-upload-request.mjs';
 import {admitGcsObjectMetadata} from '../site/gcs-owned-object-request.mjs';
 
 const token = digit => `sha256:${digit.repeat(64)}`;
@@ -32,6 +33,8 @@ const existingBody = changes => Buffer.from(JSON.stringify({bucket: 'bucket', na
   generation: '9007199254740993', metageneration: '2', size: '7', ...changes}));
 const existing = (original, changes = {}) => admitGcsUploadObservation(moon, original,
   {name, statusCode: 200, body: existingBody(changes)});
+const targetResponse = (body, changes = {}) => ({headers: [], observation: {
+  accepted: true, useCid: token('e'), statusCode: 200, body, ...changes}});
 const prepare = (original, before, extra = {}) => prepareOwnedGcsMultipartUpload({moon,
   binding: original, before, contentBytes: content(), contentRefCid: token('f'), contentCid,
   mediaType: 'application/octet-stream', marker: token('d'), maxProjectionBytes: 8192, ...extra});
@@ -40,6 +43,89 @@ const authorization = changes => ({grant: {}, useId: 'explicit-test-counter', sc
 const send = (request, callResource, extra = {}) => sendOwnedGcsUpload({request, callResource,
   authorization: authorization(), credential: {explicitPhysicalCounterOnly: true},
   maxRequestBytes: 2048, maxResponseBytes: 8192, ...extra});
+
+test('original target metadata uses the same exact bytes and Int64 header agreement', () => {
+  const {binding: original} = binding();
+  const body = existingBody();
+  const response = {...targetResponse(body), headers: [['content-encoding', 'identity'],
+    ['x-goog-generation', '9007199254740993'], ['x-goog-metageneration', '2']]};
+  const before = admitGcsUploadTargetObservation(moon, original, name, response);
+  const request = prepare(original, before, {overwrite: true});
+  assert.equal(request.request_cid, prepare(original, existing(original), {overwrite: true}).request_cid);
+  assert.equal(request.generation, '9007199254740993');
+  assert.equal(response.observation.body, body);
+  for (const headers of [[['x-goog-generation', '9007199254740994']],
+    [['x-goog-metageneration', '3']], [['x-goog-generation', '09007199254740993']]]) {
+    assert.throws(() => admitGcsUploadTargetObservation(moon, original, name,
+      {...response, headers}), {code: 'GcsStaleUploadObservation'});
+  }
+});
+
+test('an unaccepted or unrecorded target reply cannot become an observed absent object', () => {
+  const {binding: original} = binding();
+  let calls = 0;
+  const observed = {...moon, gcsUploadTargetObservation(...args) {
+    calls++;
+    return moon.gcsUploadTargetObservation(...args);
+  }};
+  const body = Buffer.from('{"error":{"code":404}}');
+  for (const changes of [{accepted: false}, {accepted: undefined}, {useCid: undefined},
+    {useCid: 'not-a-use-observation'}, {statusCode: 0}]) {
+    assert.throws(() => admitGcsUploadTargetObservation(observed, original, name,
+      targetResponse(body, {statusCode: 404, ...changes})),
+    {code: 'GcsInvalidUploadTargetReadObservation'});
+  }
+  assert.equal(calls, 0);
+  const before = admitGcsUploadTargetObservation(observed, original, name,
+    targetResponse(body, {statusCode: 404}));
+  assert.equal(prepare(original, before).request_cid,
+    'sha256:6c286b44b63592dd69d7ab707b710fdf6b5bd0199594589d70fe9e27a535a4de');
+  assert.equal(calls, 1);
+});
+
+test('missing target-observation ABI refuses instead of falling back to body-only admission', () => {
+  const {binding: original} = binding();
+  const response = targetResponse(Buffer.from('{"error":{"code":404}}'), {statusCode: 404});
+  assert.throws(() => admitGcsUploadTargetObservation(
+    {...moon, gcsUploadTargetObservation: undefined}, original, name, response),
+  {code: 'GcsUploadTargetObservationUnavailable'});
+  assert.equal(response.observation.accepted, true);
+  assert.equal(response.observation.statusCode, 404);
+});
+
+test('transformed duplicate or contradictory target headers cannot establish absence', () => {
+  const {binding: original} = binding();
+  const response = targetResponse(Buffer.from('{}'), {statusCode: 404});
+  for (const headers of [[['content-encoding', 'gzip']], [['content-encoding', '']],
+    [['content-encoding', 'identity'], ['content-encoding', 'identity']],
+    [['x-goog-generation', '1']], [['x-goog-metageneration', '2']],
+    [['Content-Encoding', 'identity']], [['content-range', 'bytes 0-0/1']]]) {
+    assert.throws(() => admitGcsUploadTargetObservation(moon, original, name,
+      {...response, headers}), {code: 'GcsInvalidUploadInput'});
+  }
+  assert.throws(() => admitGcsUploadTargetObservation(moon, original, name,
+    {...response, headers: Array.from({length: 4}, () => ['content-encoding', 'identity'])}),
+  {code: 'GcsUploadCapacityExceeded'});
+  assert.throws(() => admitGcsUploadTargetObservation(moon, original, name,
+    {...response, headers: [['content-encoding', 'x'.repeat(metadata.maxBytes + 1)]]}),
+  {code: 'GcsUploadCapacityExceeded'});
+});
+
+test('target response refusal retains the same physical observation rather than retrying or clearing it', async () => {
+  const {binding: original} = binding();
+  const body = existingBody();
+  const responseHeaders = [['x-goog-metageneration', '3']];
+  let calls = 0;
+  const response = await readGcsUploadTarget({moon, binding: original, name,
+    authorization: authorization({operation: 'gcs:file:read'}), credential: {}, maxRequestBytes: 4096,
+    callResource: async () => { calls++;return {accepted: true, useCid: token('e'),
+      statusCode: 200, body, headers: responseHeaders}; }});
+  assert.throws(() => admitGcsUploadTargetObservation(moon, original, name, response),
+    {code: 'GcsStaleUploadObservation'});
+  assert.equal(calls, 1);
+  assert.equal(response.observation.body, body);
+  assert.equal(response.headers, responseHeaders);
+});
 
 test('real multipart owner preserves independent binary bytes and request CID without exposing marker Preview', () => {
   const {binding: original} = binding();

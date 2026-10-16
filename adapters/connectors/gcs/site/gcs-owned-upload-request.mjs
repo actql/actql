@@ -1,6 +1,7 @@
 // Physical projections borrow the same sealed provider request. They neither
 // acquire Content nor issue a Ref, permission, claim, receipt or retry policy.
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimePair} from '../../../host-common/compiler-binding.generated.mjs';
 import {invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
 
 const originals = new WeakMap();
@@ -37,6 +38,33 @@ export function admitGcsUploadObservation(moon, binding, {name, statusCode, body
   if (typeof name !== 'string' || !Number.isInteger(statusCode) ||
       statusCode < 100 || statusCode > 599) fail('GcsInvalidUploadAbiObservation');
   return gcsUploadResult(moon, moon.gcsUploadObservation(binding, name, statusCode, bytes(body)));
+}
+
+// The existing capture first retains the original physical response/charge.
+// This is DATA admission only: accepted/useCid are required port observations,
+// never proof of an Account decision, original dispatch or cleanup ACK.
+export function admitGcsUploadTargetObservation(moon, binding, name, response) {
+  if (typeof moon?.gcsUploadTargetObservation !== 'function') {
+    fail('GcsUploadTargetObservationUnavailable');
+  }
+  const observation = response?.observation;
+  if (typeof name !== 'string' || observation?.accepted !== true ||
+      !/^sha256:[0-9a-f]{64}$/u.test(observation.useCid ?? '') ||
+      !Number.isInteger(observation.statusCode) || observation.statusCode < 100 ||
+      observation.statusCode > 599 || !Array.isArray(response?.headers)) {
+    fail('GcsInvalidUploadTargetReadObservation');
+  }
+  if (response.headers.length > 3) fail('GcsUploadCapacityExceeded');
+  if (response.headers.some(pair =>
+        !Array.isArray(pair) || pair.length !== 2 ||
+        typeof pair[0] !== 'string' || typeof pair[1] !== 'string')) {
+    fail('GcsInvalidUploadTargetReadObservation');
+  }
+  // At most three pinned callback tuples; no provider payload is stringified,
+  // decoded or normalized by Node. The original bytes/headers stay retained.
+  return gcsUploadResult(moon, moon.gcsUploadTargetObservation(binding, name,
+    observation.statusCode, bytes(observation.body),
+    response.headers.map(([key, value]) => runtimePair(key, value))));
 }
 
 // The existing installed capture/Effect owns funding and retains this original
