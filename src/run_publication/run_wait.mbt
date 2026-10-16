@@ -42,11 +42,9 @@ pub fn run_wait_ready(
     Some(status) => status
     None => return Err(InvalidState)
   }
-  Ok(
-    generated_run_wait_stable(status) &&
-    match since {
-      None => true
-      Some(prior) => revision > prior
-    },
-  )
+  let newer = match since {
+    None => true
+    Some(prior) => revision > prior
+  }
+  Ok(generated_run_wait_stable(status) && newer)
 }
