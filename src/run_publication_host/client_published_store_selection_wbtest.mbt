@@ -152,6 +152,30 @@ fn published_selection_run(
 }
 
 ///|
+fn published_selection_mixed_materials_admit(
+  wire : String,
+  run_cid : String,
+  request : ClientRequestIdentity,
+) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
+  let (_, _, original_limits) = local_update_normalization_fixture()
+  let limits = {
+    ..original_limits,
+    max_members: 2,
+    effects: { ..original_limits.effects, max_members: 2, },
+  }
+  admit_client_effect_run_materials(
+    wire,
+    run_cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    run_materials_manifests(),
+    run_materials_limits(),
+    limits,
+    expected_request=Some(request),
+  )
+}
+
+///|
 test "published STORE selection preserves independent eight-field bytes and Plan Run projection" {
   let prepared = published_selection_prepare().unwrap()
   let expected =
@@ -235,10 +259,10 @@ test "valid mixed UPDATE and published STORE keep ordered separate original occu
     definition,
     request=Some(request),
   ).unwrap()
-  let restored = target_selection_materials_admit(
+  let restored = published_selection_mixed_materials_admit(
     material,
     @publication.publication_contract_identity(definition),
-    Some(request),
+    request,
   ).unwrap()
   assert_eq(
     restore_client_effect_run_target_selections(restored).unwrap(),
