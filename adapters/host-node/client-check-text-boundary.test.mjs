@@ -947,8 +947,9 @@ for (const entrance of ['local', 'http']) {
       assert.equal(outcome.report.verdict, 'undetermined');
       assert.deepEqual(outcome.report.scope, {kind: 'template_only'});
       const expected = {code: 'host_capacity_policy_required', facts: {
-        contract_cid: 'sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164',
-        schema_cid: 'sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3',
+        // Independent current contract/schema pins, adopted by #2456.
+        contract_cid: 'sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9',
+        schema_cid: 'sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265',
         schema_pointer: '/schema', supplier: 'checking_context_owner', stage: 'checking'}};
       assert.deepEqual(getCheckContextRequirements(outcome), [expected]);
       assert.deepEqual(outcome.report.reasons, []);

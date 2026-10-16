@@ -37,6 +37,7 @@ function fixture(states = [], publication = aliases) {
           ...(args[4] === undefined ? [] : [{document_id: 'parameter_declarations', revision: args[8], kind: 'structured', byte_length: Buffer.byteLength(args[4])}]),
           ...(args[5] === undefined ? [] : [{document_id: 'parameters', revision: args[9], kind: 'structured', byte_length: Buffer.byteLength(args[5])}])],
           requirements: [], scope: {kind: args[11]}, verdict: 'verified', reasons: [],
+          runnable: {verdict: 'yes', reasons: []},
           coverage: {limits: [], unresolved: []}}});
     },
     clientProgramCheckProgram: () => assert.fail('Text fixture must not check a structured Program'),

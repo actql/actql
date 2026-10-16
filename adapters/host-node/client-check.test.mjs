@@ -524,8 +524,11 @@ const withoutContext = (outcome, expectedAssertion) => {
   for (const input of outcome.report.inputs) assert.match(input.revision, /^rev:[0-9a-f]{64}$/u);
   // These original fixtures compare classification/coverage. Exact public
   // locations and retained inputs have their own independent vectors below.
+  // Runnable has actual text/Program Owner and Local/HTTPS vectors in
+  // client-check-text-boundary.test.mjs; do not replace this classification
+  // oracle with a verdict-derived expectation for that separate observation.
   const {reason_schema_cid, outcome_schema_cid, ...envelope} = outcome;
-  const {inputs, requirements, ...report} = outcome.report;
+  const {inputs, requirements, runnable, ...report} = outcome.report;
   return {...envelope, report: {...report, context_ref: '<ctx>',
     reasons: report.reasons.map(({location, facts, ...reason}) =>
       reason.code === 'supplied_value_type_mismatch' ? {code: 'supplied_value_invalid'} : reason)}};
