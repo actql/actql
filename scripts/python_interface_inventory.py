@@ -8,9 +8,11 @@ import argparse
 import ast
 import base64
 import csv
+import configparser
 import hashlib
 import io
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
@@ -93,6 +95,8 @@ def wheel_interfaces(path) -> dict:
         if len(by_name) != len(rows) or set(by_name) != files:
             raise ValueError('Incomplete wheel RECORD coverage')
         modules = []
+        entry_points = {}
+        unresolved_entrances = []
         for name in sorted(files):
             data = wheel.read(name)
             row = by_name[name]
@@ -102,13 +106,23 @@ def wheel_interfaces(path) -> dict:
                 expected = 'sha256=' + base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip('=')
                 if row[1] != expected or row[2] != str(len(data)):
                     raise ValueError('Wheel original digest mismatch: ' + name)
+            if name.endswith('.dist-info/entry_points.txt'):
+                parser = configparser.ConfigParser(interpolation=None, delimiters=('=',), strict=True)
+                parser.optionxform = str
+                parser.read_string(data.decode('utf-8'))
+                if entry_points:
+                    raise ValueError('Multiple wheel entry-point inventories')
+                entry_points = {section: dict(parser.items(section)) for section in parser.sections()}
+            if name.endswith('.pth') or '.data/scripts/' in name:
+                unresolved_entrances.append(name)
             if name.endswith(('.py', '.pyi')):
                 modules.append({'module': name, 'sha256': hashlib.sha256(data).hexdigest(),
                                 **python_interface(data.decode('utf-8'))})
-        return {'entrance': records[0], 'modules': modules}
+        return {'entrance': records[0], 'modules': modules, 'entry_points': entry_points,
+                'unresolved_entrances': unresolved_entrances}
 
 
-def source_projects(root: Path, files=None) -> dict:
+def source_projects(root: Path, files=None, read_source=None) -> dict:
     """Source-only projection of normal setuptools declarations, not a wheel PASS."""
     root = root.resolve()
     if files is None:
@@ -121,10 +135,12 @@ def source_projects(root: Path, files=None) -> dict:
         path = PurePosixPath(manifest)
         if path.name != 'pyproject.toml' or 'fixtures' in path.parts:
             continue
-        manifest_path = (root / manifest).resolve()
+        canonical = lambda path: path.resolve() if read_source is None else Path(os.path.abspath(path))
+        manifest_path = canonical(root / manifest)
         if not manifest_path.is_relative_to(root):
             raise ValueError('Escaped Python distribution manifest')
-        data = tomllib.loads(manifest_path.read_text())
+        data = tomllib.loads(manifest_path.read_text() if read_source is None
+                            else read_source(manifest).decode('utf-8'))
         project = data.get('project')
         if project is None:
             continue
@@ -134,25 +150,93 @@ def source_projects(root: Path, files=None) -> dict:
         discovery = data.get('tool', {}).get('setuptools', {}).get('packages', {}).get('find', {'where': ['.']})
         if not isinstance(discovery, dict) or not isinstance(discovery.get('where'), list) or not discovery['where']:
             raise ValueError('Unregistered Python distribution discovery: ' + manifest)
-        directories = [(root / path.parent / where).resolve() for where in discovery['where']]
+        directories = [canonical(root / path.parent / where) for where in discovery['where']]
         if any(not directory.is_relative_to(root) for directory in directories):
             raise ValueError('Escaped Python distribution source')
         members = []
+        bindings = {}
         for name in files:
             if not name.endswith(('.py', '.pyi')):
                 continue
-            source_path = (root / name).resolve()
+            source_path = canonical(root / name)
             if any(source_path.is_relative_to(directory) for directory in directories):
                 if not source_path.is_relative_to(root):
                     raise ValueError('Escaped Python interface member')
-                raw = source_path.read_bytes()
+                raw = source_path.read_bytes() if read_source is None else read_source(name)
                 members.append(name)
+                destinations = {source_path.relative_to(directory).as_posix()
+                                for directory in directories if source_path.is_relative_to(directory)}
+                if len(destinations) != 1:
+                    raise ValueError('Ambiguous Python distribution member: ' + name)
+                member = destinations.pop()
+                if member in bindings and bindings[member] != name:
+                    raise ValueError('Duplicate Python distribution member: ' + member)
+                bindings[member] = name
                 modules[name] = {'module': name, 'sha256': hashlib.sha256(raw).hexdigest(),
                                  **python_interface(raw.decode('utf-8'))}
+        entry_points = dict(project.get('entry-points', {}))
+        for group, key in [('console_scripts', 'scripts'), ('gui_scripts', 'gui-scripts')]:
+            if project.get(key):
+                if group in entry_points:
+                    raise ValueError('Conflicting Python entry-point inventory')
+                entry_points[group] = project[key]
         roots.append({'kind': 'python-wheel-source-candidate', 'name': project['name'], 'manifest': manifest,
-                      'entrances': sorted(members), 'scripts': project.get('scripts', {})})
+                      'entrances': sorted(members), 'scripts': project.get('scripts', {}),
+                      'bindings': bindings, 'entry_points': entry_points})
     return {'qualification': 'source-input-coverage-only', 'roots': roots,
             'modules': [modules[name] for name in sorted(modules)]}
+
+
+def wheel_source_correspondence(root: Path, wheel: Path, manifest: str, source: str,
+                                verified_components=None) -> dict:
+    """Compose RECORD with normal source discovery, after component validation.
+
+    The ordinary builder supplies only exact private members returned by its
+    existing runtime_wheel_components validator in this process. A prefix or
+    package name is never an exemption. This function does not validate engine
+    provenance or run Owner references; those remain separate required gates.
+    """
+    if re.fullmatch('[0-9a-f]{40}', source) is None:
+        raise ValueError('Invalid Python interface source identity')
+    # Read the selected Source's manifest and files, not today's checkout
+    # configuration applied retroactively to a retained wheel.
+    def original(path):
+        return subprocess.check_output(['git', 'show', source + ':' + path], cwd=root)
+    files = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', '-z', source],
+                                    cwd=root).decode().split('\0')
+    projects = source_projects(root, files, original)
+    selected = [value for value in projects['roots'] if value['manifest'] == manifest]
+    if len(selected) != 1:
+        raise ValueError('Unknown Python wheel source manifest')
+    bindings = selected[0]['bindings']
+    actual = wheel_interfaces(wheel)
+    if actual['unresolved_entrances']:
+        raise ValueError('Unbound executable wheel entrance: ' + actual['unresolved_entrances'][0])
+    if actual['entry_points'] != selected[0]['entry_points']:
+        raise ValueError('Changed wheel entry-point inventory')
+    original_components = {} if verified_components is None else verified_components
+    seen = set()
+    component_names = set()
+    for module in actual['modules']:
+        member = module['module']
+        if member in original_components:
+            if member in bindings or module['sha256'] != original_components[member]:
+                raise ValueError('Changed verified Python component: ' + member)
+            component_names.add(member)
+            continue
+        if member not in bindings:
+            raise ValueError('Unbound authored wheel interface: ' + member)
+        path = bindings[member]
+        if module['sha256'] != hashlib.sha256(original(path)).hexdigest():
+            raise ValueError('Changed authored wheel interface: ' + member)
+        seen.add(member)
+    if component_names != set(original_components):
+        raise ValueError('Missing verified Python components')
+    if seen != set(bindings):
+        raise ValueError('Missing authored wheel interfaces')
+    return {'qualification': 'normal wheel RECORD/source correspondence; not runtime acceptance',
+            'manifest': manifest, 'source': source, 'authored_modules': len(seen),
+            'verified_component_modules': len(component_names)}
 
 
 def module_interfaces(root: Path, names) -> list:
