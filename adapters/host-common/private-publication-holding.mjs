@@ -9,6 +9,32 @@ const pendingCleanup = owner => Object.assign(
     cleanupPending: true, cleanupHandle: owner},
 );
 
+// Check all diagnostic slots before attaching any of them. Extensibility does
+// not make existing own/inherited read-only properties or accessors writable.
+// Keep that original failure as the cause without invoking diagnostic setters
+// or replacing/recreating its custody owner.
+const writableFailure = error => {
+  if (error !== null && typeof error === 'object' && Object.isExtensible(error)) {
+    let writable = true;
+    for (const field of ['cleanupPending', 'cleanupHandle', 'reconciliationFailure']) {
+      let receiver = error;
+      while (receiver !== null) {
+        const descriptor = Object.getOwnPropertyDescriptor(receiver, field);
+        if (descriptor !== undefined) {
+          if (descriptor.writable !== true) writable = false;
+          break;
+        }
+        receiver = Object.getPrototypeOf(receiver);
+      }
+      if (!writable) break;
+    }
+    if (writable) return error;
+  }
+  const failure = new Error(error?.message, {cause: error});
+  if (typeof error?.code === 'string') failure.code = error.code;
+  return failure;
+};
+
 export function preparePrivatePublicationHolding(store, binding, rawBytes) {
   const raw = binding?.name === 'model_raw_response';
   if (!store || typeof (raw ? store.confirmModelRawEvidence :
@@ -85,6 +111,9 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
           await releaseUnused();
           record = existing;
           committed = true;
+          // The same Store confirmation and prepared cleanup both succeeded.
+          // Retire only this owner's aliases, not escaped handles or backing.
+          prepared = undefined;
           originalBytes = undefined;
           return existing;
         }
@@ -121,7 +150,10 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
         } catch (error) {
           let reconciled;
           try { reconciled = await confirm(); }
-          catch (failure) { error.reconciliationFailure = failure; }
+          catch (failure) {
+            error = writableFailure(error);
+            error.reconciliationFailure = failure;
+          }
           if (reconciled === undefined) throw error;
         }
         const verified = await confirm();
@@ -129,11 +161,13 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
         await releaseUnused();
         record = verified;
         committed = true;
+        prepared = undefined;
         originalBytes = undefined;
         return verified;
       })().catch(error => {
         if ((record !== undefined && !committed) || constructionCleanup !== undefined ||
             prepared?.some(handle => handle.status().pending === true)) {
+          error = writableFailure(error);
           error.cleanupPending = true;
           error.cleanupHandle = owner;
         }
@@ -158,11 +192,13 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
           await releaseUnused();
           record = existing;
           committed = true;
+          prepared = undefined;
           originalBytes = undefined;
           return false;
         }
         await releaseUnused();
         abandoned = true;
+        prepared = undefined;
         originalBytes = undefined;
         return true;
       })().finally(() => {
