@@ -155,6 +155,9 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     // evidence profiles (for example an Effect Set attestation).
     throw new TypeError('UnsupportedCheckpointAnswer');
   }
+  if (!validCheckpointPage({items: [summary]}, 1)) {
+    throw new TypeError('InvalidCheckpointAnswer');
+  }
   let evidence;
   if (decision === 'approved') {
     if (effect && !/^sha256:[0-9a-f]{64}$/u.test(
