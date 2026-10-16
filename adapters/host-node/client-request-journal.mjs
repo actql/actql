@@ -1908,8 +1908,8 @@ export function openClientRequestJournal(directory, {
       if (retained === undefined) return undefined;
       return Object.freeze({...retained.found,
         requestIdentity: retained.identity,
-        runDefinition: retainedRunDefinition(
-          retained.row, publicationControl, maxRunDefinitionWireBytes),
+        ...retainedRunFacts(retained.row, publicationControl,
+          maxRunDefinitionWireBytes, updateOriginalControl),
       });
     },
     // A resend can resolve an already accepted request before issuing a new
