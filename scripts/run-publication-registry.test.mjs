@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
+import {verifyIdentity} from './check-canonical-json.mjs';
 import {checkModelOriginalStorageBindingContract} from './model-original-storage-binding-contract.mjs';
 import {
   publicationRegistry,
@@ -9,6 +10,38 @@ import {
 } from './run-publication-registry.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
+
+test('Compiled Plan selection projection is optional and independently pinned', () => {
+  const vectors = read('portability/corpus/effect-target-selection-projection.json');
+  const schema = publicationSchemas().compiled_plan;
+  assert.equal(schema.additionalProperties, false);
+  assert.ok(!schema.required.includes('effect_target_selections_cid'));
+  assert.deepEqual(schema.properties.effect_target_selections_cid,
+    {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'});
+  assert.equal(machineCid(schema), vectors.schema_pins.compiled_plan.after);
+  const previous = structuredClone(schema);
+  delete previous.properties.effect_target_selections_cid;
+  assert.equal(machineCid(previous), vectors.schema_pins.compiled_plan.before);
+  const registry = publicationRegistry();
+  assert.equal(machineCid(registry), vectors.publication_registry_pins.after);
+  assert.equal(registry.reference_roles.compiled_plan.effect_target_selections_cid,
+    'external:executable-plan-effect-target-selections?');
+});
+
+test('independent Compiled Plan vectors preserve omission and bind the array CID', () => {
+  const vectors = read('portability/corpus/effect-target-selection-projection.json');
+  const selection = read('portability/corpus/effect-target-selection.json').cases[0];
+  assert.equal(vectors.selection_cid, selection.expected_cid);
+  assert.equal(machineCid(selection.preimage), vectors.selection_cid);
+  const cases = vectors.cases.filter(item => item.kind === 'compiled_plan');
+  for (const item of cases) {
+    verifyIdentity(item.preimage, item.expected_cid, item.expected_canonical_bytes);
+  }
+  assert.ok(!Object.hasOwn(cases[0].preimage, 'effect_target_selections_cid'));
+  assert.equal(cases[1].preimage.effect_target_selections_cid,
+    vectors.selection_cid);
+  assert.equal(new Set(cases.map(item => item.expected_cid)).size, cases.length);
+});
 
 test('original Model storage binding has its owned schema pin', () => {
   checkModelOriginalStorageBindingContract();

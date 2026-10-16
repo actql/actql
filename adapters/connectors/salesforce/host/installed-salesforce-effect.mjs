@@ -15,6 +15,8 @@ import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs'
 import {mkdir} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {refusedEffectPreparation} from
+  '../../../host-common/effect-preparation-result.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite, releaseSalesforceSite,
@@ -23,8 +25,11 @@ import {installSalesforceAuthorization, installedSalesforceSiteBinding,
 import {describeSalesforceGeneration, readPublicationFile,
   replacePublicationFile, restoreSalesforceGeneration,
   salesforceCheckEnvironment} from './salesforce-publication.mjs';
-import {createInstalledRowEffect} from
+import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
+  validateInstalledUpdateOwnerSelections} from
   '../../../host-node/installed-row-effect.mjs';
+import {assertUpdateTargetSelectionMembersCurrent} from
+  '../../../host-node/update-target-original-shape.mjs';
 import {installedConnectors} from
   '../../../connectors-builtin/installations.generated.mjs';
 import {salesforceRowEffectSite, salesforceWriteDriver} from
@@ -394,13 +399,42 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
         mapping.mappingCid === mappingCid),
       nextOccurrence, siteBindingCid,
       generationCid: installed.generationCid, limits})});
-  const targetReadInventory = ({moon: runMoon, prepared, unit}) => {
+  const targetReadInventory = ({moon: runMoon, prepared, unit: providedUnit, compilation,
+    updateTargetSelections, assertUpdateSelectionCurrent}) => {
     if (runMoon !== moon) fail('InvalidInstalledEffectTargetInventory');
+    const unit = providedUnit ?? salesforceEffectUnit(moon, compilation);
+    const selections = validateInstalledUpdateOwnerSelections(rowEffect,
+      updateTargetSelections, prepared);
+    if (selections !== undefined) {
+      const updates = membersOf(moon, prepared, installed, unit)
+        .filter(member => member.kind === 'update');
+      try {
+        if (typeof assertUpdateSelectionCurrent !== 'function') throw new TypeError('MissingOriginalCurrent');
+        assertUpdateTargetSelectionMembersCurrent(selections, updates.map(member => {
+          const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
+            prepared, unit.stageIndex, member.effectId, limits.planWork));
+          return {stage_index: unit.stageIndex, effect_id: runtimeField(descriptor, 1),
+            target_ref: runtimeField(descriptor, 3), mapping_ref: runtimeField(descriptor, 4),
+            mapping_cid: runtimeField(descriptor, 5)};
+        }), prepared);
+      } catch {
+        throw refusedEffectPreparation(Object.assign(
+          new Error('InstalledRowEffectInstallationChanged'),
+          {code: 'InstalledRowEffectInstallationChanged'}));
+      }
+      const result = assertUpdateSelectionCurrent();
+      if (typeof result?.then === 'function') {
+        void Promise.resolve(result).catch(() => {});
+        throw refusedEffectPreparation(Object.assign(
+          new Error('InstalledRowEffectInstallationChanged'),
+          {code: 'InstalledRowEffectInstallationChanged'}));
+      }
+    }
     return salesforceEffectTargetReadInventory({moon, prepared, unit,
       installed, site, connectorId});
   };
 
-  return Object.freeze({
+  return retainInstalledRowEffectAdapter(rowEffect, Object.freeze({
     environmentWire: installed.environment.wire,
     generationCid: installed.generationCid,
     targetReadAuthorization: Object.freeze({accountConfiguration,
@@ -418,8 +452,8 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
       mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}))),
     effectSelectors: rowEffect.effectSelectors,
     targetReadInventory,
-    prepareCaptured: input => rowEffect.prepareCaptured(input),
-    prepareRecovered: input => rowEffect.prepareRecovered(input),
+    prepareCaptured: rowEffect.prepareCaptured,
+    prepareRecovered: rowEffect.prepareRecovered,
     close: () => site.close(),
-  });
+  }));
 }

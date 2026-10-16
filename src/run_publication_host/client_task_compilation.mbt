@@ -102,6 +102,15 @@ fn finish_client_task_compilation(
   infers? : Array[ClientInferPlanGraph] = [],
   serialization? : ClientSerializationPlanGraph? = None,
 ) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue] {
+  // Project only the canonical selection in this exact executable Plan.
+  // No caller flag or reconstructed alias inventory can mark a Run.
+  let selection_cid = match
+    client_task_plan_target_selections_cid(
+      plan, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   guard parse_plan_identity_value(
       graph.wire,
       max_wire_bytes,
@@ -215,7 +224,12 @@ fn finish_client_task_compilation(
     @environment.compiler_aoa_contract_cid() +
     "\",\"aoa_logical_cid\":\"" +
     aoa_logical_cid +
-    "\"}"
+    "\"" +
+    (match selection_cid {
+      None => ""
+      Some(cid) => ",\"effect_target_selections_cid\":\"" + cid + "\""
+    }) +
+    "}"
   let compiled_plan = match
     @publication.seal_publication_contract(
       "compiled_plan", body, max_wire_bytes, max_nodes, max_depth,
@@ -244,6 +258,42 @@ fn finish_client_task_compilation(
     infers: retained,
     serialization,
   })
+}
+
+///|
+/// The executable Plan is already retained by the compiler. Hash its existing
+/// nonempty canonical tuple array without introducing another identity domain.
+fn client_task_plan_target_selections_cid(
+  plan : ClientTaskExecutablePlan,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String?, ClientTaskCompilationIssue] {
+  guard parse_plan_identity_value(
+      client_task_executable_plan_wire(plan),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    )
+    is Some(body) &&
+    @canonical.object_field(body, "execution_material") is Some(material) else {
+    return Err(Encoding)
+  }
+  match @canonical.object_field(material, "effect_target_selections") {
+    None => Ok(None)
+    Some(selection) => {
+      guard selection is @canonical.Array(values) &&
+        @canonical.array_count(values) > 0 else {
+        return Err(Encoding)
+      }
+      let cid = @canonical.cid_value(
+        selection, max_wire_bytes, max_nodes, max_depth,
+      ) catch {
+        _ => return Err(Encoding)
+      }
+      Ok(Some(cid))
+    }
+  }
 }
 
 ///|

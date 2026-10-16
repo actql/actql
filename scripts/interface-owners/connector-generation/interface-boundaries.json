@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e2e775f292fe963418f7624197f58e58d250e85c3b4dc54fd1f239b6e8dbd2bd",
+      "sha256": "6d756d58b530699cc394895212cc82219264143af0bdecd70f91f2f00bb3fe36",
       "exports": [
         "installedConnectors"
       ],
@@ -180,6 +180,10 @@
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
                 "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
               }
             ],
             "inputsOutputs": [
@@ -202,6 +206,10 @@
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
                 "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
               }
             ],
             "identity": [
@@ -224,6 +232,10 @@
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
                 "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
               }
             ],
             "ownership": [
@@ -246,6 +258,10 @@
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
                 "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
               }
             ],
             "synchronization": [
@@ -268,6 +284,10 @@
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
                 "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
               }
             ],
             "failure": [
@@ -290,6 +310,10 @@
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
                 "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
               }
             ],
             "cancellation": [
@@ -356,6 +380,10 @@
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
                 "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "export const installedConnectors = Object.freeze(["
               }
             ],
             "verification": [

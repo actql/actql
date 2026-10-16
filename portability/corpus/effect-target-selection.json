@@ -1,0 +1,598 @@
+{
+  "version": "actql-effect-target-selection-vectors/0.1",
+  "scope": "Independent canonical identity and admission inputs; not execution, authority, or full Executable Plan acceptance evidence.",
+  "cases": [
+    {
+      "id": "original",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:312e3ae46daa9cf148a228e668726d8f251e1f0035c796c882a51d76f3ba22db"
+    },
+    {
+      "id": "different check_environment_cid",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:0bc92ceb485fd55eb45d9f6b04b55a49c1ecde874decad4ddd80e7709fa165f8"
+    },
+    {
+      "id": "different effect_id",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update_again",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update_again\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:6374a1bfce09a1171cf11aad70723bb8b516bcb9eff474cfcf84eb92e256fc90"
+    },
+    {
+      "id": "different installation_binding_cid",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:800ce8ca4fff2287ac10eb8fafa972d6548241261b9090ee3add210666ea6c63"
+    },
+    {
+      "id": "different installation_owner_cid",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:3e0962b8f2f4d712db4bbb7fecdc015ec972584898ebd204d36fdc77f27088ff"
+    },
+    {
+      "id": "different mapping_cid",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:898b4661b618f265dd22e3776d732d2352bae86dccbf7dd73615f5f8e0f36732"
+    },
+    {
+      "id": "different mapping_ref",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v2",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v2\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:83d9923790637d855a6f13f296304af6ac73bdf9de81bb813e0207ba1d68e4f8"
+    },
+    {
+      "id": "different stage_index",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 1,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":1,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:b2af2c90ac4bd6a8881db244a202d33fcbd2503eadd38bcef21b55ae751cb2b5"
+    },
+    {
+      "id": "different target_ref",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/contact"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/contact\"}]",
+      "expected_cid": "sha256:fa586886a120a5b54edbd2b5390fb16c4610882732396dad155e8a010ac02b0c"
+    },
+    {
+      "id": "stage then UTF-16 occurrence order",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "a",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        },
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "😀",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        },
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        },
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "a",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 1,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"a\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"},{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"😀\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"},{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"},{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"a\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":1,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:601d5429233c07c8f36e3130010310c55a823acc80549f48c0e60f65819b126a"
+    },
+    {
+      "id": "same Effect id in another Stage",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 0,
+          "target_ref": "connector://crm/account"
+        },
+        {
+          "check_environment_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "installation_owner_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9",
+          "mapping_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mapping_ref": "mapping:crm.account.v1",
+          "stage_index": 1,
+          "target_ref": "connector://crm/account"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"},{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":1,\"target_ref\":\"connector://crm/account\"}]",
+      "expected_cid": "sha256:56646e17968b64931c0633fc69ddfdec662139c5f5f2a8472f1abd8d060ef433"
+    }
+  ],
+  "installation_owners": [
+    {
+      "id": "original installed row owner",
+      "preimage": {
+        "connector_registration": "update_target_fixture",
+        "connector_revision": "update_target_fixture/0.1",
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "connection": "fixture",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1",
+          "continuationBinding": "binding_cid"
+        },
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"connection\":\"fixture\",\"connector_registration\":\"update_target_fixture\",\"connector_revision\":\"update_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9"
+    },
+    {
+      "id": "different connector_registration",
+      "preimage": {
+        "connector_registration": "another_fixture",
+        "connector_revision": "update_target_fixture/0.1",
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "connection": "fixture",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1",
+          "continuationBinding": "binding_cid"
+        },
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"connection\":\"fixture\",\"connector_registration\":\"another_fixture\",\"connector_revision\":\"update_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:c7b1a606a1326a18a990de070e4c1381d334b3cc539b54a26dcfc8bca4623d47"
+    },
+    {
+      "id": "different connector_revision",
+      "preimage": {
+        "connector_registration": "update_target_fixture",
+        "connector_revision": "update_target_fixture/revised",
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "connection": "fixture",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1",
+          "continuationBinding": "binding_cid"
+        },
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"connection\":\"fixture\",\"connector_registration\":\"update_target_fixture\",\"connector_revision\":\"update_target_fixture/revised\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:f5049970743f8a74b7213e0c0ed03a253a080cf3c87b508570fdc6802ad7b683"
+    },
+    {
+      "id": "different runtime_bundle_cid",
+      "preimage": {
+        "connector_registration": "update_target_fixture",
+        "connector_revision": "update_target_fixture/0.1",
+        "runtime_bundle_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "connection": "fixture",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1",
+          "continuationBinding": "binding_cid"
+        },
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"connection\":\"fixture\",\"connector_registration\":\"update_target_fixture\",\"connector_revision\":\"update_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"}",
+      "expected_cid": "sha256:f704392a657f5a46055bf7c1c015feca780721893f23a560295d8dea35934b20"
+    },
+    {
+      "id": "different binding_cid",
+      "preimage": {
+        "connector_registration": "update_target_fixture",
+        "connector_revision": "update_target_fixture/0.1",
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "connection": "fixture",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1",
+          "continuationBinding": "binding_cid"
+        },
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"connection\":\"fixture\",\"connector_registration\":\"update_target_fixture\",\"connector_revision\":\"update_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:43e8d2cb0412ff9c43c198362a77b6f21dd55251f213b2a9d72638b59967caca"
+    },
+    {
+      "id": "different connection",
+      "preimage": {
+        "connector_registration": "update_target_fixture",
+        "connector_revision": "update_target_fixture/0.1",
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "connection": "another",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1",
+          "continuationBinding": "binding_cid"
+        },
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"connection\":\"another\",\"connector_registration\":\"update_target_fixture\",\"connector_revision\":\"update_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:d2f18dfb49461a76aeb254e71912feb3e96aad621f70aa690a3e48892d99141e"
+    },
+    {
+      "id": "different profile",
+      "preimage": {
+        "connector_registration": "update_target_fixture",
+        "connector_revision": "update_target_fixture/0.1",
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "connection": "fixture",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1",
+          "continuationBinding": "generation_cid"
+        },
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"connection\":\"fixture\",\"connector_registration\":\"update_target_fixture\",\"connector_revision\":\"update_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"generation_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:d54dccc6d40e6dc90936944b1f6e68fe7986fe4035aab5f58d483b961b2334fc"
+    },
+    {
+      "id": "different continuation_binding",
+      "preimage": {
+        "connector_registration": "update_target_fixture",
+        "connector_revision": "update_target_fixture/0.1",
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "connection": "fixture",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1",
+          "continuationBinding": "binding_cid"
+        },
+        "continuation_binding": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"connection\":\"fixture\",\"connector_registration\":\"update_target_fixture\",\"connector_revision\":\"update_target_fixture/0.1\",\"continuation_binding\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:d77424806e4ab69efc9d17b112cb874f4b2dddecd0eced2a686200dbfba1e765"
+    }
+  ],
+  "equivalent_spellings": {
+    "full": "UPDATE TARGET \"connector://crm/account\" MAPPING mapping:crm.account.v1",
+    "short": "UPDATE crm.account",
+    "selection_case": "original",
+    "condition": "The same concrete target, Mapping, Check Environment and installed owner were selected; spellings are not identity material."
+  },
+  "invalid": [
+    {
+      "id": "empty array",
+      "wire": "[]",
+      "obligation": "nonempty"
+    },
+    {
+      "id": "null context",
+      "wire": "null",
+      "obligation": "array"
+    },
+    {
+      "id": "object context",
+      "wire": "{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}",
+      "obligation": "array"
+    },
+    {
+      "id": "missing check_environment_cid",
+      "wire": "[{\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "missing effect_id",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "missing installation_binding_cid",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "missing installation_owner_cid",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "missing mapping_cid",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "missing mapping_ref",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "missing stage_index",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "missing target_ref",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0}]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "alias included",
+      "wire": "[{\"alias\":\"crm.accounts\",\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "null entry",
+      "wire": "[null]",
+      "obligation": "closed_entry"
+    },
+    {
+      "id": "invalid stage -1",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":-1,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "stage_index"
+    },
+    {
+      "id": "invalid stage 0.5",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0.5,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "stage_index"
+    },
+    {
+      "id": "invalid stage 0",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":\"0\",\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "stage_index"
+    },
+    {
+      "id": "invalid stage None",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":null,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "stage_index"
+    },
+    {
+      "id": "invalid stage True",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":true,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "stage_index"
+    },
+    {
+      "id": "invalid check_environment_cid",
+      "wire": "[{\"check_environment_cid\":\"sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "canonical_cid"
+    },
+    {
+      "id": "invalid installation_binding_cid",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "canonical_cid"
+    },
+    {
+      "id": "invalid installation_owner_cid",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "canonical_cid"
+    },
+    {
+      "id": "invalid mapping_cid",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "canonical_cid"
+    },
+    {
+      "id": "empty effect_id",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "nonempty_name"
+    },
+    {
+      "id": "empty mapping_ref",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "nonempty_name"
+    },
+    {
+      "id": "empty target_ref",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"\"}]",
+      "obligation": "nonempty_name"
+    },
+    {
+      "id": "duplicate identical occurrence",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"},{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "unique_occurrence"
+    },
+    {
+      "id": "duplicate changed occurrence",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"},{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "unique_occurrence"
+    },
+    {
+      "id": "reversed Stage order",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":1,\"target_ref\":\"connector://crm/account\"},{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "occurrence_order"
+    },
+    {
+      "id": "Unicode scalar order is not UTF-16 order",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"},{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"😀\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "occurrence_order"
+    },
+    {
+      "id": "noncanonical spacing",
+      "wire": "[{\"check_environment_cid\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"effect_id\": \"update\", \"installation_binding_cid\": \"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\", \"installation_owner_cid\": \"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\", \"mapping_cid\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"mapping_ref\": \"mapping:crm.account.v1\", \"stage_index\": 0, \"target_ref\": \"connector://crm/account\"}]",
+      "obligation": "canonical_bytes"
+    },
+    {
+      "id": "duplicate JSON member",
+      "wire": "[{\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"installation_owner_cid\":\"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9\",\"mapping_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"mapping_ref\":\"mapping:crm.account.v1\",\"stage_index\":0,\"stage_index\":0,\"target_ref\":\"connector://crm/account\"}]",
+      "obligation": "canonical_bytes"
+    },
+    {
+      "id": "malformed JSON",
+      "wire": "[",
+      "obligation": "json"
+    }
+  ],
+  "budgets": {
+    "max_bytes": 65536,
+    "max_nodes": 8192,
+    "max_depth": 4
+  },
+  "schema_pins": {
+    "executable_plan": {
+      "before": "sha256:17dce64a7870981c6e3325c69baf3f6264f3089974074754924a1b7bad62a3b1",
+      "after": "sha256:efe5ffe7024c7504fb51f3544dc17d3fa1f577f503d062cec9841ab3058c2dab"
+    },
+    "plan_document": {
+      "before": "sha256:2637cd5d00773adb47009f785bf1d14e80193b6b26ba43685eb03802e2c9ef78",
+      "after": "sha256:4439bfe5ec447de3ddb7563b65eb19260405392f58d8330e413808f1f82bffb9"
+    }
+  },
+  "artifact_registry_pins": {
+    "before": "sha256:ab482e2202efda095657590579037326bbe4e8c341190dc5ae115d9e44c9a065",
+    "after": "sha256:a61846b237ac7ce9f58569f4ecd2aba1b6621c04458fac80c9ad29c4526240ac"
+  }
+}

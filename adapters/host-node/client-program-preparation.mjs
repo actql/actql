@@ -85,13 +85,14 @@ function serializeProgram({kind, input, parameters}) {
 
 export function installNodeClientProgramPreparation({moon, environment,
   allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows, check,
-  verifyRequestValuePolicy}) {
+  verifyRequestValuePolicy, restoreEffectOriginal}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
       typeof moon.clientProgramPreparationIssueCode !== 'function' ||
       environment === undefined || typeof allowEffects !== 'boolean' ||
       !Array.isArray(effectEvidence) || effectEvidence.length > 1024 ||
+      (restoreEffectOriginal !== undefined && typeof restoreEffectOriginal !== 'function') ||
       (check !== undefined && typeof check !== 'function') ||
       (verifyRequestValuePolicy !== undefined &&
         (typeof verifyRequestValuePolicy !== 'function' ||
@@ -246,6 +247,17 @@ export function installNodeClientProgramPreparation({moon, environment,
     return prepare(request, selected);
   };
   return Object.freeze(Object.assign(verified, {
+    // Only the installed Host passes an original from its existing verified
+    // Checkpoint custody. Public submit objects never enter this method.
+    restoreOriginal(original) {
+      if (!allowEffects || restoreEffectOriginal === undefined) fail('ClientProgramUnsupported');
+      const restored = restoreEffectOriginal(original);
+      if (restored?.prepared === undefined || restored?.compilation === undefined) {
+        fail('ClientProgramPreparationFailure');
+      }
+      effectOwned.add(restored.prepared);
+      return restored.prepared;
+    },
     sourceCheckFailure(error) {return sourceCheckFailures.has(error);},
     assertOwned(prepared) {
       if (!owned.has(prepared) && !effectOwned.has(prepared)) {

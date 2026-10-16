@@ -615,11 +615,16 @@ pub(all) enum UnpivotRowLabel {
 
 pub(all) struct UpdateEffectClause {
   name : NamePart?
-  target : String
-  mapping : NamePart
+  target : UpdateEffectTarget
+  mapping : NamePart?
   result : NamePart?
   id : NamePart
   set : Array[(NamePart, Expression)]
+}
+
+pub(all) enum UpdateEffectTarget {
+  ConcreteTarget(String)
+  LogicalTarget(Array[NamePart])
 }
 
 // Type aliases

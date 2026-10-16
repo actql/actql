@@ -234,7 +234,9 @@ pub fn check_run_publication_program_binding(
     contract_string(run_definition, "invocation_template_cid") !=
     Some(admission.template.identity) ||
     contract_string(run_definition, "authorization_context_cid") !=
-    Some(admission.authorization_context_cid) {
+    Some(admission.authorization_context_cid) ||
+    publication_contract_effect_target_selections_cid(run_definition) !=
+    publication_contract_effect_target_selections_cid(admission.compiled_plan) {
     return Err(RunProgramForeignRun)
   }
   guard contract_string(run_definition, "created_at") is Some(created_at) &&
@@ -299,7 +301,9 @@ pub fn run_publication_start_current(
   valid_until <= admission.expires_at &&
   plan_cid == admission.compiled_plan_cid &&
   template_cid == admission.template.identity &&
-  context_cid == admission.authorization_context_cid
+  context_cid == admission.authorization_context_cid &&
+  publication_contract_effect_target_selections_cid(run_definition) ==
+  publication_contract_effect_target_selections_cid(admission.compiled_plan)
 }
 
 ///|
@@ -373,6 +377,13 @@ pub fn issue_run_definition(
     @encode.string_value(writer, admission.compiled_plan_cid)
     @encode.key(writer, "created_at")
     @encode.string_value(writer, created_at)
+    if publication_contract_effect_target_selections_cid(
+        admission.compiled_plan,
+      )
+      is Some(selection_cid) {
+      @encode.key(writer, "effect_target_selections_cid")
+      @encode.string_value(writer, selection_cid)
+    }
     @encode.key(writer, "input_artifact_set_cid")
     @encode.string_value(writer, input_artifact_set_cid)
     @encode.key(writer, "invocation_template_cid")
@@ -447,7 +458,9 @@ pub fn resolve_run_local_result_evidence_refs(
     contract_string(run_definition, "invocation_template_cid") !=
     Some(admission.template.identity) ||
     contract_string(run_definition, "authorization_context_cid") !=
-    Some(admission.authorization_context_cid) {
+    Some(admission.authorization_context_cid) ||
+    publication_contract_effect_target_selections_cid(run_definition) !=
+    publication_contract_effect_target_selections_cid(admission.compiled_plan) {
     return Err(ForeignRun)
   }
   if invocation.name != "run_invocation" ||

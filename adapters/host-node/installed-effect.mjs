@@ -17,7 +17,7 @@ import {open, readFile} from 'node:fs/promises';
 import {isAbsolute, join} from 'node:path';
 import {canonicalJson} from './local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
-import {composeInstalledEffects, validPluralEffectPaths}
+import {composeInstalledEffects, installedUpdateTargets, validPluralEffectPaths}
   from './installed-effect-inventory.mjs';
 import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
 export {installedEffectFor} from './installed-effect-inventory.mjs';
@@ -103,6 +103,31 @@ async function selectInstallation(profile, connectorTable) {
   return {entry, module: await loadInstalledEffectModule(entry)};
 }
 
+// Host-owned positive names are separate from the provider's closed profile.
+// Preserve exact semantic strings; configuration canonicalization may use NFC.
+function splitUpdateTargetProfile(profile) {
+  if (profile === null || typeof profile !== 'object' || Array.isArray(profile)) {
+    refuse('InvalidInstalledEffectProfile');
+  }
+  const {queryUpdateTargets = [], ...providerProfile} = profile;
+  if (!Array.isArray(queryUpdateTargets) || queryUpdateTargets.length > 1024 ||
+      Buffer.byteLength(JSON.stringify(queryUpdateTargets)) > 1024 * 1024) {
+    refuse('InvalidInstalledUpdateTargets');
+  }
+  const aliases = Object.freeze(queryUpdateTargets.map(entry => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry) ||
+        Object.keys(entry).sort().join('\0') !== 'name\0targetRef' ||
+        typeof entry.name !== 'string' || entry.name.length === 0 ||
+        entry.name.length > 1024 || !entry.name.isWellFormed() ||
+        typeof entry.targetRef !== 'string' || entry.targetRef.length === 0 ||
+        entry.targetRef.length > 4096 || !entry.targetRef.isWellFormed()) {
+      refuse('InvalidInstalledUpdateTargets');
+    }
+    return Object.freeze({...entry});
+  }));
+  return {providerProfile, queryUpdateTargets: aliases};
+}
+
 // The Site binds its capability attestation and credential grants to the
 // exact standard runtime this Host executes.
 const runtimeBundleCid = async runtimeUrl => `sha256:${createHash('sha256')
@@ -120,9 +145,10 @@ async function providerRuntime(entry, runtimeUrl) {
 // never an access token; no profile contents are returned to the caller.
 export async function installedEffectIdentity(path, {connectorTable} = {}) {
   const profile = await readProfile(path);
+  const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
   const {entry, module} = await selectInstallation(profile, connectorTable);
-  module.check(profile);
-  const parts = await module.identityParts(profile, readProfileJson, entry);
+  module.check(providerProfile);
+  const parts = await module.identityParts(providerProfile, readProfileJson, entry);
   if (!Array.isArray(parts) || parts.length === 0) {
     refuse('InvalidInstalledEffectProfile');
   }
@@ -133,6 +159,15 @@ export async function installedEffectIdentity(path, {connectorTable} = {}) {
     hash.update('\0');
     hash.update(canonical);
   }
+  if (queryUpdateTargets.length !== 0) {
+    // The Host pins the original registration, not an authority-filtered view.
+    // Omission and an empty list retain the historical Effect identity.
+    const exact = JSON.stringify(['actql-installed-query-update-targets/0.1',
+      queryUpdateTargets.map(entry => [entry.name, entry.targetRef])]);
+    hash.update(String(Buffer.byteLength(exact)));
+    hash.update('\0');
+    hash.update(exact);
+  }
   return `sha256:${hash.digest('hex')}`;
 }
 
@@ -142,11 +177,12 @@ export async function installedEffectIdentity(path, {connectorTable} = {}) {
 export async function publishInstalledEffectProfile(path, {root, principalId,
   moon, runtimeUrl, baseEnvironmentWire, resolveSecret, signal, connectorTable}) {
   const profile = await readProfile(path);
+  const {providerProfile} = splitUpdateTargetProfile(profile);
   const {entry, module} = await selectInstallation(profile, connectorTable);
   if (module.publish === undefined) {
     refuse('InstalledEffectPublicationUnsupported');
   }
-  return module.publish(module.check(profile), {root, principalId, moon,
+  return module.publish(module.check(providerProfile), {root, principalId, moon,
     baseEnvironmentWire, resolveSecret, signal, installation: entry,
     ...await providerRuntime(entry, runtimeUrl)});
 }
@@ -158,8 +194,9 @@ export async function publishInstalledEffectProfile(path, {root, principalId,
 async function loadEffect(path, {root, principalId, moon,
   runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable}, own) {
   const profile = await readProfile(path);
+  const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
   const {entry, module} = await selectInstallation(profile, connectorTable);
-  const installed = await module.load(module.check(profile), {root,
+  const installed = await module.load(module.check(providerProfile), {root,
     principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
     ledgerRoot: join(root, 'state', 'effects', 'ledger'),
     ...await providerRuntime(entry, runtimeUrl)});
@@ -174,6 +211,7 @@ async function loadEffect(path, {root, principalId, moon,
   return retainInstalledRowEffectAdapter(installed, Object.freeze({environmentWire: installed.environmentWire,
     connectorBindings: installed.connectorBindings,
     effectSelectors: installed.effectSelectors,
+    queryUpdateTargets: installedUpdateTargets(installed, queryUpdateTargets),
     queryTableBindings: installed.queryTableBindings,
     queryTableWriteAccesses: installed.queryTableWriteAccesses,
     mappings: installed.mappings,

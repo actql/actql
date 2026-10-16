@@ -13,7 +13,40 @@ import {
   runStateSchema,
 } from './run-publication-contracts.mjs';
 import {machineCid} from './actql-spec-family.mjs';
-import {canonicalText} from './check-canonical-json.mjs';
+import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
+
+test('Run Definition optional selection projection preserves the old shape', () => {
+  const vectors = read('portability/corpus/effect-target-selection-projection.json');
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const schema = registry.artifact_schemas.run_definition;
+  assert.equal(schema.additionalProperties, false);
+  assert.ok(!schema.required.includes('effect_target_selections_cid'));
+  assert.deepEqual(schema.properties.effect_target_selections_cid,
+    {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'});
+  assert.equal(machineCid(schema), vectors.schema_pins.run_definition.after);
+  const previous = structuredClone(schema);
+  delete previous.properties.effect_target_selections_cid;
+  assert.equal(machineCid(previous), vectors.schema_pins.run_definition.before);
+  assert.equal(registry.artifact_registry_cid,
+    vectors.artifact_registry_pins.after);
+});
+
+test('independent Run vectors bind admitted compilation and original selection', () => {
+  const vectors = read('portability/corpus/effect-target-selection-projection.json');
+  const cases = vectors.cases.filter(item => item.kind === 'run_definition');
+  for (const item of cases) {
+    verifyIdentity(item.preimage, item.expected_cid, item.expected_canonical_bytes);
+  }
+  const selected = vectors.cases.find(item => item.id === 'selected Run');
+  const compiled = vectors.cases.find(item => item.id === 'selected compilation');
+  assert.equal(selected.preimage.compiled_plan_cid, compiled.expected_cid);
+  assert.equal(selected.preimage.effect_target_selections_cid,
+    vectors.selection_cid);
+  assert.ok(!Object.hasOwn(cases[0].preimage, 'effect_target_selections_cid'));
+  assert.equal(new Set(cases.map(item => item.expected_cid)).size, cases.length);
+  // The separate binding matrix is input for Core admission tests; these
+  // source identity checks alone do not execute start or captured Store reads.
+});
 
 test('Command Preview and review retain the closed ResourceRef target schema', () => {
   const registry = read('spec/contracts/actql-protocol-schemas.json');

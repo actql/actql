@@ -2127,7 +2127,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-      "sha256": "959c6854e9bed5891b5373de7108831310c842645502234799ddca5f9522cfac",
+      "sha256": "68d81095d50b3015dd221e2a9bf46c78fc735f5e7c994465947323421b6f35cf",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Effect installation/publication/Mapping and target-read inventory; Common row Effect governs the Set",
@@ -2246,20 +2246,6 @@
         },
         {
           "name": "installedSalesforceEffect/installedSalesforceEffect#2",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceEffect/installedSalesforceEffect#3",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceEffect/installedSalesforceEffect#4",
           "parameters": [],
           "async": false
         },
@@ -2303,7 +2289,29 @@
           "parameters": [
             "runMoon",
             "prepared",
-            "unit"
+            "providedUnit",
+            "compilation",
+            "updateTargetSelections",
+            "assertUpdateSelectionCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceEffect/targetReadInventory/targetReadInventory/targetReadInventory",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceEffect/targetReadInventory/targetReadInventory/targetReadInventory#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceEffect/targetReadInventory/targetReadInventory/updates/updates",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
@@ -2532,8 +2540,6 @@
             "installedSalesforceEffect",
             "installedSalesforceEffect/installedSalesforceEffect",
             "installedSalesforceEffect/installedSalesforceEffect#2",
-            "installedSalesforceEffect/installedSalesforceEffect#3",
-            "installedSalesforceEffect/installedSalesforceEffect#4",
             "installedSalesforceEffect/nextOccurrence/nextOccurrence",
             "installedSalesforceEffect/rowEffect/rowEffect",
             "installedSalesforceEffect/rowEffect/rowEffect/rowEffect",
@@ -2633,6 +2639,116 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-salesforce-effect.host.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedSalesforceEffect/targetReadInventory/targetReadInventory/targetReadInventory",
+            "installedSalesforceEffect/targetReadInventory/targetReadInventory/targetReadInventory#2",
+            "installedSalesforceEffect/targetReadInventory/targetReadInventory/updates/updates"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
               }
             ]
           }
@@ -4041,7 +4157,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "7f5a6ef5f0da382cc2741a208a2c66ec6acc6ed59da71e213fbb202235d78d64",
+      "sha256": "1cbb136595da776ab7c8ede9b3fbe2fece595ec09c5d4a8f57009446d57b47d6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4049,8 +4165,11 @@
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
         "installedRowEffectDescriptors",
+        "installedRowEffectOwnerBinding",
         "installedRowEffectUnit",
-        "retainInstalledRowEffectAdapter"
+        "installedRowEffectUpdateObservations",
+        "retainInstalledRowEffectAdapter",
+        "validateInstalledUpdateOwnerSelections"
       ],
       "operations": [
         {
@@ -4417,7 +4536,8 @@
             "signal",
             "targetReads",
             "own",
-            "ownInputs"
+            "ownInputs",
+            "assertCurrent"
           ],
           "async": true
         },
@@ -4620,7 +4740,8 @@
             "runInvocationCid",
             "dispatches",
             "subjectOf",
-            "signal"
+            "signal",
+            "assertCurrent"
           ],
           "async": true
         },
@@ -4693,7 +4814,8 @@
             "plan",
             "unit",
             "members",
-            "dispatches"
+            "dispatches",
+            "selected"
           ],
           "async": false
         },
@@ -4713,7 +4835,8 @@
             "dispatchRequestCid",
             "subjectCid",
             "signal",
-            "targetReads"
+            "targetReads",
+            "assertCurrent"
           ],
           "async": true
         },
@@ -4738,13 +4861,6 @@
           "parameters": [
             "member",
             "entries"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/installationFacts/installationFacts",
-          "parameters": [
-            "owner"
           ],
           "async": false
         },
@@ -4794,7 +4910,8 @@
             "entries",
             "current",
             "read",
-            "signal"
+            "signal",
+            "assertCurrent"
           ],
           "async": true
         },
@@ -4845,8 +4962,14 @@
             "subjectCid",
             "applyPreview",
             "ledger",
-            "targetReads"
+            "targetReads",
+            "assertCurrent"
           ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -5067,7 +5190,8 @@
             "member",
             "resource",
             "subjectCid",
-            "signal"
+            "signal",
+            "assertCurrent"
           ],
           "async": true
         },
@@ -5124,7 +5248,8 @@
           "name": "createRowEffectStage/recoveredMembers/recoveredMembers",
           "parameters": [
             "body",
-            "provider"
+            "provider",
+            "selected"
           ],
           "async": false
         },
@@ -5242,6 +5367,39 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/selectionFence/selectionFence",
+          "parameters": [
+            "facts",
+            "members",
+            "stageIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/updates/updates",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/selectOwner/selectOwner",
           "parameters": [
             "descriptor"
@@ -5290,6 +5448,13 @@
           "async": false
         },
         {
+          "name": "installationFacts/installationFacts",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
           "name": "installedRowEffectDescriptors",
           "parameters": [
             "moon",
@@ -5302,6 +5467,13 @@
           "name": "installedRowEffectDescriptors/installedRowEffectDescriptors",
           "parameters": [
             "effectId"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowEffectOwnerBinding",
+          "parameters": [
+            "adapter"
           ],
           "async": false
         },
@@ -5322,9 +5494,23 @@
           "async": false
         },
         {
+          "name": "installedRowEffectUpdateObservations",
+          "parameters": [
+            "adapter"
+          ],
+          "async": false
+        },
+        {
           "name": "optionalFunction/optionalFunction",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownerBinding/ownerBinding",
+          "parameters": [
+            "owner"
           ],
           "async": false
         },
@@ -5359,6 +5545,13 @@
           "async": false
         },
         {
+          "name": "selectionChanged/selectionChanged",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
           "name": "targeted/targeted",
           "parameters": [
             "kind"
@@ -5369,6 +5562,52 @@
           "name": "text/text",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateObservations/updateObservations",
+          "parameters": [
+            "owners"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateObservations/updateObservations/updateObservations",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateObservations/updateObservations/updateObservations/updateObservations",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "validateInstalledUpdateOwnerSelections",
+          "parameters": [
+            "adapter",
+            "selections",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "validateOwnerSelections/validateOwnerSelections",
+          "parameters": [
+            "owners",
+            "selections",
+            "prepared"
           ],
           "async": false
         }
@@ -5462,7 +5701,6 @@
             "createRowEffectStage/decideTargetRead/decideTargetRead/decideTargetRead",
             "createRowEffectStage/entryOf/entryOf",
             "createRowEffectStage/footprintOf/footprintOf",
-            "createRowEffectStage/installationFacts/installationFacts",
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/members/members",
@@ -5614,6 +5852,134 @@
               {
                 "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent",
+            "createRowEffectStage/selectionFence/selectionFence",
+            "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent",
+            "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
+            "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent#2",
+            "createRowEffectStage/selectionFence/selectionFence/updates/updates",
+            "installationFacts/installationFacts",
+            "installedRowEffectOwnerBinding",
+            "installedRowEffectUpdateObservations",
+            "ownerBinding/ownerBinding",
+            "selectionChanged/selectionChanged",
+            "updateObservations/updateObservations",
+            "updateObservations/updateObservations/updateObservations",
+            "updateObservations/updateObservations/updateObservations/updateObservations",
+            "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations",
+            "validateInstalledUpdateOwnerSelections",
+            "validateOwnerSelections/validateOwnerSelections"
+          ],
+          "exports": [
+            "installedRowEffectOwnerBinding",
+            "installedRowEffectUpdateObservations",
+            "validateInstalledUpdateOwnerSelections"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
               }
             ]
           }

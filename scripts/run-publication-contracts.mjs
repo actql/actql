@@ -434,6 +434,10 @@ function replaceNested(schema, replacements, root = true) {
 
 export function correctedContracts(registry, cli) {
   const next = clone(registry);
+  // The admitted Run copies this optional projection from its Compiled Plan.
+  // It never accepts an independent caller declaration of selection custody.
+  next.artifact_schemas.run_definition.properties.effect_target_selections_cid =
+    clone(cid);
   const artifact = resultArtifactSchema();
   const effectSourceArtifact = effectSourceArtifactSchema();
   const preview = effectPreviewSchema(next.artifact_schemas.effect_preview,
@@ -584,6 +588,8 @@ export function checkContracts(registry, cli) {
     },
   ]);
   assert.ok(registry.artifact_schemas.run_state.required.includes('result_availability'));
+  assert.ok(!registry.artifact_schemas.run_definition.required.includes(
+    'effect_target_selections_cid'));
   for (const [name, schema] of Object.entries(registry.artifact_schemas)) {
     assert.equal(registry.artifact_schema_cids[name], machineCid(schema), name);
   }

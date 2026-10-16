@@ -142,6 +142,7 @@ fn contract_spec(name : String) -> ContractSpec? {
           required("program_semantics_cid", Cid),
           required("aoa_contract_cid", Cid),
           required("aoa_logical_cid", Cid),
+          optional("effect_target_selections_cid", Cid),
         ],
       })
     "run_definition" =>
@@ -158,6 +159,7 @@ fn contract_spec(name : String) -> ContractSpec? {
           required("input_artifact_set_cid", Cid),
           required("created_at", Timestamp),
           required("valid_until", Timestamp),
+          optional("effect_target_selections_cid", Cid),
         ],
       })
     "result_definition" =>
@@ -1452,4 +1454,16 @@ pub fn publication_contract_identity(contract : PublicationContract) -> String {
 ///|
 pub fn publication_contract_json(contract : PublicationContract) -> String {
   contract.wire
+}
+
+///|
+/// Read the compiler-derived selection projection from an admitted Plan or
+/// Run. This identifies retained original material; it grants no execution.
+pub fn publication_contract_effect_target_selections_cid(
+  contract : PublicationContract,
+) -> String? {
+  if contract.name != "compiled_plan" && contract.name != "run_definition" {
+    return None
+  }
+  contract_string(contract, "effect_target_selections_cid")
 }

@@ -44,6 +44,7 @@ pub(all) struct ClientValuesRunMaterials {
 ///|
 let client_run_materials_fields : Array[String] = [
   "check_environment", "check_environment_cid", "client_request_identity", "created_at",
+  "effect_target_selections_json", "infer_execution_contract_cid", "infer_execution_contract_json",
   "normalization_journal_json", "parameters", "prepared_invocation", "program", "program_format",
   "run_authorization", "run_id", "scope_id", "valid_until", "version",
 ]
@@ -165,6 +166,8 @@ fn encode_client_run_materials_body(
   parameters_wire : String?,
   request_wire? : String? = None,
   normalization_wire? : String? = None,
+  target_selections_wire? : String? = None,
+  infer_input? : (String, String)? = None,
 ) -> Result[String, ClientValuesRunMaterialsIssue] {
   // This is a read-only projection of an already admitted definition. It does
   // not reissue it (nor extend its original lifetime).
@@ -233,6 +236,16 @@ fn encode_client_run_materials_body(
     for field in fields {
       if field.0 == "created_at" && request_wire is Some(wire) {
         @encode.key(writer, "client_request_identity")
+        @encode.string_value(writer, wire)
+      }
+      if field.0 == "parameters" && target_selections_wire is Some(wire) {
+        @encode.key(writer, "effect_target_selections_json")
+        @encode.string_value(writer, wire)
+      }
+      if field.0 == "parameters" && infer_input is Some((cid, wire)) {
+        @encode.key(writer, "infer_execution_contract_cid")
+        @encode.string_value(writer, cid)
+        @encode.key(writer, "infer_execution_contract_json")
         @encode.string_value(writer, wire)
       }
       if field.0 == "parameters" && normalization_wire is Some(wire) {
@@ -375,7 +388,26 @@ fn read_client_run_materials_body(
         Err(_) => return Err(MaterialsMalformed)
       }
   }
+  let target_selections_wire = match
+    @decode.lookup(object, "effect_target_selections_json") {
+    None => None
+    Some(cursor) =>
+      match @decode.text(cursor) {
+        Ok(wire) => Some(wire)
+        Err(_) => return Err(MaterialsMalformed)
+      }
+  }
+  let infer_input = match
+    read_client_effect_original_infer_input(
+      @decode.lookup(object, "infer_execution_contract_cid"),
+      @decode.lookup(object, "infer_execution_contract_json"),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   Ok({
+    infer_input,
+    target_selections_wire,
     normalization_wire,
     request_wire,
     program,
@@ -392,6 +424,8 @@ fn read_client_run_materials_body(
 
 ///|
 priv struct ClientRunMaterialsBody {
+  infer_input : (String, String)?
+  target_selections_wire : String?
   normalization_wire : String?
   request_wire : String?
   program : String
@@ -419,6 +453,12 @@ fn read_client_run_materials_input(
   }
   if body.normalization_wire is Some(_) {
     return Err(MaterialsEvidence("normalization_journal"))
+  }
+  if body.target_selections_wire is Some(_) {
+    return Err(MaterialsEvidence("effect_target_selections"))
+  }
+  if body.infer_input is Some(_) {
+    return Err(MaterialsEvidence("infer_execution_contract"))
   }
   let prepared = match
     prepare_effect_free_client_program(

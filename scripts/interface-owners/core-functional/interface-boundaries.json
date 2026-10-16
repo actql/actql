@@ -10806,14 +10806,13 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "dc80a4ba53bd1dd6d190fe2f6cd450bc2097c56aa90812705750d49ac41cef6a",
+      "sha256": "b7c50f80a10888ac32c06f175efdc196121d0f3c39dfac0ab7692e877e72f319",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
         "installModelProviders",
         "installedModelEnvironment",
-        "observeInstalledModelAccount",
         "readInstalledModelDependencies",
         "readInstalledModelExecution"
       ],
@@ -10907,14 +10906,6 @@
           "async": false
         },
         {
-          "name": "observeInstalledModelAccount",
-          "parameters": [
-            "moon",
-            "authorization"
-          ],
-          "async": false
-        },
-        {
           "name": "readInstalledModelDependencies",
           "parameters": [
             "moon",
@@ -11005,7 +10996,7 @@
           "async": false
         }
       ],
-      "owner": "Existing ModelTask/check-environment registration and current Account observation",
+      "owner": "Existing ModelTask/check-environment registration and original provider/dependency binding; shared Account observation remains with the existing Local account/authorization Owner",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -11023,7 +11014,6 @@
             "installModelProviders/installModelProviders#2",
             "installModelProviders/installModelProviders#3",
             "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup",
-            "observeInstalledModelAccount",
             "readInstalledModelDependencies",
             "readInstalledModelDependencies/bodies/bodies",
             "readInstalledModelDependencies/readInstalledModelDependencies",
@@ -11042,15 +11032,14 @@
             "admitInstalledModelProviderBinding",
             "installModelProviders",
             "installedModelEnvironment",
-            "observeInstalledModelAccount",
             "readInstalledModelDependencies",
             "readInstalledModelExecution"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function observeInstalledModelAccount(moon, authorization) {"
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -11059,16 +11048,24 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function observeInstalledModelAccount(moon, authorization) {"
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "identity": [
@@ -11079,6 +11076,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "ownership": [
@@ -11089,31 +11090,43 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "# Exclusive Model Provider registration"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function observeInstalledModelAccount(moon, authorization) {"
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/local-account-config.mjs",
                 "anchor": "} catch { return moon.executionAuthorizationMissing(); }"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "# Exclusive Model Provider registration"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/local-account-config.mjs",
                 "anchor": "import {openSync, readSync, closeSync} from 'node:fs';"
               },
               {
@@ -11123,12 +11136,16 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "// authority. Bound reads even when the selected file grows during observation."
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "// Physical observation only. Core admits/evaluates the returned original"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "// bytes. The extra byte detects growth without an unbounded read or allocation."
               }
             ],
             "extension": [
@@ -11139,6 +11156,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "# Exclusive Model Provider registration"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "verification": [
