@@ -1,7 +1,8 @@
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import {DatabaseSync} from 'node:sqlite';
-import {prepareInstalledRunStateObservation} from '../host-common/run-state-observation.mjs';
+import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
+  from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
 import {closeSync, existsSync, fsyncSync, lstatSync,
   mkdirSync, openSync, readFileSync, readdirSync,
@@ -1898,7 +1899,13 @@ export function openClientRequestJournal(directory, {
             fail('ClientRequestJournalCorrupt');
           }
           const projection = prepareInstalledRunStateObservation(requestControl, {
-            state, runId: publicationControl.runDefinitionRunId(current.runDefinition),
+            state: {...state, control: issueInstalledRunControlObservation(requestControl, {
+              revision: current.revision,
+              cancellationRequested: current.cancellationRequested,
+              physicallyUnstarted: current.physicalStartReserved === false,
+              preDispatchFailureConfirmed: current.preDispatchFailureConfirmed,
+              physicalCloseConfirmed: current.physicalCloseConfirmed,
+            })}, runId: publicationControl.runDefinitionRunId(current.runDefinition),
             revision: row.state_revision, priorKey: row.state_observation_key,
           });
           if (projection.key !== row.state_observation_key) {

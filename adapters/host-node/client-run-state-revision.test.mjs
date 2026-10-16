@@ -62,6 +62,11 @@ test('state revision persists independently of control and unchanged rereads acr
   const cancelled = publish(journal, ref);
   assert.equal(cancelled.control.revision, 1);
   assert.equal(cancelled.revision, 1);
+  const current = frame(journal, ref);
+  const forgedControl = {...state(current), control:{revision:0,
+    cancellation_requested:false, physical_stop:'confirmed'}};
+  assert.deepEqual(JSON.parse(journal.publishRunState(current, forgedControl, moon, control)), cancelled,
+    'Control facts come only from the admitted same original journal row');
   journal.close();
   const reopened = openClientRequestJournal(path);
   t.after(() => reopened.close());
