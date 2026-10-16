@@ -10,6 +10,8 @@ import {
 // Values
 pub fn bind_published_query_context(@program_check.CheckEnvironment, String, String?) -> Result[@query_program.Context, PublicationIssue]
 
+pub fn published_update_targets(@program_check.CheckEnvironment, String) -> Result[@query_program.UpdateTargetPublication?, PublicationIssue]
+
 // Errors
 
 // Types and methods
