@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 const fail = () => {throw Object.assign(new TypeError('Invalid__PROVIDER__OriginalMaterials'),
   {code:'Invalid__PROVIDER__OriginalMaterials'});};
 const record = (value, required, optional = {}) => {
@@ -91,7 +92,7 @@ export function admit__PROVIDER__OriginalMaterials(moon, materials) {
   }
   const {maxBytes,maxNodes,maxDepth,maxMembers,maxWork} = materials.readerLimits;
   const checked = result => {
-    if (result?.$tag === 1 && result._0 !== undefined && result._0 !== null) return result._0;
+    if (runtimeIsOk(result) && runtimeField(result, 0) !== undefined && runtimeField(result, 0) !== null) return runtimeField(result, 0);
     throw Object.assign(new TypeError('__PROVIDER__OriginalMaterialsRefused'),{code:'__PROVIDER__OriginalMaterialsRefused'});
   };
   const profile = checked(moon.clientProgramReadModelResponseProfile(

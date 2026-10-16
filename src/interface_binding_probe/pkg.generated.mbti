@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/interface_binding_probe"
+
+// Values
+pub fn accept(Original) -> Result[Original, String]
+
+pub fn optional(Original, Bool) -> Original?
+
+pub fn optional_unit(Bool) -> Unit?
+
+pub fn original(Int) -> Original
+
+pub fn original_value(Original) -> Int
+
+pub fn pair_input((Original, Original)) -> Bool
+
+pub fn tuple(Original) -> (Original, String, Int64)
+
+pub fn unit() -> Result[Unit, String]
+
+// Errors
+
+// Types and methods
+type Original
+
+// Type aliases
+
+// Traits

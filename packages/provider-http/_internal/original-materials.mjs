@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 const fail = () => {throw Object.assign(new TypeError('InvalidHTTPOriginalMaterials'),
   {code:'InvalidHTTPOriginalMaterials'});};
 const record = (value, required, optional = {}) => {
@@ -91,7 +92,7 @@ export function admitHTTPOriginalMaterials(moon, materials) {
   }
   const {maxBytes,maxNodes,maxDepth,maxMembers,maxWork} = materials.readerLimits;
   const checked = result => {
-    if (result?.$tag === 1 && result._0 !== undefined && result._0 !== null) return result._0;
+    if (runtimeIsOk(result) && runtimeField(result, 0) !== undefined && runtimeField(result, 0) !== null) return runtimeField(result, 0);
     throw Object.assign(new TypeError('HTTPOriginalMaterialsRefused'),{code:'HTTPOriginalMaterialsRefused'});
   };
   const profile = checked(moon.clientProgramReadModelResponseProfile(

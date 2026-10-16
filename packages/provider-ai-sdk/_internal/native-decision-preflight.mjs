@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk, runtimePair} from './compiler-binding.generated.mjs';
 import {createProjectedTypeSafeDecisionPreflight,requireTypeSafeOriginalTransportLimits} from './typesafe-decision.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 
@@ -33,38 +34,38 @@ export function createAdmittedTypeSafeDecisionPreflight({moon, admittedProvider,
   let cursor, projected, physical;
   let refused = false, retired = false;
   const checked = value => {
-    if (value?.$tag !== 1) throw new TypeError('OriginalNativeDecisionProjectionRefused');
-    return value._0;
+    if (!runtimeIsOk(value)) throw new TypeError('OriginalNativeDecisionProjectionRefused');
+    return runtimeField(value, 0);
   };
   const advance = () => {
-    if (retired || refused || signal?.aborted) {refused = true; return {_0: true, _1: undefined};}
+    if (retired || refused || signal?.aborted) {refused = true; return runtimePair(true, undefined);}
     try {
       if (physical === undefined) {
         if (cursor === undefined) {
           cursor = checked(moon.clientProgramStartNativeDecisionProjection(admittedProvider,
             request, bounds.maxBytes, bounds.maxNodes, bounds.maxDepth, bounds.maxFrames, bounds.maxWork));
           if (cursor === undefined) throw new TypeError('MissingOriginalNativeDecisionProjection');
-          return {_0: false, _1: undefined};
+          return runtimePair(false, undefined);
         }
         projected = checked(moon.clientProgramAdvanceNativeDecisionProjection(cursor));
-        if (projected === undefined) return {_0: false, _1: undefined};
+        if (projected === undefined) return runtimePair(false, undefined);
         // The emitter and escaped original view have different lifetimes.
         // Retire the emitter before allocating SDK preparation, not the view.
         moon.clientProgramRetireNativeDecisionProjection(cursor);
         cursor = undefined;
         physical = createProjectedTypeSafeDecisionPreflight({...options, moon,
           admittedProvider, request, projected, signal});
-        return {_0: false, _1: undefined};
+        return runtimePair(false, undefined);
       }
       // ModelRequestPreflight is the existing public-field Common data type.
       // The inner bridge's sole terminal refusal is InvalidProvider. Preserve
       // that refusal through the same outer bridge, without issuing a Plan.
       const result = physical.preflight.advance();
-      if (result?.$tag !== 1) {refused = true; return {_0: true, _1: undefined};}
-      return {_0: result._0 !== undefined, _1: result._0};
+      if (!runtimeIsOk(result)) {refused = true; return runtimePair(true, undefined);}
+      return runtimePair(runtimeField(result, 0) !== undefined, runtimeField(result, 0));
     } catch {
       refused = true;
-      return {_0: true, _1: undefined};
+      return runtimePair(true, undefined);
     }
   };
   const cleanup = () => {

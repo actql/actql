@@ -1,3 +1,4 @@
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {inspectSalesforceEffectCapability} from
   '../site/salesforce-effect-capability.mjs';
@@ -80,29 +81,29 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
         prepared, member.stageIndex, member.effectId, planLimits.maxWork));
       const capability = inspectSalesforceEffectCapability(
         member.capability, member.requests);
-      if (descriptor._6 === undefined) {
+      if (runtimeField(descriptor, 6) === undefined) {
         fail('MissingSalesforceEffectSourceResult');
       }
       const source = control.effectSourceArtifactPreviewBinding(
         member.sourceArtifact,
         moon.strategyPublicationContractIdentity(context.runInvocation),
-        descriptor._6, context.storeAuthorityCid);
+        runtimeField(descriptor, 6), context.storeAuthorityCid);
       const identity = control.issueSourceFreeLocalEffectIdentity(
-        prepared, inputs, descriptor._0, member.localResultArtifact,
+        prepared, inputs, runtimeField(descriptor, 0), member.localResultArtifact,
         {maxWork: planLimits.maxWork, maxWireBytes, maxNodes, maxDepth});
       issuedIdentities.push(identity);
       return {
-        effect_id: descriptor._1, effect_kind: descriptor._2,
-        target: descriptor._3, mapping: descriptor._4,
-        resolved_mapping_contract_cid: descriptor._5,
+        effect_id: runtimeField(descriptor, 1), effect_kind: runtimeField(descriptor, 2),
+        target: runtimeField(descriptor, 3), mapping: runtimeField(descriptor, 4),
+        resolved_mapping_contract_cid: runtimeField(descriptor, 5),
         effect_identity_cid: identity.identity,
-        ...(descriptor._6 === undefined ? {} :
-          {source_result: descriptor._6}),
+        ...(runtimeField(descriptor, 6) === undefined ? {} :
+          {source_result: runtimeField(descriptor, 6)}),
         // Semantic local Result identity is distinct from the run-custody
         // Effect source Artifact; its source binding remains checked above.
         result_artifact_cid: member.localResultArtifact.identity,
         preview_strength: member.previewStrength,
-        source_binding_cid: source._1,
+        source_binding_cid: runtimeField(source, 1),
         capability_evidence_cid: capability.identity,
         authority_scope_cid: requestAuthority,
         write_footprint: {
@@ -114,7 +115,7 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
         count: member.requests.length, max_items: member.maxItems,
         required_permissions: member.requiredPermissions,
         approval: member.approval,
-        on_item_failure: descriptor._7,
+        on_item_failure: runtimeField(descriptor, 7),
         changes: member.requests.map(() => ({
           target_row_identity: 0,
           target_guard: {state: 'not_applicable'},
@@ -206,24 +207,24 @@ export function authorObservedSalesforceEffectPreview({
     const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
       prepared, member.stageIndex, member.effectId, planLimits.maxWork));
     if (!proposal || proposal.effect_id !== member.effectId ||
-        member.effectId !== descriptor._1) {
+        member.effectId !== runtimeField(descriptor, 1)) {
       fail('ForeignSalesforceEffectPreviewMember');
     }
     Object.assign(proposal, {
-      effect_id: descriptor._1,
-      effect_kind: descriptor._2,
-      target: descriptor._3,
-      mapping: descriptor._4,
-      resolved_mapping_contract_cid: descriptor._5,
-      on_item_failure: descriptor._7,
+      effect_id: runtimeField(descriptor, 1),
+      effect_kind: runtimeField(descriptor, 2),
+      target: runtimeField(descriptor, 3),
+      mapping: runtimeField(descriptor, 4),
+      resolved_mapping_contract_cid: runtimeField(descriptor, 5),
+      on_item_failure: runtimeField(descriptor, 7),
     });
-    if (descriptor._6 === undefined) {
+    if (runtimeField(descriptor, 6) === undefined) {
       delete proposal.source_result;
     } else {
-      proposal.source_result = descriptor._6;
+      proposal.source_result = runtimeField(descriptor, 6);
     }
     const planCid = checked(moon.clientProgramEffectPlanCid(
-      prepared, descriptor._0, planLimits.maxFields, planLimits.maxWork,
+      prepared, runtimeField(descriptor, 0), planLimits.maxFields, planLimits.maxWork,
       planLimits.maxBytes, planLimits.maxNodes, planLimits.maxDepth));
     if (planCid === undefined) {
       delete proposal.effect_plan_logical_cid;
@@ -244,12 +245,12 @@ export function authorObservedSalesforceEffectPreview({
     const footprint = checked(salesforceMoon.salesforceSingleWriteMemberFootprint(
       member.requests, maxRows - rowCount, maxIdentityBytes));
     proposal.write_footprint = {
-      kind: footprint._0,
-      provider_boundary_cid: footprint._2,
-      provider_namespace: footprint._1,
-      provider_object_identity_cids: footprint._5,
-      resource_identity_scheme_cid: footprint._3,
-      resource_kind: footprint._4,
+      kind: runtimeField(footprint, 0),
+      provider_boundary_cid: runtimeField(footprint, 2),
+      provider_namespace: runtimeField(footprint, 1),
+      provider_object_identity_cids: runtimeField(footprint, 5),
+      resource_identity_scheme_cid: runtimeField(footprint, 3),
+      resource_kind: runtimeField(footprint, 4),
     };
     proposal.count = member.requests.length;
     rowCount += member.requests.length;
@@ -290,10 +291,10 @@ export function authorObservedSalesforceEffectPreview({
         maxNodes, maxDepth));
       const original = proposal.changes;
       proposal.changes = inventory.map(entry => ({
-        ...original[entry._0],
-        target_row_identity: parseExactJson(entry._1),
+        ...original[runtimeField(entry, 0)],
+        target_row_identity: parseExactJson(runtimeField(entry, 1)),
       }));
-      requestOrder.push(inventory.map(entry => entry._0));
+      requestOrder.push(inventory.map(entry => runtimeField(entry, 0)));
       continue;
     }
     requestOrder.push(member.requests.map((_, index) => index));
@@ -340,13 +341,13 @@ export function authorObservedSalesforceEffectPreview({
     rowCount, maxKeyBytes, maxKeyNodes, maxKeyDepth));
   if (issuedIdentities !== undefined) {
     control.checkSourceFreeLocalEffectPreviewIdentities(
-      prepared, inputs, authored._0, template.run_identity_cid,
+      prepared, inputs, runtimeField(authored, 0), template.run_identity_cid,
       template.authoring_context.authoring_context_cid, issuedIdentities,
       {maxWireBytes, maxNodes, maxDepth});
   }
-  return Object.freeze({wire: authored._0,
+  return Object.freeze({wire: runtimeField(authored, 0),
     authoringCid: template.authoring_context.authoring_context_cid,
-    keys: authored._1,
+    keys: runtimeField(authored, 1),
     requestOrder: Object.freeze(requestOrder.map(order =>
       Object.freeze(order)))});
 }

@@ -1,6 +1,7 @@
 // Whole-Relation Table projections for the existing installed Effect Site.
 // The common Run, Checkpoint, capture, Ledger, apply and publication owners
 // remain authoritative. A Table member is one operation, including zero rows.
+import {runtimeField, runtimeOptionalField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {checkedTableWriteBinding, verifyTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
@@ -138,10 +139,10 @@ export async function createInstalledTableEffect({moon, environmentWire,
     callerRequestId: moon.clientRequestCallerId(identity), maxEntryBytes: limits.maxEntryBytes});
   const resolve = (descriptor, capabilityCid) => {
     const target = installed.find(target => (capabilityCid === undefined
-      ? target.effectId === descriptor._1 : target.capabilityCid === capabilityCid) && target.targetRef === descriptor._3 &&
-      target.mappingRef === descriptor._4 && target.mappingCid === descriptor._5);
-    if (descriptor._2 !== 'store' ||
-        (descriptor._6 === undefined) === (descriptor._8 === undefined) || target === undefined) {
+      ? target.effectId === runtimeField(descriptor, 1) : target.capabilityCid === capabilityCid) && target.targetRef === runtimeField(descriptor, 3) &&
+      target.mappingRef === runtimeField(descriptor, 4) && target.mappingCid === runtimeField(descriptor, 5));
+    if (runtimeField(descriptor, 2) !== 'store' ||
+        (runtimeField(descriptor, 6) === undefined) === (runtimeField(descriptor, 8) === undefined) || target === undefined) {
       fail('InstalledTableMappingNotInstalled');
     }
     return target;
@@ -272,13 +273,13 @@ export async function createInstalledTableEffect({moon, environmentWire,
     const unit = facts.unit ?? installedRowEffectUnit(moon, compilation);
     const descriptors = unit.effectIds.map(effectId => ({effectId,
       descriptor: checked(moon.clientProgramEffectMemberDescriptor(prepared,
-        unit.stageIndex, effectId, limits.planWork))})).sort((a,b) => a.descriptor._0-b.descriptor._0);
+        unit.stageIndex, effectId, limits.planWork))})).sort((a,b) => runtimeField(a.descriptor, 0)-runtimeField(b.descriptor, 0));
     if (!descriptors.length || descriptors.length > limits.maxMembers ||
-      descriptors.some((entry,index) => entry.descriptor._0 !== index)) fail('InstalledTableUnitUnsupported');
+      descriptors.some((entry,index) => runtimeField(entry.descriptor, 0) !== index)) fail('InstalledTableUnitUnsupported');
     const targets = descriptors.map(entry => {
       const binding = checkedTableWriteBinding(moon, prepared, unit.stageIndex,
         entry.effectId, limits.planWork);
-      const target = resolve(entry.descriptor, binding?._4);
+      const target = resolve(entry.descriptor, runtimeOptionalField(binding, 4));
       verifyTableWriteBinding(target, binding);
       return target;
     });
@@ -411,9 +412,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
     }
     const targets = body.effects.map((member,index) => {
       const saved = provider.members[index];
-      const target = resolve({_1: member.effect_id, _2: member.effect_kind, _3: member.target, _4: member.mapping,
-        _5: member.resolved_mapping_contract_cid, _6: member.source_result,
-        _8: member.source_table_input}, member.capability_evidence_cid);
+      const target = resolve(runtimeTupleFromFields({1: member.effect_id, 2: member.effect_kind, 3: member.target, 4: member.mapping, 5: member.resolved_mapping_contract_cid, 6: member.source_result, 8: member.source_table_input}), member.capability_evidence_cid);
       if (saved?.effect_id !== member.effect_id || saved.mapping_cid !== target.mappingCid ||
         member.changes.length !== 1 || member.capability_evidence_cid !== target.capabilityCid) {
         fail('InstalledTableInstallationChanged');

@@ -8,6 +8,7 @@
 // the request footprint, the retained describe that rebuilds requests on
 // recovery, the send and the typed classification of its reply. Every
 // function here is an existing Salesforce owner; nothing is reimplemented.
+import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {checkpointApprovalFacts} from
   '../../../host-common/checkpoint-approval.mjs';
@@ -52,8 +53,8 @@ const parseExact = wire => {
 // declared type: the Resource, field, type and kind, never the value. It is
 // refused before any provider I/O for the row, and nothing is rounded.
 function writeBody(salesforceMoon, result, projection) {
-  const refusal = result?.$tag === 0
-    ? salesforceMoon.salesforceWriteValueRefusal(projection, result._0)
+  const refusal = runtimeIsError(result)
+    ? salesforceMoon.salesforceWriteValueRefusal(projection, runtimeField(result, 0))
     : undefined;
   if (typeof refusal === 'string') {
     throw Object.assign(new Error('SalesforceWriteValueRefused'), {
@@ -223,11 +224,11 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
         salesforceMoon.salesforceSingleWriteMemberFootprint(
           entries.map(entry => entry.request), limits.maxRows,
           limits.maxIdentityBytes));
-      return {kind: footprint._0, provider_namespace: footprint._1,
-        provider_boundary_cid: footprint._2,
-        resource_identity_scheme_cid: footprint._3,
-        resource_kind: footprint._4,
-        provider_object_identity_cids: footprint._5};
+      return {kind: runtimeField(footprint, 0), provider_namespace: runtimeField(footprint, 1),
+        provider_boundary_cid: runtimeField(footprint, 2),
+        resource_identity_scheme_cid: runtimeField(footprint, 3),
+        resource_kind: runtimeField(footprint, 4),
+        provider_object_identity_cids: runtimeField(footprint, 5)};
     },
 
     // The retained describe a recovered capture rebuilds its requests from.
