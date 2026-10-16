@@ -366,13 +366,19 @@ test "Native submitted Values capture refuses expiry and cancellation after expo
     defer @strategy.release_captured_effect_inputs(inputs) |> ignore
     let index = submitted_values_capture_result(inputs)
     let (rows, limits) = submitted_values_capture_limits()
-    // The final Native Work UTC check immediately precedes its material's
-    // availability UTC check. Expiry/cancellation belongs at that Work check;
-    // the separate input-retirement test targets the later availability check.
-    terminal_call.val = submitted_values_capture_export_callbacks(
-        work, inputs, calls, armed,
-      ) -
-      1
+    // The final material getter has its own before/after current callbacks.
+    // Measure that real suffix too; do not guess that it invokes UTC only once.
+    // The fault still targets the preceding Native Work expiry/cancel fence.
+    let export_calls = submitted_values_capture_export_callbacks(
+      work, inputs, calls, armed,
+    )
+    armed.val = true
+    assert_true(work.work.execution.material() is Some(_))
+    armed.val = false
+    let material_calls = calls.val
+    assert_true(material_calls > 0 && export_calls > material_calls)
+    terminal_call.val = export_calls - material_calls
+    calls.val = 0
     original.val = Some((host, work))
     armed.val = true
     let result = work.prepare_original_result_export(
