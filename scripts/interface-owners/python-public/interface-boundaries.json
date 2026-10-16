@@ -7658,6 +7658,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "AsyncQuery",
             "AsyncQuery/__copy__",
             "AsyncQuery/__deepcopy__",
