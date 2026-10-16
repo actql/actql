@@ -242,6 +242,9 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
     document.stages[0].steps.splice(4, 2, {join: {with: 'unique', kind: 'inner',
       cardinality: 'one_to_one', on: [{left: 'id', right: 'id'}],
       select: {id: 'right.id', name: 'right.text'}}, as: 'selected'});
+    // The existing composed Model graph rejoins its immediate original
+    // uniqueness-checked prefix, as does the Common retained-material fixture.
+    document.stages[0].steps.splice(2, 1);
     document.stages[0].results = {rows: {from: 'selected', fields: ['id', 'name']}};
     document.stages[0].effects = {save: {update: {target: 'connector://crm/account',
       mapping: 'mapping:crm.account.0.v1', from: {result: 'rows'}, id: 'id',
@@ -274,7 +277,7 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
       now: () => '2026-10-16T00:00:00.000Z'});
     owner.checkSupported(prepared);
     const captured = owner.capturePreparedOriginal(prepared);
-    assert.equal(typeof captured?.preparedMaterialsWire, 'string');
+    assert.equal(typeof captured?.preparedWire, 'string');
     const handle = await owner.accept({prepared, authorityScopeCid: cid('a'),
       requestId: 'json-model-update', namespaceId: 'json-model-update', principalId: 'fixture',
       connection: {}, lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
