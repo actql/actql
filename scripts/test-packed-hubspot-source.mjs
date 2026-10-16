@@ -17,6 +17,8 @@ assert.equal(process.argv.length, 5,
 for (const path of [source, release, consumer]) assert(isAbsolute(path), 'Require absolute original input paths');
 assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS,
   'Ordinary installed acceptance refuses ambient module/loader overlays');
+assert(!process.env.ACTQL_LOCAL_SOURCE_PROFILE && !process.env.ACTQL_LOCAL_EFFECT_PROFILE,
+  'Ordinary installed acceptance uses only its fresh explicit profiles');
 const {admitCompositionRelease} = await import(pathToFileURL(join(source, 'scripts/composition-release-input.mjs')));
 const {inventory} = await import(pathToFileURL(join(source, 'scripts/package-release.mjs')));
 const original = await admitCompositionRelease({repository: source, directory: release});
