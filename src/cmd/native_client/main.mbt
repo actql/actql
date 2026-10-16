@@ -791,18 +791,34 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
-      @argparse.Command("check", flags=[@argparse.FlagArg("json")], options=[
-        @argparse.OptionArg("program-file", required=true),
-        @argparse.OptionArg("format", required=true),
-        @argparse.OptionArg("parameters-file"),
-        @argparse.OptionArg("parameter-declarations-file"),
-      ]),
-      @argparse.Command("explain", flags=[@argparse.FlagArg("json")], options=[
-        @argparse.OptionArg("program-file", required=true),
-        @argparse.OptionArg("format", required=true),
-        @argparse.OptionArg("parameters-file"),
-        @argparse.OptionArg("parameter-declarations-file"),
-      ]),
+      @argparse.Command(
+        "check",
+        flags=[@argparse.FlagArg("json")],
+        positionals=[
+          @argparse.PositionArg("program", conflicts_with=["program-file"]),
+        ],
+        options=[
+          @argparse.OptionArg("program-file", conflicts_with=["program"]),
+          @argparse.OptionArg("format"),
+          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
+          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
+          @argparse.OptionArg("parameter-declarations-file"),
+        ],
+      ),
+      @argparse.Command(
+        "explain",
+        flags=[@argparse.FlagArg("json")],
+        positionals=[
+          @argparse.PositionArg("program", conflicts_with=["program-file"]),
+        ],
+        options=[
+          @argparse.OptionArg("program-file", conflicts_with=["program"]),
+          @argparse.OptionArg("format"),
+          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
+          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
+          @argparse.OptionArg("parameter-declarations-file"),
+        ],
+      ),
       @argparse.Command("adopt", flags=[@argparse.FlagArg("json")]),
       @argparse.Command("connect", flags=[@argparse.FlagArg("json")]),
       @argparse.Command("upgrade-policy", flags=[@argparse.FlagArg("json")], options=[
@@ -827,15 +843,23 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("submission-ref-file", required=true),
         @argparse.OptionArg("operation-attempt-id", required=true),
       ]),
-      @argparse.Command("run", flags=[@argparse.FlagArg("json")], options=[
-        @argparse.OptionArg("program-file", required=true),
-        @argparse.OptionArg("parameters-file"),
-        @argparse.OptionArg("parameter-declarations-file"),
-        @argparse.OptionArg("format", required=true),
-        @argparse.OptionArg("request-id"),
-        @argparse.OptionArg("submission-ref-file", required=true),
-        @argparse.OptionArg("operation-attempt-id", required=true),
-      ]),
+      @argparse.Command(
+        "run",
+        flags=[@argparse.FlagArg("json")],
+        positionals=[
+          @argparse.PositionArg("program", conflicts_with=["program-file"]),
+        ],
+        options=[
+          @argparse.OptionArg("program-file", conflicts_with=["program"]),
+          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
+          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
+          @argparse.OptionArg("parameter-declarations-file"),
+          @argparse.OptionArg("format"),
+          @argparse.OptionArg("request-id"),
+          @argparse.OptionArg("submission-ref-file", required=true),
+          @argparse.OptionArg("operation-attempt-id", required=true),
+        ],
+      ),
       @argparse.Command("start", options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("parameters-file"),
