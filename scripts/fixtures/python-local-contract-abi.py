@@ -54,6 +54,8 @@ def synthetic(change):
         memory = '(memory (export "memory") 1 257)'
     if change == 'unknown-export':
         declarations.append('(func (export "actql_unrecognized") (result i32) (i32.const 0))')
+    if change == 'foreign-export':
+        declarations.append('(func (export "foreign_unrecognized") (result i32) (i32.const 0))')
     return wasmtime.wat2wasm('(module ' + ' '.join(declarations) + memory + ')')
 
 
@@ -63,6 +65,7 @@ for change, expected in [
     ('missing-export', 'exports'),
     ('export-signature', 'exports'),
     ('unknown-export', 'exports'),
+    ('foreign-export', 'exports'),
     ('memory', 'linear memory'),
     ('old-version', 'fixture ABI version'),
 ]:

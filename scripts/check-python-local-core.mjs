@@ -84,7 +84,7 @@ if(process.argv.includes('--build-and-consume')){
   const contract=JSON.parse(run(python,['scripts/fixtures/python-local-contract-abi.py',module]));
   assert.equal(contract.success,true);
   assert.equal(contract.module_sha256,digest);
-  assert.equal(contract.rejection_cases.length,6);
+  assert.equal(contract.rejection_cases.length,7);
   const output=run(python,['scripts/fixtures/python-local-buffer-abi.py',module]);
   const result=JSON.parse(output);
   assert.equal(result.success,true);
