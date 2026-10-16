@@ -35,11 +35,13 @@ test "degree executes node_id rows and retains the original atomic output limit"
     body="[{\"from\":\"g\",\"degree\":{\"direction\":\"out\"}}]",
   )
   let input = @graphs.prepare_producer_read(receiver, 0, owner, graph).unwrap()
+  let preparation = task_test_completion(receiver)
+  let sequence = prepared_sequence(receiver)
   let start = fn(max_rows) {
     @local_sga.start_graph_degree(
       @bounded.control(),
-      task_test_completion(receiver),
-      prepared_sequence(receiver),
+      preparation,
+      sequence,
       0,
       input,
       max_rows,
