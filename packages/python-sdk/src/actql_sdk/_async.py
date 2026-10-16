@@ -46,7 +46,7 @@ class _LocalCoreCleanupPort:
 class AsyncClient:
     """Use open() for installed Local or connect() for an existing HTTPS Host."""
     def __init__(self, endpoint, token, *, workspace_id=None, durability='durable',
-                 verify=True, timeout=30.0, transport=None):
+                 verify=True, timeout=30.0, transport=None, signer=None):
         parsed = urlsplit(endpoint)
         if (parsed.scheme != 'https' or not parsed.hostname or parsed.username is not None
                 or parsed.password is not None or parsed.query or parsed.fragment):
@@ -60,6 +60,7 @@ class AsyncClient:
             selected['workspaceId'] = workspace_id
         if not wire.valid(selected, 'connection'):
             raise ClientError('InvalidConnectionOptions')
+        self._signer = None if signer is None else capture_signer(signer)
         self._endpoint = endpoint if endpoint.endswith('/') else endpoint + '/'
         self._token = token
         self._selected = freeze(snapshot(selected))
@@ -80,13 +81,14 @@ class AsyncClient:
         return type(token) is str and bool(token) and re.search(r'[\x00-\x20\x7f]', token) is None
 
     @classmethod
-    async def open(cls):
+    async def open(cls, *, signer=None):
         """Open the selected installed Local product without Host/auth/path options.
 
         The original runtime/profile supplier must be complete. An unavailable
         capacity original fails before module capture or physical VM creation;
         this method does not substitute a private fixture or inferred allowance.
         """
+        selected_signer = None if signer is None else capture_signer(signer)
         from ._local_product import InstalledLocalHost, LocalProductCleanupPending
         from ._local_core import LocalCoreInitializationError
         from ._local_distribution import LocalInstallationError
@@ -109,7 +111,7 @@ class AsyncClient:
             raise ClientError('LocalInstallationUnavailable', original_error=failure) from None
         except LocalWorkerFundingUnavailable as failure:
             raise ClientError('LocalExecutionFundingUnavailable', original_error=failure) from None
-        return await cls._connect_local(host)
+        return await cls._connect_local(host, signer=selected_signer)
 
     @classmethod
     async def connect(cls, endpoint, token, **options):
@@ -132,8 +134,9 @@ class AsyncClient:
             raise
 
     @classmethod
-    def _from_local_host(cls, host):
+    def _from_local_host(cls, host, *, signer=None):
         client = cls.__new__(cls)
+        client._signer = None if signer is None else capture_signer(signer)
         client._selected = freeze({'mode': 'local', 'owner': 'local',
                                    'durability': 'durable', 'consentRefs': [], 'runners': []})
         client._local_host = host
@@ -148,14 +151,14 @@ class AsyncClient:
         return client
 
     @classmethod
-    async def _connect_local(cls, host):
+    async def _connect_local(cls, host, *, signer=None):
         """Bind only the installed Host's existing in-process operation port.
 
         The public factory resolves its installed runtime and original Host
         custody. This private port does not grant execution or create an HTTP
         endpoint/token. All responses use the same closed wire validators.
         """
-        client = cls._from_local_host(host)
+        client = cls._from_local_host(host, signer=signer)
         try:
             profile = await client._request('connect', {})
             if not wire.negotiated(profile, 'profile', thaw(client._selected)):
@@ -202,6 +205,7 @@ class AsyncClient:
                     raise
                 raise ClientError('ClientCleanupFailed') from None
             self._client_cleanup = None
+        self._signer = None
 
     async def _close_response(self, response):
         async with self._response_cleanup_lock:
@@ -427,14 +431,43 @@ class AsyncClient:
         return AsyncExecution(self, admission)
 
     async def checkpoints(self, *, after='', limit=50):
-        value = await self._request('checkpoints', {'after': after, 'limit': limit})
+        return await self._checkpoints({'after': after, 'limit': limit})
+
+    async def _checkpoints(self, body):
+        value = await self._request('checkpoints', body)
         if (type(value) is not dict or not {'items'} <= value.keys() <= {'items', 'next'}
-                or type(value['items']) is not list or len(value['items']) > limit
+                or type(value['items']) is not list or len(value['items']) > body['limit']
                 or not all(wire.valid(item, 'checkpoint_summary') for item in value['items'])
                 or len({item['checkpointCid'] for item in value['items']}) != len(value['items'])
                 or 'next' in value and not wire.bounded_text(value['next'], 512)):
             raise ClientError('InvalidHostCheckpointPage')
+        if 'checkpointId' in body and ('next' in value or len(value['items']) > 1
+                or any(item['checkpointId'] != body['checkpointId'] for item in value['items'])):
+            raise ClientError('InvalidHostCheckpointLookup')
         return Observation(value)
+
+    def approve(self, checkpoint_id):
+        return self._decide_checkpoint(checkpoint_id, 'approved')
+
+    def reject(self, checkpoint_id):
+        return self._decide_checkpoint(checkpoint_id, 'rejected')
+
+    def _decide_checkpoint(self, checkpoint_id, decision):
+        if self._closed:
+            raise ClientError('ClientClosed')
+        body = {'after': '', 'limit': 1, 'checkpointId': checkpoint_id}
+        self._body('checkpoints', body)
+        signer = capture_signer(self._signer)
+        return self._answer_checkpoint(body, decision, signer)
+
+    async def _answer_checkpoint(self, body, decision, signer):
+        # The exact original summary comes from the Host/Journal, never an
+        # independent Client cache, a fabricated Preview or a paging search.
+        page = await self._checkpoints(body)
+        if not page['items']:
+            raise ClientError('CheckpointNotPending')
+        return await self.resolve_checkpoints([{'checkpoint': page['items'][0],
+                                                'decision': decision}], signer=signer)
 
     def review_checkpoint(self, checkpoint, *, max_bytes=65536):
         captured = snapshot(thaw(checkpoint))
@@ -463,7 +496,7 @@ class AsyncClient:
         if type(captured) is not list or not 1 <= len(captured) <= 16:
             raise ClientError('InvalidCheckpointAnswers')
         if any(not wire.valid(item, 'resolve_item') for item in captured):
-            signer = capture_signer(signer)
+            signer = capture_signer(self._signer if signer is None else signer)
         decided_at = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
         return self._resolve_checkpoints(captured, signer, decided_at)
 
