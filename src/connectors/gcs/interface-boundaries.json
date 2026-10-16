@@ -457,13 +457,14 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "205adbb4b6f5320c5866d720e436546c9a22d472f4ffe840752ce37c2b3154ad",
+      "sha256": "25ed4d90da1b9cdd3487bcebeafa666141ff30d9cd7a7834b37b5dc80d504f8b",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
         "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]",
         "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
         "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
+        "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
         "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
         "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
         "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
@@ -486,19 +487,31 @@
         "pub fn object_mutation_path(ObjectMutationRequest) -> String",
         "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
         "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
+        "pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]",
+        "pub fn object_upload_body_media_type(ObjectUploadRequest) -> String",
         "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+        "pub fn object_upload_cid(ObjectUploadRequest) -> String",
         "pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
         "pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+        "pub fn object_upload_path(ObjectUploadRequest) -> String",
+        "pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]",
+        "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool",
         "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
         "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+        "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]",
         "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
+        "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]",
         "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
+        "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]",
         "pub struct ObjectCollectionBinding {",
         "pub struct ObjectMetadata {",
         "pub struct ObjectMetadataPage {",
         "pub struct ObjectMutationBinding {",
-        "pub struct ObjectMutationRequest {"
+        "pub struct ObjectMutationRequest {",
+        "pub struct ObjectUploadBinding {",
+        "pub struct ObjectUploadObservation {",
+        "pub struct ObjectUploadRequest {"
       ],
       "operations": [
         {
@@ -512,6 +525,10 @@
         {
           "name": "admit_object_mutation_request",
           "declaration": "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]"
+        },
+        {
+          "name": "admit_object_upload_observation",
+          "declaration": "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]"
         },
         {
           "name": "check_object_collection_binding",
@@ -602,8 +619,20 @@
           "declaration": "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?"
         },
         {
+          "name": "object_upload_body_for",
+          "declaration": "pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]"
+        },
+        {
+          "name": "object_upload_body_media_type",
+          "declaration": "pub fn object_upload_body_media_type(ObjectUploadRequest) -> String"
+        },
+        {
           "name": "object_upload_catalog_json",
           "declaration": "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]"
+        },
+        {
+          "name": "object_upload_cid",
+          "declaration": "pub fn object_upload_cid(ObjectUploadRequest) -> String"
         },
         {
           "name": "object_upload_command_json",
@@ -612,6 +641,18 @@
         {
           "name": "object_upload_mapping_json",
           "declaration": "pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]"
+        },
+        {
+          "name": "object_upload_path",
+          "declaration": "pub fn object_upload_path(ObjectUploadRequest) -> String"
+        },
+        {
+          "name": "object_upload_projection_json",
+          "declaration": "pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]"
+        },
+        {
+          "name": "object_upload_response_matches",
+          "declaration": "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool"
         },
         {
           "name": "prepare_object_collection_binding",
@@ -626,12 +667,24 @@
           "declaration": "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
         },
         {
+          "name": "prepare_object_multipart_upload",
+          "declaration": "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]"
+        },
+        {
           "name": "prepare_object_mutation_binding",
           "declaration": "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]"
         },
         {
+          "name": "prepare_object_upload_binding",
+          "declaration": "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]"
+        },
+        {
           "name": "recheck_object_mutation",
           "declaration": "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]"
+        },
+        {
+          "name": "recheck_object_upload",
+          "declaration": "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]"
         }
       ],
       "contracts": [
@@ -641,6 +694,7 @@
             "admit_object_metadata",
             "admit_object_metadata_page",
             "admit_object_mutation_request",
+            "admit_object_upload_observation",
             "check_object_collection_binding",
             "object_collection_identity_cid",
             "object_collection_identity_json",
@@ -663,19 +717,29 @@
             "object_mutation_path",
             "object_mutation_projection_json",
             "object_mutation_protocol_behavior",
+            "object_upload_body_for",
+            "object_upload_body_media_type",
             "object_upload_catalog_json",
+            "object_upload_cid",
             "object_upload_command_json",
             "object_upload_mapping_json",
+            "object_upload_path",
+            "object_upload_projection_json",
+            "object_upload_response_matches",
             "prepare_object_collection_binding",
             "prepare_object_delete",
             "prepare_object_metadata_patch",
+            "prepare_object_multipart_upload",
             "prepare_object_mutation_binding",
-            "recheck_object_mutation"
+            "prepare_object_upload_binding",
+            "recheck_object_mutation",
+            "recheck_object_upload"
           ],
           "exports": [
             "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]",
             "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
             "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
+            "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
             "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
             "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
             "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
@@ -698,19 +762,31 @@
             "pub fn object_mutation_path(ObjectMutationRequest) -> String",
             "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
             "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
+            "pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]",
+            "pub fn object_upload_body_media_type(ObjectUploadRequest) -> String",
             "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+            "pub fn object_upload_cid(ObjectUploadRequest) -> String",
             "pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
             "pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+            "pub fn object_upload_path(ObjectUploadRequest) -> String",
+            "pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]",
+            "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool",
             "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
             "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+            "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]",
             "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
+            "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]",
             "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
+            "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]",
             "pub struct ObjectCollectionBinding {",
             "pub struct ObjectMetadata {",
             "pub struct ObjectMetadataPage {",
             "pub struct ObjectMutationBinding {",
-            "pub struct ObjectMutationRequest {"
+            "pub struct ObjectMutationRequest {",
+            "pub struct ObjectUploadBinding {",
+            "pub struct ObjectUploadObservation {",
+            "pub struct ObjectUploadRequest {"
           ],
           "attributes": {
             "responsibility": [
@@ -749,6 +825,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "Common retains those responsibilities"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original multipart upload request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Original provider requests only"
               }
             ],
             "inputsOutputs": [
@@ -779,6 +863,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_metadata.mbt",
                 "anchor": "pub(all) struct ObjectMetadataFields"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_multipart_upload"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_prepare_multipart"
               }
             ],
             "identity": [
@@ -817,6 +909,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_metadata.mbt",
                 "anchor": "integer.to_string() == text"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "actql-gcs-object-upload-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "let preimage ="
               }
             ],
             "ownership": [
@@ -855,6 +955,18 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "metadata: logical_metadata(fields.metadata)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadBinding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadObservation"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "const originals = new WeakMap()"
               }
             ],
             "synchronization": [
@@ -889,6 +1001,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "not object GET"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub fn recheck_object_upload"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "function original(request, binding)"
               }
             ],
             "failure": [
@@ -923,6 +1043,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "if count > max_items"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) enum ObjectUploadIssue"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "there is no catch/retry or re-read"
               }
             ],
             "cancellation": {
@@ -968,6 +1096,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The physical raw page, strict parser/decode trees"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) struct ObjectUploadLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Checked subtraction precedes the body allocation"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "fixed assembly array and sealed body"
               }
             ],
             "extension": [
@@ -1002,6 +1142,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "pub fn object_metadata_page_at"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "RequiresResumable"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "ordinary installed STORE acceptance remain unfinished"
               }
             ],
             "verification": [
@@ -1040,6 +1188,18 @@
               {
                 "path": "src/connectors/gcs/contract_acceptance/object_page_test.mbt",
                 "anchor": "GCS original page integers reach real Decimal admission"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS multipart seals binary body marker CRC and independent request identity"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "binary transport invokes one original scoped operation"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "upload response loss preserves the exact original cleanup failure"
               }
             ]
           }
@@ -1393,10 +1553,18 @@
             "gcs_object_request_body",
             "gcs_object_request_changes",
             "gcs_object_request_projection",
+            "gcs_upload_binding",
+            "gcs_upload_body",
             "gcs_upload_catalog_json",
             "gcs_upload_command_json",
             "gcs_upload_declaration_failure_code",
-            "gcs_upload_mapping_json"
+            "gcs_upload_failure_code",
+            "gcs_upload_mapping_json",
+            "gcs_upload_observation",
+            "gcs_upload_prepare_multipart",
+            "gcs_upload_projection",
+            "gcs_upload_recheck",
+            "gcs_upload_response_matches"
           ],
           "exports": [
             "pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]",
@@ -1417,10 +1585,18 @@
             "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
             "pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
             "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
+            "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
             "pub fn gcs_upload_command_json(String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
             "pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String",
+            "pub fn gcs_upload_failure_code(@catalog.ObjectUploadIssue) -> String",
             "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
+            "pub fn gcs_upload_observation(@catalog.ObjectUploadBinding, String, Int, Bytes) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_upload_prepare_multipart(@catalog.ObjectUploadBinding, @catalog.ObjectUploadObservation, Bytes, String, String, String, String, String) -> Result[@catalog.ObjectUploadRequest, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_upload_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool",
             "pub enum GcsFailure {"
           ],
           "attributes": {
@@ -1456,6 +1632,14 @@
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
                 "anchor": "pub fn issue_collection_reference"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original multipart upload request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Original provider requests only"
               }
             ],
             "inputsOutputs": [
@@ -1494,6 +1678,14 @@
               {
                 "path": "src/connectors/gcs/original_reference/pkg.generated.mbti",
                 "anchor": "pub fn issue_collection_reference"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_multipart_upload"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_prepare_multipart"
               }
             ],
             "identity": [
@@ -1536,6 +1728,14 @@
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
                 "anchor": "physical_equal"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "actql-gcs-object-upload-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "let preimage ="
               }
             ],
             "ownership": [
@@ -1574,6 +1774,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadBinding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadObservation"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "const originals = new WeakMap()"
               }
             ],
             "synchronization": [
@@ -1608,6 +1820,14 @@
               {
                 "path": "src/value_admission/reference.mbt",
                 "anchor": "pub fn reference_available"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub fn recheck_object_upload"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "function original(request, binding)"
               }
             ],
             "failure": [
@@ -1642,6 +1862,14 @@
               {
                 "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
                 "anchor": "GCS equal collection bytes never replace the original issuer authorization"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) enum ObjectUploadIssue"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "there is no catch/retry or re-read"
               }
             ],
             "cancellation": [
@@ -1652,6 +1880,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "physical cleanup ACK"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "cancel acknowledgement or function return"
               }
             ],
             "resources": [
@@ -1690,6 +1926,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "## Original collection reference selection"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) struct ObjectUploadLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Checked subtraction precedes the body allocation"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "fixed assembly array and sealed body"
               }
             ],
             "extension": [
@@ -1724,6 +1972,14 @@
               {
                 "path": "src/check_environment/store_command.mbt",
                 "anchor": "pub fn bind_store_command"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "RequiresResumable"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "ordinary installed STORE acceptance remain unfinished"
               }
             ],
             "verification": [
@@ -1766,6 +2022,18 @@
               {
                 "path": "src/connectors/gcs/contract_acceptance/collection_reference_test.mbt",
                 "anchor": "GCS reference comparison refuses exhausted work"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS multipart seals binary body marker CRC and independent request identity"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "binary transport invokes one original scoped operation"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "upload response loss preserves the exact original cleanup failure"
               }
             ]
           }
@@ -1790,10 +2058,18 @@
         "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
         "pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
         "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
         "pub fn gcs_upload_command_json(String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
         "pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String",
+        "pub fn gcs_upload_failure_code(@catalog.ObjectUploadIssue) -> String",
         "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
+        "pub fn gcs_upload_observation(@catalog.ObjectUploadBinding, String, Int, Bytes) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_upload_prepare_multipart(@catalog.ObjectUploadBinding, @catalog.ObjectUploadObservation, Bytes, String, String, String, String, String) -> Result[@catalog.ObjectUploadRequest, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_upload_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool",
         "pub enum GcsFailure {"
       ],
       "operations": [
@@ -1870,6 +2146,14 @@
           "declaration": "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]"
         },
         {
+          "name": "gcs_upload_binding",
+          "declaration": "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_upload_body",
+          "declaration": "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]"
+        },
+        {
           "name": "gcs_upload_catalog_json",
           "declaration": "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]"
         },
@@ -1882,11 +2166,35 @@
           "declaration": "pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String"
         },
         {
+          "name": "gcs_upload_failure_code",
+          "declaration": "pub fn gcs_upload_failure_code(@catalog.ObjectUploadIssue) -> String"
+        },
+        {
           "name": "gcs_upload_mapping_json",
           "declaration": "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]"
+        },
+        {
+          "name": "gcs_upload_observation",
+          "declaration": "pub fn gcs_upload_observation(@catalog.ObjectUploadBinding, String, Int, Bytes) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_upload_prepare_multipart",
+          "declaration": "pub fn gcs_upload_prepare_multipart(@catalog.ObjectUploadBinding, @catalog.ObjectUploadObservation, Bytes, String, String, String, String, String) -> Result[@catalog.ObjectUploadRequest, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_upload_projection",
+          "declaration": "pub fn gcs_upload_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_upload_recheck",
+          "declaration": "pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_upload_response_matches",
+          "declaration": "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool"
         }
       ],
-      "sha256": "1d0d4fb9dc855472e1445e8f07bd9fed0f4ab2a2a3d3a50d143449faaf84d9eb"
+      "sha256": "95a2045a80944adb18795f026328b06b60a9914b23f1745b56556f20a125f2f6"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -2537,13 +2845,16 @@
             "integer/integer",
             "issueGcsCollectionReference",
             "prepareGcsCollectionTarget",
-            "prepareGcsCollectionTarget/prepareGcsCollectionTarget"
+            "prepareGcsCollectionTarget/prepareGcsCollectionTarget",
+            "prepareGcsCollectionUploadBinding",
+            "prepareGcsCollectionUploadBinding/prepareGcsCollectionUploadBinding"
           ],
           "exports": [
             "checkGcsCollectionTarget",
             "gcsCollectionUploadMapping",
             "issueGcsCollectionReference",
-            "prepareGcsCollectionTarget"
+            "prepareGcsCollectionTarget",
+            "prepareGcsCollectionUploadBinding"
           ],
           "attributes": {
             "responsibility": [
@@ -2566,6 +2877,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "## Installed collection issuer"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original multipart upload request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Original provider requests only"
               }
             ],
             "inputsOutputs": [
@@ -2592,6 +2911,14 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_multipart_upload"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_prepare_multipart"
               }
             ],
             "identity": [
@@ -2622,6 +2949,14 @@
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
                 "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "actql-gcs-object-upload-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "let preimage ="
               }
             ],
             "ownership": [
@@ -2648,6 +2983,18 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "referenceCurrent: () => !closing"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadBinding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadObservation"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "const originals = new WeakMap()"
               }
             ],
             "synchronization": [
@@ -2674,6 +3021,14 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "close() { closed = true; adapter.close(); }"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub fn recheck_object_upload"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "function original(request, binding)"
               }
             ],
             "failure": [
@@ -2700,6 +3055,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
                 "anchor": "the same credential Site invalidates reference currentness before failed close"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) enum ObjectUploadIssue"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "there is no catch/retry or re-read"
               }
             ],
             "cancellation": [
@@ -2710,6 +3073,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "False means closing, not physical cleanup ACK"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "cancel acknowledgement or function return"
               }
             ],
             "resources": [
@@ -2740,6 +3111,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Additional declarations/trees/strings"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) struct ObjectUploadLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Checked subtraction precedes the body allocation"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "fixed assembly array and sealed body"
               }
             ],
             "extension": [
@@ -2766,6 +3149,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "An explicitly supplied legacy"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "RequiresResumable"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "ordinary installed STORE acceptance remain unfinished"
               }
             ],
             "verification": [
@@ -2800,6 +3191,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
                 "anchor": "LIST_FILES paths=[]"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS multipart seals binary body marker CRC and independent request identity"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "binary transport invokes one original scoped operation"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "upload response loss preserves the exact original cleanup failure"
               }
             ]
           }
@@ -2809,7 +3212,8 @@
         "checkGcsCollectionTarget",
         "gcsCollectionUploadMapping",
         "issueGcsCollectionReference",
-        "prepareGcsCollectionTarget"
+        "prepareGcsCollectionTarget",
+        "prepareGcsCollectionUploadBinding"
       ],
       "operations": [
         {
@@ -2894,14 +3298,36 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "prepareGcsCollectionUploadBinding",
+          "parameters": [
+            "original",
+            "commandCid",
+            "permissions",
+            "metadata",
+            "maxContentBytes",
+            "maxBodyBytes",
+            "maxPathBytes",
+            "maxIdentityBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsCollectionUploadBinding/prepareGcsCollectionUploadBinding",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         }
       ],
       "imports": [
-        "../../../host-common/runtime-result.mjs"
+        "../../../host-common/runtime-result.mjs",
+        "../site/gcs-owned-upload-request.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a6bf1b0967173c2c71d4ce6813e172bf8ff007219658fd9eccee15a3c9481a6a"
+      "sha256": "d7139f6ce4f468792ac933a0b50d349d4f060a1c52263d990a1931e4b1bf856a"
     },
     {
       "module": "src/connectors/gcs/catalog/upload_declaration.mbt",
@@ -3978,6 +4404,661 @@
       ],
       "exports": [],
       "sha256": "369a9586065dea609648c7dd5f086de7f8afeccfc3187acf4e9c0a78dceb947b"
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_upload.mbt",
+      "sha256": "48b699adb7a887da20062c74eb090128d1932d4e3a1268cdbce3fe35da9f435e",
+      "operations": [
+        {
+          "name": "admit_object_upload_observation",
+          "declaration": "admit_object_upload_observation ( binding : ObjectUploadBinding , name : String , status : Int , bytes : Bytes , ) - > Result [ ObjectUploadObservation , ObjectUploadIssue ]"
+        },
+        {
+          "name": "object_upload_body_for",
+          "declaration": "object_upload_body_for ( binding : ObjectUploadBinding , request : ObjectUploadRequest , ) - > Result [ Bytes , ObjectUploadIssue ]"
+        },
+        {
+          "name": "object_upload_body_media_type",
+          "declaration": "object_upload_body_media_type ( request : ObjectUploadRequest ) - > String"
+        },
+        {
+          "name": "object_upload_cid",
+          "declaration": "object_upload_cid ( request : ObjectUploadRequest ) - > String"
+        },
+        {
+          "name": "object_upload_path",
+          "declaration": "object_upload_path ( request : ObjectUploadRequest ) - > String"
+        },
+        {
+          "name": "object_upload_projection_json",
+          "declaration": "object_upload_projection_json ( binding : ObjectUploadBinding , request : ObjectUploadRequest , max_bytes : Int , ) - > Result [ String , ObjectUploadIssue ]"
+        },
+        {
+          "name": "object_upload_response_matches",
+          "declaration": "object_upload_response_matches ( binding : ObjectUploadBinding , request : ObjectUploadRequest , response : ObjectMetadata , ) - > Bool"
+        },
+        {
+          "name": "prepare_object_multipart_upload",
+          "declaration": "prepare_object_multipart_upload ( binding : ObjectUploadBinding , before : ObjectUploadObservation , content : Bytes , content_ref_cid : String , expected_content_cid : String , content_type : String , overwrite : Bool ? , marker : String , ) - > Result [ ObjectUploadRequest , ObjectUploadIssue ]"
+        },
+        {
+          "name": "prepare_object_upload_binding",
+          "declaration": "prepare_object_upload_binding ( collection : ObjectCollectionBinding , command_cid : String , permissions : Array [ String ] , limits : ObjectUploadLimits , ) - > Result [ ObjectUploadBinding , ObjectUploadIssue ]"
+        },
+        {
+          "name": "recheck_object_upload",
+          "declaration": "recheck_object_upload ( binding : ObjectUploadBinding , request : ObjectUploadRequest , current : ObjectUploadObservation , ) - > Result [ Unit , ObjectUploadIssue ]"
+        },
+        {
+          "name": "upload_crc32c",
+          "declaration": "upload_crc32c ( bytes : Bytes ) - > String"
+        },
+        {
+          "name": "upload_json",
+          "declaration": "upload_json ( value : Json , maximum : Int , limits : ObjectMetadataLimits , ) - > Result [ String , ObjectUploadIssue ]"
+        },
+        {
+          "name": "upload_object_text",
+          "declaration": "upload_object_text ( value : String , empty ? : Bool"
+        },
+        {
+          "name": "upload_request_wire",
+          "declaration": "upload_request_wire ( binding : ObjectUploadBinding , before : ObjectUploadObservation , path : String , body : Bytes , body_media_type : String , content_ref_cid : String , expected_content_cid : String , overwrite : Bool ? , ) - > Result [ String , ObjectUploadIssue ]"
+        },
+        {
+          "name": "upload_text",
+          "declaration": "upload_text ( value : String , maximum : Int , empty ? : Bool"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing GCS Connector original upload request meaning; Core/Store/Effect retain authorization, custody and settlement",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_object_upload_observation",
+            "object_upload_body_for",
+            "object_upload_body_media_type",
+            "object_upload_cid",
+            "object_upload_path",
+            "object_upload_projection_json",
+            "object_upload_response_matches",
+            "prepare_object_multipart_upload",
+            "prepare_object_upload_binding",
+            "recheck_object_upload",
+            "upload_crc32c",
+            "upload_json",
+            "upload_object_text",
+            "upload_request_wire",
+            "upload_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original multipart upload request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Original provider requests only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_multipart_upload"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_prepare_multipart"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "actql-gcs-object-upload-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "let preimage ="
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadBinding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadObservation"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub fn recheck_object_upload"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "function original(request, binding)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) enum ObjectUploadIssue"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "there is no catch/retry or re-read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "cancel acknowledgement or function return"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) struct ObjectUploadLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Checked subtraction precedes the body allocation"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "fixed assembly array and sealed body"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "RequiresResumable"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "ordinary installed STORE acceptance remain unfinished"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS multipart seals binary body marker CRC and independent request identity"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "binary transport invokes one original scoped operation"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "upload response loss preserves the exact original cleanup failure"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/host_node/upload_request.mbt",
+      "sha256": "f0312f76c46ffee6e0c0660e2b4d7abcf411ef5773db19bb70f64c75d07050e4",
+      "operations": [
+        {
+          "name": "gcs_upload_binding",
+          "declaration": "gcs_upload_binding ( collection : @ catalog . ObjectCollectionBinding , command_cid : String , permissions : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_entries : Int , max_content_bytes : Int , max_body_bytes : Int , max_path_bytes : Int , max_identity_bytes : Int , ) - > Result [ @ catalog . ObjectUploadBinding , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_upload_body",
+          "declaration": "gcs_upload_body ( binding : @ catalog . ObjectUploadBinding , request : @ catalog . ObjectUploadRequest , ) - > Result [ Bytes , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_upload_failure_code",
+          "declaration": "gcs_upload_failure_code ( issue : @ catalog . ObjectUploadIssue ) - > String"
+        },
+        {
+          "name": "gcs_upload_observation",
+          "declaration": "gcs_upload_observation ( binding : @ catalog . ObjectUploadBinding , name : String , status : Int , bytes : Bytes , ) - > Result [ @ catalog . ObjectUploadObservation , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_upload_prepare_multipart",
+          "declaration": "gcs_upload_prepare_multipart ( binding : @ catalog . ObjectUploadBinding , before : @ catalog . ObjectUploadObservation , content : Bytes , content_ref_cid : String , content_cid : String , media_type : String , overwrite_presence : String , marker : String , ) - > Result [ @ catalog . ObjectUploadRequest , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_upload_projection",
+          "declaration": "gcs_upload_projection ( binding : @ catalog . ObjectUploadBinding , request : @ catalog . ObjectUploadRequest , max_bytes : Int , ) - > Result [ String , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_upload_recheck",
+          "declaration": "gcs_upload_recheck ( binding : @ catalog . ObjectUploadBinding , request : @ catalog . ObjectUploadRequest , current : @ catalog . ObjectUploadObservation , ) - > Result [ Unit , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_upload_response_matches",
+          "declaration": "gcs_upload_response_matches ( binding : @ catalog . ObjectUploadBinding , request : @ catalog . ObjectUploadRequest , response : @ catalog . ObjectMetadata , ) - > Bool"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing GCS private typed provider bridge, not a Content/Reference/permission issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gcs_upload_binding",
+            "gcs_upload_body",
+            "gcs_upload_failure_code",
+            "gcs_upload_observation",
+            "gcs_upload_prepare_multipart",
+            "gcs_upload_projection",
+            "gcs_upload_recheck",
+            "gcs_upload_response_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original multipart upload request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Original provider requests only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_multipart_upload"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_prepare_multipart"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "actql-gcs-object-upload-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "let preimage ="
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadBinding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadObservation"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub fn recheck_object_upload"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "function original(request, binding)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) enum ObjectUploadIssue"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "there is no catch/retry or re-read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "cancel acknowledgement or function return"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) struct ObjectUploadLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Checked subtraction precedes the body allocation"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "fixed assembly array and sealed body"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "RequiresResumable"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "ordinary installed STORE acceptance remain unfinished"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS multipart seals binary body marker CRC and independent request identity"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "binary transport invokes one original scoped operation"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "upload response loss preserves the exact original cleanup failure"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+      "sha256": "7ba245ab73545a3d61dc93e24ffaf179e4555471127574ab5fd6b181daf74912",
+      "exports": [
+        "admitGcsUploadObservation",
+        "gcsUploadResult",
+        "ownedGcsUploadBody",
+        "ownedGcsUploadResponseMatches",
+        "prepareOwnedGcsMultipartUpload",
+        "recheckOwnedGcsUpload",
+        "sendOwnedGcsUpload"
+      ],
+      "operations": [
+        {
+          "name": "admitGcsUploadObservation",
+          "parameters": [
+            "moon",
+            "binding",
+            "name",
+            "statusCode",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "bytes",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "gcsUploadResult",
+          "parameters": [
+            "moon",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "original",
+          "parameters": [
+            "request",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedGcsUploadBody",
+          "parameters": [
+            "request",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedGcsUploadResponseMatches",
+          "parameters": [
+            "request",
+            "metadata",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOwnedGcsMultipartUpload",
+          "parameters": [
+            "moon",
+            "binding",
+            "before",
+            "contentBytes",
+            "contentRefCid",
+            "contentCid",
+            "mediaType",
+            "overwrite",
+            "marker",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOwnedGcsMultipartUpload/prepareOwnedGcsMultipartUpload",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "recheckOwnedGcsUpload",
+          "parameters": [
+            "request",
+            "current",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendOwnedGcsUpload",
+          "parameters": [
+            "request",
+            "authorization",
+            "credential",
+            "callResource",
+            "maxRequestBytes",
+            "maxResponseBytes",
+            "signal"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing GCS request projection and single scoped Credential invocation; no local resend or apply authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitGcsUploadObservation",
+            "bytes",
+            "fail/fail",
+            "gcsUploadResult",
+            "integer/integer",
+            "original",
+            "ownedGcsUploadBody",
+            "ownedGcsUploadResponseMatches",
+            "prepareOwnedGcsMultipartUpload",
+            "prepareOwnedGcsMultipartUpload/prepareOwnedGcsMultipartUpload",
+            "recheckOwnedGcsUpload",
+            "sendOwnedGcsUpload"
+          ],
+          "exports": [
+            "admitGcsUploadObservation",
+            "gcsUploadResult",
+            "ownedGcsUploadBody",
+            "ownedGcsUploadResponseMatches",
+            "prepareOwnedGcsMultipartUpload",
+            "recheckOwnedGcsUpload",
+            "sendOwnedGcsUpload"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Original multipart upload request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Original provider requests only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_multipart_upload"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_prepare_multipart"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "actql-gcs-object-upload-request/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "let preimage ="
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadBinding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub struct ObjectUploadObservation"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub fn recheck_object_upload"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "function original(request, binding)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) enum ObjectUploadIssue"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "there is no catch/retry or re-read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "cancel acknowledgement or function return"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "pub(all) struct ObjectUploadLimits"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "Checked subtraction precedes the body allocation"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "fixed assembly array and sealed body"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload.mbt",
+                "anchor": "RequiresResumable"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "ordinary installed STORE acceptance remain unfinished"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_upload_wbtest.mbt",
+                "anchor": "GCS multipart seals binary body marker CRC and independent request identity"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "binary transport invokes one original scoped operation"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "upload response loss preserves the exact original cleanup failure"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
