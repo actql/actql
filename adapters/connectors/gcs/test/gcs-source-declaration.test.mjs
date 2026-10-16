@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
+import {inspect} from 'node:util';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {checkInstalledGcsSourceProfile, restoreGcsSourceDeclaration} from '../host/gcs-source-declaration.mjs';
@@ -81,7 +82,8 @@ test('ordinary objects declare exact Decimal contracts and genuine Source acquis
     results: {r: {from: {stage: 's', result: 'r'}}}};
   const prepared = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(document),
     'json', checkedEnvironment, undefined);
-  assert.equal(moon.clientProgramPreparationReady(prepared), true);
+  assert.ok(moon.clientProgramPreparationReady(prepared),
+    inspect(moon.clientProgramPreparationIssue(prepared), {depth: 8, maxStringLength: 1000}));
   assert.equal(catalog.source_views.length, 3);
 });
 
