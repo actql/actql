@@ -172,9 +172,9 @@ canonical comparison trees/writers/Strings, the checked ResourceRef contract,
 reference envelope, authorization closure and escaped checked/reference aliases
 can overlap. They belong to the original Host/Run envelope, not free capacity.
 These structural bounds and contract-control tests are not a normal numerical
-profile or physical cleanup acknowledgment. The selected installation/current
-supplier, actual Node caller, saved target/Run recovery, Preview and physical
-apply connection remain separate unfinished work.
+profile or physical cleanup acknowledgment. The installed Site connection is
+described below. The actual Command capture caller, saved target/Run recovery,
+Preview and physical apply connection remain separate unfinished work.
 
 ## Installed collection issuer
 
