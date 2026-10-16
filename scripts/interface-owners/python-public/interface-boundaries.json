@@ -4227,6 +4227,8 @@
         "CheckOutcome0ReportRequirementsItemFixesItemTarget",
         "CheckOutcome0ReportRequirementsItemLocation0",
         "CheckOutcome0ReportRequirementsItemLocation1",
+        "CheckOutcome0ReportRunnable",
+        "CheckOutcome0ReportRunnableReasonsItem",
         "CheckOutcome0ReportScope",
         "CheckOutcome1",
         "CheckOutcome1PartialReport",
@@ -4302,6 +4304,8 @@
         "CheckOutcome1PartialReportRequirementsItemFixesItemTarget",
         "CheckOutcome1PartialReportRequirementsItemLocation0",
         "CheckOutcome1PartialReportRequirementsItemLocation1",
+        "CheckOutcome1PartialReportRunnable",
+        "CheckOutcome1PartialReportRunnableReasonsItem",
         "CheckOutcome1PartialReportScope",
         "CheckOutcome1Problem",
         "CheckOutcome2",
@@ -4580,7 +4584,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "b6bbcb05ac4c7d481381b006360330a2ba58c95ea2d03d17583612083ece9a85",
+      "sha256": "b48243e08b2ec3e4c25e482170914863a06dfbc7b9bb847655cbdc3a4279cf41",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4696,6 +4700,8 @@
             "CheckOutcome0ReportRequirementsItemFixesItemTarget",
             "CheckOutcome0ReportRequirementsItemLocation0",
             "CheckOutcome0ReportRequirementsItemLocation1",
+            "CheckOutcome0ReportRunnable",
+            "CheckOutcome0ReportRunnableReasonsItem",
             "CheckOutcome0ReportScope",
             "CheckOutcome1",
             "CheckOutcome1PartialReport",
@@ -4771,6 +4777,8 @@
             "CheckOutcome1PartialReportRequirementsItemFixesItemTarget",
             "CheckOutcome1PartialReportRequirementsItemLocation0",
             "CheckOutcome1PartialReportRequirementsItemLocation1",
+            "CheckOutcome1PartialReportRunnable",
+            "CheckOutcome1PartialReportRunnableReasonsItem",
             "CheckOutcome1PartialReportScope",
             "CheckOutcome1Problem",
             "CheckOutcome2",
@@ -5057,6 +5065,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: public-check.runnable-is-not-validity-or-authority -->"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "<!-- requirement-block: run-observation.state-revision -->"
               }
             ],
             "identity": [
@@ -5067,6 +5083,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "<!-- requirement-block: run-observation.state-revision -->"
               }
             ],
             "ownership": [
@@ -5133,6 +5153,14 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "ContractTests"
+              },
+              {
+                "path": "spec/requirements/contracts.json",
+                "anchor": "\"requirement_id\": \"actql.protocol.contracts/public-check.runnable-is-not-validity-or-authority\""
+              },
+              {
+                "path": "spec/requirements/run.json",
+                "anchor": "\"requirement_id\": \"actql.protocol.run/run-observation.state-revision\""
               }
             ]
           }
