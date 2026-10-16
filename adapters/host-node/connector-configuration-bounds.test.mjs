@@ -174,6 +174,37 @@ test('Salesforce publication keeps exact UTF8 text and the original 16000000 byt
   f.passed();
 });
 
+test('Salesforce publication preserves replacement decoding and the exact decoded UTF8 ceiling', async t => {
+  const f = await fixture(t);
+  // This remains valid JSON after the original replacement decoding. Its raw
+  // bytes fit the physical bound even when the decoded identity text does not.
+  const raw = Buffer.concat([Buffer.from('{"original":"'),
+    Buffer.alloc(5_333_328, 0xff), Buffer.from('"} ')]);
+  const body = raw.toString('utf8');
+  assert.equal(Buffer.byteLength(body, 'utf8'), publicationLimit);
+  assert.equal(JSON.parse(body).original.length, 5_333_328);
+  assert.ok(raw.length < publicationLimit);
+  await fs.writeFile(f.path, raw);
+  const read = await readPublicationFile(f.path);
+  assert.equal(read.body, body);
+  assert.equal(read.generationCid, cid(body));
+  assert.equal(f.state.bytes, raw.length);
+  await fs.appendFile(f.path, ' ');
+  f.state.bytes = 0;
+  assert.equal(Buffer.byteLength(body + ' ', 'utf8'), publicationLimit + 1);
+  await assert.rejects(readPublicationFile(f.path), {code: 'InvalidSalesforcePublication'});
+  assert.equal(f.state.bytes, raw.length + 1);
+  const originalCounter = Buffer.concat([Buffer.from('{"original":"'),
+    Buffer.alloc(5_333_334, 0xff), Buffer.from('"}')]);
+  assert.equal(originalCounter.length, 5_333_349);
+  assert.equal(Buffer.byteLength(originalCounter.toString('utf8'), 'utf8'), 16_000_017);
+  assert.equal(createHash('sha256').update(originalCounter).digest('hex'),
+    'd9b709929e8b0251f620bc715ba351f81fa9699a256b91904be46c27ec008cdd');
+  await fs.writeFile(f.path, originalCounter);
+  await assert.rejects(readPublicationFile(f.path), {code: 'InvalidSalesforcePublication'});
+  f.passed();
+});
+
 test('Salesforce publication close failure preserves exact original cleanup and missing-file classification', async t => {
   const f = await fixture(t);
   await assert.rejects(readPublicationFile(f.path), {code: 'SalesforcePublicationMissing'});
