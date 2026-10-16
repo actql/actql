@@ -6,6 +6,7 @@ import {invokeScopedCredentialOperation} from
 import {refusedEffectPreparation} from
   '../../../host-common/effect-preparation-result.mjs';
 import {canonicalJson as valueJson} from '../../../../packages/sdk/host-port.mjs';
+import {prepareOwnedSheetsRequest, ownedSheetsRequestCid} from './sheets-owned-request.mjs';
 
 export const SHEETS_READ_OPERATION = 'sheets:grid:read';
 export const SHEETS_APPEND_OPERATION = 'sheets:cells:append';
@@ -152,51 +153,22 @@ export async function readSheetsRangeTarget({moon, spreadsheetId, columns, range
 }
 
 export function sheetsUpdateRequestCid(request) {
-  const hash = createHash('sha256');
-  for (const part of ['actql-sheets-update-request/0.1', request.origin,
-    'POST', request.path, request.body, valueJson(request.target, {dataKeys: true})]) {
-    const bytes = Buffer.from(part, 'utf8');
-    hash.update(`${bytes.length}:`); hash.update(bytes);
-  }
-  return `sha256:${hash.digest('hex')}`;
+  return ownedSheetsRequestCid(request);
 }
-
-const frozenValue = value => {
-  if (value !== null && typeof value === 'object') {
-    for (const item of Object.values(value)) frozenValue(item);
-    Object.freeze(value);
-  }
-  return value;
-};
 
 // This only encodes a request. Current reference authority, approval, durable
 // claim and response custody remain the installed Source/Effect owners'.
-export function prepareSheetsUpdate({moon, origin, spreadsheetId, range,
-  columns, value, target}) {
-  const copy = JSON.parse(valueJson(value, {dataKeys: true}));
-  if (copy === null || typeof copy !== 'object' || Array.isArray(copy) ||
-      Object.keys(copy).length !== 1 || !Object.hasOwn(copy, 'rows')) {
-    throw refusedEffectPreparation(Object.assign(new Error('InvalidSheetsRangeInput'),
-      {code: 'InvalidSheetsRangeInput'}));
-  }
-  let body;
+export function prepareSheetsUpdate({moon, binding, value, target}) {
   try {
-    body = decoded(moon.sheetsUpdateRequestJson(JSON.stringify(columns),
-      valueJson(copy.rows, {dataKeys: true}), ...rangeArgs(range),
-      ...codecLimits(SHEETS_LIMITS.maxRequestBytes))).body;
+    return prepareOwnedSheetsRequest(moon, binding, value, target);
   } catch (cause) {
-    throw cause?.code === 'SheetsContractRefused' ? refusedEffectPreparation(cause) : cause;
+    throw ['InvalidSheetsRangeInput', 'SheetsContractRefused'].includes(cause?.code)
+      ? refusedEffectPreparation(cause) : cause;
   }
-  const request = {origin, path: `${basePath(spreadsheetId)}:batchUpdate`,
-    body, spreadsheetId, sheetId: range.sheetId,
-    acknowledgedRows: range.endRow - range.startRow,
-    value: frozenValue(copy), target: frozenValue(JSON.parse(valueJson(target, {dataKeys: true})))};
-  return Object.freeze({...request, requestCid: sheetsUpdateRequestCid(request)});
 }
 
 export async function sendSheetsUpdate({request, authorization, credential, callResource, signal}) {
   if (authorization?.scope?.resourceOrigin !== request.origin ||
-      request.path !== `${basePath(request.spreadsheetId)}:batchUpdate` ||
       request.requestCid !== sheetsUpdateRequestCid(request)) fail('InvalidSheetsUpdateBinding');
   const response = await exchange({authorization, credential, callResource,
     operation: SHEETS_UPDATE_OPERATION, path: request.path, body: request.body, signal});

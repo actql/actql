@@ -23,8 +23,8 @@ const profile = {siteProfilePath: '/fixture/site.json', publicationPath: '/fixtu
 const member = {resource: 'range_target', effectId: 'replace'};
 const value = {rows: [{text: '=e\u0301\r\n', flag: false}, {text: 'second', flag: true}]};
 function fixture() {
-  const range = sheetsRangeCommand(profile.connectorId, site);
-  const target = sheetsRangeReference({site, catalogCid: token('a'), bindingCid: token('b')});
+  const range = sheetsRangeCommand(profile.connectorId, site, provider);
+  const target = sheetsRangeReference({site, catalogCid: token('a'), bindingCid: token('b'), moon: provider});
   let current = true;
   const driver = createSheetsRangeDriver({moon: provider, site, command: range.installed,
     target, bindingCid: token('b'), isCurrent: () => current});
@@ -60,8 +60,8 @@ test('Sheets range Catalog and bounded Command input reach the existing common c
       resource: 'range_target', resource_kind: 'sheet_range',
       schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)}]}), undefined));
   const original = JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
-  const range = sheetsRangeCommand(profile.connectorId, site);
-  const declared = withSheetsRangeCommand(original, range);
+  const range = sheetsRangeCommand(profile.connectorId, site, provider);
+  const declared = withSheetsRangeCommand(original, range, provider);
   assert.notEqual(declared.catalog_cid, original.catalog_cid);
   assert.deepEqual(JSON.parse(original.catalog).commands, []);
   assert.deepEqual(JSON.parse(declared.catalog).source_views, JSON.parse(original.catalog).source_views);
@@ -85,13 +85,13 @@ test('Sheets range authored Program reaches the existing effect preparation and 
     {name: 'number', type: 'number', nullable: true},
     {name: 'flag', type: 'boolean', nullable: true}];
   const range = sheetsRangeCommand(profile.connectorId, {...site,
-    gridRange: {...site.gridRange, endColumn: 4}, columns});
+    gridRange: {...site.gridRange, endColumn: 4}, columns}, provider);
   const schema = {target: {type: 'resource_ref', resource_kind: 'sheet_range', nullable: false}};
   const declaration = checked(common.clientProgramRowSourceRestoreRelationDeclaration(
     profile.connectorId, 'sheets', 'sheets/0.1', JSON.stringify({views: [{resource: 'range_target',
       resource_kind: 'sheet_range', schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)}]}), undefined));
   const declared = withSheetsRangeCommand(
-    JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)), range);
+    JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)), range, provider);
   const base = readFileSync(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
   const {evidence_bundle_cid: _, ...body} = JSON.parse(rowSourceCheckEnvironment(base, declared).wire);
   body.command_contracts = [range.command];
@@ -123,6 +123,58 @@ test('Sheets range request binds original literal values exact rectangle and ori
   assert.throws(() => { request.target.identity_cid = token('c'); }, TypeError);
   assert.throws(() => driver.recheckRequests({entries: [{request: {...request}}]}),
     /ForeignSheetsRangeRequest/);
+});
+
+test('Sheets nominal request owner refuses same bytes under another permission or installation', () => {
+  const first = fixture();
+  const other = fixture();
+  assert.equal(first.request.body, other.request.body);
+  assert.equal(first.request.requestCid, other.request.requestCid);
+  assert.throws(() => other.driver.recheckRequests({entries: [{request: first.request}]}),
+    {code: 'ForeignSheetsRangeRequest'});
+  const target = sheetsRangeReference({site, catalogCid: token('a'), bindingCid: token('c'), moon: provider});
+  const driver = createSheetsRangeDriver({moon: provider, site, command: first.range.installed,
+    bindingCid: token('c'), target, isCurrent: () => true});
+  const request = driver.prepareRequest({member, value, selector: target}).request;
+  assert.equal(request.body, first.request.body);
+  assert.notEqual(request.requestCid, first.request.requestCid);
+  assert.throws(() => driver.recheckRequests({entries: [{request: first.request}]}),
+    {code: 'SheetsRangeReferenceUnavailable'});
+  assert.throws(() => first.driver.recheckRequests({entries: [{request: {...first.request, target}}]}),
+    {code: 'SheetsRangeReferenceUnavailable'});
+});
+
+test('Sheets body projection does not serialize a legal request into a second request-sized JSON envelope', () => {
+  const {driver, target} = fixture();
+  const large = {rows: [{text: '"'.repeat(49_900), flag: false}, {text: 'second', flag: true}]};
+  assert(Buffer.byteLength(JSON.stringify(large)) < 100_000, 'existing common Effect value bound');
+  const request = driver.prepareRequest({member, value: large, selector: target}).request;
+  assert(Buffer.byteLength(request.body) < 300_000, 'original physical request clamp');
+  assert.equal(JSON.parse(request.body).requests[0].updateCells.rows[0].values[0]
+    .userEnteredValue.stringValue, large.rows[0].text);
+  assert.equal(driver.requestCid(request), request.requestCid);
+});
+
+test('Sheets original configuration and footprint do not follow later caller DTO mutation', () => {
+  const originalSite = structuredClone(site);
+  const range = sheetsRangeCommand(profile.connectorId, originalSite, provider);
+  const target = structuredClone(sheetsRangeReference({site: originalSite,
+    catalogCid: token('a'), bindingCid: token('b'), moon: provider}));
+  const driver = createSheetsRangeDriver({moon: provider, site: originalSite,
+    command: range.installed, bindingCid: token('b'), target, isCurrent: () => true});
+  const request = driver.prepareRequest({member, value, selector: target}).request;
+  originalSite.apiOrigin = 'https://foreign.example.test';
+  originalSite.gridRange.endRow = 9;
+  originalSite.columns.reverse();
+  target.boundary_cid = token('c');
+  const again = driver.prepareRequest({member, value, selector: request.target}).request;
+  assert.equal(again.body, request.body);
+  assert.equal(driver.requestCid(again), request.requestCid);
+  assert.equal(driver.footprint().boundaryCid, token('a'));
+  const saved = JSON.parse(driver.recoveryEntry({member}).wire);
+  assert.equal(saved.origin, site.apiOrigin);
+  assert.deepEqual(saved.range, site.gridRange);
+  assert.deepEqual(saved.columns, site.columns);
 });
 
 test('Sheets range refuses foreign current target installation and partial input before send', () => {
