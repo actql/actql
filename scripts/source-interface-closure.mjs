@@ -11,9 +11,12 @@ import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {javascriptInterface} from './interface-inventory.mjs';
 import {moonInterfaceClosure} from './moon-interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
-import {typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
+import {typescriptInterface, typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
+import {productionRuntimeModules} from '../adapters/workers/moon-runtime.mjs';
+import {pythonModuleInterfaces} from './python-interface-sources.mjs';
 
-export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = []} = {}) {
+export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = [],
+  reportUnresolvedEntrances = false} = {}) {
   root = realpathSync(root);
   const roots = distributionRoots, plans = runtimePackageInputs(root);
   const local = localNodePackageInputs(root), artifacts = new Map();
@@ -26,24 +29,75 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       module: `_build/js/release/build/${file}`, sourcePackages: local.runtimePackages,
       build: 'scripts/build-local-node-assets.mjs', package: 'local-node'});
   }
+  for (const [name, pkg] of productionRuntimeModules) {
+    const module = `_build/workers/modules/${name}.mjs`;
+    artifacts.set(resolve(root, module), {module, sourcePackages: [pkg],
+      build: 'adapters/workers/moon-runtime.mjs', package: 'run-host-core'});
+  }
   for (const input of generatedInputs) {
     const path = resolve(root, input.module);
     assert(!artifacts.has(path), `Duplicate generated interface input: ${input.module}`);
     assert(existsSync(resolve(root, input.build)), `Missing generated interface recipe: ${input.build}`);
+    assert(Array.isArray(input.sourcePackages), `Missing generated interface source inputs: ${input.module}`);
+    if (input.sha256 !== undefined && existsSync(path)) {
+      assert.equal(createHash('sha256').update(readFileSync(path)).digest('hex'), input.sha256,
+        `Mixed configured interface output: ${input.module}`);
+    }
     artifacts.set(path, input);
   }
+  const includesLocal = roots.some(value => value.name === '@actql/local-node');
+  const ownedAssets = includesLocal ? local.dataFiles : [];
+  const commands = new Set(roots.flatMap(value => value.commands ?? []));
   const entrances = [...new Set([...roots.flatMap(value => value.entrances)
-    .filter(path => /\.[cm]?js$/u.test(path)),
-    ...(roots.some(value => value.name === '@actql/local-node') ? local.adapterEntries : [])])];
-  const sourceEntrances = [], artifactReferences = new Set();
+    .filter(path => !/\.d\.[cm]?ts$/u.test(path)),
+    ...(includesLocal ? local.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path))])];
+  const sourceEntrances = [], artifactReferences = new Set(), unresolvedEntrances = [];
+  const dataEntrances = [], pythonEntrances = [], scriptEntrances = new Set();
+  const copyReferences = new Map();
+  function copiedSource(path) {
+    const destination = relative(resolve(root, 'packages/local-node'), path);
+    if (!destination.startsWith('adapters/') && !destination.startsWith('src/')) return;
+    const source = resolve(root, destination);
+    if (destination.startsWith('src/')) assert(local.dataFiles.includes(destination),
+      `Undeclared local-node source asset: ${destination}`);
+    assert(existsSync(source), `Missing local-node copy source: ${destination}`);
+    copyReferences.set(path, {destination: relative(root, path), source: destination});
+    return source;
+  }
   for (const entrance of entrances) {
     if (artifacts.has(resolve(root, entrance))) artifactReferences.add(resolve(root, entrance));
     else {
-      assert(existsSync(resolve(root, entrance)), `Undeclared generated interface entrance: ${entrance}`);
-      sourceEntrances.push(entrance);
+      const source = copiedSource(resolve(root, entrance));
+      if (source) {
+        sourceEntrances.push(relative(root, source));
+        continue;
+      }
+      if (!existsSync(resolve(root, entrance))) {
+        assert(reportUnresolvedEntrances, `Undeclared generated interface entrance: ${entrance}`);
+        unresolvedEntrances.push(entrance);
+        continue;
+      }
+      if (/\.pyi?$/u.test(entrance)) pythonEntrances.push(entrance);
+      else if (/\.[cm]?[jt]sx?$/u.test(entrance)) sourceEntrances.push(entrance);
+      else if (commands.has(entrance)) {
+        const first = readFileSync(resolve(root, entrance)).subarray(0, 256).toString('utf8').split(/\r?\n/u, 1)[0];
+        if (/^#!(?:\/usr\/bin\/env[ \t]+python3?|\/usr\/bin\/python3?)(?:[ \t]|$)/u.test(first)) {
+          pythonEntrances.push(entrance);
+        } else {
+          assert(/^#!(?:\/usr\/bin\/env[ \t]+node|\/usr\/bin\/node)(?:[ \t]|$)/u.test(first),
+            `Unregistered executable source interface: ${entrance}`);
+          sourceEntrances.push(entrance);
+          scriptEntrances.add(entrance);
+        }
+      } else dataEntrances.push(entrance);
     }
   }
-  const graph = await build({entryPoints: sourceEntrances, bundle: true,
+  for (const plan of Object.values(plans)) {
+    if (plan.files.some(file => artifactReferences.has(resolve(root, file)))) {
+      sourceEntrances.push(...plan.embeddedSources ?? []);
+    }
+  }
+  const graph = sourceEntrances.length ? await build({entryPoints: sourceEntrances, bundle: true,
     packages: 'external', platform: 'node', format: 'esm', target: 'node22',
     metafile: true, write: false, absWorkingDir: root,
     outdir: resolve(root, '_build/unused-interface-discovery'),
@@ -54,21 +108,44 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
           artifactReferences.add(path);
           return {path, external: true};
         }
+        // The ordinary local-node builder copies these exact source paths.
+        // Resolve the source projection without manufacturing the generated
+        // package tree, then leave actual copied-byte checks to that builder.
+        const source = copiedSource(path);
+        if (source) return {path: source};
       });
-    }}]});
-  const modules = Object.keys(graph.metafile.inputs).sort().map(path => {
+    }}]}) : {metafile: {inputs: {}}};
+  const assets = [], modules = Object.keys(graph.metafile.inputs).sort().flatMap(path => {
     const module = relative(root, realpathSync(resolve(root, path)));
     assert(!module.startsWith('..'), `Escaped source interface: ${module}`);
     assert(!isConnectorTestFixture(module) && !/(?:\.test|_test|_wbtest)\./u.test(module),
       `Test authority in source interface: ${module}`);
     const bytes = readFileSync(resolve(root, module));
-    return {module, sha256: createHash('sha256').update(bytes).digest('hex'),
-      ...javascriptInterface(bytes.toString('utf8'))};
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    if (!/\.[cm]?[jt]sx?$/u.test(module) && !scriptEntrances.has(module)) {
+      assets.push({module, sha256, qualification: 'resolved-distribution-data'});
+      return [];
+    }
+    return [{module, sha256,
+      ...(/\.[cm]?tsx?$/u.test(module) ? typescriptInterface(bytes.toString('utf8'), module)
+        : javascriptInterface(bytes.toString('utf8')))}];
   });
+  const pythonAssets = [...new Set([...ownedAssets.filter(path => /\.pyi?$/u.test(path)), ...pythonEntrances])];
+  modules.push(...pythonModuleInterfaces(root, pythonAssets));
+  for (const module of new Set([...ownedAssets, ...dataEntrances])) {
+    if (modules.some(value => value.module === module) || assets.some(value => value.module === module)) continue;
+    const path = realpathSync(resolve(root, module));
+    assert(!relative(root, path).startsWith('..'), `Escaped source asset: ${module}`);
+    assets.push({module, sha256: createHash('sha256').update(readFileSync(path)).digest('hex'),
+      qualification: 'checked-host-manifest-asset'});
+  }
   const moon = moonInterfaceClosure(root, [...new Set([...artifactReferences]
     .flatMap(path => artifacts.get(path).sourcePackages))]);
   const types = typescriptInterfaceClosure(root, roots.flatMap(value => value.entrances)
     .filter(path => /\.d\.[cm]?ts$/u.test(path)));
-  return {qualification: 'source-input-coverage-only', roots, modules, types, moon,
+  return {qualification: unresolvedEntrances.length ? 'incomplete-source-input-coverage' : 'source-input-coverage-only',
+    unresolvedEntrances, roots, modules: modules.sort((a, b) => a.module.localeCompare(b.module)),
+    assets: assets.sort((a, b) => a.module.localeCompare(b.module)), types, moon,
+    copies: [...copyReferences.values()].sort((a, b) => a.destination.localeCompare(b.destination)),
     artifacts: [...artifactReferences].sort().map(path => artifacts.get(path))};
 }

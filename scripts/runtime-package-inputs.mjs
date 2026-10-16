@@ -1,10 +1,12 @@
 // The ordinary runtime builder and interface inventory read the same inputs.
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {finiteRuntimeEntry} from '../adapters/workers/artifact.mjs';
 
 export function runtimePackageInputs(root) {
 return {
   'run-host-core': {sources: ['client_values_host_abi', 'checkpoint_runtime_node',
     'connectors_workers_bridge'],
+    embeddedSources: [finiteRuntimeEntry],
     script: 'build-run-host-core-package', args: ['--runtime-only'],
     files: ['packages/run-host-core/dist/client_values_host_abi.js',
       'packages/run-host-core/dist/checkpoint_runtime_node.js',

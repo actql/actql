@@ -130,6 +130,15 @@ test('syntax parser distinguishes actual field reads from comments and string da
   assert.deepEqual(javascriptInterface("const {['$tag']: tag} = input;").compilerFields, ['$tag']);
 });
 
+test('closed literal and dynamic compiler field spellings do not bypass the representation gate', () => {
+  for (const source of ["value['_0']", 'const {_0: value} = input;', 'const value = {_0: input};',
+    'value[`$tag`]', "value['_' + 0]", "Object.getOwnPropertyDescriptor(value, '$tag')?.value",
+    'value[`_${index}`]', "Reflect.get(value, '_' + index)"]) {
+    assert(javascriptInterface(source).compilerFields.length, `Missing compiler field policy: ${source}`);
+  }
+  assert.deepEqual(javascriptInterface('const value = {"column": "_0", text: "$tag"};').compilerFields, []);
+});
+
 test('namespace reexports and class methods retain their actual public names', () => {
   const before = javascriptInterface('export * as First from "./member.mjs"; export class Host { read() {} }');
   const after = javascriptInterface('export * as Second from "./member.mjs"; export class Host { write() {} }');

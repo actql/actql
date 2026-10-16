@@ -5,7 +5,9 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {javascriptInterface} from './interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
-import {moonApiInterface} from './moon-interface-inventory.mjs';
+import {moonApiInterface, moonOperations} from './moon-interface-inventory.mjs';
+import {pythonSourceBlobInterfaces} from './python-interface-sources.mjs';
+import {typescriptInterface} from './typescript-interface-inventory.mjs';
 
 export function projectOwnerSources(root, {source, base, paths: selection = ['adapters', 'packages'], all = false}) {
   for (const revision of [source, base]) assert.match(revision, /^[0-9a-f]{40}$/u);
@@ -13,14 +15,23 @@ export function projectOwnerSources(root, {source, base, paths: selection = ['ad
   const command = all ? ['ls-tree', '-r', '--name-only', '-z', source, '--', ...selection]
     : ['diff', '--name-only', '-z', '--diff-filter=ACMR', base, source, '--', ...selection];
   const paths = git(command).toString('utf8').split('\0').filter(path =>
-    /\.(?:[cm]?js|mbti)$/u.test(path) && !isConnectorTestFixture(path) &&
+    /\.(?:[cm]?[jt]sx?|mbti?|pyi?)$/u.test(path) && !isConnectorTestFixture(path) &&
     !/(?:\.test|_test|_wbtest)\./u.test(path));
-  assert(paths.length, 'No owner JavaScript product sources');
-  const modules = paths.sort().map(module => {
+  assert(paths.length, 'No owner product sources');
+  const python = [];
+  const modules = paths.sort().flatMap(module => {
     const bytes = git(['show', `${source}:${module}`]);
-    return {module, sha256: createHash('sha256').update(bytes).digest('hex'),
-      ...(module.endsWith('.mbti') ? moonApiInterface(bytes.toString('utf8'))
-        : javascriptInterface(bytes.toString('utf8')))};
+    const text = bytes.toString('utf8');
+    if (/\.pyi?$/u.test(module)) {
+      python.push({module, source: text});
+      return [];
+    }
+    return [{module, sha256: createHash('sha256').update(bytes).digest('hex'),
+      ...(module.endsWith('.mbti') ? moonApiInterface(text)
+        : module.endsWith('.mbt') ? {exports: [], operations: moonOperations(text)}
+          : /\.[cm]?tsx?$/u.test(module) ? typescriptInterface(text, module) : javascriptInterface(text))}];
   });
-  return {qualification: 'owner-selected-source-syntax-only', source, base, modules};
+  if (python.length) modules.push(...pythonSourceBlobInterfaces(python));
+  return {qualification: 'owner-selected-source-syntax-only', source, base,
+    modules: modules.sort((a, b) => a.module.localeCompare(b.module))};
 }

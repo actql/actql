@@ -21,9 +21,38 @@ export const interfaceAttributes = Object.freeze([
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const inside = path => !isAbsolute(path) && path !== '..' && !path.startsWith('../');
 const ordered = values => [...new Set(values)].sort();
+// Only closed literal syntax is folded. No product expression, getter, or
+// callback is evaluated by the inventory.
+function literalValue(node, depth = 0) {
+  if (!node || depth > 8) return undefined;
+  if (node.type === 'Literal' && ['string', 'number', 'boolean'].includes(typeof node.value)) return node.value;
+  if (node.type === 'BinaryExpression' && node.operator === '+') {
+    const left = literalValue(node.left, depth + 1), right = literalValue(node.right, depth + 1);
+    if (left !== undefined && right !== undefined) {
+      const value = left + right;
+      return typeof value === 'string' && value.length > 128 ? undefined : value;
+    }
+  }
+  if (node.type === 'TemplateLiteral') {
+    let value = node.quasis[0].value.cooked;
+    for (let index = 0; index < node.expressions.length; index++) {
+      const part = literalValue(node.expressions[index], depth + 1);
+      if (part === undefined) return undefined;
+      value += String(part) + node.quasis[index + 1].value.cooked;
+      if (value.length > 128) return undefined;
+    }
+    return value;
+  }
+}
 const propertyName = node => node?.type === 'MemberExpression'
-  ? node.computed ? node.property.type === 'Literal' ? node.property.value : undefined : node.property.name
-  : undefined;
+  ? node.computed ? literalValue(node.property) : node.property.name : undefined;
+const compilerField = node => {
+  const value = literalValue(node);
+  if (typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value)) return value;
+  if (node?.type === 'TemplateLiteral' && node.expressions.length &&
+      node.quasis[0].value.cooked === '_' && node.quasis.at(-1).value.cooked === '') return '_<dynamic>';
+  if (node?.type === 'BinaryExpression' && node.operator === '+' && literalValue(node.left) === '_') return '_<dynamic>';
+};
 const exportsObject = node => node?.type === 'Identifier' && node.name === 'exports' ||
   node?.type === 'MemberExpression' && node.object.name === 'module' && propertyName(node) === 'exports';
 
@@ -83,9 +112,11 @@ export function javascriptInterface(source) {
         node.arguments[0]?.type === 'Literal') imports.push(node.arguments[0].value);
     if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
         node.callee.object.name === 'Reflect' && propertyName(node.callee) === 'get' &&
-        node.arguments[1]?.type === 'Literal' && /^(?:\$tag|_\d+)$/u.test(node.arguments[1].value)) {
-      compilerFields.push(node.arguments[1].value);
-    }
+        compilerField(node.arguments[1])) compilerFields.push(compilerField(node.arguments[1]));
+    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
+        ['Object', 'Reflect'].includes(node.callee.object.name) &&
+        ['getOwnPropertyDescriptor', 'defineProperty', 'set'].includes(propertyName(node.callee)) &&
+        compilerField(node.arguments[1])) compilerFields.push(compilerField(node.arguments[1]));
     if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
         node.callee.object.name === 'Object' && propertyName(node.callee) === 'assign' &&
         exportsObject(node.arguments[0])) node.arguments.slice(1).forEach(commonJsMembers);
@@ -107,10 +138,10 @@ export function javascriptInterface(source) {
       if (node.declaration?.declarations) exports.push(...node.declaration.declarations.flatMap(value => names(value.id)));
     }
     const key = node.type === 'MemberExpression'
-      ? node.computed ? node.property.type === 'Literal' ? node.property.value : undefined : node.property.name
+      ? node.computed ? compilerField(node.property) ?? literalValue(node.property) : node.property.name
       : node.type === 'Property' ? node.computed
-        ? node.key.type === 'Literal' ? node.key.value : undefined : node.key.name ?? node.key.value : undefined;
-    if (typeof key === 'string' && /^(?:\$tag|_\d+)$/u.test(key)) compilerFields.push(key);
+        ? compilerField(node.key) ?? literalValue(node.key) : node.key.name ?? node.key.value : undefined;
+    if (typeof key === 'string' && /^(?:\$tag|_\d+|_<dynamic>)$/u.test(key)) compilerFields.push(key);
     for (const [key, child] of Object.entries(node)) {
       if (['loc', 'start', 'end'].includes(key)) continue;
       const binding = node.type === 'VariableDeclarator' && key === 'init' && node.id.type === 'Identifier'
@@ -146,7 +177,7 @@ export function packageEntrances(manifest, directory = '.') {
       ? Object.values(value).flatMap(targets) : [];
   }
   const base = resolve(directory);
-  return ordered([...targets(manifest.exports), ...targets(manifest.bin),
+  return ordered([...targets(manifest.exports), ...targets(manifest.imports), ...targets(manifest.bin),
     ...targets(manifest.main), ...targets(manifest.types)]).map(path => {
     const target = resolve(base, path);
     assert(inside(relative(base, target)), `Nonlocal distribution entrance: ${path}`);
