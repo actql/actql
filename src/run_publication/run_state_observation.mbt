@@ -128,7 +128,11 @@ pub fn prepare_run_state_observation(
     emit_run_state_revision(complete, value, current_revision)
     let candidate = match
       parse_contract_wire(
-        @encode.finish(complete), max_bytes, max_nodes, max_depth, data_keys=true,
+        @encode.finish(complete),
+        max_bytes,
+        max_nodes,
+        max_depth,
+        data_keys=true,
       ) {
       Ok(value) => value
       Err(_) => return Err(InvalidObservation)
