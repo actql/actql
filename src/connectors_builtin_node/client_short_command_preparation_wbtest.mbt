@@ -39,13 +39,37 @@ fn short_command_source_text() -> String {
 test "actual public Source lowerer retains the original Command publication and private ID" {
   let environment = short_command_source_environment()
   let publication = short_command_source_publication(environment)
-  let lowered = client_program_lower_source(
-    short_command_source_text(),
-    "sql",
-    environment,
-    publication,
-    None,
-  ).unwrap()
+  let lowered = match
+    client_program_lower_source(
+      short_command_source_text(),
+      "sql",
+      environment,
+      publication,
+      None,
+    ) {
+    Ok(value) => value
+    Err(SourcePreparation(Frontend(QueryLowering(ExpressionTyping(issue))))) =>
+      raise issue
+    Err(
+      SourcePreparation(
+        Frontend(QueryLowering(Expression({ issue: UnknownReference, .. })))
+      )
+    ) => fail("Source.Command.UnknownReference")
+    Err(SourcePreparation(Frontend(QueryLowering(UnknownColumn)))) =>
+      fail("Source.Command.UnknownColumn")
+    Err(SourcePreparation(Frontend(QueryLowering(UnknownRelation)))) =>
+      fail("Source.Command.UnknownRelation")
+    Err(SourcePreparation(Frontend(QueryLowering(InvalidQuery)))) =>
+      fail("Source.Command.InvalidQuery")
+    Err(SourcePreparation(Frontend(QueryLowering(InvalidContext)))) =>
+      fail("Source.Command.InvalidContext")
+    Err(SourcePreparation(Frontend(QueryLowering(_)))) =>
+      fail("Source.Command.OtherLowering")
+    Err(SourcePreparation(Publication)) => fail("Source.Command.Publication")
+    Err(SourcePreparation(Frontend(_))) =>
+      fail("Source.Command.SyntaxOrEncoding")
+    Err(_) => fail("Source.Command.OtherPreparation")
+  }
   let selection = lowered.command_selection.unwrap()
   let target = @query_program.short_command_selection_target(selection)
   assert_eq(@query_program.short_command_selection_stage(selection), 0)
