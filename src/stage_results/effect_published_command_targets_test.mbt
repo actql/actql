@@ -247,7 +247,7 @@ test "published Command identifier requires original guaranteed column presence"
   )
   match check(operations, limits()) {
     Err(Stage(0, issue)) =>
-      assert_eq(@results.issue_kind(issue), @results.PresenceRequired("amount"))
+      assert_eq(issue.kind, @results.PresenceRequired("amount"))
     _ =>
       fail(
         "expected the existing Result presence boundary before Command binding",
