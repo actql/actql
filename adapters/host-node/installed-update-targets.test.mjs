@@ -239,6 +239,8 @@ test('actual UPDATE original refuses copied selection foreign prepared installat
     assertUpdateTargetSelectionMembersCurrent(selections, members, owner.prepared);
     assert.throws(() => assertUpdateTargetSelectionMembersCurrent(selections, members, foreign.prepared));
     assert.throws(() => assertUpdateTargetSelectionMembersCurrent(selections.map(value => ({...value})), members, owner.prepared));
+    const copiedDescriptors = Object.defineProperties([], Object.getOwnPropertyDescriptors(selections));
+    assert.throws(() => assertUpdateTargetSelectionMembersCurrent(copiedDescriptors, members, owner.prepared));
     assert.throws(() => assertUpdateTargetSelectionCurrent(selections, [], owner.prepared));
     const saved = owner.originals.capturePrepared(owner.prepared, owner.compilation);
     assert.throws(() => originalOwnerFixture(stale).originals.restorePrepared(saved));
