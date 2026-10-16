@@ -9,10 +9,27 @@ const pendingCleanup = owner => Object.assign(
     cleanupPending: true, cleanupHandle: owner},
 );
 
-// Keep an immutable original failure as the cause when private custody needs
-// writable diagnostic fields. This does not replace or recreate its owner.
+// Check all diagnostic slots before attaching any of them. Extensibility does
+// not make existing own/inherited read-only properties or accessors writable.
+// Keep that original failure as the cause without invoking diagnostic setters
+// or replacing/recreating its custody owner.
 const writableFailure = error => {
-  if (error !== null && typeof error === 'object' && Object.isExtensible(error)) return error;
+  if (error !== null && typeof error === 'object' && Object.isExtensible(error)) {
+    let writable = true;
+    for (const field of ['cleanupPending', 'cleanupHandle', 'reconciliationFailure']) {
+      let receiver = error;
+      while (receiver !== null) {
+        const descriptor = Object.getOwnPropertyDescriptor(receiver, field);
+        if (descriptor !== undefined) {
+          if (descriptor.writable !== true) writable = false;
+          break;
+        }
+        receiver = Object.getPrototypeOf(receiver);
+      }
+      if (!writable) break;
+    }
+    if (writable) return error;
+  }
   const failure = new Error(error?.message, {cause: error});
   if (typeof error?.code === 'string') failure.code = error.code;
   return failure;
