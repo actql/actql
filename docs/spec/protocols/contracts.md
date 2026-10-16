@@ -1925,7 +1925,7 @@ remain mandatory even though this compilation envelope references them through
 `executable_plan_cid`. Neither envelope contains a later receipt CID.
 
 <!-- requirement-block: compilation-identities.effect-target-selection-shape -->
-When logical UPDATE target selection is retained, `execution_material` MUST
+When logical UPDATE or `command.target.published_store` target selection is retained, `execution_material` MUST
 include `effect_target_selections` as a nonempty canonical JSON array whose
 closed entries contain exactly `check_environment_cid`, `effect_id`,
 `installation_binding_cid`, `installation_owner_cid`, `mapping_cid`,
@@ -1943,11 +1943,21 @@ replace this occurrence-level admission check.
 <!-- requirement-block: compilation-identities.effect-target-selection-original -->
 Each selection MUST bind the original concrete target, exact Mapping reference
 and resolved Mapping CID, selected Check Environment CID, physical installation
-binding CID, and installed row-effect owner CID to that checked UPDATE
-occurrence. Full and short spellings selecting the same target, Mapping,
+binding CID, and installed Effect owner CID to that exact checked occurrence.
+Full and short spellings selecting the same target, Mapping,
 environment and installation have equal selection bytes; alias spelling is
 excluded. Different selected evidence changes compilation identity even when
 the lowered concrete Program text happens to be equal.
+
+<!-- requirement-block: compilation-identities.published-store-selection-original -->
+For a published-STORE Command, the original header, StoreCommand pair and
+Catalog MUST agree with the saved Program and Check Environment; field-target
+Commands and canonical relation STORE do not enter this selection domain.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-mixed-purpose -->
+Valid UPDATE and published-STORE occurrences MAY coexist in the same array,
+but one occurrence's selection MUST NOT substitute for another purpose or
+original occurrence.
 
 <!-- requirement-block: compilation-identities.effect-target-selection-owner -->
 The `installation_owner_cid` MUST hash the canonical existing `installationFacts`

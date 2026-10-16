@@ -1,0 +1,103 @@
+{
+  "version": "actql-effect-target-selection-vectors/0.1",
+  "scope": "Independent authored published-STORE and valid mixed selection preimages. Not physical installation, authority or public execution evidence.",
+  "cases": [
+    {
+      "id": "published-store",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:3abdc285f8997b2d6e37abb4d407754d615391014d1884287bd868de38deaed2",
+          "effect_id": "save",
+          "installation_binding_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "installation_owner_cid": "sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7",
+          "mapping_cid": "sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5",
+          "mapping_ref": "mapping:fixture.archive.v1",
+          "stage_index": 0,
+          "target_ref": "connector://storage/archive"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:3abdc285f8997b2d6e37abb4d407754d615391014d1884287bd868de38deaed2\",\"effect_id\":\"save\",\"installation_binding_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"installation_owner_cid\":\"sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7\",\"mapping_cid\":\"sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5\",\"mapping_ref\":\"mapping:fixture.archive.v1\",\"stage_index\":0,\"target_ref\":\"connector://storage/archive\"}]",
+      "expected_cid": "sha256:8fa23700a333cfbd6da8a5a822baa12469c726b75bf852c9b06840a588030fcd"
+    },
+    {
+      "id": "mixed-update-and-published-store",
+      "preimage": [
+        {
+          "check_environment_cid": "sha256:3abdc285f8997b2d6e37abb4d407754d615391014d1884287bd868de38deaed2",
+          "effect_id": "save",
+          "installation_binding_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "installation_owner_cid": "sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7",
+          "mapping_cid": "sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5",
+          "mapping_ref": "mapping:fixture.archive.v1",
+          "stage_index": 0,
+          "target_ref": "connector://storage/archive"
+        },
+        {
+          "check_environment_cid": "sha256:3abdc285f8997b2d6e37abb4d407754d615391014d1884287bd868de38deaed2",
+          "effect_id": "update",
+          "installation_binding_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "installation_owner_cid": "sha256:9fb1b923109be7230392d96d2dd4f3e62dc6ba6a661a8c218148e7858142d506",
+          "mapping_cid": "sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5",
+          "mapping_ref": "mapping:fixture.archive.v1",
+          "stage_index": 0,
+          "target_ref": "connector://storage/archive"
+        }
+      ],
+      "expected_canonical_bytes": "[{\"check_environment_cid\":\"sha256:3abdc285f8997b2d6e37abb4d407754d615391014d1884287bd868de38deaed2\",\"effect_id\":\"save\",\"installation_binding_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"installation_owner_cid\":\"sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7\",\"mapping_cid\":\"sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5\",\"mapping_ref\":\"mapping:fixture.archive.v1\",\"stage_index\":0,\"target_ref\":\"connector://storage/archive\"},{\"check_environment_cid\":\"sha256:3abdc285f8997b2d6e37abb4d407754d615391014d1884287bd868de38deaed2\",\"effect_id\":\"update\",\"installation_binding_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"installation_owner_cid\":\"sha256:9fb1b923109be7230392d96d2dd4f3e62dc6ba6a661a8c218148e7858142d506\",\"mapping_cid\":\"sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5\",\"mapping_ref\":\"mapping:fixture.archive.v1\",\"stage_index\":0,\"target_ref\":\"connector://storage/archive\"}]",
+      "expected_cid": "sha256:b5d29e9f6f601888bee4ac32962fdb718e431b408e6c259a9ad7f250905fe021"
+    }
+  ],
+  "current_schema_pins": {
+    "source": "22b74125f1c8e2fe0a0ea0a2f17c160de1a2b424; normally integrated by 549cdabcc1bf50372cbfada665962a7ca346e541",
+    "scope": "Existing published-store Command target alternative changes the whole Plan schema; this selection extension changes no structural schema bytes. Earlier UPDATE schema pins remain historical evidence in their unchanged corpus.",
+    "executable_plan": "sha256:03140e5d625b0920743897036673dd719ecd5fa902a7119e3d419b10d793b7bf",
+    "plan_document": "sha256:871a6544a468089cea446356a5af8fef9268deec405e4650ca3f6aa36922e250",
+    "artifact_registry": "sha256:b3f1ff0d70f0d460b0578d6a0d4b540647c6df5baed1887ac10efe0128769179"
+  },
+  "installation_owners": [
+    {
+      "id": "store-owner",
+      "preimage": {
+        "binding_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "connection": "fixture",
+        "connector_registration": "store_target_fixture",
+        "connector_revision": "store_target_fixture/0.1",
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "continuationBinding": "binding_cid",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1"
+        },
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"connection\":\"fixture\",\"connector_registration\":\"store_target_fixture\",\"connector_revision\":\"store_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7"
+    },
+    {
+      "id": "update-owner",
+      "preimage": {
+        "binding_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "connection": "fixture",
+        "connector_registration": "update_target_fixture",
+        "connector_revision": "update_target_fixture/0.1",
+        "continuation_binding": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "profile": {
+          "continuation": "actql-installed-row-effect-continuation/0.1",
+          "continuationBinding": "binding_cid",
+          "dispatch": "actql-installed-row-effect-dispatch/0.1",
+          "recovery": "actql-installed-row-effect-recovery/0.1",
+          "source": "actql-installed-row-effect-source/0.1",
+          "targetCheck": "actql-installed-row-effect-check/0.1",
+          "unit": "actql-installed-row-effect-unit/0.1"
+        },
+        "runtime_bundle_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "expected_canonical_bytes": "{\"binding_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"connection\":\"fixture\",\"connector_registration\":\"update_target_fixture\",\"connector_revision\":\"update_target_fixture/0.1\",\"continuation_binding\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile\":{\"continuation\":\"actql-installed-row-effect-continuation/0.1\",\"continuationBinding\":\"binding_cid\",\"dispatch\":\"actql-installed-row-effect-dispatch/0.1\",\"recovery\":\"actql-installed-row-effect-recovery/0.1\",\"source\":\"actql-installed-row-effect-source/0.1\",\"targetCheck\":\"actql-installed-row-effect-check/0.1\",\"unit\":\"actql-installed-row-effect-unit/0.1\"},\"runtime_bundle_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+      "expected_cid": "sha256:9fb1b923109be7230392d96d2dd4f3e62dc6ba6a661a8c218148e7858142d506"
+    }
+  ]
+}

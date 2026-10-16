@@ -14524,7 +14524,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-shape",
-      "statement_sha256": "b9be2396d8644d652086d75bf91f64aca47f8b996c175f66884ffdf5acc8efce",
+      "statement_sha256": "a86f2017eceb725849b63441abedb71ae425b26934ed5783e8c75160f0e358c4",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -14546,7 +14546,29 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-original",
-      "statement_sha256": "05d4a3487a368b02beff319d3e4b461036cae8ed7ad83aee0dc93147185aeb80",
+      "statement_sha256": "1cbb38ad975ca52163168e3d61d5f515315d732c4e15d63b9731f78e7cad5927",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.published-store-selection-original",
+      "statement_sha256": "d1c7c2119041449f87c163980a9c46d383b95144802104a02b07b0ee1b89cf8a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-mixed-purpose",
+      "statement_sha256": "0c0190ad2bea9eb1dd6e4c1c62d43494c6a6222fe33cfeabf1eca0009b17c8b0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
