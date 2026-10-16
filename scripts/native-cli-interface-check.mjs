@@ -4,22 +4,26 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
+import {checkInterfaceOwners, checkedOriginalInterface} from './check-interface-owners.mjs';
 import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
 import {admitInstalledNativeArtifact} from './native-cli-artifact-reader.mjs';
-import {nativeCliLauncherInputs} from './native-cli-package-inputs.mjs';
+import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
 
 export async function checkStagedNativeCliInterfaces({repository, directory, source, checkedSource, artifact}) {
   assert.match(source, /^[a-f0-9]{40}$/u);
   execFileSync('git', ['cat-file', '-e', `${source}^{commit}`], {cwd: repository});
   const checkedHead = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
   const metadata = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
+  // Validate the existing checker instance before reading its candidate list.
+  // DATA or a foreign-root report cannot request a replacement qualification.
+  checkedOriginalInterface(repository, 'packages/native-cli/bin/actql.mjs', checkedSource);
   const artifacts = [];
   let bindings;
   if (artifact === undefined) {
     assert.equal(metadata.name, 'actql');
-    bindings = nativeCliLauncherInputs.map(member => ({member, source: `packages/native-cli/${member}`}));
+    bindings = nativeCliPackageInputs(repository).copies;
   } else {
     const original = await admitInstalledNativeArtifact(directory, source);
     assert.deepEqual(original, artifact, 'Changed original CLI artifact admission');
@@ -34,6 +38,18 @@ export async function checkStagedNativeCliInterfaces({repository, directory, sou
     bindings = [];
   }
   const installed = installedInterfaceInventory(directory, {artifacts});
+  const originalByMember = new Map(bindings.map(value => [value.member, value.source]));
+  const authoredEntrances = installed.modules.map(value => {
+    const original = originalByMember.get(value.module);
+    assert(original, `Unbound installed authored interface: ${value.module}`);
+    return original;
+  });
+  if (authoredEntrances.some(path => !checkedSource.modules.some(value => value.module === path))) {
+    // A valid original entry check does not cover a dormant distributed helper.
+    // Resolve those actual staged inputs with the same mandatory Owner checker.
+    checkedSource = await checkInterfaceOwners(repository, {
+      manifests: ['packages/native-cli/package.json'], authoredEntrances});
+  }
   const correspondence = installedInterfaceCorrespondence({repository, directory, source,
     bindings, artifacts, checkedSource, generated: checkedSource.generatedQualification,
     owners: interfaceOwnerDeclarations(repository)});

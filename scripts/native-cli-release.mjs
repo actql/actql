@@ -13,7 +13,7 @@ import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runti
 import {PRODUCT_MEMBERS_FILE} from '../packages/native-cli/lib/product-members.mjs';
 import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
 
-import {nativeCliLauncherInputs, nativeCliPlatforms as platforms} from './native-cli-package-inputs.mjs';
+import {nativeCliPackageInputs, nativeCliPlatforms as platforms} from './native-cli-package-inputs.mjs';
 import {admitNativeArtifact} from './native-cli-artifact-reader.mjs';
 export {admitNativeArtifact} from './native-cli-artifact-reader.mjs';
 import {checkStagedNativeCliInterfaces} from './native-cli-interface-check.mjs';
@@ -98,7 +98,7 @@ export async function prepareNativeCliRelease(destination, artifacts) {
     const memberPlatform = launcherMemberPlatform(records);
     if (memberPlatform !== undefined) cli.files = [...new Set([...cli.files, PRODUCT_MEMBERS_FILE])];
     await mkdir(join(directory, 'lib'));
-    for (const path of nativeCliLauncherInputs) await copyFile(join(repository, 'packages/native-cli', path), join(directory, path));
+    for (const {member, source: path} of nativeCliPackageInputs(repository).copies) await copyFile(join(repository, path), join(directory, member));
     await chmod(join(directory, 'bin/actql.mjs'), 0o755);
     await copyFile(join(repository, 'LICENSE'), join(directory, 'LICENSE'));
     await writeFile(join(directory, 'package.json'), `${JSON.stringify(cli, null, 2)}\n`);

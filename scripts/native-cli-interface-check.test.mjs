@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
@@ -19,7 +20,7 @@ async function fixture(t) {
   put('packages/native-cli/package.json', JSON.stringify({name: 'actql', type: 'module', bin: {actql: 'bin/actql.mjs'}}));
   put('packages/native-cli/README.md', 'Synthetic staging control, not a Native execution.');
   put('packages/native-cli/bin/actql.mjs', 'import {read} from "../lib/local-runtime.mjs"; export {read};');
-  put('packages/native-cli/lib/local-runtime.mjs', 'import {original} from "./product-members.mjs"; export function read() {return original;}');
+  put('packages/native-cli/lib/local-runtime.mjs', 'export function read() {return 7;}');
   put('packages/native-cli/lib/product-members.mjs', 'export const original = 7;');
   put('owner.md', 'Existing synthetic Source, Unknown and cleanup control');
   const declarations = nativeCliLauncherInputs.filter(name => name.endsWith('.mjs')).map(name => {
@@ -49,6 +50,7 @@ test('normal CLI copy inputs retain actual source and primary correspondence', a
   assert.equal(result.correspondence.coverage.modules, 3);
   assert.equal(result.correspondence.coverage.primaryCovered, 3);
   assert.equal(result.dependencies.modules, 3);
+  assert.equal(f.checkedSource.modules.length, 3, 'ordinary producer inputs include its dormant helper');
   assert.equal(result.artifactSource, f.source);
 });
 
@@ -60,6 +62,16 @@ test('CLI correspondence refuses dormant unregistered helpers and replaced origi
   const original = join(f.directory, 'lib/product-members.mjs');
   writeFileSync(original, 'export const original = 8;');
   await assert.rejects(f.check(), /Changed installed interface bytes/u);
+});
+
+test('a dormant shipped helper requires its original primary even after the entry check succeeds', async t => {
+  const f = await fixture(t), path = join(f.root, 'references/interface-boundaries.json');
+  const declarations = JSON.parse(readFileSync(path));
+  writeFileSync(path, JSON.stringify(declarations.filter(value =>
+    value.module !== 'packages/native-cli/lib/product-members.mjs')));
+  await assert.rejects(checkInterfaceOwners(f.root, {manifests: ['packages/native-cli/package.json']}),
+    /Unregistered distributed interfaces: packages\/native-cli\/lib\/product-members.mjs/u);
+  await assert.rejects(f.check(), /Unregistered distributed interfaces: packages\/native-cli\/lib\/product-members.mjs/u);
 });
 
 test('CLI correspondence cannot recreate checked Source qualification from DATA', async t => {
@@ -90,4 +102,23 @@ test('Native staged artifact references retain the original header validator and
   rmSync(join(f.directory, 'lib/unregistered.mjs'));
   writeFileSync(join(f.directory, 'bin/actql-native-client'), Buffer.alloc(32));
   await assert.rejects(f.check(record), {code: 'ERR_ASSERTION'});
+});
+
+
+// Real authored copies and real Owner references, without building/packing or
+// executing a Native binary. This does not claim a complete installable cohort.
+test('actual ordinary Native launcher staging includes its dormant product metadata helper', async t => {
+  const repository = fileURLToPath(new URL('../', import.meta.url));
+  const checkedSource = await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
+  assert(checkedSource.modules.some(value => value.module === 'packages/native-cli/lib/product-members.mjs'));
+  const directory = mkdtempSync(join(tmpdir(), 'actql-cli-actual-authored-stage-'));
+  t.after(() => rmSync(directory, {recursive: true}));
+  for (const member of ['package.json', ...nativeCliLauncherInputs]) {
+    mkdirSync(dirname(join(directory, member)), {recursive: true});
+    copyFileSync(join(repository, 'packages/native-cli', member), join(directory, member));
+  }
+  const source = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
+  const result = await checkStagedNativeCliInterfaces({repository, directory, source, checkedSource});
+  assert.equal(result.correspondence.coverage.primaryCovered, 3);
+  assert.equal(result.dependencies.modules, 3);
 });
