@@ -14,6 +14,12 @@ import {composeInstalledCheckEnvironment} from './installed-check-environment.mj
 import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
   installedRowEffectOwnerBinding} from './installed-row-effect.mjs';
 import {installNodePublicSourcePreparation} from './public-source-preparation.mjs';
+import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
+import {openClientRequestJournal} from './client-request-journal.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {assertUpdateTargetSelectionCurrent, assertUpdateTargetSelectionMembersCurrent,
+  createUpdateTargetOriginalShapeControl, updateTargetSelectionsCid} from './update-target-original-shape.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -147,6 +153,99 @@ const admitted = wire => {
   assert.notEqual(environment, undefined);
   return environment;
 };
+
+function originalOwnerFixture(installed) {
+  const environment = admitted(installed.environmentWire);
+  const publication = sourceAliasPublication(moon, environment, [], [],
+    {updateTargets: installed.queryUpdateTargets});
+  const preparation = installNodePublicSourcePreparation({moon, environment, publication, allowEffects: true});
+  const outcome = preparation.prepare({format: 'aql-text', document:
+    "SELECT 'id' AS id, 'Ada' AS name |> RESULT updates |> EFFECT UPDATE crm.Account FROM RESULT updates ID id SET (Name = name)"});
+  assert.equal(outcome.kind, 'effectful');
+  const prepared = moon.clientProgramEffectPreparationReady(outcome.outcome);
+  assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(outcome.outcome));
+  const compilation = checked(moon.clientProgramCompileLocalEffects(prepared));
+  const control = runtimeCore(moon).publicationControl;
+  const limits = {maxWireBytes: 1_000_000, maxNodes: 100_000, maxDepth: 100};
+  const originals = installUpdateTargetOriginals({moon, control, installedEffect: installed, limits});
+  return {prepared, compilation, originals, control, limits};
+}
+
+test('actual UPDATE Owner saves and restores the original prepared and Run data through the same SQLite journal', async t => {
+  const f = await fixture(t);
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  try {
+    const owner = originalOwnerFixture(installed);
+    const saved = owner.originals.capturePrepared(owner.prepared, owner.compilation);
+    assert.equal(saved.installations[0].cid, ownerCid);
+    const restored = owner.originals.restorePrepared(JSON.parse(JSON.stringify(saved)));
+    restored.assertUpdateSelectionCurrent();
+    assert.equal(updateTargetSelectionsCid(restored.updateTargetSelections),
+      updateTargetSelectionsCid(owner.originals.selectionsOf(owner.prepared)));
+    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(owner.compilation,
+      cid('1'), cid('2'), '2099-01-01T00:00:00.000Z'));
+    const definition = checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+      'original-update', 'original-update-run', '2026-10-16T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+    const runDefinition = owner.control.admit('run_definition', moon.strategyPublicationContractJson(definition), owner.limits);
+    const identity = moon.clientProgramEffectRequestIdentity(owner.prepared,
+      cid('a'), 'original-update-request', moon.clientProgramSourceFreeInputIntentCid());
+    assert.ok(identity);
+    const original = owner.originals.captureRun({...owner, allowed, definition, identity});
+    const evidence = {prepared: moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(allowed)),
+      authorization: moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+      updateTargetRunOriginal: original};
+    const directory = join(f.root, 'requests');
+    const configuration = {updateOriginalControl: createUpdateTargetOriginalShapeControl(moon)};
+    let journal = openClientRequestJournal(directory, configuration);
+    try {
+      journal.acceptDefinition(identity, {namespaceId: 'original-update', runDefinition,
+        runAdmissionEvidence: evidence, lookupExpiresAt: '2099-01-01T00:00:00.000Z'}, moon, owner.control);
+      journal.close();
+      journal = openClientRequestJournal(directory, configuration);
+      const retained = journal.lookupOwnedDefinition({namespaceId: 'original-update', authorityScopeCid: cid('a'),
+        requestId: 'original-update-request', runDefinitionCid: runDefinition.identity}, moon, owner.control);
+      assert.ok(retained);
+      assert.deepEqual(retained.runAdmissionEvidence, evidence);
+      const current = owner.originals.validateRun({...owner, evidence: retained.runAdmissionEvidence,
+        runDefinition: retained.runDefinition, identity: retained.requestIdentity});
+      current.assertUpdateSelectionCurrent();
+      const foreign = checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+        'original-update', 'foreign-run', '2026-10-16T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+      assert.throws(() => owner.originals.restoreRun(original,
+        owner.control.admit('run_definition', moon.strategyPublicationContractJson(foreign), owner.limits), identity));
+      const body = JSON.parse(original.materialsWire);
+      body.effect_target_selections_json = body.effect_target_selections_json.replace('mapping:crm.account.0.v1', 'mapping:foreign');
+      assert.throws(() => owner.originals.restoreRun({...original, materialsWire: canonicalJson(body)}, runDefinition, identity));
+    } finally { journal.close(); }
+    assert.equal(f.counts.prepares, 0);
+    assert.equal(f.counts.credentials, 0);
+  } finally { await installed.close(); }
+});
+
+test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation', async t => {
+  const f = await fixture(t, {main: adapter(), stale: {...adapter(), ownerGeneration: cid('f')}});
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  const stale = await loadInstalledEffect(await f.path([alias()], 'stale'), f.options);
+  try {
+    const owner = originalOwnerFixture(installed), foreign = originalOwnerFixture(installed);
+    const selections = owner.originals.selectionsOf(owner.prepared);
+    const members = selections.map(({stage_index, effect_id, target_ref, mapping_ref, mapping_cid}) =>
+      ({stage_index, effect_id, target_ref, mapping_ref, mapping_cid}));
+    assertUpdateTargetSelectionMembersCurrent(selections, members, owner.prepared);
+    assert.throws(() => assertUpdateTargetSelectionMembersCurrent(selections, members, foreign.prepared));
+    assert.throws(() => assertUpdateTargetSelectionMembersCurrent(selections.map(value => ({...value})), members, owner.prepared));
+    assert.throws(() => assertUpdateTargetSelectionCurrent(selections, [], owner.prepared));
+    const saved = owner.originals.capturePrepared(owner.prepared, owner.compilation);
+    assert.throws(() => originalOwnerFixture(stale).originals.restorePrepared(saved));
+    assert.throws(() => owner.originals.restorePrepared({...saved,
+      installations: [installedRowEffectOwnerBinding(stale)]}));
+    assert.throws(() => owner.originals.restorePrepared({...saved, compiledPlanCid: cid('f')}));
+    assert.throws(() => owner.originals.restorePrepared({...saved,
+      preparedWire: saved.preparedWire.replace('mapping:crm.account.0.v1', 'mapping:foreign')}));
+    assert.equal(f.counts.prepares, 0);
+    assert.equal(f.counts.credentials, 0);
+  } finally { await installed.close(); await stale.close(); }
+});
 
 test('installed update aliases preserve exact frozen names and physical bindings without provider work', async t => {
   const selected = adapter();
