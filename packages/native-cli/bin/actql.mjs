@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {constants} from 'node:os';
 import {installedLocalRuntimeEnvironment} from '../lib/local-runtime.mjs';
+import {projectInitArguments, scaffoldProject} from '../lib/project-scaffold.mjs';
 
 export function platformKey({platform, arch, glibc}) {
   if (platform === 'darwin' && arch === 'arm64') return 'darwin-arm64';
@@ -42,6 +43,11 @@ export function admitInstalledBinary({key, expected, metadata, binary, glibc, ma
 }
 
 export function launch(args) {
+  const initialization = projectInitArguments(args);
+  if (initialization?.help) {
+    console.log('Usage: actql init [--template churn-risk-mock] [<directory>]');
+    return 0;
+  }
   const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
   const key = platformKey({platform: process.platform, arch: process.arch, glibc});
   const packageRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -68,7 +74,16 @@ export function launch(args) {
       expected: {...expected, platform: key}, metadata: metadata.localRuntime,
       platformFacts: {macOS, glibc}, environment});
   }
-  const child = spawnSync(executable, args, {stdio: 'inherit', env: selectedEnvironment});
+  let selectedArguments = args;
+  if (initialization) {
+    // Preparation creates no state or key. Only the same admitted Native image
+    // may adopt the explicit project Store through its existing installation
+    // Owner. Failure leaves partial files and original cleanup responsibilities.
+    const project = scaffoldProject(initialization.directory, initialization.template);
+    selectedArguments = ['--mode', 'local', '--config', project.configuration,
+      '--state-dir', project.stateDirectory, 'adopt'];
+  }
+  const child = spawnSync(executable, selectedArguments, {stdio: 'inherit', env: selectedEnvironment});
   if (child.error) throw Object.assign(Error(`Native start failed: ${child.error.code}. Reinstall the fixed package cohort and verify the supported platform.`), {exitCode: 69});
   return child.status ?? 128 + (constants.signals[child.signal] ?? 1);
 }

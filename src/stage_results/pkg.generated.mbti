@@ -39,6 +39,8 @@ pub fn bind_effect_mapping_rules(EffectMappingShapes, Int) -> Result[EffectMappi
 
 pub fn bind_effect_mapping_shapes(EffectResultBindings, @check_environment.MappingContractShapes, Int) -> Result[EffectMappingShapes, EffectMappingShapeIssue]
 
+pub fn bind_effect_published_store_target(EffectCommandInputBinding, @check_environment.StoreCommandBinding, @value_admission.CheckedValue) -> Result[EffectPublishedStoreTarget, EffectPublishedStoreTargetIssue]
+
 pub fn bind_effect_results(@stage_syntax.EffectHeaders, Checked, Int) -> Result[EffectResultBindings, EffectResultBindingIssue]
 
 pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts, table_inputs? : @relation_results.CheckedTableInputs?) -> Result[StagePorts, ImportIssue]
@@ -199,6 +201,8 @@ pub fn effect_plan_terminal_rule(EffectPlanTerminal) -> EffectMappingRuleBinding
 
 pub fn effect_plan_terminal_source_result(EffectPlanTerminal) -> String
 
+pub fn effect_published_store_target_current(EffectPublishedStoreTarget, EffectCommandInputBinding) -> Bool
+
 pub fn effect_result_binding_at(EffectResultBindings, Int) -> EffectResultBinding?
 
 pub fn effect_result_binding_count(EffectResultBindings) -> Int
@@ -297,7 +301,7 @@ pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, envir
 
 pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[PreparedLocalSource, LocalSourceIssue]
 
-pub fn project_effect_command_row(EffectCommandInputBinding, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int) -> Result[(String, String), EffectCommandRowIssue]
+pub fn project_effect_command_row(EffectCommandInputBinding, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, published_target? : EffectPublishedStoreTarget?) -> Result[(String, String), EffectCommandRowIssue]
 
 pub fn project_effect_plan_row(EffectPlanTerminal, @canonical_json.CanonicalValue, Int, Int, Int) -> Result[EffectPlanRow, EffectPlanRowIssue]
 
@@ -464,6 +468,7 @@ pub(all) enum EffectCommandRowIssue {
   InvalidRow
   WorkLimit
   MissingTarget
+  InvalidTargetOriginal
   MissingSourceField(String)
   OutputLimit
 } derive(Eq, @debug.Debug)
@@ -703,6 +708,18 @@ pub(all) enum EffectPreviewStaticInventoryIssue {
   MissingResolvedContract(String)
   ForeignResolvedContract(String)
   ContractCoverageMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct EffectPublishedStoreTarget {
+  binding : EffectCommandInputBinding
+  reference : @value_admission.ReferenceValue
+  checked : @value_admission.CheckedValue
+}
+
+pub(all) enum EffectPublishedStoreTargetIssue {
+  ForeignBinding
+  IncompatibleReference
+  Unavailable
 } derive(Eq, @debug.Debug)
 
 pub struct EffectResultBinding {

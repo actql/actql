@@ -132,9 +132,7 @@ test "uninstalled project bindings cannot silently run live or fabricate a mock 
       "{\"version\":\"actql-config/0.1\"," + field + "}",
     )
     for
-      operation in [
-        "adopt", "connect", "check", "explain", "run", "aql", "start", "new-submission",
-      ] {
+      operation in ["check", "explain", "run", "aql", "start", "new-submission"] {
       let rejected = try {
         local_project_require_execution_bindings(project, operation)
         false
@@ -143,9 +141,13 @@ test "uninstalled project bindings cannot silently run live or fabricate a mock 
       }
       assert_true(rejected)
     }
-    // These operations still restore the original Run/Policy under current
+    // Adoption/connection do not execute project declarations. Saved operations
+    // still restore the original Run/Policy under current
     // authorization; project metadata does not re-prepare or extend it.
-    for operation in ["status", "read", "cancel", "lookup-submission"] {
+    for
+      operation in [
+        "adopt", "connect", "status", "read", "cancel", "lookup-submission",
+      ] {
       local_project_require_execution_bindings(project, operation)
     }
   }

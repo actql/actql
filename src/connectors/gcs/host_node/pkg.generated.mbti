@@ -2,7 +2,10 @@
 package "actql/actql/connectors/gcs/host_node"
 
 import {
+  "actql/actql/check_environment",
   "actql/actql/connectors/gcs/catalog",
+  "actql/actql/connectors/gcs/original_reference",
+  "actql/actql/value_admission",
 }
 
 // Values
@@ -15,6 +18,10 @@ pub fn gcs_collection_failure_code(@catalog.ObjectCollectionIssue) -> String
 pub fn gcs_collection_identity_cid(@catalog.ObjectCollectionBinding) -> String
 
 pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String
+
+pub fn gcs_collection_issue_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @original_reference.CollectionReferenceIssue]
+
+pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String
 
 pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String
 
