@@ -1,0 +1,58 @@
+"""Private binding freshness, original inverse and meaningful role mutations."""
+import importlib.util
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('shim_generator', ROOT / 'scripts/generate-local-native-shim-bindings.py')
+GENERATOR = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(GENERATOR)
+
+
+class NativeShimBindingTests(unittest.TestCase):
+    def test_outputs_are_fresh(self):
+        self.assertEqual((ROOT / GENERATOR.OUTPUT).read_text(), GENERATOR.render())
+        self.assertEqual((ROOT / GENERATOR.HEADER).read_text(), GENERATOR.render_header())
+
+    def test_original_139_ctypes_declarations_are_unchanged(self):
+        from actql_sdk._local_native_shim_abi import SIGNATURES
+        expected = json.loads((ROOT / 'scripts/fixtures/python-native-shim-ctypes-original.json').read_text())
+        self.assertEqual(len(expected), 139)
+        actual = {name: [[t.__name__ for t in SIGNATURES[name][0]], SIGNATURES[name][1].__name__]
+                  for name in expected}
+        self.assertEqual(actual, expected)
+
+    def test_same_width_role_swap_changes_generated_declaration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for shim in GENERATOR.SHIMS:
+                relative = GENERATOR.ENTRY / (shim + '_shim.c')
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((ROOT / relative).read_bytes())
+            before = GENERATOR.render(root)
+            path = root / GENERATOR.ENTRY / 'sqlite_database_shim.c'
+            original = path.read_text()
+            roles = ('int actql_sqlite_database_read_utf16_into(actql_control_host *host, actql_sqlite_database *original,\n'
+                     '    const uint16_t *scope, int32_t scope_units, const uint16_t *key, int32_t key_units,')
+            # Inspect the named original role, not merely equal C widths.
+            if roles not in original:
+                raise AssertionError('Original SQLite namespace role changed')
+            swapped = roles.replace('const uint16_t *scope, int32_t scope_units, const uint16_t *key, int32_t key_units,',
+                                    'const uint16_t *key, int32_t key_units, const uint16_t *scope, int32_t scope_units,')
+            path.write_text(original.replace(roles, swapped, 1))
+            self.assertNotEqual(before, GENERATOR.render(root))
+
+    def test_unknown_symbol_cannot_bind_or_call_owner(self):
+        from actql_sdk._local_native_shim_abi import bind
+        class Library:
+            def __getattr__(self, name):
+                raise AssertionError('Unknown operation reached a library')
+        with self.assertRaises(KeyError):
+            bind(Library(), 'actql_unregistered_operation')
+
+
+if __name__ == '__main__':
+    unittest.main()

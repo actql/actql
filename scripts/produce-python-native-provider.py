@@ -162,6 +162,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             or run(['git', 'status', '--porcelain'], capture=True)):
         raise ValueError('Exact committed clean Native provider source required')
     run([sys.executable, str(ROOT / 'scripts/generate-local-native-runtime-binding.py'), '--check'])
+    run([sys.executable, str(ROOT / 'scripts/generate-local-native-shim-bindings.py'), '--check'])
     pin = json.loads((ROOT / 'toolchain.json').read_text())
     marker = json.loads((moon_home / 'installed.json').read_text())
     if marker != {'pin': pin, 'platform': 'darwin-arm64'}:

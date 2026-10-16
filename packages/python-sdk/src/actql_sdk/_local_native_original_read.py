@@ -6,6 +6,8 @@ Native keeps the joined claim/loan, scoped aliases and final retirement.
 """
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind as bind_native
+
 from collections.abc import Iterator
 from contextlib import contextmanager
 from ctypes import POINTER, byref, c_int, c_int32, c_int64, c_void_p
@@ -30,31 +32,18 @@ class _OriginalParentReadFunctions:
     """Mandatory matching symbols in the same selected physical component."""
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.prepare = library.actql_parent_read_prepare_into
-        self.prepare.argtypes = [c_void_p, c_void_p] + [c_int64] * 5 + [POINTER(c_void_p)]
-        self.current = library.actql_parent_read_current_into
-        self.enter = library.actql_parent_read_enter_into
-        self.leave = library.actql_parent_read_leave_into
-        self.cleanup = library.actql_parent_read_cleanup_into
-        self.close = library.actql_parent_read_close_into
-        for call in (self.current, self.enter, self.leave, self.cleanup, self.close):
-            call.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
-        self.originals = library.actql_parent_read_originals_into
-        self.originals.argtypes = [c_void_p] + [POINTER(c_void_p)] * 3
-        self.drop = library.actql_parent_read_drop_reply
-        self.drop.argtypes = [POINTER(c_void_p), c_void_p, c_void_p, c_void_p]
-        self.finish = library.actql_parent_read_finish_closed_data
-        self.finish.argtypes = [POINTER(c_void_p)] * 4
-        self.refused = library.actql_parent_read_finish_refused_prepare
-        self.refused.argtypes = [POINTER(c_void_p)] * 3
-        for call in (self.prepare, self.current, self.enter, self.leave, self.cleanup,
-                     self.close, self.originals, self.drop, self.finish, self.refused):
-            call.restype = c_int
-        self.operation = library.actql_parent_read_operation
-        self.issue = library.actql_parent_read_issue_family
-        for call in (self.operation, self.issue):
-            call.argtypes = [c_void_p]
-            call.restype = c_int32
+        self.prepare = bind_native(library, 'actql_parent_read_prepare_into')
+        self.current = bind_native(library, 'actql_parent_read_current_into')
+        self.enter = bind_native(library, 'actql_parent_read_enter_into')
+        self.leave = bind_native(library, 'actql_parent_read_leave_into')
+        self.cleanup = bind_native(library, 'actql_parent_read_cleanup_into')
+        self.close = bind_native(library, 'actql_parent_read_close_into')
+        self.originals = bind_native(library, 'actql_parent_read_originals_into')
+        self.drop = bind_native(library, 'actql_parent_read_drop_reply')
+        self.finish = bind_native(library, 'actql_parent_read_finish_closed_data')
+        self.refused = bind_native(library, 'actql_parent_read_finish_refused_prepare')
+        self.operation = bind_native(library, 'actql_parent_read_operation')
+        self.issue = bind_native(library, 'actql_parent_read_issue_family')
 
 
 class _OriginalParentReadCustody:
