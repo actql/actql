@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import {approveHeldSet, expectedOrgAfterSuccess, expectedUpdates,
   readComputeEffectInstallation, waitFor} from
   '../connectors/salesforce/test/read-compute-effect.fixture.mjs';
@@ -77,8 +78,8 @@ test('requested first Effect pauses Account Allow and completes only the same ap
   assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
   assert.equal(setup.writes().length, 2);
   assert.equal(setup.queries(), 1, 'the original acquisition/Compute is not repeated');
-  assert.equal((await resumedOwner.checkpoints()).items.length, 1,
-    'fulfillment stays in the existing Checkpoint/Resolution rather than repeating the stop');
+  assert.deepEqual((await resumedOwner.checkpoints()).items, [],
+    'the public pending-only list must not repeat the fulfilled stop');
   await resumedHost.close();
 
   const finalHost = await setup.openHost({diagnostics});
@@ -88,6 +89,26 @@ test('requested first Effect pauses Account Allow and completes only the same ap
   assert.deepEqual(await final.result('updates').all(), expectedUpdates);
   assert.equal(setup.queries(), 1);
   assert.equal(setup.writes().length, 2, 'a later Host cannot resend the completed Effect');
-  assert.equal((await finalOwner.checkpoints()).items.length, 1);
+  assert.deepEqual((await finalOwner.checkpoints()).items, []);
   await finalHost.close();
+  // Read the original journal only after every Host has closed. Pending-only
+  // public lists are not a history oracle. No receipt or grant is constructed
+  // from these rows; the real Owner already performed the resume above.
+  const database = new DatabaseSync(join(setup.root, 'state', 'checkpoints',
+    'journal', 'checkpoint-journal.sqlite3'), {readOnly: true});
+  try {
+    database.exec('PRAGMA query_only=ON; BEGIN');
+    const rows = database.prepare(`SELECT c.checkpoint_cid, c.closure,
+      r.decision, i.state, i.outcome_status FROM checkpoints c
+      JOIN resolutions r USING (checkpoint_cid)
+      JOIN resume_intents i USING (checkpoint_cid)
+      WHERE c.run_id = ?`).all(originalRunId);
+    assert.deepEqual(rows.map(row => ({...row})), [{
+      checkpoint_cid: before.items[0].checkpointCid,
+      closure: 'resolved', decision: 'approved', state: 'completed',
+      outcome_status: 'succeeded'}]);
+    database.exec('ROLLBACK');
+  } finally { database.close(); }
+  assert.deepEqual(diagnostics.filter(event => event.name.endsWith('_resume_failed'))
+    .map(event => ({name: event.name, code: event.detail?.code})), []);
 });
