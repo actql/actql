@@ -4,7 +4,8 @@
 // provider bundle, the runtime identity and its own Effect Ledger root.
 import {checkInstalledSalesforceEffectProfile, loadInstalledSalesforceEffect,
   publishInstalledSalesforceEffect} from './installed-salesforce-effect.mjs';
-import {salesforceEffectSiteHooks} from './installed-salesforce-effect-hooks.mjs';
+import {retainInstalledRowEffectAdapter} from
+  '../../../host-node/installed-row-effect.mjs';
 
 export function checkInstalledSalesforceEffectInstallation(profile) {
   return checkInstalledSalesforceEffectProfile(profile);
@@ -33,16 +34,19 @@ export async function loadInstalledSalesforceEffectInstallation(checked,
   {providerMoon, ...options}) {
   const effect = await loadInstalledSalesforceEffect(checked,
     {...options, salesforceMoon: providerMoon});
-  const hooks = salesforceEffectSiteHooks(effect);
-  return Object.freeze({environmentWire: effect.environmentWire,
-    connectorBindings: effect.connectorBindings,
-    effectSelectors: effect.effectSelectors,
-    mappings: effect.mappings,
-    connectorRegistration: effect.connectorRegistration,
-    connectorRevision: effect.connectorRevision,
-    targetReadInventory: hooks.targetReadInventory,
-    targetReadAuthorization: effect.targetReadAuthorization,
-    prepareCaptured: hooks.prepareCaptured,
-    prepareRecovered: hooks.prepareRecovered,
-    close: () => effect.close()});
+  // The row owner accepts the Host's capture and recovery facts directly.
+  // Preserve its original ports through this table projection so an installed
+  // UPDATE target can bind the same private owner as the loaded factory.
+  return retainInstalledRowEffectAdapter(effect,
+    Object.freeze({environmentWire: effect.environmentWire,
+      connectorBindings: effect.connectorBindings,
+      effectSelectors: effect.effectSelectors,
+      mappings: effect.mappings,
+      connectorRegistration: effect.connectorRegistration,
+      connectorRevision: effect.connectorRevision,
+      targetReadInventory: effect.targetReadInventory,
+      targetReadAuthorization: effect.targetReadAuthorization,
+      prepareCaptured: effect.prepareCaptured,
+      prepareRecovered: effect.prepareRecovered,
+      close: () => effect.close()}));
 }

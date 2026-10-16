@@ -117,14 +117,22 @@ test('current query rules bind the manifest while prior rules retain their ident
   assert.equal(body.query_text_grammar_sha256, sha(readFileSync('spec/grammar/actql-query-0.1.ebnf')).slice(7));
   assert.equal(body.query_text_rules_sha256, sha(queryRules).slice(7));
   assert.equal(sha(canonicalText(body)), current);
-  const integrated = read('scripts/fixtures/nearest-shorthand/manifest-identity.json');
+  const integrated = read('scripts/fixtures/logical-update-target/main2874-manifest-identity.json');
+  assert.deepEqual({...body, grammar_manifest_cid: current}, integrated.after);
+  // Preserve main's adopted NEAREST preimage after the combined grammar moves.
+  const nearest = read('scripts/fixtures/nearest-shorthand/manifest-identity.json');
+  assert.deepEqual(integrated.main_before, nearest.manifest);
+  const {grammar_manifest_cid: nearestCid, ...nearestBody} = nearest.manifest;
+  assert.equal(nearestCid, 'sha256:8a917f82be481357f130f80f78c53f039dbf306b785233c800f978528d99a798');
+  assert.equal(sha(canonicalText(nearestBody)), nearestCid);
+  assert.notEqual(nearestCid, current);
   const tableRules = read('scripts/fixtures/terminal-table-query-rules/manifest-identities.json');
-  // Keep the authored nearest vector historical rather than rewriting it.
-  assert.deepEqual(integrated.manifest, tableRules.grammar);
-  assert.deepEqual({...body, grammar_manifest_cid: current}, tableRules.current_grammar);
+  assert.deepEqual(nearest.manifest, tableRules.grammar);
   assert.notDeepEqual(tableRules.grammar, tableRules.current_grammar);
-  const {grammar_manifest_cid: retainedNearest, ...nearestBody} = integrated.manifest;
-  assert.equal(sha(canonicalText(nearestBody)), retainedNearest);
+  const {grammar_manifest_cid: tableRulesCid, ...tableRulesBody} = tableRules.current_grammar;
+  assert.equal(tableRulesCid, 'sha256:0d08abc8e9c5cb12a80d77e43b9bdc4e1bf3aed9967b1831b3b9d7fc4d341411');
+  assert.equal(sha(canonicalText(tableRulesBody)), tableRulesCid);
+  assert.notEqual(tableRulesCid, current);
   const update = read('scripts/fixtures/private-update-capture/manifest-identity.json');
   const {grammar_manifest_cid: priorUpdate, ...priorUpdateBody} = update.after;
   assert.equal(priorUpdate, 'sha256:913d9e69aa87096a497cbf163a2fb9bb019b13a765f28792b734fa5f1a367361');
@@ -147,7 +155,7 @@ test('current query rules bind the manifest while prior rules retain their ident
   assert.notEqual(previous, current);
 });
 
-test('private UPDATE capture retains prior grammar identity and binds exact source bytes', () => {
+test('private UPDATE capture retains historical identity and optional Result behavior', () => {
   // This fixed vector uses independent Python hashes, never compiler output.
   // The prior manifest remains historical, including its stale structural pin.
   const vector = read('scripts/fixtures/private-update-capture/manifest-identity.json');
@@ -160,7 +168,11 @@ test('private UPDATE capture retains prior grammar identity and binds exact sour
   assert.equal(before.query_text_rules_sha256,
     '935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
   const grammar = readFileSync('spec/grammar/actql-query-0.1.ebnf', 'utf8');
-  assert.match(grammar, /terminal_update = "EFFECT", \[ identifier \], "UPDATE", "TARGET", query_string,\s+"MAPPING", identifier, \[ "FROM", "RESULT", identifier \],/u);
+  assert.match(grammar, /terminal_update = "EFFECT", \[ identifier \], "UPDATE", update_target,\s+\[ "FROM", "RESULT", identifier \],/u);
+  const {grammar_manifest_cid: afterCid, ...after} = vector.after;
+  assert.equal(afterCid,
+    'sha256:913d9e69aa87096a497cbf163a2fb9bb019b13a765f28792b734fa5f1a367361');
+  assert.equal(sha(canonicalText(after)), afterCid);
   assert.equal(sha(readFileSync('docs/spec/structural-text.md')),
     'sha256:' + vector.after.structural_text_rules_sha256);
   const unchanged = {...vector.after};
@@ -170,6 +182,87 @@ test('private UPDATE capture retains prior grammar identity and binds exact sour
   }
   assert.deepEqual(unchanged, vector.before);
   assert.equal(vector.actual_parser_or_runtime_execution, 0);
+});
+
+test('logical UPDATE retains historical identity and target grammar', () => {
+  // Independent fixed Python hashes; neither the compiler nor generator
+  // supplies expectations. Historical manifests keep their original bodies.
+  const vector = read('scripts/fixtures/logical-update-target/manifest-identity.json');
+  const {grammar_manifest_cid: previous, ...before} = vector.before;
+  assert.equal(vector.parent_source, '8cc9f5cfd158ea7517795b30268200b88da8dea6');
+  assert.equal(previous,
+    'sha256:577baba6e0eeda68b93a01f4bb0744be2c01fe6108fd16d889d4f4caaca8233b');
+  assert.equal(sha(canonicalText(before)), previous);
+  const {grammar_manifest_cid: afterCid, ...after} = vector.after;
+  assert.equal(afterCid,
+    'sha256:1faf0a5c244f339f741b505a9077ebe9029ad8c6d57726ae411d8221934a41b9');
+  assert.equal(sha(canonicalText(after)), afterCid);
+  assert.equal(before.query_text_grammar_sha256,
+    'db0eabfabb2001aae2b2354ea10ce117f0ec0e249fabf857b766dad293243279');
+  assert.equal(before.query_text_rules_sha256,
+    '935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
+  const grammar = readFileSync('spec/grammar/actql-query-0.1.ebnf', 'utf8');
+  assert.match(grammar, /terminal_update = "EFFECT", \[ identifier \], "UPDATE", update_target,\s+\[ "FROM", "RESULT", identifier \],/u);
+  assert.match(grammar, /update_target = "TARGET", query_string, "MAPPING", identifier\s+\| logical_update_target, \[ "MAPPING", identifier \] ;/u);
+  assert.match(grammar, /logical_update_target = identifier, "\.", identifier, \{ "\.", identifier \} ;/u);
+  assert.equal(sha(readFileSync('docs/spec/structural-text.md')),
+    'sha256:' + vector.after.structural_text_rules_sha256);
+  const unchanged = {...vector.after};
+  for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
+    'query_text_rules_sha256', 'structural_text_rules_sha256']) {
+    unchanged[key] = vector.before[key];
+  }
+  assert.deepEqual(unchanged, vector.before);
+  assert.equal(vector.actual_parser_or_runtime_execution, 0);
+});
+
+test('combined UPDATE target and capture identity preserves both predecessors', () => {
+  const combined = read('scripts/fixtures/logical-update-target/combined-manifest-identity.json');
+  const capture = read('scripts/fixtures/private-update-capture/manifest-identity.json');
+  const logical = read('scripts/fixtures/logical-update-target/manifest-identity.json');
+  assert.equal(combined.parent_source, '676eac9c8d9d79655c25e1f72dca7924fe5152b4');
+  assert.deepEqual(combined.before, capture.after);
+  assert.equal(combined.historical_logical_target_manifest_cid,
+    logical.after.grammar_manifest_cid);
+  for (const predecessor of [capture, logical, combined]) {
+    for (const value of [predecessor.before, predecessor.after]) {
+      const {grammar_manifest_cid: expected, ...body} = value;
+      assert.equal(sha(canonicalText(body)), expected);
+    }
+  }
+  const unchanged = {...combined.after};
+  for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
+    'query_text_rules_sha256']) unchanged[key] = combined.before[key];
+  assert.deepEqual(unchanged, combined.before);
+  const selection = read('scripts/fixtures/logical-update-target/selection-manifest-identity.json');
+  assert.deepEqual(selection.before, combined.after);
+  assert.equal(combined.actual_parser_or_runtime_execution, 0);
+});
+
+test('original UPDATE selection custody preserves prior combined identity', () => {
+  const selection = read('scripts/fixtures/logical-update-target/selection-manifest-identity.json');
+  for (const value of [selection.before, selection.after]) {
+    const {grammar_manifest_cid: expected, ...body} = value;
+    assert.equal(sha(canonicalText(body)), expected);
+  }
+  assert.deepEqual({...selection.after,
+    grammar_manifest_cid: selection.before.grammar_manifest_cid,
+    query_text_rules_sha256: selection.before.query_text_rules_sha256},
+  selection.before);
+  const integrated = read('scripts/fixtures/logical-update-target/main2874-manifest-identity.json');
+  assert.deepEqual(integrated.frozen_before, selection.after);
+  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), integrated.after);
+  for (const value of [integrated.frozen_before, integrated.main_before, integrated.after]) {
+    const {grammar_manifest_cid: expected, ...body} = value;
+    assert.equal(sha(canonicalText(body)), expected);
+  }
+  // Only the two normative query inputs and their identity change.
+  const unchanged = {...integrated.after};
+  for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
+    'query_text_rules_sha256']) unchanged[key] = selection.after[key];
+  assert.deepEqual(unchanged, selection.after);
+  assert.equal(integrated.actual_parser_or_runtime_execution, 0);
+  assert.equal(selection.actual_parser_or_runtime_execution, 0);
 });
 
 test('pinned manifests close over their source contracts and exact schemas', () => {

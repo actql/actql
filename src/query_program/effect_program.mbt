@@ -4,6 +4,7 @@
 fn lower_update_effect(
   construction : Construction,
   clause : @query.UpdateEffectClause,
+  target : (String, String),
   default_port : String,
   retained : Array[RetainedResult],
   max_work : Int,
@@ -19,6 +20,7 @@ fn lower_update_effect(
     return update_effect_node(
       construction,
       clause,
+      target,
       retained_result_port(default_port, capture.port),
       id,
       assignments,
@@ -53,6 +55,7 @@ fn lower_update_effect(
   update_effect_node(
     construction,
     clause,
+    target,
     if result.terminal {
       default_port
     } else {
@@ -67,6 +70,7 @@ fn lower_update_effect(
 fn update_effect_node(
   construction : Construction,
   clause : @query.UpdateEffectClause,
+  target : (String, String),
   port : String,
   id : String,
   assignments : Array[(String, @builder.Node)],
@@ -80,8 +84,8 @@ fn update_effect_node(
         (
           "update",
           construction.object([
-            ("target", construction.text(clause.target)),
-            ("mapping", construction.text(clause.mapping.value)),
+            ("target", construction.text(target.0)),
+            ("mapping", construction.text(target.1)),
             ("from", construction.object([("result", construction.text(port))])),
             ("id", construction.text(id)),
             ("set", construction.object(assignments)),
@@ -253,5 +257,37 @@ fn append_effect_value(
       }
     }
     _ => raise Abort(UnsupportedEffect)
+  }
+}
+
+///|
+// Binding is independent of Result capture and SET expression lowering.
+fn resolve_update_effect_target(
+  clause : @query.UpdateEffectClause,
+  publication : UpdateTargetPublication?,
+  max_work : Int,
+) -> (String, String) raise Abort {
+  match clause.target {
+    ConcreteTarget(target) => {
+      guard clause.mapping is Some(mapping) else {
+        raise Abort(UnsupportedEffect)
+      }
+      (target, mapping.value)
+    }
+    LogicalTarget(name) => {
+      guard publication is Some(publication) else {
+        raise Abort(UpdateTargetBinding(UnresolvedTarget))
+      }
+      match
+        resolve_update_target_binding(
+          publication,
+          name,
+          clause.mapping,
+          max_work,
+        ) {
+        Ok(value) => resolved_update_target(value)
+        Err(issue) => raise Abort(UpdateTargetBinding(issue))
+      }
+    }
   }
 }

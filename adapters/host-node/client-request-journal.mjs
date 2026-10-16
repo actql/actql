@@ -294,14 +294,16 @@ function assertKeyedInventoryRequest(wire, fields) {
   }
 }
 
-function admissionEvidenceShape(value) {
+function admissionEvidenceShape(value, updateOriginalControl) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   if (Object.keys(value).some(key => !['authorization', 'prepared',
     'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
-    'valuesHostPolicyOriginal', 'logicalPlanOriginal'].includes(key)) ||
+    'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal'].includes(key)) ||
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
+  if (value.updateTargetRunOriginal !== undefined &&
+      updateOriginalControl?.run(value.updateTargetRunOriginal, value) !== true) return false;
   if (value.logicalPlanOriginal !== undefined &&
       !logicalPlanOriginalShape(value.logicalPlanOriginal)) return false;
   if (value.valuesHostPolicyOriginal !== undefined) {
@@ -360,9 +362,9 @@ function assertSourceInventory(retained, proposed) {
 
 // Private replay evidence is stored atomically with acceptance. Its semantic
 // admission remains with the common MoonBit owner before any physical start.
-function evidenceJson(value, maxBytes) {
+function evidenceJson(value, maxBytes, updateOriginalControl) {
   if (value === undefined) return null;
-  if (!admissionEvidenceShape(value)) fail('InvalidClientRunAdmissionEvidence');
+  if (!admissionEvidenceShape(value, updateOriginalControl)) fail('InvalidClientRunAdmissionEvidence');
   const wire = JSON.stringify(value);
   if (Buffer.byteLength(wire) > maxBytes) {
     fail('InvalidClientRunAdmissionEvidence');
@@ -370,13 +372,13 @@ function evidenceJson(value, maxBytes) {
   return wire;
 }
 
-function retainedEvidence(row) {
+function retainedEvidence(row, updateOriginalControl) {
   if (row.run_admission_evidence_json === null) return undefined;
   let value;
   try { value = JSON.parse(row.run_admission_evidence_json); }
   catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
   try {
-    if (!admissionEvidenceShape(value)) fail('ClientRequestJournalCorrupt');
+    if (!admissionEvidenceShape(value, updateOriginalControl)) fail('ClientRequestJournalCorrupt');
     assertKeyedInventoryRequest(value.sourceInventory, {
       programDefinitionCid: row.program_definition_cid,
       parameterValuesCid: row.parameter_values_cid});
@@ -386,6 +388,11 @@ function retainedEvidence(row) {
 
 function freezeAdmissionEvidence(value) {
   if (value.logicalPlanOriginal !== undefined) Object.freeze(value.logicalPlanOriginal);
+  if (value.updateTargetRunOriginal !== undefined) {
+    value.updateTargetRunOriginal.installations.forEach(Object.freeze);
+    Object.freeze(value.updateTargetRunOriginal.installations);
+    Object.freeze(value.updateTargetRunOriginal);
+  }
   return Object.freeze(value);
 }
 
@@ -416,7 +423,7 @@ function retainedResultNames(row) {
   return names;
 }
 
-function retainedRunFacts(row, publicationControl, maxWireBytes) {
+function retainedRunFacts(row, publicationControl, maxWireBytes, updateOriginalControl) {
   if (![0, 1].includes(row.dispatch_reserved) ||
       ![0, 1].includes(row.pre_dispatch_failure_confirmed) ||
       ![null, 0, 1].includes(row.physical_start_reserved) ||
@@ -426,7 +433,7 @@ function retainedRunFacts(row, publicationControl, maxWireBytes) {
         row.observed_terminal_outcome)) {
     fail('ClientRequestJournalCorrupt');
   }
-  const runAdmissionEvidence = retainedEvidence(row);
+  const runAdmissionEvidence = retainedEvidence(row, updateOriginalControl);
   const runDefinition = retainedRunDefinition(row, publicationControl,
     maxWireBytes);
   if (runAdmissionEvidence?.valuesHostPolicyOriginal !== undefined &&
@@ -720,6 +727,7 @@ export function openClientRequestJournal(directory, {
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
+  updateOriginalControl,
 } = {}) {
   if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
@@ -1040,7 +1048,7 @@ export function openClientRequestJournal(directory, {
     return Object.freeze({
       ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision, requestId: row.caller_request_id,
-      ...retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes),
+      ...retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes, updateOriginalControl),
     });
   };
   const selectRun = database.prepare(`SELECT run_definition_cid
@@ -1330,7 +1338,7 @@ export function openClientRequestJournal(directory, {
     if (!Number.isInteger(row.revision) || row.revision < 0 || row.revision > 2147483647) {
       fail('ClientCancellationRevisionConflict');
     }
-    return {row, facts: retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes)};
+    return {row, facts: retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes, updateOriginalControl)};
   };
   const cancellationIdentity = (ref, definition, control) => {
     const identity = control.clientCancellationAdmitRecord(ref.namespaceId,
@@ -1412,7 +1420,7 @@ export function openClientRequestJournal(directory, {
       fail('InvalidClientRequestAdmission');
     }
     const admissionEvidence = evidenceJson(runAdmissionEvidence,
-      maxRunDefinitionWireBytes);
+      maxRunDefinitionWireBytes, updateOriginalControl);
     assertKeyedInventoryRequest(runAdmissionEvidence?.sourceInventory, fields);
     if (runAdmissionEvidence?.valuesHostPolicyOriginal !== undefined &&
         (typeof runDefinitionWire !== 'string' ||
@@ -1458,11 +1466,11 @@ export function openClientRequestJournal(directory, {
           fail('ClientRequestResultInventoryMismatch');
         }
         assertSourceInventory({physicalStartReserved: existing.physical_start_reserved === 1,
-          runAdmissionEvidence: retainedEvidence(existing)},
+          runAdmissionEvidence: retainedEvidence(existing, updateOriginalControl)},
           admissionEvidence === null ? undefined : JSON.parse(admissionEvidence).sourceInventory);
         const proposedPlan = runAdmissionEvidence?.logicalPlanOriginal;
         if (proposedPlan !== undefined) {
-          const originalPlan = retainedEvidence(existing)?.logicalPlanOriginal;
+          const originalPlan = retainedEvidence(existing, updateOriginalControl)?.logicalPlanOriginal;
           if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
           if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
               originalPlan.planViewWire !== proposedPlan.planViewWire) {
@@ -1470,7 +1478,7 @@ export function openClientRequestJournal(directory, {
           }
         }
         return Object.freeze({inserted: false, ...admission(existing),
-          runAdmissionEvidence: retainedEvidence(existing),
+          runAdmissionEvidence: retainedEvidence(existing, updateOriginalControl),
           ...(runDefinitionWire === undefined ? {} :
             {runDefinitionWire: existing.run_definition_wire}),
           resultNames: retainedResultNames(existing)});
@@ -1791,7 +1799,7 @@ export function openClientRequestJournal(directory, {
       }
       if (originalPlan !== undefined) {
         if (typeof publicationControl.originalRunPlanAdmissionEvidence !== 'function' ||
-            !admissionEvidenceShape(runAdmissionEvidence)) fail('InvalidClientRunPlanOriginal');
+            !admissionEvidenceShape(runAdmissionEvidence, updateOriginalControl)) fail('InvalidClientRunPlanOriginal');
         let original;
         try {
           original = publicationControl.originalRunPlanAdmissionEvidence(originalPlan,
@@ -1849,7 +1857,7 @@ export function openClientRequestJournal(directory, {
       if (retained === undefined) return undefined;
       return Object.freeze({...retained.found,
         ...retainedRunFacts(retained.row, publicationControl,
-          maxRunDefinitionWireBytes),
+          maxRunDefinitionWireBytes, updateOriginalControl),
       });
     },
     // Attach reads the original accepted Run Definition by its exact ref.
@@ -1900,8 +1908,8 @@ export function openClientRequestJournal(directory, {
       if (retained === undefined) return undefined;
       return Object.freeze({...retained.found,
         requestIdentity: retained.identity,
-        runDefinition: retainedRunDefinition(
-          retained.row, publicationControl, maxRunDefinitionWireBytes),
+        ...retainedRunFacts(retained.row, publicationControl,
+          maxRunDefinitionWireBytes, updateOriginalControl),
       });
     },
     // A resend can resolve an already accepted request before issuing a new
@@ -1927,7 +1935,7 @@ export function openClientRequestJournal(directory, {
       }
       return Object.freeze({...retained.found,
         ...retainedRunFacts(retained.row, publicationControl,
-          maxRunDefinitionWireBytes),
+          maxRunDefinitionWireBytes, updateOriginalControl),
       });
     },
     // Physical admit-or-lookup ordering for a checked request. The common
@@ -2072,7 +2080,7 @@ export function openClientRequestJournal(directory, {
         if (row === undefined) fail('ClientRunCancellationDenied');
         retainedIdentity(row, requestControl);
         const facts = retainedRunFacts(row, publicationControl,
-          maxRunDefinitionWireBytes);
+          maxRunDefinitionWireBytes, updateOriginalControl);
         const action = requestControl.clientRunCancellationAction(facts.runDefinition,
           ref.runDefinitionCid, currentAuthorization,
           publicationCommitted || facts.preDispatchFailureConfirmed ||

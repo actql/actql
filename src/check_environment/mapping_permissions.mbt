@@ -148,6 +148,134 @@ fn mapping_permission_rule_text(
 }
 
 ///|
+priv struct MappingPermissionRule {
+  effect_kind : String
+  selector_class : String
+  write_fields : Array[String]
+  permissions : Array[String]
+}
+
+///|
+// One rule reader serves exact field-set checking and structural operation
+// discovery. Neither path observes grants or silently skips an invalid rule.
+fn mapping_permission_rules(
+  shape : MappingContractShape,
+  requested_fields : Array[String]?,
+  remaining : Ref[Int],
+) -> (Array[String], Array[MappingPermissionRule]) raise MappingPermissionStop {
+  let requested : Map[String, Bool] = Map([])
+  if requested_fields is Some(fields) {
+    mapping_permission_charge(remaining, fields.length())
+  }
+  let writable : Map[String, Bool] = Map([])
+  mapping_permission_charge(remaining, shape.writable_fields.length())
+  for field in shape.writable_fields {
+    writable[field] = true
+  }
+  if requested_fields is Some(fields) {
+    for field in fields {
+      if !writable.contains(field) || requested.contains(field) {
+        raise MappingPermissionStop(InvalidRequest)
+      }
+      requested[field] = true
+    }
+  }
+  let root = member_body(shape.item)
+  let object = @decode.open_object(root).unwrap()
+  let required = match @decode.lookup(object, "required_permissions") {
+    Some(value) =>
+      mapping_permission_words(
+        value,
+        remaining,
+        InvalidRequiredPermissions,
+        false,
+      )
+    None => raise MappingPermissionStop(InvalidRequiredPermissions)
+  }
+  let rules = match @decode.lookup(object, "permission_rules") {
+    Some(value) => value
+    None => raise MappingPermissionStop(InvalidRule(0))
+  }
+  let count = match @decode.array_length(rules) {
+    Some(value) if value > 0 => value
+    _ => raise MappingPermissionStop(InvalidRule(0))
+  }
+  let entries : Array[MappingPermissionRule] = []
+  for index in 0..<count {
+    mapping_permission_charge(remaining, 1)
+    let rule = @decode.element_at(rules, index).unwrap()
+    let entry = match
+      @decode.closed_object(rule, [
+        "effect_kind", "selector_class", "write_fields", "permissions",
+      ]) {
+      Ok(value) => value
+      Err(_) => raise MappingPermissionStop(InvalidRule(index))
+    }
+    let kind = mapping_permission_rule_text(entry, "effect_kind", index)
+    let selector = mapping_permission_rule_text(entry, "selector_class", index)
+    if !mapping_permission_valid_kind(kind) ||
+      !mapping_permission_valid_selector(selector) {
+      raise MappingPermissionStop(InvalidRule(index))
+    }
+    let fields = match @decode.lookup(entry, "write_fields") {
+      Some(value) =>
+        mapping_permission_words(value, remaining, InvalidRule(index), false)
+      None => raise MappingPermissionStop(InvalidRule(index))
+    }
+    for field in fields {
+      if !writable.contains(field) {
+        raise MappingPermissionStop(InvalidRule(index))
+      }
+    }
+    let permissions = match @decode.lookup(entry, "permissions") {
+      Some(value) =>
+        mapping_permission_words(value, remaining, InvalidRule(index), true)
+      None => raise MappingPermissionStop(InvalidRule(index))
+    }
+    entries.push({
+      effect_kind: kind,
+      selector_class: selector,
+      write_fields: fields,
+      permissions,
+    })
+  }
+  (required, entries)
+}
+
+///|
+/// Structural availability only, before the authored field set or any current
+/// grant is considered. Validate every rule, including nonmatching rules.
+/// The returned work is charged to the caller's original bounded traversal.
+pub fn mapping_supports_operation(
+  shape : MappingContractShape,
+  effect_kind : String,
+  selector_class : String,
+  max_work : Int,
+) -> Result[(Bool, Int), MappingPermissionIssue] {
+  if max_work < 0 {
+    return Err(InvalidLimits)
+  }
+  if !mapping_permission_valid_kind(effect_kind) ||
+    !mapping_permission_valid_selector(selector_class) {
+    return Err(InvalidRequest)
+  }
+  let remaining = Ref(max_work)
+  try {
+    let (_, rules) = mapping_permission_rules(shape, None, remaining)
+    let supported = (
+        shape.primary_identity is Some(_) ||
+        (effect_kind == "create" && selector_class == "none")
+      ) &&
+      rules.any(rule => {
+        rule.effect_kind == effect_kind && rule.selector_class == selector_class
+      })
+    Ok((supported, max_work - remaining.val))
+  } catch {
+    MappingPermissionStop(issue) => Err(issue)
+  }
+}
+
+///|
 /// Selects exactly one static Mapping permission rule for the complete
 /// requested write-field set. This does not check a current grant, provider
 /// authority, Preview guard, or apply admission.
@@ -171,80 +299,20 @@ pub fn select_mapping_permissions(
   }
   let remaining = Ref(max_work)
   try {
-    mapping_permission_charge(remaining, write_fields.length())
-    let requested : Map[String, Bool] = Map([])
-    let writable : Map[String, Bool] = Map([])
-    mapping_permission_charge(remaining, shape.writable_fields.length())
-    for field in shape.writable_fields {
-      writable[field] = true
-    }
-    for field in write_fields {
-      if !writable.contains(field) || requested.contains(field) {
-        raise MappingPermissionStop(InvalidRequest)
-      }
-      requested[field] = true
-    }
-    let root = member_body(shape.item)
-    let object = @decode.open_object(root).unwrap()
-    let required = match @decode.lookup(object, "required_permissions") {
-      Some(value) =>
-        mapping_permission_words(
-          value,
-          remaining,
-          InvalidRequiredPermissions,
-          false,
-        )
-      None => raise MappingPermissionStop(InvalidRequiredPermissions)
-    }
-    let rules = match @decode.lookup(object, "permission_rules") {
-      Some(value) => value
-      None => raise MappingPermissionStop(InvalidRule(0))
-    }
-    let count = match @decode.array_length(rules) {
-      Some(value) if value > 0 => value
-      _ => raise MappingPermissionStop(InvalidRule(0))
-    }
+    let (required, rules) = mapping_permission_rules(
+      shape,
+      Some(write_fields),
+      remaining,
+    )
     let mut matched : Array[String]? = None
-    for index in 0..<count {
-      mapping_permission_charge(remaining, 1)
-      let rule = @decode.element_at(rules, index).unwrap()
-      let entry = match
-        @decode.closed_object(rule, [
-          "effect_kind", "selector_class", "write_fields", "permissions",
-        ]) {
-        Ok(value) => value
-        Err(_) => raise MappingPermissionStop(InvalidRule(index))
-      }
-      let kind = mapping_permission_rule_text(entry, "effect_kind", index)
-      let selector = mapping_permission_rule_text(
-        entry, "selector_class", index,
-      )
-      if !mapping_permission_valid_kind(kind) ||
-        !mapping_permission_valid_selector(selector) {
-        raise MappingPermissionStop(InvalidRule(index))
-      }
-      let fields = match @decode.lookup(entry, "write_fields") {
-        Some(value) =>
-          mapping_permission_words(value, remaining, InvalidRule(index), false)
-        None => raise MappingPermissionStop(InvalidRule(index))
-      }
-      for field in fields {
-        if !writable.contains(field) {
-          raise MappingPermissionStop(InvalidRule(index))
-        }
-      }
-      let permissions = match @decode.lookup(entry, "permissions") {
-        Some(value) =>
-          mapping_permission_words(value, remaining, InvalidRule(index), true)
-        None => raise MappingPermissionStop(InvalidRule(index))
-      }
-      if kind == effect_kind &&
-        selector == selector_class &&
-        mapping_permission_equal_set(fields, write_fields) {
+    for rule in rules {
+      if rule.effect_kind == effect_kind &&
+        rule.selector_class == selector_class &&
+        mapping_permission_equal_set(rule.write_fields, write_fields) {
         if matched is Some(_) {
           raise MappingPermissionStop(AmbiguousRules)
         }
-        matched = Some(permissions)
+        matched = Some(rule.permissions)
       }
     }
     match matched {

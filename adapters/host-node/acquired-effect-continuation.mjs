@@ -5,6 +5,7 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
+import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
 
 const VERSION = 'actql-acquired-effect-continuation/0.1';
@@ -31,7 +32,7 @@ const bindingFor = (runDefinitionCid, scope, acquisition, sourceEvidenceWire) =>
 
 export function acquiredEffectContinuation({checkpoints, moon, acquired,
   submission, declaredResults, principalId, unitId, resume, restore,
-  signal, currentRun = () => true}) {
+  signal, currentRun = () => true, assertUpdateSelectionCurrent, assertContinuationCurrent}) {
   if (checkpoints === undefined) return undefined;
   if (resume !== undefined && restore !== undefined) fail('ConflictingSourceContinuation');
   const runDefinitionCid = acquired.runDefinition.identity;
@@ -43,23 +44,57 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
   let captureStartedAt;
   let captureCompletedAt;
   let live = true;
-  const currentClaim = () => {
-    try { resume?.assertCurrent(); return true; }
-    catch { return false; }
+  const originalCurrent = () => {
+    signal?.throwIfAborted();
+    if (!live || !currentRun()) fail('ClientRunCancellationRequested');
+    if (assertUpdateSelectionCurrent === undefined) return;
+    const changed = () => { throw refusedEffectPreparation(Object.assign(
+      new Error('InstalledEffectOriginalSelectionChanged'),
+      {code: 'InstalledEffectOriginalSelectionChanged'})); };
+    if (typeof assertUpdateSelectionCurrent !== 'function') changed();
+    const result = assertUpdateSelectionCurrent();
+    // The existing installed owner must still be current synchronously. An
+    // asynchronous assertion cannot admit a Source read or Model closure.
+    if (typeof result?.then === 'function') {
+      void Promise.resolve(result).catch(() => {});
+      changed();
+    }
+  };
+  const current = () => {
+    originalCurrent();
+    resume?.assertCurrent();
+    assertContinuationCurrent?.();
   };
   const currentApproval = checkpointCid => {
     if (checkpointCid === undefined) return true;
     try { return checkpoints.journal.committedApprovalAt(checkpointCid).current === true; }
     catch { return false; }
   };
-  const continuationWire = () => canonicalJson({version: continuationVersion,
-    run_definition_cid: runDefinitionCid, unit_id: unitId,
-    submission, pending_task: pendingTask ?? null,
-    capture_started_at: captureStartedAt ?? null,
-    capture_completed_at: captureCompletedAt ?? null,
-    sources: [...states.values()].map(state => ({scope: state.scope,
-      ...(state.captureCid === undefined ? {} : {capture_cid: state.captureCid})})),
-  });
+  const sourceOriginalCurrent = state => {
+    originalCurrent();
+    if (assertUpdateSelectionCurrent !== undefined && state.gate !== undefined) {
+      if (typeof state.gate.assertCurrent !== 'function') fail('SourceCurrentAuthorityUnavailable');
+      state.gate.assertCurrent();
+    }
+    if (!currentApproval(state.checkpointCid)) fail('ApprovalExpired');
+    originalCurrent();
+  };
+  const sourceCurrent = state => {
+    current();
+    sourceOriginalCurrent(state);
+    current();
+  };
+  const continuationWire = () => {
+    current();
+    return canonicalJson({version: continuationVersion,
+      run_definition_cid: runDefinitionCid, unit_id: unitId,
+      submission, pending_task: pendingTask ?? null,
+      capture_started_at: captureStartedAt ?? null,
+      capture_completed_at: captureCompletedAt ?? null,
+      sources: [...states.values()].map(state => ({scope: state.scope,
+        ...(state.captureCid === undefined ? {} : {capture_cid: state.captureCid})})),
+    });
+  };
   const nextJournal = resume === undefined ? undefined : {
     ...checkpoints.journal,
     persistCheckpoint: checkpoint => resume.active
@@ -68,48 +103,59 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     submitResolution: item => checkpoints.journal.submitResolution(item),
   };
   const ensureGate = async state => {
+    current();
     if (state.gate !== undefined) return state.gate;
     state.gate = await checkpoints.computationSourceAuthorization({runId,
       runDefinitionCid, unitId: `${unitId}-source-${state.scope.task}`,
       occurrence: state.scope, declaredResults,
       beforeDefer: async () => {
+        sourceCurrent(state);
         pendingTask = state.scope.task;
         for (const prior of states.values()) {
           if (prior.captured !== undefined && prior.captureCid === undefined) {
             await persistSource(prior);
+            current();
           }
         }
       },
       continuation: async () => continuationWire(),
       ...(nextJournal === undefined ? {} : {journalPort: nextJournal}),
     });
+    sourceCurrent(state);
     return state.gate;
   };
   const approvedAccess = state => {
     const original = state.base;
-    return Object.freeze({...original, authorization: Object.freeze({
+    return Object.freeze({...original, assertCurrent() { sourceCurrent(state); },
+      authorization: Object.freeze({
       ...original.authorization,
       async authorize(boundary, scope, options) {
-        const current = await original.authorization.authorize(boundary, scope, options);
-        signal?.throwIfAborted();
-        if (!currentRun()) fail('ClientRunCancellationRequested');
-        if (boundary === 'acquisition') resume?.assertCurrent();
-        if (current.action === 'dispatch' || current.action === 'deny' ||
+        const assertCurrent = boundary === 'acquisition'
+          ? () => sourceCurrent(state) : () => sourceOriginalCurrent(state);
+        assertCurrent();
+        const decision = await original.authorization.authorize(boundary, scope, options);
+        assertCurrent();
+        if (decision.action === 'dispatch' || decision.action === 'deny' ||
             boundary !== 'acquisition' || state.decision?.action !== 'dispatch' ||
             !live || !same(scope, state.scope?.readTuple) ||
-            !currentApproval(state.checkpointCid)) return current;
-        return recordCheckpointApproval(Object.freeze({...state.decision,
+            !currentApproval(state.checkpointCid)) return decision;
+        const approved = state.decision;
+        const enter = state.enter;
+        return recordCheckpointApproval(Object.freeze({...approved,
           boundary, tuple: Object.freeze({...scope})}), {
           checkpointCid: state.checkpointCid,
           readTuple: state.scope.readTuple, checkedSource: state.scope.checkedSource,
           physicalBinding: state.scope.physicalBinding,
           occurrence: {stage: state.scope.stage, input: state.scope.input, task: state.scope.task},
           principalId,
+          assertCurrent() { sourceCurrent(state); },
+          enter,
         });
       },
     })});
   };
   async function persistSource(state) {
+    sourceCurrent(state);
     const {captured, sourceEvidenceWire, startedAt, completedAt} = state.material;
     const acquisition = captured.acquisition;
     // Provider-specific acquisition diagnostics are not the Source evidence
@@ -137,12 +183,14 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     const wire = canonicalJson(record);
     if (Buffer.byteLength(wire) > 2_000_000) fail('SourceCaptureRetentionLimitExceeded');
     state.captureCid = await checkpoints.retainComputationSource(runId, runDefinitionCid, wire);
+    sourceCurrent(state);
     state.record = record;
   }
   return Object.freeze({
     restoringModel: restore !== undefined,
     nextJournal,
     accessFor(base, occurrence) {
+      current();
       if (states.has(occurrence.task)) fail('DuplicateSourceContinuationOccurrence');
       const state = {base};
       state.access = approvedAccess(state);
@@ -150,6 +198,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       return state.access;
     },
     async prepared(sources) {
+      current();
       for (const source of sources) {
         const state = states.get(source.occurrence.task);
         state.scope = JSON.parse(canonicalJson(sourceScope(source)));
@@ -175,9 +224,11 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       captureStartedAt = saved.capture_started_at ?? undefined;
       captureCompletedAt = saved.capture_completed_at ?? undefined;
       const references = await checkpoints.computationSourceReferences(restoring.view);
+      current();
       if (references.length > states.size) fail('DuplicateRetainedSourceCapture');
       for (const captureCid of references) {
         const bytes = await checkpoints.readComputationSource(restoring.view, captureCid, 2_000_000);
+        current();
         const record = JSON.parse(bytes.toString('utf8'));
         const state = states.get(record.scope?.task);
         if (record.version !== CAPTURE || record.run_definition_cid !== runDefinitionCid ||
@@ -202,21 +253,18 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       }
     },
     async beforeRead(source) {
-      signal?.throwIfAborted();
-      if (!currentRun()) fail('ClientRunCancellationRequested');
-      resume?.assertCurrent();
+      current();
       const state = states.get(source.occurrence.task);
       const gate = await ensureGate(state);
+      sourceCurrent(state);
       if (state.record !== undefined) {
         // Source authority is revalidated before consuming retained data,
         // without opening the upstream provider or reissuing its evidence.
-        const current = await state.base.authorization.authorize('acquisition', state.scope.readTuple);
-        signal?.throwIfAborted();
-        if (!currentRun()) fail('ClientRunCancellationRequested');
-        resume?.assertCurrent();
-        if (current.action !== 'dispatch' &&
-            (current.action === 'deny' || state.checkpointCid === undefined ||
-              !currentApproval(state.checkpointCid))) throw new ExecutionAuthorizationError(current);
+        const decision = await state.base.authorization.authorize('acquisition', state.scope.readTuple);
+        sourceCurrent(state);
+        if (decision.action !== 'dispatch' &&
+            (decision.action === 'deny' || state.checkpointCid === undefined ||
+              !currentApproval(state.checkpointCid))) throw new ExecutionAuthorizationError(decision);
         return {retained: state.record};
       }
       if (restore !== undefined) fail('SourceCaptureCustodyUnavailable');
@@ -225,19 +273,32 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       const decision = resumed ? await gate.resume({resumption: {claim: {
         checkpointCid: resume.view.checkpointCid, claim: resume.claim}}})
         : await gate.authorize();
-      if (decision.action === 'waiting') return {waiting: decision.checkpoint};
+      // A committed successor Checkpoint has consumed the predecessor claim.
+      // It transfers no Source dispatch permission, but originals must still
+      // be current before returning that journal-owned waiting observation.
+      if (decision.action === 'waiting') {
+        sourceOriginalCurrent(state);
+        return {waiting: decision.checkpoint};
+      }
+      sourceCurrent(state);
       if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
       state.decision = decision;
       state.checkpointCid = resumed ? resume.view.checkpointCid : undefined;
-      return {enter: () => {
-        signal?.throwIfAborted();
-        if (!currentRun()) fail('ClientRunCancellationRequested');
-        resume?.assertCurrent();
-        decision.admission?.enter();
-      }};
+      // Every borrower uses this same entry closure. A successful original
+      // admission is consumed once; later uses still recheck its owners.
+      let entered = false;
+      state.enter = () => {
+        sourceCurrent(state);
+        if (!entered) {
+          decision.admission?.enter();
+          entered = true;
+        }
+      };
+      return {enter: state.enter};
     },
     restore(source, record, ledger) {
       const state = states.get(source.occurrence.task);
+      sourceCurrent(state);
       const {requirement, capacity, referenceIssuer} = source.adapter.retainedCapture(source.preparedSource);
       const binding = bindingFor(runDefinitionCid, state.scope, record.acquisition,
         record.source_evidence_wire);
@@ -250,8 +311,10 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       const owner = checked(moon.clientProgramRestoreSourceCapture(requirement,
         record.requirement_cid, binding, record.binding, record.descriptor,
         record.rows, ledger, capacity,
-        () => live && !signal?.aborted && currentRun() && currentClaim() &&
-          currentApproval(state.checkpointCid), referenceIssuer,
+        () => {
+          try { sourceCurrent(state); return true; }
+          catch { return false; }
+        }, referenceIssuer,
         input === undefined ? undefined : runtimeTriple(input.schema_cid, input.rows_cid, input.rows)));
       restorations.add(owner);
       const capturedSource = moon.clientProgramSourceCaptureSource(owner);
@@ -281,20 +344,22 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     },
     async captured(source, captured, sourceEvidenceWire, startedAt, completedAt) {
       const state = states.get(source.occurrence.task);
+      sourceCurrent(state);
       state.captured = captured;
       state.material = {captured, sourceEvidenceWire, startedAt, completedAt};
       captureStartedAt ??= startedAt;
       captureCompletedAt = completedAt;
       if (resume?.active) {
         await persistSource(state);
+        current();
       }
     },
     async retainAll() {
-      signal?.throwIfAborted();
-      if (!live || !currentRun()) fail('ClientRunCancellationRequested');
+      current();
       for (const state of states.values()) {
         if (state.captured === undefined) fail('SourceCaptureCustodyUnavailable');
         if (state.captureCid === undefined) await persistSource(state);
+        sourceCurrent(state);
         if (state.record === undefined) fail('SourceCaptureCustodyUnavailable');
       }
       // A Model boundary is after every source capture, not a pending Source

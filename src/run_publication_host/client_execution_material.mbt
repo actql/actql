@@ -134,6 +134,7 @@ fn issue_prepared_client_execution_material_with_template(
   max_nodes : Int,
   max_depth : Int,
   effect_plan_cids? : Array[(String, String)] = [],
+  effect_target_selections? : ClientEffectUpdateTargetSelections? = None,
 ) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue] {
   let bindings = match
     issue_prepared_client_empty_invocation_bindings(
@@ -191,6 +192,19 @@ fn issue_prepared_client_execution_material_with_template(
       @encode.string_value(writer, cid)
     }
     @encode.end_object(writer)
+    if effect_target_selections is Some(selections) {
+      guard parse_plan_identity_value(
+          selections.wire,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        )
+        is Some(body) else {
+        return Err(Encoding)
+      }
+      @encode.key(writer, "effect_target_selections")
+      @canonical.emit_value(body, writer)
+    }
     @encode.key(writer, "grammar_manifest_cid")
     @encode.string_value(writer, manifests.grammar_manifest_cid)
     @encode.key(writer, "invocation_binding_names")

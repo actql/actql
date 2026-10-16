@@ -2894,6 +2894,7 @@ pub fn client_program_effect_preparation_issue_code(
           Preparation(Static(_)) => "effect_static_rejected"
           Preparation(Stage(_)) => "stage_rejected"
           Preparation(Graph(_)) => "graph_rejected"
+          Preparation(TargetSelection(_)) => "effect_target_selection_rejected"
         },
       )
   }
@@ -6996,6 +6997,27 @@ pub fn client_program_issue_effect_captured_invocation(
     input_logical_wire, source_ref, source_contract_cid, authority_scope_cid, data_policy_cid,
     capture_started_at, capture_completed_at, max_wire_bytes, max_nodes, max_depth,
   )
+}
+
+///|
+/// Borrow the retained Infer component and its exact occurrence from one
+/// original Effect compilation. This projection admits no physical authority.
+#export_name("clientProgramEffectCompilationInferOriginal")
+pub fn client_program_effect_compilation_infer_original(
+  value : @publication_host.ClientEffectCompilation,
+) -> (
+  @publication_host.ClientInferPlanGraph,
+  @publication_host.ClientInferOccurrence,
+  @check_environment.ModelExecutionContract,
+)? {
+  @publication_host.client_effect_compilation_infer_original(value).map(pair => {
+    let (graph, occurrence) = pair
+    (
+      graph,
+      occurrence,
+      @publication_host.client_infer_plan_graph_execution_contract(graph),
+    )
+  })
 }
 
 ///|

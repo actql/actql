@@ -22,6 +22,8 @@ pub(all) struct Lowered {
   // Checking the serialized document would replace them with generated JSON
   // coordinates. Machine input is admitted by the ordinary document checker.
   program : @program.Program?
+  // Retain the trusted publication for the original checked Effect owner.
+  update_targets : @query.UpdateTargetPublication?
 }
 
 ///|
@@ -290,7 +292,10 @@ fn query_limits() -> @query.Limits {
 }
 
 ///|
-fn emit(program : @program.Program) -> Result[Lowered, Issue] {
+fn emit(
+  program : @program.Program,
+  update_targets : @query.UpdateTargetPublication?,
+) -> Result[Lowered, Issue] {
   let document = try {
     let writer = @encode.writer(65536, 8192, 64)
     @program.emit_program_source(program, writer)
@@ -298,7 +303,12 @@ fn emit(program : @program.Program) -> Result[Lowered, Issue] {
   } catch {
     _ => return Err(Encoding)
   }
-  Ok({ document, format: @program.Json, program: Some(program), })
+  Ok({
+    document,
+    format: @program.Json,
+    program: Some(program),
+    update_targets,
+  })
 }
 
 ///|
@@ -357,10 +367,33 @@ pub fn lower_with_source(
   context : @query.Context?,
   source_path? : String = "<source>",
   table_writes? : Array[@query.TableWriteBinding] = [],
+  update_targets? : @query.UpdateTargetPublication? = None,
 ) -> Result[(Lowered, @builder.Source?), Issue] {
   match format {
-    Json => Ok(({ document, format: @program.Json, program: None, }, None))
-    Yaml => Ok(({ document, format: @program.Yaml, program: None, }, None))
+    Json =>
+      Ok(
+        (
+          {
+            document,
+            format: @program.Json,
+            program: None,
+            update_targets: None,
+          },
+          None,
+        ),
+      )
+    Yaml =>
+      Ok(
+        (
+          {
+            document,
+            format: @program.Yaml,
+            program: None,
+            update_targets: None,
+          },
+          None,
+        ),
+      )
     Text | Sql => {
       let parsed = match parse_query(document, format, source_path~) {
         Ok(value) => value
@@ -373,11 +406,12 @@ pub fn lower_with_source(
           context,
           query_limits(),
           table_writes~,
+          update_targets~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(QueryLowering(issue))
       }
-      emit(program).map(lowered => (lowered, Some(source)))
+      emit(program, update_targets).map(lowered => (lowered, Some(source)))
     }
   }
 }
@@ -391,8 +425,16 @@ pub fn lower(
   context : @query.Context?,
   source_path? : String = "<source>",
   table_writes? : Array[@query.TableWriteBinding] = [],
+  update_targets? : @query.UpdateTargetPublication? = None,
 ) -> Result[Lowered, Issue] {
-  lower_with_source(document, format, context, source_path~, table_writes~)
+  lower_with_source(
+    document,
+    format,
+    context,
+    source_path~,
+    table_writes~,
+    update_targets~,
+  )
   .map(pair => pair.0)
   .map_err(issue => {
     match issue {
