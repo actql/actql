@@ -395,6 +395,7 @@ fn compile_query_script_with_source(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
   if context.program_id.is_empty() ||
     context.stage_id.is_empty() ||
@@ -412,10 +413,6 @@ fn compile_query_script_with_source(
         return Err(InvalidContext)
       }
     }
-  }
-  if @query.terminal_short_command_effect(@query.script_query(script))
-    is Some(_) {
-    return Err(UnsupportedEffect)
   }
   let document = @query.script_document(script)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
@@ -475,6 +472,17 @@ fn compile_query_script_with_source(
           resolve_update_effect_target(
             effect,
             update_targets,
+            limits.max_expression_work,
+          ),
+        )
+      None => None
+    }
+    let command_target = match @query.terminal_short_command_effect(root) {
+      Some(clause) =>
+        Some(
+          resolve_short_command_effect_target(
+            clause,
+            command_targets,
             limits.max_expression_work,
           ),
         )
@@ -681,6 +689,21 @@ fn compile_query_script_with_source(
         retained.push(capture)
         stage_steps.append(body.map(entries => construction.object(entries)))
       }
+      if @query.terminal_short_command_effect(current) is Some(clause) &&
+        !retained.any(result => result.command is Some(_)) {
+        let (capture, body) = lower_short_command_capture(
+          construction,
+          clause,
+          result.name,
+          result.visible_fields.map(field => (field, field)),
+          [],
+          result.visible_fields,
+          limits.max_expression_work,
+          reserved_bindings=reserved,
+        )
+        retained.push(capture)
+        stage_steps.append(body.map(entries => construction.object(entries)))
+      }
       let table_effect = @query.terminal_table_effect(current)
       let stage_entries = [
         ("id", construction.text(stage_context.stage_id)),
@@ -704,8 +727,12 @@ fn compile_query_script_with_source(
                 ),
               ]),
               retained,
-              keep_default=!prior_results.is_empty() && store_target is None,
-              implicit_primary=table_effect is None && store_target is None,
+              keep_default=!prior_results.is_empty() &&
+                store_target is None &&
+                command_target is None,
+              implicit_primary=table_effect is None &&
+                store_target is None &&
+                command_target is None,
             )
           },
         ),
@@ -779,18 +806,37 @@ fn compile_query_script_with_source(
           ),
         )
       }
-      if split is None && @query.terminal_command_effect_count(current) > 0 {
+      if split is None &&
+        (
+          @query.terminal_command_effect_count(current) > 0 ||
+          @query.terminal_short_command_effect(current) is Some(_)
+        ) {
         let commands : Array[(String, @builder.Node)] = []
-        for index in 0..<@query.terminal_command_effect_count(current) {
+        if @query.terminal_short_command_effect(current) is Some(clause) {
           commands.push(
-            lower_command_effect(
+            lower_short_command_effect(
               construction,
-              @query.terminal_command_effect_at(current, index).unwrap(),
+              clause,
+              command_target.unwrap(),
               stage_context.stage_result,
               retained,
-              limits.max_expression_work,
             ),
           )
+        }
+        for index in 0..<@query.terminal_command_effect_count(current) {
+          let command = lower_command_effect(
+            construction,
+            @query.terminal_command_effect_at(current, index).unwrap(),
+            stage_context.stage_result,
+            retained,
+            limits.max_expression_work,
+          )
+          if commands.any(entry => {
+              ascii_upper(entry.0) == ascii_upper(command.0)
+            }) {
+            raise Abort(DuplicateOutput)
+          }
+          commands.push(command)
         }
         stage_entries.push(("effects", construction.object(commands)))
       }
@@ -800,8 +846,12 @@ fn compile_query_script_with_source(
         (name, port) in retained_result_exports(
           stage_context,
           retained,
-          keep_default=!prior_results.is_empty() && store_target is None,
-          implicit_primary=table_effect is None && store_target is None,
+          keep_default=!prior_results.is_empty() &&
+            store_target is None &&
+            command_target is None,
+          implicit_primary=table_effect is None &&
+            store_target is None &&
+            command_target is None,
         ).unwrap_or([(stage_context.result_name, stage_context.stage_result)]) {
         if table_effect is Some(_) && retained.is_empty() {
           continue
@@ -812,7 +862,7 @@ fn compile_query_script_with_source(
         exports.push((name, (stage_context.stage_id, port)))
       }
       for result in retained {
-        if result.update is None && !result.store {
+        if result.update is None && !result.store && result.command is None {
           prior_results.push(
             (
               stage_context.stage_id,
@@ -952,6 +1002,7 @@ pub fn compile_query_script(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
 ) -> Result[@program.Program, Issue] {
   compile_query_script_with_source(
     script,
@@ -960,6 +1011,7 @@ pub fn compile_query_script(
     table_writes~,
     update_targets~,
     store_targets~,
+    command_targets~,
   )
   .map(pair => pair.0)
   .map_err(issue_without_source)

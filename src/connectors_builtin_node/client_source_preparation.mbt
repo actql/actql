@@ -5,6 +5,7 @@ pub(all) enum ClientSourcePreparationIssue {
   Publication
   Limit
   UnsupportedCarrier
+  CommandTargetOriginalsUnavailable
   Declarations
   Alias(@source_frontend.AliasIssue)
   Frontend(@source_frontend.Issue)
@@ -18,7 +19,8 @@ fn client_source_preparation_issue_code(
   match issue {
     Publication | Alias(_) => "source_rejected"
     Limit => "source_limit"
-    UnsupportedCarrier => "source_unsupported"
+    UnsupportedCarrier | CommandTargetOriginalsUnavailable =>
+      "source_unsupported"
     Declarations => "source_declarations"
     ArrayProfile(BudgetExceeded) => "source_limit"
     ArrayProfile(UnsupportedNestedArray(_, _, _))
@@ -258,6 +260,11 @@ fn client_program_lower_source(
     Ok(value) => value
     Err(_) => return Err(SourcePreparation(Publication))
   }
+  let command_targets = match
+    @source_publication.published_command_targets(environment, publication) {
+    Ok(value) => value
+    Err(_) => return Err(SourcePreparation(Publication))
+  }
   // Both authored forms carry the same admitted publication into the ordinary
   // checked Effect owner. Selection is retained material, never a permission.
   match
@@ -268,6 +275,7 @@ fn client_program_lower_source(
       table_writes~,
       update_targets~,
       store_targets~,
+      command_targets~,
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(SourcePreparation(Frontend(issue)))
@@ -319,6 +327,14 @@ pub fn client_program_prepare_source_computation_with_parameters(
     if !@stage_syntax.effect_names(stage).is_empty() {
       if !allow_effects {
         return SourcePure(Rejected(Preparation(EffectNotSupported(stage.id))))
+      }
+      // The static publication is not installed target custody. Until the
+      // existing Effect owner consumes that exact original selection, refuse
+      // rather than discard it or reconstruct authority from canonical text.
+      if lowered.command_targets is Some(_) {
+        return SourcePure(
+          Rejected(SourcePreparation(CommandTargetOriginalsUnavailable)),
+        )
       }
       let value = match
         @publication_host.prepare_parsed_client_effect_computation(

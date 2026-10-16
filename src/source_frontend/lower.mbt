@@ -25,6 +25,7 @@ pub(all) struct Lowered {
   // Retain the trusted publication for the original checked Effect owner.
   update_targets : @query.UpdateTargetPublication?
   store_targets : @query.StoreTargetPublication?
+  command_targets : @query.CommandTargetPublication?
 }
 
 ///|
@@ -297,6 +298,7 @@ fn emit(
   program : @program.Program,
   update_targets : @query.UpdateTargetPublication?,
   store_targets : @query.StoreTargetPublication?,
+  command_targets : @query.CommandTargetPublication?,
 ) -> Result[Lowered, Issue] {
   let document = try {
     let writer = @encode.writer(65536, 8192, 64)
@@ -311,6 +313,7 @@ fn emit(
     program: Some(program),
     update_targets,
     store_targets,
+    command_targets,
   })
 }
 
@@ -372,6 +375,7 @@ pub fn lower_with_source(
   table_writes? : Array[@query.TableWriteBinding] = [],
   update_targets? : @query.UpdateTargetPublication? = None,
   store_targets? : @query.StoreTargetPublication? = None,
+  command_targets? : @query.CommandTargetPublication? = None,
 ) -> Result[(Lowered, @builder.Source?), Issue] {
   match format {
     Json =>
@@ -383,6 +387,7 @@ pub fn lower_with_source(
             program: None,
             update_targets: None,
             store_targets: None,
+            command_targets: None,
           },
           None,
         ),
@@ -396,6 +401,7 @@ pub fn lower_with_source(
             program: None,
             update_targets: None,
             store_targets: None,
+            command_targets: None,
           },
           None,
         ),
@@ -414,11 +420,18 @@ pub fn lower_with_source(
           table_writes~,
           update_targets~,
           store_targets~,
+          command_targets~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(QueryLowering(issue))
       }
-      emit(program, update_targets, store_targets).map(lowered => {
+      let retained_commands = if @syntax.terminal_short_command_effect(parsed)
+        is Some(_) {
+        command_targets
+      } else {
+        None
+      }
+      emit(program, update_targets, store_targets, retained_commands).map(lowered => {
         (lowered, Some(source))
       })
     }
@@ -436,6 +449,7 @@ pub fn lower(
   table_writes? : Array[@query.TableWriteBinding] = [],
   update_targets? : @query.UpdateTargetPublication? = None,
   store_targets? : @query.StoreTargetPublication? = None,
+  command_targets? : @query.CommandTargetPublication? = None,
 ) -> Result[Lowered, Issue] {
   lower_with_source(
     document,
@@ -445,6 +459,7 @@ pub fn lower(
     table_writes~,
     update_targets~,
     store_targets~,
+    command_targets~,
   )
   .map(pair => pair.0)
   .map_err(issue => {
