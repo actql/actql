@@ -296,7 +296,10 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
       installation.executionContracts[0].cid);
     journal.close();
     journal = openClientRequestJournal(directory, options);
-    const reopened = journal.lookupRunDefinition(handle.ref, moon, control);
+    const reopened = journal.lookupOwnedDefinition({namespaceId: 'json-model-update',
+      authorityScopeCid: cid('a'), requestId: 'json-model-update',
+      runDefinitionCid: handle.ref.runDefinitionCid}, moon, control);
+    assert.ok(reopened?.requestIdentity);
     assert.deepEqual(reopened.runAdmissionEvidence, evidence);
     assert.equal(reopened.runDefinition.wire, retained.runDefinition.wire);
     const restored = originals.restoreRun(evidence.updateTargetRunOriginal,
