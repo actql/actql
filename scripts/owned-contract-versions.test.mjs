@@ -124,3 +124,20 @@ test('policy candidate owner and consumers stay on the initial contract', () => 
     assert.equal(violations(mutated, inventory).length, mutated.length, path);
   }
 });
+
+test('project configuration malformed-version refusal registers exactly its original negative context', () => {
+  const path = 'src/run_publication_host/client_project_configuration_wbtest.mbt';
+  const source = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const found = occurrences(source, path);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].token, 'actql-config/' + future);
+  const selected = inventory.entries.filter(value => value.path === path);
+  assert.equal(selected.length, 1);
+  assert.equal(selected[0].count, 1);
+  assert.deepEqual(violations(found, inventory), []);
+  assert.equal(violations([...found, ...found], inventory).length, 1);
+  assert.equal(violations(occurrences(source, 'src/run_publication_host/project-writer.mbt'), inventory).length, 1);
+  assert.equal(violations(occurrences(source.replace('"{}", "[]", "null",', '"{}", "null", "[]",'), path), inventory).length, 1);
+  assert(source.includes('admit_client_project_configuration(wire) is Err(InvalidConfiguration)'));
+});
