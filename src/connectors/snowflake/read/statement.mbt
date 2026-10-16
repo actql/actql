@@ -160,7 +160,7 @@ pub fn prepare_statement_read(
   max_requests : Int,
   max_request_bytes : Int,
 ) -> Result[StatementRead, StatementIssue] {
-  if read.closed || read.interrupted || read.finished || read.pages != 0 {
+  if !read_available(read) || read.finished || read.pages != 0 {
     return Err(Closed)
   }
   if read.statement_bound {
@@ -226,7 +226,7 @@ pub fn prepare_statement_read(
 
 ///|
 fn statement_live(value : StatementRead) -> Bool {
-  !value.read.closed && !value.read.interrupted && !value.unknown
+  read_available(value.read) && !value.unknown
 }
 
 ///|
@@ -473,9 +473,20 @@ pub fn accept_charged_statement_response(
   }
   value.handle = Some(@response.result_set_handle(original))
   if read.pages == @response.result_set_partition_count(original) {
-    match finish_result_read(read) {
-      Ok(_) => ()
-      Err(issue) => return fail_statement(value, Read(issue))
+    match read.custody {
+      Original(_) =>
+        match finish_result_read(read) {
+          Ok(_) => ()
+          Err(issue) => return fail_statement(value, Read(issue))
+        }
+      InstalledBorrow(_) => {
+        // Provider completeness is not Common finish, capture or cleanup.
+        // Every partition count was admitted against the original metadata.
+        if read.rows != @response.result_set_total_rows(original) {
+          return fail_statement(value, Read(Incomplete))
+        }
+        read.finished = true
+      }
     }
     value.next = None
   } else {

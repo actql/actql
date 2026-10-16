@@ -20,6 +20,10 @@ pub fn accept_statement_response(StatementRead, StatementRequest, Int, Bytes, By
 
 pub fn attempt_statement_request(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]
 
+pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]
+
+pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.ResponseLimits, Int) -> Result[Read, ReadIssue]
+
 pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]
 
 pub fn charge_statement_response(StatementRead, StatementRequest, Int, Bytes) -> Result[StatementResponse, StatementIssue]
@@ -53,6 +57,8 @@ pub fn result_read_original(Read) -> @catalog.ResultSet?
 pub fn result_read_statement_handle(Read) -> String?
 
 pub fn result_read_usage(Read) -> (Int, Int64)
+
+pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]
 
 pub fn start_accounted_read(PreparedRead, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.ResponseLimits, Int) -> Result[Read, ReadStartFailure]
 
@@ -93,6 +99,7 @@ pub(all) enum ReadIssue {
   Incomplete
   Closed
   TransportUnsettled
+  BorrowedRun
 }
 
 pub struct ReadStartFailure {
