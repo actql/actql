@@ -21,14 +21,15 @@ test('optional entries expose the original Host assemblers only', () => {
   }
 });
 
-test('entry packages retain development status and contain no runtime builder', () => {
+test('entry packages require normal source admission without a runtime builder', () => {
   for (const name of ['provider-ai-sdk', 'provider-http']) {
     const value = JSON.parse(readFileSync(new URL(`../packages/${name}/package.json`, import.meta.url)));
     assert.equal(value.private, true);
     assert.equal(value.version, '0.0.0-development');
     assert.equal(value.license, 'Apache-2.0');
     assert.deepEqual(value.exports, {'.': {types: './index.d.ts', default: './index.mjs'}});
-    assert.equal(value.scripts, undefined);
+    assert.deepEqual(value.scripts, {prepack:
+      `node ../../scripts/check-interface-owners.mjs --manifest packages/${name}/package.json`});
     assert.ok(value.files.includes('LICENSE'));
     assert.deepEqual(readFileSync(new URL(`../packages/${name}/LICENSE`, import.meta.url)),
       readFileSync(new URL('../LICENSE', import.meta.url)));
