@@ -135,9 +135,7 @@ current-installation and Run owners admit the new purpose, Source preparation
 reports that missing connection explicitly rather than dropping the Effect
 or treating its rows as a pure query.
 
-## Evidence classification
-
-### Original Mapping route for INSERT
+## Original Mapping route for INSERT
 
 INSERT first selects the original Mapping using the existing create/none
 operation contract, independently of VALUES and current write permissions.
@@ -156,6 +154,8 @@ values, or combining the mutually exclusive legacy `from` and `payload` forms.
 Source preparation also requires the original create-purpose selection at the
 existing capture/current/Run boundary; an UPDATE original is not a substitute.
 Only explicitly authored public Results are exported.
+
+## Evidence classification
 
 Historical `.aql` parsing/formatting is internal fixture evidence. Independent
 JSON/YAML Program execution proves retained common capability. New query source
