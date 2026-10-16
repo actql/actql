@@ -102,7 +102,7 @@ fn range_content_cid(value : Json, limits : Limits) -> Result[String, RangeFailu
     Err(issue) => return Err(issue)
   }
   match range_canonical(normalized, limits) {
-    Ok(wire) => Ok("sha256:" + @sha.hex(@sha.digest(@utf8.encode(wire))))
+    Ok(wire) => Ok("sha256:" + @sha.hex(@utf8.encode(wire)))
     Err(issue) => Err(issue)
   }
 }

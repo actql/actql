@@ -41,7 +41,6 @@ export function ownedSheetsRequestCid(request, binding) {
   if (original === undefined) fail('ForeignSheetsRangeRequest');
   const {moon, handle} = original;
   // The connector, not JS record equality, admits the original nominal owner.
-  const value = JSON.parse(sheetsOwnedResult(moon,
-    moon.sheetsRangeRequestJson(binding ?? original.binding, handle)));
-  return value.requestCid;
+  return sheetsOwnedResult(moon,
+    moon.sheetsRangeRequestCid(binding ?? original.binding, handle));
 }

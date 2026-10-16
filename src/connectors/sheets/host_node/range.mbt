@@ -117,6 +117,16 @@ pub fn sheets_range_request_json(
 }
 
 ///|
+#export_name("sheetsRangeRequestCid")
+pub fn sheets_range_request_cid(
+  binding : @catalog.RangeBinding,
+  request : @catalog.RangeRequest,
+) -> Result[String, @catalog.RangeFailure] {
+  @catalog.admit_range_request(binding, request).map(_ =>
+    @catalog.range_request_identity(request))
+}
+
+///|
 #export_name("sheetsRangeRecoveryEntryJson")
 pub fn sheets_range_recovery_entry_json(
   binding : @catalog.RangeBinding,
