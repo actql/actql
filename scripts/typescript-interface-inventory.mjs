@@ -3,8 +3,9 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync, realpathSync} from 'node:fs';
-import {relative, resolve} from 'node:path';
+import {dirname, relative, resolve} from 'node:path';
 import ts from 'typescript';
+import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
 // Fold only bounded, closed literal syntax. Unknown expressions remain syntax,
 // and no callback, property getter or product function is ever evaluated.
@@ -120,20 +121,55 @@ export function typescriptInterface(source, filename = 'interface.ts') {
 }
 
 export function typescriptInterfaceClosure(root, entrances) {
-  const base = realpathSync(root), pending = [...entrances], modules = new Map();
+  return typescriptInterfaceInputs(root, entrances).modules;
+}
+
+// Keep TypeScript's real config/path resolution and non-code inputs visible.
+// Actual web asset/plugin inputs still come from the configured Vite build.
+export function typescriptInterfaceInputs(root, entrances) {
+  const base = realpathSync(root), pending = [...entrances], modules = new Map(), assets = new Map();
+  const configs = new Map(), external = [];
+  const options = path => {
+    const file = ts.findConfigFile(dirname(path), ts.sys.fileExists);
+    if (!file) return {moduleResolution: ts.ModuleResolutionKind.Bundler, allowJs: true, resolveJsonModule: true};
+    const local = relative(base, realpathSync(file));
+    assert(!local.startsWith('..'), `Escaped TypeScript config: ${local}`);
+    if (!configs.has(file)) {
+      const errors = [];
+      const config = ts.getParsedCommandLineOfConfigFile(file, {}, {...ts.sys,
+        onUnRecoverableConfigFileDiagnostic: error => errors.push(error)});
+      assert(config && !errors.length, `Invalid TypeScript interface config: ${local}`);
+      configs.set(file, config.options);
+    }
+    return configs.get(file);
+  };
   while (pending.length) {
     const path = realpathSync(resolve(base, pending.pop()));
     const module = relative(base, path);
     assert(!module.startsWith('..'), `Escaped TypeScript interface: ${module}`);
-    if (modules.has(module)) continue;
+    assert(!isConnectorTestFixture(module) && !/(?:\.test|_test|_wbtest|_bbtest)\.[^/]+$/u.test(module),
+      `Test authority in TypeScript interface: ${module}`);
+    if (modules.has(module) || assets.has(module)) continue;
+    if (module.endsWith('.json')) {
+      assets.set(module, {module, sha256: createHash('sha256').update(readFileSync(path)).digest('hex')});
+      continue;
+    }
     const bytes = readFileSync(path), syntax = typescriptInterface(bytes.toString('utf8'), path);
     modules.set(module, {module, sha256: createHash('sha256').update(bytes).digest('hex'), ...syntax});
-    for (const specifier of syntax.imports.filter(value => value.startsWith('.'))) {
-      const result = ts.resolveModuleName(specifier, path, {moduleResolution: ts.ModuleResolutionKind.Bundler,
-        allowJs: true, resolveJsonModule: true}, ts.sys).resolvedModule;
-      assert(result, `Unresolved TypeScript interface dependency: ${module}:${specifier}`);
-      if (!result.resolvedFileName.endsWith('.json')) pending.push(result.resolvedFileName);
+    for (const specifier of syntax.imports) {
+      const result = ts.resolveModuleName(specifier, path, options(path), ts.sys).resolvedModule;
+      if (result && !result.isExternalLibraryImport) pending.push(result.resolvedFileName);
+      else if (specifier.startsWith('.')) assert.fail(`Unresolved TypeScript interface dependency: ${module}:${specifier}`);
+      else {
+        assert(!Object.keys(options(path).paths ?? {}).some(pattern => pattern.includes('*')
+          ? specifier.startsWith(pattern.split('*')[0]) && specifier.endsWith(pattern.split('*')[1]) : pattern === specifier),
+        `Unresolved TypeScript configured alias: ${module}:${specifier}`);
+        external.push({module, specifier, qualification: 'external-type-reference; requires-own-package-admission'});
+      }
     }
   }
-  return [...modules.values()].sort((a, b) => a.module.localeCompare(b.module));
+  return {modules: [...modules.values()].sort((a, b) => a.module.localeCompare(b.module)),
+    assets: [...assets.values()].sort((a, b) => a.module.localeCompare(b.module)), external,
+    configs: [...configs.keys()].sort().map(path => ({module: relative(base, path),
+      sha256: createHash('sha256').update(readFileSync(path)).digest('hex')}))};
 }
