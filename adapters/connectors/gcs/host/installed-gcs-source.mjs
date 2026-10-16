@@ -193,7 +193,7 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
           chargePage: options.chargePage, signal: options.signal});
         if (options.resource !== 'contents' || typeof options.capturedResourcePath !== 'function' ||
             typeof options.captureContent !== 'function') fail('InstalledContentCaptureUnavailable');
-        return readGcsKeyedContent({...options, credential: site.credential,
+        return readGcsKeyedContent({...options, moon: providerMoon, credential: site.credential,
           callResource: site.callResource,
           limits: {maxMetadataBytes: limits.maxPageBytes, maxContentBytes: limits.maxContentBytes,
             maxRequestBytes: limits.maxRequestBytes, maxTimeMs: limits.maxDurationMs,

@@ -4414,7 +4414,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "44f17446e5c6c9fe14c4b53bfcb21f576d0bf6b95ac08d5c4944046e79adc86c",
+      "sha256": "9183a781d24c0ac9887e1423097988a2b30e52639fa778f78c8f78841e5cf903",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4682,6 +4682,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Selected Content metadata admission"
               }
             ],
             "inputsOutputs": [
@@ -4792,6 +4796,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "Err(ObjectMismatch)"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Selected Content metadata admission"
               }
             ],
             "cancellation": [
@@ -4844,6 +4852,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Selected Content metadata admission"
               }
             ],
             "extension": [
@@ -5112,7 +5124,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3f3055f18a5297cb9d54fe03dcb583f3a3a7ea40ffb2b6ad6300432e99318c59",
+      "sha256": "74cfe82c8dfee49c70f5f6ec0a80fed2ca273799f77d7598e8f29fb6730eea36",
       "role": "physical-io",
       "owner": "Version-keyed metadata/media sequencing through the original RowRun charge and capture owner",
       "exports": [
@@ -5129,6 +5141,7 @@
         {
           "name": "readGcsKeyedContent",
           "parameters": [
+            "moon",
             "requestWire",
             "resolveResource",
             "beginRequest",
@@ -5200,6 +5213,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
                 "anchor": "has no issuer"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Selected Content metadata admission"
               }
             ],
             "inputsOutputs": [
@@ -5230,6 +5247,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
                 "anchor": "GcsKeyedResourceUnavailable"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Selected Content metadata admission"
               }
             ],
             "cancellation": [
@@ -5242,6 +5263,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
                 "anchor": "ownInvocationLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Selected Content metadata admission"
               }
             ],
             "extension": [
@@ -5258,12 +5283,18 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "./gcs-versioned-content.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "11484d7d399fc6e7f7d1cfed1800c5c013b9129d93379ea932d9a84301f91290",
+      "sha256": "0d13911b3c118fd1be9fcba1de3210a3e17bb5102703aabb51bbc570c3f487e5",
       "role": "physical-io",
       "owner": "Exact GCS generation/metageneration bytes and checksums; original capture owns ContentRef issuance",
       "exports": [
@@ -5312,14 +5343,6 @@
           "async": false
         },
         {
-          "name": "digestText",
-          "parameters": [
-            "value",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "encode/encode",
           "parameters": [
             "value"
@@ -5357,8 +5380,26 @@
           "async": false
         },
         {
+          "name": "legacyDigest",
+          "parameters": [
+            "value",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "legacyMetadata",
+          "parameters": [
+            "body",
+            "target",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "metadata",
           "parameters": [
+            "moon",
             "body",
             "target",
             "limits"
@@ -5370,7 +5411,9 @@
           "parameters": [
             "target",
             "phase",
-            "metageneration"
+            "metageneration",
+            "contentEncoding",
+            "sizeBytes"
           ],
           "async": false
         },
@@ -5386,14 +5429,18 @@
           "parameters": [
             "phase",
             "maxBytes",
-            "metageneration"
+            "metageneration",
+            "contentEncoding",
+            "sizeBytes"
           ],
           "async": true
         },
         {
           "name": "responseHeaders",
           "parameters": [
-            "response"
+            "response",
+            "expectedEncoding",
+            "rangeSize"
           ],
           "async": false
         },
@@ -5435,12 +5482,13 @@
             "checkedTarget",
             "count/count",
             "crcTable/crcTable",
-            "digestText",
             "encode/encode",
             "encode/encode/encode",
             "exactText",
             "fail/fail",
             "gcsMetadataRequestWire",
+            "legacyDigest",
+            "legacyMetadata",
             "metadata",
             "physicalRequest",
             "readGcsVersionedContent",
@@ -5460,6 +5508,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
                 "anchor": "issues a ContentRef"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Exact stored gzip Content"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Selected Content metadata admission"
               }
             ],
             "inputsOutputs": [
@@ -5490,6 +5546,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
                 "anchor": "GcsContentRepresentationUnsupported"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Selected Content metadata admission"
               }
             ],
             "cancellation": [
@@ -5502,6 +5562,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
                 "anchor": "chargeVerification(chunk.length"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "existing envelope"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Selected Content metadata admission"
               }
             ],
             "extension": [
@@ -5518,11 +5586,25 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-versioned-content.test.mjs",
                 "anchor": "handoff failure preserves both existing-owner charge tickets"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-gzip-content.test.mjs",
+                "anchor": "stored gzip bytes retain exact version CRC byte CID"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "node:crypto",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",

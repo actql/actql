@@ -7,7 +7,7 @@ import {readGcsVersionedContent, gcsMetadataRequestWire} from './gcs-versioned-c
 import {ownInvocationLimits} from '../../../host-common/owned-invocation-context.mjs';
 
 const fail = code => { throw Object.assign(new Error(code), {code}); };
-export async function readGcsKeyedContent({requestWire, resolveResource,
+export async function readGcsKeyedContent({moon, requestWire, resolveResource,
   beginRequest, chargePage, consumePage, captureContent, chargeVerification, verifyRead,
   credential, limits, signal, callResource}) {
   if (typeof requestWire !== 'string' ||
@@ -43,7 +43,7 @@ export async function readGcsKeyedContent({requestWire, resolveResource,
   const initialAuthorization = await beginRequest(gcsMetadataRequestWire(target));
   signal?.throwIfAborted();
   let mediaCharge;
-  const captured = await readGcsVersionedContent({target, limits, signal,
+  const captured = await readGcsVersionedContent({moon, target, limits, signal,
     credential, callResource, initialAuthorization,
     authorizationForRequest: ({requestWire: wire}) => beginRequest(wire),
     recheckAuthorization: async () => {
