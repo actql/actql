@@ -2,7 +2,7 @@
 
 ///|
 fn catalog_body_grammar_cid() -> String {
-  "sha256:b72f0e9566ffcb5495e801b342c9c578c90206a63e84761d367e5bd04bc0a13f"
+  "sha256:f2548edea56aa6c71d18bf1213cdef0e63b79569409544aea3e744758bfc0922"
 }
 
 ///|

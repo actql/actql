@@ -1,0 +1,42 @@
+{
+  "description": "Independent canonical preimages for the adopted Command-only presence extension; hashes fixed with Node crypto, not product output.",
+  "output_role_body": {"nullable": false, "type": "number"},
+  "fields": {
+    "name": { "nullable": false, "type": "string" },
+    "overwrite": { "nullable": false, "type": "boolean" }
+  },
+  "cases": [
+    {
+      "id": "empty required subset",
+      "required_fields": [],
+      "body_cid": "sha256:e1324a07b4f9a60e5b17979dc645ba3c28a65fcd10ac9eef17bd4376ffcfcac5",
+      "envelope_cid": "sha256:b60dac531f149b90a42b0a864d18bd053778e03813deccfd79ff20e5416c6339",
+      "command_cid": "sha256:c4835b8732c3a1a5ce0322a2a949bfa561b60952b0c393f4ea471d14f2039035",
+      "catalog_cid": "sha256:7d8b9cd35c31ca8aa827e63f7814f814fc3fee5e90119ef1496b6cd334af39ff"
+    },
+    {
+      "id": "one required field",
+      "required_fields": ["name"],
+      "body_cid": "sha256:928a6ac85bc009350685c2153bf764204b180eb562d260ea94503e80ddc30640",
+      "envelope_cid": "sha256:7e88d735c0375a321f9fa796997ec7ea5f0c10ab14b4ee15d0b229b2751d1947",
+      "command_cid": "sha256:c9bfbc2c2805dcb14fe6ec6673aca07b4c8a3477ff14c7b1345f224534bbf646",
+      "catalog_cid": "sha256:fd787d6ba69a77315e5b5522ac39b92a9fe18b2b0ccd762137141552d3484a1c"
+    },
+    {
+      "id": "all required forward",
+      "required_fields": ["name", "overwrite"],
+      "body_cid": "sha256:bc55f55407e2bf8c034b43e1113220f361efc6a5b8a5ecc70bd0fdd4a56f6559",
+      "envelope_cid": "sha256:7a7ed561422ec9a825475b462265e7cd6697dc884a4ca073245f2e16db84fabf",
+      "command_cid": "sha256:b1157b58fb492d577eb715033b3598674f5fc23bff5564e76cec94e4a64e70d0",
+      "catalog_cid": "sha256:3826fdf61ae3c0910ebba8f555d0c676f01e72f514d4977d14cbe38ceee824bf"
+    },
+    {
+      "id": "all required reversed remains distinct",
+      "required_fields": ["overwrite", "name"],
+      "body_cid": "sha256:110bbc1a9ccb3ebc56306f72c17aa5eb0276f54223351ca5676e4ffca8a9fca8",
+      "envelope_cid": "sha256:7df8ad229711bbd63ca94f58983cb28b589290cab4b871c5f19eca6603f4cd08",
+      "command_cid": "sha256:a9a62b27656489ffbcae4d9fc4b167e42dd2db32f30318d0261c0d148960233d",
+      "catalog_cid": "sha256:8649a8dcebf0d0fd12ba79efb6e0f76ba4e4eddcf8f14565c65566f7ebf99187"
+    }
+  ]
+}
