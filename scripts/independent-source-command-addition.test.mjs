@@ -38,7 +38,7 @@ test('independent Source and Command are absent from the product table and admit
 
 test('independent Source uses the original acquisition owner and exact bounded capture rather than a connector evaluator', async () => {
   const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
-    'independent-data', 'reference-source', 'reference-source/0.1', JSON.stringify({views: [{
+    'independent-data', 'reference_source', 'reference_source/0.1', JSON.stringify({views: [{
       resource: 'records', resource_kind: 'reference_record',
       fields: [{name: 'name', type: 'string', nullable: false}]}]}), undefined));
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
