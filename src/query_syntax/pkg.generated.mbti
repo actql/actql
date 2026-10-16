@@ -126,6 +126,8 @@ pub fn terminal_command_effect_count(Query) -> Int
 
 pub fn terminal_effect(Query) -> UpdateEffectClause?
 
+pub fn terminal_insert_effect(Query) -> InsertEffectClause?
+
 pub fn terminal_short_command_effect(Query) -> ShortCommandEffectClause?
 
 pub fn terminal_store_effect(Query) -> StoreEffectClause?
@@ -357,6 +359,14 @@ pub(all) struct InferClause {
   origin : @frontend_source_map.Origin?
 }
 
+pub(all) struct InsertEffectClause {
+  name : NamePart?
+  target : UpdateEffectTarget
+  mapping : NamePart?
+  fields : Array[NamePart]
+  values : Array[Expression]?
+}
+
 pub(all) enum Issue {
   InvalidLimits
   Syntax(String)
@@ -381,6 +391,12 @@ pub(all) struct KeepItem {
   wildcard : Bool
   name : NamePart?
 }
+
+pub(all) enum KeyedEffectKind {
+  Update
+  Upsert
+  Delete
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Lexeme {
   Word(String)
@@ -576,6 +592,7 @@ pub(all) struct ShortCommandEffectClause {
   operation : Array[NamePart]
   target : Expression?
   id : Array[NamePart]
+  id_expression : Expression
   input : Array[(NamePart, Expression)]
   start : Int
   end : Int
@@ -636,11 +653,13 @@ pub(all) enum UnpivotRowLabel {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct UpdateEffectClause {
+  kind : KeyedEffectKind
   name : NamePart?
   target : UpdateEffectTarget
   mapping : NamePart?
   result : NamePart?
   id : NamePart
+  id_expression : Expression?
   set : Array[(NamePart, Expression)]
 }
 

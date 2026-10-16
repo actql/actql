@@ -111,6 +111,50 @@ from strings. `with: target` refers to a producer; `start: "A"` is an ID value;
 are explicit; none is synthesized merely by adding a WITH binding. Frontend placement
 independence remains separate from actual provider pushdown support.
 
+## Keyed record Effect normalization
+
+The terminal UPDATE, UPSERT and DELETE forms share the original Relation
+expression and private Result capture path. The parsed Effect kind stays
+explicit: UPSERT emits the existing canonical `upsert.key` selector, while
+UPDATE and DELETE emit `id`. DELETE has no SET object. Qualified ID references
+retain their original expression rather than being reparsed from a shortened
+field name; SET computation remains in the ordinary Relation pipeline before
+the sealed capture. Only authored public Results are exported.
+
+Static logical target selection uses the complete admitted Mapping inventory
+and the existing Common operation/selector classifier. The historical UPDATE
+path retains its candidate and work rules. UPSERT and DELETE use their own
+declared rules, without filtering candidates by current permission or payload
+compatibility to resolve ambiguity. The original installation publication is
+not a write grant, an issued ResourceRef or a proof that captured keys are valid.
+
+The Source preparation boundary must retain an original selection for the
+actual operation before it can be accepted for a Run. An UPDATE-only original
+selection cannot stand in for UPSERT or DELETE. Until the existing capture,
+current-installation and Run owners admit the new purpose, Source preparation
+reports that missing connection explicitly rather than dropping the Effect
+or treating its rows as a pure query.
+
+## Original Mapping route for INSERT
+
+INSERT first selects the original Mapping using the existing create/none
+operation contract, independently of VALUES and current write permissions.
+The Relation lowerer evaluates each authored expression once, retains its
+multiplicity and captures only the actual values needed by that selection.
+The existing canonical `create.from` consumes the original Mapping's complete
+row correspondence. For that route, the capture projects target values into
+the Mapping's original source column names; it does not create a new Mapping,
+infer a grant or reinterpret the legacy raw single-item `create.payload`.
+
+That canonical route cannot represent every authored field subset or different
+values for targets sharing one original source column. The missing projection
+is reported as an implementation boundary, not a permanent language restriction.
+It must not be rescued by dropping original Mapping entries, supplying missing
+values, or combining the mutually exclusive legacy `from` and `payload` forms.
+Source preparation also requires the original create-purpose selection at the
+existing capture/current/Run boundary; an UPDATE original is not a substitute.
+Only explicitly authored public Results are exported.
+
 ## Evidence classification
 
 Historical `.aql` parsing/formatting is internal fixture evidence. Independent

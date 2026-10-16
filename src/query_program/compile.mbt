@@ -99,6 +99,7 @@ pub(all) enum Issue {
   TableWriteBinding(TableWriteBindingIssue)
   UpdateTargetBinding(UpdateTargetIssue)
   StoreTargetBinding(StoreTargetIssue)
+  CommandTargetBinding(CommandTargetPublicationIssue)
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   // Retain the common checker's cause and authored cursor from scope probes.
@@ -196,9 +197,12 @@ priv struct RetainedResult {
   fields : Array[String]
   terminal : Bool
   carrier_complete : Bool
-  // Frontend construction metadata for a closed, unexported UPDATE input.
+  // Frontend construction metadata for closed private Effect inputs, not
+  // captured-value receipts, key proofs or execution authority.
   update : (String, Array[(String, @builder.Node)])?
   store : Bool
+  insert : Bool
+  command : (String, String?, Array[(String, @builder.Node)])?
 }
 
 ///|
@@ -217,7 +221,12 @@ fn retained_result_exports(
   keep_default? : Bool = false,
   implicit_primary? : Bool = true,
 ) -> Array[(String, String)]? raise Abort {
-  let public = retained.filter(result => result.update is None && !result.store)
+  let public = retained.filter(result => {
+    result.update is None &&
+    !result.store &&
+    !result.insert &&
+    result.command is None
+  })
   if public.is_empty() {
     return if retained.is_empty() {
       None
@@ -261,13 +270,27 @@ fn retained_stage_results(
   let definitions = if (
       !implicit_primary &&
       !retained.any(result => {
-        result.update is None && !result.store && result.terminal
+        result.update is None &&
+        !result.store &&
+        !result.insert &&
+        result.command is None &&
+        result.terminal
       })
     ) ||
     (
       !keep_default &&
-      retained.any(result => result.update is Some(_) || result.store) &&
-      retained.all(result => result.update is Some(_) || result.store)
+      retained.any(result => {
+        result.update is Some(_) ||
+        result.store ||
+        result.insert ||
+        result.command is Some(_)
+      }) &&
+      retained.all(result => {
+        result.update is Some(_) ||
+        result.store ||
+        result.insert ||
+        result.command is Some(_)
+      })
     ) {
     []
   } else {
@@ -2221,6 +2244,7 @@ fn compile_steps(
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
   checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
+  insert_target? : ResolvedInsertTarget? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   // Internal parenthesized bindings retain their positional export role.
   // This parser fact never grants anonymous exports to authored CTEs.
@@ -3096,6 +3120,8 @@ fn compile_steps(
           carrier_complete: !needs_view,
           update: None,
           store: false,
+          insert: false,
+          command: None,
         })
         if terminal_result {
           output = pipe_visible.map(pair => pair.0)
@@ -7037,6 +7063,98 @@ fn compile_steps(
     retained.push(capture)
     effect_capture_steps.append(body)
   }
+  if @query.terminal_insert_effect(query) is Some(clause) &&
+    @query.set_part_count(query) == 0 &&
+    retained is Some(retained) {
+    let names = reserved_bindings +
+      nearest_inputs.map(input => input.name) +
+      [input.name, final_alias] +
+      retained.map(result => result.from)
+    let producer = pipe_physical_name(names, "aql_insert_input_")
+    reserved_bindings.push(producer)
+    let checkpoint : Array[(String, @builder.Node)] = []
+    if first || terminal_result {
+      checkpoint.push(("from", construction.text(input_from)))
+    }
+    checkpoint.push(
+      (
+        "select",
+        construction.array(active_fields.map(field => construction.text(field))),
+      ),
+    )
+    checkpoint.push(("as", construction.text(producer)))
+    step_entries.push(checkpoint)
+    input_from = producer
+    first = true
+    let (capture, body) = lower_insert_capture(
+      construction,
+      clause,
+      match insert_target {
+        Some(value) => value
+        None => raise Abort(UnsupportedEffect)
+      },
+      producer,
+      pipe_visible,
+      pipe_ranges,
+      active_fields,
+      max_work,
+      reserved_bindings~,
+      expression_columns=Some(
+        unnest_expression_columns(
+          pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+        ),
+      ),
+      value_ranges=value_range_names(
+        value_table_receivers, scalar_value_table_ranges,
+      ),
+    )
+    retained.push(capture)
+    effect_capture_steps.append(body)
+  }
+  if @query.terminal_short_command_effect(query) is Some(clause) &&
+    @query.set_part_count(query) == 0 &&
+    retained is Some(retained) {
+    let names = reserved_bindings +
+      nearest_inputs.map(input => input.name) +
+      [input.name, final_alias] +
+      retained.map(result => result.from)
+    let producer = pipe_physical_name(names, "aql_command_input_")
+    reserved_bindings.push(producer)
+    let checkpoint : Array[(String, @builder.Node)] = []
+    if first || terminal_result {
+      checkpoint.push(("from", construction.text(input_from)))
+    }
+    checkpoint.push(
+      (
+        "select",
+        construction.array(active_fields.map(field => construction.text(field))),
+      ),
+    )
+    checkpoint.push(("as", construction.text(producer)))
+    step_entries.push(checkpoint)
+    input_from = producer
+    first = true
+    let (capture, body) = lower_short_command_capture(
+      construction,
+      clause,
+      producer,
+      pipe_visible,
+      pipe_ranges,
+      active_fields,
+      max_work,
+      reserved_bindings~,
+      expression_columns=Some(
+        unnest_expression_columns(
+          pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+        ),
+      ),
+      value_ranges=value_range_names(
+        value_table_receivers, scalar_value_table_ranges,
+      ),
+    )
+    retained.push(capture)
+    effect_capture_steps.append(body)
+  }
   let retained_scope = match preserved_scope {
     Some(scopes) => Some(scopes)
     None => if pipe_value_table { value_table_scope } else { None }
@@ -7191,16 +7309,16 @@ pub fn compile_with_source(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
-  // A parsed operation must never disappear into a pure Relation. The
-  // published Command target/key owner is required before this can lower.
-  if @query.terminal_short_command_effect(query) is Some(_) {
-    return Err(UnsupportedEffect)
-  }
+  // Terminal operations use the ordinary script compiler's original target
+  // selection and private Result capture; none may disappear into a pure query.
   // Binding and primary scopes must be installed before inspecting a JOIN
   // input. The standalone probe sees only Context inputs, not authored WITH
   // producers or transformed range inputs.
-  if @query.terminal_store_effect(query) is Some(_) ||
+  if @query.terminal_short_command_effect(query) is Some(_) ||
+    @query.terminal_store_effect(query) is Some(_) ||
+    @query.terminal_insert_effect(query) is Some(_) ||
     @query.terminal_command_effect_count(query) > 0 ||
     @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
@@ -7217,6 +7335,7 @@ pub fn compile_with_source(
       table_writes~,
       update_targets~,
       store_targets~,
+      command_targets~,
     )
   }
   let needs_input_binding = join_requires_input_binding(query, context) catch {
@@ -7230,6 +7349,7 @@ pub fn compile_with_source(
       table_writes~,
       update_targets~,
       store_targets~,
+      command_targets~,
     )
   }
   let mut has_nearest = false
@@ -7262,6 +7382,7 @@ pub fn compile_with_source(
       table_writes~,
       update_targets~,
       store_targets~,
+      command_targets~,
     )
   }
   if @query.join_part_count(query) > 0 && context.captured_stage is Some(_) {
@@ -7567,6 +7688,7 @@ fn compile_join_steps(
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
   checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
+  insert_target? : ResolvedInsertTarget? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     limits.max_join_output_rows < 1L ||
@@ -7772,6 +7894,7 @@ fn compile_join_steps(
       },
       next,
       result_tail=join_continuation_context(query, limits, retained),
+      insert_target~,
       step_bindings~,
       prefix_steps~,
       reserved_bindings~,
@@ -7987,6 +8110,7 @@ fn compile_join_steps(
     },
     select_index + 1,
     result_tail=join_continuation_context(query, limits, retained),
+    insert_target~,
     step_bindings~,
     prefix_steps~,
     reserved_bindings~,
@@ -9502,6 +9626,7 @@ fn append_join_order_steps(
   initial_from : String,
   next_operation : Int,
   result_tail? : (Limits, Array[RetainedResult])? = None,
+  insert_target? : ResolvedInsertTarget? = None,
   step_bindings? : Map[String, String] = Map([]),
   prefix_steps? : Array[@builder.Node] = [],
   reserved_bindings? : Array[String] = [],
@@ -9608,6 +9733,7 @@ fn append_join_order_steps(
       false,
       join_step_binding(step_bindings, "aql_join_result"),
       retained=Some(retained),
+      insert_target~,
       projected_input=true,
       prefix_steps=prefix_steps + steps,
       reserved_bindings~,
@@ -9983,6 +10109,7 @@ pub fn compile(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
 ) -> Result[@program.Program, Issue] {
   compile_with_source(
     query,
@@ -9991,6 +10118,7 @@ pub fn compile(
     table_writes~,
     update_targets~,
     store_targets~,
+    command_targets~,
   )
   .map(pair => pair.0)
   .map_err(issue_without_source)

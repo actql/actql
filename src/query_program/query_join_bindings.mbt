@@ -55,6 +55,7 @@ fn lower_script_join_relation(
   retained : Array[RetainedResult]?,
   preserved_scope? : Array[JoinChainScope]? = None,
   positional_set_output? : Bool = false,
+  insert_target? : ResolvedInsertTarget? = None,
 ) -> Input raise Abort {
   // Bind independent right inputs through their original Source owner and
   // requested capture boundary. Correlated UNNEST stays in the JOIN-chain
@@ -132,6 +133,7 @@ fn lower_script_join_relation(
       limits,
       reserved,
       retained,
+      insert_target~,
       initial_scope~,
       right_scopes~,
       preserved_scope~,
@@ -220,6 +222,7 @@ fn lower_script_join_relation(
     right_fields,
     limits,
     retained~,
+    insert_target~,
     left_from=bound_left.name,
     right_from=bound_right.name,
     step_bindings=bindings,

@@ -48,6 +48,7 @@ fn lower_script_relation(
   positional_set_output? : Bool = false,
   allow_nonrelation? : Bool = false,
   set_head? : Bool = false,
+  insert_target? : ResolvedInsertTarget? = None,
 ) -> Input raise Abort {
   let (known, graphs) = lower_script_bindings(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
@@ -85,6 +86,7 @@ fn lower_script_relation(
         reserved,
         output,
         retained.unwrap_or([]),
+        insert_target~,
         known~,
         current=Some(graph),
         continuation=Some((context, sources)),
@@ -102,6 +104,7 @@ fn lower_script_relation(
         known~,
         graphs~,
         retained~,
+        insert_target~,
         positional_set_output~,
         set_head~,
         continuation=Some((context, sources)),
@@ -122,6 +125,7 @@ fn lower_script_relation(
       reserved,
       output,
       retained~,
+      insert_target~,
       allow_nonrelation~,
       set_head~,
     )
@@ -138,6 +142,7 @@ fn lower_script_relation(
       reserved,
       output,
       retained,
+      insert_target~,
       set_head~,
       graphs~,
     )
@@ -194,6 +199,7 @@ fn lower_script_relation(
     reserved,
     output,
     retained~,
+    insert_target~,
     carry_ranges~,
     retain_value_table~,
     graphs~,
@@ -219,6 +225,7 @@ fn lower_script_relation_term(
   graphs? : Array[ScriptGraph] = [],
   positional_set_output? : Bool = false,
   set_head? : Bool = false,
+  insert_target? : ResolvedInsertTarget? = None,
 ) -> Input raise Abort {
   if script_has_graph_rows(query) {
     let graph = require_script_graph_input(
@@ -237,6 +244,7 @@ fn lower_script_relation_term(
       known~,
       graphs~,
       retained~,
+      insert_target~,
       positional_set_output~,
       set_head~,
       continuation=Some((context, sources)),
@@ -262,6 +270,7 @@ fn lower_script_relation_term(
       steps,
       reserved,
       retained,
+      insert_target~,
       preserved_scope=preserved,
       positional_set_output~,
     )
@@ -325,6 +334,7 @@ fn lower_script_relation_term(
     nearest_inputs~,
     nearest_vectors~,
     retained~,
+    insert_target~,
     parameter_declarations=context.parameter_declarations,
     initial_scope=script_input_scope(
       construction,
@@ -395,6 +405,8 @@ fn compile_query_script_with_source(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
+  command_occurrences? : Array[ShortCommandSelection]? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
   if context.program_id.is_empty() ||
     context.stage_id.is_empty() ||
@@ -412,10 +424,6 @@ fn compile_query_script_with_source(
         return Err(InvalidContext)
       }
     }
-  }
-  if @query.terminal_short_command_effect(@query.script_query(script))
-    is Some(_) {
-    return Err(UnsupportedEffect)
   }
   let document = @query.script_document(script)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
@@ -467,6 +475,17 @@ fn compile_query_script_with_source(
         )
       None => None
     }
+    let insert_target = match @query.terminal_insert_effect(root) {
+      Some(clause) =>
+        Some(
+          resolve_insert_effect_target(
+            clause,
+            update_targets,
+            limits.max_expression_work,
+          ),
+        )
+      None => None
+    }
     // Complete authoritative target selection before the existing Relation
     // lowerer resolves ID/SET or builds a private UPDATE capture.
     let update_target = match @query.terminal_effect(root) {
@@ -475,6 +494,17 @@ fn compile_query_script_with_source(
           resolve_update_effect_target(
             effect,
             update_targets,
+            limits.max_expression_work,
+          ),
+        )
+      None => None
+    }
+    let command_target = match @query.terminal_short_command_effect(root) {
+      Some(clause) =>
+        Some(
+          resolve_short_command_effect_target(
+            clause,
+            command_targets,
             limits.max_expression_work,
           ),
         )
@@ -554,6 +584,7 @@ fn compile_query_script_with_source(
           known=stage_known,
           graphs~,
           retained=Some(retained),
+          insert_target~,
           continuation=Some((stage_context, stage_sources)),
         )
       } else if @query.graph_query(current) is Some(_) && !graph_row_set {
@@ -566,6 +597,7 @@ fn compile_query_script_with_source(
           reserved,
           "aql_script_result",
           retained,
+          insert_target~,
           known=stage_known,
           current=resolved_graph,
           continuation=Some((stage_context, stage_sources)),
@@ -582,6 +614,7 @@ fn compile_query_script_with_source(
           reserved,
           "aql_script_result",
           retained=Some(retained),
+          insert_target~,
           graphs~,
         )
       }
@@ -615,6 +648,7 @@ fn compile_query_script_with_source(
         // Leave the original direct-field/literal explicit Result spelling
         // unchanged. New computed and cross-Stage forms use a private branch.
         if clause.result is None ||
+          clause.id_expression is Some(_) ||
           !clause.set.all(pair => update_direct_value(pair.1)) ||
           !earlier.is_empty() {
           let (producer, fields) = if selected.get(0) is Some(selected) {
@@ -681,6 +715,37 @@ fn compile_query_script_with_source(
         retained.push(capture)
         stage_steps.append(body.map(entries => construction.object(entries)))
       }
+      if @query.terminal_insert_effect(current) is Some(clause) &&
+        !retained.any(result => result.insert) {
+        let (capture, body) = lower_insert_capture(
+          construction,
+          clause,
+          insert_target.unwrap(),
+          result.name,
+          result.visible_fields.map(field => (field, field)),
+          [],
+          result.visible_fields,
+          limits.max_expression_work,
+          reserved_bindings=reserved,
+        )
+        retained.push(capture)
+        stage_steps.append(body.map(entries => construction.object(entries)))
+      }
+      if @query.terminal_short_command_effect(current) is Some(clause) &&
+        !retained.any(result => result.command is Some(_)) {
+        let (capture, body) = lower_short_command_capture(
+          construction,
+          clause,
+          result.name,
+          result.visible_fields.map(field => (field, field)),
+          [],
+          result.visible_fields,
+          limits.max_expression_work,
+          reserved_bindings=reserved,
+        )
+        retained.push(capture)
+        stage_steps.append(body.map(entries => construction.object(entries)))
+      }
       let table_effect = @query.terminal_table_effect(current)
       let stage_entries = [
         ("id", construction.text(stage_context.stage_id)),
@@ -704,8 +769,14 @@ fn compile_query_script_with_source(
                 ),
               ]),
               retained,
-              keep_default=!prior_results.is_empty() && store_target is None,
-              implicit_primary=table_effect is None && store_target is None,
+              keep_default=!prior_results.is_empty() &&
+                store_target is None &&
+                insert_target is None &&
+                command_target is None,
+              implicit_primary=table_effect is None &&
+                store_target is None &&
+                insert_target is None &&
+                command_target is None,
             )
           },
         ),
@@ -779,18 +850,57 @@ fn compile_query_script_with_source(
           ),
         )
       }
-      if split is None && @query.terminal_command_effect_count(current) > 0 {
-        let commands : Array[(String, @builder.Node)] = []
-        for index in 0..<@query.terminal_command_effect_count(current) {
-          commands.push(
-            lower_command_effect(
+      if @query.terminal_insert_effect(current) is Some(clause) {
+        stage_entries.push(
+          (
+            "effects",
+            lower_insert_effect(
               construction,
-              @query.terminal_command_effect_at(current, index).unwrap(),
+              clause,
+              insert_target.unwrap(),
               stage_context.stage_result,
               retained,
-              limits.max_expression_work,
             ),
+          ),
+        )
+      }
+      if split is None &&
+        (
+          @query.terminal_command_effect_count(current) > 0 ||
+          @query.terminal_short_command_effect(current) is Some(_)
+        ) {
+        let commands : Array[(String, @builder.Node)] = []
+        if @query.terminal_short_command_effect(current) is Some(clause) {
+          let command = lower_short_command_effect(
+            construction,
+            clause,
+            command_target.unwrap(),
+            stage_context.stage_result,
+            retained,
           )
+          commands.push(command)
+          if command_occurrences is Some(occurrences) {
+            occurrences.push({
+              target: command_target.unwrap(),
+              stage_index: stages.length(),
+              effect_id: command.0,
+            })
+          }
+        }
+        for index in 0..<@query.terminal_command_effect_count(current) {
+          let command = lower_command_effect(
+            construction,
+            @query.terminal_command_effect_at(current, index).unwrap(),
+            stage_context.stage_result,
+            retained,
+            limits.max_expression_work,
+          )
+          if commands.any(entry => {
+              ascii_upper(entry.0) == ascii_upper(command.0)
+            }) {
+            raise Abort(DuplicateOutput)
+          }
+          commands.push(command)
         }
         stage_entries.push(("effects", construction.object(commands)))
       }
@@ -800,8 +910,12 @@ fn compile_query_script_with_source(
         (name, port) in retained_result_exports(
           stage_context,
           retained,
-          keep_default=!prior_results.is_empty() && store_target is None,
-          implicit_primary=table_effect is None && store_target is None,
+          keep_default=!prior_results.is_empty() &&
+            store_target is None &&
+            command_target is None,
+          implicit_primary=table_effect is None &&
+            store_target is None &&
+            command_target is None,
         ).unwrap_or([(stage_context.result_name, stage_context.stage_result)]) {
         if table_effect is Some(_) && retained.is_empty() {
           continue
@@ -812,7 +926,7 @@ fn compile_query_script_with_source(
         exports.push((name, (stage_context.stage_id, port)))
       }
       for result in retained {
-        if result.update is None && !result.store {
+        if result.update is None && !result.store && result.command is None {
           prior_results.push(
             (
               stage_context.stage_id,
@@ -952,6 +1066,7 @@ pub fn compile_query_script(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
 ) -> Result[@program.Program, Issue] {
   compile_query_script_with_source(
     script,
@@ -960,6 +1075,7 @@ pub fn compile_query_script(
     table_writes~,
     update_targets~,
     store_targets~,
+    command_targets~,
   )
   .map(pair => pair.0)
   .map_err(issue_without_source)

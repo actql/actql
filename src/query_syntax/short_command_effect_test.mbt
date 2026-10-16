@@ -152,3 +152,24 @@ test "short COMMAND preserves a completed set and the existing syntax work limit
     parse_query(text, { ..query_limits(), max_syntax_nodes: 0, }) is Err(_),
   )
 }
+
+///|
+test "short COMMAND input ID retains its original field-path expression without accepting computed IDs" {
+  let text = "FROM requests |> EFFECT COMMAND mail.send ID operation.id INPUT (body = body)"
+  let query = parse_query(text, query_limits()).unwrap()
+  let clause = terminal_short_command_effect(query).unwrap()
+  assert_eq(clause.id.map(part => part.value), ["operation", "id"])
+  assert_true(
+    expression_node(clause.id_expression, expression_root(clause.id_expression)).unwrap().kind
+    is Reference(_),
+  )
+  for id in ["id + 1", "(id)", "@id", "CONCAT(id, 'x')"] {
+    assert_true(
+      parse_query(
+        "FROM requests |> EFFECT COMMAND mail.send ID " + id + " INPUT ()",
+        query_limits(),
+      )
+      is Err(_),
+    )
+  }
+}

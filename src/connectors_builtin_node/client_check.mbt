@@ -318,6 +318,13 @@ fn check_source_findings(
     Ok(value) => value
     Err(_) => return Failed("check_context_invalid")
   }
+  let command_targets = match
+    @source_publication.published_command_targets(
+      environment, visible_publication,
+    ) {
+    Ok(value) => value
+    Err(_) => return Failed("check_context_invalid")
+  }
   let (lowered, diagnostic_source) = match
     @source_frontend.lower_with_source(
       document,
@@ -325,6 +332,7 @@ fn check_source_findings(
       Some(context),
       table_writes~,
       store_targets~,
+      command_targets~,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -341,6 +349,10 @@ fn check_source_findings(
         QueryLowering(UnresolvedRelation(_) as reference) =>
           findings.push(check_source_alias_absence(source_namespace, reference))
         QueryLowering(UnknownRelation) =>
+          findings.push(Unresolved("source_resolution"))
+        QueryLowering(CommandTargetBinding(WorkLimit)) =>
+          findings.push(Limit("analysis_budget_exhausted"))
+        QueryLowering(CommandTargetBinding(_)) =>
           findings.push(Unresolved("source_resolution"))
         QueryLowering(StoreTargetBinding(WorkLimit)) =>
           findings.push(Limit("analysis_budget_exhausted"))
@@ -641,6 +653,12 @@ fn check_source_findings(
       if scope == BoundInput &&
         @program_check.diagnostic_cause(diagnostic)
         is Source(UnsupportedEffects(_)) {
+        if lowered.command_selection is Some(_) ||
+          lowered.keyed_effect_kind is Some(Upsert | Delete) ||
+          lowered.insert_effect {
+          findings.push(Limit("implementation_limit"))
+          return Report
+        }
         match
           @publication_host.prepare_parsed_client_effect_computation(
             program,

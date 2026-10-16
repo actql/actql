@@ -9,6 +9,9 @@ fn lower_command_effect(
   max_work : Int,
 ) -> (String, @builder.Node) raise Abort {
   let results = retained.filter(result => {
+    result.update is None &&
+    !result.store &&
+    result.command is None &&
     same_name({ value: result.name, quoted: false, }, clause.result)
   })
   guard results.length() == 1 else { raise Abort(UnsupportedEffect) }

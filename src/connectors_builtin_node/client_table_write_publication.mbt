@@ -12,6 +12,7 @@ fn client_table_write_publication(
   }
   let object = @decode.closed_object(root, [
     "environmentCid", "aliases", "tableWrites", "updateTargets", "storeTargets",
+    "commandTargets",
   ]).unwrap_or_else(() => raise ClientSourceStop(Publication))
   guard @decode.lookup(object, "tableWrites") is Some(section) else {
     return []

@@ -241,6 +241,7 @@ fn lower_script_carrier_calls(
   reserved : Array[String],
   output : String,
   retained? : Array[RetainedResult]? = None,
+  insert_target? : ResolvedInsertTarget? = None,
   allow_nonrelation? : Bool = false,
   set_head? : Bool = false,
 ) -> Input raise Abort {
@@ -507,6 +508,7 @@ fn lower_script_carrier_calls(
       reserved,
       output,
       retained,
+      insert_target~,
       set_head~,
     )
   }
@@ -543,6 +545,7 @@ fn lower_script_carrier_calls(
     reserved,
     output,
     retained~,
+    insert_target~,
     set_head~,
   )
 }
