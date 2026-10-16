@@ -31314,23 +31314,137 @@
     {
       "module": "adapters/host-node/installed-row-capture-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7c5c25655f875f4bc6173cb95a423e27ba6d5c5b0192adca9865d2e85a3f1fbd",
+      "sha256": "02893d1aa2a10d7162448da54f567e20386ebda53dc7990aa2ebbb670bc5f1eb",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
+        "prepareInstalledRowCaptureChild",
         "releaseInstalledRowCapture"
       ],
       "operations": [
         {
+          "name": "prepareInstalledRowCaptureChild",
+          "parameters": [
+            "children",
+            "create",
+            "assertCurrent",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/drain/drain",
+          "parameters": [
+            "retry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/drain/drain/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/drain/drain/drain#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#4",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
           "name": "releaseInstalledRowCapture",
           "parameters": [
             "payloads",
+            "children",
             "releaseResults",
             "releaseInputs",
             "control",
             "primary"
           ],
           "async": true
+        },
+        {
+          "name": "releaseInstalledRowCapture/childPending/childPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/childPending/childPending/childPending",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/dependent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/dependent#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/dependent#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/drain/drain",
+          "parameters": [
+            "retry"
+          ],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/drain/drain/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/drain/drain/drain#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/releaseInstalledRowCapture",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         },
         {
           "name": "releaseInstalledRowCapture/retain/retain",
@@ -31369,146 +31483,102 @@
             "releaseInstalledRowCapture/retain/retain/drain/drain",
             "releaseInstalledRowCapture/retain/retain/drain/drain/drain",
             "releaseInstalledRowCapture/retain/retain/drain/drain/drain#2",
-            "releaseInstalledRowCapture/retain/retain/retain"
+            "releaseInstalledRowCapture/retain/retain/retain",
+            "prepareInstalledRowCaptureChild",
+            "prepareInstalledRowCaptureChild/drain/drain",
+            "prepareInstalledRowCaptureChild/drain/drain/drain",
+            "prepareInstalledRowCaptureChild/drain/drain/drain#2",
+            "prepareInstalledRowCaptureChild/invalid/invalid",
+            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild",
+            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#2",
+            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#3",
+            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#4",
+            "releaseInstalledRowCapture/childPending/childPending",
+            "releaseInstalledRowCapture/childPending/childPending/childPending",
+            "releaseInstalledRowCapture/dependent/dependent",
+            "releaseInstalledRowCapture/dependent/dependent/dependent",
+            "releaseInstalledRowCapture/dependent/dependent/dependent#2",
+            "releaseInstalledRowCapture/dependent/dependent/dependent#3",
+            "releaseInstalledRowCapture/dependent/dependent/drain/drain",
+            "releaseInstalledRowCapture/dependent/dependent/drain/drain/drain",
+            "releaseInstalledRowCapture/dependent/dependent/drain/drain/drain#2",
+            "releaseInstalledRowCapture/releaseInstalledRowCapture"
           ],
           "exports": [
-            "releaseInstalledRowCapture"
+            "releaseInstalledRowCapture",
+            "prepareInstalledRowCaptureChild"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "anchor": "// The existing capture retains this original child before any fallible current"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
+                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "// Adapt the original capture's existing Result and input-release owners into"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "anchor": "let child = create();"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "// Adapt the original capture's existing Result and input-release owners into"
+                "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "export async function releasePreparedResults(exported, primary, control)"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "if (await release() !== false) pending = false;"
+                "anchor": "if (result !== false && !preparing &&"
               },
               {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "path": "src/run_publication/cleanup_progress.mbt",
+                "anchor": "pub fn publication_cleanup_owner_action_code("
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "import {releasePreparedResults} from '../host-common/completed-run-publication.mjs';"
-              },
-              {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
+                "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
+                "anchor": "if (childPending()) return false;"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.test.mjs",
-                "anchor": "test('failed first payload does not skip siblings, public Results or input pins', async () => {"
+                "anchor": "test('request child is retained before current refusal"
               },
               {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
+                "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
               }
             ]
           }
