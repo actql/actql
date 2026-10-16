@@ -36,12 +36,18 @@ pub fn bound_value_for_cursor(
   let pointer = out.to_string()
   let mut name : String? = None
   for reference in index.entries {
-    for amount in [1, reference.path.length(), pointer.length()] {
-      if amount > budget.remaining {
-        return Err(WorkLimit)
-      }
-      budget.remaining -= amount
+    if budget.remaining < 1 {
+      return Err(WorkLimit)
     }
+    budget.remaining -= 1
+    if reference.path.length() > budget.remaining {
+      return Err(WorkLimit)
+    }
+    budget.remaining -= reference.path.length()
+    if pointer.length() > budget.remaining {
+      return Err(WorkLimit)
+    }
+    budget.remaining -= pointer.length()
     if reference.path == pointer {
       name = Some(reference.name)
       break
@@ -51,12 +57,18 @@ pub fn bound_value_for_cursor(
     return Ok((None, max_work - budget.remaining))
   }
   for selected in bound.selected {
-    for amount in [1, selected.name.length(), name.length()] {
-      if amount > budget.remaining {
-        return Err(WorkLimit)
-      }
-      budget.remaining -= amount
+    if budget.remaining < 1 {
+      return Err(WorkLimit)
     }
+    budget.remaining -= 1
+    if selected.name.length() > budget.remaining {
+      return Err(WorkLimit)
+    }
+    budget.remaining -= selected.name.length()
+    if name.length() > budget.remaining {
+      return Err(WorkLimit)
+    }
+    budget.remaining -= name.length()
     if selected.name == name {
       return Ok((Some(selected), max_work - budget.remaining))
     }
