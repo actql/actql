@@ -72,6 +72,23 @@ function fixture({metadata = {}, media = body, metadataResponse = {},
   return {options, state, originalMetadata};
 }
 
+for (const key of ['generation', 'gene\\u0072ation']) {
+  test(`ambiguous original metadata ${key} is charged and rejected before media`, async () => {
+    const {options, state, originalMetadata} = fixture();
+    const original = Buffer.from(`{"${key}":"foreign",${JSON.stringify(originalMetadata).slice(1)}`);
+    const call = options.callResource;
+    options.callResource = async invocation => {
+      const response = await call(invocation);
+      return state.calls.length === 1 ? {...response, body: original} : response;
+    };
+    await assert.rejects(readGcsVersionedContent(options), {code: 'InvalidGcsContentMetadata'});
+    assert.equal(state.calls.length, 1);
+    assert.equal(state.charges.length, 1);
+    assert.deepEqual(state.charges[0].bytes, original);
+    assert.equal(state.handoffs.length, 0);
+  });
+}
+
 test('exact stored bytes use generation and metageneration without normalization', async () => {
   const {options, state} = fixture();
   const result = await readGcsVersionedContent(options);
