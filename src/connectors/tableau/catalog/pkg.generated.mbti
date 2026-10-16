@@ -1,0 +1,75 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/tableau/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_job_lookup_observation(StartedJob, Int, Bytes, JobResponseLimits) -> Result[JobLookupObservation, JobIssue]
+
+pub fn admit_started_job(JobStartRequest, Int, Bytes, JobResponseLimits) -> Result[StartedJob, JobIssue]
+
+pub fn job_lookup_observation_id(JobLookupObservation) -> String
+
+pub fn job_lookup_path(StartedJob, Int) -> Result[String, JobIssue]
+
+pub fn job_lookup_response_sha256(JobLookupObservation) -> String
+
+pub fn job_start_body(JobStartRequest) -> String
+
+pub fn job_start_method(JobStartRequest) -> String
+
+pub fn job_start_path(JobStartRequest) -> String
+
+pub fn prepare_job_start_request(JobKind, String, String, String, Int) -> Result[JobStartRequest, JobIssue]
+
+pub fn started_job_id(StartedJob) -> String
+
+pub fn started_job_response_sha256(StartedJob) -> String
+
+// Errors
+
+// Types and methods
+pub(all) enum JobIssue {
+  InvalidLimits
+  InvalidSelection
+  CapacityExceeded
+  UnexpectedStatus
+  InvalidResponse
+  ForeignJob
+} derive(Eq, @debug.Debug)
+
+pub(all) enum JobKind {
+  RefreshDataSource
+  RunFlow
+} derive(Eq, @debug.Debug)
+
+pub struct JobLookupObservation {
+  job : StartedJob
+  response_sha256 : String
+}
+
+pub(all) struct JobResponseLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub struct JobStartRequest {
+  kind : JobKind
+  api_version : String
+  site_id : String
+  target_id : String
+  path : String
+}
+
+pub struct StartedJob {
+  request : JobStartRequest
+  job_id : String
+  response_sha256 : String
+}
+
+// Type aliases
+
+// Traits
