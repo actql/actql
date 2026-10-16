@@ -53,10 +53,14 @@ test('real declared providers supply runtime, adapter and static asset inventory
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/github/host/installed-github-effect.mjs'));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/local/host/installed-local-table.mjs'));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/sheets/host/installed-sheets.mjs'));
-  assert.ok(inputs.adapterEntries.includes('adapters/connectors/gcs/host/gcs-collection-target.mjs'));
-  assert.ok(inputs.adapterEntries.includes('adapters/connectors/gcs/host/gcs-upload-declaration.mjs'));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/snowflake/host/installed-snowflake-source.mjs'));
-  assert.ok(inputs.adapterEntries.includes('adapters/connectors/snowflake/site/snowflake-sql-read.mjs'));
+  // Root entries and their transitive implementation inputs are distinct.
+  const table = readFileSync(join(repository, 'adapters/connectors-builtin/installations.generated.mjs'), 'utf8');
+  for (const path of ['adapters/connectors/gcs/host/gcs-collection-target.mjs',
+    'adapters/connectors/gcs/host/gcs-upload-declaration.mjs',
+    'adapters/connectors/snowflake/site/snowflake-sql-read.mjs']) {
+    assert.ok(table.includes(`path: ${JSON.stringify(path)}`));
+  }
   assert.ok(inputs.dataFiles.includes('adapters/connectors/local/iceberg/process_worker.py'));
   assert.ok(inputs.dataFiles.includes('spec/contracts/actql-local-table-iceberg.json'));
   assert.ok(inputs.dataFiles.includes('src/connectors/github/source-views.json'));
