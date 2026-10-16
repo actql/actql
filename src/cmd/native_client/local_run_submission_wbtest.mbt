@@ -68,14 +68,14 @@ test "public Native run never fills an incomplete original or reinterprets a non
     ] {
     assert_true(
       try {
-        public_run_arguments(args[:]) |> ignore
+        public_run_arguments(extra=args[:]) |> ignore
         false
       } catch {
         _ => true
       },
     )
   }
-  let child = public_run_arguments([
+  let child = public_run_arguments(extra=[
       "--submission-ref-file", "original.json", "--operation-attempt-id", "original-attempt",
       "--request-id", "original-nonce",
     ]).subcommand.unwrap().1
@@ -139,7 +139,7 @@ test "public run preparation failure retains the original for lookup and process
     @local_sqlite.load_library(settings.sqlite_library),
     "public.sqlite",
   )
-  let child = public_run_arguments(["--json"]).subcommand.unwrap().1
+  let child = public_run_arguments(extra=["--json"]).subcommand.unwrap().1
   // The actual Host intentionally has no Run installation. This isolates the
   // public correlation/intake boundary before compilation, policy or dispatch.
   let failure = local_submission_start(
