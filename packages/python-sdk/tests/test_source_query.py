@@ -159,6 +159,18 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(TypeError): copier(query)
         self.assertEqual(peer.operations(), ['connect'])
 
+    async def test_deferred_reader_copy_does_not_duplicate_original_read_custody(self):
+        peer = Peer(); client = await self.client(peer); reader = client.sql('SELECT 1').rows()
+        for copier in (copy, deepcopy, pickle.dumps):
+            with self.subTest(copier=copier.__name__), self.assertRaises(TypeError): copier(reader)
+        self.assertEqual(peer.operations(), ['connect'])
+        self.assertEqual(await reader.__anext__(), {'n': 1})
+        for copier in (copy, deepcopy, pickle.dumps):
+            with self.subTest(copier=copier.__name__), self.assertRaises(TypeError): copier(reader)
+        await reader.aclose()
+        self.assertEqual(peer.operations(), ['connect', 'submit-intent', 'wait', 'read'])
+        self.assertEqual(peer.streams[0].closes, 1)
+
     async def test_submission_loss_keeps_original_unknown_and_never_resends(self):
         peer = Peer(); peer.loss = 'submit-intent'; client = await self.client(peer)
         query = client.sql('SELECT 1', request_id='unknown-original', attempt_id='unknown-attempt')
@@ -309,6 +321,8 @@ class SyncQueryTests(unittest.TestCase):
             self.assertEqual(peer.operations(), ['connect'])
             with query.rows(schema=Row) as reader:
                 self.assertIsNone(reader.attempt_id)
+                for copier in (copy, deepcopy, pickle.dumps):
+                    with self.assertRaises(TypeError): copier(reader)
                 self.assertEqual(next(reader), Row(n=1))
             self.assertIsNotNone(query.execution)
             self.assertEqual(query.execution.ref, query._query.execution.ref)
