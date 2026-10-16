@@ -145,7 +145,10 @@ test "unique keys are object-scoped and observed custom uniqueness is required" 
     Err(UniqueKeyUnconfirmed("domain")),
   )
   let companies = catalog(body)
-  assert_eq(require_unique_property(companies, "domain"), Ok(()))
+  assert_eq(
+    require_unique_property(companies, "domain"),
+    Err(UniqueKeyUnconfirmed("domain")),
+  )
   assert_eq(
     require_unique_property(companies, "email"),
     Err(UniqueKeyUnconfirmed("email")),
@@ -265,5 +268,47 @@ test "bounded whole response parsing refuses truncation duplicate JSON keys and 
       limits(),
     )
     is Err(InvalidResponse),
+  )
+}
+
+///|
+test "company domain with explicit false uniqueness is not an API candidate key" {
+  let properties = catalog(
+    (
+      #|{"results":[{"name":"domain","type":"string","fieldType":"text","hasUniqueValue":false}]}
+    ),
+  )
+  assert_eq(
+    require_unique_property(properties, "domain"),
+    Err(UniqueKeyUnconfirmed("domain")),
+  )
+}
+
+///|
+test "company domain with missing uniqueness is not an API candidate key" {
+  let properties = catalog(
+    (
+      #|{"results":[{"name":"domain","type":"string","fieldType":"text"}]}
+    ),
+  )
+  assert_eq(
+    require_unique_property(properties, "domain"),
+    Err(UniqueKeyUnconfirmed("domain")),
+  )
+}
+
+///|
+test "record ids and positively enforced custom keys remain available for API targets" {
+  let properties = catalog(
+    (
+      #|{"results":[{"name":"hs_object_id","type":"number","fieldType":"number","hasUniqueValue":false},{"name":"external_key","type":"string","fieldType":"text","hasUniqueValue":true,"calculated":false,"modificationMetadata":{"readOnlyValue":false}},{"name":"label","type":"string","fieldType":"text","hasUniqueValue":false}]}
+    ),
+  )
+  assert_eq(require_unique_property(properties, "hs_object_id"), Ok(()))
+  assert_eq(require_unique_property(properties, "external_key"), Ok(()))
+  assert_eq(require_property_write(properties, "external_key"), Ok(()))
+  assert_eq(
+    require_unique_property(properties, "label"),
+    Err(UniqueKeyUnconfirmed("label")),
   )
 }
