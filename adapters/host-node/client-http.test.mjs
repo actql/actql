@@ -12,7 +12,7 @@ const ref = {namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const state = {version: 'actql-run-state/0.1', run_id: 'run-a',
-  status: 'succeeded', updated_at: '2026-09-24T00:00:00.000Z',
+  status: 'succeeded', revision:0, updated_at: '2026-09-24T00:00:00.000Z',
   next_action: {kind: 'refresh_availability', results: ['answer']},
   result_available: false, result_availability: {answer: {
     state: 'unknown', observed_at: '2026-09-24T00:00:00.000Z',
@@ -513,7 +513,7 @@ test('Client Host validates custom status and wait replies', async () => {
       `${base}/actql/client/0.1/${operation}`, {
         method: 'POST', headers: {'content-type': 'application/json'},
         body: JSON.stringify({connection, ref,
-          ...(operation === 'wait' ? {until: null} : {})}),
+          ...(operation === 'wait' ? {until: null, since: null} : {})}),
       });
     for (const operation of ['status', 'wait']) {
       assert.deepEqual(await (await send(operation)).json(), state);
@@ -554,8 +554,12 @@ test('known status refusal and unknown faults classify equally on both ports',
         [cause, 403, 'RunStateAccessDenied'],
         [Object.assign(new Error('InvalidWaitCondition'),
           {code: 'InvalidWaitCondition'}), 400, 'InvalidWaitCondition'],
+        [Object.assign(new Error('InvalidWaitRevision'),
+          {code: 'InvalidWaitRevision'}), 400, 'InvalidWaitRevision'],
         [Object.assign(new Error('WaitAborted'),
           {code: 'WaitAborted'}), 408, 'WaitAborted'],
+        [Object.assign(new Error('WaitTimeout'),
+          {code: 'WaitTimeout'}), 408, 'WaitTimeout'],
         [Object.assign(new Error('Storage detail'),
           {code: 'PrivateStorageFailure'}), 500, 'ClientHostFailure'],
         [new ClientError('PrivateStorageFailure'),
@@ -769,7 +773,7 @@ test('wait disconnect ends only its observation and releases its listener',
         body: JSON.stringify({connection, ...fields}), signal,
       });
       const controller = new AbortController();
-      const pending = send('wait', {ref, until: null}, controller.signal);
+      const pending = send('wait', {ref, until: null, since: null}, controller.signal);
       await waiting;
       assert.equal(active, 1);
       controller.abort();
@@ -782,14 +786,14 @@ test('wait disconnect ends only its observation and releases its listener',
       assert.equal(cancelCalls, 0);
 
       const alreadyAborted = AbortSignal.abort();
-      await assert.rejects(send('wait', {ref, until: null},
+      await assert.rejects(send('wait', {ref, until: null, since: null},
         alreadyAborted), {name: 'AbortError'});
       assert.equal(waitCalls, 1);
       assert.deepEqual(await (await send('attach', {ref})).json(),
         {ref, durability: 'volatile', revision: 1});
       normal = true;
       const normalController = new AbortController();
-      const completed = await send('wait', {ref, until: null},
+      const completed = await send('wait', {ref, until: null, since: null},
         normalController.signal);
       assert.deepEqual(await completed.json(), state);
       normalController.abort();

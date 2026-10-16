@@ -277,7 +277,7 @@ class InstalledLocalHost:
                 raw = wire_bytes(value)  # type: ignore[no-untyped-call]
                 work = OriginalLocalWork(lambda: self._execute_original_admitted_run(run))
             elif operation in ('status', 'wait'):
-                if operation == 'wait' and body['until'] is not None:
+                if operation == 'wait' and (body['until'] is not None or body['since'] is not None):
                     raise ValueError('Original Local wait condition supplier is unavailable')
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
