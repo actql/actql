@@ -41,6 +41,8 @@ def _ipv4(host):
     if len(parts) > 1 and parts[-1] == '':
         parts.pop()
     def number(part):
+        if not part:
+            raise ValueError('Invalid numeric Host')
         radix = 10
         if part.lower().startswith('0x'):
             radix, part = 16, part[2:]
@@ -71,7 +73,7 @@ def _ipv4(host):
 
 
 def _parse(input):
-    if (type(input) is not str or _units(input) > 16384
+    if (type(input) is not str or len(input) > 16384 or _units(input) > 16384
             or re.search(r'[\x00-\x20\x7f\\]', input)):
         raise ValueError('Invalid URI')
     match = re.fullmatch(r'actql://([^/?#]+)/([^/?#]+)(?:\?([^#]*))?', input, re.I | re.ASCII)

@@ -23,6 +23,8 @@ VALID = [
     ('actql://127.1/w', 'https://127.0.0.1/', 'w', None),
     ('actql://0x7f000001/w', 'https://127.0.0.1/', 'w', None),
     ('actql://0177.0.0.1/w', 'https://127.0.0.1/', 'w', None),
+    ('actql://./w', 'https://./', 'w', None),
+    ('actql://0x/w', 'https://0.0.0.0/', 'w', None),
     ('actql://faß.de/w', 'https://xn--fa-hia.de/', 'w', None),
     ('actql://token:raw%2540%3A%2F%3F%23@example.test/workspace', 'https://example.test/', 'workspace', 'raw%40:/?#'),
     ('actql://token:caf%C3%A9@example.test/w', 'https://example.test/', 'w', 'café'),
@@ -38,6 +40,7 @@ INVALID = [
     'actql://example.test/a\r', 'actql://example.test/a\ud800',
     'actql://example.test/%ED%A0%80', 'actql://%65xample.test/a',
     'actql://example.test:70000/a', 'actql://[not-ipv6]/a',
+    'actql://127..0.1/a',
     'actql://token:DO_NOT_DISCLOSE@example.test/a?token=hidden',
     'actql://token:DO_NOT_DISCLOSE@example.test@other.test/a',
     'actql://person:DO_NOT_DISCLOSE@example.test/a',
@@ -166,6 +169,62 @@ class RemoteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failure.exception.code, 'ClientTransportUnknown')
         self.assertEqual(len(requests), 1); self.assertEqual(requests[0]['connection']['workspaceId'], 'w')
         self.assertNotIn('secret-bearing', repr(vars(failure.exception)))
+        self.assertIsNone(failure.exception.__context__)
+
+    async def test_credential_exception_has_no_borrowed_cause_or_transport(self):
+        requests = []
+        def token(): raise OSError('DO_NOT_DISCLOSE')
+        def handler(request): requests.append(request); raise AssertionError('No send')
+        with self.assertRaises(ClientError) as failure:
+            await AsyncClient.connect('actql://host.invalid/w', token, transport=httpx.MockTransport(handler))
+        self.assertEqual(failure.exception.code, 'ClientCredentialUnavailable')
+        self.assertIsNone(failure.exception.__context__)
+        self.assertEqual(requests, [])
+
+    async def test_schema_exception_redacts_only_dsn_diagnostics_and_retains_original_attempt(self):
+        from test_source_query import Peer
+        peer = Peer()
+        def handler(request):
+            if request.url.path.endswith('/connect'):
+                return httpx.Response(200, json=PROFILE | {'workspaceId': 'w'})
+            return peer.handle(request)
+        async def dispatch(request):
+            value = handler(request)
+            return await value if asyncio.iscoroutine(value) else value
+        class Schema:
+            def validate_python(self, value, *, strict): raise ValueError('DO_NOT_DISCLOSE')
+        async with await AsyncClient.connect('actql://token:secret@host.invalid/w', transport=httpx.MockTransport(dispatch)) as client:
+            query = client.sql('SELECT 1')
+            with self.assertRaises(ClientError) as failure: await query.all(schema=Schema())
+            error = failure.exception
+            self.assertEqual(error.code, 'ResultSchemaMismatch')
+            self.assertIsNotNone(error.attempt_id); self.assertEqual(error.rows_yielded, 0)
+            self.assertIsNone(error.__context__)
+            self.assertEqual(error.validation_error.code, 'ConnectionDiagnosticUnavailable')
+            self.assertNotIn('DO_NOT_DISCLOSE', repr(vars(error)))
+            self.assertFalse(client._readers)
+            self.assertEqual(await query.all(), [{'n': 1}, {'n': 2}])
+        self.assertEqual(peer.operations().count('submit-intent'), 1)
+        self.assertEqual(peer.operations().count('read'), 2)
+
+    async def test_cleanup_refusal_keeps_same_response_and_explicit_retry(self):
+        from test_source_query import Peer
+        peer = Peer(); peer.fail_close = True
+        async def handler(request):
+            if request.url.path.endswith('/connect'):
+                return httpx.Response(200, json=PROFILE | {'workspaceId': 'w'})
+            return await peer.handle(request)
+        async with await AsyncClient.connect('actql://token:secret@host.invalid/w', transport=httpx.MockTransport(handler)) as client:
+            reader = client.sql('SELECT 1').rows()
+            self.assertEqual(await anext(reader), {'n': 1})
+            original = reader._reader; response = original._response
+            with self.assertRaises(ClientError) as failure: await reader.aclose()
+            self.assertEqual(failure.exception.code, 'ReaderCleanupFailed')
+            self.assertIsNone(failure.exception.__context__)
+            self.assertIs(original._response, response); self.assertIn(original, client._readers)
+            await reader.aclose()
+            self.assertIsNone(original._response); self.assertFalse(client._readers)
+        self.assertEqual(peer.streams[0].closes, 2)
 
 
 class SyncTests(unittest.TestCase):

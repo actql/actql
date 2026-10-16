@@ -2859,7 +2859,6 @@
         "AsyncClient",
         "AsyncExecution",
         "ClientError",
-        "NO_TOKEN",
         "Observation",
         "RunState",
         "asyncio",
@@ -2874,7 +2873,6 @@
         "httpx",
         "inspect",
         "re",
-        "remote_connection",
         "retain_submission_check",
         "review_bytes_match_cid",
         "signed_answer",
@@ -2885,7 +2883,6 @@
         "urljoin",
         "urlsplit",
         "uuid",
-        "valid_dsn_credential",
         "weakref",
         "wire",
         "wire_bytes"
@@ -3099,6 +3096,14 @@
             "attempt_id",
             "stop_before",
             "read_only"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncClient/_redact_connection_failure",
+          "parameters": [
+            "self",
+            "failure"
           ],
           "async": false
         },
@@ -3483,7 +3488,7 @@
           "async": false
         }
       ],
-      "sha256": "6fd9253d030bf95639ac5083140d280330a649e505addf7d6b62294595bffd87",
+      "sha256": "094f0ab83d6a8fc3ab365b8b7458ddb74283348e9590d67ef8fa651c1dad39f7",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3853,6 +3858,154 @@
               {
                 "path": "packages/python-sdk/README.md",
                 "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "AsyncClient/_redact_connection_failure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Responsibility: project the existing Workspace connection-string contract."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Inputs: original URI, separate credential selection and optional asserted target."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Identity: preserve one decoded Workspace and the original credential choice."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Ownership: the existing Client retains credentials; no raw URI is retained."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Synchronization: pure admission precedes credential callbacks and transport."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Failure: invalid input has a fixed error with no borrowed parser cause."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Cancellation: parsing creates no task, exchange, retry or cleanup obligation."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Resources: original 16384/8192/256 UTF-16 bounds apply before transport."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Extension: no daemon, Local fallback, DNS discovery or grant is issued."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Verification: independent connection vectors and actual Remote consumer cases."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
               }
             ]
           }
@@ -4801,7 +4954,7 @@
           "async": false
         }
       ],
-      "sha256": "9562eddf9bd2e6ded755d6b04c42e7428226922f30ebb7eb73053fef0620118b",
+      "sha256": "c5af123f75ac2602c0b1bf7395a96cbf18f436426c68492c32939e02f28e1a00",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -5276,7 +5429,6 @@
         "Client",
         "ClientError",
         "Execution",
-        "NO_TOKEN",
         "Query",
         "QueryReader",
         "Reader",
@@ -5715,7 +5867,7 @@
           "parameters": []
         }
       ],
-      "sha256": "8da7b61b4a40ba3c535ca4362c747b71e2d634c3e1a72bb2c8dc96b6902706ff",
+      "sha256": "85a6c9b4110bf6c2b1776d6ecc499a75d2a579b1efc3c8885cab99d742fda171",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -8049,7 +8201,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_connection.py",
-      "sha256": "5e44bddc02966981c2f58d8984c92c8cb3e703e275ea9accfede0c822c806103",
+      "sha256": "d43cc0119648b35cf13f43ab180fe047d874a0bf02bf8f6fe0d15488fa895421",
       "exports": [
         "ClientError",
         "NO_TOKEN",

@@ -11,7 +11,7 @@ import weakref
 import httpx
 from . import _wire as wire
 from ._errors import ClientError
-from ._connection import NO_TOKEN, remote_connection, valid_dsn_credential
+from ._connection import NO_TOKEN as _NO_TOKEN, remote_connection as _remote_connection, valid_dsn_credential as _valid_dsn_credential
 from ._run_state import RunState
 from ._values import Observation, content_cid, decode_json, freeze, snapshot, thaw, wire_bytes
 from ._diagnostics import bind_check, retain_submission_check
@@ -49,9 +49,9 @@ class _LocalCoreCleanupPort:
 
 class AsyncClient:
     """Use open() for installed Local or connect() for an existing HTTPS Host."""
-    def __init__(self, endpoint, token=NO_TOKEN, *, workspace_id=None, durability='durable',
+    def __init__(self, endpoint, token=_NO_TOKEN, *, workspace_id=None, durability='durable',
                  verify=True, timeout=30.0, transport=None, signer=None):
-        endpoint, token, workspace_id, self._dsn = remote_connection(endpoint, token, workspace_id)
+        endpoint, token, workspace_id, self._dsn = _remote_connection(endpoint, token, workspace_id)
         try:
             parsed = urlsplit(endpoint)
         except (ValueError, TypeError, AttributeError):
@@ -61,7 +61,7 @@ class AsyncClient:
             raise ClientError('InvalidConnectionEndpoint')
         if verify is False or not isinstance(verify, (bool, ssl.SSLContext)):
             raise ClientError('InvalidConnectionTrust')
-        self._credential_valid = valid_dsn_credential if self._dsn else self._valid_token
+        self._credential_valid = _valid_dsn_credential if self._dsn else self._valid_token
         if not callable(token) and not self._credential_valid(token):
             raise ClientError('InvalidConnectionToken')
         selected = {'mode': 'remote', 'owner': 'remote', 'durability': durability, 'consentRefs': [], 'runners': []}
@@ -123,7 +123,7 @@ class AsyncClient:
         return await cls._connect_local(host, signer=selected_signer)
 
     @classmethod
-    async def connect(cls, endpoint, token=NO_TOKEN, **options):
+    async def connect(cls, endpoint, token=_NO_TOKEN, **options):
         client = cls(endpoint, token, **options)
         try:
             profile = await client._request('connect', {})
@@ -196,8 +196,12 @@ class AsyncClient:
 
     async def aclose(self):
         self._closed = True
-        async with self._cleanup_lock:
-            await self._release()
+        try:
+            async with self._cleanup_lock:
+                await self._release()
+        except ClientError as failure:
+            self._redact_connection_failure(failure)
+            raise
 
     async def _release(self):
         # Failed resources remain owned for an explicit retry. This never cancels a Run.
@@ -328,11 +332,36 @@ class AsyncClient:
             raise ClientError('InvalidHostResponse') from None
 
     async def _request(self, operation, body, max_bytes=1048576):
-        response = await self._open(operation, body)
         try:
-            return await self._json(response, max_bytes)
-        finally:
-            await self._close_response(response)
+            response = await self._open(operation, body)
+            try:
+                return await self._json(response, max_bytes)
+            finally:
+                await self._close_response(response)
+        except ClientError as failure:
+            self._redact_connection_failure(failure)
+            raise
+
+    def _redact_connection_failure(self, failure):
+        if not getattr(self, '_dsn', False):
+            return
+        # Preserve owned outcome/identity/cleanup carriers. A borrowed HTTP,
+        # credential or application exception is not safe DSN diagnostic data.
+        pending, seen = [failure], set()
+        while pending:
+            error = pending.pop()
+            if id(error) in seen:
+                continue
+            seen.add(id(error))
+            error.__cause__ = error.__context__ = None
+            for field in ('original_error', 'cleanup_error', 'validation_error'):
+                cause = getattr(error, field, None)
+                if cause is None:
+                    continue
+                if field != 'validation_error' and isinstance(cause, ClientError):
+                    pending.append(cause)
+                else:
+                    setattr(error, field, ClientError('ConnectionDiagnosticUnavailable'))
 
     def new_submission(self, *, nonce=None):
         if self._closed:
