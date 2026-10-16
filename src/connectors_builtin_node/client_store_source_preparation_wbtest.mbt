@@ -134,3 +134,49 @@ test "published STORE check source uses the original target and common input typ
     assert_true(!rejected.contains("implementation_limit"), msg=rejected)
   }
 }
+
+///|
+test "published STORE public Effect preparation retains the original installation selection" {
+  let environment = store_source_preparation_environment()
+  let publication = store_public_bridge_publication(environment)
+  // Independently authored eight-field occurrence. This is static custody,
+  // not an installed issuer, a live installation or an execution permission.
+  let expected = "[{\"check_environment_cid\":\"sha256:f90cdb6f1b80d81f2ca9707aa5378f63be5aae1dc73b9a6c7e0028dd5f837c3f\",\"effect_id\":\"aql_store_effect\",\"installation_binding_cid\":\"sha256:" +
+    "d".repeat(64) +
+    "\",\"installation_owner_cid\":\"sha256:" +
+    "e".repeat(64) +
+    "\",\"mapping_cid\":\"sha256:7d2514050811313eeb33ef05a6a694c0dfb5bbfd6cf1347a072853b6320b459a\",\"mapping_ref\":\"mapping:fixture.archive.v1\",\"stage_index\":0,\"target_ref\":\"connector://storage/archive\"}]"
+  for format in ["sql", "aql-text"] {
+    let prepared = match
+      client_program_prepare_source_computation_with_parameters(
+        store_source_preparation_text(),
+        format,
+        environment,
+        publication,
+        None,
+        None,
+        true,
+        [],
+      ) {
+      SourceEffect(EffectPrepared(value)) => value
+      _ =>
+        fail(
+          "public Source Effect preparation must preserve the checked STORE selection",
+        )
+    }
+    assert_eq(
+      @publication_host.prepared_client_effect_target_selections(prepared),
+      Some(expected),
+    )
+    let originals = @publication_host.client_effect_target_selection_original(
+      prepared,
+    )
+    assert_eq(originals.length(), 1)
+    assert_true(
+      @publication_host.client_effect_target_selection_matches_prepared(
+        originals[0],
+        prepared,
+      ),
+    )
+  }
+}
