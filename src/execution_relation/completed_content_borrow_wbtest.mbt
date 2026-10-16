@@ -82,10 +82,14 @@ test "Content export borrow rechecks custody after original authorization callba
     wire,
     { max_bytes: 4096, max_nodes: 64, max_depth: 4, max_text_units: 4096, },
   ).unwrap()
+  let id_contract = @contract.primitive(NumberType, nullable=false)
   let schema = @schema.from_fields(
-    [(@schema.Unqualified("content"), contract)],
-    max_fields=1,
-    max_name_bytes=7,
+    [
+      (@schema.Unqualified("id"), id_contract),
+      (@schema.Unqualified("content"), contract),
+    ],
+    max_fields=2,
+    max_name_bytes=9,
   ).unwrap()
   let owner = presence_output_owner(schema~)
   let admitted = prepare_admitted_output(
@@ -94,7 +98,12 @@ test "Content export borrow rechecks custody after original authorization callba
     1,
     stream_value_limits(),
   ).unwrap()
-  append_admitted_output(admitted, [value]).unwrap()
+  let id = @admitted.admit(id_contract, input_cursor("1"), {
+    max_nodes: 1,
+    max_depth: 0,
+    max_text_bytes: 0,
+  }).unwrap()
+  append_admitted_output(admitted, [id, value]).unwrap()
   let rows = finish_admitted_output(admitted).unwrap()
   let preparation = prepare_completion(
     registered_relation_contracts(),
@@ -112,7 +121,7 @@ test "Content export borrow rechecks custody after original authorization callba
   let (receipt, _) = export_relation_all(source)
   retained.val = Some(receipt)
   assert_true(
-    completed_relation_export_content_reference(receipt, 0, 0) is None,
+    completed_relation_export_content_reference(receipt, 0, 1) is None,
   )
   assert_true(receipt.rows.source is None)
   assert_true(receipt.rows.references.unwrap().revoked)
