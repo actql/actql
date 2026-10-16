@@ -173,7 +173,7 @@ test "STORE counts every structural Mapping before SET types or grants" {
     UnresolvedMapping,
   )
   let publication = store_target_publication("relation")
-  let absent = [
+  let absent : Array[@query.NamePart] = [
     { value: "storage", quoted: false, },
     { value: "other", quoted: false, },
   ]
