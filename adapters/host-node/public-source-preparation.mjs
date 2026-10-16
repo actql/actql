@@ -19,8 +19,9 @@ function checkedPublication(moon, environment, publication) {
   const selected = publication ?? {environmentCid, aliases: []};
   const hasWrites = Object.hasOwn(selected, 'tableWrites');
   const hasUpdates = Object.hasOwn(selected, 'updateTargets');
+  const hasStores = Object.hasOwn(selected, 'storeTargets');
   if (!exact(selected, ['environmentCid', 'aliases', ...(hasWrites ? ['tableWrites'] : []),
-    ...(hasUpdates ? ['updateTargets'] : [])]) ||
+    ...(hasUpdates ? ['updateTargets'] : []), ...(hasStores ? ['storeTargets'] : [])]) ||
       selected.environmentCid !== environmentCid ||
       !Array.isArray(selected.aliases) ||
       selected.aliases.length > maxAliases ||
@@ -37,7 +38,8 @@ function checkedPublication(moon, environment, publication) {
   if (Buffer.byteLength(wire) > maxPublicationBytes ||
       hasWrites && (!Array.isArray(selected.tableWrites) || selected.tableWrites.length > maxAliases) ||
       hasUpdates && (!Array.isArray(selected.updateTargets) || selected.updateTargets.length > maxAliases) ||
-      (hasWrites || hasUpdates) &&
+      hasStores && (!Array.isArray(selected.storeTargets) || selected.storeTargets.length > maxAliases) ||
+      (hasWrites || hasUpdates || hasStores) &&
         (typeof moon.clientProgramSourcePublicationValid !== 'function' ||
          !moon.clientProgramSourcePublicationValid(environment, wire))) {
     throw new TypeError('InvalidPublicSourcePublication');

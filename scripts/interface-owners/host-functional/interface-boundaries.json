@@ -1,6 +1,6 @@
 {
   "source": "a6cabd33cd55bdd9f59850877ef2a88412d648a7",
-  "qualification": "Existing Host/Common/Core functional references, separate from the prior compiler-representation facet. No product edits, new execution, parser or semantic rules. Original functional Owners retain authority.",
+  "qualification": "Existing Host/Common/Core functional references, separate from the prior compiler-representation facet. The initial reference-only supply made no product edits or runtime claims. Original functional Owners retain authority. The original source/syntax-input metadata records the initial reference supply, not a new runtime qualification. Explicit bounded HTTP byte-body extensions retain the same existing owners; their source-qualified tests and simultaneous holding inventory are separate from reference coverage and normal funding.",
   "syntaxInput": {
     "path": "i6-a-host-uncovered-projection.json",
     "sha256": "2cb84537d4ec8744a9a7d057a8202bef4d0bc45fb7f5b57770aa85d56a43f852",
@@ -4506,7 +4506,7 @@
     {
       "module": "adapters/host-common/http-exchange.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a38bb519027bced1c8845c416bec066f2e8ec4b837aa3bfef233381bb38d1792",
+      "sha256": "93242239546c1a9e4af45b86eaccc9376f48324e3b9418f67ed433d19643be27",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [
@@ -4514,6 +4514,7 @@
         "exchangeLimits",
         "exchangeMethods",
         "observeResponseHeaders",
+        "ownHttpByteRequest",
         "ownHttpRequest",
         "ownRequestHeaders",
         "ownResponseHeaderNames",
@@ -4572,6 +4573,20 @@
           "parameters": [
             "received",
             "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownHttpByteRequest",
+          "parameters": [
+            "method",
+            "path",
+            "query",
+            "headers",
+            "body",
+            "bodyBytes",
+            "bodyMediaType",
+            "maxBodyBytes"
           ],
           "async": false
         },
@@ -4648,6 +4663,7 @@
             "encodeComponent/encodeComponent/encodeComponent",
             "fail/fail",
             "observeResponseHeaders",
+            "ownHttpByteRequest",
             "ownHttpRequest",
             "ownRequestHeaders",
             "ownRequestHeaders/ownRequestHeaders",
@@ -4662,6 +4678,7 @@
             "exchangeLimits",
             "exchangeMethods",
             "observeResponseHeaders",
+            "ownHttpByteRequest",
             "ownHttpRequest",
             "ownRequestHeaders",
             "ownResponseHeaderNames",
@@ -4681,6 +4698,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "# Scoped HTTP body ownership"
               }
             ],
             "inputsOutputs": [
@@ -4695,6 +4716,10 @@
               {
                 "path": "docs/spec/protocols/http.md",
                 "anchor": "### HTTP Connector transport"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Two explicit shapes"
               }
             ],
             "identity": [
@@ -4709,6 +4734,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Original use and currentness"
               }
             ],
             "ownership": [
@@ -4723,6 +4752,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Simultaneous inventory"
               }
             ],
             "synchronization": [
@@ -4737,6 +4770,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "secret-resolution await."
               }
             ],
             "failure": [
@@ -4751,6 +4788,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Lost responses retain the same nominal Unknown use."
               }
             ],
             "cancellation": [
@@ -4765,6 +4806,10 @@
               {
                 "path": "docs/spec/protocols/http.md",
                 "anchor": "### HTTP Connector transport"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Bound\ncleanup retains its existing pending state"
               }
             ],
             "resources": [
@@ -4779,6 +4824,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "two distinct dedicated N-byte backings"
               }
             ],
             "extension": [
@@ -4793,6 +4842,10 @@
               {
                 "path": "docs/spec/protocols/http.md",
                 "anchor": "### HTTP Connector transport"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "not public JSON wire"
               }
             ],
             "verification": [
@@ -4803,12 +4856,27 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Verification boundary"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
+              },
+              {
+                "path": "adapters/host-common/http-exchange.test.mjs",
+                "anchor": "byte length/backing properties cannot disguise"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/installed-connector-declaration.mjs",
@@ -36929,7 +36997,7 @@
     {
       "module": "adapters/host-node/public-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7daa7d48370a42695912456e2bae11232923bd1da9b843b624a3ec6ec36da1f1",
+      "sha256": "4b004e422619391e69aba995cf6b090a49a3e7a29427f1acc770c1d0baadf610",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -37026,6 +37094,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "src/client_source_publication/store_targets.mbt",
+                "anchor": "pub fn published_store_targets("
               }
             ],
             "inputsOutputs": [
@@ -37048,6 +37120,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "src/client_source_publication/store_targets.mbt",
+                "anchor": "pub fn published_store_targets("
               }
             ],
             "identity": [
@@ -37070,6 +37146,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "src/client_source_publication/store_targets.mbt",
+                "anchor": "pub fn published_store_targets("
               }
             ],
             "ownership": [
@@ -37092,6 +37172,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "src/client_source_publication/store_targets.mbt",
+                "anchor": "pub fn published_store_targets("
               }
             ],
             "synchronization": [
@@ -37194,6 +37278,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "src/client_source_publication/store_targets.mbt",
+                "anchor": "pub fn published_store_targets("
               }
             ],
             "verification": [
@@ -37208,6 +37296,14 @@
               {
                 "path": "adapters/host-node/installed-update-targets.test.mjs",
                 "anchor": "test('actual JSON Model UPDATE acceptance saves and restores both originals in the same SQLite Run'"
+              },
+              {
+                "path": "adapters/host-node/public-store-source-preparation.test.mjs",
+                "anchor": "test('STORE Source metadata reaches its existing owner unchanged and snapshotted'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_store_target_publication_wbtest.mbt",
+                "anchor": "test \"actual public Source publication bridge admits the original STORE pair and refuses substitution\""
               }
             ]
           }

@@ -1,0 +1,241 @@
+{
+  "qualification": "Normal installed Sequence fixture acceptance at immutable Source32995; not latest-main or full-v0.1 acceptance",
+  "productSource": "32995bb12aa1b4b0d71b292f7b29950ee9fff4ef",
+  "fixtureSource": "32995bb12aa1b4b0d71b292f7b29950ee9fff4ef",
+  "sourceTree": "3a2bb6dfb6ff1f0a05f12a53b7a4a72cc97a0b7a",
+  "manifestSHA256": "142c3fffd44826dcf1b38b539ff1b23f7040b19b88f5f2481bce2ebd77cda2b5",
+  "normalProducerOwner": "G",
+  "newBProducerCount": 0,
+  "artifacts": [
+    {
+      "name": "@actql/client-wire",
+      "version": "0.0.1",
+      "sha256": "a661d33890e03c6adb934f7489037c219b40a0782794553ba484af5280d9cb80",
+      "integrity": "sha512-ACpITjCcaWPltSRdxutE3ZSLKgVFItUsbHUhqkRujZQO5MM0HREyiIo5QhfazRb0AxRaQRq7XTywJXX38zBoIw=="
+    },
+    {
+      "name": "@actql/sdk",
+      "version": "0.0.1",
+      "sha256": "26fae01f609a19e312c31143c29054d734358be8d0d14396166b0c9348cce97b",
+      "integrity": "sha512-12f97lkM81iJbZQezeXxctoRSGPfYaaJQPHs2xYNfOkNGnReUgzSD551h8GO+0ITZH4Q8s9j+ueAeKQQgpk+VQ=="
+    },
+    {
+      "name": "@actql/local-node",
+      "version": "0.0.1",
+      "sha256": "124dbb7f4d89a03ba5d8a3a2afb7737074fe2ebb14e5fbf333fd7370ebd33377",
+      "integrity": "sha512-l7BHLkVSFl4f9FB6qhla8UhOwo/AeMAL0eP0ELXh+Lysv+zRTeCz9cJG+FokYf5rCrSVqwMf5et6N+nEqqOXGQ=="
+    },
+    {
+      "name": "@actql/node",
+      "version": "0.0.1",
+      "sha256": "0e892db9f465f5b575c255cf16c950ede0507a72afb2b95942714d5d6b825483",
+      "integrity": "sha512-Uq3YQVnoV0I4ZAbdeiATUkOQPme74YmupGHvklU8YWsFYSNtx1MGIWQhlGATY6lfmSn0o3F1lREvN1/5IsAKFg=="
+    }
+  ],
+  "installedMemberCount": 341,
+  "allInstalledMemberBytesAndModesEqual": true,
+  "fixtureInputs": [
+    {
+      "path": "scripts/release-sourcefree-query-cases.mjs",
+      "sha256": "045d994ef9d05ec9081748d10eaa0d4ae4ef97a815e7fcef759566d0c217a010",
+      "bytes": 3911
+    },
+    {
+      "path": "scripts/release-calendar-query-cases.mjs",
+      "sha256": "533e6a1e4557e298d0c56181d4dd2701b3c098ac11a421b4b343ca665cdfec5a",
+      "bytes": 1576
+    },
+    {
+      "path": "scripts/fixtures/calendar-source-input.mjs",
+      "sha256": "dc8e62204e2b7faad02d262d68832f036cb5c743302bc6d76c57c1f5670ca334",
+      "bytes": 3776
+    },
+    {
+      "path": "scripts/release-public-aql-format-cases.mjs",
+      "sha256": "09f1bc07a5c4c0099e038bc261a34fc3ee3d66d52f0809afaa68ef4de218057b",
+      "bytes": 1720
+    },
+    {
+      "path": "scripts/release-sequence-query-cases.mjs",
+      "sha256": "9fff254d3eb399c282af352db735b03ad9a0b7c59fae27a559804b60479ac1d4",
+      "bytes": 2013
+    },
+    {
+      "path": "scripts/release-time-series-query-cases.mjs",
+      "sha256": "8cba375f126ee6e560346c94ad8902d8e0693c24a19c61629519b0bb76198056",
+      "bytes": 1188
+    },
+    {
+      "path": "scripts/release-temporal-join-query-cases.mjs",
+      "sha256": "194756c93b028fb92ee0ee6a214d9f5f58b082c1782014e8fdd24a2ad7278bd2",
+      "bytes": 1494
+    },
+    {
+      "path": "scripts/fixtures/temporal-join-source-input.mjs",
+      "sha256": "cfbdf2588fdff071da01570051a2a1af9b41b6c91022bdce0c71241e9edeaa24",
+      "bytes": 4328
+    },
+    {
+      "path": "scripts/fixtures/time-series-primary-source-input.mjs",
+      "sha256": "c5f43f34dc7ea62b13aff023cb8188a2a1cfa5dafedfa663c875e4fc92f6c900",
+      "bytes": 3285
+    },
+    {
+      "path": "scripts/fixtures/release-sourcefree-authorization.mjs",
+      "sha256": "39bbb42147cf95a19b9b136f97e369002706d2d4ba65d021599c32ad442ca8a7",
+      "bytes": 1759
+    },
+    {
+      "path": "scripts/fixtures/release-time-series-reread.mjs",
+      "sha256": "453a5732bb5fe5127c67352fac569de706b8375aa097459e9b1e30959ff3fc1d",
+      "bytes": 4962
+    },
+    {
+      "path": "scripts/fixtures/release-sourcefree-query.mjs",
+      "sha256": "a8aa69d66dbaa116f8b8e9169752d83c3a828388749deb8fb3042c8b58e89718",
+      "bytes": 6437
+    },
+    {
+      "path": "scripts/fixtures/release-sourcefree-io.mjs",
+      "sha256": "374279313af52e70ac60b7cac7b943d1845919ee1c8219015bcd304751ef230a",
+      "bytes": 2318
+    },
+    {
+      "path": "scripts/fixtures/in-unnest-literal-array-source-input.mjs",
+      "sha256": "dc63aed0eb2e39e890e4ae57dd95e6843434f907d9867c3bccd095928d491732",
+      "bytes": 5575
+    },
+    {
+      "path": "scripts/fixtures/sequence-source-input.mjs",
+      "sha256": "b52d4b467f56c00ab91003c4c58d36d8db6f0e9be0df1926fee6fc091ebe6f9d",
+      "bytes": 5562
+    },
+    {
+      "path": "scripts/fixtures/public-query-input.mjs",
+      "sha256": "a66dd028fc2f95652a544195d75a66ffb265ae28c96bdc44475eec7dca9e7cb5",
+      "bytes": 81076
+    }
+  ],
+  "sequenceFixtureInputsUnchangedFrom": "5226c3fd476154a97672a47c2a99e729f5a419ea",
+  "run": "run-MXOkOn",
+  "consumerExit": 0,
+  "consumerComplete": true,
+  "guardBudgetSeconds": 300,
+  "termGraceSeconds": 5,
+  "childBudgetSeconds": 180,
+  "transports": [
+    {
+      "mode": "local",
+      "normal": 22,
+      "refusal": 9,
+      "namedResults": 22,
+      "rows": 19,
+      "freshProcessReread": 22,
+      "providerObservation": {
+        "sourceSecrets": 0,
+        "forbiddenFetches": 0,
+        "forbiddenProcesses": 0
+      }
+    },
+    {
+      "mode": "https",
+      "normal": 22,
+      "refusal": 9,
+      "namedResults": 22,
+      "rows": 19,
+      "freshProcessReread": 22,
+      "providerObservation": {
+        "sourceSecrets": 0,
+        "forbiddenFetches": 0,
+        "forbiddenProcesses": 0
+      }
+    }
+  ],
+  "acceptedNormalDeclarations": 22,
+  "normalTransportExecutions": 44,
+  "staticRefusalTransportExecutions": 18,
+  "freshProcessNamedResultRereads": 44,
+  "newlyAdoptedOmissionDeclarations": [
+    "sequence-implicit-overlap",
+    "sequence-json-omitted-defaults",
+    "sequence-sql-omitted-defaults",
+    "sequence-aql-text-omitted-defaults"
+  ],
+  "distinctNewBusinessScenarios": "not claimed",
+  "observations": {
+    "originalIndependentRowsAndOrderedSchemasMatched": true,
+    "sameRunAndSubmissionReferenceOnReread": true,
+    "replayAddsNoAdmissionOrSourceAcquisition": true,
+    "noSourceInstalled": true,
+    "forbiddenProcessFetchAndSecretAttempts": 0,
+    "counterScope": "No installed Source plus process/fetch/secret guards; not arbitrary filesystem IO telemetry"
+  },
+  "sixOriginalChildCommands": [
+    {
+      "command": "npm",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 777
+    },
+    {
+      "command": "openssl",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 44
+    },
+    {
+      "command": "node",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 35423
+    },
+    {
+      "command": "node",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 12000
+    },
+    {
+      "command": "node",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 40080
+    },
+    {
+      "command": "node",
+      "exit": 0,
+      "signal": null,
+      "elapsedMs": 10610
+    }
+  ],
+  "ownerClosure": {
+    "ownerPID": 86228,
+    "knownChildPIDs": [
+      86233,
+      86356,
+      86718
+    ],
+    "ownerKnownChildrenAndGroupAbsent": true,
+    "originalLeasesAbsent": true,
+    "buildAndConsumerOpenFDs": 0,
+    "hostsAndRegistryClosed": true,
+    "privateCustodyRetained": true
+  },
+  "originalEvidence": {
+    "workspaceDirectory": "reviews/2026-10-17-b-sequence-installed-32995bb1",
+    "consumerReceiptSHA256": "27f892247c56a4cc398954966c409ac9cb3f511b92a2ee0029d6a7d5f3d02fc1",
+    "privateRawInventorySHA256": "71f2f715ef9d7def6783ad5f9d3dd846501a2d0ee779af2d0f0b68b215a042be",
+    "rawFileCount": 4109,
+    "installedMembersSHA256": "7aee711ad4c116e35385e7c2f6a0073d87cdcb9877b25fad5946da02d9cd2fba",
+    "guardSummarySHA256": "f13d15eb37d0e0543c318542b1103cd749e4a6597589e8d1a89a3415a7c89b16",
+    "guardOutputSHA256": "efb4c38e7b6a89242757a715301f13fd76433324ca57a329bebddc46489cc35e",
+    "sourceClosureSHA256": "7162da1d8d82b835fd7e491a0fbf3e4450af038883d869350deae663973a3136"
+  },
+  "preservedQualification": [
+    "Original failed/default/source receipts remain under their original Sources",
+    "Original shared RC and manifest unchanged",
+    "No STORE, real-Connector, Calendar or latest-main acceptance is inferred",
+    "No keys, Run/DB/WAL, Unknown or private custody are committed"
+  ],
+  "validationAfterEvidenceBranchAdoption": "All16fixture files still match the tested source bytes; no installed consumer rerun or relabel"
+}

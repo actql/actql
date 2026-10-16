@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
-      "sha256": "8221e4319d0787b87342769ece661206bce066fcf512b297c0ab53409af94c9d",
+      "sha256": "eca674fee3e08c3ada6b81f20649c91a1c05cab4e1fc9be72bdd82c3eb5362af",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing HubSpot Source/Decode projection and Credential/Account/RowRun owners",
@@ -60,6 +60,13 @@
           "async": false
         },
         {
+          "name": "observeHubSpotAccount/response/accountResource",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
           "name": "positive/positive",
           "parameters": [
             "value"
@@ -76,7 +83,8 @@
             "observeHubSpotAccount",
             "observeHubSpotAccount/observeHubSpotAccount",
             "observeHubSpotAccount/observeHubSpotAccount#2",
-            "positive/positive"
+            "positive/positive",
+            "observeHubSpotAccount/response/accountResource"
           ],
           "exports": [
             "HUBSPOT_ACCOUNT_DETAILS_OPERATION",

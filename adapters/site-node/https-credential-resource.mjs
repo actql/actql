@@ -1,7 +1,7 @@
 import {request as httpsRequest} from 'node:https';
 import {credentialInvocationBindingKeys} from
   '../host-common/credential-scope-fields.generated.mjs';
-import {checkHttpRequestMethodBody, observeResponseHeaders, ownRequestHeaders,
+import {checkHttpRequestMethodBody, observeResponseHeaders, ownHttpByteRequest, ownRequestHeaders,
   ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 
 const fail = (code, cause) => {
@@ -105,9 +105,24 @@ function operationFor(operations, scope, maxRequestBytes) {
       !text(operation.path)) {
     fail('UnsupportedRemoteCredentialOperation');
   }
-  const {method, body} = operation;
+  const {method} = operation;
+  const binary = operation.bodyBytes !== undefined || operation.bodyMediaType !== undefined ||
+    operation.maxBodyBytes !== undefined;
+  let body = operation.body, bodyMediaType = 'application/json';
   try {
-    checkHttpRequestMethodBody(method, body, {requireBody: true});
+    if (binary) {
+      // Reject the outer call mismatch before allocating the physical copy.
+      // This is an independent transport ceiling, not proof of funding.
+      if (!Number.isSafeInteger(operation.maxBodyBytes) ||
+          operation.maxBodyBytes > maxRequestBytes) fail('InvalidRemoteCredentialOperation');
+      const request = ownHttpByteRequest({method, path: operation.path,
+        body, bodyBytes: operation.bodyBytes, bodyMediaType: operation.bodyMediaType,
+        maxBodyBytes: operation.maxBodyBytes});
+      body = request.bodyBytes;
+      bodyMediaType = request.bodyMediaType;
+    } else {
+      checkHttpRequestMethodBody(method, body, {requireBody: true});
+    }
   } catch (error) {
     fail(error?.code === 'InvalidHttpRequestMethod'
       ? 'UnsupportedRemoteCredentialOperation'
@@ -138,13 +153,14 @@ function operationFor(operations, scope, maxRequestBytes) {
     port: origin.port || undefined,
     path: exactRequestTarget(operation.path),
     body,
+    bodyMediaType,
     requestBytes,
     headers,
     responseHeaders,
   });
 }
 
-function receive({hostname, port, path, method, body, requestBytes, secret,
+function receive({hostname, port, path, method, body, bodyMediaType, requestBytes, secret,
   headers, ca, cert, key, signal, maxResponseBytes, binding}) {
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -187,7 +203,7 @@ function receive({hostname, port, path, method, body, requestBytes, secret,
         ...Object.fromEntries(headers),
         authorization: `Bearer ${secret}`,
         ...(body === undefined ? {} : {
-          'content-type': 'application/json',
+          'content-type': bodyMediaType,
           'content-length': requestBytes,
         }),
       }),
@@ -252,6 +268,7 @@ async function callCredentialResource({
   maxRequestBytes = 1_048_576,
   maxResponseBytes = 1_048_576,
   returnRejectedResponse = false,
+  currentBeforeSend,
   signal,
 }, binding) {
   if (typeof control?.identity !== 'function' ||
@@ -261,7 +278,8 @@ async function callCredentialResource({
       typeof resolveSecret !== 'function' || typeof now !== 'function' ||
       !text(useId) || !count(maxRequestBytes) || maxRequestBytes === 0 ||
       !count(maxResponseBytes) || maxResponseBytes === 0 ||
-      typeof returnRejectedResponse !== 'boolean') {
+      typeof returnRejectedResponse !== 'boolean' ||
+      (currentBeforeSend !== undefined && typeof currentBeforeSend !== 'function')) {
     fail('InvalidRemoteCredentialCall');
   }
   const operation = operationFor(operations, scope, maxRequestBytes);
@@ -291,6 +309,21 @@ async function callCredentialResource({
     if (binding && (currentSecret.length > binding.maxSecretBytes ||
         Buffer.byteLength(currentSecret) > binding.maxSecretBytes)) {
       fail('RemoteCredentialSecretLimitExceeded');
+    }
+    // The original Host's current read check may require an asynchronous
+    // configuration read. Run it after the resolver await, without passing
+    // credential material or manufacturing a grant from its return value.
+    // Recheck the original binding and journal after this await as well.
+    if (currentBeforeSend !== undefined) {
+      // Preserve the original refusal before starting another Host read when
+      // retirement, cancellation or a replacement credential is already known.
+      if (binding?.retiring) fail('RemoteCredentialBindingRetiring');
+      if (binding?.secret !== undefined && binding.secret !== currentSecret) {
+        binding.changed = true;
+        fail('RemoteCredentialBindingChanged');
+      }
+      signal?.throwIfAborted();
+      await currentBeforeSend();
     }
     if (binding?.retiring) fail('RemoteCredentialBindingRetiring');
     if (binding?.secret !== undefined && binding.secret !== currentSecret) {

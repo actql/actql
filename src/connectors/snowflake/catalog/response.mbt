@@ -21,6 +21,7 @@ pub(all) enum ResponseIssue {
   InvalidHandle
   DuplicateColumn(String)
   InvalidColumn(String)
+  ContractMismatch(String)
   UnsupportedColumn(String, String)
   InvalidPartition
   WrongRowWidth
@@ -184,6 +185,37 @@ pub fn project_result_set(
   bytes : Bytes,
   limits : ResponseLimits,
 ) -> Result[ResultSet, ResponseIssue] {
+  project_result_set_original(bytes, limits, None)
+}
+
+///|
+/// Metadata equality is checked before admitting raw provider cells against
+/// the exact original input contracts supplied by the existing Row Owner.
+/// This never re-labels an already checked value or issues Source authority.
+pub fn project_result_set_with_contracts(
+  bytes : Bytes,
+  limits : ResponseLimits,
+  contracts : Array[(String, @contract.Contract)],
+  max_contract_pairs : Int,
+) -> Result[ResultSet, ResponseIssue] {
+  if max_contract_pairs <= 0 ||
+    contracts.is_empty() ||
+    contracts.length() > limits.max_columns {
+    return Err(InvalidLimits)
+  }
+  project_result_set_original(
+    bytes,
+    limits,
+    Some((contracts, max_contract_pairs)),
+  )
+}
+
+///|
+fn project_result_set_original(
+  bytes : Bytes,
+  limits : ResponseLimits,
+  expected : (Array[(String, @contract.Contract)], Int)?,
+) -> Result[ResultSet, ResponseIssue] {
   let root = match response_root(bytes, limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -224,6 +256,26 @@ pub fn project_result_set(
       return Err(DuplicateColumn(column.name))
     }
     columns.push(column)
+  }
+  if expected is Some((contracts, max_pairs)) {
+    if contracts.length() != columns.length() {
+      return Err(ContractMismatch("column_count"))
+    }
+    for index, (name, contract) in contracts {
+      let observed = columns[index]
+      if observed.name != name {
+        return Err(ContractMismatch(name))
+      }
+      let same = @contract.type_equal(observed.contract, contract, max_pairs) catch {
+        _ => return Err(BudgetExceeded)
+      }
+      if !same {
+        return Err(ContractMismatch(name))
+      }
+      // Only raw provider cells are admitted below, using this nominal input
+      // contract. The metadata-created contract is never copied into it.
+      columns[index] = { ..observed, contract, }
+    }
   }
   let partitions = []
   let mut observed_rows = 0L
