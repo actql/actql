@@ -108,6 +108,7 @@ fn QueryParser::producer_query(
     effect: None,
     table_effect: None,
     store_effect: None,
+    short_command_effect: None,
     commands: [],
     work: self.work,
   }
