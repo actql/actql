@@ -2,6 +2,16 @@
 // request/ref/recovery interpretation; this package performs no physical I/O.
 
 ///|
+#export_name("sheetsAppendRequestIdentity")
+pub fn sheets_append_request_identity(
+  origin : String,
+  path : String,
+  body : String,
+) -> Result[String, @catalog.RangeFailure] {
+  @catalog.append_request_identity(origin, path, body)
+}
+
+///|
 #export_name("sheetsRangeFailureJson")
 pub fn sheets_range_failure_json(issue : @catalog.RangeFailure) -> String {
   let code = @catalog.range_failure_code(issue)

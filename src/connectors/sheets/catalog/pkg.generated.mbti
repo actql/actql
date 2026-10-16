@@ -12,6 +12,8 @@ pub fn admit_range_request(RangeBinding, RangeRequest) -> Result[Unit, RangeFail
 
 pub fn append_request(Int, Array[Column], Array[Json], Limits) -> Result[String, Issue]
 
+pub fn append_request_identity(String, String, String) -> Result[String, RangeFailure]
+
 pub fn check_target(Bytes, String, GridRange, Int, Array[Column], Limits) -> Result[Unit, Issue]
 
 pub fn classify_append(Int, Bytes, String, Limits) -> AppendOutcome
