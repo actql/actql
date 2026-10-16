@@ -701,6 +701,8 @@ pub fn stage_semantic_contract_cid(StageSemanticContract) -> String
 
 pub fn store_command_mapping(StoreCommandBinding) -> MappingContractShape
 
+pub fn store_command_mapping_operation(StoreCommandBinding) -> (String, String)
+
 pub fn store_command_target(StoreCommandBinding) -> CommandTarget
 
 pub fn store_command_work(StoreCommandBinding) -> Int
@@ -1517,6 +1519,7 @@ pub(all) enum StageSemanticContract {
 pub struct StoreCommandBinding {
   mapping : MappingContractShape
   command : CommandTarget
+  mapping_operation : String
   work : Int
 }
 
