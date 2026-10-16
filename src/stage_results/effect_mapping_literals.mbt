@@ -201,7 +201,8 @@ fn effect_mapping_literal_admit(
         max_depth: limits.max_value_depth,
         max_text_bytes: text.val,
       },
-      authored_fields=origin == InlineSet,
+      authored_fields=origin == InlineSet ||
+        @syntax.effect_header_create_values(header) is Some(_),
     ) {
     Ok(value) => value
     Err(@value.ValueIssue(@value.BudgetExceeded, ..)) =>
@@ -265,8 +266,14 @@ pub fn admit_effect_mapping_literals(
         }
         entries.push(admitted)
       }
-    } else if kind == "update" || kind == "upsert" {
-      let set = @decode.lookup(body, "set").unwrap()
+    } else if kind == "update" ||
+      kind == "upsert" ||
+      @syntax.effect_header_create_values(header) is Some(_) {
+      let set = if kind == "create" {
+        @syntax.effect_header_create_values(header).unwrap()
+      } else {
+        @decode.lookup(body, "set").unwrap()
+      }
       let count = @decode.object_length(set).unwrap()
       if count > work.val {
         return Err(effect_mapping_literal_issue(WorkLimit, header))
@@ -281,7 +288,11 @@ pub fn admit_effect_mapping_literals(
               rule,
               target,
               cursor,
-              InlineSet,
+              if kind == "create" {
+                InlineCreate
+              } else {
+                InlineSet
+              },
               None,
               limits,
               work,
