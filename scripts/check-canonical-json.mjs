@@ -313,10 +313,17 @@ function fixtures() {
   });
   result.push({
     id: 'Program source grammar with published STORE targets',
-    value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
-    // Independent Python canonical schema preimage; no product output.
+    value: read('portability/fixtures/program-grammar-before-published-command.json'),
+    // Retain the complete original STORE-only schema and its identity.
     cid: 'sha256:44fb1d94a435948c6fe63111ce1e55b7e615674835d2214a0ae98cb9d3a92435',
   });
+  const commandSelectors = read('portability/corpus/published-command-selectors.json');
+  result.push({id: 'Program source grammar with published Command targets',
+    value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
+    cid: commandSelectors.program_cid});
+  for (const item of commandSelectors.programs) result.push({
+    id: 'Original published Command selector ' + item.mode,
+    value: item.program, cid: item.cid});
   const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
   for (const item of read('portability/corpus/incoming-gates.json').cases) {
     assert.deepEqual([...Object.keys(item.preimage), 'self_cid'].sort(), [...gateSchema.required].sort());

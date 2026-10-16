@@ -8485,7 +8485,7 @@
     },
     {
       "requirement_id": "actql.language/effects.every-command-must-explicitly-declare-a-resourceref-result-field-and",
-      "statement_sha256": "38bc8969b1137742230c3686786c9a449dc775cae95c3bc1c1883a34724733f1",
+      "statement_sha256": "618047acac750c0b95290163fc1bdc03ce4009f4d699c7586903bc5db603522f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8717,6 +8717,39 @@
     {
       "requirement_id": "actql.language/effects.its-target-field-must-be-a-value-level-resource-ref-k-whose-kind-equals",
       "statement_sha256": "f9af1278b9cd29f6f0fb0b060ec1e3397bcbffd7d3cc4b1a5d88d80c86e26e65",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.published-command-original-domain",
+      "statement_sha256": "c23769dc53bd2ff88439ba0b8e2a41e7ab45e4f59ffa12342c5477a107fe6bf4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.published-command-identifier-domain",
+      "statement_sha256": "7dc99b099448dbb5a7507061a38fcef6343cbb447218cd9ab75b6f9550fcd088",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.published-command-original-custody",
+      "statement_sha256": "9705f96c98b666bce97345ced0f574224446734ec14bb3ae809a4cb4b4c6b45d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -9992,7 +10025,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "8fa7673224ad72b9e7f5a64aaa28ea19bb83f261784c7ab866214cbe2531d508",
+      "statement_sha256": "5f38d38f22eae0581450568f1085d4b0bd53a39755f748365dc2fee967c8d5d5",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

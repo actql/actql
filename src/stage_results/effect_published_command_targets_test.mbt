@@ -2,6 +2,7 @@
 fn published_command_results(
   identifier? : String? = None,
   nullable? : Bool = false,
+  input? : String = "{}",
 ) -> EffectResultBindings {
   let selector = "{\"published_command\":{\"target_ref\":\"connector://mailbox/current\"" +
     (match identifier {
@@ -11,7 +12,9 @@ fn published_command_results(
     "}}"
   let effects = "{\"send\":{\"command\":{\"from\":{\"result\":\"r\"},\"target\":" +
     selector +
-    ",\"contract\":\"command:mail.send.v1\",\"input\":{}}}}"
+    ",\"contract\":\"command:mail.send.v1\",\"input\":" +
+    input +
+    "}}}"
   let (checked, headers) = effect_binding_inputs(
     effects,
     amount_nullable=nullable,
@@ -210,4 +213,38 @@ test "published Command domains share bounded admission accounts across all occu
     ),
     InvalidLimits,
   )
+}
+
+///|
+test "published Command selector alone cannot project or issue a nominal target" {
+  let effects = published_command_results(
+    input="{\"body\":{\"literal\":\"retained\"}}",
+  )
+  let targets = bind_effect_command_targets(
+    effects,
+    published_command_references("installation"),
+    10000,
+  ).unwrap()
+  let inputs = bind_effect_command_inputs(
+    targets,
+    command_input_limits(work=2000, nodes=100, text=1000),
+  ).unwrap()
+  let binding = effect_command_input_at(inputs, 0).unwrap()
+  let row = effect_plan_test_row("{\"amount\":1,\"ref\":null}")
+  assert_eq(
+    project_effect_command_row(binding, row, 2, 100, 1024, 64, 8).unwrap_err(),
+    MissingTarget,
+  )
+}
+
+///|
+test "published Command identifier requires original guaranteed column presence" {
+  let effects = "{\"send\":{\"command\":{\"from\":{\"result\":\"r\"},\"target\":{\"published_command\":{\"target_ref\":\"connector://mailbox/current\",\"identifier_field\":\"amount\"}},\"contract\":\"command:mail.send.v1\",\"input\":{}}}}"
+  let (checked, headers) = effect_binding_inputs(
+    effects,
+    amount_presence=Some(@schema.Conditional),
+  )
+  let issue = bind_effect_results(headers, checked, 100).unwrap_err()
+  assert_eq(effect_result_binding_issue_kind(issue), InvalidCommandIdentifier)
+  assert_eq(effect_result_binding_issue_field(issue), Some("amount"))
 }

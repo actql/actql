@@ -7,6 +7,7 @@ pub(all) enum EffectResultBindingIssueKind {
   MissingTableInput
   MissingField
   InvalidCommandTarget
+  InvalidCommandIdentifier
   UnsupportedTableInput
 } derive(Eq, Debug)
 
@@ -327,6 +328,16 @@ pub fn bind_effect_results(
               is None {
               return Err(
                 binding_issue(InvalidCommandTarget, header, field=Some(name)),
+              )
+            }
+            if direct_role == EffectCommandIdentifier &&
+              @schema.field_presence(field) != @schema.Required {
+              return Err(
+                binding_issue(
+                  InvalidCommandIdentifier,
+                  header,
+                  field=Some(name),
+                ),
               )
             }
             fields.push({ role: direct_role, field, })

@@ -8817,8 +8817,9 @@ The kind determines its authority class:
 Every normalized data Effect MUST retain an explicit `target` and a
 typed-qualified Mapping Contract reference in `mapping`, whether authored in
 the long form or uniquely resolved from the published short-form binding. Every command MUST explicitly declare
-a Command Contract and either a ResourceRef result field or the closed
-`published_store` target below. The latter is exclusively the normalization of
+a Command Contract and exactly one of a ResourceRef result field, the closed
+`published_command` selection, or the closed `published_store` target below.
+The STORE alternative is exclusively the normalization of
 an authored object/file/stage STORE through its original published Mapping and
 exact Command relationship; it does not issue a ResourceRef or grant. The
 canonical `store` opcode remains relation materialization. The selected Mapping,
@@ -8944,6 +8945,35 @@ validated against the closed Connector-owned input contract. Unknown, missing,
 nullable, vector-dimension, ContentRef-media, and ResourceRef-kind mismatches
 fail during check or preview. The target field may be projected away only by
 making the command invalid; receipt-only lineage cannot restore it.
+
+<!-- requirement-block: effects.published-command-original-domain -->
+A `command.target.published_command` selection MUST resolve its `contract` to
+one original Command/Catalog/environment occurrence with an explicit
+[target binding declaration](protocols/contracts.md#command-contracts).
+`target_ref` is structural installation selection data, not a ResourceRef,
+permission or current grant. An absent binding declaration retains the old
+field-target contract and cannot default to fixed-installation meaning.
+
+<!-- requirement-block: effects.published-command-identifier-domain -->
+The selected mode and `identifier_field` MUST agree: absence for an
+`installation` declaration, or one present, non-null Result field assignable to
+that original complete checked identity contract for an `identifier` declaration. The static
+binding retains the original field and domain and charges their full admission
+and comparison work. No observed sample, suffix, column name or matching CID
+may supply a missing declared domain. The identifier field is not an issued
+Reference and does not replace authored input-row ID correspondence.
+
+<!-- requirement-block: effects.published-command-original-custody -->
+Before execution, the existing installed target owner MUST retain and recheck
+its trusted nominal issuer original and current closure against the selected
+Command/Catalog/environment, installation, exact target kind, scope and
+generation, through original capture, Preview, Run materials, apply and restore.
+Missing originals refuse before send; the canonical selector alone cannot
+construct them. Recovery uses the retained occurrence rather than resolving a
+current alias. The existing Command mutation identity remains contract, target
+and canonical payload: a different authored row ID cannot make a duplicate
+mutation distinct. This alternative does not fabricate or borrow a STORE
+Mapping and does not change ordinary table `store`.
 
 An `update` or `upsert` change value is either a literal or a field from its
 correlated result row:
@@ -10744,6 +10774,10 @@ CommandBody  := {
         | { published_store: {
               target_ref: ConcreteLogicalTargetRef,
               mapping_ref: MappingContractRef
+            } }
+        | { published_command: {
+              target_ref: ConcreteLogicalTargetRef,
+              identifier_field?: ResultField
             } },
   contract: CommandContractRef,
   input: { InputField: ({ literal: JsonValue } | { field: ResultField }) }*,
@@ -10769,11 +10803,12 @@ EffectPredicate := SelectorPredicate<SelectorOperand>   (see [Predicates](#predi
 The grammar alternatives are exclusive. `create` accepts exactly one of a
 named result or payload; `update` and `delete` accept exactly one selector. A
 `command` consumes its named Result and Connector-owned typed contract. Its
-ordinary target is a ResourceRef field. The sole `published_store` alternative
+ordinary target is a ResourceRef field. The `published_store` alternative
 retains the original Mapping/Command pair selected for authored object STORE;
-its references are structural selection data, not target authority. Both target
-objects are closed, exclusive alternatives; NULL, extra fields and mixed forms
-MUST reject. It has no arbitrary Mapping selection or URL/method/body escape.
+`published_command` retains a distinct fixed or declared-identifier Command
+selection. Their references are structural selection data, not target authority.
+All three target objects are closed, exclusive alternatives; NULL, extra fields
+and mixed forms MUST reject. It has no arbitrary Mapping selection or URL/method/body escape.
 [Predicates](#predicates) defines the shared predicate vocabulary; [Effect declarations](#effects) defines Effect
 selector scope.
 Every literal in `set` MUST use `{literal: ...}`; an object containing exactly
