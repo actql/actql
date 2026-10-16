@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import {checkWorkersArtifact, conformanceModules, hostModules,
   finiteConformanceModules, finiteRuntimeModules} from './artifact.mjs';
 import {build} from 'esbuild';
-import {mkdtempSync,mkdirSync,writeFileSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildHost, buildFiniteRuntime} from './build.mjs';
+import {checkPureRuntime} from './moon-runtime.mjs';
+import {generateCompilerBindings} from '../../scripts/generate-js-compiler-bindings.mjs';
 
 function graph(dependency, options = {}) {
   return {
@@ -101,6 +103,43 @@ test('task observation review does not admit an unreviewed sibling or dependency
       },
       outputs: {'bundle.mjs': {imports: []}},
     }, 'export {};', modules), /WorkersDependencyRejected/);
+  }
+});
+
+test('generated compiler binding has the exact canonical dependency-free Workers graph', async () => {
+  const root = new URL('../../', import.meta.url);
+  const binding = 'adapters/host-common/compiler-binding.generated.mjs';
+  generateCompilerBindings(root);
+  const source = readFileSync(new URL(binding, root), 'utf8');
+  assert.equal(source, readFileSync(new URL('scripts/templates/js-compiler-binding.mjs', root), 'utf8'));
+  checkPureRuntime(source);
+  const result = await build({
+    absWorkingDir: fileURLToPath(root), entryPoints: [binding],
+    bundle: true, platform: 'browser', format: 'esm',
+    metafile: true, write: false,
+  });
+  assert.deepEqual(Object.keys(result.metafile.inputs), [binding]);
+  assert.deepEqual(result.metafile.inputs[binding].imports, []);
+  for (const modules of [hostModules, conformanceModules,
+    finiteRuntimeModules, finiteConformanceModules]) {
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+  }
+});
+
+test('generated compiler binding review grants no sibling or dependency allowance', () => {
+  const binding = 'adapters/host-common/compiler-binding.generated.mjs';
+  const sibling = 'adapters/host-common/compiler-binding-unreviewed.mjs';
+  for (const modules of [hostModules, conformanceModules,
+    finiteRuntimeModules, finiteConformanceModules]) {
+    assert.throws(() => checkWorkersArtifact({
+      inputs: {[sibling]: {imports: []}}, outputs: {'bundle.mjs': {imports: []}},
+    }, 'export {};', modules), /WorkersModuleRejected/);
+    for (const dependency of [sibling, 'node:fs']) {
+      assert.throws(() => checkWorkersArtifact({
+        inputs: {[binding]: {imports: [{path: dependency, kind: 'import-statement'}]}},
+        outputs: {'bundle.mjs': {imports: []}},
+      }, 'export {};', modules), /WorkersDependencyRejected/);
+    }
   }
 });
 
