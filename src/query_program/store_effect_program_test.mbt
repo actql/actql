@@ -390,6 +390,7 @@ test "STORE takes original typed content from SERIALIZE through the existing com
       1000,
     ) {
     Ok(candidate) => candidate
+    Err(Computation(Source(issue))) => raise issue
     Err(Computation(issue)) => raise issue
     Err(_) =>
       fail(
