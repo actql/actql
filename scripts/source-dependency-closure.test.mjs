@@ -1,11 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {productionDependencyClosure, productionPackageImports} from './source-dependency-closure.mjs';
+import {productionDependencyClosure, productionPackageImports, scopedPackageImports} from './source-dependency-closure.mjs';
 
 const imports = (path, scope = '') => `import { "actql/actql/${path}" @renamed, }${scope}`;
 const closure = sources => productionDependencyClosure('root', name => {
   assert.ok(Object.hasOwn(sources, name), `Missing manifest ${name}`);
   return sources[name];
+});
+
+test('scoped reader retains explicit test composition beside unrelated manifest directives', () => {
+  const source = `options(link: {"native": {"cc": "driver"}})\n` +
+    imports('a') + imports('b', ' for "test"') + imports('c', ' for "wbtest"');
+  assert.deepEqual(scopedPackageImports(source).map(({path, scope}) => [path, scope]), [
+    ['actql/actql/a', 'production'], ['actql/actql/b', 'test'], ['actql/actql/c', 'wbtest'],
+  ]);
+  assert.deepEqual(productionPackageImports(source), ['a']);
 });
 
 test('production closure retains direct and transitive concrete dependencies', () => {

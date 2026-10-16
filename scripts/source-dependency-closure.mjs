@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {packageImports, tokens} from './portable-core.mjs';
 
-export function productionPackageImports(source) {
+export function scopedPackageImports(source) {
   const ts = tokens(source), imports = [];
   let depth = 0;
   for (let i = 0; i < ts.length; i++) {
@@ -16,15 +16,19 @@ export function productionPackageImports(source) {
       if (ts[i + 1]?.kind === 'word' && ts[i + 1].value === 'for') i += 2;
       const block = ts.slice(start, i + 1).map(t =>
         t.kind === 'string' ? JSON.stringify(t.value) : t.value).join(' ');
-      imports.push(...packageImports(block).filter(entry =>
-        entry.scope === 'production' && entry.path.startsWith('actql/actql/'))
-        .map(entry => entry.path.slice('actql/actql/'.length)));
+      imports.push(...packageImports(block));
     } else if (token.kind === 'symbol') {
       if (['{', '(', '['].includes(token.value)) depth++;
       else if (['}', ')', ']'].includes(token.value)) depth--;
     }
   }
   return imports;
+}
+
+export function productionPackageImports(source) {
+  return scopedPackageImports(source).filter(entry =>
+    entry.scope === 'production' && entry.path.startsWith('actql/actql/'))
+    .map(entry => entry.path.slice('actql/actql/'.length));
 }
 
 export function productionDependencyClosure(name, readManifest) {
