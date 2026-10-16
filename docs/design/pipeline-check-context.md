@@ -1274,3 +1274,19 @@ input owners retain and recheck those originals through Preview, apply and Run
 restoration. Authored input-row ID correspondence remains distinct from target
 identifier selection and mutation identity. A lowerer must not discard that ID
 or turn an unsupported Effect into a successful pure query.
+
+The canonical Command `input_key` is admitted by the existing Effect header
+owner and resolved to one guaranteed-present, non-null KeyComparable Result
+field. The Stage Result binding gives it a separate role from the target
+identifier and payload fields. `effect_command_input_key` returns that original
+field only under the same opaque `EffectCommandInputBinding`; neither the
+getter nor a caller-supplied field name issues key or uniqueness evidence.
+
+The captured-input owner must validate the complete original occurrence under
+its existing bounded cursor, workspace, cancellation and cleanup accounting.
+Both proposal construction and later payload-proof construction refuse when
+that original-input obligation cannot be discharged. A retained Preview cannot
+make a missing key proof available. Field-target and published-target Commands
+with an absent key retain their prior preparation and encoding behavior. The
+key is correspondence metadata, not an extra payload member or mutation-key
+component; different row IDs cannot authorize duplicate sends.
