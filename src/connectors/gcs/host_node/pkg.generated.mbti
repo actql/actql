@@ -38,6 +38,14 @@ pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.Objec
 
 pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]
 
+pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]
+
+pub fn gcs_upload_command_json(String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]
+
+pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String
+
+pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]
+
 // Errors
 
 // Types and methods
