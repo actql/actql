@@ -522,6 +522,7 @@ fn check_impl(
       if !(@typing.result_type(binding.expression).shape is @contract.Boolean) {
         fail(body, ExpectedBoolean)
       }
+      output = filter_property_schema(b, body, input_schema, binding.expression)
       bindings.push(binding)
       Predicate
     }
