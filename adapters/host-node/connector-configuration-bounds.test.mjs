@@ -194,6 +194,14 @@ test('Salesforce publication preserves replacement decoding and the exact decode
   assert.equal(Buffer.byteLength(body + ' ', 'utf8'), publicationLimit + 1);
   await assert.rejects(readPublicationFile(f.path), {code: 'InvalidSalesforcePublication'});
   assert.equal(f.state.bytes, raw.length + 1);
+  const originalCounter = Buffer.concat([Buffer.from('{"original":"'),
+    Buffer.alloc(5_333_334, 0xff), Buffer.from('"}')]);
+  assert.equal(originalCounter.length, 5_333_349);
+  assert.equal(Buffer.byteLength(originalCounter.toString('utf8'), 'utf8'), 16_000_017);
+  assert.equal(createHash('sha256').update(originalCounter).digest('hex'),
+    'e50d8ece3fd79e6caf4777b3878f385bc497cb36ad78555442cc695864787f6d');
+  await fs.writeFile(f.path, originalCounter);
+  await assert.rejects(readPublicationFile(f.path), {code: 'InvalidSalesforcePublication'});
   f.passed();
 });
 
