@@ -3,12 +3,14 @@ import {execFileSync} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {test} from 'node:test';
-import {pythonStructuralValidatorSource} from './python-client-wire-codec.mjs';
+import {pythonStructuralValidatorSource, pythonResponseValidatorSource} from './python-client-wire-codec.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 test('Python structural codec matches generated output', async () => {
-  assert.equal(await readFile(new URL('../packages/python-sdk/src/actql_sdk/_wire_codec.py', import.meta.url), 'utf8'),
-    pythonStructuralValidatorSource());
+  const base = new URL('../packages/python-sdk/src/actql_sdk/', import.meta.url);
+  const contract = JSON.parse(await readFile(new URL('_contract.json', base), 'utf8'));
+  assert.equal(await readFile(new URL('_wire_codec.py', base), 'utf8'),
+    pythonStructuralValidatorSource() + pythonResponseValidatorSource(contract.check_report_rules));
 });
 
 test('Remote facade shares the real generated objects without Local runtime dependencies', () => {

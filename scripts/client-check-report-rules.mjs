@@ -2,10 +2,19 @@
 // These rules admit wire evidence; they do not check or execute a query.
 const rules = {
   unique_document_ids: {
+    python: `if len(documents) != len(report['inputs']):
+        return False`,
     js: `if (documents.size !== report.inputs.length) return false;`,
     native: `if documents.length() != inputs.length() { return false }`,
   },
   input_document_kinds: {
+    python: `if 'program' in documents:
+        if documents['program']['kind'] != 'structured' or {'source', 'parameter_declarations'} & documents.keys():
+            return False
+    elif documents.get('source', {}).get('kind') != 'text':
+        return False
+    if any(item['kind'] != 'structured' for key, item in documents.items() if key != 'source'):
+        return False`,
     js: `const program = documents.get('program');
     if (program ? program.kind !== 'structured' || documents.has('source') ||
         documents.has('parameter_declarations') : documents.get('source')?.kind !== 'text') return false;
@@ -24,6 +33,14 @@ const rules = {
     }`,
   },
   locations_match_input: {
+    python: `for reason in occurrences:
+        location = reason.get('location')
+        if location is not None:
+            doc = documents.get(location['document_id'])
+            if doc is None or (doc['revision'], doc['kind']) != (location['revision'], location['kind']):
+                return False
+            if location['kind'] == 'text' and not 0 <= location['start_byte'] <= location['end_byte'] <= doc['byte_length']:
+                return False`,
     js: `for (const reason of occurrences) {
       const location = reason.location;
       if (!location) continue;
@@ -50,6 +67,13 @@ const rules = {
     }`,
   },
   fix_targets_match_exact_eof: {
+    python: `for reason in occurrences:
+        for fix in reason.get('fixes', []):
+            doc = documents.get(fix['target']['document_id'])
+            if doc is None or doc['kind'] != 'text' or doc['revision'] != fix['target']['revision']:
+                return False
+            if any(edit['start_byte'] != doc['byte_length'] or edit['end_byte'] != doc['byte_length'] for edit in fix['edits']):
+                return False`,
     js: `for (const reason of occurrences) for (const fix of reason.fixes ?? []) {
       const input = documents.get(fix.target.document_id);
       if (!input || input.kind !== 'text' || input.revision !== fix.target.revision) return false;
@@ -129,4 +153,19 @@ fn wire_check_report_contract(value : Json) -> Bool {
   ${selected.map(name => rules[name].native).join('\n  ')}
   true
 }\n`;
+}
+
+// The same registered relationships project to the lightweight Python codec.
+export function pythonCheckReportRules(selected) {
+  return `def check_outcome(value):
+    if not valid(value, 'check_outcome') or value['outcome_schema_cid'] != CONTRACT['check_outcome_schema_cid']:
+        return False
+    report = value.get('report', value.get('partial_report'))
+    if report is None:
+        return True
+    documents = {item['document_id']: item for item in report['inputs']}
+    occurrences = report['reasons'] + report['requirements'] + report['coverage']['limits']
+    ${selected.map(name => rules[name].python).join('\n    ')}
+    return True
+`;
 }
