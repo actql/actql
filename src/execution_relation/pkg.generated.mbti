@@ -131,6 +131,8 @@ pub fn advance_prepare_producer_read(ProducerReadPreparation) -> Result[Producer
 
 pub fn advance_relation_schema_identity(RelationSchemaIdentityPreparation, Int) -> Result[(Bool, Int), RelationSchemaIdentityIssue]
 
+pub fn advance_release_completed_content_references(CompletedContentReferences, Int) -> Bool
+
 pub fn advance_retained_output_reference_reclamation(RetainedOutputMaterial, Int) -> Bool
 
 pub fn advance_row_wire_order(RowWireOrderPreparation, Int) -> Result[(Bool, Int), RowWireIssue]
@@ -466,6 +468,8 @@ pub fn completed_cell(CompletedOutput, Int, Int) -> Value?
 pub fn completed_column_count(CompletedOutput) -> Int
 
 pub fn completed_column_name(CompletedOutput, Int) -> String?
+
+pub fn completed_content_reference_field(CompletedContentReferences, Int, @relation_schema.Field, Int, Int) -> Result[@value_admission.ReferenceValue, CompletedExportIssue]
 
 pub fn completed_export_content(CompletedOutputExportReceipt) -> AdmittedOutputStreamReceipt
 
@@ -1405,6 +1409,8 @@ pub fn supplied_relation_read_schema(SuppliedRelationRead) -> @relation_schema.S
 
 pub fn take_admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOutputRows?
 
+pub fn take_completed_relation_content_references(CompletedRelationExportReceipt) -> Result[CompletedContentReferences, CompletedExportIssue]
+
 pub fn[T] take_managed_view_selection(ManagedViewSelectionPreparation[T]) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue]
 
 pub fn trusted_output_carrier_input(@managed_carrier_runtime.ProducerReadReference) -> TrustedOutputInput
@@ -1790,6 +1796,8 @@ type CarrierManagedCompletionPort[P]
 type CarrierManagedCompletionReference
 
 type CarrierManagedProducerRead
+
+type CompletedContentReferences
 
 pub(all) enum CompletedExportIssue {
   Unavailable

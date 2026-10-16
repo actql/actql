@@ -276,7 +276,11 @@ pub fn client_program_effect_command_content_borrow(@run_publication_host.Prepar
 
 pub fn client_program_effect_command_content_matches(@run_publication_host.ClientEffectCommandContent, @run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, String) -> Bool
 
+pub fn client_program_effect_command_content_prepare_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectCommandContentIssue]
+
 pub fn client_program_effect_command_content_release(@run_publication_host.ClientEffectCommandContent) -> Unit
+
+pub fn client_program_effect_command_content_release_artifact(@run_publication_host.ClientEffectLocalResultArtifact, Int) -> Bool
 
 pub fn client_program_effect_command_content_wire(@run_publication_host.ClientEffectCommandContent) -> Result[String, @run_publication_host.ClientEffectCommandContentIssue]
 
