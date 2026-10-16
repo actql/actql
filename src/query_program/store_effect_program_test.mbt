@@ -285,7 +285,7 @@ test "STORE set tail captures the completed UNION once" {
   assert_eq(@program.export_count(program), 0)
   let steps = store_capture_steps(program)
   let union_steps = steps.filter(step => {
-    @wire.lookup(@wire.open_object(step).unwrap(), "union") is Some(_)
+    @wire.lookup(@wire.open_object(step).unwrap(), "append") is Some(_)
   })
   assert_eq(union_steps.length(), 1)
   assert_eq(
@@ -347,4 +347,81 @@ test "STORE relation Mapping keeps canonical relation materialization" {
     "mapping:fixture.archive.v1",
   )
   assert_eq(@program.export_count(program), 0)
+}
+
+///|
+test "STORE takes original typed content from SERIALIZE through the existing compiler" {
+  let query = @query.parse_query(
+    "FROM pair |> SERIALIZE FORMAT JSONL PRESERVE ORDER OPTIONS (name = 'pair.jsonl', max_rows = 1, max_bytes = 128) |> EFFECT STORE storage.archive SET (path = name, content = content)",
+    syntax_limits(),
+  ).unwrap()
+  let program = match
+    compile(
+      query,
+      pair_context(),
+      construction_limits(),
+      store_targets=Some(store_capture_publication()),
+    ) {
+    Ok(program) => program
+    Err(issue) =>
+      fail("SERIALIZE STORE refused: " + store_capture_issue_label(issue))
+  }
+  assert_eq(@program.export_count(program), 0)
+  let headers = @program.collect_effect_headers(program, 10, 10000).unwrap()
+  assert_eq(@program.effect_header_count(headers), 1)
+  let steps = store_capture_steps(program)
+  assert_eq(
+    steps
+    .filter(step => {
+      @wire.lookup(@wire.open_object(step).unwrap(), "serialize") is Some(_)
+    })
+    .length(),
+    1,
+  )
+  let environment = store_source_environment("collection")
+  let candidate = match
+    @check.prepare_effect_computation_candidate(
+      program,
+      environment,
+      None,
+      [],
+      check_limits(),
+      1,
+      1000,
+    ) {
+    Ok(candidate) => candidate
+    Err(_) =>
+      fail(
+        "original SERIALIZE computation must reach the existing Effect checker",
+      )
+  }
+  let mappings = @environment.check_mapping_contract_shapes(
+    @check.checking_environment_wire(environment),
+    { max_bytes: 40000, max_nodes: 4000, max_depth: 100, max_members: 100, },
+    10000,
+  ).unwrap()
+  let closed = @check.close_effect_computation_static(candidate, mappings, {
+    max_members: 10,
+    max_work: 10000,
+    max_admission_nodes: 1000,
+    max_admission_depth: 100,
+    max_admission_text_bytes: 10000,
+  }).unwrap()
+  assert_eq(
+    @program.effect_header_count(@check.effect_program_static_headers(closed)),
+    1,
+  )
+}
+
+///|
+test "source Frontend preserves the original STORE publication and private output" {
+  let publication = store_capture_publication()
+  let lowered = @frontend.lower(
+    "FROM files |> EFFECT STORE storage.archive SET (path = path, content = content)",
+    Pipe,
+    Some(store_capture_context()),
+    store_targets=Some(publication),
+  ).unwrap()
+  assert_true(physical_equal(lowered.store_targets.unwrap(), publication))
+  assert_eq(@program.export_count(lowered.program.unwrap()), 0)
 }
