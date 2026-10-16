@@ -11,7 +11,9 @@ test('original Cloud web config retains actual Vite authored inputs and pinned e
   const root = '/private/tmp/actql-f-if-cloud-owners-20261016';
   const original = JSON.parse(readFileSync(directory + 'f-cloud-owner-source-roots.json'));
   assert.equal(original.sourceSha, '9902e2131a3a53f2bbd23e865a48ebe1da958fca');
-  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim(), original.sourceSha);
+  const source = '8ef64616f12e7b05478d3a2b6bd753032705ed19';
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim(), source);
+  execFileSync('git', ['merge-base', '--is-ancestor', original.sourceSha, source], {cwd: root});
   assert.equal(execFileSync('git', ['status', '--porcelain'], {cwd: root, encoding: 'utf8'}), '');
   for (const module of original.modules) assert.equal(
     createHash('sha256').update(readFileSync(join(root, module.module))).digest('hex'), module.sha256);
@@ -21,7 +23,7 @@ test('original Cloud web config retains actual Vite authored inputs and pinned e
   assert(result.modules.some(value => value.module === 'web/src/features/effect-checkpoint-preview.tsx'));
   assert(result.externalModules.length);
   writeFileSync(directory + 'b-cloud-web-interface-projection.json', JSON.stringify({
-    ...result, source: original.sourceSha,
+    ...result, source, rootProjectionSource: original.sourceSha,
     readerSource: execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim(),
     qualification: 'actual-configured-web-inputs-only; not-deployed-or-installed-admission'}, null, 2) + '\n');
   assert.equal(execFileSync('git', ['status', '--porcelain'], {cwd: root, encoding: 'utf8'}), '');
