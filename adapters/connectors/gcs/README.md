@@ -70,6 +70,32 @@ and any failed-close custody overlap that preparation until their actual
 owners acknowledge retirement. Dropping a JS reference, WeakMap membership,
 GC opportunity or callback return is not physical cleanup evidence.
 
+## Collection target material
+
+`ObjectCollectionBinding` derives the existing Mapping collection identity body
+from the explicitly selected target, resource kind and exact project/bucket/
+prefix. Its ResourceRef wire reuses the existing GCS provider/scope domains and
+the selected Catalog boundary. It does not infer writes from a Source alias.
+The installation identity is retained in the original opaque binding, not
+silently inserted into an existing identity domain. Equal resource wire from
+another installation cannot substitute that original binding.
+
+`prepareGcsCollectionTarget` is a typed DATA adapter, not a ResourceIssuer. The
+existing installed Common receiver must separately admit and retain its exact
+Mapping/Command pair, actual installation/current matcher and original issued
+ReferenceValue. A copied frame, wire or CID cannot restore that custody. No
+installation, currentness, STORE dispatch, recovery or send grant follows from
+the synchronous DATA guard. The intended collection resource kind must match
+the actual checked Command target; this helper does not publish that Command.
+
+The existing preparation envelope must include the original binding, immutable
+project/bucket/prefix/target/installation aliases, collection/reference wires,
+CID strings, canonical JSON trees, UTF8/hash workspace and transient provider/
+scope identity strings. The JS projection and private association add their own
+records/references. Three separate representation clamps do not make their
+peak overlap a funded bound. Retain escaped borrowers through the original
+receiver's actual lifetime; WeakMap membership or deletion is not physical ACK.
+
 ## Verification boundary
 
 The catalog white-box tests execute the portable semantics with independent

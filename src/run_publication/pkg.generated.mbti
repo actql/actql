@@ -930,6 +930,8 @@ pub fn validate_effectful_publication_commit(PublicationContract, PublicationCon
 
 pub fn validate_effectful_publication_commit_with_result_evidence(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, EffectfulPublicationCommitIssue]
 
+pub fn validate_historical_original_succeeded_run_state(PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
+
 pub fn validate_local_result_artifact_evidence(String, PublicationContract, ResultOrderingEvidence, PublicationContract) -> Result[Unit, ResultArtifactEvidenceIssue]
 
 pub fn validate_original_interactive_run_evidence(PublicationContract, RunEvidenceValue, RunEvidenceValue) -> Result[Unit, RunControlReadIssue]

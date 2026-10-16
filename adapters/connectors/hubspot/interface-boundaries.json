@@ -1,0 +1,180 @@
+{
+  "baseSource": "6f0907f2b6758025d316bac1d36f0f3a86e48f32",
+  "qualification": "Existing HubSpot projection and physical Credential/Account/RowRun references. Private component preparation, not normal package/public support, permission or numerical funding evidence.",
+  "declarations": [
+    {
+      "module": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+      "sha256": "8221e4319d0787b87342769ece661206bce066fcf512b297c0ab53409af94c9d",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing HubSpot Source/Decode projection and Credential/Account/RowRun owners",
+      "exports": [
+        "HUBSPOT_ACCOUNT_DETAILS_OPERATION",
+        "HubSpotAccountObservationFailure",
+        "observeHubSpotAccount"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "HubSpotAccountObservationFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeHubSpotAccount",
+          "parameters": [
+            "moon",
+            "originalPortalId",
+            "authorization",
+            "credential",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "observeHubSpotAccount/observeHubSpotAccount",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeHubSpotAccount/observeHubSpotAccount#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "HubSpotAccountObservationFailure/constructor:constructor/constructor:constructor",
+            "observeHubSpotAccount",
+            "observeHubSpotAccount/observeHubSpotAccount",
+            "observeHubSpotAccount/observeHubSpotAccount#2",
+            "positive/positive"
+          ],
+          "exports": [
+            "HUBSPOT_ACCOUNT_DETAILS_OPERATION",
+            "HubSpotAccountObservationFailure",
+            "observeHubSpotAccount"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "anchor": "export async function observeHubSpotAccount"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/host_node/bridge.mbt",
+                "anchor": "pub fn hubspot_recheck_account_identity_json("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/account_identity.mbt",
+                "anchor": "pub fn recheck_account_identity("
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "function acquireBinding("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "export function closeHttpsCredentialBinding("
+              },
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "anchor": "Object.defineProperty(this, 'observation'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "journal.authorize("
+              },
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "anchor": "await context.callbacks.current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "anchor": "export class HubSpotAccountObservationFailure"
+              },
+              {
+                "path": "adapters/site-node/sqlite-credential-journal.mjs",
+                "anchor": "finish(useCid, outcome)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "export function closeHttpsCredentialBinding("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "anchor": "const charge = await context.callbacks.chargeResponse(response.body);"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn consume_row_run_observation_charge("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/host_node/moon.pkg",
+                "anchor": "supported_targets = \"js\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-account-read.test.mjs",
+                "anchor": "test('actual identity request"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/account_identity_wbtest.mbt",
+                "anchor": "test \"account identity rejects numeric rounding"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

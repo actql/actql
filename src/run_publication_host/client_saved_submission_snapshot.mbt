@@ -93,8 +93,15 @@ fn[E] read_client_saved_submission_row(
     }
   }
   if record.run_state_original is Some(wire) {
-    guard inspection is Some(original) &&
-      restore_client_run_state_original(original.definition, wire) is Ok(_) else {
+    guard inspection is Some(original) else { return Err(custody_lost) }
+    let valid = match record.run_state_observation {
+      None =>
+        validate_client_historical_run_state_original(original.definition, wire)
+        is Ok(_)
+      Some(_) =>
+        restore_client_run_state_original(original.definition, wire) is Ok(_)
+    }
+    if !valid {
       return Err(custody_lost)
     }
   }
