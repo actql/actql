@@ -389,7 +389,7 @@ class AsyncClient:
         return self._source_query('sql', text, parameters, **options)
 
     def aql(self, text, parameters=None, **options):
-        return self._source_query('aql', text, parameters, **options)
+        return self._source_query('aql-text', text, parameters, **options)
 
     def _source_query(self, format, text, parameters, *, submission_ref=None, request_id=None,
                       attempt_id=None, parameter_declarations=_MISSING, result=None):

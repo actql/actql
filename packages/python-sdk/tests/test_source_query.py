@@ -135,7 +135,7 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
         client = await self.client(peer)
         query = client.aql('FROM source |> LIMIT 2', request_id='chosen-original', result='other')
         await query.all()
-        self.assertEqual(peer.requests[1][1]['input']['format'], 'aql')
+        self.assertEqual(peer.requests[1][1]['input']['format'], 'aql-text')
         self.assertEqual(peer.requests[1][1]['submissionRef']['nonce'], 'chosen-original')
         self.assertEqual(peer.requests[-1][1]['resultName'], 'other')
 
