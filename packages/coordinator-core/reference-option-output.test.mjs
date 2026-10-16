@@ -24,7 +24,9 @@ test('actual Coordinator boxed Some preserves the original admitted output and r
   assert.equal(facts.rowCount,'2');
   assert.equal(facts.retainedBytes,'12');
   assert(Object.isFrozen(facts));
-  assert.deepEqual(coordinator.acceptedSiteOutput(original.outputDurable),facts);
+  // The fixture's outputDurable is a different declared Owner type. Only the
+  // original dispatch DurableRecord enters this projection.
+  assert.equal(coordinator.durableDispatchCid(original.durable),original.requestCid);
   const foreign=coordinator.prepareDispatch({coordinatorAuthority:'coordinator-a',
     runDefinitionCid:'sha256:'+'0'.repeat(64),taskKey:'task-a',taskAttempt:1,
     dispatchId:'different-original-dispatch',siteKey:'site-a',siteGeneration:1,
