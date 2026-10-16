@@ -252,6 +252,24 @@ read/cleanup responsibility. No normal numerical profile is introduced.
 
 ## Original multipart upload request
 
+The same original upload binding also supplies the checked current-object
+metadata path (`object_upload_metadata_path`) and its declared metadata byte
+clamp. `readGcsUploadTarget` uses those projections through the existing
+`gcs:file:read` Credential operation once. It returns the original status,
+accepted flag, response body backing and header references before the caller
+admits an `ObjectUploadObservation`. A 404 is not inferred from a failed read;
+an absent reply, another HTTP status or matching DATA is not an upload grant.
+This does not replace the version-fixed Content reader.
+
+The installed capture/Effect must fund and retain this read before invocation.
+Its path/encoded-name strings, invocation control, pending Promise, response
+body and header aliases overlap the original binding and metadata parser.
+The parsed observation and its raw response remain in the original capture
+and recovery custody. A read return, cancellation request or rejected response
+does not acknowledge native cleanup or release that reservation. The raw byte
+clamp is not the metadata tree/workspace bound or a normal numerical profile.
+The actual Content borrow and same-Site driver integration remain unfinished.
+
 `ObjectUploadBinding` borrows the original collection and copies the checked
 Command permission set. `ObjectUploadObservation` distinguishes an explicit
 physical 404 from an unobserved target; a 200 retains the original exact object

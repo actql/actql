@@ -6,7 +6,8 @@ import test from 'node:test';
 import * as moon from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {prepareGcsCollectionTarget, prepareGcsCollectionUploadBinding} from '../host/gcs-collection-target.mjs';
 import {admitGcsUploadObservation, prepareOwnedGcsMultipartUpload, ownedGcsUploadBody,
-  recheckOwnedGcsUpload, ownedGcsUploadResponseMatches, sendOwnedGcsUpload} from '../site/gcs-owned-upload-request.mjs';
+  recheckOwnedGcsUpload, ownedGcsUploadResponseMatches, sendOwnedGcsUpload,
+  readGcsUploadTarget} from '../site/gcs-owned-upload-request.mjs';
 import {admitGcsObjectMetadata} from '../site/gcs-owned-object-request.mjs';
 
 const token = digit => `sha256:${digit.repeat(64)}`;
@@ -183,4 +184,54 @@ test('matching payload or a foreign marker cannot become an upload apply receipt
     assert.equal(ownedGcsUploadResponseMatches(request, response(change)), false);
   }
   assert.equal(request.applied, undefined);
+});
+
+test('target metadata read uses the original scoped path and response clamp without interpreting apply or 404', async () => {
+  const {binding: original} = binding();
+  const responseBody = Buffer.from('{"error":{"code":404}}');
+  const headers = [['x-goog-generation', 'old-original']];
+  let calls = 0;
+  const result = await readGcsUploadTarget({moon, binding: original, name,
+    authorization: authorization({operation: 'gcs:file:read'}), credential: {},
+    maxRequestBytes: 4096,
+    callResource: async invocation => {
+      calls++;
+      assert.equal(invocation.returnRejectedResponse, true);
+      const selected = invocation.operations.get('gcs:file:read');
+      assert.equal(selected.method, 'GET');
+      assert.equal(selected.path, '/storage/v1/b/bucket/o/in%2Fe%CC%81%252F.bin');
+      assert.equal(selected.body, undefined);
+      assert.equal(selected.bodyBytes, undefined);
+      assert.equal(selected.maxResponseBytes, undefined);
+      assert.equal(invocation.maxResponseBytes, metadata.maxBytes);
+      assert.deepEqual(selected.headers,
+        [['accept', 'application/json'], ['accept-encoding', 'identity']]);
+      return {accepted: false, statusCode: 404, useCid: 'original-404', body: responseBody, headers};
+    }});
+  assert.equal(calls, 1);
+  assert.equal(result.observation.body, responseBody);
+  assert.equal(result.headers, headers);
+  assert.equal(result.before, undefined, 'the original response is retained before admission');
+  assert.equal(result.applied, undefined);
+  assert.doesNotThrow(() => prepare(original, admitGcsUploadObservation(moon, original,
+    {name, ...result.observation})));
+});
+
+test('target metadata read refuses foreign scope before I/O and preserves the exact lost-response failure', async () => {
+  const {binding: original} = binding();
+  let calls = 0;
+  const failure = Object.freeze(Object.assign(new Error('metadata read lost'), {cleanupPending: true}));
+  const options = {moon, binding: original, name, maxRequestBytes: 4096,
+    authorization: authorization({operation: 'gcs:file:read'}), credential: {},
+    callResource: async () => { calls++; throw failure; }};
+  for (const name of ['outside/a', 'in/a\nb']) {
+    await assert.rejects(readGcsUploadTarget({...options, name}), {code: 'GcsInvalidUploadInput'});
+  }
+  await assert.rejects(readGcsUploadTarget({...options, authorization: authorization()}),
+    {code: 'ForeignGcsUploadTargetReadAuthorization'});
+  const controller = new AbortController();controller.abort();
+  await assert.rejects(readGcsUploadTarget({...options, signal: controller.signal}), {name: 'AbortError'});
+  assert.equal(calls, 0);
+  await assert.rejects(readGcsUploadTarget(options), error => error === failure);
+  assert.equal(calls, 1, 'read failure does not authorize retry or upload');
 });
