@@ -61,6 +61,7 @@ function send(response, {status = 200, headers = {}, body = ''} = {}) {
 // server observed, with credential headers reduced to `authorized`.
 export async function openHttpsExchangeFixture(t, {routes = [],
   faults = []} = {}) {
+  const preserveScratch = process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1';
   const root = await mkdtemp(join(tmpdir(), 'actql-https-exchange-'));
   const {ca, cert, key, caPath} = await fixtureCertificates(root);
   const seen = [];
@@ -116,7 +117,7 @@ export async function openHttpsExchangeFixture(t, {routes = [],
   const origin = `https://127.0.0.1:${server.address().port}`;
   const close = async () => {
     await new Promise(resolve => server.close(resolve));
-    await rm(root, {recursive: true, force: true});
+    if (!preserveScratch) await rm(root, {recursive: true, force: true});
   };
   t?.after(close);
   return Object.freeze({origin, ca, caPath, close,
