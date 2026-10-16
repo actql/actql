@@ -91,10 +91,11 @@ function runtimeImportReferences(tree) {
     if (/^(?:FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/u.test(node.type)) {
       current = scope(current, true);
       node.params.forEach((parameter, index) => {
+        const pattern = parameter.type === 'AssignmentPattern' ? parameter.left : parameter;
         for (const name of names(parameter)) {
-          const property = parameter.type === 'ObjectPattern' && parameter.properties.find(property =>
+          const property = pattern.type === 'ObjectPattern' && pattern.properties.find(property =>
             property.type === 'Property' && !property.computed && property.value.type === 'Identifier' && property.value.name === name);
-          declare(current, name, {parameter: parameter.type === 'Identifier' || property
+          declare(current, name, {parameter: pattern.type === 'Identifier' || property
             ? {function: node, index, property: property ? property.key.name ?? property.key.value : undefined} : undefined});
         }
       });
