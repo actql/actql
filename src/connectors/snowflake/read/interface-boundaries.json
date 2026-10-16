@@ -4,14 +4,22 @@
     {
       "module": "src/connectors/snowflake/read/read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a1c0b341767999d3775711b575af0041ca6554673e4358da4d334ccab9680423",
+      "sha256": "aa6bedb0b1770580b8b1bc488d3ba3051ac21d178a6e0319577c8535d78b0cb2",
       "role": "connector-semantics",
-      "owner": "Snowflake original page adaptation into the existing Common accounted RowRun; no independent Run or resource Owner",
+      "owner": "Snowflake one-shot SQL API request/response and original page adaptation into the existing Common accounted RowRun; no independent Run, authority or resource Owner",
       "exports": [],
       "operations": [
         {
           "name": "[T]fail_read",
           "declaration": "[ T ] fail_read ( read : Read , issue : ReadIssue ) - > Result [ T , ReadIssue ]"
+        },
+        {
+          "name": "accept_charged_first_result",
+          "declaration": "accept_charged_first_result ( read : Read , charge : @ rows . RowPageCharge , body : Bytes , expected_handle : String ? , ) - > Result [ Int , ReadIssue ]"
+        },
+        {
+          "name": "accept_charged_result_partition",
+          "declaration": "accept_charged_result_partition ( read : Read , charge : @ rows . RowPageCharge , ordinal : Int , body : Bytes , ) - > Result [ Int , ReadIssue ]"
         },
         {
           "name": "accept_first_result",
@@ -83,6 +91,8 @@
           "operations": [
             "<module>",
             "[T]fail_read",
+            "accept_charged_first_result",
+            "accept_charged_result_partition",
             "accept_first_result",
             "accept_result_partition",
             "capture_result_read",
@@ -167,32 +177,239 @@
       ]
     },
     {
+      "module": "src/connectors/snowflake/read/statement.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "cad778585a0924feddb0b95e177a68751913abe9812a410a834e06412dc9ea36",
+      "role": "connector-semantics",
+      "owner": "Snowflake one-shot SQL API request/response and original page adaptation into the existing Common accounted RowRun; no independent Run, authority or resource Owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]fail_statement",
+          "declaration": "[ T ] fail_statement ( value : StatementRead , issue : StatementIssue , ) - > Result [ T , StatementIssue ]"
+        },
+        {
+          "name": "accept_charged_statement_response",
+          "declaration": "accept_charged_statement_response ( value : StatementRead , response : StatementResponse , decoded_body : Bytes , ) - > Result [ Unit , StatementIssue ]"
+        },
+        {
+          "name": "accept_statement_response",
+          "declaration": "accept_statement_response ( value : StatementRead , request : StatementRequest , status_code : Int , wire_body : Bytes , decoded_body : Bytes , ) - > Result [ Unit , StatementIssue ]"
+        },
+        {
+          "name": "attempt_statement_request",
+          "declaration": "attempt_statement_request ( value : StatementRead , request : StatementRequest , ) - > Result [ Unit , StatementIssue ]"
+        },
+        {
+          "name": "charge_statement_response",
+          "declaration": "charge_statement_response ( value : StatementRead , request : StatementRequest , status_code : Int , wire_body : Bytes , ) - > Result [ StatementResponse , StatementIssue ]"
+        },
+        {
+          "name": "consume_statement_response",
+          "declaration": "consume_statement_response ( value : StatementRead , response : StatementResponse , ) - > Result [ Unit , StatementIssue ]"
+        },
+        {
+          "name": "mark_statement_response_unknown",
+          "declaration": "mark_statement_response_unknown ( value : StatementRead , request : StatementRequest , ) - > Result [ Unit , StatementIssue ]"
+        },
+        {
+          "name": "next_statement_request",
+          "declaration": "next_statement_request ( value : StatementRead , ) - > Result [ StatementRequest ? , StatementIssue ]"
+        },
+        {
+          "name": "prepare_statement_read",
+          "declaration": "prepare_statement_read ( read : Read , request_id : String , warehouse : String , role : String , timeout_seconds : Int , max_requests : Int , max_request_bytes : Int , ) - > Result [ StatementRead , StatementIssue ]"
+        },
+        {
+          "name": "reject_statement_response",
+          "declaration": "reject_statement_response ( value : StatementRead , response : StatementResponse , ) - > Result [ Unit , StatementIssue ]"
+        },
+        {
+          "name": "statement_handle_path",
+          "declaration": "statement_handle_path ( handle : String , partition : Int ? , max_bytes : Int , ) - > Result [ String , StatementIssue ]"
+        },
+        {
+          "name": "statement_live",
+          "declaration": "statement_live ( value : StatementRead ) - > Bool"
+        },
+        {
+          "name": "statement_original_request",
+          "declaration": "statement_original_request ( value : StatementRead , request : StatementRequest , ) - > Bool"
+        },
+        {
+          "name": "statement_read_complete",
+          "declaration": "statement_read_complete ( value : StatementRead ) - > Bool"
+        },
+        {
+          "name": "statement_read_handle",
+          "declaration": "statement_read_handle ( value : StatementRead ) - > String ?"
+        },
+        {
+          "name": "statement_read_request_id",
+          "declaration": "statement_read_request_id ( value : StatementRead ) - > String"
+        },
+        {
+          "name": "statement_request_body",
+          "declaration": "statement_request_body ( request : StatementRequest ) - > String ?"
+        },
+        {
+          "name": "statement_request_method",
+          "declaration": "statement_request_method ( request : StatementRequest ) - > String"
+        },
+        {
+          "name": "statement_request_path",
+          "declaration": "statement_request_path ( request : StatementRequest ) - > String"
+        },
+        {
+          "name": "statement_request_sequence",
+          "declaration": "statement_request_sequence ( request : StatementRequest ) - > Int"
+        },
+        {
+          "name": "statement_uuid",
+          "declaration": "statement_uuid ( value : String ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]fail_statement",
+            "accept_charged_statement_response",
+            "accept_statement_response",
+            "attempt_statement_request",
+            "charge_statement_response",
+            "consume_statement_response",
+            "mark_statement_response_unknown",
+            "next_statement_request",
+            "prepare_statement_read",
+            "reject_statement_response",
+            "statement_handle_path",
+            "statement_live",
+            "statement_original_request",
+            "statement_read_complete",
+            "statement_read_handle",
+            "statement_read_request_id",
+            "statement_request_body",
+            "statement_request_method",
+            "statement_request_path",
+            "statement_request_sequence",
+            "statement_uuid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/read/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "src/connectors/snowflake/read/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "c5371c6b648a90a7837e9780c7fcc8a616013fe8b281203d9d0d41e8f3019e9b",
+      "sha256": "20683366a9935577ea3d2d528f94bf2e2da39de8aed027998c316c213dc74c05",
       "role": "connector-semantics",
-      "owner": "Snowflake original page adaptation into the existing Common accounted RowRun; no independent Run or resource Owner",
+      "owner": "Snowflake one-shot SQL API request/response and original page adaptation into the existing Common accounted RowRun; no independent Run, authority or resource Owner",
       "exports": [
+        "pub fn accept_charged_statement_response(StatementRead, StatementResponse, Bytes) -> Result[Unit, StatementIssue]",
         "pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]",
         "pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]",
+        "pub fn accept_statement_response(StatementRead, StatementRequest, Int, Bytes, Bytes) -> Result[Unit, StatementIssue]",
+        "pub fn attempt_statement_request(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]",
         "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
+        "pub fn charge_statement_response(StatementRead, StatementRequest, Int, Bytes) -> Result[StatementResponse, StatementIssue]",
         "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
         "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
         "pub fn interrupt_result_read(Read) -> Unit",
+        "pub fn mark_statement_response_unknown(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]",
+        "pub fn next_statement_request(StatementRead) -> Result[StatementRequest?, StatementIssue]",
         "pub fn prepare_declared_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]",
+        "pub fn prepare_statement_read(Read, String, String, String, Int, Int, Int) -> Result[StatementRead, StatementIssue]",
         "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
         "pub fn prepared_read_projection(PreparedRead) -> @description.ReadProjection",
         "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
         "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
+        "pub fn reject_statement_response(StatementRead, StatementResponse) -> Result[Unit, StatementIssue]",
         "pub fn result_read_original(Read) -> @catalog.ResultSet?",
         "pub fn result_read_statement_handle(Read) -> String?",
         "pub fn result_read_usage(Read) -> (Int, Int64)",
         "pub fn start_accounted_read(PreparedRead, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.ResponseLimits, Int) -> Result[Read, ReadStartFailure]",
+        "pub fn statement_read_complete(StatementRead) -> Bool",
+        "pub fn statement_read_handle(StatementRead) -> String?",
+        "pub fn statement_read_request_id(StatementRead) -> String",
+        "pub fn statement_request_body(StatementRequest) -> String?",
+        "pub fn statement_request_method(StatementRequest) -> String",
+        "pub fn statement_request_path(StatementRequest) -> String",
+        "pub fn statement_request_sequence(StatementRequest) -> Int",
         "pub struct PreparedRead {",
         "pub struct Read {",
-        "pub struct ReadStartFailure {"
+        "pub struct ReadStartFailure {",
+        "pub struct StatementRead {",
+        "pub struct StatementRequest {",
+        "pub struct StatementResponse {"
       ],
       "operations": [
+        {
+          "name": "accept_charged_statement_response",
+          "declaration": "pub fn accept_charged_statement_response(StatementRead, StatementResponse, Bytes) -> Result[Unit, StatementIssue]"
+        },
         {
           "name": "accept_first_result",
           "declaration": "pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]"
@@ -202,8 +419,20 @@
           "declaration": "pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]"
         },
         {
+          "name": "accept_statement_response",
+          "declaration": "pub fn accept_statement_response(StatementRead, StatementRequest, Int, Bytes, Bytes) -> Result[Unit, StatementIssue]"
+        },
+        {
+          "name": "attempt_statement_request",
+          "declaration": "pub fn attempt_statement_request(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]"
+        },
+        {
           "name": "capture_result_read",
           "declaration": "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]"
+        },
+        {
+          "name": "charge_statement_response",
+          "declaration": "pub fn charge_statement_response(StatementRead, StatementRequest, Int, Bytes) -> Result[StatementResponse, StatementIssue]"
         },
         {
           "name": "close_result_read",
@@ -218,8 +447,20 @@
           "declaration": "pub fn interrupt_result_read(Read) -> Unit"
         },
         {
+          "name": "mark_statement_response_unknown",
+          "declaration": "pub fn mark_statement_response_unknown(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]"
+        },
+        {
+          "name": "next_statement_request",
+          "declaration": "pub fn next_statement_request(StatementRead) -> Result[StatementRequest?, StatementIssue]"
+        },
+        {
           "name": "prepare_declared_read",
           "declaration": "pub fn prepare_declared_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]"
+        },
+        {
+          "name": "prepare_statement_read",
+          "declaration": "pub fn prepare_statement_read(Read, String, String, String, Int, Int, Int) -> Result[StatementRead, StatementIssue]"
         },
         {
           "name": "prepared_read_acquisition",
@@ -238,6 +479,10 @@
           "declaration": "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue"
         },
         {
+          "name": "reject_statement_response",
+          "declaration": "pub fn reject_statement_response(StatementRead, StatementResponse) -> Result[Unit, StatementIssue]"
+        },
+        {
           "name": "result_read_original",
           "declaration": "pub fn result_read_original(Read) -> @catalog.ResultSet?"
         },
@@ -252,47 +497,108 @@
         {
           "name": "start_accounted_read",
           "declaration": "pub fn start_accounted_read(PreparedRead, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.ResponseLimits, Int) -> Result[Read, ReadStartFailure]"
+        },
+        {
+          "name": "statement_read_complete",
+          "declaration": "pub fn statement_read_complete(StatementRead) -> Bool"
+        },
+        {
+          "name": "statement_read_handle",
+          "declaration": "pub fn statement_read_handle(StatementRead) -> String?"
+        },
+        {
+          "name": "statement_read_request_id",
+          "declaration": "pub fn statement_read_request_id(StatementRead) -> String"
+        },
+        {
+          "name": "statement_request_body",
+          "declaration": "pub fn statement_request_body(StatementRequest) -> String?"
+        },
+        {
+          "name": "statement_request_method",
+          "declaration": "pub fn statement_request_method(StatementRequest) -> String"
+        },
+        {
+          "name": "statement_request_path",
+          "declaration": "pub fn statement_request_path(StatementRequest) -> String"
+        },
+        {
+          "name": "statement_request_sequence",
+          "declaration": "pub fn statement_request_sequence(StatementRequest) -> Int"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
+            "accept_charged_statement_response",
             "accept_first_result",
             "accept_result_partition",
+            "accept_statement_response",
+            "attempt_statement_request",
             "capture_result_read",
+            "charge_statement_response",
             "close_result_read",
             "finish_result_read",
             "interrupt_result_read",
+            "mark_statement_response_unknown",
+            "next_statement_request",
             "prepare_declared_read",
+            "prepare_statement_read",
             "prepared_read_acquisition",
             "prepared_read_projection",
             "read_start_failure_cleanup",
             "read_start_failure_issue",
+            "reject_statement_response",
             "result_read_original",
             "result_read_statement_handle",
             "result_read_usage",
-            "start_accounted_read"
+            "start_accounted_read",
+            "statement_read_complete",
+            "statement_read_handle",
+            "statement_read_request_id",
+            "statement_request_body",
+            "statement_request_method",
+            "statement_request_path",
+            "statement_request_sequence"
           ],
           "exports": [
+            "pub fn accept_charged_statement_response(StatementRead, StatementResponse, Bytes) -> Result[Unit, StatementIssue]",
             "pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]",
             "pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]",
+            "pub fn accept_statement_response(StatementRead, StatementRequest, Int, Bytes, Bytes) -> Result[Unit, StatementIssue]",
+            "pub fn attempt_statement_request(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]",
             "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
+            "pub fn charge_statement_response(StatementRead, StatementRequest, Int, Bytes) -> Result[StatementResponse, StatementIssue]",
             "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
             "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
             "pub fn interrupt_result_read(Read) -> Unit",
+            "pub fn mark_statement_response_unknown(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]",
+            "pub fn next_statement_request(StatementRead) -> Result[StatementRequest?, StatementIssue]",
             "pub fn prepare_declared_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]",
+            "pub fn prepare_statement_read(Read, String, String, String, Int, Int, Int) -> Result[StatementRead, StatementIssue]",
             "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
             "pub fn prepared_read_projection(PreparedRead) -> @description.ReadProjection",
             "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
             "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
+            "pub fn reject_statement_response(StatementRead, StatementResponse) -> Result[Unit, StatementIssue]",
             "pub fn result_read_original(Read) -> @catalog.ResultSet?",
             "pub fn result_read_statement_handle(Read) -> String?",
             "pub fn result_read_usage(Read) -> (Int, Int64)",
             "pub fn start_accounted_read(PreparedRead, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.ResponseLimits, Int) -> Result[Read, ReadStartFailure]",
+            "pub fn statement_read_complete(StatementRead) -> Bool",
+            "pub fn statement_read_handle(StatementRead) -> String?",
+            "pub fn statement_read_request_id(StatementRead) -> String",
+            "pub fn statement_request_body(StatementRequest) -> String?",
+            "pub fn statement_request_method(StatementRequest) -> String",
+            "pub fn statement_request_path(StatementRequest) -> String",
+            "pub fn statement_request_sequence(StatementRequest) -> Int",
             "pub struct PreparedRead {",
             "pub struct Read {",
-            "pub struct ReadStartFailure {"
+            "pub struct ReadStartFailure {",
+            "pub struct StatementRead {",
+            "pub struct StatementRequest {",
+            "pub struct StatementResponse {"
           ],
           "attributes": {
             "responsibility": [

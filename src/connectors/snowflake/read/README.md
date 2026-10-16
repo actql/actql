@@ -9,7 +9,7 @@ envelope digest. Explicit declaration limits bound this preparation.
 The existing `client_row_source_host` owns the acquisition, attempt, capture,
 transfer reservation, retention and cleanup. This package retains that same
 `RowRun` and the original SQL API result while admitting ordered partitions.
-Every received body is charged before decoding; metadata and typed values must
+Every received body is charged before Core parsing; metadata and typed values must
 match the original contracts, including precision, scale and nullability.
 Malformed, incomplete, duplicate, foreign or over-budget input cannot become a
 captured Source. SQL spelling comes from the description projection, not caller
@@ -31,6 +31,40 @@ Source declarations, accounted RowRuns and capture/cleanup Owners; physical stop
 observations are explicit test doubles. They do not establish service, installed
 product, Python Local, VM funding or recovery acceptance.
 
+## SQL API transport candidates
+
+Provider spelling follows the [SQL API reference](https://docs.snowflake.com/en/developer-guide/sql-api/reference)
+and [response protocol](https://docs.snowflake.com/en/developer-guide/sql-api/handling-responses).
+
+`prepare_statement_read` binds one request UUID, the original quoted projection,
+selected warehouse/role and bounded request count to that same Read. It emits
+one nominal POST candidate and then only GET candidates for the original handle
+and ordered partition. The request body selects one statement. A provider status
+URL is never followed; handle bytes are encoded as one bounded path segment.
+The existing Host still supplies current Source/credential authority for each
+actual request. Request material is not a grant, send receipt or durable journal.
+
+A dispatch candidate is one-shot. `charge_statement_response` charges its exact
+physical bytes before the selected driver decompresses or parses them, issuing
+one nominal response ticket. `accept_charged_statement_response` consumes that
+same ticket with the bounded decoded bytes. `accept_statement_response` is an
+identity-decoder convenience, not evidence of physical gzip execution. Decoded
+body provenance and simultaneously held wire/decoded storage remain the selected
+physical driver's responsibility. The independent test using distinct body bytes
+checks this API boundary only.
+
+A valid 202 status consumes that original charge as control input, without
+inventing an empty page, rows, evidence or completion. It must preserve the same
+statement handle. A complete 200 result uses the original nominal column contracts
+and existing Common page/capture Owner. Decoder refusal, changed handle, exhausted
+request/transfer bounds or response loss interrupts this original Read. A lost
+POST or GET retains the same request identity and known handle, never resends,
+creates another attempt, cancels the provider or acknowledges physical cleanup.
+
+These candidates and executed Common tests do not establish an actual HTTPS
+exchange, installed Site/profile, credential current check or socket retirement.
+Those remain the next consuming physical boundary, sharing this original Run.
+
 ## Interface responsibilities
 
 - Responsibility: Snowflake page/schema adaptation delegates acquisition and
@@ -48,6 +82,7 @@ product, Python Local, VM funding or recovery acceptance.
   without implying provider cancellation, physical stop or another attempt.
 - Failure: schema/decoder/bounds/transport-unsettled failures remain distinct;
   incomplete data and cleanup failure cannot become success or automatic resend.
+  Physical response loss retains its original request/handle as Unknown.
 - Cancellation: interruption rejects later input; physical settlement remains
   distinct and cleanup retries retain the same original attempt.
 - Resources: explicit response, contract-work, declaration and same-Ledger bounds
@@ -56,4 +91,6 @@ product, Python Local, VM funding or recovery acceptance.
   unsupported scalar types are not disguised as strings or JSON.
 - Verification: independent bodies cover exact decimal38/NULL, SQL and AQL
   compilation, partitions, schema changes, malformed/overflow input, transfer
-  exhaustion, partial begin, interruption and retained same-attempt cleanup.
+  exhaustion, partial begin, interruption and retained same-attempt cleanup;
+  nominal one-shot SQL API candidates, non-row statuses, original handles,
+  response-ticket replay/foreign rejection and bounded decoder refusal.

@@ -10,11 +10,19 @@ import {
 }
 
 // Values
+pub fn accept_charged_statement_response(StatementRead, StatementResponse, Bytes) -> Result[Unit, StatementIssue]
+
 pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]
 
 pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]
 
+pub fn accept_statement_response(StatementRead, StatementRequest, Int, Bytes, Bytes) -> Result[Unit, StatementIssue]
+
+pub fn attempt_statement_request(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]
+
 pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]
+
+pub fn charge_statement_response(StatementRead, StatementRequest, Int, Bytes) -> Result[StatementResponse, StatementIssue]
 
 pub fn close_result_read(Read) -> Result[Unit, ReadIssue]
 
@@ -22,7 +30,13 @@ pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]
 
 pub fn interrupt_result_read(Read) -> Unit
 
+pub fn mark_statement_response_unknown(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]
+
+pub fn next_statement_request(StatementRead) -> Result[StatementRequest?, StatementIssue]
+
 pub fn prepare_declared_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]
+
+pub fn prepare_statement_read(Read, String, String, String, Int, Int, Int) -> Result[StatementRead, StatementIssue]
 
 pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition
 
@@ -32,6 +46,8 @@ pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?
 
 pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue
 
+pub fn reject_statement_response(StatementRead, StatementResponse) -> Result[Unit, StatementIssue]
+
 pub fn result_read_original(Read) -> @catalog.ResultSet?
 
 pub fn result_read_statement_handle(Read) -> String?
@@ -39,6 +55,20 @@ pub fn result_read_statement_handle(Read) -> String?
 pub fn result_read_usage(Read) -> (Int, Int64)
 
 pub fn start_accounted_read(PreparedRead, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.ResponseLimits, Int) -> Result[Read, ReadStartFailure]
+
+pub fn statement_read_complete(StatementRead) -> Bool
+
+pub fn statement_read_handle(StatementRead) -> String?
+
+pub fn statement_read_request_id(StatementRead) -> String
+
+pub fn statement_request_body(StatementRequest) -> String?
+
+pub fn statement_request_method(StatementRequest) -> String
+
+pub fn statement_request_path(StatementRequest) -> String
+
+pub fn statement_request_sequence(StatementRequest) -> Int
 
 // Errors
 
@@ -59,12 +89,43 @@ pub(all) enum ReadIssue {
   Response(@catalog.ResponseIssue)
   SchemaMismatch(String)
   WrongPartition
+  WrongStatement
   Incomplete
   Closed
   TransportUnsettled
 }
 
 pub struct ReadStartFailure {
+  // private fields
+}
+
+pub(all) enum StatementIssue {
+  InvalidSettings
+  AlreadyBound
+  Closed
+  PendingRequest
+  WrongRequest
+  WrongResponse
+  AlreadyAttempted
+  NotAttempted
+  AlreadyObserved
+  RequestLimit
+  InvalidResponse
+  ForeignHandle
+  HttpRejected(Int)
+  TransportUnknown
+  Read(ReadIssue)
+}
+
+pub struct StatementRead {
+  // private fields
+}
+
+pub struct StatementRequest {
+  // private fields
+}
+
+pub struct StatementResponse {
   // private fields
 }
 
