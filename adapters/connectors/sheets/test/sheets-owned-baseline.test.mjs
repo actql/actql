@@ -9,9 +9,9 @@ import {sheetsRangeCommand, sheetsRangeReference, createSheetsRangeDriver,
 // regenerate these expectations from the candidate implementation.
 const baseline = JSON.parse(readFileSync(new URL('./fixtures/range-owned-baseline.json', import.meta.url)));
 test('Sheets authority move preserves the original request bytes and all identity domains', () => {
-  const command = sheetsRangeCommand(baseline.connectorId, baseline.site);
+  const command = sheetsRangeCommand(baseline.connectorId, baseline.site, moon);
   const target = sheetsRangeReference({site: baseline.site,
-    catalogCid: baseline.catalogCid, bindingCid: baseline.bindingCid});
+    catalogCid: baseline.catalogCid, bindingCid: baseline.bindingCid, moon});
   assert.equal(command.command.contract_cid, baseline.commandCid);
   assert.equal(command.command.input_schema.cid, baseline.inputContractCid);
   assert.equal(command.command.output_schema.cid, baseline.outputContractCid);
@@ -24,6 +24,6 @@ test('Sheets authority move preserves the original request bytes and all identit
   assert.equal(request.body, baseline.requestBody);
   assert.equal(driver.requestCid(request), baseline.requestCid);
   assert.equal(driver.recoveryEntry({member}).observationCid, baseline.recoveryObservationCid);
-  assert.equal(withSheetsRangeCommand(baseline.catalogInput, command).catalog_cid,
+  assert.equal(withSheetsRangeCommand(baseline.catalogInput, command, moon).catalog_cid,
     baseline.catalogWithCommandCid);
 });

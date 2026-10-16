@@ -1,0 +1,154 @@
+///|
+fn owned_limits() -> Limits {
+  { max_bytes: 300000, max_nodes: 200000, max_depth: 32, max_cells: 6400 }
+}
+
+///|
+fn owned_configuration() -> String {
+  "{\"origin\":\"https://sheets.example.test\",\"spreadsheetId\":\"book\",\"range\":{\"sheetId\":7,\"startRow\":2,\"endRow\":4,\"startColumn\":1,\"endColumn\":3},\"columns\":[{\"name\":\"text\",\"type\":\"string\",\"nullable\":false},{\"name\":\"flag\",\"type\":\"boolean\",\"nullable\":true}]}"
+}
+
+///|
+fn owned_target(binding_cid : String) -> String {
+  range_reference("https://sheets.example.test", "book",
+    { sheet_id: 7, start_row: 2, end_row: 4, start_column: 1, end_column: 3 },
+    "sha256:" + "a".repeat(64), binding_cid, owned_limits()).unwrap().stringify()
+}
+
+///|
+fn owned_binding(binding_cid? : String = "sha256:" + "b".repeat(64)) -> RangeBinding {
+  admit_range_binding(owned_configuration(),
+    "sha256:e3b7d39898d2037cffd055b1c51f24c66e616d2bb8ae3d4a34529515c26196ab",
+    binding_cid, owned_target(binding_cid), owned_limits()).unwrap()
+}
+
+///|
+fn owned_value() -> String {
+  "{\"rows\":[{\"text\":\"=é\\r\\n\",\"flag\":false},{\"text\":\"second\",\"flag\":true}]}"
+}
+
+///|
+fn owned_effect(binding : RangeBinding, effect_id? : String = "replace") -> String {
+  let value = @json.parse(owned_value()) catch { _ => fail("fixed value") }
+  let target = @json.parse(binding.target_wire) catch { _ => fail("fixed target") }
+  let body : Json = [{ "effect_id": effect_id.to_json(), "effect_kind": "command",
+    "resolved_command_contract_cid": binding.command_cid.to_json(),
+    "changes": [{ "intended_changes": { "value": value }, "target_row_identity": target }] }]
+  body.stringify()
+}
+
+///|
+fn owned_recovery(binding : RangeBinding) -> String {
+  let entry = range_recovery_entry(binding, "replace").unwrap()
+  let value = @json.parse(entry) catch { _ => fail("fixed entry") }
+  guard value is Object(fields) else { fail("entry object") }
+  fields["memberIndex"] = 0.to_json()
+  Json::array([Json::object(fields)]).stringify()
+}
+
+///|
+test "Sheets owned request matches immutable pre-migration bytes and CID on every target" {
+  let binding = owned_binding()
+  let request = prepare_range_request(binding, owned_value(), binding.target_wire).unwrap()
+  let expected : Json = { "requests": [{ "updateCells": {
+    "range": { "sheetId": 7, "startRowIndex": 2, "endRowIndex": 4,
+      "startColumnIndex": 1, "endColumnIndex": 3 },
+    "rows": [{ "values": [{ "userEnteredValue": { "stringValue": "=é\r\n" } },
+      { "userEnteredValue": { "boolValue": false } }] },
+      { "values": [{ "userEnteredValue": { "stringValue": "second" } },
+        { "userEnteredValue": { "boolValue": true } }] }], "fields": "userEnteredValue" } }] }
+  assert_eq(range_request_body(request), expected.stringify())
+  assert_eq(range_request_identity(request),
+    "sha256:5ba9eddd97003fa7e4341324589b449134332400a662262039776cff24004f21")
+  assert_true(range_request_body(request).contains("=é\\r\\n"))
+}
+
+///|
+test "Sheets owned reference uses unchanged provider range and authority identities" {
+  let target = owned_target("sha256:" + "b".repeat(64))
+  assert_true(target.contains("sha256:d7482f414734110c3d1775460ab9c00fd769271779374b48ceef7bf4ecc73845"))
+  assert_true(target.contains("sha256:3df522c65a0e49bd6aa3b16c946d9b5f587b824800bbdc6e021654f4a524042d"))
+  let binding = owned_binding()
+  for field in ["provider_namespace", "resource_kind", "provider_identity_cid",
+    "identity_cid", "authority_scope_cid", "boundary_cid"] {
+    let target = @json.parse(binding.target_wire) catch { _ => fail("fixed target") }
+    guard target is Object(fields) else { fail("target object") }
+    fields[field] = "foreign".to_json()
+    let result = prepare_range_request(binding, owned_value(), Json::object(fields).stringify())
+    guard result is Err(issue) else { fail("foreign target admitted") }
+    assert_eq(range_failure_code(issue), "SheetsRangeReferenceUnavailable")
+  }
+}
+
+///|
+test "Sheets same physical bytes do not make a foreign permission or nominal installation current" {
+  let original = owned_binding()
+  let request = prepare_range_request(original, owned_value(), original.target_wire).unwrap()
+  let foreign = owned_binding(binding_cid="sha256:" + "c".repeat(64))
+  let other = prepare_range_request(foreign, owned_value(), foreign.target_wire).unwrap()
+  assert_eq(range_request_body(request), range_request_body(other))
+  assert_not_eq(range_request_identity(request), range_request_identity(other))
+  assert_eq(admit_range_request(foreign, request), Err(range_failure("SheetsRangeReferenceUnavailable")))
+  let copied_binding = owned_binding()
+  assert_eq(admit_range_request(copied_binding, request), Err(range_failure("ForeignSheetsRangeRequest")))
+  assert_eq(admit_range_request(original, request), Ok(()))
+}
+
+///|
+test "Sheets owned recovery preserves original request and recovery observation identity" {
+  let binding = owned_binding()
+  let entry = range_recovery_entry(binding, "replace").unwrap()
+  assert_true(entry.contains("sha256:af8322924b910fde0e1bfd46a909921fcd7039f869969b8e94ce0c23aa738e6e"))
+  let restored = recover_range_requests(binding, owned_effect(binding), owned_recovery(binding), owned_limits()).unwrap()
+  assert_eq(restored.length(), 1)
+  assert_eq(restored[0].length(), 1)
+  assert_eq(range_request_identity(restored[0][0]),
+    "sha256:5ba9eddd97003fa7e4341324589b449134332400a662262039776cff24004f21")
+  assert_eq(admit_range_request(binding, restored[0][0]), Ok(()))
+}
+
+///|
+test "Sheets owned recovery rejects foreign effect config range and duplicate retained records" {
+  let binding = owned_binding()
+  let recovery = owned_recovery(binding)
+  let duplicate = @json.parse(recovery) catch { _ => fail("fixed recovery") }
+  guard duplicate is Array(entries) else { fail("recovery array") }
+  for changed in ["[]", Json::array([entries[0], entries[0]]).stringify(),
+    recovery.replace(old="\"memberIndex\":0", new="\"memberIndex\":1"),
+    recovery.replace(old="sheets-range-request", new="foreign-request"),
+    recovery.replace(old="replace", new="foreign-effect"),
+    recovery.replace(old="bbbbbbbb", new="cccccccc"),
+    recovery.replace(old="startRow\\\":2", new="startRow\\\":1")] {
+    assert_not_eq(changed, recovery)
+    guard recover_range_requests(binding, owned_effect(binding), changed, owned_limits()) is Err(issue) else {
+      fail("foreign recovery admitted")
+    }
+    assert_eq(range_failure_code(issue), "SheetsRangeRecoveryMismatch")
+  }
+  for effects in [owned_effect(binding, effect_id="different-effect"),
+    owned_effect(binding).replace(old="\"effect_kind\":\"command\"", new="\"effect_kind\":\"update\""),
+    owned_effect(binding).replace(old=binding.command_cid, new="sha256:" + "d".repeat(64))] {
+    guard recover_range_requests(binding, effects, recovery, owned_limits()) is Err(issue) else {
+      fail("foreign effect admitted")
+    }
+    assert_eq(range_failure_code(issue), "SheetsRangeRecoveryMismatch")
+  }
+}
+
+///|
+test "Sheets original range input refusal codes and scalar cell reasons are preserved" {
+  let binding = owned_binding()
+  for value in ["{}", "{\"rows\":[],\"extra\":0}"] {
+    guard prepare_range_request(binding, value, binding.target_wire) is Err(issue) else {
+      fail("open input admitted")
+    }
+    assert_eq(range_failure_code(issue), "InvalidSheetsRangeInput")
+  }
+  for value in ["{\"rows\":[]}", "{\"rows\":[{\"text\":null,\"flag\":true},{\"text\":\"b\",\"flag\":true}]}"] {
+    guard prepare_range_request(binding, value, binding.target_wire) is Err(issue) else {
+      fail("partial or null input admitted")
+    }
+    assert_eq(range_failure_code(issue), "SheetsContractRefused")
+    assert_true(range_failure_refusal(issue) is Some(_))
+  }
+}

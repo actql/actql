@@ -23,8 +23,8 @@ const profile = {siteProfilePath: '/fixture/site.json', publicationPath: '/fixtu
 const member = {resource: 'range_target', effectId: 'replace'};
 const value = {rows: [{text: '=e\u0301\r\n', flag: false}, {text: 'second', flag: true}]};
 function fixture() {
-  const range = sheetsRangeCommand(profile.connectorId, site);
-  const target = sheetsRangeReference({site, catalogCid: token('a'), bindingCid: token('b')});
+  const range = sheetsRangeCommand(profile.connectorId, site, provider);
+  const target = sheetsRangeReference({site, catalogCid: token('a'), bindingCid: token('b'), moon: provider});
   let current = true;
   const driver = createSheetsRangeDriver({moon: provider, site, command: range.installed,
     target, bindingCid: token('b'), isCurrent: () => current});
@@ -60,8 +60,8 @@ test('Sheets range Catalog and bounded Command input reach the existing common c
       resource: 'range_target', resource_kind: 'sheet_range',
       schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)}]}), undefined));
   const original = JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
-  const range = sheetsRangeCommand(profile.connectorId, site);
-  const declared = withSheetsRangeCommand(original, range);
+  const range = sheetsRangeCommand(profile.connectorId, site, provider);
+  const declared = withSheetsRangeCommand(original, range, provider);
   assert.notEqual(declared.catalog_cid, original.catalog_cid);
   assert.deepEqual(JSON.parse(original.catalog).commands, []);
   assert.deepEqual(JSON.parse(declared.catalog).source_views, JSON.parse(original.catalog).source_views);
@@ -85,13 +85,13 @@ test('Sheets range authored Program reaches the existing effect preparation and 
     {name: 'number', type: 'number', nullable: true},
     {name: 'flag', type: 'boolean', nullable: true}];
   const range = sheetsRangeCommand(profile.connectorId, {...site,
-    gridRange: {...site.gridRange, endColumn: 4}, columns});
+    gridRange: {...site.gridRange, endColumn: 4}, columns}, provider);
   const schema = {target: {type: 'resource_ref', resource_kind: 'sheet_range', nullable: false}};
   const declaration = checked(common.clientProgramRowSourceRestoreRelationDeclaration(
     profile.connectorId, 'sheets', 'sheets/0.1', JSON.stringify({views: [{resource: 'range_target',
       resource_kind: 'sheet_range', schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)}]}), undefined));
   const declared = withSheetsRangeCommand(
-    JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)), range);
+    JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)), range, provider);
   const base = readFileSync(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
   const {evidence_bundle_cid: _, ...body} = JSON.parse(rowSourceCheckEnvironment(base, declared).wire);
   body.command_contracts = [range.command];
