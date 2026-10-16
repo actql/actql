@@ -13319,7 +13319,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "import {ExecutionAuthorizationError, createAuthorizationDecisionBudget} from"
+                "anchor": "import {ExecutionAuthorizationError, createAuthorizationDecisionBudget,"
               },
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
