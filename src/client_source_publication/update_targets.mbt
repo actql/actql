@@ -1,4 +1,48 @@
 ///|
+// Same positive installation metadata for UPDATE and STORE. Operation and
+// complete Mapping selection stay with their existing Common owners.
+fn source_publication_effect_aliases(
+  section : @decode.Cursor,
+) -> Array[@query_program.UpdateTargetAlias] raise PublicationStop {
+let entries = @decode.elements(section).unwrap_or_else(() => {
+  raise PublicationStop(Publication)
+})
+if entries.length() > 1024 {
+  raise PublicationStop(Limit)
+}
+if entries.is_empty() {
+  return []
+}
+let aliases : Array[@query_program.UpdateTargetAlias] = []
+for entry in entries {
+  @decode.closed_object(entry, [
+    "name", "targetRef", "installationBindingCid", "installationOwnerCid",
+  ]).unwrap_or_else(() => raise PublicationStop(Publication))
+  |> ignore
+  let name = @query_syntax.parse_relation_path(
+    source_publication_text(entry, "name"),
+    {
+      max_source_bytes: 1024,
+      max_tokens: 256,
+      max_literal_bytes: 1024,
+      max_work: 16384,
+    },
+  ).unwrap_or_else(() => raise PublicationStop(Publication))
+  aliases.push({
+    name,
+    target_ref: source_publication_text(entry, "targetRef"),
+    installation_binding_cid: source_publication_text(
+      entry, "installationBindingCid",
+    ),
+    installation_owner_cid: source_publication_text(
+      entry, "installationOwnerCid",
+    ),
+  })
+}
+  aliases
+}
+
+///|
 /// Read only the existing Host publication selected for this environment.
 /// The installed loader owns positive aliases and installation provenance;
 /// the common Mapping owner supplies the complete, unfiltered candidate set.
@@ -9,7 +53,7 @@ pub fn published_update_targets(
   try {
     let root = source_publication_cursor(publication)
     let object = @decode.closed_object(root, [
-      "environmentCid", "aliases", "tableWrites", "updateTargets",
+      "environmentCid", "aliases", "tableWrites", "updateTargets", "storeTargets",
     ]).unwrap_or_else(() => raise PublicationStop(Publication))
     if source_publication_text(root, "environmentCid") !=
       @program_check.checking_environment_cid(environment) {
@@ -18,40 +62,9 @@ pub fn published_update_targets(
     guard @decode.lookup(object, "updateTargets") is Some(section) else {
       return Ok(None)
     }
-    let entries = @decode.elements(section).unwrap_or_else(() => {
-      raise PublicationStop(Publication)
-    })
-    if entries.length() > 1024 {
-      raise PublicationStop(Limit)
-    }
-    if entries.is_empty() {
+    let aliases = source_publication_effect_aliases(section)
+    if aliases.is_empty() {
       return Ok(None)
-    }
-    let aliases : Array[@query_program.UpdateTargetAlias] = []
-    for entry in entries {
-      @decode.closed_object(entry, [
-        "name", "targetRef", "installationBindingCid", "installationOwnerCid",
-      ]).unwrap_or_else(() => raise PublicationStop(Publication))
-      |> ignore
-      let name = @query_syntax.parse_relation_path(
-        source_publication_text(entry, "name"),
-        {
-          max_source_bytes: 1024,
-          max_tokens: 256,
-          max_literal_bytes: 1024,
-          max_work: 16384,
-        },
-      ).unwrap_or_else(() => raise PublicationStop(Publication))
-      aliases.push({
-        name,
-        target_ref: source_publication_text(entry, "targetRef"),
-        installation_binding_cid: source_publication_text(
-          entry, "installationBindingCid",
-        ),
-        installation_owner_cid: source_publication_text(
-          entry, "installationOwnerCid",
-        ),
-      })
     }
     let mappings = @check_environment.check_mapping_contract_shapes(
       @program_check.checking_environment_wire(environment),
