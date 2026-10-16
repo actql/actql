@@ -21,14 +21,15 @@ async function consume(args,cwd,output) {
 }
 
 for(const facade of ['sync','async'])
-  test(`installed Python ${facade} lazy SQL/Pipe query uses the original Run for reads and separate-process attach`,async t=>{
-    const {root,certificates,counts,endpoint}=await openPythonPublicHost(t);
+  test(`installed Python ${facade} lazy SQL/Pipe query uses the original Run for reads and Host reopen and separate-process attach`,async t=>{
+    const {root,certificates,counts,endpoint,reopen}=await openPythonPublicHost(t);
     const custody=join(root,facade+'.query-custody.json'),results=[];
     for(const phase of ['query','restore']){
+      if(phase==='restore')await reopen();
       const result=await consume([phase,facade,endpoint,certificates.caPath,custody],root,join(root,phase));
       assert.equal(result.phase,phase);assert.equal(result.facade,facade);assert.equal(result.success,true);
       results.push(result);
-      assert.equal(counts.computed,2,'Only the two original read-only queries compute; explicit rereads/lookup/attach never resubmit');
+      assert.equal(counts.computed,2,'Only the two original read-only queries compute; Host reopen/explicit rereads/lookup/attach never resubmit');
     }
     assert.equal(new Set(results.map(item=>item.pid)).size,2,'Restore uses a separate real Python process');
     await writeFile(join(root,'query-receipt.json'),JSON.stringify({facade,results,counts},null,2)+'\n',{mode:0o600});

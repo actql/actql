@@ -13,19 +13,25 @@ export async function openPythonPublicHost(t){
   const keys=generateKeyPairSync('ed25519'),principalId=userInfo().username;
   const counts={computed:0};
   const certificates=await fixtureCertificates(root);
-  const host=await openInstalledRemoteHttpHost({directory:join(root,'host'),
+  const options={directory:join(root,'host'),
     authenticate:header=>header==='Bearer fixture-token'?principalId:undefined,
     authorization:{accountConfiguration:JSON.stringify({version:'actql-execution-account-config/0.1',
       account_id:'python-public',entries:[{entry_id:'execution',outcome:'allow',principal:{all:true},
         connection:{all:true},resource:{all:true},operation:{any_of:['write']},exclusions:[]}]}),
       reviewers:[{keyId:'reviewer',reviewerId:'reviewer',principalId,publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
       hostKey:{keyId:'host',privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'})},
-      observe(name){if(name==='computed')counts.computed++;}}});
+      observe(name){if(name==='computed')counts.computed++;}}};
+  let host=await openInstalledRemoteHttpHost(options);
   const server=createServer({key:certificates.key,cert:certificates.cert},(request,response)=>host.handler(request,response));
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await host.close();
     if(process.env.ACTQL_TEST_PRESERVE_SCRATCH!=='1')await rm(root,{recursive:true,force:true});});
   const endpoint=`https://127.0.0.1:${server.address().port}/`;
-  return {root,certificates,counts,endpoint};
+  return {root,certificates,counts,endpoint,reopen:async()=>{
+    // Same directory/config/keys, after the original Host confirms close.
+    // A failed close stops here and leaves that same Host for t.after cleanup.
+    await host.close();
+    host=await openInstalledRemoteHttpHost(options);
+  }};
 }
 
