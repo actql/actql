@@ -172,6 +172,285 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/snowflake/host/installed-snowflake-source.mjs",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Host, Account, credential Site and same-runtime Common RowRun borrower",
+      "sha256": "c366f7dbf62b47186abf48c213aa2ab858d2f2282e6b8ac85c39877f48aa97a8",
+      "exports": [
+        "INSTALLED_SNOWFLAKE_SITE_VERSION",
+        "INSTALLED_SNOWFLAKE_SOURCE_VERSION",
+        "checkInstalledSnowflakeSourceProfile",
+        "installedSnowflakeSourceIdentityParts",
+        "loadInstalledSnowflakeSource"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledSnowflakeSourceProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite",
+          "parameters": [
+            "site"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite/checkSite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSnowflakeSourceIdentityParts",
+          "parameters": [
+            "profile",
+            "providerProfile",
+            "read"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSnowflakeSource",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "moon",
+            "baseEnvironmentWire",
+            "runtimeBundleCid",
+            "resolveSecret",
+            "installation"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "binding",
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/site/site",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/target/target",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
+        },
+        {
+          "name": "readInputs/bodies/bodies",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs/readInputs",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "absolute/absolute",
+            "canonical/canonical",
+            "checkInstalledSnowflakeSourceProfile",
+            "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile",
+            "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile#2",
+            "checkSite",
+            "checkSite/checkSite",
+            "cid/cid",
+            "closed/closed",
+            "fail/fail",
+            "installedSnowflakeSourceIdentityParts",
+            "loadInstalledSnowflakeSource",
+            "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
+            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
+            "loadInstalledSnowflakeSource/site/site",
+            "loadInstalledSnowflakeSource/target/target",
+            "readInputs",
+            "readInputs/bodies/bodies",
+            "readInputs/readInputs",
+            "text/text"
+          ],
+          "exports": [
+            "INSTALLED_SNOWFLAKE_SITE_VERSION",
+            "INSTALLED_SNOWFLAKE_SOURCE_VERSION",
+            "checkInstalledSnowflakeSourceProfile",
+            "installedSnowflakeSourceIdentityParts",
+            "loadInstalledSnowflakeSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
