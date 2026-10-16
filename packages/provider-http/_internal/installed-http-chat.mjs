@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createHttpChatPreflight} from './model-port.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {snapshotHTTPOriginalMaterials, admitHTTPOriginalMaterials} from './original-materials.mjs';
@@ -186,7 +187,7 @@ function installedOpaqueRegistration(config) {
           notify: notification.notify, rawCaptureBinder: retainRawBinder,
           profile: raw.profile, installation, quantities: quantities.perAttempt,
           checked(result) {
-            if (result?.$tag === 1) return result._0;
+            if (runtimeIsOk(result)) return runtimeField(result, 0);
             fail('HTTPChatOriginalCommonRefused');
           }}).preflight;
       },

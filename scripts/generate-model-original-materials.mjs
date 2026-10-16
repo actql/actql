@@ -1,3 +1,4 @@
+import {generateCompilerBindings} from './generate-js-compiler-bindings.mjs';
 import {readFileSync, writeFileSync} from 'node:fs';
 
 // One closed DATA snapshot/Common-reader connection, packaged independently.
@@ -10,6 +11,8 @@ const targets = [
 if (process.argv.length !== 3 || !['--check', '--write'].includes(process.argv[2])) {
   throw new Error('Usage: generate-model-original-materials.mjs --check|--write');
 }
+// The independently installed consumers share A's single pinned ABI binding.
+generateCompilerBindings(new URL('../', import.meta.url), process.argv[2] === '--write');
 const template = readFileSync(source, 'utf8');
 if (!template.includes('__PROVIDER__') || template.split('__SDK_FIELD__').length !== 2) {
   throw new Error('Invalid original Model materials template');
