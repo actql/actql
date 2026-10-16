@@ -1,0 +1,113 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/gcs/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]
+
+pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields
+
+pub fn object_metadata_response_sha256(ObjectMetadata) -> String
+
+pub fn object_metadata_version(ObjectMetadata) -> String
+
+pub fn object_mutation_body(ObjectMutationRequest) -> String
+
+pub fn object_mutation_cid(ObjectMutationRequest) -> String
+
+pub fn object_mutation_method(ObjectMutationRequest) -> String
+
+pub fn object_mutation_path(ObjectMutationRequest) -> String
+
+pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]
+
+pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
+
+pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]
+
+pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]
+
+// Errors
+
+// Types and methods
+pub struct ObjectMetadata {
+  fields : ObjectMetadataFields
+  response_sha256 : String
+}
+
+pub(all) struct ObjectMetadataFields {
+  bucket : String
+  name : String
+  generation : Int64
+  metageneration : Int64
+  size : Int64
+  content_type : String?
+  content_encoding : String?
+  storage_class : String?
+  updated : String?
+  md5 : String?
+  crc32c : String?
+  metadata : Array[(String, String)]?
+}
+
+pub(all) enum ObjectMetadataIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidMetadata
+  ObjectMismatch
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ObjectMetadataLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_metadata_entries : Int
+}
+
+pub struct ObjectMutationBinding {
+  kind : ObjectMutationKind
+  bucket : String
+  prefix : String
+  catalog_cid : String
+  installation_cid : String
+  contract_cid : String
+  permissions : Array[String]
+  limits : ObjectRequestLimits
+}
+
+pub(all) enum ObjectMutationKind {
+  PatchMetadata
+  DeleteObject
+} derive(Eq, @debug.Debug)
+
+pub struct ObjectMutationRequest {
+  binding : ObjectMutationBinding
+  original : ObjectMetadata
+  verb : String
+  path : String
+  body : String
+  cid : String
+}
+
+pub(all) enum ObjectRequestIssue {
+  InvalidBinding
+  InvalidChanges
+  ReservedMetadata
+  ForeignBinding
+  StaleObservation
+  CapacityExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ObjectRequestLimits {
+  metadata : ObjectMetadataLimits
+  max_path_bytes : Int
+  max_body_bytes : Int
+  max_identity_bytes : Int
+}
+
+// Type aliases
+
+// Traits
