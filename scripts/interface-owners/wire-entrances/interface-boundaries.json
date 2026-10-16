@@ -5,6 +5,7 @@
   "declarations": [
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "02bff8d33d5ba48a869bcdada67578a788641b65176cb5fd322236f6e0ef6952",
       "exports": [
         "ClientHostOperation",
@@ -193,6 +194,7 @@
     },
     {
       "module": "packages/client-wire/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "d7acae6fa241bdc50e0ed77892f5189458fdf3989a4dcde389f06a8c65ece31a",
       "exports": [
         "*:./interactive-control.generated.js",
@@ -4955,6 +4957,7 @@
     },
     {
       "module": "packages/client-wire/index.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4f307470b8cef7871022db20e1fb7d17fe4d2e839a8aa3a5b72ec56ccf3fc3ec",
       "exports": [
         "*:./interactive-control.generated.js",
@@ -10930,6 +10933,7 @@
     },
     {
       "module": "packages/client-wire/interactive-control.generated.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "9110da5ff721142db00ccdd6b2304b2fb73ae0b6854d3054caa10ff1b6b3d90c",
       "exports": [
         "ControlJsonValue",
@@ -15005,6 +15009,7 @@
     },
     {
       "module": "packages/client-wire/publication.generated.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "0240df8c7a770b7cd63d32d55e15f55ae379851d2052a88c8cf9b38943034dee",
       "exports": [
         "WireDeliveryAttempt",

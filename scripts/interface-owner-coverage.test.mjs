@@ -14,7 +14,7 @@ function fixture(t) {
   const source = 'export function read(value) {return value;}';
   const module = {module: 'outside/sdk.mjs', sha256: createHash('sha256').update(source).digest('hex'),
     ...javascriptInterface(source)};
-  const declaration = (role, anchor) => ({...module, role, owner: anchor,
+  const declaration = (role, anchor) => ({...module, role, owner: anchor, responsibilityFacet: 'primary',
     contracts: [{operations: ['<module>', ...module.operations.map(value => value.name)], exports: module.exports,
       attributes: Object.fromEntries(interfaceAttributes.map(name => [name, [{path: 'owner.md', anchor}]]))}]});
   return {root, module, declaration};
@@ -24,11 +24,30 @@ test('functional and binding facets keep independent original references without
   const {root, module, declaration} = fixture(t);
   const functional = declaration('physical-io', 'Original functional boundary');
   const binding = declaration('physical-io', 'original representation binding');
+  binding.responsibilityFacet = 'supplemental';
   const owners = [{id: 'functional', declarations: [functional]}, {id: 'binding', declarations: [binding]}];
   const result = interfaceOwnerCoverage({root, modules: [module], owners});
   assert.equal(result.covered, 1);
   assert.equal(result.facets.length, 2);
+  assert.equal(result.primaryCovered, 1);
   assert.equal(owners[0].declarations[0].contracts[0].attributes.failure[0].anchor, 'Original functional boundary');
+});
+
+test('deleting the complete primary facet cannot be covered by supplemental binding references', t => {
+  const {root, module, declaration} = fixture(t);
+  const binding = declaration('physical-io', 'original representation binding');
+  binding.responsibilityFacet = 'supplemental';
+  const owners = [{id: 'binding', declarations: [binding]}];
+  assert.throws(() => interfaceOwnerCoverage({root, modules: [module], owners}),
+    /Missing primary interface responsibilities/u);
+  const diagnostic = interfaceOwnerCoverage({root, modules: [module], owners, requireComplete: false});
+  assert.equal(diagnostic.covered, 1);
+  assert.equal(diagnostic.complete, true, 'module union remains distinct from primary responsibilities');
+  assert.equal(diagnostic.primaryComplete, false);
+  assert.deepEqual(diagnostic.missingPrimary, [module.module]);
+  delete binding.responsibilityFacet;
+  assert.throws(() => interfaceOwnerCoverage({root, modules: [module], owners}),
+    /Unclassified interface responsibility facet/u);
 });
 
 test('one fresh facet cannot hide a stale or missing operation in another owner facet', t => {
@@ -73,6 +92,13 @@ test('an owner sidecar cannot self-approve a new raw compiler wrapper outside ac
     generator: {path: 'owner.md', anchor: 'original representation binding'},
     freshness: {path: 'owner.md', anchor: 'original representation binding'}};
   const owners = [{id: 'unverified-wrapper', declarations: [declared], generated: [proof]}];
-  assert.throws(() => interfaceOwnerCoverage({root, modules: [module], owners, generated: []}),
-    /Unverified generated binding: new-wrapper.mjs/u);
+  for (const option of [{}, {generated: undefined}, {generated: null}, {generated: []}]) {
+    assert.throws(() => interfaceOwnerCoverage({root, modules: [module], owners, ...option}),
+      /Unverified generated binding: new-wrapper.mjs/u);
+  }
+  for (const forged of [proof, {...proof, generator: {path: 'owner.md', anchor: 'Original functional boundary'}},
+    {...proof, freshness: {path: 'owner.md', anchor: 'Original functional boundary'}}]) {
+    assert.throws(() => interfaceOwnerCoverage({root, modules: [module], owners, generated: [forged]}),
+      /Untrusted generated interface qualification/u);
+  }
 });

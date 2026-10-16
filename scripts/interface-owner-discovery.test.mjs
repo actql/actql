@@ -27,3 +27,12 @@ test('an empty sidecar cannot silently grant module or operation coverage', t =>
   writeFileSync(join(root, 'interface-boundaries.json'), '{"declarations":[]}');
   assert.throws(() => interfaceOwnerDeclarations(root, ['interface-boundaries.json']), /Missing interface declarations/u);
 });
+
+test('serialized generated references are never promoted to checker qualification by discovery', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-untrusted-generated-owner-'));
+  t.after(() => rmSync(root, {recursive: true}));
+  writeFileSync(join(root, 'interface-boundaries.json'), JSON.stringify({
+    declarations: [{module: 'wrapper.mjs'}], generated: [{module: 'wrapper.mjs', verification: true}]}));
+  const [owner] = interfaceOwnerDeclarations(root, ['interface-boundaries.json']);
+  assert.equal(Object.hasOwn(owner, 'generated'), false);
+});

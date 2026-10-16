@@ -4,6 +4,7 @@
   "declarations": [
     {
       "module": "packages/local-node/connector-installation.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "e23018785a9502fde12af8a16feaa75f547762ff2fcefff62355993052e8ae0f",
       "exports": [
         "AuthorizationBoundary",
@@ -685,6 +686,7 @@
     },
     {
       "module": "packages/local-node/connector-installation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f6b79194160b5d7f7927902e693ff66d0c23c9c78d82308396152c0260b7fee0",
       "exports": [
         "checked",
@@ -821,6 +823,7 @@
     },
     {
       "module": "packages/local-node/host-policy.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "47f76ca80707c37a5266125646b574ca7c0b82ec6920522f76857ab587348202",
       "exports": [
         "HostCapacityPolicy",
@@ -952,6 +955,7 @@
     },
     {
       "module": "packages/local-node/http-host.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "37d85cdfa48950caca839e4083f16c5510c429e0cce35aaeaa61325521a30a94",
       "exports": [
         "HostCapacityPolicy",
@@ -1115,6 +1119,7 @@
     },
     {
       "module": "packages/local-node/http-host.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b218d525a6accaad65231723d9ae2f31b5895e5480a2072de62e150ea5980359",
       "exports": [
         "openInstalledRemoteHttpHost"
@@ -1231,6 +1236,7 @@
     },
     {
       "module": "packages/local-node/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "35b5cf577148ccba92fdcaee04d942d69040a5158c38c700f19449d12e7a5f63",
       "exports": [
         "CalendarArtifactInstallation",
@@ -1469,6 +1475,7 @@
     },
     {
       "module": "packages/local-node/index.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "9adae86024fa8a91f5ca73cb2135d60eb08c215e4bac6ae87ae76cbfa6488a5d",
       "exports": [
         "connect",
@@ -1618,6 +1625,7 @@
     },
     {
       "module": "packages/local-node/observation.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "cba3fadd9f35ff2029079b2c1f2ed5fb44d5bb4cca22d7f2a240e7610a7ba5ca",
       "exports": [
         "HostObservationConnection",
@@ -1784,6 +1792,7 @@
     },
     {
       "module": "packages/local-node/selected-infer-startup.cjs",
+      "responsibilityFacet": "primary",
       "sha256": "70465b923cffe2ff0036324a1e898abc20eea77c90973c3174f4a4059a1e9230",
       "exports": [],
       "operations": [],
@@ -1896,6 +1905,7 @@
     },
     {
       "module": "packages/node/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "c479158d0f9e5008dc397cf2b7f1eb77315a5a8d9c06e8be177829e19c6edaf2",
       "exports": [
         "CalendarArtifactInstallation",
@@ -2118,6 +2128,7 @@
     },
     {
       "module": "packages/node/index.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "7c5c33aee4c17f34fd59eaf811b0e422007236d6aaf95d9166dd82a7a59a11e1",
       "exports": [
         "ClientError",
@@ -2273,6 +2284,7 @@
     },
     {
       "module": "packages/node/selected-infer-startup.cjs",
+      "responsibilityFacet": "primary",
       "sha256": "f8fef994bca92ae052ec8d9d94ea9ab0e748977063fa42e0afdc41e83503206b",
       "exports": [],
       "operations": [],
@@ -2385,6 +2397,7 @@
     },
     {
       "module": "packages/sdk/check-presentation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "28f973a7fdbe7982ea59626a5dca7fce5c03a5f2bdb157e4b35937fa3d9f3409",
       "exports": [
         "explainCheckOutcome",
@@ -2713,6 +2726,7 @@
     },
     {
       "module": "packages/sdk/check-reason-catalog.generated.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "3f0f6b9d38b3824e0b7e2302974976842c5fae85d315535cfa5be89e88785298",
       "exports": [
         "CheckReasonCatalogEntry",
@@ -2859,6 +2873,7 @@
     },
     {
       "module": "packages/sdk/check-reason-catalog.generated.js",
+      "responsibilityFacet": "primary",
       "sha256": "1226f0f69d7ef13ff463c376d7f94be74a5d171e73a492a226c7b76b1d123cee",
       "exports": [
         "getCheckReasonCatalogEntry",
@@ -3025,6 +3040,7 @@
     },
     {
       "module": "packages/sdk/checkpoints.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "862d2dbde639095c651129379801957bb04c59cb6c034f5249d867fc2cc2e7c1",
       "exports": [
         "bytesCid",
@@ -3321,6 +3337,7 @@
     },
     {
       "module": "packages/sdk/connection-string.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a35ab1d0b0a6aa4798a5b1f4dfc56c8e981f7d4f281ea596216a77b3b36de2a3",
       "exports": [
         "connectionStringCredential",
@@ -3496,6 +3513,7 @@
     },
     {
       "module": "packages/sdk/host-port.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "68507053372ca1976060a10b42c03865cbc9de73f36a10f19ad18c2bc6ff19a1",
       "exports": [
         "EmbeddedLocalOptions",
@@ -3671,6 +3689,7 @@
     },
     {
       "module": "packages/sdk/host-port.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "89d770a5f3fb8baa06c26d6cf53f102d3cb447cc320ea851ce63f7559c92179f",
       "exports": [
         "canonicalJson",
@@ -3790,6 +3809,7 @@
     },
     {
       "module": "packages/sdk/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "18c18b55f4f3f05c64ecd4ca82b20c49565d9db6f5a858eb2291ed36d094eca0",
       "exports": [
         "CancellationExplanation",
@@ -5013,6 +5033,7 @@
     },
     {
       "module": "packages/sdk/index.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "25e3a2400075b41fe011ff22ed9a26e75640fa2e5d2d6f9ec77d3534e793b010",
       "exports": [
         "ClientError",
@@ -5329,6 +5350,7 @@
     },
     {
       "module": "packages/sdk/internal/check-observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b5d176e6acc6847545f7d4b61464d7c6a3fa403ce67a6a22ec0635895ec3e19f",
       "exports": [
         "bindCheckObservation",
@@ -5912,6 +5934,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4bdd304efe2146654e86f5124139da466de84d460a36cfa8d71be5d075e56f7e",
       "exports": [
         "createCheckpointOperations"
@@ -6105,6 +6128,7 @@
     },
     {
       "module": "packages/sdk/internal/client-lifecycle.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "bfe3b77ab279534e5c129cc40674ddb6fd06f2172f14a79bb35aa3db14537c9a",
       "exports": [
         "createClientLifecycle"
@@ -6262,6 +6286,7 @@
     },
     {
       "module": "packages/sdk/internal/client.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "665b489d89a1697fb2ff64dc53f820e18c5589b3ee6f44ac7ac1888df33daae2",
       "exports": [
         "connectSelected"
@@ -6398,6 +6423,7 @@
     },
     {
       "module": "packages/sdk/internal/connection-options.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "353d5b735a28bcc14ebe592f0210a9d07af2e58703a0e3f989596f836df3a0d6",
       "exports": [
         "connectionFailure",
@@ -6618,6 +6644,7 @@
     },
     {
       "module": "packages/sdk/internal/data.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5768cb08304fff4714fbf371bfa91d4071831d9f076de912c74904e28f8222d3",
       "exports": [
         "captureResponse",
@@ -6792,6 +6819,7 @@
     },
     {
       "module": "packages/sdk/internal/errors.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a22627a4c4e0d5e190cbc21568ca2392f46eceb010c4d48ed59f6cd90dbd24c9",
       "exports": [
         "ClientError",
@@ -6980,6 +7008,7 @@
     },
     {
       "module": "packages/sdk/internal/plan.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "98de56a07f232e839fefec31cade22206d5cecda1d88dee52721130257d938ed",
       "exports": [
         "createPlan"
@@ -7119,6 +7148,7 @@
     },
     {
       "module": "packages/sdk/internal/resources.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a84373e50c0ef36b32628ff86cd527cd5b14d9963bde039aa527fcba6ad74947",
       "exports": [
         "createResources"
@@ -7299,6 +7329,7 @@
     },
     {
       "module": "packages/sdk/internal/result-read.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "6891ac0594619d57d7102414b1e62e7f107e6aad696a21793b47c9649c58438d",
       "exports": [
         "createResultFactory",
@@ -7790,6 +7821,7 @@
     },
     {
       "module": "packages/sdk/internal/run-observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c8e8aa848d35994ca5ce1ff3e1da5e4da065e045e6ed3dd9c5143ce3c593b890",
       "exports": [
         "copyRunObservationFailure",
@@ -8188,6 +8220,7 @@
     },
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "76051b3c37012588bf7762292d1865c44a97516fecf8f13c49d649172c53c354",
       "exports": [
         "RequestHeld",
@@ -8692,6 +8725,7 @@
     },
     {
       "module": "packages/sdk/internal/transport-response.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3e365e748114d3207fde482d75736bb64ba7e39f80c362a5e912d6bf224400f5",
       "exports": [
         "boundedHostJson",
@@ -8839,6 +8873,7 @@
     },
     {
       "module": "packages/sdk/internal/transport.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "d314376d0fdec66c5415ae9155b421233b742a4d6d0c8548fb1d9065ad69d176",
       "exports": [
         "createTransport",
@@ -9018,6 +9053,7 @@
     },
     {
       "module": "packages/sdk/json-value-wire.generated.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "117b845466b3e7f4b48a842c680d13efb0e21b2c2f916ce953d10ebcac1dc626",
       "exports": [
         "jsonValueWireContractCid"
@@ -9132,6 +9168,7 @@
     },
     {
       "module": "packages/sdk/loopback-http-unavailable.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "58fd1a10411b3d93e7c9f4dc5ce51cf928ecbdc26953862b3acf02110f30cab8",
       "exports": [
         "requestLoopbackClient"
@@ -9246,6 +9283,7 @@
     },
     {
       "module": "packages/sdk/loopback-http.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "33a880e8d445fa13fe6b059e6efa1092e1a719e335de830885a13cd4f901a69e",
       "exports": [
         "requestLoopbackClient"
@@ -9426,6 +9464,7 @@
     },
     {
       "module": "packages/sdk/operation-formats.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "81d121de3c34e9c5ee0cc1efc6dfb0ac2aae19596d7605c5d3da5ae78b6b48d8",
       "exports": [
         "formatOperationExplanation"
@@ -9593,6 +9632,7 @@
     },
     {
       "module": "packages/sdk/operation-presentation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "d33e87eb7413c46644f244e1b212d95ea826babebe4d4d8a6fafb930ca3f1e56",
       "exports": [
         "getOperationPresentationInfo",
@@ -9962,6 +10002,7 @@
     },
     {
       "module": "packages/sdk/result-schema.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4cbae02c2e74d066e1ee92bc3daa0ecccb092fdf71c2855a401c075164a7f338",
       "exports": [
         "awaitValidation",
@@ -10181,6 +10222,7 @@
     },
     {
       "module": "packages/sdk/source-query.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "af9de0db06bd7792c920d1f2c33e945e84664d881bf99945246d58a7621fa349",
       "exports": [
         "sourceQuery"
@@ -10432,6 +10474,7 @@
     },
     {
       "module": "packages/sdk/standard-schema.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "a0029934d613ab492767ad598e818322441bfd28c280d010f0ec49167aa8c46d",
       "exports": [
         "FailureResult",

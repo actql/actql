@@ -142,6 +142,7 @@
   "declarations": [
     {
       "module": "packages/native-cli/bin/actql.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f6ae0af9f034df731614300ecb19244a61b495a54afedd983628fa83360c789d",
       "exports": [
         "admitInstalledBinary",
@@ -775,6 +776,7 @@
     },
     {
       "module": "packages/native-cli/lib/local-runtime.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a087cc001925cb412fa95a39cc007884e11008bc7c05c19787a0768b0b86e673",
       "exports": [
         "LOCAL_RUNTIME_MAX_BYTES",
@@ -2639,6 +2641,7 @@
       "exports": [],
       "imports": [],
       "module": "packages/python-local-runtime/src/actql_local_runtime/__init__.py",
+      "responsibilityFacet": "primary",
       "operations": [],
       "sha256": "902519c35eb026ad19daf9a6c6cd0fe2b04051a02e357ace74cb152985885b34",
       "role": "physical-io",
@@ -2746,6 +2749,7 @@
       ],
       "imports": [],
       "module": "packages/python-sdk/src/actql_sdk/_duckdb_environment.py",
+      "responsibilityFacet": "primary",
       "operations": [],
       "sha256": "23c0704887bd927ceef9b67e060dc37dff950396c7df8b50aeddde812cbfbab8",
       "role": "generated-binding",
@@ -2883,6 +2887,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_capacity_original.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -3672,6 +3677,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_command.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -4109,6 +4115,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_commit_projection.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -4831,6 +4838,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_core.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -11652,6 +11660,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_dispatch.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -12491,6 +12500,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -14180,6 +14190,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_duckdb_abi.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -15444,6 +15455,7 @@
         "threading"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_duckdb_workspace.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -15805,6 +15817,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_duckdb.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -17703,6 +17716,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -19119,6 +19133,7 @@
         "threading"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_files.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -22365,6 +22380,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -23033,6 +23049,7 @@
         "threading"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_host_files.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -23638,6 +23655,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -24368,6 +24386,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_installation.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -25079,6 +25098,7 @@
         "dataclasses"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -25436,6 +25456,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_backing_custody.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -26335,6 +26356,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -27381,6 +27403,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_domain_borrow.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -28209,6 +28232,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_domain_custody.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -29649,6 +29673,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -30909,6 +30934,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_image.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -31445,6 +31471,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_live_channel.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -32275,6 +32302,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -32569,6 +32597,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_original_read.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -33361,6 +33390,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_product.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -33707,6 +33737,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -33995,6 +34026,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -34940,6 +34972,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -35390,6 +35423,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_sqlite_database.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -37066,6 +37100,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_sqlite_lookup.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -37912,6 +37947,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_sqlite.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -38643,6 +38679,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_storage.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -39420,6 +39457,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_store.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -39926,6 +39964,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_vm.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -40587,6 +40626,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_native_worker_selection.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -41424,6 +41464,7 @@
         "collections.abc"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_observation_transfer.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -41893,6 +41934,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_preparation.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -42748,6 +42790,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_product.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -44637,6 +44680,7 @@
         "json"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_reader_facts.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -44997,6 +45041,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_response.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -45445,6 +45490,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_run.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -46516,6 +46562,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -47695,6 +47742,7 @@
         "._local_sdk_delivery_storage"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_sdk_payload_reader.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -48152,6 +48200,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_sdk_read_storage.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -48792,6 +48841,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_sdk_response.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -49252,6 +49302,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -50271,6 +50322,7 @@
         "threading"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -52731,6 +52783,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_store_reconciliation.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -53326,6 +53379,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_submission.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -54235,6 +54289,7 @@
       ],
       "imports": [],
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
+      "responsibilityFacet": "primary",
       "operations": [],
       "sha256": "c4172da04ea7fa634051b0fc45a0c567cc6947668661652297992098b2304359",
       "role": "generated-binding",
@@ -54366,6 +54421,7 @@
         "threading"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_work.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -54700,6 +54756,7 @@
         "httpx"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_worker_channel.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -55247,6 +55304,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_worker_child_control.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -55832,6 +55890,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_worker_control_frames.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -56968,6 +57027,7 @@
         "httpx"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_worker_driver.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -57646,6 +57706,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -58579,6 +58640,7 @@
         "os"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_worker_pipe.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -59130,6 +59192,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_worker_process.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -59903,6 +59966,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,

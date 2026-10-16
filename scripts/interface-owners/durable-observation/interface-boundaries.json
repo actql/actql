@@ -14,6 +14,7 @@
   "declarations": [
     {
       "module": "adapters/host-common/credential-scope-fields.generated.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3b0cf0bfd34eb7ae66b7ddd74aae103dce0d61d49ba72e30baee5a8efccea73e",
       "exports": [
         "credentialInvocationBindingKeys"
@@ -90,6 +91,7 @@
     },
     {
       "module": "adapters/host-common/diagnostic-observer.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ecdd5938f9f08cbf1e47d15caee46d7d7a46f9b758c4fefdd053b2ef08a72bed",
       "exports": [
         "createDiagnosticObserver",
@@ -237,6 +239,7 @@
     },
     {
       "module": "adapters/host-common/observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5a16f8a087da52def2779a7fbcfbc399fee713a7ab6c0366f325bb677d1f18fd",
       "exports": [
         "createHostObservationConnection",
@@ -640,6 +643,7 @@
     },
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4f1b4483355185661f83d025c11c3ede14d33d1c04c005fd459ecbc5d7f5b0d4",
       "exports": [
         "invocationBindingsMatch",
@@ -817,6 +821,7 @@
     },
     {
       "module": "adapters/host-common/sqlite-transaction.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5c672cb06df0724c92dceb2958fc48b2a2cc06f11749bc987636f8d74800d7d0",
       "exports": [
         "createSqliteTransaction",
@@ -969,6 +974,7 @@
     },
     {
       "module": "adapters/host-common/task-observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "1377573482113b997718e99ae4c4ec05787a4dba80c4eb2a351232a3e9ca698b",
       "exports": [
         "installTaskObservation",
@@ -1070,6 +1076,7 @@
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b55747fa9a33570a52fade73235ff07ae4e056b98be0560ab476acf425bf3308",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
@@ -1793,6 +1800,7 @@
     },
     {
       "module": "adapters/host-node/infer-entry-persistence.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c6c1c083c7b043df7ef345af5d50460781f450f8f40687235c7268e0dae8869b",
       "exports": [
         "createNodeInferEntryPersistence"
@@ -1979,6 +1987,7 @@
     },
     {
       "module": "adapters/host-node/infer-physical-observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f13eb7b9c6506074cd33deef9e6c67723fe8b208b2b457d7061e5628a2686c65",
       "exports": [
         "createInferPhysicalObservation"
@@ -2080,6 +2089,7 @@
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "99561c228b553fff5b5a987c47854f45dc0b2f5071d0a78b2e6f8da58e363b02",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
@@ -3212,6 +3222,7 @@
     },
     {
       "module": "adapters/host-node/remote-site-coordinator.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "d30b02e359affad43d1ef21ec27b33cddc844dd55b4405364102194721aba331",
       "exports": [
         "createRemoteSiteCoordinator"
@@ -3646,6 +3657,7 @@
     },
     {
       "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "80739e1be7dd600cfa4ac6edec4c773d9ed763b0ff7f7460084ca1837e401ea6",
       "exports": [
         "openSqliteCoordinatorDispatchJournal"
@@ -4254,6 +4266,7 @@
     },
     {
       "module": "adapters/site-node/https-credential-resource.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c05d1bd11b22152ee7d398073942da7f96ed5e6cc35922ea83a9830f91890260",
       "exports": [
         "callHttpsCredentialResource"
@@ -4478,6 +4491,7 @@
     },
     {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5d626b85cd0dac3e08181fa331e82c4cc912367272df1dba9c96009bfee8746f",
       "exports": [
         "openSqliteCredentialJournal"
@@ -4774,6 +4788,7 @@
     },
     {
       "module": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4161dce5f8e1d197acd47f96a93bd98de9b9e677d97ec622f79b155ebdd19086",
       "exports": [
         "openSqliteDispatchJournal"
@@ -5237,6 +5252,7 @@
     },
     {
       "module": "adapters/site-node/sqlite-transfer-journal.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "eed669ee5c2a02eec0a72fb1054233f4a73cdb0ea285f4fd0774ea7cdea6404e",
       "exports": [
         "openSqliteTransferJournal"
