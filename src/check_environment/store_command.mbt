@@ -1,7 +1,7 @@
 ///|
 // This optional relationship is part of the original Mapping's self-CID.
 // Absence leaves the existing relation-store meaning unchanged.
-priv struct StoreCommandReference {
+struct StoreCommandReference {
   catalog_cid : String
   command_ref : String
   command_contract_cid : String
