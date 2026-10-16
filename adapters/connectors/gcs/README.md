@@ -252,6 +252,31 @@ read/cleanup responsibility. No normal numerical profile is introduced.
 
 ## Original multipart upload request
 
+`classify_object_upload_response` interprets a direct response only after the
+existing Effect Ledger has authenticated and retained it for the same original
+request. The original 200 object metadata must match the request marker,
+checksum, media type, byte count and replacement generation/metageneration;
+unexpected content encoding remains unknown. The direct conditional 412
+response projects the existing `conflict` error. Other statuses or malformed
+or mismatched success bodies remain unclassified; no retry follows.
+
+`projectOwnedGcsUploadResponse` consumes that existing Owner's status/body
+observation, including its authorized saved-response projection after reopen.
+It requires the original opaque provider request but introduces no second
+response issuer, hot-only token or journal. Observation DATA and this pure
+projection cannot authenticate a claim, record a Receipt or make a row terminal.
+A later metadata GET uses original metadata matching, never the direct-response
+conflict classifier; absence or failure of that read does not prove non-apply.
+
+During response classification, the retained original raw response overlaps
+the bounded metadata tree, detached metadata fields, original request/binding,
+projected outcome tree and UTF-8/String outputs. Those aliases/workspaces stay
+in the existing Effect/capture/Store inventory until their actual retirement;
+classification, Promise completion or a weak reference is not cleanup ACK or
+free capacity. The selected JS runtime tests cover real Core Ledger/SQLite
+response reopening and Unknown nonresend with a controlled physical port, not
+an installed STORE, real GCS, approval or a numerical profile.
+
 The same original upload binding also supplies the checked current-object
 metadata path (`object_upload_metadata_path`) and its declared metadata byte
 clamp. `readGcsUploadTarget` uses those projections through the existing

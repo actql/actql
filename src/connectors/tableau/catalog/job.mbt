@@ -181,7 +181,7 @@ fn text_at(object : @decode.ObjectView, key : String) -> String? {
 }
 
 ///|
-fn job_object(
+fn provider_response_object(
   bytes : Bytes,
   limits : JobResponseLimits,
 ) -> Result[@decode.ObjectView, JobIssue] {
@@ -226,7 +226,18 @@ fn job_object(
   guard @decode.open_object(root) is Ok(object) else {
     return Err(InvalidResponse)
   }
-  object_at(object, "job")
+  Ok(object)
+}
+
+///|
+fn job_object(
+  bytes : Bytes,
+  limits : JobResponseLimits,
+) -> Result[@decode.ObjectView, JobIssue] {
+  match provider_response_object(bytes, limits) {
+    Ok(object) => object_at(object, "job")
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|

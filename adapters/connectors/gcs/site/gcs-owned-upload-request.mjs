@@ -124,3 +124,19 @@ export async function sendOwnedGcsUpload({request, authorization, credential,
     accepted: response.accepted, statusCode: response.statusCode, body: response.body}),
     headers: response.headers});
 }
+
+// The existing Effect Ledger authenticates the exact original direct response
+// before this projection, including saved-response recovery. Observation DATA
+// alone is not that proof. A later metadata GET uses responseMatches instead;
+// its failure cannot be relabelled as a failed dispatch.
+export function projectOwnedGcsUploadResponse(request, observation, maxProjectionBytes) {
+  const owner = original(request);
+  if (!integer(maxProjectionBytes)) fail('GcsInvalidUploadTransportLimits');
+  const status = observation?.statusCode;
+  if (!Number.isInteger(status) || status < 100 || status > 599) {
+    fail('GcsInvalidUploadResponse');
+  }
+  return Object.freeze(JSON.parse(gcsUploadResult(owner.moon,
+    owner.moon.gcsUploadResponseProjection(owner.binding, owner.handle,
+      status, bytes(observation.body), maxProjectionBytes))));
+}

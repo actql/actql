@@ -226,10 +226,11 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
         inputs: check.report.inputs.map(input => ({...input, revision: '<revision>'}))}},
         {version: 'actql-check-outcome/0.1', outcome: 'completed',
           reason_schema_cid: 'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742',
-          outcome_schema_cid: 'sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a',
+          outcome_schema_cid: 'sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce',
           report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
             inputs: [{document_id: 'source', kind: 'text', revision: '<revision>', byte_length: 17}],
-            verdict: 'verified', reasons: [], requirements: [],
+            verdict: 'verified', runnable: {verdict: 'yes', reasons: []},
+            reasons: [], requirements: [],
             coverage: {limits: [], unresolved: []}}});
       assert.deepEqual(provider.snapshot(), before, 'plural check performs no provider I/O');
       await exercisePublicQueryInput(connect, running.options, {

@@ -137,3 +137,17 @@ pub fn gcs_upload_response_matches(
 ) -> Bool {
   @catalog.object_upload_response_matches(binding, request, response)
 }
+
+///|
+#export_name("gcsUploadResponseProjection")
+pub fn gcs_upload_response_projection(
+  binding : @catalog.ObjectUploadBinding,
+  request : @catalog.ObjectUploadRequest,
+  status : Int,
+  body : Bytes,
+  max_bytes : Int,
+) -> Result[String, @catalog.ObjectUploadIssue] {
+  @catalog.object_upload_response_projection_json(
+    binding, request, status, body, max_bytes,
+  )
+}
