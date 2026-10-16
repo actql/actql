@@ -26,6 +26,18 @@ syntax and UI/import deduplication are not a global uniqueness guarantee. Record
 IDs and positively enforced custom unique keys retain their supported path.
 Mutable name/option projections are copies; they cannot modify the original observation.
 
+`object_schema_wire` projects explicitly selected observed properties and the
+original non-null string record key into Common's full relation field-map.
+It calls the same `property_contract` and Common name/order/emission Owners;
+decimal precision and array element contracts are not lowered to primitive
+fields or inferred from example rows. Duplicate or reserved record-key
+selections, unknown/unsupported selected properties and exhausted output/name
+bounds are refused without a partial schema. The independent name-byte and
+complete output bounds are physical caller inputs, not numerical funding.
+The existing Common declaration Owner must admit that schema and its identity
+again; this projection alone establishes no Catalog publication, current
+account binding, permission or installed Source support.
+
 The parse/admission limits cover the original complete response before
 projection. A truncated response, duplicate property/JSON key, malformed flag or
 exhausted bound is refused rather than becoming a partial Catalog. These are

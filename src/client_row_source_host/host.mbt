@@ -398,6 +398,7 @@ struct RowRun {
   mut closed : Bool
   mut physical : RowPhysical?
   mut page_charge : RowPageCharge?
+  mut response_borrowed : Bool
   mut residual : RowCaptureResidual?
 }
 
@@ -481,6 +482,7 @@ pub fn start_row_acquisition(
     closed: false,
     physical: None,
     page_charge: None,
+    response_borrowed: false,
     residual: None,
   })
 }

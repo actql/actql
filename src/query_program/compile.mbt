@@ -7192,6 +7192,11 @@ pub fn compile_with_source(
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
+  // A parsed operation must never disappear into a pure Relation. The
+  // published Command target/key owner is required before this can lower.
+  if @query.terminal_short_command_effect(query) is Some(_) {
+    return Err(UnsupportedEffect)
+  }
   // Binding and primary scopes must be installed before inspecting a JOIN
   // input. The standalone probe sees only Context inputs, not authored WITH
   // producers or transformed range inputs.

@@ -13,7 +13,8 @@ import {
   "actql/actql/connectors/local",
   "actql/actql/connectors/local/table",
   "actql/actql/connectors/reference_compute",
-  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/connectors/snowflake/description",
+  "actql/actql/connectors/snowflake/read",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
   "actql/actql/effect_application",
@@ -1642,7 +1643,7 @@ pub fn client_program_prepare_run_state_observation(String, String, Int64) -> @r
 
 pub fn client_program_prepare_salesforce_declared_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
-pub fn client_program_prepare_salesforce_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[(@catalog.ReadProjection, @client_row_source_host.RowAcquisition), @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+pub fn client_program_prepare_salesforce_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, @actql/actql/connectors/salesforce/catalog.CatalogObservation, String, String, Int) -> Result[(@actql/actql/connectors/salesforce/catalog.ReadProjection, @client_row_source_host.RowAcquisition), @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_prepare_serialization(@run_publication_host.PreparedClientProgram, Int, Int, Int) -> Result[@lowering_relation.PreparedSerialization, @run_publication_host.ClientSerializationPreparationIssue]
 
@@ -1720,7 +1721,7 @@ pub fn client_program_read_verified_infer_slot_replay(@run_publication.RunEviden
 
 pub fn client_program_readmit_serialization_generation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferSavedCallScope, String, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
 
-pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @catalog.CatalogObservation, Int) -> Result[@catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/catalog.CatalogObservation, Int) -> Result[@actql/actql/connectors/salesforce/catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
 
@@ -1846,6 +1847,10 @@ pub fn client_program_row_source_begin_listing_page(@client_row_source_host.RowR
 
 pub fn client_program_row_source_begin_listing_request(@client_row_source_host.RowRun, String?, Int64) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_bind_response_cleanup(@client_row_source_host.RowRunResponseBorrow, () -> Bool) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_borrow_responses(@client_row_source_host.RowRun, @client_row_source_host.RowAcquisition) -> Result[@client_row_source_host.RowRunResponseBorrow, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_capture(@client_row_source_host.RowRun) -> Result[@client_row_source_host.RowSourceCapture, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_capture_advance(@client_row_source_host.RowRun, Int) -> Result[(Bool, Int64), @client_row_source_host.RowHostIssue]
@@ -1859,6 +1864,8 @@ pub fn client_program_row_source_capture_cleanup_advance(@client_row_source_host
 pub fn client_program_row_source_capture_source(@client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_row_source_charge_page(@client_row_source_host.RowRun, Bytes) -> Result[@client_row_source_host.RowPageCharge, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_check_original_acquisition(@client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_close(@client_row_source_host.RowRun) -> Unit
 
@@ -1914,35 +1921,35 @@ pub fn client_program_run_state_observation_wire(@run_publication.RunStateObserv
 
 pub fn client_program_run_wait_decision(String, Bool, Int64) -> String
 
-pub fn client_program_salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@catalog.QueryRead, @catalog.QueryReadIssue]
+pub fn client_program_salesforce_begin_query_read(@actql/actql/connectors/salesforce/catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@actql/actql/connectors/salesforce/catalog.QueryRead, @actql/actql/connectors/salesforce/catalog.QueryReadIssue]
 
-pub fn client_program_salesforce_query_page_response_sha256(@catalog.QueryPage) -> String
+pub fn client_program_salesforce_query_page_response_sha256(@actql/actql/connectors/salesforce/catalog.QueryPage) -> String
 
-pub fn client_program_salesforce_query_page_row_count(@catalog.QueryPage) -> Int
+pub fn client_program_salesforce_query_page_row_count(@actql/actql/connectors/salesforce/catalog.QueryPage) -> Int
 
-pub fn client_program_salesforce_query_page_values(@catalog.QueryPage) -> (Array[String], Array[Array[@value_admission.CheckedValue]])
+pub fn client_program_salesforce_query_page_values(@actql/actql/connectors/salesforce/catalog.QueryPage) -> (Array[String], Array[Array[@value_admission.CheckedValue]])
 
-pub fn client_program_salesforce_query_read_accept_page(@catalog.QueryRead, String, Bytes) -> Result[@catalog.QueryPage, @catalog.QueryReadIssue]
+pub fn client_program_salesforce_query_read_accept_page(@actql/actql/connectors/salesforce/catalog.QueryRead, String, Bytes) -> Result[@actql/actql/connectors/salesforce/catalog.QueryPage, @actql/actql/connectors/salesforce/catalog.QueryReadIssue]
 
-pub fn client_program_salesforce_query_read_acknowledge_page(@catalog.QueryRead, @catalog.QueryPage) -> Result[Unit, @catalog.QueryReadIssue]
+pub fn client_program_salesforce_query_read_acknowledge_page(@actql/actql/connectors/salesforce/catalog.QueryRead, @actql/actql/connectors/salesforce/catalog.QueryPage) -> Result[Unit, @actql/actql/connectors/salesforce/catalog.QueryReadIssue]
 
-pub fn client_program_salesforce_query_read_complete(@catalog.QueryRead) -> Bool
+pub fn client_program_salesforce_query_read_complete(@actql/actql/connectors/salesforce/catalog.QueryRead) -> Bool
 
-pub fn client_program_salesforce_query_read_interrupt(@catalog.QueryRead) -> Bool
+pub fn client_program_salesforce_query_read_interrupt(@actql/actql/connectors/salesforce/catalog.QueryRead) -> Bool
 
-pub fn client_program_salesforce_query_read_next_path(@catalog.QueryRead) -> Result[String?, @catalog.QueryReadIssue]
+pub fn client_program_salesforce_query_read_next_path(@actql/actql/connectors/salesforce/catalog.QueryRead) -> Result[String?, @actql/actql/connectors/salesforce/catalog.QueryReadIssue]
 
-pub fn client_program_salesforce_query_read_row_count(@catalog.QueryRead) -> Int64
+pub fn client_program_salesforce_query_read_row_count(@actql/actql/connectors/salesforce/catalog.QueryRead) -> Int64
 
-pub fn client_program_salesforce_query_read_value_violation(@catalog.ReadProjection, @catalog.QueryReadIssue) -> String?
+pub fn client_program_salesforce_query_read_value_violation(@actql/actql/connectors/salesforce/catalog.ReadProjection, @actql/actql/connectors/salesforce/catalog.QueryReadIssue) -> String?
 
-pub fn client_program_salesforce_read_projection_scope_matches(@catalog.ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
+pub fn client_program_salesforce_read_projection_scope_matches(@actql/actql/connectors/salesforce/catalog.ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
-pub fn client_program_salesforce_recheck_read_projection(@catalog.ReadProjection, @catalog.CatalogObservation) -> Result[Bool, @catalog.ReadProjectionIssue]
+pub fn client_program_salesforce_recheck_read_projection(@actql/actql/connectors/salesforce/catalog.ReadProjection, @actql/actql/connectors/salesforce/catalog.CatalogObservation) -> Result[Bool, @actql/actql/connectors/salesforce/catalog.ReadProjectionIssue]
 
-pub fn client_program_salesforce_recover_observation(@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, String, String, String, String, Array[String], Array[Bytes?], Array[Int], Array[String?], Array[String?], Int, Int, Int, Int, Int, Int, String?) -> Result[@catalog.CatalogObservation, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+pub fn client_program_salesforce_recover_observation(@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, String, String, String, String, Array[String], Array[Bytes?], Array[Int], Array[String?], Array[String?], Int, Int, Int, Int, Int, Int, String?) -> Result[@actql/actql/connectors/salesforce/catalog.CatalogObservation, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
-pub fn client_program_salesforce_restore_declaration(@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @catalog.CatalogObservation, String, String, Int, Int, Int) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+pub fn client_program_salesforce_restore_declaration(@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @actql/actql/connectors/salesforce/catalog.CatalogObservation, String, String, Int, Int, Int) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
@@ -2055,6 +2062,54 @@ pub fn client_program_serialized_infer_plan_graph(@run_publication_host.ClientIn
 pub fn client_program_settle_infer_node_read_state(@run_publication_host.ClientNodeModelStateWriter, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Bool) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
 
 pub fn client_program_settle_infer_original_read_preparation(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Bool) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
+
+pub fn client_program_snowflake_accept_response(@read.StatementRead, @read.StatementResponse, Bytes) -> Result[Unit, @read.StatementIssue]
+
+pub fn client_program_snowflake_attempt_request(@read.StatementRead, @read.StatementRequest) -> Result[Unit, @read.StatementIssue]
+
+pub fn client_program_snowflake_bind_read_transport(@read.Read, () -> Bool) -> Result[Unit, @read.ReadIssue]
+
+pub fn client_program_snowflake_borrow_read(@read.PreparedRead, @client_row_source_host.RowRun, @actql/actql/connectors/snowflake/catalog.ResponseLimits, Int) -> Result[@read.Read, @read.ReadIssue]
+
+pub fn client_program_snowflake_charge_response(@read.StatementRead, @read.StatementRequest, Int, Bytes) -> Result[@read.StatementResponse, @read.StatementIssue]
+
+pub fn client_program_snowflake_declaration_limits(Int, Int, Int, Int, Int) -> @client_row_source_host.RowDeclarationLimits
+
+pub fn client_program_snowflake_describe_table(String, String, String, Array[Bytes], @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits) -> Result[@description.TableDescription, @read.ReadIssue]
+
+pub fn client_program_snowflake_description_limits(Int, Int, Int, Int, Int) -> @description.DescriptionLimits
+
+pub fn client_program_snowflake_generate_read_declaration(@description.TableDescription, String, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @read.ReadIssue]
+
+pub fn client_program_snowflake_interrupt_read(@read.Read) -> Unit
+
+pub fn client_program_snowflake_next_request(@read.StatementRead) -> Result[@read.StatementRequest?, @read.StatementIssue]
+
+pub fn client_program_snowflake_prepare_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@read.PreparedRead, @read.ReadIssue]
+
+pub fn client_program_snowflake_prepare_statement(@read.Read, String, String, String, Int, Int, Int) -> Result[@read.StatementRead, @read.StatementIssue]
+
+pub fn client_program_snowflake_read_acquisition(@read.PreparedRead) -> @client_row_source_host.RowAcquisition
+
+pub fn client_program_snowflake_read_usage(@read.Read) -> (Int, Int64)
+
+pub fn client_program_snowflake_record_decoder_refusal(@read.StatementRead, @read.StatementResponse) -> Result[Unit, @read.StatementIssue]
+
+pub fn client_program_snowflake_record_response_loss(@read.StatementRead, @read.StatementRequest) -> Result[Unit, @read.StatementIssue]
+
+pub fn client_program_snowflake_reject_response(@read.StatementRead, @read.StatementResponse) -> Result[Unit, @read.StatementIssue]
+
+pub fn client_program_snowflake_request_material(@read.StatementRequest) -> (String, String, String?, Int)
+
+pub fn client_program_snowflake_response_limits(Int, Int, Int, Int, Int, Int, Int, Int, Int64) -> @actql/actql/connectors/snowflake/catalog.ResponseLimits
+
+pub fn client_program_snowflake_response_unknown(@read.StatementRead, @read.StatementRequest) -> Result[Unit, @read.StatementIssue]
+
+pub fn client_program_snowflake_retire_read_borrow(@read.Read) -> Result[Unit, @read.ReadIssue]
+
+pub fn client_program_snowflake_statement_complete(@read.StatementRead) -> Bool
+
+pub fn client_program_snowflake_statement_original(@read.StatementRead) -> (String, String?)
 
 pub fn client_program_source_capture_cleanup_pending(@client_local_host.ClientAccountedSourceCapture) -> Bool
 

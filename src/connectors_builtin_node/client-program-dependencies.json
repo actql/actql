@@ -35,6 +35,18 @@
     {
       "path": "actql/actql/capacity_policy",
       "alias": "capacity_policy"
+    },
+    {
+      "path": "actql/actql/connectors/snowflake/catalog",
+      "alias": "snowflake_response"
+    },
+    {
+      "path": "actql/actql/connectors/snowflake/description",
+      "alias": "snowflake_description"
+    },
+    {
+      "path": "actql/actql/connectors/snowflake/read",
+      "alias": "snowflake_read"
     }
   ]
 }
