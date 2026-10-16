@@ -1100,16 +1100,16 @@ one you mean:
 ```
 
 ```sql
-FROM files.transfers |> SELECT destination, name, content |> RESULT transfers;
-EFFECT upload COMMAND
-  FROM RESULT transfers AS t
-  TARGET t.destination
-  CONTRACT `command:files.upload.v1`
-  INPUT (name = t.name, content = t.content);
+FROM support.escalations |> SELECT channel, message |> RESULT escalations;
+EFFECT notify COMMAND
+  FROM RESULT escalations AS e
+  TARGET e.channel
+  CONTRACT `command:slack.post.v1`
+  INPUT (text = e.message);
 ```
 
 `TARGET` is the resource URI, `MAPPING` or `CONTRACT` the published contract,
-and the optional Effect name (`mark`, `upload`) is how the Run's status and
+and the optional Effect name (`mark`, `notify`) is how the Run's status and
 ledger refer to it. The `COMMAND` long form follows a `;`-terminated query
 and refers to one of its `RESULT`s. A short form is the long form with the
 Effect name, the Mapping and the Result left to the Host.
