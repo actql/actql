@@ -17,11 +17,20 @@ process.exitCode=await runLocalCheck({root,heavy:false,timeoutSeconds:180,graceS
   child('actual JS compiler and Owner probes',[
     'build','--target','js','--release','-j','1',
     'src/interface_binding_probe','src/interface_action_probe',
+    'src/client_values_host_abi','src/remote_coordinator_abi',
   ],150000),
+  {name:'normal runtime transform for the affected two product targets',command:process.execPath,args:[
+    '--input-type=module','-e',
+    "import {mkdirSync,writeFileSync} from 'node:fs';import {deferredFunctionRuntime} from './scripts/deferred-function-runtime.mjs';"+
+    "for(const [name,target,minify] of [['run-host-core','client_values_host_abi',true],['coordinator-core','remote_coordinator_abi',false]]){"+
+    "mkdirSync('packages/'+name+'/dist',{recursive:true});writeFileSync('packages/'+name+'/dist/'+target+'.js',"+
+    "deferredFunctionRuntime('_build/js/release/build/'+target+'/'+target+'.js',{minify}));}",
+  ]},
   {name:'actual compiled conversion and action counterexamples',command:process.execPath,args:[
     '--input-type=module','-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('node',"+
     "['scripts/js-compiler-binding-runtime.test.mjs','scripts/js-action-binding-runtime.test.mjs',"+
+    "'packages/run-host-core/reference-options.test.mjs',"+
     "'adapters/host-common/publication-action.test.mjs','adapters/host-common/strategy-actions.test.mjs'],"+
     "{cwd:process.cwd(),timeout:30000,killSignal:'SIGTERM'});",
   ]},

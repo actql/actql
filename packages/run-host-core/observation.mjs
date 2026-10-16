@@ -77,6 +77,6 @@ export function observationBudgetSnapshot(budget) {
   const values = owner.clientValuesHostObservationBudgetSnapshot(
     requireToken(budgets, budget));
   return Object.freeze(Object.fromEntries(fields.map((key, index) =>
-    [key, key === 'factHashes' ? Object.freeze([...values[`_${index}`]]) :
-      values[`_${index}`]])));
+    [key, key === 'factHashes' ? Object.freeze([...runtimeField(values, index)]) :
+      runtimeField(values, index)])));
 }
