@@ -48,7 +48,7 @@ const propertyName = node => node?.type === 'MemberExpression'
   ? node.computed ? literalValue(node.property) : node.property.name : undefined;
 const compilerField = node => {
   const value = literalValue(node);
-  if (typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value)) return value;
+  if (value !== undefined) return typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value) ? value : undefined;
   if (node?.type === 'TemplateLiteral' && node.expressions.length &&
       node.quasis[0].value.cooked === '_' && node.quasis.at(-1).value.cooked === '') return '_<dynamic>';
   if (node?.type === 'BinaryExpression' && node.operator === '+' && literalValue(node.left) === '_') return '_<dynamic>';
