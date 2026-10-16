@@ -8886,6 +8886,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "cid/cid",
             "fail/fail",
             "handOverSiteRelease",
