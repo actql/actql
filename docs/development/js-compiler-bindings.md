@@ -90,8 +90,10 @@ must update reviewed bindings and their actual-target correspondence together.
 ## Verification
 
 Run `node scripts/check-js-compiler-bindings.mjs` with the pinned toolchain.
-This bounded, nonzero check builds only the JS binding probes, checks real
-generated-output freshness and uses the actual compiled Owners. The primitive
+This bounded, nonzero check builds the JS binding probes and the two affected
+Run Host/Coordinator product targets, checks real generated-output freshness
+and uses the actual compiled Owners. It reuses the normal runtime transform,
+without preparing unrelated Checkpoint/Worker/package targets. The primitive
 probe covers success, contract refusal, malformed Result, reference/Unit Option,
 Unicode, exact Int64, original identity and same-typed tuple-role reversal.
 `packages/run-host-core/reference-options.test.mjs` separately checks the actual
