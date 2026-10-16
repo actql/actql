@@ -137,6 +137,7 @@ test('closed literal and dynamic compiler field spellings do not bypass the repr
     assert(javascriptInterface(source).compilerFields.length, `Missing compiler field policy: ${source}`);
   }
   assert.deepEqual(javascriptInterface('const value = {"column": "_0", text: "$tag"};').compilerFields, []);
+  assert.deepEqual(javascriptInterface("value['_' + 'column']; value[`_column`]").compilerFields, []);
 });
 
 test('namespace reexports and class methods retain their actual public names', () => {

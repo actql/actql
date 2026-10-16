@@ -34,3 +34,13 @@ test('TS and reflective compiler field access require the same generated authori
   assert.deepEqual(typescriptInterface('export const value = Reflect.get(result, "$tag") || result._0;').compilerFields,
     ['$tag', '_0']);
 });
+
+test('TS closed literal and computed compiler fields cannot bypass the existing representation policy', () => {
+  for (const source of ['value[`$tag`]', "value['_' + 0]", "Object.getOwnPropertyDescriptor(value, '$tag')?.value",
+    'const {_0: item} = value;', 'const {_0} = value;', 'const item = {_0: value};', 'value[`_${index}`]',
+    "Reflect.get(value, '_' + index)"]) {
+    assert(typescriptInterface(source).compilerFields.length, `Missing TS compiler representation: ${source}`);
+  }
+  assert.deepEqual(typescriptInterface('export const wire = {name: "_0", text: "$tag"};').compilerFields, []);
+  assert.deepEqual(typescriptInterface("value['_' + 'column']; const [_0] = input;").compilerFields, []);
+});
