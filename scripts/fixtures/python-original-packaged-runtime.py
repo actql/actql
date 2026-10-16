@@ -8,6 +8,9 @@ not enlarge or rescue that original failed backing/attempt. The plan is maintain
 public Client configuration or an alternative to the missing normal supplier.
 """
 import ctypes as C
+import copy
+import pickle
+from threading import Thread
 import hashlib
 import json
 import os
@@ -164,6 +167,29 @@ else:
     else:
         assert case != 'runtime-partial'
         assert runtime.current().issue_family == 0
+        if case == 'runtime-close':
+            for operation in (copy.copy, copy.deepcopy, pickle.dumps):
+                try: operation(runtime)
+                except TypeError: pass
+                else: raise AssertionError('Actual Runtime custody escaped by copy/serialization')
+            errors = []
+            def foreign_thread():
+                try: runtime.current()
+                except ValueError: errors.append('foreign-thread')
+            worker = Thread(target=foreign_thread)
+            worker.start(); worker.join(timeout=2)
+            assert not worker.is_alive() and errors == ['foreign-thread']
+            owner = original._domain._owner
+            assert not owner._busy
+            owner._busy = True
+            try:
+                try: runtime.current()
+                except ValueError: pass
+                else: raise AssertionError('Actual Runtime callback reentry was accepted')
+            finally:
+                owner._busy = False
+            assert runtime._unknown is None and runtime.current().issue_family == 0
+            print(json.dumps({'actual_carrier_copy_thread_reentry_rejections': 5}), flush=True)
         if case == 'runtime-changed':
             (root / 'data/values.json').write_bytes(b'bad')
             try: runtime.current()

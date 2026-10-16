@@ -13,6 +13,7 @@ from pathlib import Path
 import platform
 import shlex
 import subprocess
+import sys
 import time
 
 
@@ -160,6 +161,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     if (run(['git', 'rev-parse', 'HEAD'], capture=True).strip() != source
             or run(['git', 'status', '--porcelain'], capture=True)):
         raise ValueError('Exact committed clean Native provider source required')
+    run([sys.executable, str(ROOT / 'scripts/generate-local-native-runtime-binding.py'), '--check'])
     pin = json.loads((ROOT / 'toolchain.json').read_text())
     marker = json.loads((moon_home / 'installed.json').read_text())
     if marker != {'pin': pin, 'platform': 'darwin-arm64'}:
