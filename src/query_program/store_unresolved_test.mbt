@@ -10,7 +10,7 @@ test "unpublished STORE never compiles as its ordinary Relation prefix" {
     let query = @query.parse_query(source, syntax_limits()).unwrap()
     let context = { ..fixture_context(), inputs: [], }
     assert_true(
-      compile(query, context, construction_limits()) is Err(UnsupportedEffect),
+      compile(query, context, construction_limits()) is Err(StoreTargetBinding(UnresolvedTarget)),
     )
     assert_true(
       compile_query_script(
@@ -18,7 +18,7 @@ test "unpublished STORE never compiles as its ordinary Relation prefix" {
         context,
         construction_limits(),
       )
-      is Err(UnsupportedEffect),
+      is Err(StoreTargetBinding(UnresolvedTarget)),
     )
   }
 }
