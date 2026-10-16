@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0911b4f4d63749b8ac1b0b9120297aa5b52449302be85962e1b5e474ad5284c1",
+      "sha256": "f4351af53b647acb895c63a224aae264a57451b425b78d55b4490eae60bc62b7",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -6648,12 +6648,21 @@
         },
         {
           "name": "readBounded/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [],
+          "parameters": [
+            "result"
+          ],
           "async": false
         },
         {
           "name": "readBounded/cleanup/init:retry/init:retry/init:retry#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBounded/readBounded",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -7259,6 +7268,7 @@
             "readBounded/cleanup/init:retry/init:retry/init:retry",
             "readBounded/cleanup/init:retry/init:retry/init:retry#2",
             "readBounded/cleanup/init:retry/init:retry/init:retry#3",
+            "readBounded/readBounded",
             "readBounded/sameFile/sameFile",
             "readBounded/status/status",
             "removeOpeningTree",
