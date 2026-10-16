@@ -6947,7 +6947,7 @@ fn compile_steps(
   // An implicit UPDATE consumes this exact Relation scope, including its
   // immutable range slots. Save a branch before the ordinary public projection
   // can discard those slots; the Effect branch closes only its demanded fields.
-  let update_steps : Array[Array[(String, @builder.Node)]] = []
+  let effect_capture_steps : Array[Array[(String, @builder.Node)]] = []
   if @query.terminal_effect(query) is Some(clause) &&
     clause.result is None &&
     @query.set_part_count(query) == 0 &&
@@ -6991,7 +6991,7 @@ fn compile_steps(
       ),
     )
     retained.push(capture)
-    update_steps.append(body)
+    effect_capture_steps.append(body)
   }
   if @query.terminal_store_effect(query) is Some(clause) &&
     @query.set_part_count(query) == 0 &&
@@ -7035,7 +7035,7 @@ fn compile_steps(
       ),
     )
     retained.push(capture)
-    update_steps.append(body)
+    effect_capture_steps.append(body)
   }
   let retained_scope = match preserved_scope {
     Some(scopes) => Some(scopes)
@@ -7106,7 +7106,7 @@ fn compile_steps(
       ("as", construction.text(final_alias)),
     )
   }
-  step_entries.append(update_steps)
+  step_entries.append(effect_capture_steps)
   let emitted = match source_projection_capture {
     Some(capture) if capture.count > 0 => {
       let tail = Array::makei(step_entries.length() - capture.count, i => {
