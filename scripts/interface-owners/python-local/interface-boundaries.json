@@ -307,7 +307,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -450,7 +450,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -593,7 +593,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -1025,7 +1025,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -1168,7 +1168,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -1314,7 +1314,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -1455,7 +1455,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -1596,7 +1596,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -1737,7 +1737,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -1878,7 +1878,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -2021,7 +2021,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -2164,7 +2164,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -2307,7 +2307,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
@@ -2454,7 +2454,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "spawnSync(executable, args"
+                "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
