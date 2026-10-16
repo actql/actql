@@ -27,7 +27,7 @@ test "GCS object Source projection is exact Decimal DATA and opaque JSON not exp
   )
   let page = object_page_read(wire).unwrap()
   let expected =
-    #|{"content_type":"text/csv","crc32c":"crxyRA==","generation":"9007199254740993","md5":"AAAAAA==","metadata":{"$json":"user","é":"é\r\n%2F"},"metageneration":"2","name":"in/é%2F.csv","size":"9223372036854775807","storage_class":"COLDLINE","updated":"2026-10-17T00:00:00Z","version":"9007199254740993"}
+    #|{"content_type":"text/csv","crc32c":"crxyRA==","generation":"9007199254740993","md5":"AAAAAA==","metadata":{"$json":"user","é":"é\r\n%2F"},"metageneration":"2","name":"in/é%2F.csv","size":"9223372036854775807","storage_class":"COLDLINE","updated":"2026-10-17T00:00:00.000Z","version":"9007199254740993"}
   let maximum = @utf8.encode(expected).length()
   assert_eq(
     object_metadata_page_row_json(page, 0, maximum, metadata_limits()).unwrap(),
@@ -44,6 +44,57 @@ test "GCS object Source projection is exact Decimal DATA and opaque JSON not exp
   assert_true(
     page.items[0].metadata.unwrap().contains(("actql-request", "private")),
   )
+}
+
+///|
+test "GCS updated timestamp uses the same UTC instant without rounding provider precision" {
+  for
+    (reported, expected) in [
+      ("2026-10-17T00:00:00Z", "2026-10-17T00:00:00.000Z"),
+      ("2026-10-17T00:00:00.1Z", "2026-10-17T00:00:00.100Z"),
+      ("2026-10-17T00:00:00.12Z", "2026-10-17T00:00:00.120Z"),
+      ("2026-10-17T00:00:00.123Z", "2026-10-17T00:00:00.123Z"),
+      ("2026-10-17T00:00:00.123000000Z", "2026-10-17T00:00:00.123Z"),
+      ("2026-10-17T01:30:00+01:30", "2026-10-17T00:00:00.000Z"),
+      ("2026-10-16T22:30:00-01:30", "2026-10-17T00:00:00.000Z"),
+      ("2026-01-01T00:30:00+01:00", "2025-12-31T23:30:00.000Z"),
+      ("2000-03-01T00:00:00+00:01", "2000-02-29T23:59:00.000Z"),
+    ] {
+    assert_eq(object_source_timestamp(reported), Some(expected))
+    let wire = object_page_wire(
+      "[" + metadata_wire(extra=",\"updated\":\"" + reported + "\"") + "]",
+    )
+    let page = object_page_read(wire).unwrap()
+    assert_eq(page.items[0].updated, Some(reported))
+    assert_eq(
+      object_metadata_page_response_sha256(page),
+      @sha.hex(@utf8.encode(wire)),
+    )
+    assert_true(
+      object_metadata_page_row_json(page, 0, 8192, metadata_limits())
+      .unwrap()
+      .contains("\"updated\":\"" + expected + "\""),
+    )
+  }
+  for
+    invalid in [
+      "2026-10-17T00:00:00.123001Z", "2026-10-17T00:00:00.000000001Z", "2026-10-17T00:00:00.Z",
+      "2026-10-17T00:00:00.0000000000Z", "2026-02-29T00:00:00Z", "2026-10-17T00:00:60Z",
+      "2026-10-17T00:00:00+24:00", "2026-10-17T00:00:00+01:60", "0000-01-01T00:00:00+00:01",
+      "9999-12-31T23:59:59-00:01",
+    ] {
+    assert_eq(object_source_timestamp(invalid), None)
+    let page = object_page_read(
+      object_page_wire(
+        "[" + metadata_wire(extra=",\"updated\":\"" + invalid + "\"") + "]",
+      ),
+    ).unwrap()
+    assert_true(
+      object_metadata_page_row_json(page, 0, 8192, metadata_limits())
+      is Err(InvalidMetadata),
+    )
+    assert_eq(page.items[0].updated, Some(invalid))
+  }
 }
 
 ///|

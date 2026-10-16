@@ -4456,7 +4456,8 @@
             "object_metadata_page_count",
             "object_metadata_page_next_token",
             "object_metadata_page_response_sha256",
-            "object_metadata_page_row_json"
+            "object_metadata_page_row_json",
+            "object_source_timestamp"
           ],
           "exports": [],
           "attributes": {
@@ -4476,6 +4477,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "RFC 3339 provider text becomes the same UTC instant"
               }
             ],
             "inputsOutputs": [
@@ -4566,6 +4571,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "Err(ObjectMismatch)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "An unrepresentable instant refuses"
               }
             ],
             "cancellation": {
@@ -4635,6 +4644,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_page_wbtest.mbt",
+                "anchor": "GCS updated timestamp uses the same UTC instant without rounding"
               }
             ]
           }
@@ -4668,10 +4681,14 @@
         {
           "name": "object_metadata_page_row_json",
           "declaration": "object_metadata_page_row_json ( page : ObjectMetadataPage , index : Int , max_bytes : Int , limits : ObjectMetadataLimits , ) - > Result [ String , ObjectMetadataIssue ]"
+        },
+        {
+          "name": "object_source_timestamp",
+          "declaration": "object_source_timestamp ( text : String ) - > String ?"
         }
       ],
       "exports": [],
-      "sha256": "74da4ec325044781aaae8f37eed6ecd5358933d4f9556a6ef174538d97ce1b71"
+      "sha256": "bbb7f3703a37af105fcf684cfbd684185ec99ead8ad6de81322726cc540d2273"
     },
     {
       "module": "src/connectors/gcs/original_reference/collection.mbt",

@@ -10,6 +10,17 @@ capability or make an installation available.
 
 ## Exact ordinary object rows
 
+The ordinary `updated` field enters the existing millisecond UTC Timestamp
+contract. The portable GCS owner converts RFC 3339 whole seconds, exact
+millisecond fractions and offsets to the same UTC instant, with no Host Date
+parser. Extra fractional digits are accepted only when they are zero; a
+sub-millisecond instant is refused rather than rounded or silently omitted.
+The original provider spelling and physical page digest remain unchanged.
+Such refused precision remains a representation limitation, not completed
+coverage of every possible GCS timestamp. The bounded temporary timestamp
+prefix/fraction/zone/output strings and existing calendar conversion workspace
+belong to the same Source parser/row envelope, not a free byte grant.
+
 The standard provider-backed installation publishes `objects` as a genuine
 ordinary Source beside `files` and `contents`. It does not fabricate a Source
 field to carry a collection STORE target. The earlier two view declarations

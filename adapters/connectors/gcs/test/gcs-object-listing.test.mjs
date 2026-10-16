@@ -52,7 +52,7 @@ test('actual GCS object parser preserves exact Int64 Decimal text, all fields an
   assert.deepEqual(state.rows, [[], [{resource: {$fixtureResource: {bucket: 'bucket',
     objectName: 'in/e\u0301%2F.csv'}}, version: '9007199254740993', name: 'in/e\u0301%2F.csv',
     size: '9223372036854775807', generation: '9007199254740993', metageneration: '2',
-    content_type: 'text/csv', storage_class: 'COLDLINE', updated: '2026-10-17T00:00:00Z',
+    content_type: 'text/csv', storage_class: 'COLDLINE', updated: '2026-10-17T00:00:00.000Z',
     md5: 'AAAAAA==', crc32c: 'crxyRA==', metadata: {'$json': 'user', 'e\u0301': 'e\u0301\r\n%2F'}}]]);
   assert.deepEqual(state.events, ['current', 'send', 'charge', 'consume',
     'current', 'send', 'charge', 'consume']);
@@ -69,6 +69,25 @@ test('missing provider metadata and empty object remain distinct Source DATA', a
   await readGcsObjects(options);
   assert.equal(state.rows[0][0].metadata, null);
   assert.deepEqual(state.rows[0][1].metadata, {});
+});
+
+test('GCS timestamp Source DATA uses the same UTC instant while retaining the exact physical report', async () => {
+  const reported = '2026-10-17T01:30:00.123000000+01:30';
+  const {options, state} = fixture([{kind: 'storage#objects', items: [{...item, updated: reported}]}]);
+  await readGcsObjects(options);
+  assert.equal(state.rows[0][0].updated, '2026-10-17T00:00:00.123Z');
+  assert.equal(JSON.parse(state.charges[0].body).items[0].updated, reported);
+});
+
+test('unrepresentable GCS sub-millisecond timestamps refuse without rounding or issuing a Resource', async () => {
+  const reported = '2026-10-17T00:00:00.123001Z';
+  const {options, state} = fixture([{kind: 'storage#objects', items: [{...item, updated: reported}]}]);
+  await assert.rejects(readGcsObjects(options), {code: 'InvalidMetadata'});
+  assert.equal(state.calls.length, 1);
+  assert.equal(state.charges.length, 1);
+  assert.equal(JSON.parse(state.charges[0].body).items[0].updated, reported);
+  assert.equal(state.resources.length, 0);
+  assert.equal(state.rows.length, 0);
 });
 
 test('actual checked prefix narrows scope without Unicode or percent normalization', async () => {

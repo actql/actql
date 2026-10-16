@@ -25,7 +25,7 @@ const object = Object.freeze({bucket: 'actql-fixture', name: 'in/e\u0301%2F.csv'
   metadata: {'actql-request': 'private', '$json': 'user', 'e\u0301': 'e\u0301\r\n%2F'}});
 const expected = {resource, version: '9007199254740993', name: 'in/e\u0301%2F.csv',
   size: '9223372036854775807', generation: '9007199254740993', metageneration: '2',
-  content_type: 'text/csv', storage_class: 'COLDLINE', updated: '2026-10-17T00:00:00Z',
+  content_type: 'text/csv', storage_class: 'COLDLINE', updated: '2026-10-17T00:00:00.000Z',
   md5: 'AAAAAA==', crc32c: 'crxyRA==',
   metadata: {$json: {'$json': 'user', 'e\u0301': 'e\u0301\r\n%2F'}}};
 

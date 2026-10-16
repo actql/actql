@@ -147,13 +147,21 @@ pub fn object_metadata_page_row_json(
     (name, value) in [
       ("content_type", fields.content_type),
       ("storage_class", fields.storage_class),
-      ("updated", fields.updated),
       ("md5", fields.md5),
       ("crc32c", fields.crc32c),
     ] {
     row[name] = match value {
       Some(text) => text.to_json()
       None => Json::null()
+    }
+  }
+  row["updated"] = match fields.updated {
+    None => Json::null()
+    Some(text) => {
+      guard object_source_timestamp(text) is Some(canonical) else {
+        return Err(InvalidMetadata)
+      }
+      canonical.to_json()
     }
   }
   row["metadata"] = match fields.metadata {
@@ -169,6 +177,71 @@ pub fn object_metadata_page_row_json(
   mutation_json(Json::object(row), max_bytes, limits).map_err(_ => {
     BudgetExceeded
   })
+}
+
+///|
+// RFC 3339 provider text becomes the same UTC instant in the existing
+// millisecond Timestamp carrier. Never round sub-millisecond provider data or
+// change the retained physical report. An unrepresentable instant refuses.
+fn object_source_timestamp(text : String) -> String? {
+  if text.length() < 20 || text.length() > 35 {
+    return None
+  }
+  let mut position = 19
+  let mut fraction = ""
+  if text[position] == '.' {
+    position += 1
+    let start = position
+    while position < text.length() &&
+          text[position] >= '0' &&
+          text[position] <= '9' {
+      position += 1
+    }
+    if position == start || position - start > 9 {
+      return None
+    }
+    fraction = text[start:position].to_owned()
+  }
+  if fraction.length() > 3 {
+    for index in 3..<fraction.length() {
+      if fraction[index] != '0' {
+        return None
+      }
+    }
+    fraction = fraction[:3].to_owned()
+  }
+  while fraction.length() < 3 {
+    fraction += "0"
+  }
+  let local = text[:19].to_owned() + "." + fraction + "Z"
+  guard @admitted.timestamp_epoch_milliseconds(local) is Some(milliseconds) else {
+    return None
+  }
+  let zone = text[position:].to_owned()
+  if zone == "Z" {
+    return Some(local)
+  }
+  if zone.length() != 6 || (zone[0] != '+' && zone[0] != '-') || zone[3] != ':' {
+    return None
+  }
+  for index in [1, 2, 4, 5] {
+    if zone[index] < '0' || zone[index] > '9' {
+      return None
+    }
+  }
+  let hours = (zone[1].to_int() - 48) * 10 + zone[2].to_int() - 48
+  let minutes = (zone[4].to_int() - 48) * 10 + zone[5].to_int() - 48
+  if hours > 23 || minutes > 59 {
+    return None
+  }
+  let offset = (hours * 60 + minutes).to_int64() * 60000L
+  @admitted.epoch_milliseconds_timestamp(
+    if zone[0] == '+' {
+      milliseconds - offset
+    } else {
+      milliseconds + offset
+    },
+  )
 }
 
 ///|
