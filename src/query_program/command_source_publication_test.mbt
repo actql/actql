@@ -88,8 +88,13 @@ test "Host Command publication keeps exact fixed or identifier declaration and i
 test "Host Command section is closed required and refuses malformed unused entries before read context" {
   let environment = command_source_environment("installation")
   let wire = command_source_publication(environment)
+  let prefix = "{\"environmentCid\":\"" +
+    @check.checking_environment_cid(environment) +
+    "\",\"aliases\":[],\"commandTargets\":"
   for
     changed in [
+      prefix + "null}",
+      prefix + "{}}",
       wire.replace(
         old="\"commandTargets\":[",
         new="\"commandTargets\":null,\"unexpected\":[",
@@ -132,7 +137,7 @@ test "Host Command section is closed required and refuses malformed unused entri
   let second = wire
     .replace(old="\"name\":\"mail.send\"", new="\"name\":\"unused\"")
     .replace(old="command:mail.send.v1", new="command:missing.v1")
-  let entry = second.split("\"commandTargets\":[")[1].replace(old="]}", new="")
+  let entry = second.replace(old=prefix + "[", new="").replace(old="]}", new="")
   let mixed = wire.replace(old="]}", new="," + entry + "]}")
   assert_true(
     @source_publication.published_command_targets(environment, mixed) is Err(_),
