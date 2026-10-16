@@ -143,8 +143,9 @@ async function localRuntimeFixture(t) {
   put('bin/actql-native-client', binary); chmodSync(join(f.directory, 'bin/actql-native-client'), 0o755);
   const header = '/* Original public SQLite header notice control, not an ABI fixture. */\n';
   const licenses = [put('licenses/sqlite3.h', header), put('licenses/crypto-LICENSE.txt', 'Original crypto license control.\n')];
+  const library = Buffer.from(binary); library.writeUInt32LE(6, 12);
   const libraries = [['sqlite', 'libsqlite3.dylib'], ['crypto', 'libcrypto.3.dylib']].map(([role, name], index) => ({
-    ...put(`lib/${name}`, binary), role, license: licenses[index].path,
+    ...put(`lib/${name}`, library), role, license: licenses[index].path,
     dependencies: ['/usr/lib/libSystem.B.dylib'], abi: {minimumMacOS: '26.0'},
   }));
   const assets = ['environment', 'registry', 'values', 'fragment', 'result-policy'].map(role => ({
@@ -160,7 +161,7 @@ async function localRuntimeFixture(t) {
     abi: {format: 'Mach-O', minimumMacOS: '26.0'}, testedHost: {}, generation: [], localRuntime: metadata};
   const save = value => writeFileSync(join(f.directory, 'artifact.json'), JSON.stringify(value));
   save(record);
-  return {...f, binary, header, manifest, record, save, put};
+  return {...f, binary, library, header, manifest, record, save, put};
 }
 
 test('Local runtime sidecar selects the actual original libraries and SQLite header without inventing Moon compilation', async t => {
@@ -184,7 +185,7 @@ test('runtime original registration cannot accept changed library/header bytes, 
   const f = await localRuntimeFixture(t);
   writeFileSync(join(f.directory, 'lib/libcrypto.3.dylib'), Buffer.alloc(32));
   await assert.rejects(f.check(f.record), error => error.exitCode === 65);
-  writeFileSync(join(f.directory, 'lib/libcrypto.3.dylib'), f.binary);
+  writeFileSync(join(f.directory, 'lib/libcrypto.3.dylib'), f.library);
   writeFileSync(join(f.directory, 'licenses/sqlite3.h'), f.header + 'changed');
   await assert.rejects(f.check(f.record), error => error.exitCode === 65);
   writeFileSync(join(f.directory, 'licenses/sqlite3.h'), f.header);
