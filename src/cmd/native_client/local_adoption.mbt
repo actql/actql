@@ -531,7 +531,10 @@ fn local_request_lookup(
   crypto : @local_crypto.Library,
   child : @argparse.Matches,
 ) -> String raise ClientStop {
-  local_submission_lookup_selected(host, settings, crypto, () => {
+  let scope = local_host_result(
+    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+  )
+  let reply = local_submission_lookup_selected(host, settings, crypto, () => {
     let reference = host
       .lookup_submission_reference_by_request_id(
         crypto,
@@ -543,6 +546,12 @@ fn local_request_lookup(
       .unwrap_or_else(() => stop("LocalRequestLookupUnavailable"))
     reference.unwrap_or_else(() => stop("LocalRequestHistoryUnavailable"))
   })
+  // The shared lookup advances the clock and reads the journal again. Preserve
+  // the selector's current RunRead requirement through that final read as well.
+  if !local_run_operation_allowed(host, settings, crypto, scope, "read") {
+    stop("LocalRequestReadAuthorizationDenied")
+  }
+  reply
 }
 
 ///|
