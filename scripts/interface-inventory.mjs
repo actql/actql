@@ -95,7 +95,7 @@ function runtimeImportReferences(tree) {
           const property = parameter.type === 'ObjectPattern' && parameter.properties.find(property =>
             property.type === 'Property' && !property.computed && property.value.type === 'Identifier' && property.value.name === name);
           declare(current, name, {parameter: parameter.type === 'Identifier' || property
-            ? {function: node, index, property: property?.key.name ?? property?.key.value} : undefined});
+            ? {function: node, index, property: property ? property.key.name ?? property.key.value : undefined} : undefined});
         }
       });
       if (node.type === 'FunctionExpression' && node.id) declare(current, node.id.name);
