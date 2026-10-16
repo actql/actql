@@ -57,7 +57,7 @@ async function fixture(t, {hook, journalFailure = false, admitsSource = () => fa
   t.after(async () => {
     state.journalFailure = false;
     close();
-    await scratch.cleanup();
+    scratch.passed();
   });
   const facts = {kind: 'effect_target', principalId: 'principal',
     configurationCid: cid('a'), contextCid: cid('b'), runDefinitionCid: cid('d'),
