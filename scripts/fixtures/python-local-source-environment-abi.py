@@ -39,6 +39,12 @@ try:
     ]:
         _, result = install(invalid)
         assert result == -20
+    # The rejection batch and positive lifecycle are independent observations.
+    # Keep the same 100M per-instance diagnostic ceiling; do not refill a live
+    # pool or call this a default-fuel/product aggregate acceptance.
+    fixture.close()
+    fixture = PhysicalFixture(module, 708, capacity=262144, slots=32, fuel=100000000)
+    ticket = 0
     source, environment = install({'environment': wire, 'publication': encode(publication).decode()})
     assert environment > 0
     assert fixture.call('close', source) == -9
@@ -58,6 +64,7 @@ finally:
     fixture.close()
 
 print(json.dumps({'success': True, 'module_sha256': hashlib.sha256(module).hexdigest(),
+                  'fuel_scope': 'two independent instances, each100M; no aggregate/product claim',
                   'cases': ['closed_installed_configuration', 'missing_null_configuration',
                             'foreign_publication_generation', 'verified_source_publication',
                             'original_environment_loan', 'physical_stop_retry', 'final_settlement']}))
