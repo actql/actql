@@ -53,10 +53,12 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   }
   const ownedAssets = includesLocal ? local.dataFiles : [];
   const commands = new Set(roots.flatMap(value => value.commands ?? []));
+  const declarationEntrances = [...new Set([...roots.flatMap(value => value.entrances),
+    ...authoredEntrances].filter(path => /\.d\.[cm]?ts$/u.test(path)))];
   const entrances = [...new Set([...roots.flatMap(value => value.entrances)
     .filter(path => !/\.d\.[cm]?ts$/u.test(path)),
     ...(includesLocal ? local.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path)),
-    ...authoredEntrances])];
+    ...authoredEntrances.filter(path => !/\.d\.[cm]?ts$/u.test(path))])];
   const native = nativeCliPackageInputs(root);
   if (native && roots.some(value => value.manifest === native.manifest)) {
     entrances.push(...native.copies.map(value => value.source));
@@ -242,8 +244,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   }
   const moon = moonInterfaceClosure(root, [...new Set([...artifactReferences]
     .flatMap(path => artifacts.get(path).sourcePackages))]);
-  const types = typescriptInterfaceClosure(root, roots.flatMap(value => value.entrances)
-    .filter(path => /\.d\.[cm]?ts$/u.test(path)));
+  const types = typescriptInterfaceClosure(root, declarationEntrances);
   return {qualification: unresolvedEntrances.length ? 'incomplete-source-input-coverage' : 'source-input-coverage-only',
     unresolvedEntrances, runtimeBindings, roots, modules: modules.sort((a, b) => a.module.localeCompare(b.module)),
     assets: assets.sort((a, b) => a.module.localeCompare(b.module)), types, moon,
