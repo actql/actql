@@ -61,7 +61,8 @@ def declarations(root: Path = ROOT):
 def outputs(root: Path = ROOT):
     functions = declarations(root)
     python = ['"""Generated private C/Rust memory declarations; do not edit."""',
-              'from ctypes import POINTER, c_int, c_int64, c_uint64, c_size_t, c_ubyte, c_void_p', '', 'SIGNATURES = {']
+              'from ctypes import POINTER, c_int, c_int64, c_uint64, c_size_t, c_ubyte, c_void_p',
+              'from typing import Any', '', 'SIGNATURES: dict[str, tuple[list[Any], Any]] = {']
     header = ['/* Generated from existing C headers and checked Rust forwarders. */',
               '#ifndef ACTQL_PRIVATE_MEMORY_ABI_GENERATED_H', '#define ACTQL_PRIVATE_MEMORY_ABI_GENERATED_H',
               '#include "owned_capacity.h"', '#include "owned_domain_borrow.h"']
@@ -75,7 +76,7 @@ def outputs(root: Path = ROOT):
     python += ['}', '', 'ORIGINS = {']
     for name, (_, _, origin) in sorted(functions.items()):
         python.append('    ' + repr(name) + ': ' + repr(origin) + ',')
-    python += ['}', '', 'def bind(library, symbol):',
+    python += ['}', '', 'def bind(library: Any, symbol: str) -> Any:',
                '    """No loader, allocation, adoption, transfer or permission."""',
                '    arguments, result = SIGNATURES[symbol]', '    call = getattr(library, symbol)',
                '    call.argtypes, call.restype = list(arguments), result', '    return call', '']
