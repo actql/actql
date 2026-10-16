@@ -123,6 +123,9 @@ test('WITH Graph core refusals preserve independent rejection policy', () => {
 
 test('WITH diagnostic refusals retain complete input policy', () => {
   for (const current of graphDiagnosticSourceRefusals) {
+    // This new refusal enforces the adopted degree node_id contract; it has
+    // no retired DATA caller whose policy could be compared here.
+    if (current.name === 'graph-diagnostics-legacy-degree-column') continue;
     const {text: oldText, ...oldPolicy} = historicalOperations.groups.diagnostics.refusals.find(item => item.name === current.name);
     const {text, ...policy} = current;
     assert.deepEqual(policy, oldPolicy);
