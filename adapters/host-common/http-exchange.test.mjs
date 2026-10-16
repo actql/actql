@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {checkHttpRequestMethodBody, exchangeLimits, observeResponseHeaders, ownHttpRequest,
+import {checkHttpRequestMethodBody, exchangeLimits, observeResponseHeaders, ownHttpRequest, ownHttpByteRequest,
   ownRequestHeaders, ownResponseHeaderNames, requestTarget} from
   './http-exchange.mjs';
 
@@ -94,6 +94,93 @@ test('shared method/body rules preserve legacy shapes and bound new methods', ()
     assert.throws(() => checkHttpRequestMethodBody(method, undefined),
       {code: 'InvalidHttpRequestMethod'});
   }
+});
+
+test('explicit byte request preserves non-UTF8, zero bytes and exactly the selected view', () => {
+  const backing = new Uint8Array(64).fill(0x55);
+  const view = backing.subarray(7, 13);
+  view.set([0, 255, 192, 128, 13, 10]);
+  const request = ownHttpByteRequest({method: 'POST', path: '/upload',
+    query: [['name', 'é%2F.bin']], headers: [['accept', 'application/json']],
+    bodyBytes: view, bodyMediaType: 'multipart/related; boundary="original"', maxBodyBytes: 6});
+  assert.deepEqual([...request.bodyBytes], [0, 255, 192, 128, 13, 10]);
+  assert.equal(request.bodyBytes.buffer.byteLength, 6);
+  assert.notEqual(request.bodyBytes.buffer, backing.buffer);
+  assert.equal(request.target, '/upload?name=e%CC%81%252F.bin');
+  assert.equal(request.bodyMediaType, 'multipart/related; boundary="original"');
+  assert.equal(request.body, undefined);
+  assert.ok(Object.isFrozen(request));
+  backing.fill(0x33);
+  assert.deepEqual([...request.bodyBytes], [0, 255, 192, 128, 13, 10]);
+  for (const method of ['POST', 'PATCH', 'PUT']) {
+    assert.equal(ownHttpByteRequest({method, path: '/empty', bodyBytes: new Uint8Array(),
+      bodyMediaType: 'application/octet-stream', maxBodyBytes: 0}).bodyBytes.byteLength, 0);
+  }
+});
+
+test('binary shape is opt-in and rejects unsafe media, shared backing and missing bounds', () => {
+  const original = {method: 'POST', path: '/upload', bodyBytes: new Uint8Array([1, 2]),
+    bodyMediaType: 'application/octet-stream', maxBodyBytes: 2};
+  for (const change of [{body: ''}, {bodyBytes: '12'}, {bodyBytes: new Uint16Array(2)},
+    {bodyBytes: new Uint8Array(new SharedArrayBuffer(2))}, {bodyMediaType: undefined},
+    {bodyMediaType: 'application/octet-stream\r\nx-secret: injected'},
+    {bodyMediaType: 'application/é'}, {bodyMediaType: 'a'.repeat(1025)},
+    {maxBodyBytes: undefined}, {maxBodyBytes: -1}, {maxBodyBytes: 1},
+    {maxBodyBytes: 1.5}, {maxBodyBytes: Infinity}, {maxBodyBytes: 2 ** 53}]) {
+    assert.throws(() => ownHttpByteRequest({...original, ...change}),
+      {code: 'InvalidHttpRequestBody'});
+  }
+  for (const method of ['GET', 'DELETE']) {
+    assert.throws(() => ownHttpByteRequest({...original, method}), {code: 'InvalidHttpRequestBody'});
+  }
+  assert.throws(() => ownHttpByteRequest({...original, method: 'TRACE'}),
+    {code: 'InvalidHttpRequestMethod'});
+  assert.throws(() => ownHttpByteRequest({...original, headers: [['content-type', 'text/plain']]}),
+    {code: 'ReservedHttpRequestHeader'});
+  assert.throws(() => ownHttpRequest({method: 'POST', path: '/upload', body: original.bodyBytes}),
+    {code: 'InvalidHttpRequestBody'}, 'legacy String admission has not changed');
+});
+
+test('byte length/backing properties cannot disguise an over-limit or shared source view', () => {
+  const shape = {method: 'POST', path: '/upload',
+    bodyMediaType: 'application/octet-stream', maxBodyBytes: 1};
+  const over = new Uint8Array([1, 2]);
+  Object.defineProperty(over, 'byteLength', {value: 1});
+  assert.throws(() => ownHttpByteRequest({...shape, bodyBytes: over}),
+    {code: 'InvalidHttpRequestBody'});
+  const shared = new Uint8Array(new SharedArrayBuffer(1));
+  Object.defineProperty(shared, 'buffer', {value: new ArrayBuffer(1)});
+  assert.throws(() => ownHttpByteRequest({...shape, bodyBytes: shared}),
+    {code: 'InvalidHttpRequestBody'});
+  const detached = new Uint8Array(1);
+  structuredClone(detached.buffer, {transfer: [detached.buffer]});
+  assert.throws(() => ownHttpByteRequest({...shape, bodyBytes: detached}),
+    {code: 'InvalidHttpRequestBody'});
+  const stable = new Uint8Array(new ArrayBuffer(4, {maxByteLength: 8}));
+  stable.set([0, 255, 13, 10]);
+  assert.deepEqual([...ownHttpByteRequest({...shape, bodyBytes: stable,
+    maxBodyBytes: 4}).bodyBytes], [0, 255, 13, 10]);
+});
+
+test('resizable shrink after metadata admission cannot expose uninitialized body bytes', () => {
+  const backing = new ArrayBuffer(4, {maxByteLength: 8});
+  const source = new Uint8Array(backing);
+  source.set([1, 2, 3, 4]);
+  const query = ['name', 'original'];
+  Object.defineProperty(query, 1, {get() { backing.resize(2); return 'original'; }});
+  assert.throws(() => ownHttpByteRequest({method: 'POST', path: '/upload', query: [query],
+    bodyBytes: source, bodyMediaType: 'application/octet-stream', maxBodyBytes: 4}),
+  {code: 'InvalidHttpRequestBody'});
+});
+
+test('resizable growth after metadata admission refuses rather than changing the snapshot extent', () => {
+  const backing = new ArrayBuffer(4, {maxByteLength: 8});
+  const source = new Uint8Array(backing);
+  const query = ['name', 'original'];
+  Object.defineProperty(query, 1, {get() { backing.resize(8); return 'original'; }});
+  assert.throws(() => ownHttpByteRequest({method: 'POST', path: '/upload', query: [query],
+    bodyBytes: source, bodyMediaType: 'application/octet-stream', maxBodyBytes: 4}),
+  {code: 'InvalidHttpRequestBody'});
 });
 
 test('response header observation admits only declared names under caps', () => {

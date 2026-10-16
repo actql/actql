@@ -138,6 +138,41 @@ export function ownHttpRequest({method, path, query, headers, body}) {
   });
 }
 
+const typedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
+const viewByteLength = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'byteLength').get;
+const viewBacking = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'buffer').get;
+const arrayBufferByteLength = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength').get;
+const copyViewBytes = Uint8Array.prototype.set;
+
+// An explicitly bounded binary request is a separate transport shape. Keep
+// the legacy String/JSON shape unchanged. Copy only the selected Uint8Array
+// view, before any await or credential use; never decode/re-encode its bytes.
+// These clamps are not a ContentRef issuer, original holding or reservation.
+export function ownHttpByteRequest({method, path, query, headers, body,
+  bodyBytes, bodyMediaType, maxBodyBytes}) {
+  if (body !== undefined || !(bodyBytes instanceof Uint8Array) ||
+      !Number.isSafeInteger(maxBodyBytes) || maxBodyBytes < 0) fail('InvalidHttpRequestBody');
+  let length;
+  try {
+    // Intrinsic brands/lengths cannot be replaced by own JS properties. The
+    // ArrayBuffer getter also refuses cross-realm SharedArrayBuffer backing.
+    arrayBufferByteLength.call(viewBacking.call(bodyBytes));
+    length = viewByteLength.call(bodyBytes);
+  } catch { fail('InvalidHttpRequestBody'); }
+  if (length > maxBodyBytes) fail('InvalidHttpRequestBody');
+  checkHeaderValue(bodyMediaType, 'InvalidHttpRequestBody');
+  // The existing body-bearing method rules and exact target/header admission
+  // apply unchanged. The temporary empty String is shape-only, never sent.
+  const {body: _, ...request} = ownHttpRequest({method, path, query, headers, body: ''});
+  // Query/header getters run during metadata admission. They can resize or
+  // detach an unshared input; never return an incompletely initialized copy.
+  if (viewByteLength.call(bodyBytes) !== length) fail('InvalidHttpRequestBody');
+  const owned = Buffer.allocUnsafeSlow(length);
+  try { copyViewBytes.call(owned, bodyBytes); }
+  catch { fail('InvalidHttpRequestBody'); }
+  return Object.freeze({...request, bodyBytes: owned, bodyMediaType, maxBodyBytes});
+}
+
 // Whether a lowercase header name may be declared or set by a provider.
 export function reservedHttpHeader(name) {
   return reservedRequestHeaders.has(name);
