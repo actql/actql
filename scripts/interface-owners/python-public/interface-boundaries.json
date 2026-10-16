@@ -6524,7 +6524,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "2d4923f2f239fb8153a875b5a59f01640c55531a30e8950f1c81f85a604d6cdf",
+      "sha256": "9fd3f472b7799e3d29bf1108b16c6453f0782687f2f20693f210b006f2c4711d",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
