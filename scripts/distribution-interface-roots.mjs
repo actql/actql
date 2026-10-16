@@ -20,6 +20,8 @@ export function npmInterfaceRoots(root, files = repositoryFiles(root)) {
       if (!entrances.length) return [];
       return [{kind: manifest.bin ? 'npm-cli' : 'npm-package', name: manifest.name,
         manifest: path, entrances: entrances.map(entry => relative(root, entry)),
+        commands: packageEntrances({bin: manifest.bin}, resolve(root, dirname(path)))
+          .map(entry => relative(root, entry)),
         dependencies: Object.keys({...manifest.dependencies, ...manifest.peerDependencies,
           ...manifest.optionalDependencies}).sort()}];
     }).sort((a, b) => a.manifest.localeCompare(b.manifest));

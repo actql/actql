@@ -21,6 +21,22 @@ standard AST parser. It never imports product modules. This includes dormant
 helpers and modules outside the familiar SDK directory. Source-only discovery
 does not qualify an unbuilt wheel, generated executable, or Cloud deployment.
 
+`runtime-package-inputs.mjs` is also consumed by the ordinary runtime builder.
+`source-interface-closure.mjs` follows its real compiled inputs, the bundled
+Workers entry, local-node source copies and checked Host-manifest assets. Python
+assets use the same stdlib AST reader as wheels. Extensionless Node/Python
+commands remain code; unknown executables require an explicit artifact binding.
+
+`vite-interface-inventory.mjs` reads the configured production bundler's actual
+module/output metadata with writing disabled. It preserves emitted Worker source
+assets and their original filenames. A normal workspace library build may be
+needed before an application can resolve that library's ordinary export. Bundled
+outputs retain their source and digest correspondence rather than becoming a
+handwritten list of compiler-private operations. Source closure accepts those
+configured output references, checks any existing output digest, and still
+requires the normal packaging validators for artifact admission. Neither an
+unresolved generated entrance nor a source-only report is installed coverage.
+
 The existing production MoonBit manifest reader distinguishes production from
 test and whitebox-test imports. Its closure is reused; test dependencies do not
 become production authority merely because they occur in the same manifest.

@@ -75,8 +75,11 @@ function prepareSelectedRuntimeModules(entries) {
 }
 
 // Package production must not read or require a conformance/test runtime.
+export const productionRuntimeModules = Object.freeze([
+  Object.freeze(['bridge', 'connectors_workers_bridge']),
+]);
 export function prepareProductionRuntimeModule() {
-  prepareSelectedRuntimeModules([['bridge', 'connectors_workers_bridge']]);
+  prepareSelectedRuntimeModules(productionRuntimeModules);
 }
 
 export function prepareRuntimeModules() {

@@ -168,15 +168,35 @@ def module_interfaces(root: Path, names) -> list:
     return modules
 
 
+def source_blob_interfaces(values) -> list:
+    """Project immutable caller-supplied source bytes with the same AST reader."""
+    if not isinstance(values, list):
+        raise ValueError('Invalid Python source blob projection')
+    modules = []
+    for item in values:
+        if not isinstance(item, dict) or set(item) != {'module', 'source'} or not all(
+                isinstance(item[key], str) for key in ['module', 'source']):
+            raise ValueError('Invalid Python source blob')
+        name = PurePosixPath(item['module'])
+        if name.is_absolute() or '..' in name.parts or '\\' in str(name):
+            raise ValueError('Escaped Python source blob')
+        raw = item['source'].encode('utf-8')
+        modules.append({'module': item['module'], 'sha256': hashlib.sha256(raw).hexdigest(),
+                        **python_interface(item['source'])})
+    return modules
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('wheel', nargs='?')
     parser.add_argument('--source-root', type=Path)
     parser.add_argument('--modules-root', type=Path)
+    parser.add_argument('--source-blobs', action='store_true')
     args = parser.parse_args()
-    if sum(value is not None for value in [args.wheel, args.source_root, args.modules_root]) != 1:
+    if sum(value is not None for value in [args.wheel, args.source_root, args.modules_root]) + args.source_blobs != 1:
         parser.error('Choose exactly one normal wheel, source root or module projection')
-    result = (source_projects(args.source_root) if args.source_root else
+    result = (source_blob_interfaces(json.load(sys.stdin)) if args.source_blobs else
+              source_projects(args.source_root) if args.source_root else
               module_interfaces(args.modules_root, json.load(sys.stdin)) if args.modules_root else
               wheel_interfaces(args.wheel))
     print(json.dumps(result, sort_keys=True))

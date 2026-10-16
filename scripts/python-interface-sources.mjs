@@ -19,3 +19,10 @@ export function pythonModuleInterfaces(root, modules, python = 'python3') {
   assert(Array.isArray(result), 'Invalid Python module projection');
   return result;
 }
+
+export function pythonSourceBlobInterfaces(values, python = 'python3') {
+  const result = JSON.parse(execFileSync(python, ['-B', reader, '--source-blobs'], {
+    input: JSON.stringify(values), encoding: 'utf8', timeout: 30000, maxBuffer: 16 * 1024 * 1024}));
+  assert(Array.isArray(result), 'Invalid Python source blob projection');
+  return result;
+}
