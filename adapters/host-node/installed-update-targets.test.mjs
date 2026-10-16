@@ -15,6 +15,8 @@ import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
   installedRowEffectOwnerBinding} from './installed-row-effect.mjs';
 import {installNodePublicSourcePreparation} from './public-source-preparation.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {installNodeClientEffectRun} from './client-effect-run.mjs';
+import {readInstalledModelExecution} from './installed-model.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -219,6 +221,89 @@ test('actual JSON UPDATE preparation retains the installed selection in its orig
     assert.equal(f.counts.prepares, 0);
     assert.equal(f.counts.credentials, 0);
   } finally { await installed.close(); }
+});
+
+test('actual JSON Model UPDATE acceptance saves and restores both originals in the same SQLite Run', async t => {
+  const {program, configuration} = await import('../../scripts/fixtures/installed-infer-fixture.mjs');
+  const selected = adapter();
+  const {installation} = configuration(JSON.parse(selected.environmentWire));
+  selected.environmentWire = installation.environmentWire;
+  const f = await fixture(t, {main: selected});
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  let journal;
+  try {
+    const environment = admitted(installed.environmentWire);
+    const publication = sourceAliasPublication(moon, environment, [], [],
+      {updateTargets: installed.queryUpdateTargets});
+    const prepare = installNodeClientProgramPreparation({moon, environment,
+      allowEffects: true, sourcePublication: publication});
+    const document = structuredClone(program);
+    document.stages[0].steps[0].values.schema.text.nullable = false;
+    document.stages[0].steps.splice(4, 2, {join: {with: 'unique', kind: 'inner',
+      cardinality: 'one_to_one', on: [{left: 'id', right: 'id'}],
+      select: {id: 'right.id', name: 'right.text'}}, as: 'selected'});
+    document.stages[0].results = {rows: {from: 'selected', fields: ['id', 'name']}};
+    document.stages[0].effects = {save: {update: {target: 'connector://crm/account',
+      mapping: 'mapping:crm.account.0.v1', from: {result: 'rows'}, id: 'id',
+      set: {Name: {field: 'name'}}}}};
+    document.results = {updates: {from: {stage: 'main', result: 'rows'}}};
+    const prepared = prepare({kind: 'program', parameters: null, input: document});
+    assert.equal(prepare.kindOf(prepared), 'effectful');
+    const occurrence = moon.clientProgramEffectInferOccurrence(prepared);
+    assert.ok(occurrence);
+    const {execution} = readInstalledModelExecution(moon, prepared, installation, occurrence);
+    const graph = checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
+    const control = runtimeCore(moon).publicationControl;
+    const limits = {maxWireBytes: 1_000_000, maxNodes: 100_000, maxDepth: 100};
+    const originals = installUpdateTargetOriginals({moon, control, installedEffect: installed, limits});
+    assert.equal(originals.selectionsOf(prepared)?.length, 1);
+    const policyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
+    const resultPolicy = control.admitSourceFreeResultPolicy({kind: 'data_policy',
+      cid: 'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563',
+      wire: policyWire}, limits);
+    const directory = join(f.root, 'model-requests');
+    const options = {updateOriginalControl: createUpdateTargetOriginalShapeControl(moon)};
+    journal = openClientRequestJournal(directory, options);
+    const owner = installNodeClientEffectRun({moon, journal, updateTargetOriginals: originals,
+      authorizeRequest: async () => ({executionContextCid: cid('1'), hostPolicyCid: cid('2'),
+        createdAt: '2026-10-16T00:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z'}),
+      authorizeRunStart: async () => false,
+      inferPlanFor: original => { assert.equal(original, prepared); return graph; },
+      resultPolicyOriginalFor: () => resultPolicy,
+      execute: async () => assert.fail('Admission/readback must not execute Provider work'),
+      now: () => '2026-10-16T00:00:00.000Z'});
+    owner.checkSupported(prepared);
+    const captured = owner.capturePreparedOriginal(prepared);
+    assert.equal(typeof captured?.preparedMaterialsWire, 'string');
+    const handle = await owner.accept({prepared, authorityScopeCid: cid('a'),
+      requestId: 'json-model-update', namespaceId: 'json-model-update', principalId: 'fixture',
+      connection: {}, lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
+    const retained = journal.lookupRunDefinition(handle.ref, moon, control);
+    assert.ok(retained);
+    const evidence = retained.runAdmissionEvidence;
+    assert.equal(typeof evidence.updateTargetRunOriginal?.materialsWire, 'string');
+    assert.equal(typeof evidence.modelOriginalRunWire, 'string');
+    const run = JSON.parse(retained.runDefinition.wire);
+    assert.equal(run.effect_target_selections_cid,
+      originalUpdateTargetSelectionsCid(originals.selectionsOf(prepared)));
+    assert.equal(JSON.parse(evidence.modelOriginalRunWire).runDefinitionWire, retained.runDefinition.wire);
+    const materials = JSON.parse(evidence.updateTargetRunOriginal.materialsWire);
+    assert.equal(typeof materials.infer_execution_contract_json, 'string');
+    assert.equal(materials.infer_execution_contract_cid,
+      installation.executionContracts[0].cid);
+    journal.close();
+    journal = openClientRequestJournal(directory, options);
+    const reopened = journal.lookupRunDefinition(handle.ref, moon, control);
+    assert.deepEqual(reopened.runAdmissionEvidence, evidence);
+    assert.equal(reopened.runDefinition.wire, retained.runDefinition.wire);
+    const restored = originals.restoreRun(evidence.updateTargetRunOriginal,
+      reopened.runDefinition, reopened.requestIdentity);
+    restored.assertUpdateSelectionCurrent();
+    assert.equal(originalUpdateTargetSelectionsCid(restored.updateTargetSelections),
+      run.effect_target_selections_cid);
+    assert.equal(f.counts.prepares, 0);
+    assert.equal(f.counts.credentials, 0);
+  } finally { journal?.close(); await installed.close(); }
 });
 
 test('actual UPDATE Owner saves and restores the original prepared and Run data through the same SQLite journal', async t => {
