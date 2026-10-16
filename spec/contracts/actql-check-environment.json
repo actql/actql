@@ -1735,6 +1735,29 @@
             ]
           }
         },
+        "store_command": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "catalog_cid",
+            "command_ref",
+            "command_contract_cid"
+          ],
+          "properties": {
+            "catalog_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "command_ref": {
+              "type": "string",
+              "pattern": "^command:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$"
+            },
+            "command_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
         "mapping_contract_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
@@ -1779,6 +1802,7 @@
       "connector_manifest": "connector_manifest_cid_is_the_entry_cid_of_one_environment_manifest_entry_whose_connector_id_owns_target_ref",
       "primary_identity": "required_nonnull_scalar_field_name_or_explicit_null_for_collection_only_create_without_selector_no_row_reference",
       "collection_only": "resource_identity_cid_and_target_ref_bind_collection_not_row_identity_all_permission_rules_create_none_no_content_match_reconciliation",
+      "store_command": "optional_exact_original_mapping_catalog_command_relationship_not_authority_or_resource_reference_issuer",
       "authority": "static_contract_not_current_resource_permission_or_apply_permit"
     },
     "collection_resource_identity": {

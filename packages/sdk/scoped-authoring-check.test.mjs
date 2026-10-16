@@ -27,6 +27,8 @@ function received(body) {
   reply.report.scope.kind = body.scope;
   if (body.scope === 'bound_input') {
     reply.report.verdict = 'undetermined';
+    reply.report.runnable = {verdict: 'no',
+      reasons: [{code: 'bound_values_missing'}, {code: 'parameter_value_required'}]};
     reply.report.coverage.limits = [{code: 'bound_values_missing'}];
   }
   const document = reply.report.inputs[0];

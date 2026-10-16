@@ -35,6 +35,8 @@ fn effect_serialization_prefix_fixture(
       fail("Effect serialization fixture Stage preparation failed")
     Err(Graph(_)) =>
       fail("Effect serialization fixture Graph preparation failed")
+    Err(TargetSelection(_)) =>
+      fail("Effect serialization fixture target selection failed")
   }
 }
 

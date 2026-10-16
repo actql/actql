@@ -36,6 +36,7 @@ fn QueryParser::from_postfix_source(
     final_operations: [],
     effect: None,
     table_effect: None,
+    store_effect: None,
     commands: [],
     work: self.work,
   })

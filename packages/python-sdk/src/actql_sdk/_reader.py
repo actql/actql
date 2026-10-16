@@ -1,5 +1,6 @@
 """Bounded rows with one retained delivery attempt and explicit local cleanup."""
 import asyncio
+import inspect
 import uuid
 from . import _wire as wire
 from ._errors import ClientError
@@ -31,16 +32,28 @@ def tighter(value, maximum):
     return int(value)
 
 
+def _row_validator(schema):
+    """Capture one synchronous application validator; never import an engine or schema library."""
+    if schema is None:
+        return None
+    validate = getattr(schema, 'model_validate', None)
+    if not callable(validate):
+        validate = getattr(schema, 'validate_python', None)
+    if not callable(validate) or inspect.iscoroutinefunction(validate):
+        raise ClientError('InvalidResultSchema')
+    return validate
+
+
 class AsyncResult:
     def __init__(self, run, name):
         self._run, self._name = run, name
 
-    def rows(self, *, max_wire_bytes=None, max_row_wire_bytes=None, max_row_retained_value_bytes=None):
+    def rows(self, *, schema=None, max_wire_bytes=None, max_row_wire_bytes=None, max_row_retained_value_bytes=None):
         limits = self._run._client.profile['limits']
         return AsyncReader(self, {
             'wire': tighter(max_wire_bytes, limits['maxReadWireBytes']),
             'row_wire': tighter(max_row_wire_bytes, limits['maxRowWireBytes']),
-            'row_retained': tighter(max_row_retained_value_bytes, limits['maxRowRetainedValueBytes'])})
+            'row_retained': tighter(max_row_retained_value_bytes, limits['maxRowRetainedValueBytes'])}, _row_validator(schema))
 
     async def all(self, *, max_rows=None, max_retained_value_bytes=None, **read_options):
         limits = self._run._client.profile['limits']
@@ -49,7 +62,7 @@ class AsyncResult:
         result, retained = [], 0
         async with self.rows(**read_options) as reader:
             async for row in reader:
-                retained += retained_value_bytes(row)
+                retained += reader._last_retained_bytes
                 if len(result) >= rows or retained > size:
                     raise ClientError('ResultRetainedLimit', attempt_id=reader.attempt_id, rows_yielded=reader.rows_yielded)
                 result.append(row)
@@ -88,8 +101,9 @@ class AsyncResult:
 
 
 class AsyncReader:
-    def __init__(self, result, limits):
-        self._result, self._limits = result, limits
+    def __init__(self, result, limits, validate=None):
+        self._result, self._limits, self._validate = result, limits, validate
+        self._last_retained_bytes = 0
         self._attempt_id = str(uuid.uuid4())
         self._rows_yielded = 0
         self._response = None
@@ -185,10 +199,24 @@ class AsyncReader:
                     row = decode_json(raw)
                     if type(row) is not dict:
                         raise ClientError('InvalidResultFrame')
-                    if retained_value_bytes(row) > self._limits['row_retained']:
+                    retained = retained_value_bytes(row)
+                    if retained > self._limits['row_retained']:
                         raise ClientError('ResultRowRetainedLimit')
+                    value = row
+                    if self._validate is not None:
+                        try:
+                            value = self._validate(row, strict=True)
+                        except Exception as error:
+                            raise ClientError('ResultSchemaMismatch', validation_error=error) from None
+                        if inspect.isawaitable(value):
+                            if inspect.iscoroutine(value):
+                                value.close()
+                            raise ClientError('InvalidResultSchema')
+                    # Application-created typed objects do not replace the original
+                    # decoded-row accounting or confer a completed delivery receipt.
+                    self._last_retained_bytes = retained
                     self._rows_yielded += 1
-                    yield row
+                    yield value
                     if self._closed:
                         return
                 if len(buffer) > self._limits['row_wire']:
@@ -201,7 +229,8 @@ class AsyncReader:
             failure.attempt_id, failure.rows_yielded = self.attempt_id, self.rows_yielded
             raise
         except ClientError as failure:
-            raise ClientError(failure.code, attempt_id=self.attempt_id, rows_yielded=self.rows_yielded) from None
+            failure.attempt_id, failure.rows_yielded = self.attempt_id, self.rows_yielded
+            raise failure from None
         except Exception:
             raise ClientError('ReadOutcomeUnknown', attempt_id=self.attempt_id, rows_yielded=self.rows_yielded) from None
         finally:

@@ -10,7 +10,7 @@ export function auditSequenceTransport(report) {
   const {successes, refusals} = selectReleaseSequenceQueryCases();
   assert.ok(['local', 'https'].includes(report.mode));
   assert.equal(report.suite, 'sequence'); assert.equal(report.complete, true);
-  assert.equal(report.actualNormal, 18); assert.equal(report.actualRefusal, 9);
+  assert.equal(report.actualNormal, successes.length); assert.equal(report.actualRefusal, refusals.length);
   const names = successes.map(item => item.name), badNames = refusals.map(item => item.name);
   assert.deepEqual(report.expectedSuccessNames, names); assert.deepEqual(report.successNames, names);
   assert.deepEqual(report.expectedRefusalNames, badNames); assert.deepEqual(report.refusalNames, badNames);
@@ -37,19 +37,19 @@ export function auditSequenceTransport(report) {
     const reread = fresh.completed[index];
     assert.deepEqual(reread.ref, actual.ref); assert.deepEqual(reread.submissionRef, actual.submissionRef);
     assert.deepEqual(reread.observedResults, successes[index].results);
-    assert.equal(reread.beforeAcceptedRuns, 18); assert.equal(reread.afterAcceptedRuns, 18);
+    assert.equal(reread.beforeAcceptedRuns, successes.length); assert.equal(reread.afterAcceptedRuns, successes.length);
   }
   for (const [index, actual] of report.completedRefusals.entries()) {
     assert.equal(actual.outcome.kind, 'not_accepted');
     assert.equal(actual.outcome.problem.code, refusals[index].expectedCode);
     assert.deepEqual(actual.outcome.submissionRef, actual.submissionRef);
     assert.deepEqual(actual.beforeSubmit,
-      {acceptedRuns: 18, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
+      {acceptedRuns: successes.length, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
     assert.deepEqual(actual.afterRefusal, actual.beforeSubmit);
   }
   assert.equal(rows, successes.reduce((total, item) => total + item.results.answer.rows.length, 0));
-  return {mode: report.mode, actualNormal: 18, actualRefusal: 9,
-    actualNamedResults: 18, actualRows: rows, freshRereadNamedResults: 18, complete: true};
+  return {mode: report.mode, actualNormal: successes.length, actualRefusal: refusals.length,
+    actualNamedResults: successes.length, actualRows: rows, freshRereadNamedResults: successes.length, complete: true};
 }
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
