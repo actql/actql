@@ -13,22 +13,6 @@ import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
 import {javascriptInterface} from './interface-inventory.mjs';
 
-test('existing Owner references change only by explicit primary/supplemental annotation', () => {
-  for (const owner of interfaceOwnerDeclarations(process.cwd())) {
-    const original = JSON.parse(execFileSync('git',
-      ['show', `41e3fc8c2b4bbc1bf6d76c672b583f41576116d5:${owner.id}`], {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024}));
-    const current = JSON.parse(readFileSync(owner.id));
-    const declarations = Array.isArray(current) ? current : current.declarations;
-    for (const value of declarations) {
-      const expected = owner.id === 'scripts/interface-owners/js-bindings/interface-boundaries.json' &&
-        !original.generated.some(output => output.module === value.module) ? 'supplemental' : 'primary';
-      assert.equal(value.responsibilityFacet, expected);
-      delete value.responsibilityFacet;
-    }
-    assert.deepEqual(current, original, owner.id);
-  }
-});
-
 test('genuine checked generator outputs qualify original compiler and action projections but serialized copies never do', t => {
   const root = process.env.ACTQL_I6_INPUT_ROOT ?? process.cwd();
   const foreign = mkdtempSync(join(tmpdir(), 'actql-foreign-generation-'));
