@@ -42,10 +42,12 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   }
   const includesLocal = roots.some(value => value.name === '@actql/local-node');
   const ownedAssets = includesLocal ? local.dataFiles : [];
+  const commands = new Set(roots.flatMap(value => value.commands ?? []));
   const entrances = [...new Set([...roots.flatMap(value => value.entrances)
-    .filter(path => /\.[cm]?js$/u.test(path)),
+    .filter(path => !/\.d\.[cm]?ts$/u.test(path)),
     ...(includesLocal ? local.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path))])];
   const sourceEntrances = [], artifactReferences = new Set(), unresolvedEntrances = [];
+  const dataEntrances = [], pythonEntrances = [], scriptEntrances = new Set();
   const copyReferences = new Map();
   function copiedSource(path) {
     const destination = relative(resolve(root, 'packages/local-node'), path);
@@ -70,7 +72,19 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
         unresolvedEntrances.push(entrance);
         continue;
       }
-      sourceEntrances.push(entrance);
+      if (/\.pyi?$/u.test(entrance)) pythonEntrances.push(entrance);
+      else if (/\.[cm]?[jt]sx?$/u.test(entrance)) sourceEntrances.push(entrance);
+      else if (commands.has(entrance)) {
+        const first = readFileSync(resolve(root, entrance)).subarray(0, 256).toString('utf8').split(/\r?\n/u, 1)[0];
+        if (/^#!(?:\/usr\/bin\/env[ \t]+python3?|\/usr\/bin\/python3?)(?:[ \t]|$)/u.test(first)) {
+          pythonEntrances.push(entrance);
+        } else {
+          assert(/^#!(?:\/usr\/bin\/env[ \t]+node|\/usr\/bin\/node)(?:[ \t]|$)/u.test(first),
+            `Unregistered executable source interface: ${entrance}`);
+          sourceEntrances.push(entrance);
+          scriptEntrances.add(entrance);
+        }
+      } else dataEntrances.push(entrance);
     }
   }
   for (const plan of Object.values(plans)) {
@@ -103,7 +117,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       `Test authority in source interface: ${module}`);
     const bytes = readFileSync(resolve(root, module));
     const sha256 = createHash('sha256').update(bytes).digest('hex');
-    if (!/\.[cm]?[jt]sx?$/u.test(module)) {
+    if (!/\.[cm]?[jt]sx?$/u.test(module) && !scriptEntrances.has(module)) {
       assets.push({module, sha256, qualification: 'resolved-distribution-data'});
       return [];
     }
@@ -111,9 +125,9 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       ...(/\.[cm]?tsx?$/u.test(module) ? typescriptInterface(bytes.toString('utf8'), module)
         : javascriptInterface(bytes.toString('utf8')))}];
   });
-  const pythonAssets = ownedAssets.filter(path => /\.pyi?$/u.test(path));
+  const pythonAssets = [...new Set([...ownedAssets.filter(path => /\.pyi?$/u.test(path)), ...pythonEntrances])];
   modules.push(...pythonModuleInterfaces(root, pythonAssets));
-  for (const module of ownedAssets) {
+  for (const module of new Set([...ownedAssets, ...dataEntrances])) {
     if (modules.some(value => value.module === module) || assets.some(value => value.module === module)) continue;
     const path = realpathSync(resolve(root, module));
     assert(!relative(root, path).startsWith('..'), `Escaped source asset: ${module}`);
