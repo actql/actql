@@ -122,7 +122,7 @@ test('requested first Effect stops Account Allow and resumes the same journal wi
   const options = {subjectCid: cid('2'), resumption: {claim}};
   const allowed = await after.resume('effect_commit', tuple, options);
   assert.equal(allowed.action, 'dispatch');
-  assert.equal(allowed.basis, 'account');
+  assert.equal(allowed.basis, 'account_allow');
   assert.equal(allowed.admission, undefined, 'Account permission is not a review grant');
   assert.equal(authorizationDispatchFacts(allowed).principal, 'owner');
   const admission = after.continuationAdmission(options.resumption, options.subjectCid);

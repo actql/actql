@@ -29,6 +29,8 @@ import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {modelCheckpointMetadata} from './model-checkpoint-metadata.mjs';
+import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from
+  '../host-common/installed-checkpoint-codec-limits.mjs';
 import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
   './effect-target-read-inventory.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
@@ -38,12 +40,7 @@ import {selectOriginalInferMetadataAcquisition,
   selectOriginalInferResourceCodecAcquisition} from './infer-operation.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
-const MAX_REVIEW_BYTES = 256 * 1024;
-// The installed review ceiling and the existing Checkpoint reader's node/depth
-// ceilings. These are codec bounds, not resource reservations or permissions.
-export const INSTALLED_EFFECT_CHECKPOINT_LIMITS = Object.freeze({
-  maxWireBytes: MAX_REVIEW_BYTES, maxNodes: 65536, maxDepth: 64,
-});
+const MAX_REVIEW_BYTES = INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxWireBytes;
 const MAX_PAGE = 100;
 const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;

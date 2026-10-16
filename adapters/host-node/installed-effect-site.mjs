@@ -20,7 +20,8 @@ import {assertEffectTargetReadBinding, isEffectTargetReadRefusal} from
   './effect-target-read-continuation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
-import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from './client-checkpoints.mjs';
+import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from
+  '../host-common/installed-checkpoint-codec-limits.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
