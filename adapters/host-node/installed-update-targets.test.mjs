@@ -12,7 +12,7 @@ import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {installedUpdateTargets} from './installed-effect-inventory.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
-  installedRowEffectOwnerBinding} from './installed-row-effect.mjs';
+  installedRowEffectOwnerBinding, validateInstalledUpdateOwnerSelections} from './installed-row-effect.mjs';
 import {installNodePublicSourcePreparation} from './public-source-preparation.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
@@ -390,6 +390,67 @@ test('actual UPDATE original refuses copied selection foreign prepared installat
     assert.throws(() => owner.originals.restorePrepared({...saved, compiledPlanCid: cid('f')}));
     assert.throws(() => owner.originals.restorePrepared({...saved,
       preparedWire: saved.preparedWire.replace('mapping:crm.account.0.v1', 'mapping:foreign')}));
+    assert.equal(f.counts.prepares, 0);
+    assert.equal(f.counts.credentials, 0);
+  } finally { await installed.close(); await stale.close(); }
+});
+
+test('actual validated Run selection stays with the original caller preparation through installation checks', async t => {
+  const f = await fixture(t, {main: adapter(), stale: {...adapter(), ownerGeneration: cid('f')}});
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  const stale = await loadInstalledEffect(await f.path([alias()], 'stale'), f.options);
+  try {
+    const owner = originalOwnerFixture(installed);
+    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(owner.compilation,
+      cid('1'), cid('2'), '2099-01-01T00:00:00.000Z'));
+    const definition = checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+      'caller-pair', 'caller-pair-run', '2026-10-16T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+    const identity = moon.clientProgramEffectRequestIdentity(owner.prepared,
+      cid('a'), 'caller-pair-request', moon.clientProgramSourceFreeInputIntentCid());
+    assert.ok(identity);
+    const original = owner.originals.captureRun({...owner, allowed, definition, identity});
+    const evidence = {prepared: moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(allowed)),
+      authorization: moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+      updateTargetRunOriginal: original};
+    const runDefinition = owner.control.admit('run_definition',
+      moon.strategyPublicationContractJson(definition), owner.limits);
+    const validated = owner.originals.validateRun({...owner, evidence, runDefinition, identity});
+    // Match client-effect-run's original {prepared, compilation, ...original}
+    // facts at selectedInstalledEffect -> validateOwnerSelections. Whole saved
+    // material equality cannot graft a restored selection onto this caller.
+    assert.equal(validateInstalledUpdateOwnerSelections(installed,
+      validated.updateTargetSelections, owner.prepared), validated.updateTargetSelections);
+    validated.assertUpdateSelectionCurrent();
+    const members = validated.updateTargetSelections.map(({stage_index, effect_id,
+      target_ref, mapping_ref, mapping_cid}) =>
+      ({stage_index, effect_id, target_ref, mapping_ref, mapping_cid}));
+    assertUpdateTargetSelectionMembersCurrent(validated.updateTargetSelections, members, owner.prepared);
+    const foreign = originalOwnerFixture(installed);
+    const changed = {code: 'InstalledRowEffectInstallationChanged'};
+    assert.throws(() => validateInstalledUpdateOwnerSelections(installed,
+      validated.updateTargetSelections, foreign.prepared), changed);
+    assert.throws(() => validateInstalledUpdateOwnerSelections(installed,
+      [...validated.updateTargetSelections], owner.prepared), changed);
+    const copied = Object.defineProperties([], Object.getOwnPropertyDescriptors(validated.updateTargetSelections));
+    assert.throws(() => validateInstalledUpdateOwnerSelections(installed, copied, owner.prepared), changed);
+    assert.throws(() => validateInstalledUpdateOwnerSelections(stale,
+      validated.updateTargetSelections, owner.prepared), changed);
+    const staleOwner = originalOwnerFixture(stale);
+    assert.throws(() => staleOwner.originals.validateRun({...owner, evidence, runDefinition, identity}));
+    const foreignDefinition = checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+      'caller-pair', 'foreign-run', '2026-10-16T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+    assert.throws(() => owner.originals.validateRun({...owner, evidence, identity,
+      runDefinition: owner.control.admit('run_definition', moon.strategyPublicationContractJson(foreignDefinition), owner.limits)}));
+    const foreignIdentity = moon.clientProgramEffectRequestIdentity(owner.prepared,
+      cid('a'), 'foreign-request', moon.clientProgramSourceFreeInputIntentCid());
+    assert.ok(foreignIdentity);
+    assert.throws(() => owner.originals.validateRun({...owner, evidence, runDefinition, identity: foreignIdentity}));
+    const before = evidence.updateTargetRunOriginal.materialsWire;
+    const substituted = {...evidence, updateTargetRunOriginal: {...original,
+      materialsWire: before.replace('caller-pair-run', 'foreign-run')}};
+    assert.notEqual(substituted.updateTargetRunOriginal.materialsWire, before);
+    assert.throws(() => owner.originals.validateRun({...owner, evidence: substituted, runDefinition, identity}));
+    assert.equal(evidence.updateTargetRunOriginal.materialsWire, before);
     assert.equal(f.counts.prepares, 0);
     assert.equal(f.counts.credentials, 0);
   } finally { await installed.close(); await stale.close(); }
