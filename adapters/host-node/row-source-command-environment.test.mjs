@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {gcsUploadCatalogDeclaration} from '../connectors/gcs/host/gcs-upload-declaration.mjs';
+import {prepareGcsCollectionTarget, gcsCollectionUploadMapping} from '../connectors/gcs/host/gcs-collection-target.mjs';
 import {rowSourceCheckEnvironment} from './installed-row-source.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
@@ -40,8 +41,16 @@ test('legacy read-only declaration and explicit empty Commands retain the origin
 
 test('real GCS complete Command and original input role survive ordinary Check Environment assembly', () => {
   const declaration = declared(), before = canonicalJson(declaration);
-  const actual = rowSourceCheckEnvironment(canonicalJson(base), declaration);
+  const target = prepareGcsCollectionTarget(moon, {project: 'project', bucket: 'bucket',
+    prefix: 'exports/', targetRef: 'connector://exports/objects', resourceKind: 'file_collection',
+    catalogCid: declaration.catalog_cid, installationCid: `sha256:${'b'.repeat(64)}`, ...limits});
+  const mappingWire = gcsCollectionUploadMapping(target, canonicalJson(declaration), 'exports', limits);
+  const actual = rowSourceCheckEnvironment(canonicalJson(base), declaration, [mappingWire]);
   const body = JSON.parse(actual.wire), catalog = JSON.parse(declaration.catalog);
+  assert.deepEqual(body.mapping_contracts, [JSON.parse(mappingWire)]);
+  assert.equal(body.mapping_contracts[0].primary_identity, null);
+  assert.deepEqual(body.mapping_contracts[0].required_fields, ['content', 'name']);
+  assert.equal(body.mapping_contracts[0].store_command.command_contract_cid, commandCid);
   assert.deepEqual(body.command_contracts, catalog.commands);
   assert.equal(body.command_contracts.length, 1);
   assert.equal(body.command_contracts[0].contract_cid, commandCid);
