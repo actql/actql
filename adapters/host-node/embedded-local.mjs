@@ -874,7 +874,13 @@ async function openInstalledHost(originalInstallation) {
       });
       // Only this revision-stable common Owner projection supplies status.
       projectRunObservation(ref, state, retained);
-      return {...state, control: observation};
+      try {
+        return JSON.parse(journal.publishRunState(retained, {...state, control: observation},
+          moon, control));
+      } catch (cause) {
+        if (cause?.code === 'RunStateObservationChanged') continue;
+        throw cause;
+      }
     }
     throw new Error('RunStateObservationUnstable');
   };

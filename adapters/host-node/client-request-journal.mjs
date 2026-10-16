@@ -1,6 +1,7 @@
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import {DatabaseSync} from 'node:sqlite';
+import {prepareInstalledRunStateObservation} from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
 import {closeSync, existsSync, fsyncSync, lstatSync,
   mkdirSync, openSync, readFileSync, readdirSync,
@@ -486,7 +487,7 @@ const columns = `authority_scope_cid, caller_request_id,
 const selectColumns = `${columns}, dispatch_reserved,
   pre_dispatch_failure_confirmed, physical_start_reserved,
   cancellation_requested, physical_close_confirmed,
-  observed_terminal_outcome`;
+  observed_terminal_outcome, state_revision, state_observation_key`;
 const journalMarker = Buffer.from(JSON.stringify({
   version: 'actql-client-request-journal/0.1',
   isolation: 'execution-namespace',
@@ -495,7 +496,7 @@ const journalColumns = [...columns.split(',').map(name => name.trim()),
   'dispatch_reserved', 'pre_dispatch_failure_confirmed',
   'physical_start_reserved', 'cancellation_requested',
   'physical_close_confirmed', 'observed_terminal_outcome',
-  'reconciliation_state_wire'].sort();
+  'reconciliation_state_wire', 'state_revision', 'state_observation_key'].sort();
 
 // Additive custody in the existing request journal. The original format marker
 // is retained byte-for-byte; partially introduced custody is never reset.
@@ -768,6 +769,9 @@ export function openClientRequestJournal(directory, {
         run_definition_wire TEXT,
         run_admission_evidence_json TEXT,
         revision INTEGER NOT NULL CHECK (revision >= 0),
+        state_revision INTEGER NOT NULL DEFAULT 0
+          CHECK (state_revision >= 0 AND state_revision <= 9007199254740991),
+        state_observation_key TEXT,
         lookup_expires_at TEXT NOT NULL,
         result_names_json TEXT,
         dispatch_reserved INTEGER NOT NULL DEFAULT 0
@@ -1039,17 +1043,22 @@ export function openClientRequestJournal(directory, {
         ref.runDefinitionCid);
     } catch (error) { fail('ClientRequestLookupUnknown', error); }
   };
+  // These observation frames belong to this exact journal instance. They are
+  // not authority and cannot be reconstituted from a copied DATA response.
+  const runStateFrames = new WeakMap();
   const admitRunDefinitionRow = (row, requestControl, publicationControl) => {
     const retained = retainedIdentity(row, requestControl);
     if (requestControl.clientRequestScopeCid(retained) !== row.logical_request_scope_cid) {
       fail('ClientRequestJournalCorrupt');
     }
     const accepted = admission(row);
-    return Object.freeze({
+    const facts = Object.freeze({
       ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision, requestId: row.caller_request_id,
       ...retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes, updateOriginalControl),
     });
+    runStateFrames.set(facts, Object.freeze({...row}));
+    return facts;
   };
   const selectRun = database.prepare(`SELECT run_definition_cid
     FROM client_requests WHERE run_definition_cid = ?`);
@@ -1866,6 +1875,44 @@ export function openClientRequestJournal(directory, {
       const row = readRunDefinitionRow(ref, requestControl);
       if (row === undefined) return undefined;
       return admitRunDefinitionRow(row, requestControl, publicationControl);
+    },
+    // Advance only published logical/control/availability facts. The same
+    // original accepted row, complete observation fence and confirmed COMMIT
+    // own this counter. Neither reading nor wall-clock time increments it.
+    publishRunState(frame, state, requestControl, publicationControl) {
+      ensureOpen();
+      const expected = runStateFrames.get(frame);
+      if (expected === undefined) fail('ForeignRunStateObservation');
+      return transact('run_state_observation', 'ClientRunStateObservationUnknown',
+        error => ['RunStateObservationChanged', 'ClientRequestJournalCorrupt',
+          'ForeignRunStateObservation', 'MoonBitHostFailure'].includes(error?.code), () => {
+          const row = readRunDefinitionRow(frame.ref, requestControl);
+          if (row === undefined || Object.keys(row).length !== Object.keys(expected).length ||
+              Object.keys(expected).some(key => row[key] !== expected[key])) {
+            fail('RunStateObservationChanged');
+          }
+          const current = admitRunDefinitionRow(row, requestControl, publicationControl);
+          if (!Number.isSafeInteger(row.state_revision) || row.state_revision < 0 ||
+              row.state_observation_key !== null &&
+                (typeof row.state_observation_key !== 'string' || row.state_observation_key.length === 0)) {
+            fail('ClientRequestJournalCorrupt');
+          }
+          const projection = prepareInstalledRunStateObservation(requestControl, {
+            state, runId: publicationControl.runDefinitionRunId(current.runDefinition),
+            revision: row.state_revision, priorKey: row.state_observation_key,
+          });
+          if (projection.key !== row.state_observation_key) {
+            const result = database.prepare(`UPDATE client_requests SET
+              state_revision = ?, state_observation_key = ?
+              WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?
+                AND state_revision = ? AND state_observation_key IS ?`).run(
+              projection.revision, projection.key, row.namespace_id, row.authority_scope_cid,
+              row.run_definition_cid, row.state_revision, row.state_observation_key);
+            if (Number(result.changes) !== 1) fail('RunStateObservationChanged');
+          }
+          // transaction.run exposes this value only after confirmed COMMIT.
+          return projection.wire;
+        });
     },
     // One observation frame for an already selected Run, not an authority
     // cache. Every call reads committed storage and checks connection health.
