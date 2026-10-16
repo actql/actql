@@ -32,7 +32,12 @@ fn body_sorted(values : Array[Json]) -> Array[Json] raise {
 }
 
 ///|
-fn upload_environment() -> (@environment.WireEnvironment, String) raise {
+fn upload_environment_details() -> (
+  @environment.WireEnvironment,
+  String,
+  @gcs.ObjectCollectionBinding,
+  String,
+) raise {
   // Independent valid empty Catalog: no fake Source, Values or issued Ref.
   let old_catalog =
     #|{"catalog_cid":"sha256:74765512d8f6e59d807f87de33f97bf1bea07b40a7719731d6bbe33347e7786a","commands":[],"connector_id":"exports","connector_version":"gcs/0.1","contracts":[],"schema":"actql.connector_catalog/0.1","source_views":[]}
@@ -110,7 +115,18 @@ fn upload_environment() -> (@environment.WireEnvironment, String) raise {
   guard body is Object(fields) else { abort("environment") }
   fields["evidence_bundle_cid"] = expected.to_json()
   let wire = canonical(body)
-  (@environment.read(@utf8.encode(wire), expected, caps()).unwrap(), wire)
+  (
+    @environment.read(@utf8.encode(wire), expected, caps()).unwrap(),
+    wire,
+    binding,
+    declared_wire,
+  )
+}
+
+///|
+fn upload_environment() -> (@environment.WireEnvironment, String) raise {
+  let (original, wire, _, _) = upload_environment_details()
+  (original, wire)
 }
 
 ///|

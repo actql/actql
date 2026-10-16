@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/gcs/original_reference"
+
+import {
+  "actql/actql/check_environment",
+  "actql/actql/connectors/gcs/catalog",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn issue_collection_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, CollectionReferenceLimits) -> Result[@value_admission.CheckedValue, CollectionReferenceIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum CollectionReferenceIssue {
+  InvalidLimits
+  ForeignSelection
+  CapacityExceeded
+  ReferenceRejected(@value_admission.ReferenceIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CollectionReferenceLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_work : Int
+}
+
+// Type aliases
+
+// Traits
