@@ -13,10 +13,11 @@
 // declaration), `prepareCaptured(facts)` and `prepareRecovered(facts)` over
 // the Host's Effect Site facts, and `close()`.
 import {createHash} from 'node:crypto';
-import {open, readFile} from 'node:fs/promises';
+import {readFile} from 'node:fs/promises';
 import {isAbsolute, join} from 'node:path';
 import {canonicalJson} from './local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {readSourceProfileJson} from './source-profile-json.mjs';
 import {composeInstalledEffects, installedUpdateTargets, validPluralEffectPaths}
   from './installed-effect-inventory.mjs';
 import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
@@ -42,43 +43,20 @@ const refuse = (code, cause) => {
 // Bound profile and identity-part reads before buffering, including files that
 // grow after opening. This limit is distinct from Check Environment admission.
 async function readProfileJson(path) {
-  const maxBytes = 8 * 1024 * 1024;
-  const file = await open(path, 'r');
-  let released = false;
-  const release = async () => {
-    if (released) return;
-    await file.close();
-    released = true;
-  };
-  let failure;
-  try {
-    const chunks = [];
-    let bytes = 0, used = 0;
-    let buffer = Buffer.allocUnsafe(64 * 1024);
-    for (;;) {
-      const {bytesRead} = await file.read(buffer, used, buffer.length - used, null);
-      if (bytesRead === 0) {
-        chunks.push(buffer.subarray(0, used));
-        return JSON.parse(Buffer.concat(chunks, bytes).toString('utf8'));
-      }
-      bytes += bytesRead;
-      used += bytesRead;
-      if (bytes > maxBytes) refuse('InvalidInstalledEffectProfile');
-      if (used === buffer.length) {
-        chunks.push(buffer);
-        buffer = Buffer.allocUnsafe(Math.min(64 * 1024, maxBytes - bytes + 1));
-        used = 0;
-      }
+  try { return await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024}); }
+  catch (cause) {
+    if (cause?.cleanupHandle !== undefined) {
+      // The same acquired reader supplies its primary; do not infer it from
+      // an error class, message or an arbitrary nested cause.
+      const primary = cause.cleanupHandle.primaryFailure;
+      const failure = await retainInstalledHostInitializationFailure(cause, {});
+      failure.primaryFailure = primary;
+      throw failure;
     }
-  } catch (cause) { failure = cause; throw cause; }
-  finally {
-    try { await release(); }
-    catch (cause) {
-      // No installation has returned yet. Preserve the same file's release
-      // responsibility through the existing initialization cleanup owner.
-      throw await retainInstalledHostInitializationFailure(failure ?? cause,
-        {installedEffect: {close: release}});
+    if (cause?.message === 'InvalidInstalledSourceProfile') {
+      refuse('InvalidInstalledEffectProfile', cause);
     }
+    throw cause;
   }
 }
 

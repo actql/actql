@@ -27,6 +27,7 @@ export async function readBoundedConfigurationText(path, {maxBytes, openFile = o
 async function readConfiguration(path, maxBytes, openFile, project) {
   let original = await openFile(path, 'r');
   let failure;
+  let readFailed = false;
   try {
     const chunks = [];
     let bytes = 0;
@@ -53,6 +54,7 @@ async function readConfiguration(path, maxBytes, openFile, project) {
       }
     }
   } catch (cause) {
+    readFailed = true;
     failure = cause;
     throw cause;
   } finally {
@@ -82,8 +84,9 @@ async function readConfiguration(path, maxBytes, openFile, project) {
         })().finally(() => { flight = undefined; });
         return flight;
       };
-      const cleanupHandle = Object.freeze({status, retry});
-      const primary = failure === undefined ? cause : new AggregateError(
+      const cleanupHandle = Object.freeze({status, retry,
+        primaryFailure: readFailed ? failure : cause});
+      const primary = !readFailed ? cause : new AggregateError(
         [failure, cause], failure.message, {cause: failure});
       const descriptors = {
         cleanupHandle: {value: cleanupHandle, configurable: true},
