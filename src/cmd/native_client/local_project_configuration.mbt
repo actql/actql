@@ -216,6 +216,7 @@ fn local_project_require_execution_bindings(
 fn execute_native_project_selection(
   matches : @argparse.Matches,
 ) -> Result[String, @files.NativeBoundedTextFailure] raise ClientStop {
+  normalize_native_program_arguments(matches)
   let selected = match local_project_read(matches) {
     Ok(value) => value
     Err(original) => return Err(original)
