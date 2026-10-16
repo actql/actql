@@ -3,11 +3,26 @@
 // adopted artifact set from filenames or equal package versions.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {lstatSync, readFileSync, readdirSync, realpathSync} from 'node:fs';
+import {closeSync, constants, fstatSync, lstatSync, openSync, readFileSync, readdirSync, readSync, realpathSync} from 'node:fs';
 import {relative, resolve} from 'node:path';
 import {javascriptInterface, packageEntrances} from './interface-inventory.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {pythonModuleInterfaces} from './python-interface-sources.mjs';
+
+function artifactDigest(path) {
+  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  try {
+    const before = fstatSync(fd);
+    assert(before.isFile(), 'Compiled interface must be a regular file');
+    const digest = createHash('sha256'), buffer = Buffer.alloc(1024 * 1024);
+    let read;
+    while ((read = readSync(fd, buffer, 0, buffer.length, null))) digest.update(buffer.subarray(0, read));
+    const after = fstatSync(fd);
+    assert(before.size === after.size && before.mtimeMs === after.mtimeMs,
+      'Compiled interface changed during inventory');
+    return digest.digest('hex');
+  } finally { closeSync(fd); }
+}
 
 export function installedInterfaceInventory(directory, {artifacts = []} = {}) {
   assert(!lstatSync(directory).isSymbolicLink(), 'Installed interface root must not be a link');
@@ -31,9 +46,10 @@ export function installedInterfaceInventory(directory, {artifacts = []} = {}) {
   for (const module of files.sort()) {
     const proof = artifacts.find(value => value.module === module);
     if (proof || binary.test(module)) {
-      assert(proof && proof.sourceSha && proof.target && proof.verification,
+      assert(proof && /^[0-9a-f]{40}$/u.test(proof.sourceSha) && typeof proof.target === 'string' &&
+        proof.target.length && proof.verification,
         `Unregistered compiled interface artifact: ${module}`);
-      const sha256 = createHash('sha256').update(readFileSync(resolve(root, module))).digest('hex');
+      const sha256 = artifactDigest(resolve(root, module));
       assert.equal(sha256, proof.sha256, `Mixed interface artifact: ${module}`);
       generated.push({...proof, module, sha256});
       continue;
