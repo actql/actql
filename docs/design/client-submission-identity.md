@@ -117,6 +117,32 @@ checked Program or Run definition exists. Its canonical preimage contains
 only admitted value is `"commit"`. Omitting that choice preserves the existing
 three-field canonical original and CID. Selecting it adds the field to the same
 preimage; it cannot be changed for an already retained submission identity.
+
+### Original short-query continuation
+
+The initial0.1 contract deliberately extends this same original with optional
+`readOnly: true`. Absence preserves every previous byte and CID; false, null
+and alternative spellings are not admitted. The choice participates in the
+same canonical preimage and retained journal intent. Reusing a submission
+identity with another choice is an intent conflict, not a replacement Run.
+
+The installed preparation pairs that opaque intent with the same original
+Common preparation. Common reads its complete checked Effect inventory before
+Source acquisition, Model invocation, Effect Preview or dispatch. Any Effect
+occurrence is incompatible, including zero-row, unreachable or currently denied
+Effects. A final stage, emitted count, source keyword or separate check cannot
+prove that restriction. General startSource without the choice is unchanged;
+Node and Python short queries select it on their original submit packet.
+
+This restriction is not an Account grant or stop-before-commit request. Even
+when both choices occur, approval cannot release read-only into a write.
+Effect-free Source and Model work retains all existing current authorization,
+egress and resource obligations. Recovery reads the original durable intent
+and existing Run/material admission, never a current configuration or caller
+label; no equal-CID substitution or new preparation supplies original custody.
+
+### Requested first-Effect stop
+
 The choice restricts the original Run's first Effect continuation through the
 existing Checkpoint owner. Its approval releases that user-requested restriction,
 not Account authorization; current Deny and genuine Delegate requirements remain.

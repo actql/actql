@@ -21,7 +21,9 @@ const profile = {submissionEpoch, version: 'actql-client-host/0.1', mode: 'remot
 const time = '2026-10-07T00:00:00.000Z';
 function succeeded(names = ['answer']) {
   return {version: 'actql-run-state/0.1', run_id: 'run-query',
-    status: 'succeeded', updated_at: time,
+    // This double represents a published observation at revision1. It does
+    // not supply a missing producer revision or infer one from terminal status.
+    status: 'succeeded', revision: 1, updated_at: time,
     next_action: {kind: 'read_result', results: names}, result_available: true,
     result_availability: Object.fromEntries(names.map(name => [name,
       {state: 'available', observed_at: time, reason: 'confirmed_present'}]))};
@@ -64,6 +66,7 @@ test('short queries eagerly submit once and share a native Promise Result', asyn
   assert.deepEqual(await query.all(), [{id: 1}]);
   assert.deepEqual(await query.all(), [{id: 1}]);
   assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('wait'), 1);
+  assert.equal(f.calls.find(call => call.operation === 'submit-intent').body.readOnly, true);
   assert.equal(f.count('read'), 2);
   const reads = f.calls.filter(x => x.operation === 'read');
   assert.notEqual(reads[0].body.attemptId, reads[1].body.attemptId);

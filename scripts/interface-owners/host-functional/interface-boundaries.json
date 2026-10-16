@@ -2633,7 +2633,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -11483,7 +11483,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fcc7e1e88c01ea44faa7ce9aa0e3dad79e58e08882487371d405743e554990fe",
+      "sha256": "bf0c7f8da35ed4efe4012020aeee7b6db764d8f8120ded3ad32f72c42220ead9",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -13355,7 +13355,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -13644,7 +13644,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8ab3b091be17891b3d7776fd8e7eaf23e8822def15e83eb288bbe53bbe6d476a",
+      "sha256": "54e792817cf0b315a7ed87e880b981d5eada984a72708916831e42e8b28b359e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -13847,6 +13847,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -13869,6 +13873,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -13891,6 +13899,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -13913,6 +13925,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -13935,6 +13951,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -13957,6 +13977,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -13975,6 +13999,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -13997,6 +14025,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -14018,7 +14050,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -14037,6 +14069,14 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -15631,7 +15671,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c14fab081c1f7712e7376079e9190439e01a88b262a8fd649899700c079f79ff",
+      "sha256": "d2fd92ab02136a4b04734cd5e30d5fbbdd4d96223c52e670c5c0d6b0c7131abf",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -15730,6 +15770,14 @@
           "async": false
         },
         {
+          "name": "installNodeClientProgramPreparation/init:assertSubmittedIntent/init:assertSubmittedIntent",
+          "parameters": [
+            "prepared",
+            "intent"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientProgramPreparation/init:kindOf/init:kindOf",
           "parameters": [
             "prepared"
@@ -15812,7 +15860,8 @@
             "installNodeClientProgramPreparation/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified#2",
-            "serializeProgram"
+            "serializeProgram",
+            "installNodeClientProgramPreparation/init:assertSubmittedIntent/init:assertSubmittedIntent"
           ],
           "exports": [
             "installNodeClientEffectProgramPreparation",
@@ -15839,6 +15888,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -15861,6 +15914,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -15883,6 +15940,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -15905,6 +15966,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -15927,6 +15992,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -15949,6 +16018,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -15967,6 +16040,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -15985,6 +16062,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -16007,6 +16088,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -16021,6 +16106,14 @@
               {
                 "path": "adapters/host-node/installed-update-targets.test.mjs",
                 "anchor": "test('actual JSON Model UPDATE acceptance saves and restores both originals in the same SQLite Run'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -16031,7 +16124,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a3cfbbacd71496568a0973b16e3bbb95c6b643510e64fc5881df1009cc6b1fd6",
+      "sha256": "8207752f6bb47c2d912076e43092076cf6ba3015d0b33183a30e333356b51083",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -17529,6 +17622,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -17555,6 +17652,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -17585,6 +17686,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -17615,6 +17720,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -17645,6 +17754,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -17675,6 +17788,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -17705,6 +17822,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -17743,6 +17864,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -17772,7 +17897,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -17807,6 +17932,14 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -18817,7 +18950,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e322d54004d2ebe57d94ed0a279b3823cdd1bf65afc1e85f3fcdb93c01d3318b",
+      "sha256": "cc084d425dfd3db5fd29c7888bbe54dd0d86017684661e34fb0e31c979c211aa",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -18855,6 +18988,15 @@
             "submit",
             "lookupRequest",
             "checkSubmissionInput"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientSubmission/assertOriginalPreparation/assertOriginalPreparation",
+          "parameters": [
+            "prepared",
+            "input",
+            "value"
           ],
           "async": false
         },
@@ -18925,7 +19067,8 @@
             "value",
             "retained",
             "fields",
-            "original"
+            "original",
+            "input"
           ],
           "async": true
         },
@@ -19089,7 +19232,8 @@
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight#2",
             "installNodeClientSubmission/submitIntent/submitIntent/restartFields/restartFields",
             "installNodeClientSubmission/unresolved/unresolved",
-            "installNodeClientSubmission/withRestart/withRestart"
+            "installNodeClientSubmission/withRestart/withRestart",
+            "installNodeClientSubmission/assertOriginalPreparation/assertOriginalPreparation"
           ],
           "exports": [
             "installNodeClientSubmission"
@@ -19111,6 +19255,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -19129,6 +19277,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -19147,6 +19299,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -19165,6 +19321,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -19183,6 +19343,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -19201,6 +19365,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -19219,6 +19387,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -19241,6 +19413,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -19258,7 +19434,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -19277,6 +19453,14 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -29976,7 +30160,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -48982,7 +49166,7 @@
             "extension": [
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [

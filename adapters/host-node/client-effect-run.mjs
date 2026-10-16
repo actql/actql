@@ -131,6 +131,7 @@ export function installNodeClientEffectRun({moon,
         const intent = moon.clientSubmittedIntent(original.intentWire,
           1048576, 65536, 64);
         if (intent === undefined) throw denied();
+        if (!moon.clientSubmittedIntentEffectCompatible(intent, prepared)) throw denied();
         requestedStop = moon.clientSubmittedIntentRequestsCommitStop(intent);
       }
       const compiled = () => compile(prepared);
@@ -213,6 +214,10 @@ export function installNodeClientEffectRun({moon,
       }
       const originalSubmittedIntent = journal.originalSubmittedIntent(identity,
         {namespaceId}, moon, control);
+      if (originalSubmittedIntent !== undefined &&
+          !moon.clientSubmittedIntentEffectCompatible(originalSubmittedIntent.intent, prepared)) {
+        throw denied();
+      }
       const compilation = compile();
       const original = updateTargetOriginals?.validateRun({prepared, compilation,
         evidence, runDefinition: retained.runDefinition, identity}) ?? {};
@@ -318,6 +323,10 @@ export function installNodeClientEffectRun({moon,
       if (evidence === undefined) throw denied();
       const originalSubmittedIntent = journal.originalSubmittedIntent(identity,
         {namespaceId}, moon, control);
+      if (originalSubmittedIntent !== undefined &&
+          !moon.clientSubmittedIntentEffectCompatible(originalSubmittedIntent.intent, prepared)) {
+        throw denied();
+      }
       const compilation = compile();
       const original = updateTargetOriginals?.validateRun({prepared, compilation,
         evidence, runDefinition: retained.runDefinition, identity}) ?? {};

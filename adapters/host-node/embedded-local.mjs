@@ -1975,6 +1975,14 @@ async function openInstalledHost(originalInstallation) {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
+    if (Object.hasOwn(submission, 'readOnly')) {
+      const intent = moon.clientSubmittedIntent(canonicalValueJson({kind, input,
+        parameters, readOnly: submission.readOnly,
+        ...(Object.hasOwn(submission, 'stopBefore') ? {stopBefore: submission.stopBefore} : {})},
+      {dataKeys: true}), 1048576, 65536, 64);
+      if (intent === undefined) throw clientOperationError('ClientProgramInvalidInput');
+      prepareSubmit.assertSubmittedIntent(submission.preparedProgram, intent);
+    }
     const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} =
       requestOf(submission);
     const selectedModel = inferSelections.get(submission.preparedProgram);

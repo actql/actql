@@ -363,7 +363,8 @@ export function validClientBody(operation, body) {
     return validClientBody('submit', {connection: body.connection,
       requestId: body.submissionRef.nonce, kind: body.kind,
       input: body.input, parameters: body.parameters,
-      ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {})}) &&
+      ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
+      ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})}) &&
       (body.parameters === null || typeof body.parameters === 'object' &&
         !Array.isArray(body.parameters));
   }

@@ -139,14 +139,26 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (!validSubmissionLookup(result, value.connection, value.submissionRef)) fail('InvalidClientHostSubmissionLookup');
     return result;
   };
-  const replayReady = async (value, retained, fields, original) => {
+  const assertOriginalPreparation = (prepared, input, value) => {
+    if (typeof prepareSubmit.assertSubmittedIntent === 'function') {
+      prepareSubmit.assertSubmittedIntent(prepared, input);
+    } else if (Object.hasOwn(value, 'readOnly')) {
+      // An installation without the original Common boundary cannot accept
+      // this continuation choice. Older unselected installations are unchanged.
+      fail('ClientProgramUnsupported');
+    }
+  };
+  const replayReady = async (value, retained, fields, original, input) => {
     const requestId = retained.requestId;
     if (flights.has(requestId)) return original;
     // A ready receipt establishes acceptance, not physical dispatch. Only
     // explicit replay re-enters the existing Run owner; lookup stays read-only.
     const flight = (async () => {
       let preparedProgram;
-      try {preparedProgram = await prepareSubmit({...value, requestId});}
+      try {
+        preparedProgram = await prepareSubmit({...value, requestId});
+        assertOriginalPreparation(preparedProgram, input, value);
+      }
       catch (error) {
         if (!isClientSubmitRejection(error?.code)) throw error;
         // Current execution support cannot replace an already accepted intent.
@@ -187,7 +199,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     const fields = attempt?.fields ?? await authorize(value);
     const input = moon.clientSubmittedIntent(canonicalJson({kind: value.kind, input: value.input,
       parameters: value.parameters,
-      ...(Object.hasOwn(value, 'stopBefore') ? {stopBefore: value.stopBefore} : {})},
+      ...(Object.hasOwn(value, 'stopBefore') ? {stopBefore: value.stopBefore} : {}),
+      ...(Object.hasOwn(value, 'readOnly') ? {readOnly: value.readOnly} : {})},
     {dataKeys: true}), 1048576, 65536, 64);
     if (input === undefined || moon.clientSubmittedIntentCid(input) !== value.intentCid) {
       fail('InvalidClientSubmittedIntent');
@@ -205,7 +218,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       if (retained.intentCid !== value.intentCid) fail('ClientSubmittedIntentConflict');
       const result = await refresh(value, retained, fields);
       if (result.kind === 'unresolvable') fail('ClientSubmissionUnresolvable');
-      if (result.kind === 'ready') return await replayReady(value, retained, fields, result);
+      if (result.kind === 'ready') return await replayReady(value, retained, fields, result, input);
       if (result.kind !== 'preparing') return await discloseOutcome(value, result, fields, retained);
     }
     if (retained === undefined) {
@@ -222,7 +235,10 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       return storedOutcome(journal.lookupSubmittedIntent(value.submissionRef, fields, moon));
     }
     let preparedProgram;
-    try {preparedProgram = await prepareSubmit({...value, requestId});}
+    try {
+      preparedProgram = await prepareSubmit({...value, requestId});
+      assertOriginalPreparation(preparedProgram, input, value);
+    }
     catch (error) {
       if (!isClientSubmitRejection(error?.code)) throw error;
       const kind = retained === undefined ? 'not_accepted' : 'preparation_failed';

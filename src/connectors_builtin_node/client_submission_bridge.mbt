@@ -1,4 +1,21 @@
 ///|
+#export_name("clientSubmittedIntentRequestsReadOnly")
+pub fn client_submitted_intent_requests_read_only(
+  value : @publication_host.ClientSubmittedIntent,
+) -> Bool {
+  @publication_host.client_submitted_intent_requests_read_only(value)
+}
+
+///|
+#export_name("clientSubmittedIntentEffectCompatible")
+pub fn client_submitted_intent_effect_compatible(
+  intent : @publication_host.ClientSubmittedIntent,
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Bool {
+  @publication_host.client_submitted_intent_effect_compatible(intent, prepared)
+}
+
+///|
 #export_name("clientSubmittedIntentRequestsCommitStop")
 pub fn client_submitted_intent_requests_commit_stop(
   value : @publication_host.ClientSubmittedIntent,
