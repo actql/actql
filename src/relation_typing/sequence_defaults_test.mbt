@@ -98,6 +98,10 @@ test "sequence omission never accepts malformed present values or missing requir
     text in [
       original.replace(old="\"id\":\"id\",", new=""),
       original.replace(old="\"time\":\"clock\",", new=""),
+      original.replace(
+        old="\"pattern\":[{\"as\":\"opened\",\"where\":{\"literal\":true}},{\"as\":\"closed\",\"where\":{\"literal\":false}}],",
+        new="",
+      ),
       original.replace(old=",\"within\":20", new=""),
       original.replace(old="\"within\":20", new="\"within\":null"),
       original.replace(
