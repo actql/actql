@@ -66,6 +66,39 @@ for (const field of ['cleanupHandle', 'cleanupPending']) {
   });
 }
 
+test('inherited original cleanup facet is preserved beside the new configuration FD', async t => {
+  let legacy;
+  const originalCleanup = Object.freeze({
+    status: () => Object.freeze({pending: legacy.fd >= 0}),
+    retry: () => legacy.close(),
+  });
+  class OriginalCloseFailure extends Error {}
+  Object.defineProperty(OriginalCloseFailure.prototype, 'cleanupHandle', {value: originalCleanup});
+  const primary = new OriginalCloseFailure('OriginalPendingCleanup');
+  const f = await fixture(t, {mode: 'reject', closeFailure: primary});
+  const legacyPath = join(f.path, '..', 'legacy');
+  await fs.writeFile(legacyPath, 'original responsibility');
+  legacy = await fs.open(legacyPath, 'r');
+  t.after(() => legacy.close());
+  let failure;
+  await assert.rejects(readSourceProfileJson(f.path), error => {
+    failure = error;
+    assert.notEqual(error, primary);
+    assert.equal(error.cause, primary);
+    assert.equal(primary.cleanupHandle, originalCleanup);
+    assert.equal(Object.hasOwn(primary, 'cleanupHandle'), false);
+    assert.notEqual(error.cleanupHandle, originalCleanup);
+    assert.equal(error.cleanupHandle.status().pending, true);
+    return true;
+  });
+  f.state.allowClose = true;
+  await failure.cleanupHandle.retry();
+  await assert.rejects(f.state.handles[0].stat(), {code: 'EBADF'});
+  assert.equal(originalCleanup.status().pending, true, 'new FD ACK is not the old responsibility ACK');
+  await primary.cleanupHandle.retry();
+  await assert.rejects(legacy.stat(), {code: 'EBADF'});
+});
+
 for (const mode of ['false', 'reject']) {
   test(`configuration ${mode} close keeps the same real FD and single-flight retry`, async t => {
     const f = await fixture(t, {mode});
