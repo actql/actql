@@ -1,5 +1,11 @@
 """Physical callbacks shared by the focused real-Wasm acceptance cases."""
+from pathlib import Path
+import sys
 import wasmtime
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'packages/python-sdk/src'))
+from actql_sdk._local_core import LOCAL_CORE_ABI, _validate_core_module
+from actql_sdk._local_wasm_abi import _IMPORT_SIGNATURES
 
 
 class PhysicalFixture:
@@ -13,54 +19,69 @@ class PhysicalFixture:
         self.stop_ready = False
         self.invalid_byte = False
         self.nonce = nonce
-        config = wasmtime.Config()
-        if fuel is not None:
-            config.consume_fuel = True
-        self.engine = wasmtime.Engine(config)
-        self.store = wasmtime.Store(self.engine)
-        if fuel is not None:
-            self.store.set_fuel(fuel)
-        self.store.set_limits(memory_size=16 * 1024 * 1024, memories=1)
-        self.module = wasmtime.Module(self.engine, module)
-        self.linker = wasmtime.Linker(self.engine)
-        i32 = wasmtime.ValType.i32()
-        for name, params, callback in (
-            ('input_byte', [i32, i32], self.read),
-            ('input_cleanup', [i32], self.cleanup),
-            ('reader_stop', [i32, i32], self.stop),
-            ('native_settled', [i32], self.native_settled),
-            ('native_stopped', [i32], self.native_stopped),
-            ('native_cleaned', [i32], self.native_cleaned),
-            ('publisher_current', [i32], self.publisher_current),
-            ('publisher_begin', [i32, i32], self.publisher_begin),
-            ('publisher_byte', [i32, i32, i32], self.publisher_byte),
-            ('publisher_finish', [i32], self.publisher_finish),
-            ('journal_current', [i32], self.journal_refuse),
-            ('journal_begin', [i32, i32, i32, i32], self.journal_refuse),
-            ('journal_query_byte', [i32, i32, i32], self.journal_refuse),
-            ('journal_query', [i32], self.journal_refuse),
-            ('journal_length', [i32, i32], self.journal_refuse),
-            ('journal_byte', [i32, i32, i32], self.journal_refuse),
-            ('journal_revision', [i32], self.journal_refuse),
-            ('journal_release', [i32], self.journal_refuse)):
+        self.store = self.linker = self.module = self.engine = None
+        try:
+            config = wasmtime.Config()
+            if fuel is not None:
+                config.consume_fuel = True
+            self.engine = wasmtime.Engine(config)
+            self.store = wasmtime.Store(self.engine)
+            if fuel is not None:
+                self.store.set_fuel(fuel)
+            self.store.set_limits(memory_size=16 * 1024 * 1024, memories=1)
+            self.module = wasmtime.Module(self.engine, module)
+            # These are current-source probes. Historical artifacts must never
+            # reach physical callbacks under the current wrapper declaration.
+            _validate_core_module(wasmtime, self.module)
+            self.linker = wasmtime.Linker(self.engine)
+            i32 = wasmtime.ValType.i32()
+            for name, params, callback in (
+                ('input_byte', [i32, i32], self.read),
+                ('input_cleanup', [i32], self.cleanup),
+                ('reader_stop', [i32, i32], self.stop),
+                ('native_settled', [i32], self.native_settled),
+                ('native_stopped', [i32], self.native_stopped),
+                ('native_cleaned', [i32], self.native_cleaned),
+                ('publisher_current', [i32], self.publisher_current),
+                ('publisher_begin', [i32, i32], self.publisher_begin),
+                ('publisher_byte', [i32, i32, i32], self.publisher_byte),
+                ('publisher_finish', [i32], self.publisher_finish),
+                ('journal_current', [i32], self.journal_refuse),
+                ('journal_begin', [i32, i32, i32, i32], self.journal_refuse),
+                ('journal_query_byte', [i32, i32, i32], self.journal_refuse),
+                ('journal_query', [i32], self.journal_refuse),
+                ('journal_length', [i32, i32], self.journal_refuse),
+                ('journal_byte', [i32, i32, i32], self.journal_refuse),
+                ('journal_revision', [i32], self.journal_refuse),
+                ('journal_release', [i32], self.journal_refuse)):
 
-            self.linker.define_func('actql_host', name,
-                wasmtime.FuncType(params, [wasmtime.ValType.i64() if name == 'journal_revision' else i32]), callback)
-        assert {(item.module, item.name) for item in self.module.imports} == {
-            ('actql_host', 'input_byte'), ('actql_host', 'input_cleanup'), ('actql_host', 'reader_stop'),
-            ('actql_host', 'native_settled'), ('actql_host', 'native_stopped'), ('actql_host', 'native_cleaned'),
-            ('actql_host', 'publisher_current'), ('actql_host', 'publisher_begin'),
-            ('actql_host', 'publisher_byte'), ('actql_host', 'publisher_finish'),
-            *{('actql_host', 'journal_' + name) for name in (
-                'current', 'begin', 'query_byte', 'query', 'length', 'byte', 'revision', 'release')}}
-        self.instance = self.linker.instantiate(self.store, self.module)
-        self.exports = self.instance.exports(self.store)
-        envelope = 16 * 1024 * 1024 + capacity if execution_bytes is None else execution_bytes
-        assert self.call('open', capacity, slots, 1048576, 100000, slots + 2, slots,
-                              32000000, retained_bytes, envelope, 0) == 0
+                self.linker.define_func('actql_host', name,
+                    wasmtime.FuncType(params, [wasmtime.ValType.i64() if name == 'journal_revision' else i32]), callback)
+            for name, (params, result) in _IMPORT_SIGNATURES.items():
+                if not name.startswith('execution_child_'):
+                    continue
+                scalar = {'i32': wasmtime.ValType.i32, 'i64': wasmtime.ValType.i64}
+                # Raw diagnostic pools do not own an installed execution child.
+                # Linking a declared import is not permission to acquire one.
+                self.linker.define_func('actql_host', name, wasmtime.FuncType(
+                    [scalar[p]() for p in params.split()], [scalar[result]()]),
+                    self.execution_child_unavailable)
+            self.instance = self.linker.instantiate(self.store, self.module)
+            self.exports = self.instance.exports(self.store)
+            if self.exports['actql_host_abi_version'](self.store) != LOCAL_CORE_ABI:
+                raise ValueError('Unsupported Local Core fixture ABI version')
+            envelope = 16 * 1024 * 1024 + capacity if execution_bytes is None else execution_bytes
+            assert self.call('open', capacity, slots, 1048576, 100000, slots + 2, slots,
+                                  32000000, retained_bytes, envelope, 0) == 0
+        except BaseException:
+            self.close()
+            raise
 
     def call(self, name, *args):
         return self.exports['actql_buffer_' + name](self.store, self.nonce, *args)
+
+    def execution_child_unavailable(self, *args):
+        return -42
 
     def read(self, ticket, index):
         self.reads += 1
@@ -121,8 +142,9 @@ class PhysicalFixture:
         return handle
 
     def close(self):
-        self.store.close()
-        self.linker.close()
-        self.module.close()
-        self.engine.close()
+        for name in ('store', 'linker', 'module', 'engine'):
+            value = getattr(self, name, None)
+            if value is not None:
+                value.close()
+                setattr(self, name, None)
 
