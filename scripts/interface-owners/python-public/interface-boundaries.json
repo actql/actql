@@ -831,7 +831,7 @@
         },
         {
           "async": false,
-          "name": "AsyncClient/check",
+          "name": "AsyncClient/check#2",
           "parameters": [
             "self",
             "input",
@@ -844,7 +844,7 @@
         },
         {
           "async": false,
-          "name": "AsyncClient/check",
+          "name": "AsyncClient/check#3",
           "parameters": [
             "self",
             "input",
@@ -854,7 +854,7 @@
         },
         {
           "async": false,
-          "name": "AsyncClient/check",
+          "name": "AsyncClient/check#4",
           "parameters": [
             "self",
             "input",
@@ -1164,7 +1164,7 @@
         },
         {
           "async": false,
-          "name": "Client/check",
+          "name": "Client/check#2",
           "parameters": [
             "self",
             "input",
@@ -1177,7 +1177,7 @@
         },
         {
           "async": false,
-          "name": "Client/check",
+          "name": "Client/check#3",
           "parameters": [
             "self",
             "input",
@@ -1187,7 +1187,7 @@
         },
         {
           "async": false,
-          "name": "Client/check",
+          "name": "Client/check#4",
           "parameters": [
             "self",
             "input",
@@ -1604,9 +1604,9 @@
             "AsyncClient/aclose",
             "AsyncClient/attach",
             "AsyncClient/check",
-            "AsyncClient/check",
-            "AsyncClient/check",
-            "AsyncClient/check",
+            "AsyncClient/check#2",
+            "AsyncClient/check#3",
+            "AsyncClient/check#4",
             "AsyncClient/checkpoints",
             "AsyncClient/connect",
             "AsyncClient/lookup_submission",
@@ -1644,9 +1644,9 @@
             "Client/__exit__",
             "Client/attach",
             "Client/check",
-            "Client/check",
-            "Client/check",
-            "Client/check",
+            "Client/check#2",
+            "Client/check#3",
+            "Client/check#4",
             "Client/checkpoints",
             "Client/close",
             "Client/connect",
