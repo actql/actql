@@ -138,4 +138,18 @@ export const installedConnectors = Object.freeze([
         .then(module => Object.freeze({check: module.checkInstalledSheetsEffectProfile, identityParts: module.installedSheetsEffectIdentityParts, publish: module.publishInstalledSheetsEffect, load: module.loadInstalledSheetsEffect})),
     }),
   }),
+  Object.freeze({
+    name: "snowflake", registration: "snowflake",
+    revision: "snowflake/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/snowflake/host/installed-snowflake-source.mjs", href: new URL("../connectors/snowflake/host/installed-snowflake-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/snowflake/site/snowflake-sql-read.mjs", href: new URL("../connectors/snowflake/site/snowflake-sql-read.mjs", import.meta.url).href}),
+    ]),
+    responseHeaders: Object.freeze(["content-encoding"]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-snowflake-source/0.1",
+      load: () => import("../connectors/snowflake/host/installed-snowflake-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledSnowflakeSourceProfile, identityParts: module.installedSnowflakeSourceIdentityParts, load: module.loadInstalledSnowflakeSource})),
+    }),
+  }),
 ]);
