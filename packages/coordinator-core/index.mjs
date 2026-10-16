@@ -1,4 +1,4 @@
-import {runtimeField, runtimeIsError, runtimeIsTaggedAbsent, runtimeIsOk, runtimeIsTaggedPresent} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import * as owner from './dist/remote_coordinator_abi.js';
 
 const siteInteger = value => typeof value === 'bigint' && value >= 0n &&
@@ -347,8 +347,8 @@ export const durableDispatchCid = owner.coordinatorDurableDispatchCid;
 export const durableRequest = owner.coordinatorDurableRequest;
 export const acceptedSiteOutput = durable => {
   const option = checked(owner.coordinatorAcceptedSiteOutput(durable));
-  if (runtimeIsTaggedAbsent(option)) return undefined;
-  if (!runtimeIsTaggedPresent(option) || !Array.isArray(runtimeField(option, 0)) ||
+  if (runtimeIsBoxedNone(option)) return undefined;
+  if (!runtimeIsBoxedSome(option) || !Array.isArray(runtimeField(option, 0)) ||
       runtimeField(option, 0).length !== 14 ||
       !runtimeField(option, 0).every(value => typeof value === 'string')) {
     throw Object.assign(new Error('InvalidCoordinatorOutputProjection'),
@@ -369,8 +369,8 @@ export const acceptedSiteOutput = durable => {
 // Source, policy and authorization checks before Invocation/publication.
 export const acceptedSourceObservation = durable => {
   const option = owner.coordinatorAcceptedSourceObservation(durable);
-  if (runtimeIsTaggedAbsent(option)) return undefined;
-  if (!runtimeIsTaggedPresent(option) || !Array.isArray(runtimeField(option, 0)) ||
+  if (runtimeIsBoxedNone(option)) return undefined;
+  if (!runtimeIsBoxedSome(option) || !Array.isArray(runtimeField(option, 0)) ||
       runtimeField(option, 0).length !== 5 ||
       !runtimeField(option, 0).every(value => typeof value === 'string')) {
     throw new Error('InvalidCoordinatorSourceObservationProjection');

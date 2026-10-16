@@ -7,7 +7,7 @@ import {checkedEffectPreparation, isEffectPreparationRefusal} from
   '../adapters/host-common/effect-preparation-result.mjs';
 import {checkedSalesforceCatalogPreparation} from
   '../adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs';
-import {runtimeIsOk, runtimeIsError, runtimeReferenceOption, runtimeUnitOptionPresent,
+import {runtimeIsOk, runtimeIsError, runtimeUnboxedReferenceOption, runtimeUnboxedUnitOptionPresent,
   runtimeField, runtimePair} from '../adapters/host-common/compiler-binding.generated.mjs';
 
 test('actual pinned MoonBit Result preserves original payload and typed refusal', () => {
@@ -28,10 +28,10 @@ test('actual Option distinguishes None from Some Unit and preserves opaque ident
   const original = compiled.bindingOriginal(11);
   const some = compiled.bindingOption(original, true);
   const none = compiled.bindingOption(original, false);
-  assert.equal(runtimeReferenceOption(some), original);
-  assert.equal(runtimeReferenceOption(none), undefined);
-  assert.equal(runtimeUnitOptionPresent(compiled.bindingUnitOption(true)), true);
-  assert.equal(runtimeUnitOptionPresent(compiled.bindingUnitOption(false)), false);
+  assert.equal(runtimeUnboxedReferenceOption(some), original);
+  assert.equal(runtimeUnboxedReferenceOption(none), undefined);
+  assert.equal(runtimeUnboxedUnitOptionPresent(compiled.bindingUnitOption(true)), true);
+  assert.equal(runtimeUnboxedUnitOptionPresent(compiled.bindingUnitOption(false)), false);
 });
 
 test('actual tuple keeps role order, exact Int64, Unicode and callback arguments', () => {

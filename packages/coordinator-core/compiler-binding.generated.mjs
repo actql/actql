@@ -6,12 +6,12 @@ export const runtimeTag = value => value?.$tag;
 export const runtimeIsOk = value => value?.$tag === 1;
 export const runtimeIsOkRequired = value => value.$tag === 1;
 export const runtimeIsError = value => value?.$tag === 0;
-// Legacy adapters also used tagged projections for optional values. Keep that
-// interpretation distinct from the compiler's optimized Option layouts below.
-export const runtimeIsTaggedPresent = value => value?.$tag === 1;
-export const runtimeIsTaggedAbsent = value => value?.$tag === 0;
-export const runtimeReferenceOption = value => value;
-export const runtimeUnitOptionPresent = value => value !== -1;
+// Layout is qualified by the actual compiled export, not its surface type
+// alone. Generic/specialized reference Options can have different layouts.
+export const runtimeIsBoxedSome = value => value?.$tag === 1;
+export const runtimeIsBoxedNone = value => value?.$tag === 0;
+export const runtimeUnboxedReferenceOption = value => value;
+export const runtimeUnboxedUnitOptionPresent = value => value !== -1;
 export const runtimeField = (value, index) => value[`_${index}`];
 export const runtimeOptionalField = (value, index) => value?.[`_${index}`];
 
