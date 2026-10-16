@@ -7,7 +7,7 @@ from ._wire_codec import (CONTRACT, SCHEMAS, valid as valid, utf16_length, corre
 
 def bounded_text(value, limit=256):
     return valid(value, {'type': 'string', 'minLength': 1, 'maxLength': limit,
-                         'pattern': r'^[^\u0000-\u001f\u007f]+$'})
+                         'pattern': r'^[^\u0000-\u001f\u007f]+(?![\s\S])'})
 
 
 def epoch(value):
