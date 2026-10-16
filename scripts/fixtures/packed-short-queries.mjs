@@ -11,6 +11,7 @@ import {setImmediate} from 'node:timers/promises';
 import {connect, open} from '@actql/node';
 import {getSubmissionInput, getSubmissionOutcome} from '@actql/sdk';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
+import {assertObservedTransition, observedRevision, observeSettledResult, publishedFacts} from './run-revision-assertions.mjs';
 
 function authorization(outcome = 'allow') {
   const keys = generateKeyPairSync('ed25519');
@@ -32,13 +33,6 @@ try {
   assert.equal(defaults.info.stateDir, resolve('.actql'));
   assert.deepEqual(await defaults.sql('SELECT 0 AS id').all(), [{id: 0}]);
 } finally {await defaults.close();}
-
-// Required fields must come from the installed Owner, never fixture defaults.
-function observedRevision(state, label) {
-  assert.equal(Number.isSafeInteger(state.revision), true, `${label}: state revision`);
-  assert.ok(state.revision >= 0, `${label}: nonnegative state revision`);
-  return state.revision;
-}
 
 async function checkRunnable(db, counter, label) {
   const before = counter.count();
@@ -144,14 +138,20 @@ async function exercise(db, counter, label) {
   assert.equal(named.ref.resultName, 'named');
   const low = await db.startSource('SELECT 4 AS id',
     {format: 'sql', submissionRef: db.newSubmission({nonce: `${label}-low`})});
-  const completed = await low.wait();
-  assert.equal(completed.status, 'succeeded');
+  const firstTerminal = await low.wait();
+  assert.equal(firstTerminal.status, 'succeeded');
+  const immediate = await low.status();
+  assertObservedTransition(firstTerminal, immediate, `${label}: immediate status`);
+  const completed = await observeSettledResult(low, immediate, 'answer', label,
+    AbortSignal.timeout(5000));
   const completedRevision = observedRevision(completed, label);
-  assert.equal(observedRevision(await low.status(), label), completedRevision,
-    `${label}: status alone must not advance the state revision`);
+  const reread = await low.status();
+  assertObservedTransition(completed, reread, `${label}: settled no-op status`);
+  assert.deepEqual(publishedFacts(reread), publishedFacts(completed));
   assert.ok(completedRevision > 0 && completedRevision < Number.MAX_SAFE_INTEGER);
   const newer = await low.wait({since: completedRevision - 1, signal: AbortSignal.timeout(5000)});
   assert.equal(newer.run_id, completed.run_id);
+  assertObservedTransition(completed, newer, `${label}: earlier since`);
   assert.equal(observedRevision(newer, label), completedRevision);
   await assert.rejects(low.wait({since: completedRevision, signal: AbortSignal.timeout(250)}),
     {code: 'WaitTimeout'});
@@ -163,7 +163,9 @@ async function exercise(db, counter, label) {
   await setImmediate();
   abort.abort();
   await aborted;
-  assert.equal(observedRevision(await low.status(), label), completedRevision);
+  const afterWait = await low.status();
+  assertObservedTransition(completed, afterWait, `${label}: timeout/abort do not change facts`);
+  assert.equal(observedRevision(afterWait, label), completedRevision);
   console.log(JSON.stringify({kind: 'current-wire-wait', transport: label,
     stateRevision: completedRevision, newerRevision: newer.revision,
     equalSince: 'WaitTimeout', futureSince: 'InvalidWaitRevision', aborted: 'WaitAborted'}));
@@ -196,6 +198,7 @@ try {
   assert.equal(restored.status, 'succeeded');
   assert.ok(observedRevision(restored, 'local restart') >= saved.stateRevision);
   const reread = await attached.status();
+  assertObservedTransition(restored, reread, 'local restart reread');
   assert.equal(observedRevision(reread, 'local reread'), restored.revision,
     'A stable original Run read must not advance its revision');
   await assert.rejects(attached.wait({since: restored.revision, signal: AbortSignal.timeout(250)}),
