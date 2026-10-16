@@ -1,0 +1,16 @@
+{
+  "installation": {
+    "registration": "snowflake",
+    "revision": "snowflake/0.1",
+    "responseHeaders": ["content-encoding"],
+    "source": {
+      "profileVersion": "actql-installed-snowflake-source/0.1",
+      "module": "adapters/connectors/snowflake/host/installed-snowflake-source.mjs",
+      "exports": {
+        "check": "checkInstalledSnowflakeSourceProfile",
+        "identityParts": "installedSnowflakeSourceIdentityParts",
+        "load": "loadInstalledSnowflakeSource"
+      }
+    }
+  }
+}
