@@ -1,0 +1,461 @@
+{
+  "qualification": "Independent Python canonical JSON SHA-256; no product output or runtime evidence",
+  "previous_source": "dbbee2fe36cbe1e7c03d62a6920b0cb33fad4e0f",
+  "previous_program_file": "portability/fixtures/program-grammar-before-command-input-key.json",
+  "previous_program_cid": "sha256:c2acebbb8ee7587780997e4a8eee9e1cea832cf82d94715a2f718b7b5c906eb4",
+  "program_cid": "sha256:bfd9428774124f6f15e2ab67d010d70aad064a9f5c40c7f71b7b1567e878bdc0",
+  "programs": [
+    {
+      "mode": "field",
+      "prior_program": {
+        "version": "actql/0.1",
+        "id": "command-input-key",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "row_id",
+                  "address",
+                  "body",
+                  "target"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "field": "target"
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              }
+            }
+          }
+        }
+      },
+      "prior_cid": "sha256:93b727ec627c5ef482d5a983a4e221d7f476e2f972f37aa9eb7c4a18d3b593b5",
+      "program": {
+        "version": "actql/0.1",
+        "id": "command-input-key",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "row_id",
+                  "address",
+                  "body",
+                  "target"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "field": "target"
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              },
+              "input_key": "row_id"
+            }
+          }
+        }
+      },
+      "cid": "sha256:47436030e94962382a73266e253091291badaf7a7bd7008fabb86dddabe644fc"
+    },
+    {
+      "mode": "published_store",
+      "prior_program": {
+        "version": "actql/0.1",
+        "id": "command-input-key",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "row_id",
+                  "address",
+                  "body",
+                  "target"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "published_store": {
+                  "target_ref": "connector://mailbox/current",
+                  "mapping_ref": "mapping:mail.store.v1"
+                }
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              }
+            }
+          }
+        }
+      },
+      "prior_cid": "sha256:3a2f86988fbc18d5082b3d1a8815fbe7ac09a966f20ba09f74b8bf500f2c2ef2",
+      "program": {
+        "version": "actql/0.1",
+        "id": "command-input-key",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "row_id",
+                  "address",
+                  "body",
+                  "target"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "published_store": {
+                  "target_ref": "connector://mailbox/current",
+                  "mapping_ref": "mapping:mail.store.v1"
+                }
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              },
+              "input_key": "row_id"
+            }
+          }
+        }
+      },
+      "cid": "sha256:604b5afc78296c01af4c0effcec46abca88197973104ca41a26beb2188b50329"
+    },
+    {
+      "mode": "installation",
+      "prior_program": {
+        "version": "actql/0.1",
+        "id": "command-input-key",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "row_id",
+                  "address",
+                  "body",
+                  "target"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "published_command": {
+                  "target_ref": "connector://mailbox/current"
+                }
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              }
+            }
+          }
+        }
+      },
+      "prior_cid": "sha256:f02b9cc2533fb9c4fd9cbc663194a3d06a397e044980f1b35247e8945ebc2cb6",
+      "program": {
+        "version": "actql/0.1",
+        "id": "command-input-key",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "row_id",
+                  "address",
+                  "body",
+                  "target"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "published_command": {
+                  "target_ref": "connector://mailbox/current"
+                }
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              },
+              "input_key": "row_id"
+            }
+          }
+        }
+      },
+      "cid": "sha256:2d57781a5f94f15d48a2336acc263e53f0f4b6def2fb98aff7bfc3ece2248443"
+    },
+    {
+      "mode": "identifier",
+      "prior_program": {
+        "version": "actql/0.1",
+        "id": "command-input-key",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "row_id",
+                  "address",
+                  "body",
+                  "target"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "published_command": {
+                  "target_ref": "connector://mailbox/current",
+                  "identifier_field": "address"
+                }
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              }
+            }
+          }
+        }
+      },
+      "prior_cid": "sha256:f2775e6792cfe96eff3e7f8fcc0392cabd76ffc091cd271a15f9ea6d370ff89b",
+      "program": {
+        "version": "actql/0.1",
+        "id": "command-input-key",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "row_id",
+                  "address",
+                  "body",
+                  "target"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "published_command": {
+                  "target_ref": "connector://mailbox/current",
+                  "identifier_field": "address"
+                }
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              },
+              "input_key": "row_id"
+            }
+          }
+        }
+      },
+      "cid": "sha256:28b04dc47b0de23d90f3d1798d6b04618e140fdd67345c96a9ba9039ad056cab"
+    }
+  ],
+  "reject_input_key_values": [
+    null,
+    "",
+    false,
+    1,
+    {
+      "field": "row_id"
+    },
+    [
+      "row_id"
+    ]
+  ]
+}

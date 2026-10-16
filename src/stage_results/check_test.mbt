@@ -4,6 +4,7 @@ fn prepared(
   effects? : String = "",
   reference_nullable? : Bool? = None,
   amount_nullable? : Bool = false,
+  amount_type? : @contract.Contract? = None,
   amount_presence? : @schema.Presence? = None,
   effect_only? : Bool = false,
 ) -> @parameters.CollectedOperations {
@@ -47,7 +48,9 @@ fn prepared(
   let fields = [
     (
       @schema.Unqualified("amount"),
-      @contract.primitive(NumberType, nullable=amount_nullable),
+      amount_type.unwrap_or(
+        @contract.primitive(NumberType, nullable=amount_nullable),
+      ),
     ),
   ]
   if reference_nullable is Some(nullable) {

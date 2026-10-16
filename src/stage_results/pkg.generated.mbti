@@ -81,6 +81,8 @@ pub fn effect_command_input_issue_kind(EffectCommandInputIssue) -> EffectCommand
 
 pub fn effect_command_input_issue_stage(EffectCommandInputIssue) -> Int
 
+pub fn effect_command_input_key(EffectCommandInputBinding) -> @relation_schema.Field?
+
 pub fn effect_command_input_target(EffectCommandInputBinding) -> EffectCommandTargetBinding
 
 pub fn effect_command_inputs_targets(EffectCommandInputs) -> EffectCommandTargets
@@ -423,6 +425,7 @@ pub(all) struct CollectionLimits {
 pub struct EffectCommandInputBinding {
   target : EffectCommandTargetBinding
   fields : Array[EffectCommandInputField]
+  input_key : @relation_schema.Field?
 }
 
 pub struct EffectCommandInputField {
@@ -756,6 +759,7 @@ pub(all) enum EffectResultBindingIssueKind {
   InvalidCommandTarget
   InvalidCommandIdentifier
   UnsupportedTableInput
+  InvalidCommandInputKey
 } derive(Eq, @debug.Debug)
 
 pub struct EffectResultBindings {
@@ -776,6 +780,7 @@ pub(all) enum EffectResultFieldRole {
   EffectCommandTarget
   EffectCommandIdentifier
   EffectValue(String)
+  EffectCommandInputKey
 } derive(Eq, @debug.Debug)
 
 pub struct EffectStaticCandidate {

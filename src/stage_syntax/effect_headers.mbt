@@ -40,6 +40,7 @@ pub struct EffectHeader {
   body : @wire.Cursor
   published_store : (String, String)?
   published_command : (String, String?)?
+  command_input_key : String?
 }
 
 ///|
@@ -99,6 +100,13 @@ pub fn effect_header_published_command_target(
   value : EffectHeader,
 ) -> (String, String?)? {
   value.published_command
+}
+
+///|
+/// Original input-row correspondence only, separate from target selection and
+/// mutation identity. The input owner still validates the complete key scope.
+pub fn effect_header_command_input_key(value : EffectHeader) -> String? {
+  value.command_input_key
 }
 
 ///|
@@ -494,7 +502,9 @@ fn header_member(
         "target", "mapping", "from", "table_write", "max_items", "on_item_failure",
       ]
     "command" =>
-      ["from", "target", "contract", "input", "max_items", "on_item_failure"]
+      [
+        "from", "target", "contract", "input", "input_key", "max_items", "on_item_failure",
+      ]
     _ => abort("closed effect kind")
   }
   let body = header_object(source, fields)
@@ -620,6 +630,14 @@ fn header_member(
       budget,
     )
   }
+  let command_input_key = if selected == "command" {
+    match @wire.lookup(body, "input_key") {
+      None => None
+      Some(value) => Some(header_text(value))
+    }
+  } else {
+    None
+  }
   if selected == "upsert" {
     ignore(header_text(header_required(body, "key", source)))
   }
@@ -639,6 +657,7 @@ fn header_member(
     body: source,
     published_store,
     published_command,
+    command_input_key,
   }
 }
 

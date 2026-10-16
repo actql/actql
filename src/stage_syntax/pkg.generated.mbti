@@ -21,6 +21,8 @@ pub fn effect_header_at(EffectHeaders, Int) -> EffectHeader?
 
 pub fn effect_header_body(EffectHeader) -> @decode_core.Cursor
 
+pub fn effect_header_command_input_key(EffectHeader) -> String?
+
 pub fn effect_header_contract_ref(EffectHeader) -> String
 
 pub fn effect_header_count(EffectHeaders) -> Int
@@ -123,6 +125,7 @@ pub struct EffectHeader {
   body : @decode_core.Cursor
   published_store : (String, String)?
   published_command : (String, String?)?
+  command_input_key : String?
 }
 
 pub struct EffectHeaderIssue {

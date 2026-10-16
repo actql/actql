@@ -8726,6 +8726,61 @@
       }
     },
     {
+      "requirement_id": "actql.language/effects.command-input-key-correspondence",
+      "statement_sha256": "995b1315a6fd1dc0b91278899f39da17e2a63850c7f8829e3256a8edd2701b3b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.command-input-key-distinct-mutation",
+      "statement_sha256": "06269e376ec074c431678c09ad4f5c5c3afdb1615cecf1790233befb504fe483",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.command-input-key-original-validation",
+      "statement_sha256": "2946897f9a4e6630ee49b37fbc6e237f251103dac2ce5d6ca9b58f3f90f891d9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.command-input-key-no-substitution",
+      "statement_sha256": "4e977477e2591466350e3b5f7de8019aa9abc0b96ee7b325df385654e9341ad3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.command-input-key-original-custody",
+      "statement_sha256": "2f1065af59e2f658671771cd93366985fcae82a1718dcee0a5ff439f3682e8f2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/effects.published-command-original-domain",
       "statement_sha256": "c23769dc53bd2ff88439ba0b8e2a41e7ab45e4f59ffa12342c5477a107fe6bf4",
       "status": "pending",
@@ -10025,7 +10080,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "5f38d38f22eae0581450568f1085d4b0bd53a39755f748365dc2fee967c8d5d5",
+      "statement_sha256": "1113093e71f28625e28d297ae619924e20933d449561107aaac5fc232643158c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -8946,6 +8946,25 @@ nullable, vector-dimension, ContentRef-media, and ResourceRef-kind mismatches
 fail during check or preview. The target field may be projected away only by
 making the command invalid; receipt-only lineage cannot restore it.
 
+<!-- requirement-block: effects.command-input-key-correspondence effects.command-input-key-distinct-mutation -->
+An optional Command `input_key` names one original field of that member's
+consumed Result. When present it MUST be a guaranteed-present, non-null field
+in the existing KeyComparable domain. It retains authored input-row ID
+correspondence for Preview, status and recovery; it is neither the target
+identifier nor a new field in mutation identity. Absence preserves the existing
+Command meaning and bytes. A different row ID MUST NOT make an otherwise
+duplicate Command mutation distinct.
+
+<!-- requirement-block: effects.command-input-key-original-validation effects.command-input-key-no-substitution effects.command-input-key-original-custody -->
+Before Preview succeeds or a Command is dispatched, the captured-input owner
+MUST validate uniqueness and the declared domain over the complete original
+input for that exact Effect occurrence, under its existing work, workspace,
+cancellation and cleanup accounting. A missing, null or duplicate key refuses.
+A static field binding, an equal CID, an observed subset or another Source's
+key proof MUST NOT replace that obligation. The original binding and captured
+input MUST remain paired through Run materials, Preview, apply and recovery;
+an unavailable validator refuses before send rather than ignoring `input_key`.
+
 <!-- requirement-block: effects.published-command-original-domain -->
 A `command.target.published_command` selection MUST resolve its `contract` to
 one original Command/Catalog/environment occurrence with an explicit
@@ -10781,6 +10800,7 @@ CommandBody  := {
             } },
   contract: CommandContractRef,
   input: { InputField: ({ literal: JsonValue } | { field: ResultField }) }*,
+  input_key?: ResultField,
   max_items?: PositiveIntegerValue,
   on_item_failure?: "continue"
 }

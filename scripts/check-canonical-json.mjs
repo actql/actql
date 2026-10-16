@@ -319,11 +319,21 @@ function fixtures() {
   });
   const commandSelectors = read('portability/corpus/published-command-selectors.json');
   result.push({id: 'Program source grammar with published Command targets',
-    value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
+    value: read('portability/fixtures/program-grammar-before-command-input-key.json'),
     cid: commandSelectors.program_cid});
   for (const item of commandSelectors.programs) result.push({
     id: 'Original published Command selector ' + item.mode,
     value: item.program, cid: item.cid});
+  const commandKeys = read('portability/corpus/command-input-keys.json');
+  result.push({id: 'Program source grammar with original Command input keys',
+    value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
+    cid: commandKeys.program_cid});
+  for (const item of commandKeys.programs) {
+    result.push({id: 'Original Command without input key ' + item.mode,
+      value: item.prior_program, cid: item.prior_cid});
+    result.push({id: 'Original Command with input key ' + item.mode,
+      value: item.program, cid: item.cid});
+  }
   const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
   for (const item of read('portability/corpus/incoming-gates.json').cases) {
     assert.deepEqual([...Object.keys(item.preimage), 'self_cid'].sort(), [...gateSchema.required].sort());

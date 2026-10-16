@@ -9,6 +9,7 @@ pub(all) enum EffectResultBindingIssueKind {
   InvalidCommandTarget
   InvalidCommandIdentifier
   UnsupportedTableInput
+  InvalidCommandInputKey
 } derive(Eq, Debug)
 
 ///|
@@ -62,6 +63,7 @@ pub(all) enum EffectResultFieldRole {
   EffectCommandTarget
   EffectCommandIdentifier
   EffectValue(String)
+  EffectCommandInputKey
 } derive(Eq, Debug)
 
 ///|
@@ -344,6 +346,25 @@ pub fn bind_effect_results(
           }
           Err(issue) => return Err(issue)
         }
+      }
+      if @syntax.effect_header_command_input_key(header) is Some(name) {
+        remaining = match binding_charge(header, remaining, 1) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        let field = match binding_field(header, definition, name) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        let contract = @schema.field_contract(field)
+        if @schema.field_presence(field) != @schema.Required ||
+          contract.nullable ||
+          !@contract.key_comparable(contract, contract) {
+          return Err(
+            binding_issue(InvalidCommandInputKey, header, field=Some(name)),
+          )
+        }
+        fields.push({ role: EffectCommandInputKey, field, })
       }
       let values = if kind == "command" {
         @decode.lookup(body, "input")

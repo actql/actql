@@ -17,8 +17,11 @@ test('canonical Command selector changes only the declared target alternative in
   assert.equal(machineCid(prior),vectors.previous_program_cid);
   assert.deepEqual(prior,JSON.parse(execFileSync('git',['show',vectors.previous_source+':spec/contracts/actql-protocol-schemas.json'],{encoding:'utf8',maxBuffer:16*1024*1024})).artifact_schemas.executable_plan.properties.execution_material.properties.program);
   for(const program of parameterPrograms(protocol)) {
-    assert.equal(machineCid(program),vectors.program_cid);
     const restored=structuredClone(program);
+    // Input-key correspondence has its own retained full-schema/vector gate.
+    // The original target-only identity remains unchanged, not re-authored.
+    delete command(restored).properties.input_key;
+    assert.equal(machineCid(restored),vectors.program_cid);
     assert.deepEqual(command(restored).properties.target.oneOf[2],publishedCommandTargetSchema());
     command(restored).properties.target.oneOf.pop();
     assert.deepEqual(restored,prior,'No unrelated Program fields or old targets changed');
