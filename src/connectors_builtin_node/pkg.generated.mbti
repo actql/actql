@@ -1545,6 +1545,8 @@ pub fn client_program_open_multi_captured_local_host(@run_publication_host.Prepa
 
 pub fn client_program_open_multi_captured_local_retained_host(@run_publication_host.PreparedClientProgram, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn client_program_open_single_captured_local_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
 pub fn client_program_open_source_free_infer_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, String?, String?, @local.ManagedProvider) -> ClientLocalEffectHost?
 
 pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, Int64, Int64, Int64, Int64, String?, String?) -> ClientLocalEffectHost?
@@ -1648,6 +1650,8 @@ pub fn client_program_prepare_salesforce_row_acquisition(@actql/actql/connectors
 pub fn client_program_prepare_serialization(@run_publication_host.PreparedClientProgram, Int, Int, Int) -> Result[@lowering_relation.PreparedSerialization, @run_publication_host.ClientSerializationPreparationIssue]
 
 pub fn client_program_prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, @client_local_host.ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, String, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn client_program_prepare_single_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledCaptureCapacity, Int64, Int64, String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 

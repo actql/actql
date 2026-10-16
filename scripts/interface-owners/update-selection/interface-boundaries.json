@@ -189,7 +189,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "inputsOutputs": [
@@ -199,7 +199,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "identity": [
@@ -219,7 +219,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "synchronization": [
@@ -229,7 +229,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "failure": [
@@ -239,7 +239,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "cancellation": [
@@ -249,7 +249,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "resources": [
@@ -259,7 +259,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "extension": [
@@ -269,7 +269,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "verification": [
@@ -338,7 +338,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "inputsOutputs": [
@@ -348,7 +348,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "identity": [
@@ -368,7 +368,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "synchronization": [
@@ -378,7 +378,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "failure": [
@@ -388,7 +388,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "cancellation": [
@@ -398,7 +398,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "resources": [
@@ -408,7 +408,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "extension": [
@@ -418,7 +418,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "verification": [
@@ -619,7 +619,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "inputsOutputs": [
@@ -629,7 +629,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "identity": [
@@ -649,7 +649,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "synchronization": [
@@ -659,7 +659,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "failure": [
@@ -669,7 +669,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "cancellation": [
@@ -679,7 +679,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "resources": [
@@ -689,7 +689,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "extension": [
@@ -699,7 +699,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "verification": [

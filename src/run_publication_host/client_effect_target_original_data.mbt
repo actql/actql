@@ -390,6 +390,48 @@ pub fn client_effect_target_run_selection_cid(
 /// existing prepared selection decides whether those facts match its original
 /// environment, occurrence, Mapping and installation generation. No authority,
 /// Preview, physical stop or saved-custody observation is issued here.
+fn client_effect_target_selection_purpose(
+  prepared : PreparedClientEffectComputation,
+  selection : @decode.ObjectView,
+) -> String raise ClientEffectTargetOriginalStop {
+  let stage = @decode.safe_integer(
+    @decode.required(selection, "stage_index").unwrap_or_else(() => {
+      raise InvalidUpdateTargetOriginal
+    }),
+  ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
+  let effect_id = client_effect_target_original_text(selection, "effect_id")
+  let effects = @stage_results.effect_static_candidate_results(
+    @checked.effect_program_static_effects(prepared.candidate),
+  )
+  let count = @stage_results.effect_result_binding_count(effects)
+  if count > 1024 {
+    raise InvalidUpdateTargetOriginal
+  }
+  let mut purpose : String? = None
+  for index in 0..<count {
+    let header = @stage_results.effect_result_binding_header(
+      @stage_results.effect_result_binding_at(effects, index).unwrap(),
+    )
+    if @syntax.effect_header_stage(header).to_int64() == stage &&
+      @syntax.effect_header_id(header) == effect_id {
+      if purpose is Some(_) {
+        raise InvalidUpdateTargetOriginal
+      }
+      let kind = @syntax.effect_header_kind(header)
+      purpose = if kind == "update" {
+        Some("update")
+      } else if kind == "command" &&
+        @syntax.effect_header_published_store_target(header) is Some(_) {
+        Some("store")
+      } else {
+        raise InvalidUpdateTargetOriginal
+      }
+    }
+  }
+  purpose.unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
+}
+
+///|
 pub fn client_effect_target_selection_current(
   original : ClientEffectUpdateTargetSelections,
   prepared : PreparedClientEffectComputation,
@@ -412,6 +454,7 @@ pub fn client_effect_target_selection_current(
       let selection = @decode.open_object(selection).unwrap_or_else(() => {
         raise InvalidUpdateTargetOriginal
       })
+      let purpose = client_effect_target_selection_purpose(prepared, selection)
       let owner_cid = client_effect_target_original_text(
         selection, "installation_owner_cid",
       )
@@ -428,7 +471,7 @@ pub fn client_effect_target_selection_current(
       let mut matches = 0
       for observation in current {
         let object = @decode.closed_object(observation, [
-          "installation", "update", "mappings",
+          "installation", "update", "store", "mappings",
         ]).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
         let installation = @decode.required(object, "installation").unwrap_or_else(() => {
             raise InvalidUpdateTargetOriginal
@@ -457,7 +500,7 @@ pub fn client_effect_target_selection_current(
         if client_effect_target_original_text(body, "binding_cid") !=
           binding_cid ||
           @decode.boolean(
-            @decode.required(object, "update").unwrap_or_else(() => {
+            @decode.required(object, purpose).unwrap_or_else(() => {
               raise InvalidUpdateTargetOriginal
             }),
           ) !=
@@ -472,7 +515,7 @@ pub fn client_effect_target_selection_current(
         let mut found = false
         for mapping in mappings {
           let mapping = @decode.closed_object(mapping, [
-            "target", "mappingRef", "mappingCid", "update",
+            "target", "mappingRef", "mappingCid", "update", "store",
           ]).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
           if client_effect_target_original_text(mapping, "target") == target &&
             client_effect_target_original_text(mapping, "mappingRef") ==
@@ -480,7 +523,7 @@ pub fn client_effect_target_selection_current(
             client_effect_target_original_text(mapping, "mappingCid") ==
             mapping_cid &&
             @decode.boolean(
-              @decode.required(mapping, "update").unwrap_or_else(() => {
+              @decode.required(mapping, purpose).unwrap_or_else(() => {
                 raise InvalidUpdateTargetOriginal
               }),
             ) ==
