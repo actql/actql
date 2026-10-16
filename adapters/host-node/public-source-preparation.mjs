@@ -56,6 +56,16 @@ export function installNodePublicSourcePreparation({moon, environment,
   const aliasesWire = checkedPublication(moon, environment, publication);
   const evidence = Object.freeze([...effectEvidence]);
   return Object.freeze({
+    // JSON has already selected its Program syntax; it must not be lowered as
+    // text. Carry the same snapshotted installation into the existing Effect
+    // preparation Owner instead of dropping its original target selections.
+    prepareEffect({document, format, supplied}) {
+      if (!allowEffects || typeof moon.clientProgramPreparePublishedEffectComputationWithParameters !== 'function') {
+        throw Object.assign(new Error('ClientProgramUnsupported'), {code: 'ClientProgramUnsupported'});
+      }
+      return moon.clientProgramPreparePublishedEffectComputationWithParameters(
+        document, format, environment, aliasesWire, supplied, evidence);
+    },
     prepare({document, format, declarations, supplied}) {
       if (typeof moon.clientProgramPrepareSourceComputationWithParameters !== 'function' ||
           typeof moon.clientProgramSourceComputationPure !== 'function' ||

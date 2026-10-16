@@ -117,7 +117,7 @@ export function installNodeClientProgramPreparation({moon, environment,
   const installedEvidence = Object.freeze([...effectEvidence]);
   const prepareEffect = !allowEffects ? undefined :
     installNodeClientEffectProgramPreparation({moon,
-      environment, evidence: installedEvidence});
+      environment, evidence: installedEvidence, publication: sourcePublication});
   let sourcePreparation;
   const prepare = (request, selectedEnvironment = environment) => {
     const {document, format, supplied, declarations} =
@@ -158,7 +158,8 @@ export function installNodeClientProgramPreparation({moon, environment,
     if (!sourceFormat && category === 'effect_not_supported' && prepareEffect !== undefined) {
       const effect = (selectedEnvironment === environment ? prepareEffect :
         installNodeClientEffectProgramPreparation({moon,
-          environment: selectedEnvironment, evidence: installedEvidence}))(request);
+          environment: selectedEnvironment, evidence: installedEvidence,
+          publication: sourcePublication}))(request);
       effectOwned.add(effect);
       return effect;
     }
@@ -296,7 +297,7 @@ function effectPreparation(moon, outcome) {
 // admission. The installed Effectful submit supplies the separate durable
 // Run-start claim; this prepared handle is not a send permit.
 export function installNodeClientEffectProgramPreparation({moon, environment,
-  evidence = []}) {
+  evidence = [], publication}) {
   if (!moon ||
       typeof moon.clientProgramPrepareEffectComputationWithParameters !==
         'function' ||
@@ -308,10 +309,15 @@ export function installNodeClientEffectProgramPreparation({moon, environment,
     throw new TypeError('InvalidClientEffectPreparationInstallation');
   }
   const ownedEvidence = Object.freeze([...evidence]);
+  const published = publication === undefined ? undefined :
+    installNodePublicSourcePreparation({moon, environment, publication,
+      allowEffects: true, effectEvidence: ownedEvidence});
   return Object.freeze(request => {
     const {document, format, supplied} = serializeProgram(request);
-    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
-      document, format, environment, supplied, ownedEvidence);
+    const outcome = published === undefined
+      ? moon.clientProgramPrepareEffectComputationWithParameters(
+        document, format, environment, supplied, ownedEvidence)
+      : published.prepareEffect({document, format, supplied});
     return effectPreparation(moon, outcome);
   });
 }
