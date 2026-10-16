@@ -42,7 +42,12 @@ fn store_capture_program(source : String) -> @program.Program raise {
     ) {
     Ok(program) => program
     Err(issue) =>
-      fail("STORE lowerer refused: " + private_update_issue_label(issue))
+      fail(
+        "STORE lowerer refused: " +
+        @debug.to_string(issue) +
+        " source=" +
+        source,
+      )
   }
 }
 
@@ -141,7 +146,7 @@ test "STORE SET evaluates one existing Relation expression and retains ContentRe
   let derivation = store_capture_field(derives[0], "derive")
   assert_eq(@wire.object_length(derivation), Some(1))
   let expression = @wire.field_at(derivation, 0).unwrap().1
-  let args = @wire.elements(store_capture_field(expression, "concat")).unwrap()
+  let args = @wire.elements(store_capture_field(expression, "concat_strict")).unwrap()
   assert_eq(args.length(), 2)
   assert_eq(@wire.text(store_capture_field(args[0], "field")).unwrap(), "path")
   assert_eq(
@@ -188,7 +193,7 @@ test "STORE target admission precedes SET binding and never guesses from rows" {
       construction_limits(),
       store_targets=Some(store_target_publication("ambiguous")),
     )
-    is Err(StoreTargetBinding(AmbiguousTarget)),
+    is Err(StoreTargetBinding(AmbiguousMapping)),
   )
   assert_true(
     compile(
