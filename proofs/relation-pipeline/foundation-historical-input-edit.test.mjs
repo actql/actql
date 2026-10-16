@@ -181,3 +181,8 @@ for (const chained of [false, true]) test(`historical recovery rejects ${chained
   f.repo.write(`${DECLARATION_DIRECTORY}-supplements/${other.id}.json`, encode(other)); f.repo.commit('Invalid reusable disposition');
   assert.throws(() => compose(f.repo), chained ? /Chained historical recovery/ : /Reused historical recovery replacement/);
 });
+
+test('malformed discovery input cannot supply a historical exception or mask inherited corruption', t => {
+  const f = fixture(t); f.repo.write(f.path, 'Rewritten body\n'); f.repo.commit('Malformed disposition');
+  assert.throws(() => compose(f.repo), /Changed or removed foundation declaration/);
+});

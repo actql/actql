@@ -206,8 +206,13 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   // must still pass before any recovered lineage can be returned.
   const historicalEdits = new Map(), historicalReplacements = new Set();
   for (const [path, entry] of supplementsAt(head)) {
-    const raw = bytes(entry), record = JSON.parse(raw);
-    if (record.version !== 'actql-foundation-historical-input-edit/0.1') continue;
+    const raw = bytes(entry);
+    let record;
+    // Discovery must not replace the primary inherited-byte refusal for an
+    // unrelated corrupted record. Its ordinary parser still rejects a fresh
+    // malformed record after the history checks; it supplies no exception.
+    try { record = JSON.parse(raw); } catch { continue; }
+    if (record?.version !== 'actql-foundation-historical-input-edit/0.1') continue;
     assert(raw.equals(Buffer.from(`${JSON.stringify(record, null, 2)}\n`)), 'Noncanonical historical recovery JSON');
     keys(record, ['version', 'id', 'target', 'original', 'edit', 'addedInput', 'replacement', 'reason'], 'historical recovery');
     assert(id.test(record.id) && path === `${supplementDirectory}/${record.id}.json`, 'Invalid historical recovery filename');
