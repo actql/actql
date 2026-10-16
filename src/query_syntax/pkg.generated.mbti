@@ -126,6 +126,8 @@ pub fn terminal_command_effect_count(Query) -> Int
 
 pub fn terminal_effect(Query) -> UpdateEffectClause?
 
+pub fn terminal_store_effect(Query) -> StoreEffectClause?
+
 pub fn terminal_table_effect(Query) -> TableEffectClause?
 
 pub fn token_at(Tokens, Int) -> Token?
@@ -578,6 +580,14 @@ pub(all) struct StarReplacement {
   expression : Expression?
   aggregate : AggregateCall?
   analytic : AnalyticCall?
+}
+
+pub(all) struct StoreEffectClause {
+  name : NamePart?
+  target : Array[NamePart]
+  set : Array[(NamePart, Expression)]
+  start : Int
+  end : Int
 }
 
 pub struct StringLiteralOrigin {
