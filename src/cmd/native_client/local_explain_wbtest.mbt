@@ -408,7 +408,8 @@ test "Native human explain quotes authored terminal controls without executing t
   )
   // A shape-only display vector, not a new compiler original or authority.
   let changed = wire.replace(
-    "\"names\":[\"original\"]", "\"names\":[\"name\\n\\u001b[31m\"]",
+    old="\"names\":[\"original\"]",
+    "\"names\":[\"name\\n\\u001b[31m\"]",
   )
   assert_true(changed != wire)
   let display = local_explain_reply(changed, false)
@@ -422,10 +423,13 @@ test "Native human explain rejects malformed closed views instead of displaying 
   for
     rejected in [
       "{}",
-      wire.replace("actql-plan-view/0.1", "unknown-plan"),
-      wire.replace("\"provider_io\":0", "\"provider_io\":1"),
-      wire.replace("\"provider_io\":0", "\"provider_io\":0,\"provider_io\":0"),
-      wire.replace("\"static_plan\":true", "\"static_plan\":null"),
+      wire.replace(old="actql-plan-view/0.1", new="unknown-plan"),
+      wire.replace(old="\"provider_io\":0", new="\"provider_io\":1"),
+      wire.replace(
+        old="\"provider_io\":0",
+        new="\"provider_io\":0,\"provider_io\":0",
+      ),
+      wire.replace(old="\"static_plan\":true", new="\"static_plan\":null"),
     ] {
     assert_true(rejected != wire)
     let issue = try {
