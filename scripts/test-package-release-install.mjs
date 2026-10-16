@@ -10,14 +10,16 @@ import {join, resolve} from 'node:path';
 import {tmpdir, userInfo} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {verifyPackageRelease} from './package-release.mjs';
+import {releaseInterfaceCheck} from './release-interface-check.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const input = process.argv[2];
 assert(input, 'usage: test-package-release-install.mjs <RC-directory>');
-const directory = resolve(input), manifest = await verifyPackageRelease(directory);
+const directory = resolve(input);
+const interfaces = await releaseInterfaceCheck({repository, directory});
+const {manifest} = interfaces;
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-release-install-',
   label: 'fixed release registry installation'});
 const root = scratch.path, requested = [];
@@ -89,6 +91,7 @@ try {
       assert.equal(metadata.version, manifest.cohort.packageVersion);
     }
     auditPackedPackages(consumer, names);
+    results.push(await interfaces.verifyConsumer(consumer, names));
   }
   const local = join(root, 'node');
   for (const filename of ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']) {

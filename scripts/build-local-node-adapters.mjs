@@ -69,6 +69,29 @@ export async function inspectExternalLocalNodeAdapterGraph(inputs) {
     }}]});
 }
 
+// Packaging and installed-interface checks use the same resolved copy inputs.
+// This only inspects the existing graph; it does not write package output.
+export async function localNodeAdapterSourceInputs({root = repository, inputs = localNodePackageInputs(root)} = {}) {
+  const external = inputs.buildInputs, entries = inputs.adapterEntries;
+  const sourcePaths = external === undefined
+    ? adapterModuleGraph(root, entries).map(path => ({path, source: join(root, path)}))
+    : Object.keys((await inspectExternalLocalNodeAdapterGraph(inputs)).metafile.inputs)
+      .map(path => {
+        const source = resolve(root, path);
+        return {source, path: inputs.destinationForAdapter(source)};
+      });
+  if (sourcePaths.length < entries.length ||
+      entries.some(path => !sourcePaths.some(entry => entry.path === path))) {
+    throw new Error('IncompleteLocalNodeAdapterGraph');
+  }
+  sourcePaths.push(...(external === undefined
+    ? inputs.dataFiles.filter(path => path.startsWith('adapters/'))
+      .map(path => ({path, source: join(root, path)}))
+    : inputs.dataInputs.filter(entry => entry.destination.startsWith('adapters/'))
+      .map(entry => ({path: entry.destination, source: entry.source}))));
+  return sourcePaths;
+}
+
 export async function buildLocalNodeAdapters({root = repository,
   destination = join(root, 'packages/local-node'), inputs = localNodePackageInputs(root), check = false} = {}) {
 const external = inputs.buildInputs;
@@ -97,25 +120,9 @@ if (dataParent && !dataParent.isDirectory()) {
   throw new Error('StaleLocalNodeConnectorData:src');
 }
 checkConnectorData();
-const entries = inputs.adapterEntries;
-const sourcePaths = external === undefined
-  ? adapterModuleGraph(root, entries).map(path => ({path, source: join(root, path)}))
-  : Object.keys((await inspectExternalLocalNodeAdapterGraph(inputs)).metafile.inputs)
-    .map(path => {
-      const source = resolve(root, path);
-      return {source, path: inputs.destinationForAdapter(source)};
-    });
-if (sourcePaths.length < entries.length ||
-    entries.some(path => !sourcePaths.some(entry => entry.path === path))) {
-  throw new Error('IncompleteLocalNodeAdapterGraph');
-}
 // Physical I/O assets use the same finite Connector-owned inventory as
 // installation. No retired Table paths or unrelated worker files are copied.
-sourcePaths.push(...(external === undefined
-  ? inputs.dataFiles.filter(path => path.startsWith('adapters/'))
-    .map(path => ({path, source: join(root, path)}))
-  : inputs.dataInputs.filter(entry => entry.destination.startsWith('adapters/'))
-    .map(entry => ({path: entry.destination, source: entry.source}))));
+const sourcePaths = await localNodeAdapterSourceInputs({root, inputs});
 // Reject aliased destinations before copying any adapter or physical asset.
 for (const {path} of sourcePaths) {
   const parts = path.split('/');
