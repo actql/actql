@@ -2,7 +2,7 @@
 
 ## Setup and verification
 
-With Node.js 22 or newer, Python 3.10 or newer, a C compiler and `make`:
+With Node.js 22 or newer, Python 3.11 or newer, a C compiler and `make`:
 
 ```sh
 npm ci

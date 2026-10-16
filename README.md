@@ -48,17 +48,18 @@ JOIN snowflake.usage_30d AS u ON a.id = u.account_id
 
 ## Get started
 
-Install the CLI and try a query:
+Install the CLI, create the example project and run it against mock
+Salesforce and Snowflake Connectors and a mock model—no credentials needed:
 
 ```sh
 npm install -g actql
-actql sql "SELECT 1 AS id, 'hello' AS greeting"
+actql init --template churn-risk-mock churn-risk && cd churn-risk
+actql run churn-risk.aql --stop-before commit
 ```
 
-The [Quickstart](docs/getting-started/quickstart.md) runs the churn-risk
-example above against mock Salesforce, Snowflake, and model Connectors—no
-credentials needed. The Run pauses before writing to Salesforce and shows
-exactly what it is about to change:
+The Run pauses before writing to Salesforce and shows exactly what it is
+about to change; the [Quickstart](docs/getting-started/quickstart.md) walks
+through every file and step:
 
 ```text
 $ actql run churn-risk.aql --stop-before commit
@@ -118,24 +119,28 @@ The [Concepts](docs/concepts/overview.md) pages explain each of these in full.
   [Syntax reference](docs/reference/syntax.md)
 - [CLI reference](docs/cli.md)
 - [Connectors](docs/connectors/README.md)
-- [Limits and compatibility](docs/reference/limits.md): what runs today
+- [Implementation status](docs/reference/status.md): what runs today, and
+  [Runtime limits](docs/reference/limits.md)
 - [Specification](docs/spec/README.md): the normative definition of ActQL 0.1
-- [Contributing](docs/contributing/README.md) and
-  [Development](docs/development.md)
+- [Development](docs/contributing/README.md): the repository, its rules and
+  how it is implemented; [building from source](docs/development.md)
 
 The same documentation is published at [actql.com/docs](https://actql.com/docs).
 
 ## Status
 
-ActQL is in 0.1 stabilization (`v0.0-alpha`). The documentation describes the
-0.1 language; [Limits and compatibility](docs/reference/limits.md) records
+ActQL is in v0.1 stabilization (`v0.0-alpha`). The documentation describes the
+0.1 language; [Implementation status](docs/reference/status.md) records
 which parts run in each environment today.
 
 ## Contributing
 
-Issues and design proposals are welcome. During 0.1 stabilization, please open
-an issue before implementation so language and compatibility impact can be
-agreed before code is written.
+Issues are open: bug reports, passages of the specification that were hard to
+read, and facts about a Connector's system are the most useful contributions
+right now. Pull requests are not accepted during v0.1, while the maintainers
+concentrate on stabilising the Core; [Development](docs/contributing/README.md)
+has the details. The ecosystem around ActQL (Connectors, SDKs, templates,
+tools) is where contributions are welcome broadly.
 
 ## License
 
