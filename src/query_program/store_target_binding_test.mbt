@@ -33,6 +33,13 @@ fn store_target_fixture(
         ),
         "sha256:e98a039c5c6a01ac8e9d368505fcc635e5457fb02ee4611a02650ed480b289db",
       )
+    "foreignCatalog" =>
+      (
+        (
+          #|{"command_contracts":[{"command_id":"command:fixture.upload.v1","connector_id":"storage","contract_cid":"sha256:2024e0f48c6f29f89e2c602a46923697183b70ff9fb2be1db847a1374c630c94","schema":"actql.command_contract/0.1","target":{"cardinality":"single","resource_kind":"file"},"version":"fixture-1"}],"connector_capabilities":[],"connector_catalogs":[{"catalog_cid":"sha256:1442d63d3e52158944b356d5edd1c448628d4d277653c1a6d86d4906fe358ea7","commands":[{"command_id":"command:fixture.upload.v1","connector_id":"storage","contract_cid":"sha256:2024e0f48c6f29f89e2c602a46923697183b70ff9fb2be1db847a1374c630c94","schema":"actql.command_contract/0.1","target":{"cardinality":"single","resource_kind":"file"},"version":"fixture-1"}],"connector_id":"storage","connector_version":"fixture-1","contracts":[],"schema":"actql.connector_catalog/0.1","source_views":[]}],"connector_manifest":{"connectors":[{"connector":"fixture","connector_id":"storage","connector_version":"fixture-1"}],"version":"actql-connectors/0.1"},"contract_registry":[],"evidence_bundle_cid":"sha256:3536085ce3c1503e5bd8e10b90cd745742380a08723d7d2731e1bbe8ac059b74","host_policy_profile":{},"mapping_contracts":[{"connector_manifest_cid":"sha256:6960590acec3fcbd045e40dbb94ec08f77c3a2d271943b019a8ada57283a3208","conversions":[],"mapping_contract_cid":"sha256:3680d90debfe6a7c6c32b8cd1e4c39dde394d9f149a7441ec4bc01214778ca51","mapping_ref":"mapping:fixture.archive.v1","minimum_approval":"none","permission_rules":[{"effect_kind":"store","permissions":["scope:write"],"selector_class":"none","write_fields":["id","value"]}],"primary_identity":"id","required_fields":["id","value"],"required_permissions":[],"resource_identity_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","row_mapping":{"id":{"field":"id","null_behavior":"reject"},"value":{"field":"value","null_behavior":"reject"}},"schema":"actql.mapping_contract/0.1","store_command":{"catalog_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","command_contract_cid":"sha256:2024e0f48c6f29f89e2c602a46923697183b70ff9fb2be1db847a1374c630c94","command_ref":"command:fixture.upload.v1"},"target_ref":"connector://storage/archive","target_schema":{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"string"},"value":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"target_schema_identity":"sha256:bd89154b566792abefae13b781921bdb85725e117f241b99ce245d14d0efa37a","version":"fixture-1","writable_fields":["id","value"]}],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+        ),
+        "sha256:3536085ce3c1503e5bd8e10b90cd745742380a08723d7d2731e1bbe8ac059b74",
+      )
     _ => abort("unknown independent STORE fixture")
   }
   let limits : @environment.Limits = {
@@ -247,7 +254,8 @@ test "STORE publication and resolution charge their complete bounded inventory" 
     mappings, catalogs, aliases, 1000,
   ).unwrap()
   let exact = store_target_publication_work(publication)
-  assert_true(exact > 0)
+  // Alias(3), Mapping(1), writable(2), rule(1), fields(2), permission(1), Catalog and Command(2).
+  assert_eq(exact, 12)
   assert_true(
     bind_store_target_publication(mappings, catalogs, aliases, exact) is Ok(_),
   )
@@ -344,5 +352,19 @@ test "STORE concrete occurrence retains the original Mapping and installation" {
       100,
     ).unwrap_err(),
     AmbiguousTarget,
+  )
+}
+
+///|
+test "STORE invalid published Command cannot fall back to relation materialization" {
+  let (mappings, catalogs) = store_target_fixture("foreignCatalog")
+  assert_eq(
+    bind_store_target_publication(
+      mappings,
+      catalogs,
+      [store_target_alias()],
+      1000,
+    ).unwrap_err(),
+    InvalidPublication,
   )
 }
