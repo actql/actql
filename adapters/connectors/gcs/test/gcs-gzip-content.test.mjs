@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readGcsVersionedContent} from '../site/gcs-versioned-content.mjs';
+import * as providerMoon from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 
 // Fixed gzip member for ASCII 123456789; the product never imports a gzip
 // codec. SHA/MD5 and the bitwise Castagnoli reference were evaluated separately
@@ -21,7 +22,7 @@ const scope = Object.freeze({operation: 'gcs:file:read',
 function fixture({media = gzip, mediaHeaders = [['content-encoding', 'gzip']],
   maxBytes = 29, metadata = {}, mediaStatus = 200} = {}) {
   const state = {calls: [], requests: [], charges: [], verified: [], received: [], events: []};
-  const options = {target: {bucket: 'bucket', prefix: 'in/', objectName: 'in/e\u0301%2F.json', generation},
+  const options = {moon: providerMoon, target: {bucket: 'bucket', prefix: 'in/', objectName: 'in/e\u0301%2F.json', generation},
     limits: {maxMetadataBytes: 4096, maxContentBytes: maxBytes, maxRequestBytes: 4096,
       maxAttempts: 2, maxTimeMs: 1000}, credential: {journal: {fixture: true}},
     initialAuthorization: {grant: {}, scope, useId: 'metadata'},

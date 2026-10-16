@@ -12,11 +12,11 @@ fn content_test_read(wire : String, maximum? : Int64 = 9L) -> Result[String, Con
 ///|
 test "GCS Content metadata retains exact original decimal and decomposed path DATA" {
   let projection = content_test_read(content_test_wire()).unwrap()
-  let root = @json.parse(projection).unwrap()
-  assert_eq(root["objectName"], "in/é%2F.csv".to_json())
-  assert_eq(root["generation"], "9007199254740993".to_json())
-  assert_eq(root["metageneration"], "9007199254740995".to_json())
-  assert_eq(root["sizeBytes"], "9".to_json())
+  guard @json.parse(projection) is Object(root) else { abort("private projection") }
+  assert_eq(root.get("objectName"), Some("in/é%2F.csv".to_json()))
+  assert_eq(root.get("generation"), Some("9007199254740993".to_json()))
+  assert_eq(root.get("metageneration"), Some("9007199254740995".to_json()))
+  assert_eq(root.get("sizeBytes"), Some("9".to_json()))
   assert_true(content_test_read(content_test_wire(), maximum=8L) is Err(MetadataMismatch))
 }
 
@@ -35,8 +35,8 @@ test "GCS Content metadata representation and checksum refusals stay separate" {
   assert_true(content_test_read(content_test_wire(extra=",\"contentEncoding\":\"br\"")) is Err(RepresentationUnsupported))
   assert_true(content_test_read(content_test_wire(extra=",\"md5Hash\":\"bad\"")) is Err(InvalidDigest))
   assert_true(content_test_read(content_test_wire(extra=",\"md5Hash\":null")) is Err(InvalidDigest))
-  let gzip = @json.parse(content_test_read(content_test_wire(extra=",\"contentEncoding\":\"gzip\"")).unwrap()).unwrap()
-  assert_eq(gzip["contentEncoding"], "gzip".to_json())
+  guard @json.parse(content_test_read(content_test_wire(extra=",\"contentEncoding\":\"gzip\"")).unwrap()) is Object(gzip) else { abort("private projection") }
+  assert_eq(gzip.get("contentEncoding"), Some("gzip".to_json()))
 }
 
 ///|

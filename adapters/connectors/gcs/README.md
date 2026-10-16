@@ -451,6 +451,32 @@ defines the upload endpoint, metadata/checksum and generation preconditions;
 this implementation's multipart framing and response consistency are not a
 live-service or full resumable acceptance claim.
 
+### Selected Content metadata admission
+
+The ordinary installed GCS provider passes its actual portable Connector
+module through keyed Content acquisition. `content_metadata_json` admits the
+original bounded UTF8 metadata bytes before the media request, preserving exact
+object/generation text and the established representation/checksum refusals.
+Repeated JSON keys, including escaped-equivalent names, are now rejected with
+`InvalidGcsContentMetadata` instead of JavaScript's last-wins interpretation.
+The original response charge and bytes remain the same acquisition's duty;
+rejection never starts media I/O, issues a ContentRef or refunds that duty.
+
+This is not the ordinary object-row schema: Content version text is not
+converted to Int64/binary64, and ignored provider fields do not become logical
+row metadata. The historical explicitly supplied source-only ABI remains on
+its original interpretation until its portable supplier is selected; its
+continued compatibility is not duplicate-key or new normal-profile acceptance.
+A selected module with missing Content ABI is refused before acquisition and
+never falls back to this legacy interpretation.
+
+The original raw bytes overlap the bounded parsed tree, decode indexes,
+digest decode scratch, private projection tree/writer/String, and its Node
+parsed view plus BigInt size. Projection spelling is bounded by the original
+metadata byte clamp plus 256, not another response allowance or reservation.
+These are managed components in the existing read envelope; no new numerical
+grant or zero-cost/GC/physical-cleanup conclusion follows from this admission.
+
 ## Verification boundary
 
 The catalog white-box tests execute the portable semantics with independent

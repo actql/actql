@@ -5,6 +5,7 @@ import {invocationBindingsMatch, invokeScopedCredentialOperation,
   ownInvocationAuthorization, ownInvocationContext} from
   '../../../host-common/owned-invocation-context.mjs';
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 
 const operation = 'gcs:file:read';
 const origin = 'https://storage.googleapis.com';
@@ -65,11 +66,14 @@ function authorization(owned, original) {
 }
 
 function setup(options) {
-  const {limits, initialAuthorization, credential,
+  const {moon, limits, initialAuthorization, credential,
     authorizationForRequest, recheckAuthorization, chargeBody, chargeVerification, receiveContent,
     callResource = callHttpsCredentialResource} = options;
   const target = checkedTarget(options.target);
-  if (!limits || !count(limits.maxMetadataBytes) || limits.maxMetadataBytes === 0 ||
+  if ((moon !== undefined && (typeof moon?.gcsContentMetadataJson !== 'function' ||
+      typeof moon?.gcsContentMetadataFailureCode !== 'function')) ||
+      !limits || !count(limits.maxMetadataBytes) || limits.maxMetadataBytes === 0 ||
+      limits.maxMetadataBytes > 2147483391 ||
       !count(limits.maxContentBytes) || !count(limits.maxRequestBytes) ||
       limits.maxRequestBytes === 0 || !count(limits.maxAttempts) ||
       limits.maxAttempts < 2 || !count(limits.maxTimeMs) || limits.maxTimeMs === 0 ||
@@ -82,7 +86,7 @@ function setup(options) {
     credential, limits, callbacks: {authorizationForRequest,
       recheckAuthorization, chargeBody, chargeVerification, receiveContent, callResource}});
   authorization(context.authorization);
-  return Object.freeze({...context, target});
+  return Object.freeze({...context, target, moon});
 }
 
 function responseHeaders(response, expectedEncoding = 'identity', rangeSize) {
@@ -109,37 +113,51 @@ function responseHeaders(response, expectedEncoding = 'identity', rangeSize) {
   return result;
 }
 
-function digestText(value, bytes) {
-  if (typeof value !== 'string' || value.length !== 4 * Math.ceil(bytes / 3)) {
-    fail('InvalidGcsContentDigest');
+function metadata(moon, body, target, limits) {
+  if (moon === undefined) return legacyMetadata(body, target, limits);
+  let projection;
+  try {
+    projection = checked(moon.gcsContentMetadataJson(body, target.bucket,
+      target.objectName, target.generation, BigInt(limits.maxContentBytes), limits.maxMetadataBytes));
+  } catch (failure) {
+    if (failure?.code !== 'MoonBitHostFailure') throw failure;
+    const code = moon.gcsContentMetadataFailureCode(failure.cause);
+    throw Object.assign(new Error(code, {cause: failure.cause}), {code});
   }
-  const decoded = Buffer.from(value, 'base64');
-  if (decoded.length !== bytes || decoded.toString('base64') !== value) {
-    fail('InvalidGcsContentDigest');
-  }
-  return value;
+  // Only parse the Core-issued private projection, never reinterpret the
+  // provider bytes or default a missing admission. This view and its String
+  // overlap remain part of the original read envelope's managed inventory.
+  const value = JSON.parse(projection);
+  return Object.freeze({...value, sizeBytes: BigInt(value.sizeBytes)});
 }
 
-function metadata(body, target, limits) {
+// Preserve the historical explicitly supplied source-only adapter ABI. The
+// ordinary installed provider always supplies its portable Connector module;
+// absence here is not a numeric default or a new normal profile. This legacy
+// interpretation remains an explicit migration boundary, not Core admission.
+function legacyMetadata(body, target, limits) {
   let value;
-  try {
-    value = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body));
-  } catch { fail('InvalidGcsContentMetadata'); }
+  try { value = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body)); }
+  catch { fail('InvalidGcsContentMetadata'); }
   if (!value || Array.isArray(value) || typeof value !== 'object' ||
       value.bucket !== target.bucket || value.name !== target.objectName ||
       value.generation !== target.generation || !token(value.metageneration) ||
       !size(value.size) || BigInt(value.size) > BigInt(limits.maxContentBytes) ||
       !exactText(value.contentType, 1024)) fail('GcsContentMetadataMismatch');
   if (value.contentEncoding !== undefined && value.contentEncoding !== 'identity' &&
-      value.contentEncoding !== 'gzip') {
-    fail('GcsContentRepresentationUnsupported');
-  }
+      value.contentEncoding !== 'gzip') fail('GcsContentRepresentationUnsupported');
+  const digest = (text, length) => {
+    if (typeof text !== 'string' || text.length !== 4 * Math.ceil(length / 3)) fail('InvalidGcsContentDigest');
+    const bytes = Buffer.from(text, 'base64');
+    if (bytes.length !== length || bytes.toString('base64') !== text) fail('InvalidGcsContentDigest');
+    return text;
+  };
   return Object.freeze({bucket: target.bucket, objectName: target.objectName,
     generation: target.generation, metageneration: value.metageneration,
     sizeBytes: BigInt(value.size), mediaType: value.contentType,
     ...(value.contentEncoding === 'gzip' ? {contentEncoding: 'gzip'} : {}),
-    crc32c: digestText(value.crc32c, 4),
-    ...(value.md5Hash === undefined ? {} : {md5: digestText(value.md5Hash, 16)})});
+    crc32c: digest(value.crc32c, 4),
+    ...(value.md5Hash === undefined ? {} : {md5: digest(value.md5Hash, 16)})});
 }
 
 // Castagnoli's reflected polynomial. The 256-entry transport checksum table
@@ -186,7 +204,7 @@ async function checkedDigests(body, expected, signal, chargeVerification) {
 // cannot supply target, credential, authorization or a reference envelope.
 export async function readGcsVersionedContent(options) {
   const context = setup(options);
-  const {target, limits, callbacks, scope, credential} = context;
+  const {moon, target, limits, callbacks, scope, credential} = context;
   const signal = AbortSignal.any([AbortSignal.timeout(limits.maxTimeMs),
     ...(options.signal === undefined ? [] : [options.signal])]);
   const observations = [];
@@ -226,7 +244,7 @@ export async function readGcsVersionedContent(options) {
     return {body: response.body, headers, charge};
   }
   const metaResponse = await request('metadata', limits.maxMetadataBytes);
-  const meta = metadata(metaResponse.body, target, limits);
+  const meta = metadata(moon, metaResponse.body, target, limits);
   if (metaResponse.headers.has('x-goog-metageneration') &&
       metaResponse.headers.get('x-goog-metageneration') !== meta.metageneration) {
     fail('GcsContentMetadataMismatch');

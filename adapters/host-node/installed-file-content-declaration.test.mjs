@@ -11,6 +11,7 @@ import {inspect} from 'node:util';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import * as gcsMoon from '../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
@@ -2631,7 +2632,7 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
     },
     readKeyed: async options => {
       const charge = options.chargeVerification;
-      return await readGcsKeyedContent({...options,
+      return await readGcsKeyedContent({...options, moon: gcsMoon,
         credential: {journal: {fixture: true}},
         resolveResource: async ref => {
           assert.deepEqual(ref, resource('d'));
@@ -2712,7 +2713,7 @@ test(missingKeyedPreparation
     issueReadGrant: ({operation}) => ({grant: {}, scope: {operation,
       resourceOrigin: 'https://storage.googleapis.com', siteGeneration: 1,
       connectorRegistration: 'gcs', connectorRevision: 'gcs/0.1'}}),
-    readKeyed: options => readGcsKeyedContent({...options,
+    readKeyed: options => readGcsKeyedContent({...options, moon: gcsMoon,
       credential: {journal: {fixture: true}},
       limits: {maxMetadataBytes: 4096, maxContentBytes: 9, maxRequestBytes: 4096,
         maxAttempts: 2, maxTimeMs: 5000},

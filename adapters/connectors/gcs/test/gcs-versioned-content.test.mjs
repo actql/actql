@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {setTimeout as delay} from 'node:timers/promises';
 import {readGcsVersionedContent} from '../site/gcs-versioned-content.mjs';
+import * as providerMoon from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 
 const generation = '9007199254740993';
 const metageneration = '9007199254740995';
@@ -27,7 +28,7 @@ function fixture({metadata = {}, media = body, metadataResponse = {},
   const originalMetadata = {bucket: selected.bucket, name: selected.objectName,
     generation, metageneration, size: '9', contentType: 'application/json',
     crc32c, ...metadata};
-  const options = {target: selected,
+  const options = {moon: providerMoon, target: selected,
     limits: {maxMetadataBytes: 4096, maxContentBytes: 9,
       maxRequestBytes: 4096, maxAttempts: 2, maxTimeMs: 1000, ...limits},
     initialAuthorization: auth('metadata'), credential: {journal: {fixture: true}},
@@ -88,6 +89,24 @@ for (const key of ['generation', 'gene\\u0072ation']) {
     assert.equal(state.handoffs.length, 0);
   });
 }
+
+test('selected portable metadata supplier missing its ABI refuses before acquisition', async () => {
+  const {options, state} = fixture();
+  options.moon = Object.freeze({});
+  await assert.rejects(readGcsVersionedContent(options), {code: 'InvalidGcsContentRead'});
+  assert.equal(state.calls.length, 0);
+  assert.equal(state.charges.length, 0);
+});
+
+test('explicit historical source-only ABI retains its original identity read behavior', async () => {
+  const {options, state} = fixture();
+  delete options.moon;
+  const result = await readGcsVersionedContent(options);
+  assert.equal(result.digests.contentCid, contentCid);
+  assert.deepEqual(state.handoffs[0].bytes, body);
+  assert.equal(state.calls.length, 2);
+  assert.equal(state.handoffs[0].observation.contentCharge, state.charges[1]);
+});
 
 test('exact stored bytes use generation and metageneration without normalization', async () => {
   const {options, state} = fixture();

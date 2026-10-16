@@ -16,14 +16,16 @@ fn content_decimal(text : String, positive~ : Bool) -> Bool {
   !text.is_empty() &&
   text.length() <= 20 &&
   text.iter().all(character => character >= '0' && character <= '9') &&
-  (text == "0" && !positive || text.has_prefix("0") == false)
+  ((text == "0" && !positive) || !text.has_prefix("0"))
 }
 
 ///|
 fn content_digest(text : String, expected : Int) -> Bool {
-  match @base64.decode(text) {
-    Ok(bytes) => bytes.length() == expected && @base64.encode(bytes) == text
-    Err(_) => false
+  try {
+    let bytes = @base64.decode(text[:])
+    bytes.length() == expected && @base64.encode(bytes.view()) == text
+  } catch {
+    _ => false
   }
 }
 
@@ -62,7 +64,7 @@ pub fn content_metadata_json(
   let maximum = max_content_bytes.to_string()
   if max_content_bytes < 0L ||
     size.length() > maximum.length() ||
-    size.length() == maximum.length() && size > maximum {
+    (size.length() == maximum.length() && size > maximum) {
     return Err(MetadataMismatch)
   }
   let encoding = match @decode.lookup(object, "contentEncoding") {

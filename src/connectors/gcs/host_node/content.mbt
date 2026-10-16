@@ -11,8 +11,17 @@ pub fn gcs_content_metadata_json(
   max_bytes : Int,
 ) -> Result[String, @catalog.ContentMetadataIssue] {
   @catalog.content_metadata_json(
-    bytes, bucket, name, generation, max_content_bytes,
-    { max_bytes, max_nodes: max_bytes, max_depth: 64, max_metadata_entries: max_bytes },
+    bytes,
+    bucket,
+    name,
+    generation,
+    max_content_bytes,
+    {
+      max_bytes,
+      max_nodes: max_bytes,
+      max_depth: 64,
+      max_metadata_entries: max_bytes,
+    },
   )
 }
 
