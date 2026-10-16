@@ -417,6 +417,49 @@ pub fn object_upload_body_media_type(request : ObjectUploadRequest) -> String {
 }
 
 ///|
+// Targeted Preview DATA omits the marker value, but explicitly declares that
+// this same approved operation assigns the private Connector protocol key.
+pub fn object_upload_projection_json(
+  binding : ObjectUploadBinding,
+  request : ObjectUploadRequest,
+  max_bytes : Int,
+) -> Result[String, ObjectUploadIssue] {
+  if !physical_equal(binding, request.binding) {
+    return Err(ForeignBinding)
+  }
+  if max_bytes < 1 {
+    return Err(CapacityExceeded)
+  }
+  upload_json(
+    {
+      "origin": "https://storage.googleapis.com",
+      "operation": "gcs:object:upload",
+      "method": "POST",
+      "path": request.path.to_json(),
+      "request_cid": request.cid.to_json(),
+      "bucket": binding.bucket.to_json(),
+      "name": request.before.name.to_json(),
+      "content_type": request.content_type.to_json(),
+      "size_bytes": request.content_size.to_json(),
+      "crc32c": request.content_crc32c.to_json(),
+      "body_byte_length": request.body.length().to_json(),
+      "body_media_type": request.body_media_type.to_json(),
+      "generation": request.before.original
+      .map(value => value.fields.generation.to_string())
+      .unwrap_or("0")
+      .to_json(),
+      "metageneration": match request.before.original {
+        Some(value) => value.fields.metageneration.to_string().to_json()
+        None => Json::null()
+      },
+      "protocol_behavior": "assign_original_request_marker:actql-request",
+    },
+    max_bytes,
+    binding.limits.metadata,
+  )
+}
+
+///|
 // This is response DATA consistency only. A retained original claim/approved
 // Preview/current issuer must authenticate its use; it never settles an Effect.
 pub fn object_upload_response_matches(
