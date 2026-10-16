@@ -31,10 +31,11 @@ export function encodeUpdateTargetData(value) {
     active.add(value);
     let result;
     if (Array.isArray(value)) {
-      if (value.length > maximum) throw new TypeError('InvalidUpdateTargetData');
-      bytes += 2 + Math.max(0, value.length - 1);
+      const length = value.length;
+      if (length > maximum) throw new TypeError('InvalidUpdateTargetData');
+      bytes += 2 + Math.max(0, length - 1);
       result = [];
-      for (let index = 0; index < value.length; index++) result.push(copy(value[index], depth + 1));
+      for (let index = 0; index < length; index++) result.push(copy(value[index], depth + 1));
     } else {
       const keys = Object.keys(value);
       if (keys.length > maximum) throw new TypeError('InvalidUpdateTargetData');
