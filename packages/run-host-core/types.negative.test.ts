@@ -200,3 +200,23 @@ effectReviewCheckpointBinding({}, checkpointDefinition, '{}');
 effectReviewCheckpointBinding(checkpointEffectRun, checkpointDefinition, {});
 // @ts-expect-error The common projection remains immutable.
 checkpointBound.unitId = checkpointUnit;
+
+// Public Run-state projection uses the actual exported opaque contract. It
+// cannot accept a copied handle, omitted since or a string durable revision.
+import {prepareRunStateObservation, runStateObservationKey, nextRunStateRevision,
+  runStateObservationWire, runWaitDecision} from '@actql/run-host-core/checkpoints';
+const stateLimits = {maxWireBytes: 65536, maxNodes: 1024, maxDepth: 16};
+const stateObservation = prepareRunStateObservation('{}', 'same-run', 0, stateLimits);
+const stateKey: string = runStateObservationKey(stateObservation);
+const stateRevision: number = nextRunStateRevision(stateObservation, stateKey, 0);
+const stateWire: string = runStateObservationWire(stateObservation, stateRevision);
+const waitDecision: 'ready' | 'pending' = runWaitDecision(stateWire, null, stateLimits);
+void waitDecision;
+// @ts-expect-error Copied DATA does not create the original opaque observation.
+runStateObservationKey({});
+// @ts-expect-error The durable counter is a number, not a numeric string.
+prepareRunStateObservation('{}', 'same-run', '0', stateLimits);
+// @ts-expect-error since is explicit nullable at this private physical boundary.
+runWaitDecision(stateWire, undefined, stateLimits);
+// @ts-expect-error An exact same-row key is text or null, not arbitrary facts.
+nextRunStateRevision(stateObservation, {}, 0);
