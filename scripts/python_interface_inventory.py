@@ -12,6 +12,7 @@ import hashlib
 import io
 import json
 from pathlib import Path, PurePosixPath
+import re
 import subprocess
 import sys
 import tomllib
@@ -156,9 +157,12 @@ def module_interfaces(root: Path, names) -> list:
     modules = []
     for name in sorted(set(names)):
         path = (root / name).resolve()
-        if not path.is_relative_to(root) or not name.endswith(('.py', '.pyi')):
+        if not path.is_relative_to(root):
             raise ValueError('Escaped Python interface module')
         raw = path.read_bytes()
+        if not name.endswith(('.py', '.pyi')) and not re.match(
+                rb'^#!(?:/usr/bin/env[ \t]+python3?|/usr/bin/python3?)(?:[ \t\r\n]|$)', raw[:256]):
+            raise ValueError('Unregistered Python script interface')
         modules.append({'module': name, 'sha256': hashlib.sha256(raw).hexdigest(),
                         **python_interface(raw.decode('utf-8'))})
     return modules
