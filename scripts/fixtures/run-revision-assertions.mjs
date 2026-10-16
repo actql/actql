@@ -25,13 +25,40 @@ export function publishedFacts(state) {
   return facts;
 }
 
+// These arguments are the fixture's already-authorized public Run responses,
+// never transport errors, journal parameters or backend objects. Keep a full
+// pair on failure without changing the assertion or the product's disclosure.
+function retainObservationPair(error, before, after, label) {
+  let evidence;
+  try {
+    const pair = JSON.stringify({label, before, after,
+      beforeFacts: publishedFacts(before), afterFacts: publishedFacts(after)});
+    const bytes = Buffer.byteLength(pair);
+    evidence = bytes <= 64 * 1024 ? pair : JSON.stringify({available: false,
+      reason: 'observation_pair_byte_limit', bytes});
+  } catch {
+    evidence = JSON.stringify({available: false, reason: 'observation_pair_serialization_failed'});
+  }
+  const diagnostic = `RUN_STATE_OBSERVATIONS ${evidence}`;
+  // Keep the original code, operator, actual/expected values and stack frames.
+  // Node assertions may already have materialized their stack before this catch.
+  const stack = error.stack;
+  error.message += `\n${diagnostic}`;
+  if (typeof stack === 'string') error.stack = `${stack}\n${diagnostic}`;
+}
+
 export function assertObservedTransition(before, after, label) {
-  assert.equal(after.run_id, before.run_id, `${label}: same original Run`);
-  const previous = observedRevision(before, label), next = observedRevision(after, label);
-  if (isDeepStrictEqual(publishedFacts(before), publishedFacts(after))) {
-    assert.equal(next, previous, `${label}: a no-op read must not advance revision`);
-  } else {
-    assert.ok(next > previous, `${label}: changed published facts must advance revision`);
+  try {
+    assert.equal(after.run_id, before.run_id, `${label}: same original Run`);
+    const previous = observedRevision(before, label), next = observedRevision(after, label);
+    if (isDeepStrictEqual(publishedFacts(before), publishedFacts(after))) {
+      assert.equal(next, previous, `${label}: a no-op read must not advance revision`);
+    } else {
+      assert.ok(next > previous, `${label}: changed published facts must advance revision`);
+    }
+  } catch (error) {
+    if (error instanceof assert.AssertionError) retainObservationPair(error, before, after, label);
+    throw error;
   }
 }
 
