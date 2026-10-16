@@ -35,7 +35,7 @@ test('ordinary actual copy checks reject extra helpers, changed bytes and a miss
   const check = () => buildLocalNodeAdapters({root, inputs, destination: output, check: true});
   const extra = join(output, 'adapters/hidden-decision.mjs');
   writeFileSync(extra, 'export const unknownIsUnsent = true;');
-  await assert.rejects(check, /StaleLocalNodeAdapter:adapters\/hidden-decision.mjs/u);
+  await assert.rejects(check, /StaleLocalNodeAdapter:hidden-decision.mjs/u);
   unlinkSync(extra);
   const selected = join(output, inputs.adapterEntries[0]), original = readFileSync(selected);
   writeFileSync(selected, Buffer.concat([original, Buffer.from('\n// changed installed input\n')]));
