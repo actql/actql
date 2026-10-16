@@ -117,9 +117,15 @@ fn client_source_context(
 ) -> @query_program.Context raise PublicationStop {
   let root = source_publication_cursor(publication)
   @decode.closed_object(root, [
-    "environmentCid", "aliases", "tableWrites", "updateTargets",
+    "environmentCid", "aliases", "tableWrites", "updateTargets", "storeTargets",
   ]).unwrap_or_else(() => raise PublicationStop(Publication))
   |> ignore
+  // Admit the complete selected STORE section even when this query does not
+  // consume it. A malformed relationship cannot hide behind another operation.
+  match published_store_targets(environment, publication) {
+    Ok(_) => ()
+    Err(issue) => raise PublicationStop(issue)
+  }
   let environment_cid = @program_check.checking_environment_cid(environment)
   if source_publication_text(root, "environmentCid") != environment_cid {
     raise PublicationStop(Publication)
