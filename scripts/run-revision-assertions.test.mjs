@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {assertObservedTransition, hasSettledResult, observeSettledResult,
+import {assertObservedTransition, createComputedBarrier, hasSettledResult, observeSettledResult,
   observedRevision, publishedFacts} from './fixtures/run-revision-assertions.mjs';
 
 const state = () => ({version: 'actql-run-state/0.1', run_id: 'original-run', revision: 1,
@@ -93,4 +93,31 @@ test('both external consumer preparations stage the actual assertion module', as
     const source = await readFile(new URL(path, import.meta.url), 'utf8');
     assert.match(source, /copyFile\(join\(repository, 'scripts\/fixtures\/run-revision-assertions\.mjs'\),/u);
   }
+});
+
+test('computed barrier retains the exact original ref and one pending lifetime', async () => {
+  const barrier = createComputedBarrier(), ref = {namespaceId: 'original', runDefinitionCid: 'run'};
+  let retired = false;
+  const pending = barrier.observe(ref).then(() => {retired = true;});
+  await barrier.waitForOriginal({...ref}, AbortSignal.timeout(1000));
+  assert.equal(retired, false);
+  barrier.release(); await pending;
+  assert.equal(retired, true);
+  await assert.rejects(barrier.observe(ref), /One original/u);
+});
+
+test('computed barrier refuses a foreign original and can still release custody', async () => {
+  const barrier = createComputedBarrier();
+  const pending = barrier.observe({runDefinitionCid: 'original'});
+  await assert.rejects(barrier.waitForOriginal({runDefinitionCid: 'foreign'},
+    AbortSignal.timeout(1000)), /same original/u);
+  barrier.release(); await pending;
+});
+
+test('revision zero is a legal earlier observation, not an invented predecessor', () => {
+  const before = {...state(), revision: 0}, after = state();
+  after.control = {...after.control, revision: 3, physical_stop: 'confirmed'};
+  assert.equal(observedRevision(before, 'zero'), 0);
+  assertObservedTransition(before, after, 'real transition');
+  assert.equal(after.revision > before.revision, true);
 });

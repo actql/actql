@@ -53,3 +53,31 @@ export async function observeSettledResult(run, initial, resultName, label, sign
   }
   return state;
 }
+
+// The existing awaited computed hook can expose a real earlier publication
+// before its original cleanup/stop transition. No counter or state is invented.
+export function createComputedBarrier() {
+  const reached = Promise.withResolvers(), released = Promise.withResolvers();
+  let entered = false;
+  return Object.freeze({
+    async observe(ref) {
+      assert.equal(entered, false, 'One original computed observation');
+      entered = true;
+      reached.resolve(structuredClone(ref));
+      await released.promise;
+    },
+    async waitForOriginal(ref, signal) {
+      signal.throwIfAborted();
+      let onAbort;
+      const aborted = new Promise((_, reject) => {
+        onAbort = () => reject(signal.reason);
+        signal.addEventListener('abort', onAbort, {once: true});
+      });
+      try {
+        assert.deepEqual(await Promise.race([reached.promise, aborted]), ref,
+          'Computed hook belongs to the same original Run');
+      } finally {signal.removeEventListener('abort', onAbort);}
+    },
+    release() {released.resolve();},
+  });
+}

@@ -11,12 +11,17 @@ import {setImmediate} from 'node:timers/promises';
 import {connect, open} from '@actql/node';
 import {getSubmissionInput, getSubmissionOutcome} from '@actql/sdk';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
-import {assertObservedTransition, observedRevision, observeSettledResult, publishedFacts} from './run-revision-assertions.mjs';
+import {assertObservedTransition, createComputedBarrier, observedRevision,
+  observeSettledResult, publishedFacts} from './run-revision-assertions.mjs';
 
 function authorization(outcome = 'allow') {
   const keys = generateKeyPairSync('ed25519');
-  let computes = 0;
-  return {count: () => computes, value: {
+  let computes = 0, nextComputed;
+  return {count: () => computes, holdNextComputed() {
+    assert.equal(nextComputed, undefined, 'One fixture-owned pending barrier');
+    nextComputed = createComputedBarrier();
+    return nextComputed;
+  }, value: {
     accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
       account_id: `short-${outcome}`, entries: [{entry_id: 'write', outcome,
         principal: {all: true}, connection: {all: true}, resource: {all: true},
@@ -25,6 +30,13 @@ function authorization(outcome = 'allow') {
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
     observe(name) {if (name === 'computed') computes++;},
+    async faultInjection(name, detail) {
+      if (name === 'computed' && nextComputed !== undefined) {
+        const original = nextComputed;
+        nextComputed = undefined;
+        await original.observe(detail.ref);
+      }
+    },
   }};
 }
 
@@ -136,10 +148,21 @@ async function exercise(db, counter, label) {
     {submissionRef: db.newSubmission({nonce: `${label}-named`}), result: 'named', parameterDeclarations: {id: {type: 'number'}}});
   assert.deepEqual(await named.all(), [{id: 3}]);
   assert.equal(named.ref.resultName, 'named');
-  const low = await db.startSource('SELECT 4 AS id',
-    {format: 'sql', submissionRef: db.newSubmission({nonce: `${label}-low`})});
-  const firstTerminal = await low.wait();
-  assert.equal(firstTerminal.status, 'succeeded');
+  // Complete the preceding Run's hook before arming one for the next original.
+  const computeDeadline = AbortSignal.timeout(5000);
+  while (counter.count() < 2) {computeDeadline.throwIfAborted(); await setImmediate();}
+  assert.equal(counter.count(), 2);
+  const barrier = counter.holdNextComputed();
+  let low, firstTerminal;
+  try {
+    low = await db.startSource('SELECT 4 AS id',
+      {format: 'sql', submissionRef: db.newSubmission({nonce: `${label}-low`})});
+    await barrier.waitForOriginal(low.ref, AbortSignal.timeout(5000));
+    firstTerminal = await low.wait();
+    assert.equal(firstTerminal.status, 'succeeded');
+    assert.equal(firstTerminal.control.physical_stop, 'unknown');
+  } finally {barrier.release();}
+  const earlierRevision = observedRevision(firstTerminal, label);
   const immediate = await low.status();
   assertObservedTransition(firstTerminal, immediate, `${label}: immediate status`);
   const completed = await observeSettledResult(low, immediate, 'answer', label,
@@ -148,8 +171,8 @@ async function exercise(db, counter, label) {
   const reread = await low.status();
   assertObservedTransition(completed, reread, `${label}: settled no-op status`);
   assert.deepEqual(publishedFacts(reread), publishedFacts(completed));
-  assert.ok(completedRevision > 0 && completedRevision < Number.MAX_SAFE_INTEGER);
-  const newer = await low.wait({since: completedRevision - 1, signal: AbortSignal.timeout(5000)});
+  assert.ok(completedRevision > earlierRevision && completedRevision < Number.MAX_SAFE_INTEGER);
+  const newer = await low.wait({since: earlierRevision, signal: AbortSignal.timeout(5000)});
   assert.equal(newer.run_id, completed.run_id);
   assertObservedTransition(completed, newer, `${label}: earlier since`);
   assert.equal(observedRevision(newer, label), completedRevision);
@@ -167,7 +190,7 @@ async function exercise(db, counter, label) {
   assertObservedTransition(completed, afterWait, `${label}: timeout/abort do not change facts`);
   assert.equal(observedRevision(afterWait, label), completedRevision);
   console.log(JSON.stringify({kind: 'current-wire-wait', transport: label,
-    stateRevision: completedRevision, newerRevision: newer.revision,
+    earlierRevision, stateRevision: completedRevision, newerRevision: newer.revision,
     equalSince: 'WaitTimeout', futureSince: 'InvalidWaitRevision', aborted: 'WaitAborted'}));
   assert.deepEqual(await low.result('answer').all(), [{id: 4}]);
   await setImmediate();
