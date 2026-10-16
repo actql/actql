@@ -30,13 +30,13 @@ fn client_effect_target_original_cursor(
     {
       max_input_bytes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
       max_nodes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
-      max_depth: 64,
+      max_depth: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
     },
     source_path="Original UPDATE custody",
   ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
   @decode.admit(source, {
     max_nodes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
-    max_depth: 64,
+    max_depth: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
     max_string_bytes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     max_total_string_bytes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
   }).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
@@ -67,12 +67,12 @@ fn client_effect_target_original_canonical(
   let source = @source.parse_json_bytes(@utf8.encode(wire), {
     max_input_bytes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     max_nodes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
-    max_depth: 64,
+    max_depth: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
   }).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
   let value = @canonical.from_source(
     source,
     CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
-    64,
+    CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
     CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     data_keys=true,
   ) catch {
@@ -82,7 +82,7 @@ fn client_effect_target_original_canonical(
     value,
     CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
-    64,
+    CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
   ) catch {
     _ => raise InvalidUpdateTargetOriginal
   }
