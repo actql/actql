@@ -160,3 +160,39 @@ test "actual Source caller refuses foreign Command publication before expression
     "source_unresolved",
   )
 }
+
+///|
+test "actual Source admits unused original Command publication without hiding malformed sections" {
+  let environment = short_command_source_environment()
+  let publication = short_command_source_publication(environment)
+  let pure = client_program_lower_source(
+    "SELECT 1 AS id",
+    "sql",
+    environment,
+    publication,
+    None,
+  ).unwrap()
+  assert_true(pure.command_selection is None)
+  // Every section is still admitted by its existing Owner before lowering.
+  let unknown = publication.replace(old="commandTargets", new="commandTarget")
+  let malformed = publication.replace(
+    old="installationOwnerCid",
+    new="unknownOwner",
+  )
+  let bad_table = publication.replace(
+    old="\"aliases\":[]",
+    new="\"aliases\":[],\"tableWrites\":[{}]",
+  )
+  for wire in [unknown, malformed, bad_table] {
+    assert_true(
+      client_program_lower_source(
+        "SELECT 1 AS id",
+        "sql",
+        environment,
+        wire,
+        None,
+      )
+      is Err(SourcePreparation(Publication)),
+    )
+  }
+}
