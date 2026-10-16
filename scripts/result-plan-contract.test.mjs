@@ -52,6 +52,9 @@ test('registered Result Plan schema and nested root refs retain pins', () => {
 const selections = JSON.parse(readFileSync(
   'portability/corpus/effect-target-selection.json', 'utf8',
 ));
+const publishedStore = JSON.parse(readFileSync(
+  'portability/corpus/effect-target-selection-published-store.json', 'utf8',
+));
 
 test('independent published-STORE and mixed identities preserve the same eight-field schema', () => {
   const corpus = JSON.parse(readFileSync(
@@ -107,14 +110,17 @@ test('original UPDATE selection is optional in both closed Plan schemas', () => 
       {type: 'integer', minimum: 0});
   }
   for (const [key, pins] of Object.entries(selections.schema_pins)) {
-    assert.equal(machineCid(registry.artifact_schemas[key]), pins.after);
-    assert.equal(registry.artifact_schema_cids[key], pins.after);
+    // Keep the earlier UPDATE corpus and its original whole-schema identities.
+    // The adopted published-store target alternative changed the containing
+    // Program schema before this scope-only selection extension.
+    const current = publishedStore.current_schema_pins[key];
+    assert.equal(machineCid(registry.artifact_schemas[key]), current);
+    assert.equal(registry.artifact_schema_cids[key], current);
     assert.notEqual(pins.before, pins.after);
+    assert.notEqual(pins.after, current);
   }
   assert.equal(registry.artifact_registry_cid,
-    JSON.parse(readFileSync(
-      'portability/corpus/effect-target-selection-projection.json', 'utf8',
-    )).artifact_registry_pins.after);
+    publishedStore.current_schema_pins.artifact_registry);
 });
 
 test('independent original UPDATE vectors bind every selection and owner field', () => {

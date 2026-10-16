@@ -83,7 +83,7 @@ fn published_selection_prepare(
   let document = if mixed {
     document.replace(
       old="\"effects\":{\"save\":",
-      new="\"effects\":{\"update\":{\"update\":{\"target\":\"connector://storage/archive\",\"mapping\":\"mapping:fixture.archive.v1\",\"from\":{\"result\":\"out\"},\"id\":{\"field\":\"id\"},\"set\":{\"value\":{\"field\":\"value\"}}}},\"save\":",
+      new="\"effects\":{\"update\":{\"update\":{\"target\":\"connector://storage/archive\",\"mapping\":\"mapping:fixture.archive.v1\",\"from\":{\"result\":\"out\"},\"id\":\"id\",\"set\":{\"value\":{\"field\":\"value\"}}}},\"save\":",
     )
   } else {
     document
