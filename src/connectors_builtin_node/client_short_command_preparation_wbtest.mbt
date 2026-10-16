@@ -49,7 +49,7 @@ test "actual public Source lowerer retains the original Command publication and 
     ) {
     Ok(value) => value
     Err(SourcePreparation(Frontend(QueryLowering(ExpressionTyping(issue))))) =>
-      raise issue
+      fail(@debug.to_string(issue.kind))
     Err(
       SourcePreparation(
         Frontend(QueryLowering(Expression({ issue: UnknownReference, .. })))
