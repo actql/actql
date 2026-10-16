@@ -255,7 +255,13 @@ const schemas = {
   }
 };
 
+function finiteWireNumber(value) {
+  return Number.isFinite(value) && !Object.is(value, -0);
+}
+
 function valid(value, schema) {
+  if (typeof value === 'number' && !finiteWireNumber(value)) return false;
+  if (typeof value === 'string' && !value.isWellFormed()) return false;
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;
   if (schema.not && valid(value, schema.not)) return false;
@@ -272,7 +278,7 @@ function valid(value, schema) {
         (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))
     return false;
   if (schema.type === 'string') return typeof value === 'string';
-  if (schema.type === 'number') return typeof value === 'number' && Number.isFinite(value) && !Object.is(value, -0);
+  if (schema.type === 'number') return typeof value === 'number';
   if (schema.type === 'integer') return Number.isSafeInteger(value) &&
     (schema.minimum === undefined || value >= schema.minimum) &&
     (schema.maximum === undefined || value <= schema.maximum);

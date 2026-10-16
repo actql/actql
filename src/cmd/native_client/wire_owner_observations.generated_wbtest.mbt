@@ -1503,7 +1503,8 @@ fn wire_rule_1073(value : Json) -> Bool {
 ///|
 fn wire_rule_1097(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -2130,7 +2131,8 @@ fn wire_rule_1122(value : Json) -> Bool {
 ///|
 fn wire_rule_1134(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
-  if number != number.floor() ||
+  if !wire_finite_number(number) ||
+    number != number.floor() ||
     number < -9007199254740991.0 ||
     number > 9007199254740991.0 {
     return false
@@ -2941,6 +2943,9 @@ fn wire_rule_1189(value : Json) -> Bool {
 ///|
 fn wire_rule_1190(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
+  if !wire_finite_number(number) {
+    return false
+  }
   if !(number == 0.0) {
     return false
   }
