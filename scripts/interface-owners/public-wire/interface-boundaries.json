@@ -6,6 +6,7 @@
   "declarations": [
     {
       "module": "packages/client-wire/client-host.generated.js",
+      "responsibilityFacet": "primary",
       "sha256": "db86b126581d2b407f122ac71506ff6a6ecfa74e5a0665fbddf724dfa1154cfe",
       "exports": [
         "checkOutcomeProtocol",
@@ -1337,6 +1338,7 @@
     },
     {
       "module": "packages/client-wire/interactive-control.generated.js",
+      "responsibilityFacet": "primary",
       "sha256": "734a1d756d3850f97505d4a761a33740a975b73f5e8dc69955ba1fcae369e64b",
       "exports": [
         "interactiveControlErrors",
@@ -2202,6 +2204,7 @@
     },
     {
       "module": "packages/client-wire/publication.generated.js",
+      "responsibilityFacet": "primary",
       "sha256": "36811fd3a5f3130485117e9d2d62eaa980c7b81dc51421c89e35f6e5d347c101",
       "exports": [
         "validDeliveryAttempt",
@@ -2745,6 +2748,7 @@
         "re"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_wire_codec.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -3465,6 +3469,7 @@
         "unicodedata"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_wire.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,

@@ -8,6 +8,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/carrier-snapshot.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "1b0bcc8d2a7f812141665f199c663d8c3d70882ce57d65132916dae3f95cdac7",
       "exports": [
         "prepareLocalCarrierSnapshot",
@@ -252,6 +253,7 @@
     },
     {
       "module": "adapters/local-node/managed-output-custody.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c7b9c981d1e7363a8c65b3febe8a50176a52b677c3b106fedfedb979f933e479",
       "exports": [
         "closeCompletedLocalManagedOutput"
@@ -369,6 +371,7 @@
     },
     {
       "module": "adapters/local-node/retained-input.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b872d6a2b4c95d5b3d398a7e69bf29c8be29933c2e1f7a3e3298639aea61c7f2",
       "exports": [
         "readLocalRetainedInput"
@@ -503,6 +506,7 @@
     },
     {
       "module": "adapters/local-node/retained-store.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c41a08936e5c5cf838dad86fb32b724e8e096a65ba7fda5d1d052f12e8ed5088",
       "exports": [
         "installLocalRetainedStore",
@@ -677,6 +681,7 @@
     },
     {
       "module": "adapters/store-local/delegated-file.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "338f1774f20e649d3f3ed3884712ad99b9c8d6327d0b49275d5f86e403478bd0",
       "exports": [
         "openDelegatedFile"
@@ -850,6 +855,7 @@
     },
     {
       "module": "adapters/store-local/delegated-reader.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c1b98e438623e3dfcbb8af5cef13da980924ed16f21ebfc39d774eb63556608d",
       "exports": [
         "consumeDelegatedFile"
@@ -977,6 +983,7 @@
     },
     {
       "module": "adapters/store-local/direct-file.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "34a58acd78846e847857f52a8337ff114d23a2d241b8f8161abca7ba2515946b",
       "exports": [
         "withVerifiedDelegatedFile"
@@ -1117,6 +1124,7 @@
     },
     {
       "module": "adapters/store-local/files.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b1d8142e90886ed8a6168daa944a53b10f2e040b7d44d5ad5d1859302b014efd",
       "exports": [
         "RetainedFileError",
@@ -1566,6 +1574,7 @@
     },
     {
       "module": "adapters/store-local/import.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b972246a69acef8f8bf2e7b4c8e47187a5cfa4956104a14f5fa26366c56fb6de",
       "exports": [
         "importRetainedRows"
@@ -1712,6 +1721,7 @@
     },
     {
       "module": "adapters/store-local/managed-manifest.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "56f441031be706832762ed99b391265abf5a9d481b73d4f6435ee8ce39562d17",
       "exports": [
         "admittedPhysicalManifestSnapshot",
@@ -1954,6 +1964,7 @@
     },
     {
       "module": "adapters/store-local/managed-memory-representations.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c2c5d4645f46b94236226d206448b98874561c8cce5bc1c74c390488b4394a37",
       "exports": [
         "installManagedRepresentation",
@@ -2533,6 +2544,7 @@
     },
     {
       "module": "adapters/store-local/managed-physical-representation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f6136b19952f65548231760d0fba17b1b9391a9d82d62a2d56ea9f432329975f",
       "exports": [
         "managedPhysicalRepresentation"
@@ -2681,6 +2693,7 @@
     },
     {
       "module": "adapters/store-local/managed-representations.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "cb686c1459d40e261337599df0486e8662f963a98f50b14a512d0236a19a0d44",
       "exports": [
         "managedInputCodecContractCid",
@@ -3058,6 +3071,7 @@
     },
     {
       "module": "adapters/store-local/metadata-deletion-owner.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5e9cf4d7fcf47b5354649720153b26bf2a12c1c2171adedbac84adc3278cfc03",
       "exports": [
         "createMetadataDeletionOwner"
@@ -3178,6 +3192,7 @@
     },
     {
       "module": "adapters/store-local/moonbit-row-frames.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4088710561ef83dd4bf953a9c8ba5bbdd0c63178ff1eb563983e3953d26e3b55",
       "exports": [
         "createMoonBitRetainedRowFrames"
@@ -3337,6 +3352,7 @@
     },
     {
       "module": "adapters/store-local/object-writer-owner.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "dec0e490dd84a7b920004016dc948dca7a0773d12fe1393340d0208f0281e119",
       "exports": [
         "createObjectWriterOwner"
@@ -3568,6 +3584,7 @@
     },
     {
       "module": "adapters/store-local/process-binding.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "42dd1ceea81ee47ae419e653dd7d0156b1ec9512e3877864624be9129477a02d",
       "exports": [
         "bindProcessStore",
@@ -3677,6 +3694,7 @@
     },
     {
       "module": "adapters/store-local/process-client.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "83ea12c54209630d4f41602dade52032124550ecbc31900796b0ac9a28e9ad74",
       "exports": [
         "createProcessStoreLease",
@@ -3942,6 +3960,7 @@
     },
     {
       "module": "adapters/store-local/publication-commit-owner.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f4f706e288bd9450299def8dbfc3df0ecf40a46028ed359368bc6a704166144f",
       "exports": [
         "createPublicationCommitOwner"
@@ -4071,6 +4090,7 @@
     },
     {
       "module": "adapters/store-local/publication-store.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "86c82209fb7124a7bbec5d6af0aa79a7b1db8214189dc262305ca2f18153c169",
       "exports": [
         "PublicationStoreError",
@@ -7324,6 +7344,7 @@
     },
     {
       "module": "adapters/store-local/representations.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "01ae066d9a4954ce50cee77ef4d482a8b3c223bccedea7a06c6a4a2627e594d5",
       "exports": [
         "consumeRetainedInput",
@@ -7547,6 +7568,7 @@
     },
     {
       "module": "adapters/store-local/result-deletion-owner.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "1146347f0a548ae2e53a1afc6822adc2c9b3381a0cf1a6d724a4290153acf77c",
       "exports": [
         "createResultDeletionOwner"
