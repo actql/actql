@@ -216,3 +216,25 @@ class WaitSyncTests(unittest.TestCase):
                 transport=httpx.MockTransport(handler)) as client:
             with self.assertRaises(ClientError): client.attach(ADMISSION['ref']).wait(since=7)
         self.assertEqual(requests, ['connect', 'attach', 'wait'])
+
+
+class LocalWaitRefusalTests(unittest.IsolatedAsyncioTestCase):
+    async def test_missing_local_condition_supplier_never_falls_through_to_status(self):
+        # A source-only entry counter, not an installed Host or a Core grant.
+        from threading import RLock
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from actql_sdk._local_product import InstalledLocalHost, _LOCAL_SELECTION
+        from actql_sdk._values import wire_bytes
+        host = object.__new__(InstalledLocalHost)
+        host._physical_work = []
+        host._core = SimpleNamespace(_lock=RLock())
+        select = Mock(side_effect=AssertionError('No original Run lookup is permitted'))
+        with patch.object(host, '_active'), patch.object(host, '_select_original_run', select):
+            for until, since in [(None, 0), (None, 7), ('checkpoint', None), ('checkpoint', 7)]:
+                body = {'connection': _LOCAL_SELECTION, 'ref': ADMISSION['ref'],
+                        'until': until, 'since': since}
+                with self.subTest(until=until, since=since), self.assertRaisesRegex(
+                        ValueError, 'wait condition supplier is unavailable'):
+                    await host.open('wait', wire_bytes(body))
+        select.assert_not_called()
