@@ -1,0 +1,946 @@
+{
+  "method": "Independently authored Python hashlib SHA-256 over sorted compact ASCII JSON; no product resolver or encoder output.",
+  "mappings": {
+    "one": {
+      "schema": "actql.mapping_contract/0.1",
+      "mapping_ref": "mapping:crm.account.v1",
+      "version": "fixture",
+      "target_ref": "connector://crm/account",
+      "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+      "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+      "target_schema": {
+        "type": "object",
+        "nullable": false,
+        "additional_properties": false,
+        "fields": {
+          "Id": {
+            "type": "string",
+            "nullable": false
+          },
+          "Name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "primary_identity": "Id",
+      "writable_fields": [
+        "Name"
+      ],
+      "required_fields": [],
+      "conversions": [],
+      "permission_rules": [
+        {
+          "effect_kind": "update",
+          "selector_class": "id",
+          "write_fields": [
+            "Name"
+          ],
+          "permissions": [
+            "scope:update"
+          ]
+        }
+      ],
+      "required_permissions": [],
+      "minimum_approval": "none",
+      "row_mapping": {
+        "Name": {
+          "field": "name",
+          "null_behavior": "reject"
+        }
+      },
+      "mapping_contract_cid": "sha256:8806f951f0eba711a67aa15619f5f892d505983e5d8c47479cf5798d60f75fcd"
+    },
+    "other": {
+      "schema": "actql.mapping_contract/0.1",
+      "mapping_ref": "mapping:crm.account.other.v1",
+      "version": "fixture",
+      "target_ref": "connector://crm/account",
+      "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+      "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target_schema_identity": "sha256:1208f407bf69f466944f865797ce7407361d822605d1fbbb502177af4b63958f",
+      "target_schema": {
+        "type": "object",
+        "nullable": false,
+        "additional_properties": false,
+        "fields": {
+          "Id": {
+            "type": "string",
+            "nullable": false
+          },
+          "Name": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "primary_identity": "Id",
+      "writable_fields": [
+        "Id"
+      ],
+      "required_fields": [],
+      "conversions": [],
+      "permission_rules": [
+        {
+          "effect_kind": "update",
+          "selector_class": "id",
+          "write_fields": [
+            "Id"
+          ],
+          "permissions": [
+            "scope:other"
+          ]
+        }
+      ],
+      "required_permissions": [],
+      "minimum_approval": "none",
+      "row_mapping": {
+        "Id": {
+          "field": "id",
+          "null_behavior": "reject"
+        }
+      },
+      "mapping_contract_cid": "sha256:0fe75c286372d417d8822e982204b3766910cf97a17f69f05197751622df0b05"
+    },
+    "foreign": {
+      "schema": "actql.mapping_contract/0.1",
+      "mapping_ref": "mapping:crm.contact.v1",
+      "version": "fixture",
+      "target_ref": "connector://crm/contact",
+      "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+      "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+      "target_schema": {
+        "type": "object",
+        "nullable": false,
+        "additional_properties": false,
+        "fields": {
+          "Id": {
+            "type": "string",
+            "nullable": false
+          },
+          "Name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "primary_identity": "Id",
+      "writable_fields": [
+        "Name"
+      ],
+      "required_fields": [],
+      "conversions": [],
+      "permission_rules": [
+        {
+          "effect_kind": "update",
+          "selector_class": "id",
+          "write_fields": [
+            "Name"
+          ],
+          "permissions": [
+            "scope:update"
+          ]
+        }
+      ],
+      "required_permissions": [],
+      "minimum_approval": "none",
+      "row_mapping": {
+        "Name": {
+          "field": "name",
+          "null_behavior": "reject"
+        }
+      },
+      "mapping_contract_cid": "sha256:7927f7ba6e5fa0b16396b978b7df137300bfb2557cb8b00f847ff411c64f6578"
+    },
+    "create": {
+      "schema": "actql.mapping_contract/0.1",
+      "mapping_ref": "mapping:crm.account.create.v1",
+      "version": "fixture",
+      "target_ref": "connector://crm/account",
+      "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+      "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+      "target_schema": {
+        "type": "object",
+        "nullable": false,
+        "additional_properties": false,
+        "fields": {
+          "Id": {
+            "type": "string",
+            "nullable": false
+          },
+          "Name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "primary_identity": "Id",
+      "writable_fields": [
+        "Name"
+      ],
+      "required_fields": [],
+      "conversions": [],
+      "permission_rules": [
+        {
+          "effect_kind": "create",
+          "selector_class": "none",
+          "write_fields": [
+            "Name"
+          ],
+          "permissions": [
+            "scope:create"
+          ]
+        }
+      ],
+      "required_permissions": [],
+      "minimum_approval": "none",
+      "row_mapping": {
+        "Name": {
+          "field": "name",
+          "null_behavior": "reject"
+        }
+      },
+      "mapping_contract_cid": "sha256:15e7074560d6f2ec0730957b9e35369ef9df6fa7ba23d23a3b1bf53a9d75b2b9"
+    },
+    "invalid": {
+      "schema": "actql.mapping_contract/0.1",
+      "mapping_ref": "mapping:crm.account.invalid.v1",
+      "version": "fixture",
+      "target_ref": "connector://crm/account",
+      "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+      "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+      "target_schema": {
+        "type": "object",
+        "nullable": false,
+        "additional_properties": false,
+        "fields": {
+          "Id": {
+            "type": "string",
+            "nullable": false
+          },
+          "Name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "primary_identity": "Id",
+      "writable_fields": [
+        "Name"
+      ],
+      "required_fields": [],
+      "conversions": [],
+      "permission_rules": [
+        {
+          "effect_kind": "invented",
+          "selector_class": "id",
+          "write_fields": [
+            "Name"
+          ],
+          "permissions": [
+            "scope:invented"
+          ]
+        }
+      ],
+      "required_permissions": [],
+      "minimum_approval": "none",
+      "row_mapping": {
+        "Name": {
+          "field": "name",
+          "null_behavior": "reject"
+        }
+      },
+      "mapping_contract_cid": "sha256:852f621405daa0adccefe0151d47b942663a6bd13aed1f52aeb6d4fa42a68fde"
+    }
+  },
+  "environments": {
+    "one": {
+      "version": "actql-check-environment/0.1",
+      "connector_manifest": {
+        "version": "actql-connectors/0.1",
+        "connectors": [
+          {
+            "connector": "crm",
+            "connector_id": "crm",
+            "connector_version": "fixture"
+          }
+        ]
+      },
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "crm",
+          "connector_version": "fixture",
+          "source_views": [],
+          "commands": [],
+          "contracts": [],
+          "catalog_cid": "sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd"
+        }
+      ],
+      "contract_registry": [],
+      "command_contracts": [],
+      "connector_capabilities": [],
+      "mapping_contracts": [
+        {
+          "schema": "actql.mapping_contract/0.1",
+          "mapping_ref": "mapping:crm.account.v1",
+          "version": "fixture",
+          "target_ref": "connector://crm/account",
+          "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+          "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+          "target_schema": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "Id": {
+                "type": "string",
+                "nullable": false
+              },
+              "Name": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "primary_identity": "Id",
+          "writable_fields": [
+            "Name"
+          ],
+          "required_fields": [],
+          "conversions": [],
+          "permission_rules": [
+            {
+              "effect_kind": "update",
+              "selector_class": "id",
+              "write_fields": [
+                "Name"
+              ],
+              "permissions": [
+                "scope:update"
+              ]
+            }
+          ],
+          "required_permissions": [],
+          "minimum_approval": "none",
+          "row_mapping": {
+            "Name": {
+              "field": "name",
+              "null_behavior": "reject"
+            }
+          },
+          "mapping_contract_cid": "sha256:8806f951f0eba711a67aa15619f5f892d505983e5d8c47479cf5798d60f75fcd"
+        }
+      ],
+      "source_views": [],
+      "schema_snapshots": [],
+      "model_task_contracts": [],
+      "host_policy_profile": {},
+      "evidence_bundle_cid": "sha256:357b96a0a3689ea558d3954dd8d26b47b902dccaf6f103131e7efcf26d7494d3"
+    },
+    "multiple": {
+      "version": "actql-check-environment/0.1",
+      "connector_manifest": {
+        "version": "actql-connectors/0.1",
+        "connectors": [
+          {
+            "connector": "crm",
+            "connector_id": "crm",
+            "connector_version": "fixture"
+          }
+        ]
+      },
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "crm",
+          "connector_version": "fixture",
+          "source_views": [],
+          "commands": [],
+          "contracts": [],
+          "catalog_cid": "sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd"
+        }
+      ],
+      "contract_registry": [],
+      "command_contracts": [],
+      "connector_capabilities": [],
+      "mapping_contracts": [
+        {
+          "schema": "actql.mapping_contract/0.1",
+          "mapping_ref": "mapping:crm.account.other.v1",
+          "version": "fixture",
+          "target_ref": "connector://crm/account",
+          "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+          "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_schema_identity": "sha256:1208f407bf69f466944f865797ce7407361d822605d1fbbb502177af4b63958f",
+          "target_schema": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "Id": {
+                "type": "string",
+                "nullable": false
+              },
+              "Name": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          },
+          "primary_identity": "Id",
+          "writable_fields": [
+            "Id"
+          ],
+          "required_fields": [],
+          "conversions": [],
+          "permission_rules": [
+            {
+              "effect_kind": "update",
+              "selector_class": "id",
+              "write_fields": [
+                "Id"
+              ],
+              "permissions": [
+                "scope:other"
+              ]
+            }
+          ],
+          "required_permissions": [],
+          "minimum_approval": "none",
+          "row_mapping": {
+            "Id": {
+              "field": "id",
+              "null_behavior": "reject"
+            }
+          },
+          "mapping_contract_cid": "sha256:0fe75c286372d417d8822e982204b3766910cf97a17f69f05197751622df0b05"
+        },
+        {
+          "schema": "actql.mapping_contract/0.1",
+          "mapping_ref": "mapping:crm.account.v1",
+          "version": "fixture",
+          "target_ref": "connector://crm/account",
+          "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+          "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+          "target_schema": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "Id": {
+                "type": "string",
+                "nullable": false
+              },
+              "Name": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "primary_identity": "Id",
+          "writable_fields": [
+            "Name"
+          ],
+          "required_fields": [],
+          "conversions": [],
+          "permission_rules": [
+            {
+              "effect_kind": "update",
+              "selector_class": "id",
+              "write_fields": [
+                "Name"
+              ],
+              "permissions": [
+                "scope:update"
+              ]
+            }
+          ],
+          "required_permissions": [],
+          "minimum_approval": "none",
+          "row_mapping": {
+            "Name": {
+              "field": "name",
+              "null_behavior": "reject"
+            }
+          },
+          "mapping_contract_cid": "sha256:8806f951f0eba711a67aa15619f5f892d505983e5d8c47479cf5798d60f75fcd"
+        }
+      ],
+      "source_views": [],
+      "schema_snapshots": [],
+      "model_task_contracts": [],
+      "host_policy_profile": {},
+      "evidence_bundle_cid": "sha256:a83cff2ebe24551e95feaef0a349233cec9f004930592b0a2b230cd3a6b2aac2"
+    },
+    "foreign": {
+      "version": "actql-check-environment/0.1",
+      "connector_manifest": {
+        "version": "actql-connectors/0.1",
+        "connectors": [
+          {
+            "connector": "crm",
+            "connector_id": "crm",
+            "connector_version": "fixture"
+          }
+        ]
+      },
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "crm",
+          "connector_version": "fixture",
+          "source_views": [],
+          "commands": [],
+          "contracts": [],
+          "catalog_cid": "sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd"
+        }
+      ],
+      "contract_registry": [],
+      "command_contracts": [],
+      "connector_capabilities": [],
+      "mapping_contracts": [
+        {
+          "schema": "actql.mapping_contract/0.1",
+          "mapping_ref": "mapping:crm.account.v1",
+          "version": "fixture",
+          "target_ref": "connector://crm/account",
+          "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+          "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+          "target_schema": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "Id": {
+                "type": "string",
+                "nullable": false
+              },
+              "Name": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "primary_identity": "Id",
+          "writable_fields": [
+            "Name"
+          ],
+          "required_fields": [],
+          "conversions": [],
+          "permission_rules": [
+            {
+              "effect_kind": "update",
+              "selector_class": "id",
+              "write_fields": [
+                "Name"
+              ],
+              "permissions": [
+                "scope:update"
+              ]
+            }
+          ],
+          "required_permissions": [],
+          "minimum_approval": "none",
+          "row_mapping": {
+            "Name": {
+              "field": "name",
+              "null_behavior": "reject"
+            }
+          },
+          "mapping_contract_cid": "sha256:8806f951f0eba711a67aa15619f5f892d505983e5d8c47479cf5798d60f75fcd"
+        },
+        {
+          "schema": "actql.mapping_contract/0.1",
+          "mapping_ref": "mapping:crm.contact.v1",
+          "version": "fixture",
+          "target_ref": "connector://crm/contact",
+          "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+          "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+          "target_schema": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "Id": {
+                "type": "string",
+                "nullable": false
+              },
+              "Name": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "primary_identity": "Id",
+          "writable_fields": [
+            "Name"
+          ],
+          "required_fields": [],
+          "conversions": [],
+          "permission_rules": [
+            {
+              "effect_kind": "update",
+              "selector_class": "id",
+              "write_fields": [
+                "Name"
+              ],
+              "permissions": [
+                "scope:update"
+              ]
+            }
+          ],
+          "required_permissions": [],
+          "minimum_approval": "none",
+          "row_mapping": {
+            "Name": {
+              "field": "name",
+              "null_behavior": "reject"
+            }
+          },
+          "mapping_contract_cid": "sha256:7927f7ba6e5fa0b16396b978b7df137300bfb2557cb8b00f847ff411c64f6578"
+        }
+      ],
+      "source_views": [],
+      "schema_snapshots": [],
+      "model_task_contracts": [],
+      "host_policy_profile": {},
+      "evidence_bundle_cid": "sha256:f4c5d041ca576d96601ac5e16054574e367b2c88f5a4f0f715312f704ebd1b02"
+    },
+    "zero": {
+      "version": "actql-check-environment/0.1",
+      "connector_manifest": {
+        "version": "actql-connectors/0.1",
+        "connectors": [
+          {
+            "connector": "crm",
+            "connector_id": "crm",
+            "connector_version": "fixture"
+          }
+        ]
+      },
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "crm",
+          "connector_version": "fixture",
+          "source_views": [],
+          "commands": [],
+          "contracts": [],
+          "catalog_cid": "sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd"
+        }
+      ],
+      "contract_registry": [],
+      "command_contracts": [],
+      "connector_capabilities": [],
+      "mapping_contracts": [
+        {
+          "schema": "actql.mapping_contract/0.1",
+          "mapping_ref": "mapping:crm.account.create.v1",
+          "version": "fixture",
+          "target_ref": "connector://crm/account",
+          "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+          "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+          "target_schema": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "Id": {
+                "type": "string",
+                "nullable": false
+              },
+              "Name": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "primary_identity": "Id",
+          "writable_fields": [
+            "Name"
+          ],
+          "required_fields": [],
+          "conversions": [],
+          "permission_rules": [
+            {
+              "effect_kind": "create",
+              "selector_class": "none",
+              "write_fields": [
+                "Name"
+              ],
+              "permissions": [
+                "scope:create"
+              ]
+            }
+          ],
+          "required_permissions": [],
+          "minimum_approval": "none",
+          "row_mapping": {
+            "Name": {
+              "field": "name",
+              "null_behavior": "reject"
+            }
+          },
+          "mapping_contract_cid": "sha256:15e7074560d6f2ec0730957b9e35369ef9df6fa7ba23d23a3b1bf53a9d75b2b9"
+        }
+      ],
+      "source_views": [],
+      "schema_snapshots": [],
+      "model_task_contracts": [],
+      "host_policy_profile": {},
+      "evidence_bundle_cid": "sha256:d8764bab723de5b255971098cbfbc45e84ee5fc91e3da4ed2857728308445149"
+    },
+    "invalid": {
+      "version": "actql-check-environment/0.1",
+      "connector_manifest": {
+        "version": "actql-connectors/0.1",
+        "connectors": [
+          {
+            "connector": "crm",
+            "connector_id": "crm",
+            "connector_version": "fixture"
+          }
+        ]
+      },
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "crm",
+          "connector_version": "fixture",
+          "source_views": [],
+          "commands": [],
+          "contracts": [],
+          "catalog_cid": "sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd"
+        }
+      ],
+      "contract_registry": [],
+      "command_contracts": [],
+      "connector_capabilities": [],
+      "mapping_contracts": [
+        {
+          "schema": "actql.mapping_contract/0.1",
+          "mapping_ref": "mapping:crm.account.invalid.v1",
+          "version": "fixture",
+          "target_ref": "connector://crm/account",
+          "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+          "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+          "target_schema": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "Id": {
+                "type": "string",
+                "nullable": false
+              },
+              "Name": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "primary_identity": "Id",
+          "writable_fields": [
+            "Name"
+          ],
+          "required_fields": [],
+          "conversions": [],
+          "permission_rules": [
+            {
+              "effect_kind": "invented",
+              "selector_class": "id",
+              "write_fields": [
+                "Name"
+              ],
+              "permissions": [
+                "scope:invented"
+              ]
+            }
+          ],
+          "required_permissions": [],
+          "minimum_approval": "none",
+          "row_mapping": {
+            "Name": {
+              "field": "name",
+              "null_behavior": "reject"
+            }
+          },
+          "mapping_contract_cid": "sha256:852f621405daa0adccefe0151d47b942663a6bd13aed1f52aeb6d4fa42a68fde"
+        },
+        {
+          "schema": "actql.mapping_contract/0.1",
+          "mapping_ref": "mapping:crm.account.v1",
+          "version": "fixture",
+          "target_ref": "connector://crm/account",
+          "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+          "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+          "target_schema": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "Id": {
+                "type": "string",
+                "nullable": false
+              },
+              "Name": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "primary_identity": "Id",
+          "writable_fields": [
+            "Name"
+          ],
+          "required_fields": [],
+          "conversions": [],
+          "permission_rules": [
+            {
+              "effect_kind": "update",
+              "selector_class": "id",
+              "write_fields": [
+                "Name"
+              ],
+              "permissions": [
+                "scope:update"
+              ]
+            }
+          ],
+          "required_permissions": [],
+          "minimum_approval": "none",
+          "row_mapping": {
+            "Name": {
+              "field": "name",
+              "null_behavior": "reject"
+            }
+          },
+          "mapping_contract_cid": "sha256:8806f951f0eba711a67aa15619f5f892d505983e5d8c47479cf5798d60f75fcd"
+        }
+      ],
+      "source_views": [],
+      "schema_snapshots": [],
+      "model_task_contracts": [],
+      "host_policy_profile": {},
+      "evidence_bundle_cid": "sha256:f72bca0b1c0391a8060f8d4397ecb79218fa861aa9583ce8235357f02d55d39b"
+    }
+  },
+  "bridge_environment": {
+    "version": "actql-check-environment/0.1",
+    "connector_manifest": {
+      "version": "actql-connectors/0.1",
+      "connectors": [
+        {
+          "connector": "crm",
+          "connector_id": "crm",
+          "connector_version": "fixture"
+        }
+      ]
+    },
+    "connector_catalogs": [
+      {
+        "schema": "actql.connector_catalog/0.1",
+        "connector_id": "crm",
+        "connector_version": "fixture",
+        "source_views": [],
+        "commands": [],
+        "contracts": [],
+        "catalog_cid": "sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd"
+      }
+    ],
+    "contract_registry": [],
+    "command_contracts": [],
+    "connector_capabilities": [],
+    "mapping_contracts": [
+      {
+        "schema": "actql.mapping_contract/0.1",
+        "mapping_ref": "mapping:crm.account.v1",
+        "version": "fixture",
+        "target_ref": "connector://crm/account",
+        "connector_manifest_cid": "sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1",
+        "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+        "target_schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "Id": {
+              "type": "string",
+              "nullable": false
+            },
+            "Name": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        },
+        "primary_identity": "Id",
+        "writable_fields": [
+          "Name"
+        ],
+        "required_fields": [],
+        "conversions": [],
+        "permission_rules": [
+          {
+            "effect_kind": "update",
+            "selector_class": "id",
+            "write_fields": [
+              "Name"
+            ],
+            "permissions": [
+              "scope:update"
+            ]
+          }
+        ],
+        "required_permissions": [],
+        "minimum_approval": "none",
+        "row_mapping": {
+          "Name": {
+            "field": "name",
+            "null_behavior": "reject"
+          }
+        },
+        "mapping_contract_cid": "sha256:8806f951f0eba711a67aa15619f5f892d505983e5d8c47479cf5798d60f75fcd"
+      }
+    ],
+    "source_views": [],
+    "schema_snapshots": [],
+    "model_task_contracts": [],
+    "host_policy_profile": {
+      "capacity": {
+        "max_aggregate_array_items": 1000,
+        "max_artifact_bytes": 1000,
+        "max_artifact_rows": 1000,
+        "max_effect_items": 1000,
+        "max_graph_input_edges": 1000,
+        "max_graph_input_nodes": 1000,
+        "max_graph_output_rows": 1000,
+        "max_graph_paths": 1000,
+        "max_infer_items": 1000,
+        "max_model_input_tokens_per_item": 1000,
+        "max_model_request_bytes_per_item": 1000,
+        "max_model_total_duration_ms": 1000,
+        "max_nested_value_bytes": 1000,
+        "max_nested_value_depth": 1000,
+        "max_relation_output_rows": 1000,
+        "max_temporal_matches_per_key": 1000,
+        "max_temporal_output_rows": 1000,
+        "version": "actql-capacity-host-policy/0.1"
+      }
+    },
+    "evidence_bundle_cid": "sha256:ef3c11ecddf6d35749bb98df9820c0459b72190354495ffb87e877a5e5ae7d97"
+  }
+}

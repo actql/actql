@@ -202,9 +202,12 @@ result_operator = "RESULT", identifier ;
 assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
 terminal_effect = terminal_update | [ "EFFECT", identifier ], table_create ;
 table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
-terminal_update = "EFFECT", [ identifier ], "UPDATE", "TARGET", query_string,
-                  "MAPPING", identifier, [ "FROM", "RESULT", identifier ],
+terminal_update = "EFFECT", [ identifier ], "UPDATE", update_target,
+                  [ "FROM", "RESULT", identifier ],
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
+update_target = "TARGET", query_string, "MAPPING", identifier
+              | logical_update_target, [ "MAPPING", identifier ] ;
+logical_update_target = identifier, ".", identifier, { ".", identifier } ;
 (* Pipe WHERE permits supported inline window calls in its predicate. *)
 pipe_where_clause = "WHERE", expression ;
 (* Pipe SET permits supported inline window calls in assignment expressions. *)

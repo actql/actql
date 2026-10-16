@@ -18,6 +18,8 @@ export function salesforceEffectSiteHooks(effect) {
     targetReadAuthorization: effect.targetReadAuthorization,
     targetReadInventory: facts => effect.targetReadInventory({moon: facts.moon,
       prepared: facts.prepared,
+      updateTargetSelections: facts.updateTargetSelections,
+      assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent,
       unit: salesforceEffectUnit(facts.moon, facts.compilation)}),
     prepareCaptured: facts => {
       const {moon, publicationPlan: plan, compilation} = facts;
@@ -32,12 +34,16 @@ export function salesforceEffectSiteHooks(effect) {
             plan.contractLimits.maxWireBytes, plan.contractLimits.maxNodes,
             plan.contractLimits.maxDepth))},
         unit: salesforceEffectUnit(moon, compilation), signal: facts.signal,
-        targetReads: facts.targetReads});
+        targetReads: facts.targetReads,
+        updateTargetSelections: facts.updateTargetSelections,
+        assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent});
     },
     prepareRecovered: facts => effect.prepareRecovered({moon: facts.moon,
       control: facts.control, store: facts.store, recovered: facts.recovered,
       continuation: facts.continuation, contractLimits: localContractLimits,
       signal: facts.signal, retainRecoveryOwner: facts.retainRecoveryOwner,
-      targetReads: facts.targetReads}),
+      targetReads: facts.targetReads,
+      updateTargetSelections: facts.updateTargetSelections,
+      assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent}),
   });
 }

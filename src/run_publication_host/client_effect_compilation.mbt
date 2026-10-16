@@ -57,6 +57,24 @@ pub fn client_effect_compilation_owner(
 }
 
 ///|
+/// Borrow the original component and its nominal checked occurrence together.
+/// A newly created Effect compiler view cannot substitute that wrapper. This
+/// projection grants no current Provider or dispatch authority.
+pub fn client_effect_compilation_infer_original(
+  value : ClientEffectCompilation,
+) -> (ClientInferPlanGraph, ClientInferOccurrence)? {
+  guard value.compiled.infer is Some(component) &&
+    physical_equal(component.owner, value.compiled.owner) &&
+    prepared_client_composed_infer_occurrence(component.owner)
+    is Some(occurrence) &&
+    client_infer_occurrence_matches_effect(occurrence, value.owner) &&
+    client_infer_occurrence_matches_plan(occurrence, component) else {
+    return None
+  }
+  Some((component, occurrence))
+}
+
+///|
 /// Only the original checked Effect owner can obtain a compiled Result
 /// selection. The retained compiler view is not reconstructed or rechecked.
 pub fn client_effect_compilation_result_transformation(
@@ -349,6 +367,7 @@ fn issue_client_effect_compilation_internal(
       max_nodes,
       max_depth,
       effect_plan_cids=plan_cids,
+      effect_target_selections=owner.target_selections,
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -386,6 +405,12 @@ fn issue_client_effect_compilation_internal(
     ) {
     Ok(compiled) => compiled
     Err(issue) => return Err(Compilation(issue))
+  }
+  if @publication.publication_contract_effect_target_selections_cid(
+      compiled.compiled_plan,
+    ) !=
+    client_effect_target_selections_cid(owner) {
+    return Err(Encoding)
   }
   Ok({ owner, compiled, normalization_profile, })
 }

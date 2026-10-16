@@ -97,6 +97,7 @@ pub(all) enum Issue {
   UnsupportedResult
   UnsupportedEffect
   TableWriteBinding(TableWriteBindingIssue)
+  UpdateTargetBinding(UpdateTargetIssue)
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   // Retain the common checker's cause and authored cursor from scope probes.
@@ -7139,6 +7140,7 @@ pub fn compile_with_source(
   context : Context,
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
+  update_targets? : UpdateTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
   // Binding and primary scopes must be installed before inspecting a JOIN
   // input. The standalone probe sees only Context inputs, not authored WITH
@@ -7157,6 +7159,7 @@ pub fn compile_with_source(
       context,
       limits,
       table_writes~,
+      update_targets~,
     )
   }
   let needs_input_binding = join_requires_input_binding(query, context) catch {
@@ -7168,6 +7171,7 @@ pub fn compile_with_source(
       context,
       limits,
       table_writes~,
+      update_targets~,
     )
   }
   let mut has_nearest = false
@@ -7198,6 +7202,7 @@ pub fn compile_with_source(
       context,
       limits,
       table_writes~,
+      update_targets~,
     )
   }
   if @query.join_part_count(query) > 0 && context.captured_stage is Some(_) {
@@ -9917,8 +9922,9 @@ pub fn compile(
   context : Context,
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
+  update_targets? : UpdateTargetPublication? = None,
 ) -> Result[@program.Program, Issue] {
-  compile_with_source(query, context, limits, table_writes~)
+  compile_with_source(query, context, limits, table_writes~, update_targets~)
   .map(pair => pair.0)
   .map_err(issue_without_source)
 }

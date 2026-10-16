@@ -1390,7 +1390,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:9b42392c3ea56ab99077cc1fe752950d14102a7b6a7e5158038f48604e720058 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:2f79f1e654a95a135df38cda370143af371d712d585edde0f951a8d792b64fbb -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
 
 <a id="parameter-value-projection"></a>
@@ -1792,6 +1792,10 @@ The Compiled Plan's hash preimage is:
  aoa_contract_cid, aoa_logical_cid}
 ```
 
+When selection context exists, this envelope additionally contains the optional
+`effect_target_selections_cid` described below. It participates in the ordinary
+Compiled Plan identity; omission retains the preceding preimage exactly.
+
 The canonical hash excludes only `compiled_plan_cid` itself. Result/Effect
 logical CID maps are keyed by their declared names in the Executable Plan.
 Its `execution_material` binds Program Definition, bound Invocation Template,
@@ -1800,6 +1804,82 @@ AoA contract, and Result/Effect plan maps; its graph binds nodes, typed edges,
 root Results, facts, limits and enforcement references. Those dependencies
 remain mandatory even though this compilation envelope references them through
 `executable_plan_cid`. Neither envelope contains a later receipt CID.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-shape -->
+When logical UPDATE target selection is retained, `execution_material` MUST
+include `effect_target_selections` as a nonempty canonical JSON array whose
+closed entries contain exactly `check_environment_cid`, `effect_id`,
+`installation_binding_cid`, `installation_owner_cid`, `mapping_cid`,
+`mapping_ref`, `stage_index`, and `target_ref`. The CID fields are canonical
+SHA-256 CIDs, references and Effect ids are nonempty strings, and `stage_index`
+is a nonnegative integer identifying the selected Program Stage occurrence.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-order -->
+Selection entries MUST be ordered first by numeric `stage_index` and then by
+canonical UTF-16 `effect_id` order, with exactly one entry for each retained
+Stage/Effect occurrence. Repeated occurrences are invalid even when their
+other fields differ. The schema's whole-entry uniqueness constraint does not
+replace this occurrence-level admission check.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-original -->
+Each selection MUST bind the original concrete target, exact Mapping reference
+and resolved Mapping CID, selected Check Environment CID, physical installation
+binding CID, and installed row-effect owner CID to that checked UPDATE
+occurrence. Full and short spellings selecting the same target, Mapping,
+environment and installation have equal selection bytes; alias spelling is
+excluded. Different selected evidence changes compilation identity even when
+the lowered concrete Program text happens to be equal.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-owner -->
+The `installation_owner_cid` MUST hash the canonical existing `installationFacts`
+projection containing `connector_registration`, `connector_revision`,
+`runtime_bundle_cid`, `binding_cid`, `connection`, `profile`, and
+`continuation_binding`. The profile and continuation binding retain their
+existing installed-owner meaning, including the selected continuation generation
+where that owner already uses one. `installation_binding_cid` remains the
+physical binding CID; it does not stand in for the complete owner. This adds no
+registry, identity domain, grant, approval, or installation authority. CID
+integrity alone cannot authenticate a copied adapter or issue a Mapping.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-absence -->
+An execution without retained selection context MUST omit
+`effect_target_selections` entirely, preserving its previous canonical bytes
+and identity. Empty arrays, null and synthetic absence entries are invalid.
+The saved Run compilation material carries the same optional canonical array
+as `effect_target_selections_json`; absence is omission there as well.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-projection -->
+The Compiled Plan issuer MUST derive optional `effect_target_selections_cid`
+as the SHA-256 CID of the exact canonical nonempty
+`execution_material.effect_target_selections` array, omitting it when the
+array is absent. This projection introduces no envelope, versioned identity
+domain or separate selection registry. It is derived within the existing
+compilation owner, not accepted as an independent caller field or argument.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-projection-admission -->
+Compilation and Plan admission MUST verify exact optional equality between
+that projection and the Executable Plan's selection array CID, including
+presence and absence. A missing projection for present context, an unexpected
+projection for absent context, or a different CID is invalid. Rehashing a
+modified outer envelope does not repair this binding. Equivalent full and
+short forms retain the same array and projection; legacy absent-context
+Compiled Plans keep their original canonical bytes and CID.
+
+<!-- requirement-block: compilation-identities.effect-target-selection-recovery -->
+Restore, checkpoint continuation, reconciliation and recovery MUST retain and
+recheck the original selection against the saved concrete Program and Check
+Environment before applicable target reads or Effect sends, rather than resolve
+today's aliases or replace the selected owner. Current read/write authority,
+approval, stale-preview, request, dispatch and receipt checks remain separate.
+Unavailable or changed original selection evidence fails closed; it does not
+authorize a fresh selection or resend an unknown Effect.
+
+The bounded selection reader admits at most 65,536 UTF-8 bytes, 8,192 JSON
+nodes and depth 4. Exceeding an admission budget is a checking limitation,
+not permission to drop selection identity. Schema shape, independent canonical
+vectors and successful parsing do not establish these execution-boundary
+obligations. The existing 0.1 identity domains and historical fixtures remain
+unchanged; the two Executable Plan schema embeddings receive coordinated pins.
 
 <!-- requirement-block: compilation-identities.source-free-values-derivation-cid compilation-identities.source-free-values-derivation-admission -->
 For a checked source-free Values Result, the Derivation Evidence
@@ -2098,7 +2178,7 @@ caller connection are separate.
 
 <a id="machine-contracts"></a>
 
-<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/compiled_plan sha256:090a83a3999ddc0ac740a1edb7c62b8b3804750d7f3dfcffb23b706cf338db39 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/compiled_plan sha256:25094bdc116c9edae1f9ea4123e182d9d898f718941527fe466f55bd448fe7b8 -->
 
 ## Machine contracts
 
@@ -2148,11 +2228,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:17dce64a7870981c6e3325c69baf3f6264f3089974074754924a1b7bad62a3b1
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:efe5ffe7024c7504fb51f3544dc17d3fa1f577f503d062cec9841ab3058c2dab
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:2637cd5d00773adb47009f785bf1d14e80193b6b26ba43685eb03802e2c9ef78
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:4439bfe5ec447de3ddb7563b65eb19260405392f58d8330e413808f1f82bffb9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a

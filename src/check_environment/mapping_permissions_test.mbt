@@ -99,3 +99,30 @@ test "Mapping permission selection charges before bounded traversal" {
     true,
   )
 }
+
+///|
+test "structural Mapping operation availability does not select SET fields" {
+  let shape = mapping_permission_fixture(mapping_shape_preimage())
+  assert_eq(
+    mapping_supports_operation(shape, "create", "none", 4).unwrap(),
+    (true, 4),
+  )
+  assert_eq(
+    mapping_supports_operation(shape, "update", "id", 4).unwrap(),
+    (false, 4),
+  )
+  assert_eq(
+    mapping_supports_operation(shape, "create", "none", 3).unwrap_err(),
+    WorkLimit,
+  )
+  let malformed = mapping_permission_fixture(
+    mapping_shape_preimage().replace(
+      old="\"permissions\":[\"scope:create\"]",
+      new="\"permissions\":[]",
+    ),
+  )
+  assert_eq(
+    mapping_supports_operation(malformed, "update", "id", 100).unwrap_err(),
+    InvalidRule(0),
+  )
+}

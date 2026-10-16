@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "7f8290f6e33a51b6a5d6b6c9f82969f5a030720aac5576f8c7f6a60ed62894ac",
+      "sha256": "866cd4909fc7074f5373c918e426492c3adfcfaadd8ee5eddc68663747ef1587",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -42,7 +42,9 @@
             "modelClaim",
             "parentResume",
             "modelJournalPort",
-            "contentRun"
+            "contentRun",
+            "assertUpdateSelectionCurrent",
+            "assertContinuationCurrent"
           ],
           "async": true
         },
@@ -63,6 +65,11 @@
           "parameters": [
             "boundary"
           ],
+          "async": true
+        },
+        {
+          "name": "openAcquiredEffectComputation/current/current",
+          "parameters": [],
           "async": false
         },
         {
@@ -94,6 +101,11 @@
         },
         {
           "name": "openAcquiredEffectComputation/inferCleanupPending/inferCleanupPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/init:observeAccount/init:observeAccount",
           "parameters": [],
           "async": false
         },
@@ -202,6 +214,21 @@
           "parameters": [
             "task"
           ],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/originalCurrent/originalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/originalCurrent/originalCurrent/changed/changed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/originalCurrent/originalCurrent/originalCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -341,7 +368,12 @@
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#2",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/prepareInferComponent#3",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput"
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput",
+            "openAcquiredEffectComputation/current/current",
+            "openAcquiredEffectComputation/init:observeAccount/init:observeAccount",
+            "openAcquiredEffectComputation/originalCurrent/originalCurrent",
+            "openAcquiredEffectComputation/originalCurrent/originalCurrent/changed/changed",
+            "openAcquiredEffectComputation/originalCurrent/originalCurrent/originalCurrent"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -351,6 +383,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "does not retry acquisition, Compute, or an Effect dispatch"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "inputsOutputs": [
@@ -361,6 +397,10 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "identity": [
@@ -371,24 +411,40 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "Equal CIDs do not establish ownership"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "retainComputationOwner"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "physical owner calls this after confirmed stop"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "cancellation": [
@@ -407,6 +463,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "verification": [
@@ -425,7 +485,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
-      "sha256": "bcc2823c861c8317d9a18072db065df938e9c6cbc99e694bf883a8c812a8ab54",
+      "sha256": "8c41827c3d9108274b722d9f1427031f0699aebc66ca76b458527cbb30d62e80",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -443,7 +503,9 @@
             "resume",
             "restore",
             "signal",
-            "currentRun"
+            "currentRun",
+            "assertUpdateSelectionCurrent",
+            "assertContinuationCurrent"
           ],
           "async": false
         },
@@ -465,6 +527,11 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/approvedAccess/approvedAccess/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/approvedAccess/approvedAccess/init:authorize/init:authorize",
           "parameters": [
             "boundary",
@@ -472,6 +539,21 @@
             "options"
           ],
           "async": true
+        },
+        {
+          "name": "acquiredEffectContinuation/approvedAccess/approvedAccess/init:authorize/init:authorize/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/approvedAccess/approvedAccess/init:authorize/init:authorize/assertCurrent/assertCurrent#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/approvedAccess/approvedAccess/init:authorize/init:authorize/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "acquiredEffectContinuation/continuationWire/continuationWire",
@@ -486,15 +568,15 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/currentApproval/currentApproval",
           "parameters": [
             "checkpointCid"
           ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectContinuation/currentClaim/currentClaim",
-          "parameters": [],
           "async": false
         },
         {
@@ -628,11 +710,40 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/originalCurrent/originalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/originalCurrent/originalCurrent/changed/changed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/originalCurrent/originalCurrent/originalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/persistSource",
           "parameters": [
             "state"
           ],
           "async": true
+        },
+        {
+          "name": "acquiredEffectContinuation/sourceCurrent/sourceCurrent",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent",
+          "parameters": [
+            "state"
+          ],
+          "async": false
         },
         {
           "name": "bindingFor/bindingFor",
@@ -682,7 +793,6 @@
             "acquiredEffectContinuation/continuationWire/continuationWire",
             "acquiredEffectContinuation/continuationWire/continuationWire/continuationWire",
             "acquiredEffectContinuation/currentApproval/currentApproval",
-            "acquiredEffectContinuation/currentClaim/currentClaim",
             "acquiredEffectContinuation/ensureGate/ensureGate",
             "acquiredEffectContinuation/ensureGate/ensureGate/ensureGate",
             "acquiredEffectContinuation/ensureGate/ensureGate/ensureGate#2",
@@ -707,7 +817,17 @@
             "bindingFor/bindingFor",
             "fail/fail",
             "same/same",
-            "sourceScope/sourceScope"
+            "sourceScope/sourceScope",
+            "acquiredEffectContinuation/approvedAccess/approvedAccess/init:assertCurrent/init:assertCurrent",
+            "acquiredEffectContinuation/approvedAccess/approvedAccess/init:authorize/init:authorize/assertCurrent/assertCurrent",
+            "acquiredEffectContinuation/approvedAccess/approvedAccess/init:authorize/init:authorize/assertCurrent/assertCurrent#2",
+            "acquiredEffectContinuation/approvedAccess/approvedAccess/init:authorize/init:authorize/init:assertCurrent/init:assertCurrent",
+            "acquiredEffectContinuation/current/current",
+            "acquiredEffectContinuation/originalCurrent/originalCurrent",
+            "acquiredEffectContinuation/originalCurrent/originalCurrent/changed/changed",
+            "acquiredEffectContinuation/originalCurrent/originalCurrent/originalCurrent",
+            "acquiredEffectContinuation/sourceCurrent/sourceCurrent",
+            "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent"
           ],
           "exports": [
             "acquiredEffectContinuation"
@@ -717,6 +837,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-continuation.mjs",
                 "anchor": "existing Run-unit Checkpoint"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "inputsOutputs": [
@@ -727,30 +851,50 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/acquired-effect-source-binding.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/acquired-effect-continuation.mjs",
                 "anchor": "encrypted continuation custody"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/acquired-effect-continuation.mjs",
                 "anchor": "current"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/acquired-effect-source-binding.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "cancellation": [
@@ -769,6 +913,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "verification": [
@@ -2977,7 +3125,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "312395733553a389755d55636f40988b8561b843933346c45ba96989a9cf143f",
+      "sha256": "87d33ababac4c8e5506e7d77f8f7aba9a3d53e2db683329d8e9608f6b3e76bb6",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -3198,6 +3346,13 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/capturedUpdateOriginal/capturedUpdateOriginal",
+          "parameters": [
+            "submission"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/captureSubmission/captureSubmission",
           "parameters": [
             "submission",
@@ -3341,13 +3496,8 @@
         },
         {
           "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-          "parameters": [
-            "signal",
-            "retainExecution",
-            "beginPhysicalWork",
-            "observePreEffectFailure"
-          ],
-          "async": true
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
@@ -3421,8 +3571,23 @@
         {
           "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
           "parameters": [
+            "signal",
+            "retainExecution",
+            "beginPhysicalWork",
+            "observePreEffectFailure"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+          "parameters": [
             "terminalOutcome"
           ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -3604,7 +3769,7 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/openEffectTargetReads/openEffectTargetReads/init:assertCurrent/init:assertCurrent",
+          "name": "openInstalledHost/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -3624,11 +3789,18 @@
         },
         {
           "name": "openInstalledHost/openInstalledHost#10",
-          "parameters": [],
+          "parameters": [
+            "source"
+          ],
           "async": false
         },
         {
           "name": "openInstalledHost/openInstalledHost#11",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/openInstalledHost#12",
           "parameters": [],
           "async": false
         },
@@ -3642,13 +3814,20 @@
         {
           "name": "openInstalledHost/openInstalledHost#3",
           "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/openInstalledHost#4",
+          "parameters": [
             "event",
             "detail"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/openInstalledHost#4",
+          "name": "openInstalledHost/openInstalledHost#5",
           "parameters": [
             "key",
             "bytes",
@@ -3658,22 +3837,15 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/openInstalledHost#5",
+          "name": "openInstalledHost/openInstalledHost#6",
           "parameters": [
             "ref"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/openInstalledHost#6",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openInstalledHost/openInstalledHost#7",
-          "parameters": [
-            "effect"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -3686,7 +3858,7 @@
         {
           "name": "openInstalledHost/openInstalledHost#9",
           "parameters": [
-            "source"
+            "effect"
           ],
           "async": false
         },
@@ -3730,6 +3902,14 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/prepareCapturedSubmission/prepareCapturedSubmission",
+          "parameters": [
+            "submission",
+            "ref"
+          ],
+          "async": true
+        },
+        {
           "name": "openInstalledHost/prepareInferSelection/prepareInferSelection",
           "parameters": [
             "preparedProgram",
@@ -3741,6 +3921,18 @@
         {
           "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -3837,6 +4029,20 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/recoverEffectCapture/recoverEffectCapture",
           "parameters": [
             "ref",
@@ -3847,12 +4053,20 @@
         {
           "name": "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture",
           "parameters": [
-            "binding"
+            "saved",
+            "requestIdentity"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
           "parameters": [],
           "async": true
         },
@@ -4075,7 +4289,8 @@
           "name": "openInstalledHost/selectedInstalledEffect",
           "parameters": [
             "prepared",
-            "compilation"
+            "compilation",
+            "updateTargetSelections"
           ],
           "async": false
         },
@@ -4243,6 +4458,11 @@
           "parameters": [
             "args"
           ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -4634,7 +4854,6 @@
             "openInstalledHost/observeOwners/observeOwners/observeOwners",
             "openInstalledHost/observeRun/observeRun",
             "openInstalledHost/openEffectTargetReads/openEffectTargetReads",
-            "openInstalledHost/openEffectTargetReads/openEffectTargetReads/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/openInstalledHost",
             "openInstalledHost/openInstalledHost/openInstalledHost",
             "openInstalledHost/openInstalledHost#10",
@@ -4846,6 +5065,125 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/capturedUpdateOriginal/capturedUpdateOriginal",
+            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+            "openInstalledHost/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
+            "openInstalledHost/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
+            "openInstalledHost/openInstalledHost#12",
+            "openInstalledHost/prepareCapturedSubmission/prepareCapturedSubmission",
+            "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection",
+            "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
+            "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
+            "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect",
+            "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect#2",
+            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export async function openInstalledRemoteHttpHost({directory,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
               }
             ]
           }

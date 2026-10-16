@@ -46,6 +46,7 @@ test('retired text is distinct from retained machine input and migration complet
   assert.equal(effect.adoption, 'supported');
   assert.equal(effect.implementation_status, 'partial');
   assert.ok(effect.surface_forms.includes('|> EFFECT [name] UPDATE TARGET string MAPPING identifier [FROM RESULT name] ID field SET (assignments)'));
+  assert.ok(effect.surface_forms.includes('|> EFFECT [name] UPDATE qualified.path [MAPPING identifier] [FROM RESULT name] ID field SET (assignments)'));
   assert.ok(profile.features.find(f => f.feature_id === 'query.pipe')
     .surface_forms.includes('|> ASSERT UNIQUE BY (fields)'));
   assert.ok(effect.surface_forms.includes('|> EFFECT name ...'));
