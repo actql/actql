@@ -27,7 +27,7 @@ const digests = () => {
   // These are the original shared execution/authorization/recovery owners;
   // the independent connector is supplied through their existing table port.
   for (const file of ['installed-row-source.mjs', 'installed-row-effect.mjs',
-    'installed-connectors.mjs', 'effect-ledger.mjs', 'client-checkpoint.mjs']) {
+    'installed-connectors.mjs', 'effect-ledger.mjs', 'client-checkpoints.mjs']) {
     const path = `adapters/host-node/${file}`;
     result.push([path, createHash('sha256').update(readFileSync(join(root, path))).digest('hex')]);
   }
