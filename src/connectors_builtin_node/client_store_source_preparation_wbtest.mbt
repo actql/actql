@@ -67,3 +67,24 @@ test "published STORE public source lowerer retains its original publication" {
     Some(("connector://storage/archive", "mapping:fixture.archive.v1")),
   )
 }
+
+///|
+test "published STORE public source still requires the explicit Effect preparation route" {
+  let environment = store_source_preparation_environment()
+  let publication = store_public_bridge_publication(environment)
+  for format in ["sql", "aql-text"] {
+    let outcome = client_program_prepare_source_computation_with_parameters(
+      store_source_preparation_text(),
+      format,
+      environment,
+      publication,
+      None,
+      None,
+      false,
+      [],
+    )
+    assert_true(
+      outcome is SourcePure(Rejected(Preparation(EffectNotSupported(_)))),
+    )
+  }
+}
