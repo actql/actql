@@ -143,7 +143,7 @@ fn catalog_required_text(
   key : String,
 ) -> Result[String, CatalogIssue] {
   match catalog_required(object, key) {
-    Ok(value) => @decode.text(value).map_err(_ => InvalidResponse)
+    Ok(value) => @decode.text(value).map_err(_ => CatalogIssue::InvalidResponse)
     Err(issue) => Err(issue)
   }
 }
@@ -156,7 +156,9 @@ fn catalog_optional_text(
   match @decode.field(object, key) {
     Missing | ExplicitNull => Ok(None)
     Present(value) =>
-      @decode.text(value).map(Some).map_err(_ => InvalidResponse)
+      @decode.text(value)
+      .map(value => Some(value))
+      .map_err(_ => CatalogIssue::InvalidResponse)
   }
 }
 
@@ -178,31 +180,16 @@ fn catalog_optional_timestamp(
 }
 
 ///|
-// Tableau JSON pagination uses decimal strings. Exact numeric JSON values are
-// accepted only through the existing safe-integer reader; no Double rounding.
+// Tableau's documented JSON pagination fields are canonical decimal strings.
+// Keep their exact Int64 spelling; do not round a JSON Double into a counter.
 fn catalog_counter(value : @decode.Cursor) -> Result[Int64, CatalogIssue] {
-  match @decode.text(value) {
-    Ok(text) =>
-      match @decode.decimal_int64(value) {
-        Ok(number) =>
-          if number >= 0L && number.to_string() == text {
-            Ok(number)
-          } else {
-            Err(InvalidResponse)
-          }
-        Err(_) => Err(InvalidResponse)
-      }
-    Err(_) =>
-      match @decode.safe_integer(value) {
-        Ok(number) =>
-          if number >= 0L {
-            Ok(number)
-          } else {
-            Err(InvalidResponse)
-          }
-        Err(_) => Err(InvalidResponse)
-      }
+  guard @decode.text(value) is Ok(text) &&
+    @decode.decimal_int64(value) is Ok(number) &&
+    number >= 0L &&
+    number.to_string() == text else {
+    return Err(InvalidResponse)
   }
+  Ok(number)
 }
 
 ///|
@@ -225,7 +212,7 @@ fn catalog_optional_identity(
     Missing | ExplicitNull => Ok(None)
     Present(value) => {
       let nested = match
-        @decode.open_object(value).map_err(_ => InvalidResponse) {
+        @decode.open_object(value).map_err(_ => CatalogIssue::InvalidResponse) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -256,7 +243,9 @@ fn catalog_tags(
         Ok(values) => values
         Err(_) => {
           let nested = match
-            @decode.open_object(value).map_err(_ => InvalidResponse) {
+            @decode.open_object(value).map_err(_ => {
+              CatalogIssue::InvalidResponse
+            }) {
             Ok(value) => value
             Err(issue) => return Err(issue)
           }
@@ -266,7 +255,7 @@ fn catalog_tags(
                 Ok(value) => value
                 Err(issue) => return Err(issue)
               },
-            ).map_err(_ => InvalidResponse) {
+            ).map_err(_ => CatalogIssue::InvalidResponse) {
             Ok(value) => value
             Err(issue) => return Err(issue)
           }
@@ -275,7 +264,7 @@ fn catalog_tags(
       let tags : Array[String] = []
       for value in values {
         let tag = match
-          @decode.open_object(value).map_err(_ => InvalidResponse) {
+          @decode.open_object(value).map_err(_ => CatalogIssue::InvalidResponse) {
           Ok(value) => value
           Err(issue) => return Err(issue)
         }
@@ -296,7 +285,8 @@ fn catalog_row(
   kind : CatalogKind,
   value : @decode.Cursor,
 ) -> Result[CatalogRow, CatalogIssue] {
-  let object = match @decode.open_object(value).map_err(_ => InvalidResponse) {
+  let object = match
+    @decode.open_object(value).map_err(_ => CatalogIssue::InvalidResponse) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -365,7 +355,7 @@ fn catalog_row(
       Missing | ExplicitNull => None
       Present(value) => {
         let usage = match
-          @decode.open_object(value).map_err(_ => InvalidResponse) {
+          @decode.open_object(value).map_err(_ => CatalogIssue::InvalidResponse) {
           Ok(value) => value
           Err(issue) => return Err(issue)
         }
@@ -455,7 +445,7 @@ pub fn admit_catalog_page(
     Ok(values) => values
     Err(_) => {
       let wrapper = match
-        @decode.open_object(selected).map_err(_ => InvalidResponse) {
+        @decode.open_object(selected).map_err(_ => CatalogIssue::InvalidResponse) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -465,7 +455,7 @@ pub fn admit_catalog_page(
             Ok(value) => value
             Err(issue) => return Err(issue)
           },
-        ).map_err(_ => InvalidResponse) {
+        ).map_err(_ => CatalogIssue::InvalidResponse) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -539,5 +529,5 @@ pub fn next_catalog_page(
     page.request.site_id,
     page.request.page_number + 1,
     max_path_bytes,
-  ).map(Some)
+  ).map(value => Some(value))
 }

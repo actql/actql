@@ -555,3 +555,14 @@ test "caller row-array mutation cannot change the original pagination observatio
   rows.clear()
   assert_true(next_catalog_page(page, 256) is Ok(None))
 }
+
+///|
+test "numeric JSON pagination is not rounded into the documented decimal-string profile" {
+  for total in ["1", "1.000000000000000000001", "9007199254740993"] {
+    let body = @utf8.encode(
+      "{\\"pagination\\":{\\"pageNumber\\":\\"1\\",\\"pageSize\\":\\"100\\",\\"totalAvailable\\":" +
+      total + "},\\"workbooks\\":{\\"workbook\\":[" + catalog_fixture_row(1) + "]}}")
+    assert_true(admit_catalog_page(catalog_request(Workbooks), 200, body,
+      catalog_limits()) is Err(InvalidResponse))
+  }
+}
