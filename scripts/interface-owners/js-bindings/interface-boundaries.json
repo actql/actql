@@ -52598,7 +52598,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "878f41d5ecc9ad7d701c8cbf01b9987b192b9089d2f1ac2af486e2d6dc74addc",
+      "sha256": "06519eeb75b307c36eaf8a17353a445a43477a12430989132c951d0899aa09f6",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -52717,6 +52717,13 @@
         {
           "name": "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/consumeObservation",
+          "parameters": [
+            "charge"
+          ],
           "async": false
         },
         {
@@ -53688,7 +53695,8 @@
             "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
             "createInstalledRowSource/sourceRefs/sourceRefs",
             "createInstalledRowSource/verifyKeyedRead",
-            "createInstalledRowSource/verifyKeyedRead/recheck/recheck"
+            "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
+            "createInstalledRowSource/acquire/consumeObservation"
           ],
           "exports": [
             "createInstalledRowSource"

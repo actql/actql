@@ -14,9 +14,12 @@ const declarations = JSON.parse(readFileSync(new URL(
 const paths = ['src/connectors/gcs/catalog/object_metadata.mbt',
   'src/connectors/gcs/catalog/object_request.mbt',
   'src/connectors/gcs/catalog/object_projection.mbt',
+  'src/connectors/gcs/catalog/collection_identity.mbt',
   'src/connectors/gcs/catalog/pkg.generated.mbti',
   'src/connectors/gcs/host_node/object.mbt',
+  'src/connectors/gcs/host_node/collection.mbt',
   'src/connectors/gcs/host_node/pkg.generated.mbti',
+  'adapters/connectors/gcs/host/gcs-collection-target.mjs',
   'adapters/connectors/gcs/site/gcs-owned-object-request.mjs'];
 const moduleOf = (module, source = readFileSync(new URL(`../${module}`, import.meta.url), 'utf8')) => ({
   module, sha256: createHash('sha256').update(source).digest('hex'),
@@ -25,9 +28,9 @@ const moduleOf = (module, source = readFileSync(new URL(`../${module}`, import.m
       : {operations: moonOperations(source), exports: []}),
 });
 
-test('all seven explicit GCS owner operations and APIs retain their ten contract references', () => {
-  assert.equal(declarations.length, 7);
-  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 7);
+test('all ten explicit GCS owner operations and APIs retain their ten contract references', () => {
+  assert.equal(declarations.length, 10);
+  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 10);
   assert.deepEqual(moduleOf(paths.at(-1)).compilerFields, []);
 });
 
