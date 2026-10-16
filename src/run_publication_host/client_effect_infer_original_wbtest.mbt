@@ -29,8 +29,11 @@ fn selected_infer_original_fixture() -> (
   ).unwrap()
   let document = document.replace(
     old="\"as\":\"selected\"}]",
-    new="\"as\":\"input\"},{\"assert_rows\":{\"unique_by\":[\"id\"]}},{\"infer\":{\"contract\":\"model-task:risk-score.v1\",\"key\":\"id\",\"input\":{\"text\":{\"field\":\"id\"}}},\"as\":\"inferred\"},{\"join\":{\"with\":\"input\",\"kind\":\"inner\",\"cardinality\":\"one_to_one\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"right.id\",\"value\":\"right.value\"}},\"as\":\"selected\"}]",
+    new="\"as\":\"input\"},{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"joined\"},{\"infer\":{\"contract\":\"model-task:risk-score.v1\",\"key\":\"id\",\"input\":{\"text\":{\"field\":\"id\"}}},\"as\":\"inferred\"},{\"join\":{\"with\":\"joined\",\"kind\":\"inner\",\"cardinality\":\"one_to_one\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"right.id\",\"value\":\"right.value\"}},\"as\":\"selected\"}]",
   )
+  // The checked component retains the terminal prefix, not every prior
+  // alias. Join the same original rows after their existing uniqueness check;
+  // do not replace the Model/UPDATE fixture or add another producer edge.
   let prepared = prepare_client_effect_computation(
     document,
     Json,
