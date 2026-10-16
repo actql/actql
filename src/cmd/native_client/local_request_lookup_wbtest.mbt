@@ -1,4 +1,20 @@
 ///|
+fn[T, E] request_lookup_ok(value : Result[T, E], phase : String) -> T raise {
+  match value {
+    Ok(value) => value
+    Err(_) => fail("Native request lookup fixture: " + phase)
+  }
+}
+
+///|
+fn[T] request_lookup_some(value : T?, phase : String) -> T raise {
+  match value {
+    Some(value) => value
+    None => fail("Native request lookup fixture: " + phase)
+  }
+}
+
+///|
 // Fresh physical Host/Account/SQLite; no old Run, fake Store or Provider.
 fn request_lookup_fixture(
   name : String,
@@ -9,29 +25,54 @@ fn request_lookup_fixture(
   LocalHostSettings,
   @local_crypto.Library,
 ) raise {
-  let base = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let base = request_lookup_some(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT"),
+    "root",
+  )
   let root = base + "/" + name
   if !existing {
-    let parent = @local_filesystem.open_private_root(base).unwrap()
-    parent.create_directory(name).unwrap() |> ignore
-    parent.close().unwrap()
-    let files = @local_filesystem.open_private_root(root).unwrap()
+    let parent = request_lookup_ok(
+      @local_filesystem.open_private_root(base),
+      "parent",
+    )
+    request_lookup_ok(parent.create_directory(name), "directory") |> ignore
+    request_lookup_ok(parent.close(), "parent.close")
+    let files = request_lookup_ok(
+      @local_filesystem.open_private_root(root),
+      "files",
+    )
     let operations = if read { "[\"read\",\"submit\"]" } else { "[\"submit\"]" }
     let body = @utf8.encode(
       "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"request-lookup\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":" +
       operations +
       "},\"exclusions\":[]}]}",
     )
-    let writer = files.create_writer("account.stage", 4096L).unwrap()
-    writer.append(body).unwrap()
-    writer.seal("account.json").unwrap() |> ignore
-    files.close().unwrap()
+    let writer = request_lookup_ok(
+      files.create_writer("account.stage", 4096L),
+      "writer",
+    )
+    request_lookup_ok(writer.append(body), "append")
+    request_lookup_ok(writer.seal("account.json"), "seal") |> ignore
+    request_lookup_ok(files.close(), "files.close")
   }
-  let crypto_path = @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap()
-  let sqlite_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
-  let crypto = @local_crypto.load_library(crypto_path).unwrap()
-  let sqlite = @local_sqlite.load_library(sqlite_path).unwrap()
-  let host = @local_host.begin_native_local_host_adoption(
+  let crypto_path = request_lookup_some(
+    @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY"),
+    "crypto-library",
+  )
+  let sqlite_path = request_lookup_some(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY"),
+    "sqlite-library",
+  )
+  let crypto = request_lookup_ok(
+    @local_crypto.load_library(crypto_path),
+    "crypto",
+  )
+  let sqlite = request_lookup_ok(
+    @local_sqlite.load_library(sqlite_path),
+    "sqlite",
+  )
+  let session = request_lookup_ok(
+    @local_host.begin_native_local_host_adoption(
       root,
       "host",
       root,
@@ -39,10 +80,13 @@ fn request_lookup_fixture(
       "operator",
       crypto,
       existing_only=existing,
-    )
-    .unwrap()
-    .open_journal(sqlite, crypto, 100.0, 8, 8388608L)
-    .unwrap()
+    ),
+    "adoption",
+  )
+  let host = request_lookup_ok(
+    session.open_journal(sqlite, crypto, 100.0, 8, 8388608L),
+    "journal.open",
+  )
   let settings : LocalHostSettings = {
     account_file: "account.json",
     account_id: "operator",
@@ -78,34 +122,33 @@ fn request_lookup_original(
   @run_host.ClientSubmittedIntent,
   String,
 ) raise {
-  let scope = host
-    .authority_scope_cid(settings.principal, settings.connection, crypto)
-    .unwrap()
-  let allowed = local_submit_allowed(host, settings, crypto, scope)
-  let epoch = host
-    .epoch_authority()
-    .unwrap()
-    .issue_epoch(scope, allowed, 1000.0)
-    .unwrap()
-  let reference = @local_host.prepare_native_client_submission_reference(
-    epoch, nonce,
-  ).unwrap()
-  let intent = @run_host.prepare_client_submitted_intent(
-    "{\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\"},\"parameters\":null}",
-    65536, 8192, 64,
-  ).unwrap()
-  host
-  .run_journal()
-  .unwrap()
-  .record_submitted_intent(
-    host.epoch_authority().unwrap(),
-    reference,
-    intent,
-    scope,
-    allowed,
-    1001.0,
+  let scope = request_lookup_ok(
+    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+    "scope",
   )
-  .unwrap()
+  let allowed = local_submit_allowed(host, settings, crypto, scope)
+  let authority = request_lookup_ok(host.epoch_authority(), "epoch")
+  let epoch = request_lookup_ok(
+    authority.issue_epoch(scope, allowed, 1000.0),
+    "epoch.issue",
+  )
+  let reference = request_lookup_ok(
+    @local_host.prepare_native_client_submission_reference(epoch, nonce),
+    "reference",
+  )
+  let intent = request_lookup_ok(
+    @run_host.prepare_client_submitted_intent(
+      "{\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\"},\"parameters\":null}",
+      65536, 8192, 64,
+    ),
+    "intent",
+  )
+  request_lookup_ok(
+    request_lookup_ok(host.run_journal(), "journal").record_submitted_intent(
+      authority, reference, intent, scope, allowed, 1001.0,
+    ),
+    "record",
+  )
   |> ignore
   (reference, epoch, intent, scope)
 }
@@ -120,36 +163,53 @@ test "request ID lookup selects the retained preparing reference and CLI uses no
   let selected = host.lookup_submission_reference_by_request_id(
     crypto, "operator", "cli", request_id, 1002.0,
   )
-  let child = command().parse(argv=[
-      "lookup-request", "--request-id", request_id,
-    ]).subcommand.unwrap().1
+  let child = request_lookup_some(
+      command().parse(argv=["lookup-request", "--request-id", request_id]).subcommand,
+      "command",
+    ).1
   let reply = local_request_lookup(host, settings, crypto, child)
-  host.close().unwrap()
+  request_lookup_ok(host.close(), "host.close")
   assert_eq(
     @local_host.native_client_submission_reference_wire(
-      selected.unwrap().unwrap(),
+      request_lookup_some(
+        request_lookup_ok(selected, "select"),
+        "selected.reference",
+      ),
     ),
     @local_host.native_client_submission_reference_wire(reference),
   )
-  let root = @decode.open_object(local_input_cursor(reply)).unwrap()
+  let root = request_lookup_ok(
+    @decode.open_object(local_input_cursor(reply)),
+    "reply.object",
+  )
   assert_eq(
-    @decode.text(@decode.lookup(root, "kind").unwrap()),
+    @decode.text(
+      request_lookup_some(@decode.lookup(root, "kind"), "reply.kind"),
+    ),
     Ok("local_submission_lookup"),
   )
   assert_eq(
-    @decode.text(@decode.lookup(root, "history").unwrap()),
+    @decode.text(
+      request_lookup_some(@decode.lookup(root, "history"), "reply.history"),
+    ),
     Ok("retained"),
   )
   assert_eq(
-    @decode.text(@decode.lookup(root, "phase").unwrap()),
+    @decode.text(
+      request_lookup_some(@decode.lookup(root, "phase"), "reply.phase"),
+    ),
     Ok("preparing"),
   )
   assert_eq(
-    @decode.text(@decode.lookup(root, "requestId").unwrap()),
+    @decode.text(
+      request_lookup_some(@decode.lookup(root, "requestId"), "reply.requestId"),
+    ),
     Ok(request_id),
   )
   assert_eq(
-    @decode.text(@decode.lookup(root, "intentCid").unwrap()),
+    @decode.text(
+      request_lookup_some(@decode.lookup(root, "intentCid"), "reply.intentCid"),
+    ),
     Ok(@run_host.client_submitted_intent_cid(intent)),
   )
   assert_true(@decode.lookup(root, "ref") is None)
@@ -162,16 +222,17 @@ test "unknown IDs and nonces cannot create or select a fresh Submission" {
   let (reference, _, _, scope) = request_lookup_original(
     host, settings, crypto, "original-nonce",
   )
-  let journal = host.run_journal().unwrap()
-  let before = journal
-    .lookup_submitted_intent(
-      host.epoch_authority().unwrap(),
+  let journal = request_lookup_ok(host.run_journal(), "journal")
+  let before = request_lookup_ok(
+    journal.lookup_submitted_intent(
+      request_lookup_ok(host.epoch_authority(), "epoch"),
       reference,
       scope,
       true,
       1002.0,
-    )
-    .unwrap()
+    ),
+    "before",
+  )
   let missing = host.lookup_submission_reference_by_request_id(
     crypto,
     "operator",
@@ -182,16 +243,17 @@ test "unknown IDs and nonces cannot create or select a fresh Submission" {
   let nonce = host.lookup_submission_reference_by_request_id(
     crypto, "operator", "cli", "original-nonce", 1003.0,
   )
-  let after = journal
-    .lookup_submitted_intent(
-      host.epoch_authority().unwrap(),
+  let after = request_lookup_ok(
+    journal.lookup_submitted_intent(
+      request_lookup_ok(host.epoch_authority(), "epoch"),
       reference,
       scope,
       true,
       1003.0,
-    )
-    .unwrap()
-  host.close().unwrap()
+    ),
+    "after",
+  )
+  request_lookup_ok(host.close(), "host.close")
   assert_true(missing is Ok(None))
   assert_true(nonce is Err(@local_host.InvalidSubmission))
   guard before is Submitted(before) && after is Submitted(after) else {
@@ -229,7 +291,7 @@ test "current RunRead is independent of the original submit authorization" {
     @local_host.native_client_submission_request_id(reference),
     1002.0,
   )
-  host.close().unwrap()
+  request_lookup_ok(host.close(), "host.close")
   assert_true(submit)
   assert_true(selected is Err(@local_host.AuthorizationDenied))
 }
@@ -246,35 +308,41 @@ test "history lookup after expiry and reopen preserves the same token without ne
   let at_expiry = host.lookup_submission_reference_by_request_id(
     crypto, "operator", "cli", request_id, 1100.0,
   )
-  host.close().unwrap()
+  request_lookup_ok(host.close(), "host.close")
   let (reopened, _, _) = request_lookup_fixture(name, existing=true)
   let restored = reopened.lookup_submission_reference_by_request_id(
     crypto, "operator", "cli", request_id, 1101.0,
   )
-  let fresh = @local_host.prepare_native_client_submission_reference(
-    token, "new-after-expiry",
-  ).unwrap()
-  let refused = reopened
-    .run_journal()
-    .unwrap()
-    .record_submitted_intent(
-      reopened.epoch_authority().unwrap(),
-      fresh,
-      intent,
-      scope,
-      true,
-      1101.0,
-    )
-  reopened.close().unwrap()
+  let fresh = request_lookup_ok(
+    @local_host.prepare_native_client_submission_reference(
+      token, "new-after-expiry",
+    ),
+    "expired.reference",
+  )
+  let refused = request_lookup_ok(reopened.run_journal(), "reopened.journal").record_submitted_intent(
+    request_lookup_ok(reopened.epoch_authority(), "reopened.epoch"),
+    fresh,
+    intent,
+    scope,
+    true,
+    1101.0,
+  )
+  request_lookup_ok(reopened.close(), "reopened.close")
   assert_eq(
     @local_host.native_client_submission_reference_wire(
-      at_expiry.unwrap().unwrap(),
+      request_lookup_some(
+        request_lookup_ok(at_expiry, "expiry"),
+        "expiry.reference",
+      ),
     ),
     wire,
   )
   assert_eq(
     @local_host.native_client_submission_reference_wire(
-      restored.unwrap().unwrap(),
+      request_lookup_some(
+        request_lookup_ok(restored, "restore"),
+        "restored.reference",
+      ),
     ),
     wire,
   )
@@ -289,19 +357,29 @@ test "same epoch different nonce and different epoch same nonce keep distinct or
   let (first, token, intent, scope) = request_lookup_original(
     host, settings, crypto, "same-nonce",
   )
-  let other_nonce = @local_host.prepare_native_client_submission_reference(
-    token, "other-nonce",
-  ).unwrap()
-  let epoch = host.epoch_authority().unwrap()
-  let other_token = epoch.issue_epoch(scope, true, 1002.0).unwrap()
-  let other_epoch = @local_host.prepare_native_client_submission_reference(
-    other_token, "same-nonce",
-  ).unwrap()
-  let journal = host.run_journal().unwrap()
+  let other_nonce = request_lookup_ok(
+    @local_host.prepare_native_client_submission_reference(token, "other-nonce"),
+    "other.nonce",
+  )
+  let epoch = request_lookup_ok(host.epoch_authority(), "epoch")
+  let other_token = request_lookup_ok(
+    epoch.issue_epoch(scope, true, 1002.0),
+    "other.epoch",
+  )
+  let other_epoch = request_lookup_ok(
+    @local_host.prepare_native_client_submission_reference(
+      other_token, "same-nonce",
+    ),
+    "other.epoch.reference",
+  )
+  let journal = request_lookup_ok(host.run_journal(), "journal")
   for reference in [other_nonce, other_epoch] {
-    journal
-    .record_submitted_intent(epoch, reference, intent, scope, true, 1003.0)
-    .unwrap()
+    request_lookup_ok(
+      journal.record_submitted_intent(
+        epoch, reference, intent, scope, true, 1003.0,
+      ),
+      "other.record",
+    )
     |> ignore
   }
   let selected = [first, other_nonce, other_epoch].map(reference => {
@@ -313,12 +391,15 @@ test "same epoch different nonce and different epoch same nonce keep distinct or
       1004.0,
     )
   })
-  host.close().unwrap()
+  request_lookup_ok(host.close(), "host.close")
   let originals = [first, other_nonce, other_epoch]
   for index in 0..<3 {
     assert_eq(
       @local_host.native_client_submission_reference_wire(
-        selected[index].unwrap().unwrap(),
+        request_lookup_some(
+          request_lookup_ok(selected[index], "select.identity"),
+          "identity.reference",
+        ),
       ),
       @local_host.native_client_submission_reference_wire(originals[index]),
     )
@@ -341,7 +422,7 @@ test "foreign principal and retired Host cannot turn an original ID into current
   let foreign = host.lookup_submission_reference_by_request_id(
     crypto, "foreign", "cli", id, 1002.0,
   )
-  host.close().unwrap()
+  request_lookup_ok(host.close(), "host.close")
   let retired = host.lookup_submission_reference_by_request_id(
     crypto, "operator", "cli", id, 1003.0,
   )
@@ -355,20 +436,36 @@ fn request_lookup_corrupt_row(
   settings : LocalHostSettings,
   reference : @local_host.NativeClientSubmissionReference,
   body : Bytes,
-) {
-  let library = @local_sqlite.load_library(settings.sqlite_library).unwrap()
-  let database = library
-    .open_database(settings.state_parent + "/host/client.sqlite3", 8388608L)
-    .unwrap()
+) -> Unit raise {
+  let library = request_lookup_ok(
+    @local_sqlite.load_library(settings.sqlite_library),
+    "fault.library",
+  )
+  let database = request_lookup_ok(
+    library.open_database(
+      settings.state_parent + "/host/client.sqlite3",
+      8388608L,
+    ),
+    "fault.database",
+  )
   let id = @local_host.native_client_submission_request_id(reference)
-  database.begin_immediate().unwrap()
-  let row = database.read("client_submitted_intents", id).unwrap()
-  database
-  .compare_exchange("client_submitted_intents", id, row.revision, body)
-  .unwrap()
+  request_lookup_ok(database.begin_immediate(), "fault.begin")
+  let row = request_lookup_ok(
+    database.read("client_submitted_intents", id),
+    "fault.read",
+  )
+  request_lookup_ok(
+    database.compare_exchange(
+      "client_submitted_intents",
+      id,
+      row.revision,
+      body,
+    ),
+    "fault.cas",
+  )
   |> ignore
-  database.commit().unwrap()
-  database.close_checked().unwrap()
+  request_lookup_ok(database.commit(), "fault.commit")
+  request_lookup_ok(database.close_checked(), "fault.close")
 }
 
 ///|
@@ -377,21 +474,21 @@ test "malformed nonselected custody prevents returning an otherwise valid select
   let (reference, token, intent, scope) = request_lookup_original(
     host, settings, crypto, "selected",
   )
-  let other = @local_host.prepare_native_client_submission_reference(
-    token, "nonselected",
-  ).unwrap()
-  host
-  .run_journal()
-  .unwrap()
-  .record_submitted_intent(
-    host.epoch_authority().unwrap(),
-    other,
-    intent,
-    scope,
-    true,
-    1002.0,
+  let other = request_lookup_ok(
+    @local_host.prepare_native_client_submission_reference(token, "nonselected"),
+    "nonselected.reference",
   )
-  .unwrap()
+  request_lookup_ok(
+    request_lookup_ok(host.run_journal(), "journal").record_submitted_intent(
+      request_lookup_ok(host.epoch_authority(), "epoch"),
+      other,
+      intent,
+      scope,
+      true,
+      1002.0,
+    ),
+    "nonselected.record",
+  )
   |> ignore
   request_lookup_corrupt_row(settings, other, b"{}")
   let selected = host.lookup_submission_reference_by_request_id(
@@ -401,7 +498,7 @@ test "malformed nonselected custody prevents returning an otherwise valid select
     @local_host.native_client_submission_request_id(reference),
     1003.0,
   )
-  host.close().unwrap()
+  request_lookup_ok(host.close(), "host.close")
   assert_true(selected is Err(@local_host.CustodyLost))
 }
 
@@ -415,19 +512,25 @@ test "selected reference identity without its original HMAC is not authentic cus
   guard @json.parse(wire) is Object(fields) &&
     fields.get("epoch") is Some(Object(token)) &&
     token.get("authenticator") is Some(String(tag)) else {
-    host.close().unwrap()
+    request_lookup_ok(host.close(), "host.close")
     fail("public token shape")
   }
-  let different = (if tag[0] == '0' { "1" } else { "0" }) + tag[1:]
+  let different = (if tag[0] == '0' { "1" } else { "0" }) + tag[1:].to_owned()
   token["authenticator"] = Json::string(different)
   fields["epoch"] = Json::object(token)
-  let forged = @local_host.admit_native_client_submission_reference(
-    encode_request_json(Json::object(fields), 4096),
-  ).unwrap()
-  let body = @run_host.client_submitted_intent_journal_row_body(
-    @local_host.native_client_submission_reference_wire(forged),
-    intent,
-  ).unwrap()
+  let forged = request_lookup_ok(
+    @local_host.admit_native_client_submission_reference(
+      encode_request_json(Json::object(fields), 4096),
+    ),
+    "forged.reference",
+  )
+  let body = request_lookup_ok(
+    @run_host.client_submitted_intent_journal_row_body(
+      @local_host.native_client_submission_reference_wire(forged),
+      intent,
+    ),
+    "forged.row",
+  )
   request_lookup_corrupt_row(settings, reference, body)
   let selected = host.lookup_submission_reference_by_request_id(
     crypto,
@@ -436,6 +539,6 @@ test "selected reference identity without its original HMAC is not authentic cus
     @local_host.native_client_submission_request_id(reference),
     1003.0,
   )
-  host.close().unwrap()
+  request_lookup_ok(host.close(), "host.close")
   assert_true(selected is Err(@local_host.Epoch(@local_host.Unverifiable)))
 }
