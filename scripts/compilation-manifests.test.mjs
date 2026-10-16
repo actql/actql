@@ -347,8 +347,10 @@ test('inference barrier binds the existing model Plan and adjacent fragment', ()
 test('published STORE keeps the original Program schema and advances only current grammar pins', () => {
   const vector = read('scripts/fixtures/published-store-grammar/manifest-identities.json');
   const prior = read(vector.prior_program_schema_file);
-  const current = read('spec/contracts/actql-protocol-schemas.json').artifact_schemas
-    .executable_plan.properties.execution_material.properties.program;
+  const current = read('portability/fixtures/program-grammar-before-published-command.json');
+  assert.deepEqual(current, JSON.parse(execFileSync('git', ['show',
+    '585c4be8ecbe1bf30883bd4d716fb83b4fb97a6c:spec/contracts/actql-protocol-schemas.json'],
+    {encoding:'utf8',maxBuffer:16*1024*1024})).artifact_schemas.executable_plan.properties.execution_material.properties.program);
   assert.equal(machineCid(prior), vector.prior_program_schema_cid);
   assert.equal(machineCid(current), vector.current_program_schema_cid);
   assert.deepEqual(prior, JSON.parse(execFileSync('git', ['show',
@@ -368,7 +370,7 @@ test('published STORE keeps the original Program schema and advances only curren
   assert.equal(oldSource, vector.prior_program_schema_cid);
   assert.equal(newSource, vector.current_program_schema_cid);
   assert.notEqual(oldSource, newSource);
-  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), vector.after);
+  assert.deepEqual(read('portability/fixtures/grammar-before-published-command.json'), vector.after);
 
   // The approved selector is the sole schema delta. The old field branch is
   // retained exactly, rather than reconstructed from an old CID or a new name.

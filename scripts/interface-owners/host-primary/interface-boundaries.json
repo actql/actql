@@ -3181,7 +3181,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "0a0d6037fe198f6d8179f82006b29ef15651ecc68d45708ab38e419cb9ac22de",
+      "sha256": "95ba37207a00f544e9d019e419bdd4a9a26ce394b24fac407800b3a7a65faae4",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -3445,9 +3445,7 @@
         {
           "name": "openInstalledHost/checkpointOperations/checkpointOperations",
           "parameters": [
-            "actual",
-            "after",
-            "limit"
+            "value"
           ],
           "async": false
         },

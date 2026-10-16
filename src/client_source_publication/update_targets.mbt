@@ -54,6 +54,7 @@ pub fn published_update_targets(
     let root = source_publication_cursor(publication)
     let object = @decode.closed_object(root, [
       "environmentCid", "aliases", "tableWrites", "updateTargets", "storeTargets",
+      "commandTargets",
     ]).unwrap_or_else(() => raise PublicationStop(Publication))
     if source_publication_text(root, "environmentCid") !=
       @program_check.checking_environment_cid(environment) {

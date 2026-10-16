@@ -7,7 +7,9 @@ pub(all) enum EffectResultBindingIssueKind {
   MissingTableInput
   MissingField
   InvalidCommandTarget
+  InvalidCommandIdentifier
   UnsupportedTableInput
+  InvalidCommandInputKey
 } derive(Eq, Debug)
 
 ///|
@@ -59,7 +61,9 @@ pub(all) enum EffectResultFieldRole {
   EffectSelector
   EffectUpsertKey
   EffectCommandTarget
+  EffectCommandIdentifier
   EffectValue(String)
+  EffectCommandInputKey
 } derive(Eq, Debug)
 
 ///|
@@ -298,6 +302,20 @@ pub fn bind_effect_results(
         let target = @decode.lookup(body, "target").unwrap()
         direct = @decode.lookup(@decode.open_object(target).unwrap(), "field")
         direct_role = EffectCommandTarget
+        if @syntax.effect_header_published_command_target(header)
+          is Some((_, identifier)) {
+          if identifier is Some(_) {
+            let publication = @decode.lookup(
+              @decode.open_object(target).unwrap(),
+              "published_command",
+            ).unwrap()
+            direct = @decode.lookup(
+              @decode.open_object(publication).unwrap(),
+              "identifier_field",
+            )
+            direct_role = EffectCommandIdentifier
+          }
+        }
       }
       if direct is Some(cursor) {
         remaining = match binding_charge(header, remaining, 1) {
@@ -314,10 +332,39 @@ pub fn bind_effect_results(
                 binding_issue(InvalidCommandTarget, header, field=Some(name)),
               )
             }
+            if direct_role == EffectCommandIdentifier &&
+              @schema.field_presence(field) != @schema.Required {
+              return Err(
+                binding_issue(
+                  InvalidCommandIdentifier,
+                  header,
+                  field=Some(name),
+                ),
+              )
+            }
             fields.push({ role: direct_role, field, })
           }
           Err(issue) => return Err(issue)
         }
+      }
+      if @syntax.effect_header_command_input_key(header) is Some(name) {
+        remaining = match binding_charge(header, remaining, 1) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        let field = match binding_field(header, definition, name) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        let contract = @schema.field_contract(field)
+        if @schema.field_presence(field) != @schema.Required ||
+          contract.nullable ||
+          !@contract.key_comparable(contract, contract) {
+          return Err(
+            binding_issue(InvalidCommandInputKey, header, field=Some(name)),
+          )
+        }
+        fields.push({ role: EffectCommandInputKey, field, })
       }
       let values = if kind == "command" {
         @decode.lookup(body, "input")

@@ -18,12 +18,12 @@ class Client:
         self._closed = False
 
     @classmethod
-    def open(cls):
+    def open(cls, *, signer=None):
         """Use the same installed Local factory; never nest an application loop."""
         _outside_loop()
         runner = asyncio.Runner()
         try:
-            client = runner.run(AsyncClient.open())
+            client = runner.run(AsyncClient.open(signer=signer))
         except BaseException as failure:
             cleanup_client = getattr(failure, 'cleanup_client', None)
             if isinstance(failure, ClientError) and isinstance(cleanup_client, AsyncClient):
@@ -105,6 +105,12 @@ class Client:
 
     def resolve_checkpoints(self, items, **options):
         return self._call(self._client.resolve_checkpoints, items, **options)
+
+    def approve(self, checkpoint_id):
+        return self._call(self._client.approve, checkpoint_id)
+
+    def reject(self, checkpoint_id):
+        return self._call(self._client.reject, checkpoint_id)
 
 
 class Execution:

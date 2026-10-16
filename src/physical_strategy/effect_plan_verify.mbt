@@ -90,6 +90,12 @@ pub fn prepare_captured_effect_proposal_plan(
     Ok(value) => value
     Err(issue) => return Err(Plan(issue))
   }
+  // The original whole-input key validator must complete nominally before
+  // this Command can produce a proposal. Static field admission is no proof.
+  if command is Some(command) &&
+    @results.effect_command_input_key(command) is Some(_) {
+    return Err(NotReady)
+  }
   if command is Some(command) &&
     @results.effect_command_input_field_count(command) > max_fields {
     return Err(Plan(@results.Terminal(@results.FieldLimit)))
@@ -382,6 +388,11 @@ pub fn prepare_captured_effect_plan_verifier(
     None
   }
   if command is Some(command) {
+    // A retained Preview must not bypass the same still-pending original
+    // input-key obligation through the later payload-proof entrance.
+    if @results.effect_command_input_key(command) is Some(_) {
+      return Err(NotReady)
+    }
     if terminal is Some(_) ||
       @results.effect_command_input_field_count(command) > max_fields {
       return Err(Plan(Plan(@results.Terminal(@results.FieldLimit))))

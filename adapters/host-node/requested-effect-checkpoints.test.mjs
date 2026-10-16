@@ -98,11 +98,58 @@ async function fixture(t, {outcome = 'allow', decide} = {}) {
   t.after(async () => {
     for (const owned of gates) owned.close();
     for (const installed of services) await close(installed);
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') t.diagnostic(`Original requested-stop journal retained: ${root}`);
+    else await rm(root, {recursive: true, force: true});
   });
   return {open, close, gate, approve, options, original,
     retained: () => retained, retire() { current = false; }};
 }
+
+test('exact pending lookup selects only the same original ID without a paging search', async t => {
+  const f = await fixture(t), installed = await f.open(), gate = await f.gate(installed);
+  await gate.authorize('effect_commit', tuple, {subjectCid: cid('2')});
+  const [summary] = (await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 10})).items;
+  const select = checkpointId => installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 1, checkpointId});
+  assert.deepEqual(await select(summary.checkpointId), {items: [summary]});
+  assert.deepEqual(await select('not-an-original-id'), {items: []});
+  assert.deepEqual(await select(summary.checkpointCid), {items: []}, 'CID fallback cannot become an ID match');
+  for (const changed of [{after: 'foreign-cursor'}, {limit: 2}, {checkpointId: null}, {checkpointId: true}, {checkpointId: undefined}]) {
+    await assert.rejects(installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 1,
+      checkpointId: summary.checkpointId, ...changed}), {code: 'InvalidCheckpointLookup'});
+  }
+  assert.equal(installed.journal.listRunCheckpoints().length, 1, 'lookup creates no nominal replacement');
+});
+
+test('exact pending lookup retains the existing principal and Host scope refusal', async t => {
+  const f = await fixture(t), installed = await f.open(), gate = await f.gate(installed);
+  await gate.authorize('effect_commit', tuple, {subjectCid: cid('2')});
+  const [summary] = (await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 10})).items;
+  await assert.rejects(installed.listCheckpoints({principalId: 'foreign', after: '', limit: 1,
+    checkpointId: summary.checkpointId}), {code: 'CheckpointListDenied'});
+  const foreign = await fixture(t), other = await foreign.open();
+  assert.deepEqual(await other.listCheckpoints({principalId: 'reviewer', after: '', limit: 1,
+    checkpointId: summary.checkpointId}), {items: []});
+});
+
+test('exact pending lookup does not reissue an approved original or disclose it as waiting', async t => {
+  const f = await fixture(t), installed = await f.open(), gate = await f.gate(installed);
+  await gate.authorize('effect_commit', tuple, {subjectCid: cid('2')});
+  const {summary} = await f.approve(installed);
+  assert.deepEqual(await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 1,
+    checkpointId: summary.checkpointId}), {items: []});
+  assert.equal(installed.journal.listRunCheckpoints().length, 1);
+  assert.equal(f.retained(), 1);
+});
+
+test('exact pending lookup rechecks the original after asynchronous metadata projection', async t => {
+  const f = await fixture(t), installed = await f.open(), gate = await f.gate(installed);
+  await gate.authorize('effect_commit', tuple, {subjectCid: cid('2')});
+  const [summary] = (await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 10})).items;
+  const pending = installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 1,
+    checkpointId: summary.checkpointId});
+  assert.equal(installed.journal.cancelCheckpoint(summary.checkpointCid).outcome, 'cancelled');
+  assert.deepEqual(await pending, {items: []});
+});
 
 test('requested first Effect stops Account Allow and resumes the same journal without granting permission', async t => {
   const f = await fixture(t);

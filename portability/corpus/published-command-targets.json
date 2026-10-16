@@ -1,0 +1,821 @@
+{
+  "legacy-field": {
+    "id": "legacy-field",
+    "binding": null,
+    "command_cid": "sha256:8eaaf8eb0c34992a610de81c25a3d71c082106ff2f7b9b6cead8227c0d480255",
+    "catalog_cid": "sha256:43235b817c50293006d90fcccf68e0b2b5bf926d0d3a4c7841deee36011e4a94",
+    "environment_cid": "sha256:8d3e3f090026d3f482be46e02e63b5220e5c0422d1666dbb8c9adf2cb54b85b7",
+    "environment": {
+      "version": "actql-check-environment/0.1",
+      "schema_snapshots": [],
+      "connector_capabilities": [],
+      "mapping_contracts": [],
+      "source_views": [],
+      "command_contracts": [
+        {
+          "schema": "actql.command_contract/0.1",
+          "command_id": "command:mail.send.v1",
+          "version": "vendor-1",
+          "connector_id": "example",
+          "target": {
+            "resource_kind": "mailbox",
+            "cardinality": "single"
+          },
+          "input_schema": {
+            "id": "mail.input",
+            "version": "vendor-1",
+            "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+          },
+          "input_contract": {
+            "additional_properties": false,
+            "fields": {
+              "body": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "output_schema": {
+            "id": "mail.output",
+            "version": "vendor-1",
+            "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+          },
+          "permissions": [
+            "mail.send"
+          ],
+          "idempotency": {
+            "support": "unsupported"
+          },
+          "minimum_approval": "required",
+          "preview": {
+            "strength": "exact"
+          },
+          "reversibility": "unknown",
+          "atomicity": "single_target",
+          "outcome": "synchronous",
+          "contract_cid": "sha256:8eaaf8eb0c34992a610de81c25a3d71c082106ff2f7b9b6cead8227c0d480255"
+        }
+      ],
+      "model_task_contracts": [],
+      "contract_registry": [
+        {
+          "schema": "actql.contract/0.1",
+          "id": "mail.output",
+          "kind": "command_output",
+          "version": "vendor-1",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "id": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "mail.input",
+          "kind": "command_input",
+          "version": "vendor-1",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "body": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+        }
+      ],
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "example",
+          "connector_version": "vendor-1",
+          "source_views": [],
+          "commands": [
+            {
+              "schema": "actql.command_contract/0.1",
+              "command_id": "command:mail.send.v1",
+              "version": "vendor-1",
+              "connector_id": "example",
+              "target": {
+                "resource_kind": "mailbox",
+                "cardinality": "single"
+              },
+              "input_schema": {
+                "id": "mail.input",
+                "version": "vendor-1",
+                "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+              },
+              "input_contract": {
+                "additional_properties": false,
+                "fields": {
+                  "body": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "output_schema": {
+                "id": "mail.output",
+                "version": "vendor-1",
+                "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+              },
+              "permissions": [
+                "mail.send"
+              ],
+              "idempotency": {
+                "support": "unsupported"
+              },
+              "minimum_approval": "required",
+              "preview": {
+                "strength": "exact"
+              },
+              "reversibility": "unknown",
+              "atomicity": "single_target",
+              "outcome": "synchronous",
+              "contract_cid": "sha256:8eaaf8eb0c34992a610de81c25a3d71c082106ff2f7b9b6cead8227c0d480255"
+            }
+          ],
+          "contracts": [
+            {
+              "schema": "actql.contract/0.1",
+              "id": "mail.input",
+              "kind": "command_input",
+              "version": "vendor-1",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "body": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+            },
+            {
+              "schema": "actql.contract/0.1",
+              "id": "mail.output",
+              "kind": "command_output",
+              "version": "vendor-1",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+            }
+          ],
+          "catalog_cid": "sha256:43235b817c50293006d90fcccf68e0b2b5bf926d0d3a4c7841deee36011e4a94"
+        }
+      ],
+      "host_policy_profile": {},
+      "evidence_bundle_cid": "sha256:8d3e3f090026d3f482be46e02e63b5220e5c0422d1666dbb8c9adf2cb54b85b7"
+    }
+  },
+  "installation": {
+    "id": "installation",
+    "binding": {
+      "kind": "installation"
+    },
+    "command_cid": "sha256:2593e5c2992d42ce2dc58b92ca3140458cbae64172f09a560c05da96d0b2e5e4",
+    "catalog_cid": "sha256:53aca18bf5bf1663145cfda6198ef8707115e4196a023061797a92dcde16b6e7",
+    "environment_cid": "sha256:aecbd6487665c16f7a35369d411f18e64843b7a98b868c9e50f840bfe1e086f1",
+    "environment": {
+      "version": "actql-check-environment/0.1",
+      "schema_snapshots": [],
+      "connector_capabilities": [],
+      "mapping_contracts": [],
+      "source_views": [],
+      "command_contracts": [
+        {
+          "schema": "actql.command_contract/0.1",
+          "command_id": "command:mail.send.v1",
+          "version": "vendor-1",
+          "connector_id": "example",
+          "target": {
+            "resource_kind": "mailbox",
+            "cardinality": "single",
+            "binding": {
+              "kind": "installation"
+            }
+          },
+          "input_schema": {
+            "id": "mail.input",
+            "version": "vendor-1",
+            "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+          },
+          "input_contract": {
+            "additional_properties": false,
+            "fields": {
+              "body": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "output_schema": {
+            "id": "mail.output",
+            "version": "vendor-1",
+            "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+          },
+          "permissions": [
+            "mail.send"
+          ],
+          "idempotency": {
+            "support": "unsupported"
+          },
+          "minimum_approval": "required",
+          "preview": {
+            "strength": "exact"
+          },
+          "reversibility": "unknown",
+          "atomicity": "single_target",
+          "outcome": "synchronous",
+          "contract_cid": "sha256:2593e5c2992d42ce2dc58b92ca3140458cbae64172f09a560c05da96d0b2e5e4"
+        }
+      ],
+      "model_task_contracts": [],
+      "contract_registry": [
+        {
+          "schema": "actql.contract/0.1",
+          "id": "mail.output",
+          "kind": "command_output",
+          "version": "vendor-1",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "id": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "mail.input",
+          "kind": "command_input",
+          "version": "vendor-1",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "body": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+        }
+      ],
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "example",
+          "connector_version": "vendor-1",
+          "source_views": [],
+          "commands": [
+            {
+              "schema": "actql.command_contract/0.1",
+              "command_id": "command:mail.send.v1",
+              "version": "vendor-1",
+              "connector_id": "example",
+              "target": {
+                "resource_kind": "mailbox",
+                "cardinality": "single",
+                "binding": {
+                  "kind": "installation"
+                }
+              },
+              "input_schema": {
+                "id": "mail.input",
+                "version": "vendor-1",
+                "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+              },
+              "input_contract": {
+                "additional_properties": false,
+                "fields": {
+                  "body": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "output_schema": {
+                "id": "mail.output",
+                "version": "vendor-1",
+                "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+              },
+              "permissions": [
+                "mail.send"
+              ],
+              "idempotency": {
+                "support": "unsupported"
+              },
+              "minimum_approval": "required",
+              "preview": {
+                "strength": "exact"
+              },
+              "reversibility": "unknown",
+              "atomicity": "single_target",
+              "outcome": "synchronous",
+              "contract_cid": "sha256:2593e5c2992d42ce2dc58b92ca3140458cbae64172f09a560c05da96d0b2e5e4"
+            }
+          ],
+          "contracts": [
+            {
+              "schema": "actql.contract/0.1",
+              "id": "mail.input",
+              "kind": "command_input",
+              "version": "vendor-1",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "body": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+            },
+            {
+              "schema": "actql.contract/0.1",
+              "id": "mail.output",
+              "kind": "command_output",
+              "version": "vendor-1",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+            }
+          ],
+          "catalog_cid": "sha256:53aca18bf5bf1663145cfda6198ef8707115e4196a023061797a92dcde16b6e7"
+        }
+      ],
+      "host_policy_profile": {},
+      "evidence_bundle_cid": "sha256:aecbd6487665c16f7a35369d411f18e64843b7a98b868c9e50f840bfe1e086f1"
+    }
+  },
+  "identifier": {
+    "id": "identifier",
+    "binding": {
+      "kind": "identifier",
+      "identity_contract": {
+        "type": "string",
+        "nullable": false,
+        "max_utf8_bytes": 64
+      }
+    },
+    "command_cid": "sha256:9e19ea04e95b7875607a337a7ac5abb0aafbb5ce1e514ce30789efe177cf99e6",
+    "catalog_cid": "sha256:4868aac75b047caeef52a4205ba7d44f1b94d889bd29cd99a4a9528355fa10dd",
+    "environment_cid": "sha256:15be2bdb90dd5685dc58c57b334a8f1cc81a31014783078c19531351e7d4087b",
+    "environment": {
+      "version": "actql-check-environment/0.1",
+      "schema_snapshots": [],
+      "connector_capabilities": [],
+      "mapping_contracts": [],
+      "source_views": [],
+      "command_contracts": [
+        {
+          "schema": "actql.command_contract/0.1",
+          "command_id": "command:mail.send.v1",
+          "version": "vendor-1",
+          "connector_id": "example",
+          "target": {
+            "resource_kind": "mailbox",
+            "cardinality": "single",
+            "binding": {
+              "kind": "identifier",
+              "identity_contract": {
+                "type": "string",
+                "nullable": false,
+                "max_utf8_bytes": 64
+              }
+            }
+          },
+          "input_schema": {
+            "id": "mail.input",
+            "version": "vendor-1",
+            "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+          },
+          "input_contract": {
+            "additional_properties": false,
+            "fields": {
+              "body": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "output_schema": {
+            "id": "mail.output",
+            "version": "vendor-1",
+            "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+          },
+          "permissions": [
+            "mail.send"
+          ],
+          "idempotency": {
+            "support": "unsupported"
+          },
+          "minimum_approval": "required",
+          "preview": {
+            "strength": "exact"
+          },
+          "reversibility": "unknown",
+          "atomicity": "single_target",
+          "outcome": "synchronous",
+          "contract_cid": "sha256:9e19ea04e95b7875607a337a7ac5abb0aafbb5ce1e514ce30789efe177cf99e6"
+        }
+      ],
+      "model_task_contracts": [],
+      "contract_registry": [
+        {
+          "schema": "actql.contract/0.1",
+          "id": "mail.output",
+          "kind": "command_output",
+          "version": "vendor-1",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "id": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "mail.input",
+          "kind": "command_input",
+          "version": "vendor-1",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "body": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+        }
+      ],
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "example",
+          "connector_version": "vendor-1",
+          "source_views": [],
+          "commands": [
+            {
+              "schema": "actql.command_contract/0.1",
+              "command_id": "command:mail.send.v1",
+              "version": "vendor-1",
+              "connector_id": "example",
+              "target": {
+                "resource_kind": "mailbox",
+                "cardinality": "single",
+                "binding": {
+                  "kind": "identifier",
+                  "identity_contract": {
+                    "type": "string",
+                    "nullable": false,
+                    "max_utf8_bytes": 64
+                  }
+                }
+              },
+              "input_schema": {
+                "id": "mail.input",
+                "version": "vendor-1",
+                "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+              },
+              "input_contract": {
+                "additional_properties": false,
+                "fields": {
+                  "body": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "output_schema": {
+                "id": "mail.output",
+                "version": "vendor-1",
+                "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+              },
+              "permissions": [
+                "mail.send"
+              ],
+              "idempotency": {
+                "support": "unsupported"
+              },
+              "minimum_approval": "required",
+              "preview": {
+                "strength": "exact"
+              },
+              "reversibility": "unknown",
+              "atomicity": "single_target",
+              "outcome": "synchronous",
+              "contract_cid": "sha256:9e19ea04e95b7875607a337a7ac5abb0aafbb5ce1e514ce30789efe177cf99e6"
+            }
+          ],
+          "contracts": [
+            {
+              "schema": "actql.contract/0.1",
+              "id": "mail.input",
+              "kind": "command_input",
+              "version": "vendor-1",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "body": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+            },
+            {
+              "schema": "actql.contract/0.1",
+              "id": "mail.output",
+              "kind": "command_output",
+              "version": "vendor-1",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+            }
+          ],
+          "catalog_cid": "sha256:4868aac75b047caeef52a4205ba7d44f1b94d889bd29cd99a4a9528355fa10dd"
+        }
+      ],
+      "host_policy_profile": {},
+      "evidence_bundle_cid": "sha256:15be2bdb90dd5685dc58c57b334a8f1cc81a31014783078c19531351e7d4087b"
+    }
+  },
+  "identifier-number": {
+    "id": "identifier-number",
+    "binding": {
+      "kind": "identifier",
+      "identity_contract": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "command_cid": "sha256:33b0706b05eeef66dbb3c23f7cd346467e3efcd295179dadb0f4de80e8cd48fa",
+    "catalog_cid": "sha256:d8be91803b82e1be561de9d91a838bb37b530104718ab3f37af66e94a008e21f",
+    "environment_cid": "sha256:a330850725cbf46bf4ae2588992cd9ef123cb6cd6d1f63f3a54e9e69bb63ba1a",
+    "environment": {
+      "version": "actql-check-environment/0.1",
+      "schema_snapshots": [],
+      "connector_capabilities": [],
+      "mapping_contracts": [],
+      "source_views": [],
+      "command_contracts": [
+        {
+          "schema": "actql.command_contract/0.1",
+          "command_id": "command:mail.send.v1",
+          "version": "vendor-1",
+          "connector_id": "example",
+          "target": {
+            "resource_kind": "mailbox",
+            "cardinality": "single",
+            "binding": {
+              "kind": "identifier",
+              "identity_contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          },
+          "input_schema": {
+            "id": "mail.input",
+            "version": "vendor-1",
+            "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+          },
+          "input_contract": {
+            "additional_properties": false,
+            "fields": {
+              "body": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "output_schema": {
+            "id": "mail.output",
+            "version": "vendor-1",
+            "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+          },
+          "permissions": [
+            "mail.send"
+          ],
+          "idempotency": {
+            "support": "unsupported"
+          },
+          "minimum_approval": "required",
+          "preview": {
+            "strength": "exact"
+          },
+          "reversibility": "unknown",
+          "atomicity": "single_target",
+          "outcome": "synchronous",
+          "contract_cid": "sha256:33b0706b05eeef66dbb3c23f7cd346467e3efcd295179dadb0f4de80e8cd48fa"
+        }
+      ],
+      "model_task_contracts": [],
+      "contract_registry": [
+        {
+          "schema": "actql.contract/0.1",
+          "id": "mail.output",
+          "kind": "command_output",
+          "version": "vendor-1",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "id": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "mail.input",
+          "kind": "command_input",
+          "version": "vendor-1",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "body": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+        }
+      ],
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "example",
+          "connector_version": "vendor-1",
+          "source_views": [],
+          "commands": [
+            {
+              "schema": "actql.command_contract/0.1",
+              "command_id": "command:mail.send.v1",
+              "version": "vendor-1",
+              "connector_id": "example",
+              "target": {
+                "resource_kind": "mailbox",
+                "cardinality": "single",
+                "binding": {
+                  "kind": "identifier",
+                  "identity_contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              },
+              "input_schema": {
+                "id": "mail.input",
+                "version": "vendor-1",
+                "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+              },
+              "input_contract": {
+                "additional_properties": false,
+                "fields": {
+                  "body": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "output_schema": {
+                "id": "mail.output",
+                "version": "vendor-1",
+                "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+              },
+              "permissions": [
+                "mail.send"
+              ],
+              "idempotency": {
+                "support": "unsupported"
+              },
+              "minimum_approval": "required",
+              "preview": {
+                "strength": "exact"
+              },
+              "reversibility": "unknown",
+              "atomicity": "single_target",
+              "outcome": "synchronous",
+              "contract_cid": "sha256:33b0706b05eeef66dbb3c23f7cd346467e3efcd295179dadb0f4de80e8cd48fa"
+            }
+          ],
+          "contracts": [
+            {
+              "schema": "actql.contract/0.1",
+              "id": "mail.input",
+              "kind": "command_input",
+              "version": "vendor-1",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "body": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "cid": "sha256:ceffb59b34b9fee831dc4060f0de02e3268bc8fe8549ea4516f74e15da90c0e2"
+            },
+            {
+              "schema": "actql.contract/0.1",
+              "id": "mail.output",
+              "kind": "command_output",
+              "version": "vendor-1",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "cid": "sha256:db19239d74f021e17ac68b37e34a434a43c28a7d46f4329535afae74e148835c"
+            }
+          ],
+          "catalog_cid": "sha256:d8be91803b82e1be561de9d91a838bb37b530104718ab3f37af66e94a008e21f"
+        }
+      ],
+      "host_policy_profile": {},
+      "evidence_bundle_cid": "sha256:a330850725cbf46bf4ae2588992cd9ef123cb6cd6d1f63f3a54e9e69bb63ba1a"
+    }
+  }
+}

@@ -824,6 +824,14 @@
           "async": true
         },
         {
+          "name": "AsyncClient/approve",
+          "parameters": [
+            "self",
+            "checkpoint_id"
+          ],
+          "async": false
+        },
+        {
           "name": "AsyncClient/attach",
           "parameters": [
             "self",
@@ -896,7 +904,8 @@
             "durability",
             "verify",
             "timeout",
-            "transport"
+            "transport",
+            "signer"
           ],
           "async": true
         },
@@ -919,7 +928,8 @@
         {
           "name": "AsyncClient/open",
           "parameters": [
-            "cls"
+            "cls",
+            "signer"
           ],
           "async": true
         },
@@ -927,6 +937,14 @@
           "name": "AsyncClient/profile",
           "parameters": [
             "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncClient/reject",
+          "parameters": [
+            "self",
+            "checkpoint_id"
           ],
           "async": false
         },
@@ -1186,6 +1204,14 @@
           "async": false
         },
         {
+          "name": "Client/approve",
+          "parameters": [
+            "self",
+            "checkpoint_id"
+          ],
+          "async": false
+        },
+        {
           "name": "Client/attach",
           "parameters": [
             "self",
@@ -1265,7 +1291,8 @@
             "durability",
             "verify",
             "timeout",
-            "transport"
+            "transport",
+            "signer"
           ],
           "async": false
         },
@@ -1288,7 +1315,8 @@
         {
           "name": "Client/open",
           "parameters": [
-            "cls"
+            "cls",
+            "signer"
           ],
           "async": false
         },
@@ -1296,6 +1324,14 @@
           "name": "Client/profile",
           "parameters": [
             "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "Client/reject",
+          "parameters": [
+            "self",
+            "checkpoint_id"
           ],
           "async": false
         },
@@ -1690,7 +1726,7 @@
           "async": false
         }
       ],
-      "sha256": "892e82901ecebefbe13860d0188344bd15408e0204d57e978e6e464787f85328",
+      "sha256": "9e88ff15cd155a0c1d6f73430e72e3498aaeb70d9490b7320678ff906fb8b2e5",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -1944,6 +1980,77 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "AsyncClient/approve",
+            "AsyncClient/reject",
+            "Client/approve",
+            "Client/reject"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| verification |"
+              }
+            ]
+          }
         }
       ]
     },
@@ -2037,7 +2144,8 @@
             "durability",
             "verify",
             "timeout",
-            "transport"
+            "transport",
+            "signer"
           ],
           "async": false
         },
@@ -2046,6 +2154,16 @@
           "parameters": [
             "self",
             "response"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncClient/_answer_checkpoint",
+          "parameters": [
+            "self",
+            "body",
+            "decision",
+            "signer"
           ],
           "async": true
         },
@@ -2075,6 +2193,14 @@
           "async": true
         },
         {
+          "name": "AsyncClient/_checkpoints",
+          "parameters": [
+            "self",
+            "body"
+          ],
+          "async": true
+        },
+        {
           "name": "AsyncClient/_chunks",
           "parameters": [
             "response",
@@ -2094,15 +2220,26 @@
           "name": "AsyncClient/_connect_local",
           "parameters": [
             "cls",
-            "host"
+            "host",
+            "signer"
           ],
           "async": true
+        },
+        {
+          "name": "AsyncClient/_decide_checkpoint",
+          "parameters": [
+            "self",
+            "checkpoint_id",
+            "decision"
+          ],
+          "async": false
         },
         {
           "name": "AsyncClient/_from_local_host",
           "parameters": [
             "cls",
-            "host"
+            "host",
+            "signer"
           ],
           "async": false
         },
@@ -2212,6 +2349,14 @@
           "async": true
         },
         {
+          "name": "AsyncClient/approve",
+          "parameters": [
+            "self",
+            "checkpoint_id"
+          ],
+          "async": false
+        },
+        {
           "name": "AsyncClient/attach",
           "parameters": [
             "self",
@@ -2270,7 +2415,8 @@
         {
           "name": "AsyncClient/open",
           "parameters": [
-            "cls"
+            "cls",
+            "signer"
           ],
           "async": true
         },
@@ -2278,6 +2424,14 @@
           "name": "AsyncClient/profile",
           "parameters": [
             "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncClient/reject",
+          "parameters": [
+            "self",
+            "checkpoint_id"
           ],
           "async": false
         },
@@ -2472,7 +2626,7 @@
           "async": false
         }
       ],
-      "sha256": "fcdc7807ed3b86b409ea120bd593fab5eade4a83ca698a4057a692634e959114",
+      "sha256": "a9431f9d5207e42042ad065f4e91c3b34386c8a28ecea38d164a47965fe11756",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2659,6 +2813,78 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "AsyncBoundaryTests"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "AsyncClient/_answer_checkpoint",
+            "AsyncClient/_checkpoints",
+            "AsyncClient/_decide_checkpoint",
+            "AsyncClient/approve",
+            "AsyncClient/reject"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| verification |"
               }
             ]
           }
@@ -4004,6 +4230,14 @@
           ]
         },
         {
+          "name": "Client/approve",
+          "parameters": [
+            "self",
+            "checkpoint_id"
+          ],
+          "async": false
+        },
+        {
           "async": false,
           "name": "Client/attach",
           "parameters": [
@@ -4065,7 +4299,8 @@
           "async": false,
           "name": "Client/open",
           "parameters": [
-            "cls"
+            "cls",
+            "signer"
           ]
         },
         {
@@ -4074,6 +4309,14 @@
           "parameters": [
             "self"
           ]
+        },
+        {
+          "name": "Client/reject",
+          "parameters": [
+            "self",
+            "checkpoint_id"
+          ],
+          "async": false
         },
         {
           "async": false,
@@ -4300,7 +4543,7 @@
           "parameters": []
         }
       ],
-      "sha256": "4860e1e3d98b74b6b417107df4672e4c165794ffd59b6b5c9f277341b0020f94",
+      "sha256": "452149cd2ab43445ef08fd9f4b8042f8d652968409e181d8f0dbf8082ebffcc3",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4453,6 +4696,75 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "SyncBoundaryTests"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "Client/approve",
+            "Client/reject"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "| verification |"
               }
             ]
           }

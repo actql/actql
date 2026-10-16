@@ -1,7 +1,9 @@
 ///|
 // Copy of the existing independently authored STORE pair preimage. The test
 // supplies an explicit Core capacity recipe, not a normal physical profile.
-fn published_store_capture_fixture() -> (
+fn published_store_capture_fixture(
+  input_key? : Bool = false,
+) -> (
   @publication_host.PreparedClientEffectComputation,
   @strategy.CapturedEffectRunDAG,
   @strategy.CapturedEffectInputs,
@@ -43,6 +45,14 @@ fn published_store_capture_fixture() -> (
   )
   let document =
     #|{"version":"actql/0.1","id":"published-store-capture","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"value":{"type":"string","nullable":false}},"rows":[{"id":"one","value":"original"}]},"as":"selected"}],"results":{"out":{"from":"selected","fields":["id","value"]}},"effects":{"save":{"command":{"contract":"command:fixture.upload.v1","from":{"result":"out"},"input":{"id":{"field":"id"},"value":{"field":"value"}},"target":{"published_store":{"mapping_ref":"mapping:fixture.archive.v1","target_ref":"connector://storage/archive"}}}}}}],"results":{"published":{"from":{"stage":"source","result":"out"}}}}
+  let document = if input_key {
+    document.replace(
+      old="\"contract\":\"command:fixture.upload.v1\"",
+      new="\"contract\":\"command:fixture.upload.v1\",\"input_key\":\"id\"",
+    )
+  } else {
+    document
+  }
   let prepared = @publication_host.prepare_client_effect_computation(
     document,
     Json,
@@ -91,6 +101,47 @@ fn published_store_capture_reference(
     max_depth: 8,
     max_text_units: 1024,
   }).unwrap()
+}
+
+///|
+test "explicit Command input key refuses original captured proposal until whole-input proof is available" {
+  let (_, captured, inputs, operations, available) = published_store_capture_fixture(
+    input_key=true,
+  )
+  let pair = @strategy.captured_effect_published_store_binding(inputs, 0, 100)
+    .unwrap()
+    .unwrap()
+  let target = @strategy.bind_captured_effect_command_target(
+    inputs,
+    0,
+    pair,
+    published_store_capture_reference(Ref(true)),
+    100,
+  ).unwrap()
+  assert_eq(local_managed_test_rows(operations), [
+    "{\"id\":\"one\",\"value\":\"original\"}",
+  ])
+  assert_true(
+    @strategy.prepare_captured_effect_proposal_plan(
+      inputs,
+      0,
+      2,
+      100,
+      published_target=Some(target),
+    )
+    is Err(@strategy.CapturedEffectProposalIssue::NotReady),
+  )
+  @strategy.release_captured_effect_inputs(inputs) |> ignore
+  available.val = false
+  (operations.close)()
+  (operations.cleanup_refresh)() |> ignore
+  let run = @strategy.captured_effect_run_dag(captured)
+  @strategy.stop_captured_dag(run)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
 }
 
 ///|

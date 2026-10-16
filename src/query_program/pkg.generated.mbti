@@ -20,13 +20,24 @@ import {
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/stage_syntax",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn bind_command_target_publication(@check_environment.CatalogContents, Array[CommandTargetAlias], @value_contract.Limits, Int) -> Result[CommandTargetPublication, CommandTargetPublicationIssue]
+
 pub fn bind_store_target_publication(@check_environment.MappingContractShapes, @check_environment.CatalogContents, Array[UpdateTargetAlias], Int) -> Result[StoreTargetPublication, StoreTargetIssue]
 
 pub fn bind_update_target_publication(@check_environment.MappingContractShapes, Array[UpdateTargetAlias], Int) -> Result[UpdateTargetPublication, UpdateTargetIssue]
+
+pub fn command_target_publication_catalogs(CommandTargetPublication) -> @check_environment.CatalogContents
+
+pub fn command_target_publication_environment(CommandTargetPublication) -> @check_environment.WireEnvironment
+
+pub fn command_target_publication_usage(CommandTargetPublication) -> (Int, Int)
+
+pub fn command_target_publication_work(CommandTargetPublication) -> Int
 
 pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?) -> Result[@stage_syntax.Program, Issue]
 
@@ -35,6 +46,10 @@ pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_wr
 pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?) -> Result[(@stage_syntax.Program, @program_source_builder.Source), Issue]
 
 pub fn issue_without_source(Issue) -> Issue
+
+pub fn resolve_command_target_binding(CommandTargetPublication, Array[@query_syntax.NamePart], Int) -> Result[ResolvedCommandTarget, CommandTargetPublicationIssue]
+
+pub fn resolve_concrete_command_target_binding(CommandTargetPublication, String, String, Int) -> Result[ResolvedCommandTarget, CommandTargetPublicationIssue]
 
 pub fn resolve_concrete_store_target_binding(StoreTargetPublication, String, String, Int) -> Result[ResolvedStoreTarget, StoreTargetIssue]
 
@@ -45,6 +60,14 @@ pub fn resolve_store_target_binding(StoreTargetPublication, Array[@query_syntax.
 pub fn resolve_table_write_binding(Array[TableWriteBinding], Array[@query_syntax.NamePart], Bool, Int) -> Result[TableWriteBinding, TableWriteBindingIssue]
 
 pub fn resolve_update_target_binding(UpdateTargetPublication, Array[@query_syntax.NamePart], @query_syntax.NamePart?, Int) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
+
+pub fn resolved_command_target(ResolvedCommandTarget) -> (String, String)
+
+pub fn resolved_command_target_binding(ResolvedCommandTarget) -> @check_environment.PublishedCommandBinding?
+
+pub fn resolved_command_target_contract(ResolvedCommandTarget) -> @check_environment.CommandTarget
+
+pub fn resolved_command_target_identity(ResolvedCommandTarget) -> (String, String, String, String)
 
 pub fn resolved_store_target(ResolvedStoreTarget) -> (String, String)
 
@@ -98,6 +121,24 @@ pub(all) enum BindingPreparationIssue {
   LocalProgram(@stage_results.LocalProgramIssue)
   Demand(BindingDemandIssue)
 }
+
+pub(all) struct CommandTargetAlias {
+  name : Array[@query_syntax.NamePart]
+  target_ref : String
+  command_ref : String
+  installation_binding_cid : String
+  installation_owner_cid : String
+}
+
+type CommandTargetPublication
+
+pub(all) enum CommandTargetPublicationIssue {
+  InvalidPublication
+  UnresolvedTarget
+  AmbiguousTarget
+  UnresolvedCommand
+  WorkLimit
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Context {
   program_id : String
@@ -217,6 +258,8 @@ pub(all) struct Limits {
 pub struct RelationResolutionReference {
   // private fields
 }
+
+type ResolvedCommandTarget
 
 type ResolvedStoreTarget
 

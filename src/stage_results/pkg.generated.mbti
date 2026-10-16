@@ -33,7 +33,7 @@ pub fn attached_work(AttachedImports) -> Int
 
 pub fn bind_effect_command_inputs(EffectCommandTargets, EffectCommandInputLimits) -> Result[EffectCommandInputs, EffectCommandInputIssue]
 
-pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogReferences, Int, mappings? : @check_environment.MappingContractShapes?) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
+pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogReferences, Int, mappings? : @check_environment.MappingContractShapes?, value_limits? : @value_contract.Limits?) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
 
 pub fn bind_effect_mapping_rules(EffectMappingShapes, Int) -> Result[EffectMappingRules, EffectMappingRuleIssue]
 
@@ -81,6 +81,8 @@ pub fn effect_command_input_issue_kind(EffectCommandInputIssue) -> EffectCommand
 
 pub fn effect_command_input_issue_stage(EffectCommandInputIssue) -> Int
 
+pub fn effect_command_input_key(EffectCommandInputBinding) -> @relation_schema.Field?
+
 pub fn effect_command_input_target(EffectCommandInputBinding) -> EffectCommandTargetBinding
 
 pub fn effect_command_inputs_targets(EffectCommandInputs) -> EffectCommandTargets
@@ -101,6 +103,8 @@ pub fn effect_command_target_issue_kind(EffectCommandTargetIssue) -> EffectComma
 
 pub fn effect_command_target_issue_stage(EffectCommandTargetIssue) -> Int
 
+pub fn effect_command_target_published_binding(EffectCommandTargetBinding) -> @check_environment.PublishedCommandBinding?
+
 pub fn effect_command_target_store_binding(EffectCommandTargetBinding) -> @check_environment.StoreCommandBinding?
 
 pub fn effect_command_targets_catalogs(EffectCommandTargets) -> @check_environment.CatalogContents
@@ -108,6 +112,8 @@ pub fn effect_command_targets_catalogs(EffectCommandTargets) -> @check_environme
 pub fn effect_command_targets_effects(EffectCommandTargets) -> EffectResultBindings
 
 pub fn effect_command_targets_references(EffectCommandTargets) -> @check_environment.CatalogReferences
+
+pub fn effect_command_targets_usage(EffectCommandTargets) -> (Int, Int)
 
 pub fn effect_command_targets_work(EffectCommandTargets) -> Int
 
@@ -419,6 +425,7 @@ pub(all) struct CollectionLimits {
 pub struct EffectCommandInputBinding {
   target : EffectCommandTargetBinding
   fields : Array[EffectCommandInputField]
+  input_key : @relation_schema.Field?
 }
 
 pub struct EffectCommandInputField {
@@ -477,6 +484,7 @@ pub struct EffectCommandTargetBinding {
   effect : EffectResultBinding
   contract : @check_environment.CommandTarget
   store_binding : @check_environment.StoreCommandBinding?
+  published_command : @check_environment.PublishedCommandBinding?
 }
 
 pub struct EffectCommandTargetIssue {
@@ -496,6 +504,9 @@ pub(all) enum EffectCommandTargetIssueKind {
   StoreTargetMismatch
   StoreContractMismatch
   StoreBinding(@check_environment.StoreCommandIssue)
+  PublishedCommand(@check_environment.PublishedCommandBindingIssue)
+  PublishedCommandModeMismatch
+  PublishedCommandIdentifierMismatch
 } derive(Eq, @debug.Debug)
 
 pub struct EffectCommandTargets {
@@ -503,6 +514,8 @@ pub struct EffectCommandTargets {
   references : @check_environment.CatalogReferences
   entries : Array[EffectCommandTargetBinding]
   work : Int
+  nodes : Int
+  text_bytes : Int
 }
 
 pub(all) enum EffectCreateRowIssue {
@@ -744,7 +757,9 @@ pub(all) enum EffectResultBindingIssueKind {
   MissingTableInput
   MissingField
   InvalidCommandTarget
+  InvalidCommandIdentifier
   UnsupportedTableInput
+  InvalidCommandInputKey
 } derive(Eq, @debug.Debug)
 
 pub struct EffectResultBindings {
@@ -763,7 +778,9 @@ pub(all) enum EffectResultFieldRole {
   EffectSelector
   EffectUpsertKey
   EffectCommandTarget
+  EffectCommandIdentifier
   EffectValue(String)
+  EffectCommandInputKey
 } derive(Eq, @debug.Debug)
 
 pub struct EffectStaticCandidate {
