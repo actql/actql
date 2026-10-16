@@ -1,5 +1,41 @@
 # Connector ownership and repository layout
 
+## Original UPDATE selection boundary
+
+`run_publication_host/client_effect_target_selections.mbt` and its package-local
+original-data projection retain the checked selection, its original prepared
+Owner, canonical bytes/CID and saved-material admission. The eight selection
+fields and the existing installation preimage have one MoonBit meaning. The
+original prepared/allowed/Run readers still bind the independently retained
+Compiled Plan and Run Definition, authorization and optional selection presence.
+An equal CID, a copied JS array or parsed saved data cannot construct the opaque
+selection or replace those original Owners. Existing absent-context identities
+and all canonical preimages are unchanged.
+
+The Node adapter observes the actual installed row factory's configuration,
+Mapping inventory and generation, converts those facts, and retains their
+physical lifetime. Common compares them with the original selection; JavaScript
+does not define another selection schema, digest or canonical equality. Current
+checks remain before physical work and after asynchronous boundaries. The
+private request-journal installation uses the same runtime's bounded DATA
+reader, and owner-only recovery returns the original saved admission evidence;
+neither path grants disclosure, write, dispatch or retry authority.
+
+The generated private DATA codec snapshots values once and transports JSON. Its
+byte/node/depth ceilings come from that same Owner; it has no semantic field list,
+normalization, CID or opaque constructor. Public DATA named `$tag`, `_0` or `_1`
+is ordinary data here, not a MoonBit compiler representation. Compiler Result and
+tuple interpretation uses the existing generated private binding.
+
+The JS projection borrows the same prepared/selection/runtime references for
+the projection's lifetime. DATA conversion temporarily overlaps the input,
+bounded detached snapshot/keys and encoded wire; Common admission additionally
+uses its bounded source/decoder/canonical writer workspace. These are not free
+memory, physical retirement ACKs, capacity reservations or a numerical profile.
+Releasing references or completing a synchronous comparison makes none of those
+claims. The original Run, Store, Checkpoint, Unknown and cleanup responsibilities
+stay with their existing Owners.
+
 The repository layout must make implementation ownership visible. Connector-
 specific planning, execution, transport glue, and foreign interfaces belong to
 that Connector. Common scheduling, assembly, and cross-Connector verification

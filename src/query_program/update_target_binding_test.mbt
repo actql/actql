@@ -114,7 +114,7 @@ test "logical UPDATE zero and missing authoritative alias refuse" {
     resolve_update_target_binding(absent, update_target_alias().name, None, 100).unwrap_err(),
     UnresolvedTarget,
   )
-  let name = [
+  let name : Array[@query.NamePart] = [
     { value: "salesforce", quoted: false, },
     { value: "Accounts", quoted: false, },
   ]
