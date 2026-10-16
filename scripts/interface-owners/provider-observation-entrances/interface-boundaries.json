@@ -8,6 +8,7 @@
   "declarations": [
     {
       "module": "adapters/site-node/remote-credential-signature.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "45758f3adf6bbc27b722d8f3b22dbe9cd78de372303557514fd1de5e2b1fea51",
       "exports": [
         "admitSignedRemoteCredentialGrant",
@@ -173,6 +174,7 @@
     },
     {
       "module": "packages/otel-node/configuration.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4677b6c419bcdd20b2e302f408b06ad1ccec9a842ff95cd3a841294adfd90410",
       "exports": [
         "managedLimits",
@@ -360,6 +362,7 @@
     },
     {
       "module": "packages/otel-node/environment.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "851f35b47afa445a0082dbeef7a39649caf1aef6f0c323148a4dcb709e2dfc98",
       "exports": [
         "environmentOptions"
@@ -517,6 +520,7 @@
     },
     {
       "module": "packages/otel-node/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "7d4957b2614d8438ff88abce81a253c909e902fbf8b5add278a88b14cc980980",
       "exports": [
         "NodeHostObservationOptions",
@@ -680,6 +684,7 @@
     },
     {
       "module": "packages/otel-node/index.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "798ebc98512e68b4e08d2253f8af4cbfe54ff26b97b111615e9dfbacb6e9bc79",
       "exports": [
         "createNodeHostObservability"
@@ -1017,6 +1022,7 @@
     },
     {
       "module": "packages/otel-node/transport.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3e0944455a538e6a4668db7cfe297d3d10731560cbaf64ff1359c89f4172c4d3",
       "exports": [
         "createBoundedOtlpSender"
@@ -1223,6 +1229,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4f05887943eeba1ef079ace2d221d23ddacb1e38ca7307fe9675afcb976a1e78",
       "exports": [
         "fixedInferResponseLimits",
@@ -1446,6 +1453,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "873d79cff9604ff1b6d31aceba0072cdbc4c756f155cdeec0c560818b7d114a1",
       "exports": [
         "cancelSdkPreparation",
@@ -1957,6 +1965,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2ca0b2982273c3d56a387692982b41edea2f93189370e99e567734297ffc9a74",
       "exports": [
         "openAIChatStaticOriginals",
@@ -2104,6 +2113,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "60667136fad8cfa1acbe6a4fffdf955e15d299da901147ce0af2cc8e92b7ef73",
       "exports": [
         "createOriginalUndiciFetch",
@@ -2507,6 +2517,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "58cff6db206180a5e8afba86e6affea7e26012a4942384d2bcc002e5ce2e0bc5",
       "exports": [
         "ModelProviderRegistration",
@@ -2724,6 +2735,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/index.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "129e67d4530f122511619f6a725205fbf184acee021f83d1c70e70ce8d9f2cec",
       "exports": [
         "createInstalledOpenAIChatRegistration",
@@ -2848,6 +2860,7 @@
     },
     {
       "module": "packages/provider-http/_internal/bounded-response.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4f05887943eeba1ef079ace2d221d23ddacb1e38ca7307fe9675afcb976a1e78",
       "exports": [
         "fixedInferResponseLimits",
@@ -3071,6 +3084,7 @@
     },
     {
       "module": "packages/provider-http/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "9e0151c2cf43466c3a580aa96b0aa0b881b530871d9c402e2d6e7117d2fad24e",
       "exports": [
         "HttpChatMaterialsRegistrationOptions",
@@ -3262,6 +3276,7 @@
     },
     {
       "module": "packages/provider-http/index.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4a7fb63ba81cb229821c3380e4c72fb8615e69f207e9d13c5a26cc50798024c5",
       "exports": [
         "createInstalledHttpChatRegistration"

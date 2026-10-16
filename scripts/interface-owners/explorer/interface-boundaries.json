@@ -4,6 +4,7 @@
   "declarations": [
     {
       "module": "packages/explorer-ui/cancellation-panel.tsx",
+      "responsibilityFacet": "primary",
       "sha256": "a0a5f5b5e4f4f7ee2bb2b9b35f6c04143b0711b39bfd2f667a630cc297403c6a",
       "exports": [
         "CancellationObservation",
@@ -144,6 +145,7 @@
     },
     {
       "module": "packages/explorer-ui/cancellation-types.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "7fdc0a101d3a5ccbe780bc61650da15325b431d6fa60ce4a7db3b4e67ab34ce4",
       "exports": [
         "CancellationObservation",
@@ -286,6 +288,7 @@
     },
     {
       "module": "packages/explorer-ui/cancellation.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "77f905d4647b795ea81bb601e6f29a5d0bab5a65146eb9632b4837bee32072fa",
       "exports": [
         "CancellationObservation",
@@ -432,6 +435,7 @@
     },
     {
       "module": "packages/explorer-ui/cancellation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5beeb4f9a4d324f7a2804d0dc908b120380d3d668b040cdc42bcc077b9e5e0a3",
       "exports": [
         "captureCancellation",
@@ -604,6 +608,7 @@
     },
     {
       "module": "packages/explorer-ui/checkpoint-panel.tsx",
+      "responsibilityFacet": "primary",
       "sha256": "c573b4e38b4185aafb71fa300d6e95576e1532db28b1e179b856ac0aa78d7348",
       "exports": [
         "CheckpointPanel"
@@ -747,6 +752,7 @@
     },
     {
       "module": "packages/explorer-ui/checkpoint-review.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "3ff843de62a66a0c8e727f356de81166f2ab8806ad884699ff56edcdbd5f9b65",
       "exports": [
         "CheckpointEntry",
@@ -930,6 +936,7 @@
     },
     {
       "module": "packages/explorer-ui/checkpoint-review.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "04a3fae769af92a362d1f8db8a89971f1d4f736b73e6545f155255dfa25848a3",
       "exports": [
         "captureReviewReference",
@@ -1155,6 +1162,7 @@
     },
     {
       "module": "packages/explorer-ui/flow-layout-engine.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5e1a16b75e8dba6aee98e4ec7072655b1e29aa6035445cb34a8c3fb09f495456",
       "exports": [
         "elkGraph",
@@ -1406,6 +1414,7 @@
     },
     {
       "module": "packages/explorer-ui/flow-layout-worker.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "302f05523759dea003c8b237169c5171b50523568e842a3ec744977359815bb8",
       "exports": [],
       "operations": [],
@@ -1522,6 +1531,7 @@
     },
     {
       "module": "packages/explorer-ui/flow-layout.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b69c5101758159daadbe6e284a7b74830667966c1cbb63b48797e29d994f4040",
       "exports": [
         "flowLayoutDeadlineMs",
@@ -1725,6 +1735,7 @@
     },
     {
       "module": "packages/explorer-ui/flow-model.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "87245b2a936cae114ab1175673b7258e4c5b2f80adcfcd3f01314b67ec072084",
       "exports": [
         "flowPresentation"
@@ -1885,6 +1896,7 @@
     },
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "be1ca03d859c028c999649e1ae5c4e7bb584b31b36f0426f77d8dffdf64eb2fc",
       "exports": [
         "CancellationObservation",
@@ -2032,6 +2044,7 @@
     },
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
+      "responsibilityFacet": "primary",
       "sha256": "14e9161180a09482b254716928fe25a8472260a666575d9225855c7d41ec2c03",
       "exports": [
         "CancellationPanel",
@@ -2323,6 +2336,7 @@
     },
     {
       "module": "packages/explorer-ui/presentation-limits.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "31200d4f04aac7f327ecc6852498c8cfc09d58021c5e404a1d90e1d8ad263844",
       "exports": [
         "ExplorerReadError",
@@ -2452,6 +2466,7 @@
     },
     {
       "module": "packages/explorer-ui/read-model.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "b37a73fa5c405e0855551fc0943a1ef83dbea07b104136b9ef61997abcd9e60b",
       "exports": [
         "ExplorerReadError",
@@ -2667,6 +2682,7 @@
     },
     {
       "module": "packages/explorer-ui/read-model.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "1c2479ef3e422afd4c990472095840ed4846608b90a340c9cbfa93bf9a573289",
       "exports": [
         "ExplorerReadError",
@@ -2968,6 +2984,7 @@
     },
     {
       "module": "packages/explorer-ui/run-inspector.tsx",
+      "responsibilityFacet": "primary",
       "sha256": "4c1f2d38a03e50a984ee7a958c58cd504025a7589451fb603ac296b52a96b6f5",
       "exports": [
         "RunInspector"
@@ -3147,6 +3164,7 @@
     },
     {
       "module": "packages/explorer-ui/run-observation.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "841c247db8ee9509561daa78010a93301ee1104a9bbfc29979b42eee1b86b01b",
       "exports": [
         "RunObservationModel",
@@ -3295,6 +3313,7 @@
     },
     {
       "module": "packages/explorer-ui/run-observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "0ae3d82c88f037fd5d73db8a7345cf1195de981318945394c0ebabd53bfb03b4",
       "exports": [
         "readRunObservation",
@@ -3562,6 +3581,7 @@
     },
     {
       "module": "packages/explorer/app/main.tsx",
+      "responsibilityFacet": "primary",
       "sha256": "8204d8b77d97451bb92e41c572fcf78f9e99461f573f5b0244264c64fdd99723",
       "exports": [],
       "operations": [
@@ -3889,6 +3909,7 @@
     },
     {
       "module": "packages/explorer/assets.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "7966ce983bdff94eae62d3b32cdf5ff7bd19b710357c81a1739643f42d76c173",
       "exports": [
         "loadExplorerAssets"
@@ -4035,6 +4056,7 @@
     },
     {
       "module": "packages/explorer/browser-source.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "77187cfcbdc05d1f5c31c6a510493ccd0e028221f18713ad5d6c1d01d1019179",
       "exports": [
         "ExplorerCapabilities",
@@ -4268,6 +4290,7 @@
     },
     {
       "module": "packages/explorer/browser-source.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2d078f8fe0969191582f8b8d1eee6509a311fca569afec90467ddec4e4a68157",
       "exports": [
         "createExplorerBrowserSource"
@@ -4536,6 +4559,7 @@
     },
     {
       "module": "packages/explorer/cancellation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c13ff8bbfa4232d040db0f7964aada8e100f8cc59d948aa74f605270d3d9c2ca",
       "exports": [
         "captureCancellation",
@@ -4707,6 +4731,7 @@
     },
     {
       "module": "packages/explorer/checkpoint-read.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "8d9a045b8280862b2e9d9dad808bf80c6e7d086483a1ec693351cc657f67c3e2",
       "exports": [
         "readCheckpointReview",
@@ -4908,6 +4933,7 @@
     },
     {
       "module": "packages/explorer/cli-input.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "efa9b9840b4e96e65d44a77b5dd68f89c16f682cc043a6e7b303e0b5a77622ca",
       "exports": [
         "explorerArguments",
@@ -5063,6 +5089,7 @@
     },
     {
       "module": "packages/explorer/cli.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b1a0257f69edee1a29b0a30fb1f6d687ce490f0ad672ef5f949ca64214daef6d",
       "exports": [],
       "operations": [
@@ -5193,6 +5220,7 @@
     },
     {
       "module": "packages/explorer/gateway.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "cbfa74c33715ccdbe2294a26bad3cb5fca60ebd5795c6bece1a928ba8c0235ea",
       "exports": [
         "ExplorerAsset",
@@ -5391,6 +5419,7 @@
     },
     {
       "module": "packages/explorer/gateway.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "21d2b23267de4af410847c041a1550a5db5b3f195b363b7978f0ed098e3bb801",
       "exports": [
         "createExplorerGateway",
@@ -5813,6 +5842,7 @@
     },
     {
       "module": "packages/explorer/launch-input.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "94e1b345fad1ede141b59d4b908bd4c1d60c99298b87410930d270ffbadcfafd",
       "exports": [
         "copyExplorerLaunchInput"
@@ -5966,6 +5996,7 @@
     },
     {
       "module": "packages/explorer/launcher.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "535146541117d6bf11cf8485cf7fc2b45017b901ca161e5c99732086942b715b",
       "exports": [
         "openLocalExplorer",
@@ -6105,6 +6136,7 @@
     },
     {
       "module": "packages/explorer/launcher.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3e2ee7649cd877d90d730fb74c915ebbefc1374fc8290ceb29c1c64252d3af5c",
       "exports": [
         "openLocalExplorer",

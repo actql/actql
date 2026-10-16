@@ -9,6 +9,7 @@
   "declarations": [
     {
       "module": "adapters/host-common/acquisition-outcome.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "e601426d57c9c17ec49d3dce2a605a50a8fc21aca628e28d8f0a65fe89f7e624",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -229,6 +230,7 @@
     },
     {
       "module": "adapters/host-common/authorization-gate.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "af37a995b4ad04965c56f6dde2e0948d638c9d531af206e26716df27db3f41f8",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
@@ -1040,6 +1042,7 @@
     },
     {
       "module": "adapters/host-common/checkpoint-approval.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a140ed7ef49554eda56412cd239e02b64274fcc36362fe629fdcc3b6f7c97566",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
@@ -1219,6 +1222,7 @@
     },
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2341df0b07d3dc9aa0ed1a4c3de203edaefaac52c2144476898d9b864b3f2921",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
@@ -2358,6 +2362,7 @@
     },
     {
       "module": "adapters/host-common/completion-observer.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "1a31e9b7d4758fb6e314710bd4a556fa326d8f287d0a2563e26ef6287e3efd3a",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
@@ -2547,6 +2552,7 @@
     },
     {
       "module": "adapters/host-common/durable-result-payload.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "d1dfdf7002d126cf2a5f00a5551b6db329c7a0c8538fce406092f5f5a79c7077",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
@@ -3017,6 +3023,7 @@
     },
     {
       "module": "adapters/host-common/effect-receipt-custody.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ec65974a3488fb0503b84be23682c1903be8fc824426e1bded13083be492c6a4",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -3230,6 +3237,7 @@
     },
     {
       "module": "adapters/host-common/execution-sites.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "08d3256d7dcc6428b2c4ba2e2169385b82891e4cd33e513391148ea5c11fa147",
       "role": "physical-io",
       "owner": "Existing execution_site/Coordinator/Transfer Owners and installed placement adapter",
@@ -4242,6 +4250,7 @@
     },
     {
       "module": "adapters/host-common/http-exchange.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a38bb519027bced1c8845c416bec066f2e8ec4b837aa3bfef233381bb38d1792",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
@@ -4548,6 +4557,7 @@
     },
     {
       "module": "adapters/host-common/installed-connector-declaration.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a87802ef77e91633163ff419fea21def0aaa862a1a73289320c2f8aa3ff0805b",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
@@ -4750,6 +4760,7 @@
     },
     {
       "module": "adapters/host-common/managed-failure.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "48cd4ceb478dac30527b5b76833233fb2251a9a7a60e1ed991bf3bf32440affe",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
@@ -5116,6 +5127,7 @@
     },
     {
       "module": "adapters/host-common/managed-site-transfer.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "754ef787e9ff557dfd16cca0aaa33a2bb7c34cbb91f50cdb8e8b3882fe1558fb",
       "role": "physical-io",
       "owner": "Existing execution_site/Coordinator/Transfer Owners and installed placement adapter",
@@ -5628,6 +5640,7 @@
     },
     {
       "module": "adapters/host-common/private-publication-holding.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3626e9ad44313bf78b2287f1c627aa47d0c4debe6a6b26f64335f9bdc973a94b",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
@@ -5914,6 +5927,7 @@
     },
     {
       "module": "adapters/host-common/result-access.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "bc1b49d687dcd17bb19840323a19cf45af067f8d3407c0d90a0e8dc854e1bd20",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
@@ -6284,6 +6298,7 @@
     },
     {
       "module": "adapters/host-common/result-delivery.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a69c93ec48d44345ca51e7efea5155db727d457b0065ce91d8a3d37dd62a629b",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
@@ -6703,6 +6718,7 @@
     },
     {
       "module": "adapters/host-common/result-output-limits.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "8dfe9bc2c730c8415956bfff72a1f28d38cbde29c56aa12842d8dd023780b925",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
@@ -6902,6 +6918,7 @@
     },
     {
       "module": "adapters/host-common/run-publication-preflight.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "009f6868a161327f4ad4163ebe08607f67c588751537977792d10ca990e1853c",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
@@ -7173,6 +7190,7 @@
     },
     {
       "module": "adapters/host-common/run-publication.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "8f98d15bef853299a939904b1ab4afb3c2599248e62bbc4934c7a60e57958191",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
@@ -7721,6 +7739,7 @@
     },
     {
       "module": "adapters/host-common/run-state-access.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2e0981b0051a19ca2ccbe333ec8c9afdfc2bea8d888d883cde49cb62c3d4abc1",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
@@ -8007,6 +8026,7 @@
     },
     {
       "module": "adapters/host-common/run-state-observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b9a0d290ab4cdd6f21af1184783bbde305fc7bbd9cd33f4c46782b66ca828c21",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
@@ -8212,6 +8232,7 @@
     },
     {
       "module": "adapters/host-common/scoped-strategy.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ec5a195bdbc9cb77e0e35df40927780009e610f967c5ca65043d1e1d9ec3c441",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
@@ -8397,6 +8418,7 @@
     },
     {
       "module": "adapters/host-common/sqlite-format-inspection.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "bf9dd4499ae60caca67bc659c401622e241ad7007c6a291301989aa5b6e1d41e",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
@@ -8613,6 +8635,7 @@
     },
     {
       "module": "adapters/host-common/strategy.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "e9f308e814df1e2980cb87ec21ef7e7d201ed77bbd1f3fa210c866f743ec4d17",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
@@ -9377,6 +9400,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "75d5909ca3c60cc6afa83c31a58f01849d556728aa17d645f2c5248bbd8add8a",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -9602,6 +9626,7 @@
     },
     {
       "module": "adapters/host-node/authorization.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "9d4d1229c340445bb704bf9141fdead3b97fbe209d8501d1394a128d138f16f6",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
@@ -9778,6 +9803,7 @@
     },
     {
       "module": "adapters/host-node/bounded-continuation-directory.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3b6c82f54c6e9010924fa38ea620bed2ba768358659023cc0622bb213409e3bc",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -9997,6 +10023,7 @@
     },
     {
       "module": "adapters/host-node/bounded-continuation-metadata.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "6626f85c23426acdb2f11aeadfa28083b6801c2b154181f6d6b3a260d92ee032",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -10228,6 +10255,7 @@
     },
     {
       "module": "adapters/host-node/captured-content-holding.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "30d391b800aa9d75ef2527eea3fe4b9d9584782264547a5f4215e99b93efc83c",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
@@ -10407,6 +10435,7 @@
     },
     {
       "module": "adapters/host-node/client-authentication-observation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ce63abc6db567cea4ae6a922b537b8e39e6dfddd39fdf2a31a4ea0278935fcdd",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
@@ -10578,6 +10607,7 @@
     },
     {
       "module": "adapters/host-node/client-check.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "0cdbec463bd310082d5f4e9362c082cb2ade2d7b64d36fad8ecea108923bbc11",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
@@ -10952,6 +10982,7 @@
     },
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f7f739c9212655647141507bee066ec68dc90b50190ad4e16a8a8145fa21e3b5",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
@@ -12726,6 +12757,7 @@
     },
     {
       "module": "adapters/host-node/client-effect-observations.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "efcc44736f47834feb8cdf815fb2663b416b98e3624c8bbf24ad701fcb32ed2b",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
@@ -12981,6 +13013,7 @@
     },
     {
       "module": "adapters/host-node/client-effect-run.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "e44bd4217b5973dd8f56d645a15275d219e50ec80140f94dc9bbf7bf8dbeefba",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
@@ -13298,6 +13331,7 @@
     },
     {
       "module": "adapters/host-node/client-http.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "13357232e46fdd127967477ece7f6184075ae7286bfdbe84ff034bbcda9f7235",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
@@ -13718,6 +13752,7 @@
     },
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "1d0959cc6544bc19de0948428135693eac0b76727372c2325b7415486770ae73",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
@@ -13903,6 +13938,7 @@
     },
     {
       "module": "adapters/host-node/client-observation-journal.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "e7d1dcb07e22c081866ccc1f3b11236c18f7701319ea99b03d8a1eba9d8f3173",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
@@ -14179,6 +14215,7 @@
     },
     {
       "module": "adapters/host-node/client-owner-cursor.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3a019c57b01e6f3c3c5a38b9908fa0dbe0413699c08a2bd3ac5dfe87c451375d",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
@@ -14433,6 +14470,7 @@
     },
     {
       "module": "adapters/host-node/client-owner-observations.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "00bb1ad8ab9b1b5aa5b19c1cb07a73908b6052f599bb676fbeacde3f2ba7fb5b",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
@@ -14829,6 +14867,7 @@
     },
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "04eb2061a0cf9680baadbedd9a136f0ed681d564b158f58b9806c2f86a6ada75",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
@@ -15150,6 +15189,7 @@
     },
     {
       "module": "adapters/host-node/client-request-journal.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ba7666510b4c9945aeac1bb383184d0e4fba3675789c2693c8d9588d93867e2c",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
@@ -16706,6 +16746,7 @@
     },
     {
       "module": "adapters/host-node/client-request-lookup.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "81d95866006d76c1af5f6fc396d76414a00702217c52ae8e2378c799cad178dd",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
@@ -16908,6 +16949,7 @@
     },
     {
       "module": "adapters/host-node/client-run-attach.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4a3c4a6411e04cb1d0390563c7f01427fd17f9bdaf433d10f8af3cdf1a23cd3d",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
@@ -17112,6 +17154,7 @@
     },
     {
       "module": "adapters/host-node/client-run-inspect.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "feddf78eb63b5954ebc681969b6993b08a30305c99b34412a35fcbf40fc82a3e",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
@@ -17319,6 +17362,7 @@
     },
     {
       "module": "adapters/host-node/client-run-plan.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a9ff072a89afa3d05be985df56e5e75bcb41857fe93d8ea69e9fa19f325126db",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
@@ -17505,6 +17549,7 @@
     },
     {
       "module": "adapters/host-node/client-run-start.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5641b62e95dfd15bc2a146923b1db14e0d5af2857f6f8aa41bbbe72774f396f1",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
@@ -17701,6 +17746,7 @@
     },
     {
       "module": "adapters/host-node/client-submission.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3d54c2eedc4a1265c56922254068f98fa896b11734eecbd90d52e54b46ddadec",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
@@ -18122,6 +18168,7 @@
     },
     {
       "module": "adapters/host-node/client-submit.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "586c562b77e97ae4bf11769fdae1003d4d3c2c26e043be083df1a45e20e95072",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
@@ -18301,6 +18348,7 @@
     },
     {
       "module": "adapters/host-node/compile-cache.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "de3781366c3e623aa54f08b89791a932cbc2ea46b1eb26b96d55ac35cb92703f",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
@@ -18467,6 +18515,7 @@
     },
     {
       "module": "adapters/host-node/duckdb-physical-target.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "7f741e431bc2738671bcfc7e383f09f9969c46432f2c770758bb56492b8602ce",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -18645,6 +18694,7 @@
     },
     {
       "module": "adapters/host-node/effect-ledger.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2f548786243905d306ee99542e0a1fa9cf033a40a7c39e72ba0d348a6aafaff9",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -19422,6 +19472,7 @@
     },
     {
       "module": "adapters/host-node/effect-physical-dispatch.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "dc430d42300d3e8bec1ac66c66e05f00dd381cf2305e175070a35d2a4d17e000",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -19644,6 +19695,7 @@
     },
     {
       "module": "adapters/host-node/effect-response-recovery.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "18ae79f143f198a38cef6c72142d68038b6b956cce10ce699fc20c66e600d6e8",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -19985,6 +20037,7 @@
     },
     {
       "module": "adapters/host-node/effect-run-completion.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5d5e9772ce16a76b7ab021476e9d5c6f9eef6c97df16c07ce7c0166d2e0d7f08",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -20269,6 +20322,7 @@
     },
     {
       "module": "adapters/host-node/effect-run-recovery.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4616b887396faa1596668e073402e533810cf4d31f159f7eb248bdf736fc8937",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -20486,6 +20540,7 @@
     },
     {
       "module": "adapters/host-node/effect-target-read-continuation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "476d674447d38ecb3192ef3e4fa33bccc30b98e7ce96ea21a5de963cdda2c4ed",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -20880,6 +20935,7 @@
     },
     {
       "module": "adapters/host-node/effect-target-read-inventory.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "e388dbb5f7238e562370b40908c4884e78515270865ca9a6a7d6145270cfce21",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -21087,6 +21143,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "39c395b4b8b5bb43889c6a11a6c5917380c8abacf7003cb732f774c07f07f651",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
@@ -21443,6 +21500,7 @@
     },
     {
       "module": "adapters/host-node/entry.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "d17465d41a33db750a24e7ba21d8ec513b70716d7551703ce412ca64899ce734",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
@@ -21814,6 +21872,7 @@
     },
     {
       "module": "adapters/host-node/generated-content-holding.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5f54c20676ac76b99d5ff8a40effce8fbe9a417fff4e1d3f7722152d9419874c",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
@@ -22102,6 +22161,7 @@
     },
     {
       "module": "adapters/host-node/generated-content-write.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "08c95815401ffb8925b65863ee58316ae85b4a085ac0a2c4b994f236f68fe35b",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
@@ -22352,6 +22412,7 @@
     },
     {
       "module": "adapters/host-node/host-root-format.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "01a0f543d21fe95e16e947ca9a5e3e6468b9ccd2362989092328ce6527cb4b54",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
@@ -22553,6 +22614,7 @@
     },
     {
       "module": "adapters/host-node/in-process-client.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "0c38ddb850aa0af7882f2b5da030e1151170c77a814f9dba4f66c9699e6f2043",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
@@ -22845,6 +22907,7 @@
     },
     {
       "module": "adapters/host-node/in-process-result.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c8f45f500b8526ec1d3dd30c4a649d10855d01556d1f95a5ed6342bd177daf45",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
@@ -23086,6 +23149,7 @@
     },
     {
       "module": "adapters/host-node/infer-io-notification.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "8aecfb5fd04d08fa46fc71aa1aeaa8d3e89940917b6b5bae98a7f2ce51e30010",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -23294,6 +23358,7 @@
     },
     {
       "module": "adapters/host-node/infer-original-installation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f7102253e1ea9ba0024187ddd45c8a9ac91f41d7b1e75cf26b6daa06cc5e2bfb",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -23672,6 +23737,7 @@
     },
     {
       "module": "adapters/host-node/infer-raw-selection.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "34a268539a28327f7ab21d8ec01bc721650da7254caf30393722071653e43fa0",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -23856,6 +23922,7 @@
     },
     {
       "module": "adapters/host-node/infer-result-publication.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "559159124143dee361baac4e75d985f6e97a2b865a23b3013bab1a830844fe44",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
@@ -24058,6 +24125,7 @@
     },
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
+      "responsibilityFacet": "primary",
       "sha256": "cc3981e9d039c0d454839cf9fe36902dc1f7529e89ab5bb42d45f7e4cd625e07",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -24398,6 +24466,7 @@
     },
     {
       "module": "adapters/host-node/infer-trusted-runtime-view.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a917e2b4d6f7e10fdbd39e333d48c8589307a45a06e2986cb5bf8becececd429",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -24846,6 +24915,7 @@
     },
     {
       "module": "adapters/host-node/installation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2acc7e8f6cde8f71210b4f7fb6268ec5085199ab6dc40dad511db6170794edbd",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
@@ -25053,6 +25123,7 @@
     },
     {
       "module": "adapters/host-node/installed-calendar.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "17793f9d82aec55574a6a271c26e5530b667f97cac535b7ab8fb4f0b625938d9",
       "role": "physical-io",
       "owner": "Existing MoonBit calendar profile Owner and trusted semantic-artifact selection",
@@ -25326,6 +25397,7 @@
     },
     {
       "module": "adapters/host-node/installed-check-environment.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "bc350906cc99e52c232ac322af13193c326f78a177882f40fcbd88f76424f012",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
@@ -25641,6 +25713,7 @@
     },
     {
       "module": "adapters/host-node/installed-connector-implementation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "19ed1d6ecc47c2e24705030342ec3a852a1cb7118f7a4ea0e466df44839bd004",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
@@ -25872,6 +25945,7 @@
     },
     {
       "module": "adapters/host-node/installed-connectors.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f1b9987a7223556790dbd583e49a88221354293f65d418cd9319eaac78726f86",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
@@ -26221,6 +26295,7 @@
     },
     {
       "module": "adapters/host-node/installed-content-family.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3e1deacf2cacb426c40becb081cd62092c59c1cc0a5713fcb3e9cd4bf8c00d51",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
@@ -26540,6 +26615,7 @@
     },
     {
       "module": "adapters/host-node/installed-content-run.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "17c46cddb699addb2c1f8f95fa78ab6de90ac3ffaf54b5e2d2defe7a7c64b65d",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
@@ -27053,6 +27129,7 @@
     },
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "aa55e280a03dc54654e0e8bc6acb107c11c79ae3453f87d8d0a03a5356ae8eee",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -27253,6 +27330,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-inventory.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f1690eed2253ecc914f9a99d36123f13f0d6657e107bcd90f8c6fb41a4d6dd0a",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -27640,6 +27718,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-limits.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ff79d7657c0abeb28da7b9fd6cebf8d763051161077d0db64d938a3ed87dac5e",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -27799,6 +27878,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5558ea3e06ca95d99c4cd9a5b1dc3ca90837c9be1bd698f24a043853461f6856",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -28278,6 +28358,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "188bfd7944f1d545f5e16572e87a94fc4f58ccce047d5000f9f6305d842e691b",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -28588,6 +28669,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "757e9025bbe4ccee30ec52a2c36189d391c1361c4eaa2145f2ea862c4ee8c925",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
@@ -28946,6 +29028,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5571b28892ba1bb056f01dfc3243fb1fa6240d28abc5d35e818fdfa55acce425",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
@@ -29183,6 +29266,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-originals.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "eb7f6b2b9b928db50c7bf03425304efc7ab384a90b964e97e168902f1442dad2",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -29360,6 +29444,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-capture-cleanup.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "7c5c25655f875f4bc6173cb95a423e27ba6d5c5b0192adca9865d2e85a3f1fbd",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
@@ -29564,6 +29649,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-listing.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "e30f1790202cc129a67ca74f1ad3eea29e8bacfce6739ffcdbc03e128e9eda68",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -29771,6 +29857,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-limits.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5a6718363910a365c4fe46c7537273c3403b16e428c890ddde05bbf388a72b72",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -29930,6 +30017,7 @@
     },
     {
       "module": "adapters/host-node/installed-source.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "1fc5d88a504dfbe9c237a1659efd845128ea1a30c71113908c09fb8e58c4043c",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -30444,6 +30532,7 @@
     },
     {
       "module": "adapters/host-node/installed-table-source.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "2771bf21365e4188297eb7efa3c6c09c4d6120327bc553c607d5e463f580c0d5",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -30790,6 +30879,7 @@
     },
     {
       "module": "adapters/host-node/local-account-config.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ab4079bfa78e300a347d07c22496d8173626c22ec2a604558b4c48d7caf5c713",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
@@ -31097,6 +31187,7 @@
     },
     {
       "module": "adapters/host-node/local-continuation-evidence.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4a0c83fd017d605b394697da574bbb7c908743455feadc43dec5eb8902ef285d",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -31880,6 +31971,7 @@
     },
     {
       "module": "adapters/host-node/local-values-capacity.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "fa2b2de7cb0b3a7d995bf37f7f596c83c48c18ea7d7390e71f6dc7279a335fb6",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
@@ -32067,6 +32159,7 @@
     },
     {
       "module": "adapters/host-node/loopback-http.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ca5870ef31bc93418526e84bcc68e56bc4d732ec5539b8c527995f2ed5ba5b82",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
@@ -32245,6 +32338,7 @@
     },
     {
       "module": "adapters/host-node/managed-identity-policy.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "c672d59c90a569e5b9aa8cbf4f0104557d74faf661c7ee0328472862423e9137",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
@@ -32431,6 +32525,7 @@
     },
     {
       "module": "adapters/host-node/model-checkpoint-metadata.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "06a06050bf0f5a6a445a703f2f5b19f028ae522438375108d0116c6f6a00dac2",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -32614,6 +32709,7 @@
     },
     {
       "module": "adapters/host-node/model-resume-state.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4fe29e4bf4423e19272daf6af610c44d9b5e619a762ad74ceaf3c291d7b8b843",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
@@ -33908,6 +34004,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-binding.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f59f35d4a0787e8962de8b4f4531f289182b322a779e2db373f042e69de64f07",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -34170,6 +34267,7 @@
     },
     {
       "module": "adapters/host-node/process-accounting.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a73899a9fb9b1c3684843b2190e09f824758350efec44aa3f270ae948d11a6f4",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
@@ -34429,6 +34527,7 @@
     },
     {
       "module": "adapters/host-node/process-channel.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "128f763ccc0b1779cf9b6f89a552f8c0f9da78d284d8de4c3705d1e79f72b4be",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
@@ -34874,6 +34973,7 @@
     },
     {
       "module": "adapters/host-node/process-frames.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "17b8eed3f2939d8ab2c2588a872323535c6c53c1c982b6bdc3b9eb99bf055a05",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
@@ -35132,6 +35232,7 @@
     },
     {
       "module": "adapters/host-node/public-source-preparation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5a7f82739daa81e292d39abbeb50911ff9389f32668e2eb70c3856daaf20626e",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
@@ -35342,6 +35443,7 @@
     },
     {
       "module": "adapters/host-node/result-access.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "87d26b49cddeb5c2bb0caa7d42c0c88a556b0f18a4ffc376dd3932c3a5f71ea6",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
@@ -35547,6 +35649,7 @@
     },
     {
       "module": "adapters/host-node/serialization-result-publication.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b6d933374ceb3da2d44bd3dbedd17d7c2a4803b72736957fb42b4c08ad167636",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
@@ -35788,6 +35891,7 @@
     },
     {
       "module": "adapters/host-node/source-alias-publication.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "f2d0c8db230bc68eb4e886c5e342a534a7f63d7284d040ca76fb5bf69777eaa5",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
@@ -36284,6 +36388,7 @@
     },
     {
       "module": "adapters/host-node/source-profile-json.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "9be651d1b6b3240d927e0f47b36cebba620224ada6a8387f996d6486b5aa14af",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
@@ -36454,6 +36559,7 @@
     },
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "251b681742edd764333b16d086b9aac57eba8e8bef2481223800eaf6762c6b25",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
@@ -37748,6 +37854,7 @@
     },
     {
       "module": "adapters/host-node/sqlite-effect-ledger.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "aec2deb3761d9a4dfbe013a79da4f04e10a79aa447c47d617d0e093da065fe1f",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -38386,6 +38493,7 @@
     },
     {
       "module": "adapters/host-node/table-capture-recovery.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ff56026da3774ab808b7e3631e6fca8239ba623584fc52860598a93e06b20f2a",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
@@ -38635,6 +38743,7 @@
     },
     {
       "module": "adapters/host-node/table-commit-apply.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "0ff083e0ec561e024caced8e22889f9599c08bc16103062ca3974c8f160484ae",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
@@ -38963,6 +39072,7 @@
     },
     {
       "module": "adapters/host-node/table-commit-outcome.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "b0f3de6a77abc9c3043a9a0b506e8c64f996ff4253dee0e2c10e56282bf3d1b2",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
@@ -39136,6 +39246,7 @@
     },
     {
       "module": "adapters/host-node/table-commit-reconciliation.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "aba2d7bcec2a4c809ec3afea00a130c0368fa1adb05ef97f290a67ec8f0807f6",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
@@ -39357,6 +39468,7 @@
     },
     {
       "module": "adapters/workers/finite-runtime.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4ce7e98920384621e2ce653381df2a525cea57417582f12d87f5eb3ebd71bd10",
       "role": "physical-io",
       "owner": "Existing invocation-scoped common Host/finite Workers adapter",
@@ -39534,6 +39646,7 @@
     },
     {
       "module": "packages/coordinator-core/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "2d8f16293002f0e66b38c5a650f6b9e6a0e75aa2b4deb2354b2442944b9884d6",
       "role": "common-semantics",
       "owner": "Existing remote_coordinator_abi/Site/Bundle Owners; public same-process type projection",
@@ -41132,6 +41245,7 @@
     },
     {
       "module": "packages/run-host-core/checkpoints.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "1625a18c59510c098dfb524a9999322d44327183940c0b9215e1d92793d1212a",
       "role": "common-semantics",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
@@ -41500,6 +41614,7 @@
     },
     {
       "module": "packages/run-host-core/checkpoints.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "296a8f16040121944a8100ed61b3131e543848b71d28fad046b6137f8edfc214",
       "role": "common-semantics",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
@@ -41695,6 +41810,7 @@
     },
     {
       "module": "packages/run-host-core/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "ab885ea927d8613c3af9e0ea5fad3c265524e51bf7fb9ce30ad3e750c3f14ad4",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
@@ -44251,6 +44367,7 @@
     },
     {
       "module": "packages/run-host-core/observation.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "bebc3679eebe8146a1a68b7f738fb6a2719cf77be52a036654fd4eefbccabc6f",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
@@ -44471,6 +44588,7 @@
     },
     {
       "module": "packages/run-host-core/result-access.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "ac0dd3b5c8ab7b2b971400e0fabfbc0b1db4be364e67d3d1d29ce9b18bf0a7e1",
       "role": "common-semantics",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
@@ -44716,6 +44834,7 @@
     },
     {
       "module": "packages/run-host-core/result-access.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "5313c18736996b7cc24de7f53fda4e3f642d30400db313619d96242a1cd1e1e2",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
@@ -45086,6 +45205,7 @@
     },
     {
       "module": "packages/run-host-core/result-delivery.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "a69c93ec48d44345ca51e7efea5155db727d457b0065ce91d8a3d37dd62a629b",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
@@ -45505,6 +45625,7 @@
     },
     {
       "module": "packages/run-host-core/workers-finite.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "c02f81ab3e7b707368f965133b34ada44b81f079ce1f028ae02d660ee5da0968",
       "role": "common-semantics",
       "owner": "Existing invocation-scoped common Host/finite Workers adapter",
@@ -45851,6 +45972,7 @@
     },
     {
       "module": "packages/transfer-core/index.d.ts",
+      "responsibilityFacet": "primary",
       "sha256": "c1174d6d4fbce848f4a225cf4310dceccbd26880fe08b8b38ede4aec891640db",
       "role": "common-semantics",
       "owner": "Existing remote_transfer_abi/Transfer Owner; public same-process type projection",

@@ -108,6 +108,16 @@ not establish an installed product profile; the
 [runtime artifact rules](../development.md#runtime-package-artifacts) retain
 their normal packaging and exact-artifact acceptance requirements.
 
+Source-module coverage and primary responsibility coverage are distinct.
+Supplemental representation references cannot replace a required functional
+responsibility. The [strict coverage check](../../scripts/interface-owner-coverage.mjs)
+requires a primary facet for each admitted module. It accepts compiler-binding
+qualifications only from the original same-process
+[read-only generation check](../../scripts/interface-generation-freshness.mjs)
+for that source root; serialized sidecar claims and copied qualification records
+cannot supply them. This qualification establishes checked source generation,
+without granting runtime authority or admitting a distribution artifact.
+
 ## Pinned runtime initialization
 
 The selected MoonBit JS builtin uses ambient entropy to initialize its physical
