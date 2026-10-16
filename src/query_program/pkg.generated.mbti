@@ -39,11 +39,11 @@ pub fn command_target_publication_usage(CommandTargetPublication) -> (Int, Int)
 
 pub fn command_target_publication_work(CommandTargetPublication) -> Int
 
-pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?) -> Result[@stage_syntax.Program, Issue]
+pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?, command_targets? : CommandTargetPublication?) -> Result[@stage_syntax.Program, Issue]
 
-pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?) -> Result[@stage_syntax.Program, Issue]
+pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?, command_targets? : CommandTargetPublication?) -> Result[@stage_syntax.Program, Issue]
 
-pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?) -> Result[(@stage_syntax.Program, @program_source_builder.Source), Issue]
+pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?, command_targets? : CommandTargetPublication?) -> Result[(@stage_syntax.Program, @program_source_builder.Source), Issue]
 
 pub fn issue_without_source(Issue) -> Issue
 
@@ -238,6 +238,7 @@ pub(all) enum Issue {
   TableWriteBinding(TableWriteBindingIssue)
   UpdateTargetBinding(UpdateTargetIssue)
   StoreTargetBinding(StoreTargetIssue)
+  CommandTargetBinding(CommandTargetPublicationIssue)
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   ExpressionTyping(@expression_typing.Issue)
