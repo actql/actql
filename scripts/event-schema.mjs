@@ -28,12 +28,12 @@ export function eventSchemas() {
       required:['start','end','unit','timezone'],allOf:calendarWeek,
       properties:{...calendarCommon,start:calendarTimestamp,end:calendarTimestamp}},
     sequence: {type:'object',additionalProperties:false,
-      required:['by','id','time','pattern','within','overlap','contiguity'],properties:{
-        by:{type:'array',items:field},id:field,time:field,
+      required:['id','time','pattern','within'],properties:{
+        by:{type:'array',items:field,default:[]},id:field,time:field,
         pattern:{type:'array',minItems:2,items:{type:'object',additionalProperties:false,
           required:['as','where'],properties:{as:{type:'string',minLength:1},where:{$ref:'#/$defs/predicate'}}}},
-        within:millisecondsSchema(),overlap:{enum:['allow','disallow']},
-        contiguity:{enum:['adjacent','subsequence']},
+        within:millisecondsSchema(),overlap:{enum:['allow','disallow'],default:'disallow'},
+        contiguity:{enum:['adjacent','subsequence'],default:'adjacent'},
         max_matches_per_key:positive,max_output_rows:positive,
       }},
     asof_join: {type:'object',additionalProperties:false,
@@ -71,7 +71,7 @@ export function eventSchemas() {
       id:{type:'string',minLength:1},time:{type:'string',minLength:1},
     }},
     watermark_events: {type:'object',additionalProperties:false,required:['watermark_ms','policy'],properties:{
-      watermark_ms:{type:'number'},policy:{enum:['drop','mark']},
+      watermark_ms:{oneOf:[{type:'number'},parameter]},policy:{enum:['drop','mark']},
     }},
   };
 }

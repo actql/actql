@@ -5545,6 +5545,21 @@ upper bound of `input_events * ceil(size / step)` using checked multiplication;
 overflow fails planning rather than saturating. `session` has
 a distinct shape in [session](#session) and MUST NOT be inferred from either operation.
 
+<a id="event-clock-domain"></a>
+
+#### Shared event clock domain
+
+<!-- requirement-block: event-clocks.timestamp-or-integer-milliseconds -->
+Clock fields consumed by `to_events`, `sequence`, `row_window`, `watermark_rows`,
+`asof_join` and `interval_join` MUST use one non-null domain: a typed UTC
+`timestamp` or a finite exact safe-integer number of UTC milliseconds.
+This applies to each side of a temporal join and to both Relation and Events
+inputs. Timestamp conversion is internal, with the source column retained in
+its original type and value. No rounding, string conversion or host-clock
+sampling supplies a clock; bounds and timestamp range checks remain mandatory.
+A watermark threshold is a scalar value with its separately declared numeric
+constraints, not an alternative row clock source.
+
 <a id="event-bridges"></a>
 
 #### Event-stream-preserving operations and explicit bridges
@@ -5570,19 +5585,20 @@ preserves `events`.
 
 <!-- requirement-block: event-bridges.clock-source -->
 The `to_events` body MUST contain exactly `id` and `time` field references on
-its Relation input, with the time source having a non-null number or UTC timestamp
-contract. Other field types may remain unknown, and the retained payload field
+its Relation input, with the time source having a non-null UTC timestamp
+or exact integer-millisecond number contract. Other field types may remain unknown, and the retained payload field
 set may be open. A timestamp source is converted to the internal numeric UTC-millisecond
 clock without replacing its authored payload value or inserting a public
 `event_time_ms` alias. The Event carrier retains the source role and its clock
 encoding separately; clock-consuming operations validate values and perform the
 required conversion before temporal arithmetic. An explicitly authored clock
-field on an existing Event carrier remains subject to that operation's own
-field-domain rules, including sequence's numeric-only rule.
+field on an existing Event carrier uses the same clock domain, including a
+retained timestamp payload field. The authored payload column is preserved.
 
 <!-- requirement-block: event-bridges.watermark-labels -->
-`watermark_events` MUST have a closed body containing `watermark_ms` and
-`policy`. Both policies add fresh non-null fields `watermark_ms: number`,
+`watermark_events` MUST have a closed body containing `watermark_ms` as a
+finite numeric literal or whole declared numeric ParamRef and an explicit
+`policy`, with the bound value validated against the same finite-number domain. Both policies add fresh non-null fields `watermark_ms: number`,
 `late: boolean` and `watermark_decision: string` to every retained event.
 Existing fields with any of these names are collisions; unknown field-set
 completeness does not establish their absence. The event is late exactly when
@@ -5591,7 +5607,9 @@ its numeric millisecond time is less than the threshold; equality is not late.
 otherwise. `drop` removes late events and labels all survivors `keep`. Both
 preserve retained events' semantic identity, time, payload and relative order;
 they do not establish uniqueness or a new ordering proof. The threshold is a
-finite number literal, not a Parameter, and may be negative or fractional.
+finite numeric literal or whole declared Parameter, and may be negative or
+fractional. No row expression, implicit NOW(), or clock recomputation on resume
+is admitted; the Run retains the original admitted Parameter value.
 
 <!-- requirement-block: event-bridges.semantic-identity-domain event-bridges.identity-uniqueness event-bridges.preserve-identity-order event-bridges.reject-unsupported-identity-lowering -->
 `to_events.id` MUST have a complete, non-null `KeyComparable` value contract.
@@ -6048,8 +6066,12 @@ does not attest completed single-visit enforcement or authorize execution.
 ```
 
 <!-- requirement-block: sequence.source-contract -->
-The closed body MUST contain `by`, `id`, `time`, `pattern`, `within`, `overlap`
-and `contiguity`, with only `max_matches_per_key` and `max_output_rows` optional.
+The checked canonical body MUST contain `by`, `id`, `time`, `pattern`, `within`,
+`overlap` and `contiguity`, completing omitted authored `by`, `overlap` and
+`contiguity` to `[]`, `disallow` and `adjacent` respectively.
+The authored body requires `id`, `time`, `pattern` and `within`; the two limit
+guards remain optional. The schema admits the authored shorthand, but a checked
+canonical body records every completed key explicitly and remains closed.
 `by` is a possibly empty list of KeyComparable fields: empty denotes one global
 partition. Repeated grouping fields retain their source occurrences but do not
 duplicate output columns or strengthen uniqueness. Each pattern element is
@@ -6064,9 +6086,9 @@ and value-validation obligations. Omitted guards insert no fixed language
 default and still require resolved execution limits from current Host policy.
 
 <!-- requirement-block: sequence.the-key-event-time-event-identity-at-least-two-pattern sequence.pattern-as-labels-must-be-non-empty-and-unique -->
-The key, event time, event identity, at least two pattern elements, positive
-`within`, explicit `overlap: allow|disallow`, and explicit
-`contiguity: adjacent|subsequence` are REQUIRED. `adjacent` permits no
+The event time, event identity, at least two pattern elements and positive
+`within` are REQUIRED; omitted grouping and matching modes use the fixed
+normalization above, with vocabulary `allow|disallow` and `adjacent|subsequence`. `adjacent` permits no
 non-matching event between pattern elements; `subsequence` may skip them but
 all selected events remain ordered and within the bound. Each pattern
 predicate uses the closed RelA predicate grammar. Pattern `as` labels MUST be
@@ -6101,11 +6123,10 @@ MUST fail the whole operation without publishing partial matches.
 
 <!-- requirement-block: sequence.the-authored-sequence-clock-must-satisfy-this-closed-carrier-contract -->
 The authored sequence clock MUST satisfy this closed carrier contract: a
-relation accepts a typed non-null UTC timestamp or numeric UTC-millisecond
-field and inserts timestamp conversion when needed; an existing
-`events` accepts only a typed non-null numeric millisecond field such as
-`event_time_ms`; every other type is rejected during planning rather than
-failing at runtime.
+Relation or Events input accepts a typed non-null UTC timestamp or exact
+integer UTC-millisecond field, converting timestamp values only for internal
+temporal arithmetic while retaining the authored column and its type; every
+other type is rejected rather than coerced, rounded or parsed from a string.
 
 For `overlap: disallow`, cursor advancement and unique event-carrier identity
 prove each emitted `{label}_id` to be a candidate key. For `overlap: allow`, no
@@ -6364,10 +6385,14 @@ value and physical resource contracts remain in force.
 ```
 
 <!-- requirement-block: degree.direction-is-required-and-must-be-in-out-or-both degree.direction-is-required-and-must-be-in-out-or-both.second -->
-`direction` is REQUIRED and MUST be `in`, `out`, or `both`. The result is a
-relation containing exactly `node` and `degree`. Join `node` back to a source
-relation explicitly when source metadata or a different public field name is
-required.
+`direction` is REQUIRED and MUST be `in`, `out`, or `both`; its output columns
+are named `node_id` and `degree`.
+
+<!-- requirement-block: degree.output-schema-and-key -->
+The output Relation MUST contain exactly `node_id` and `degree`, retaining the
+Graph's non-null node identity contract and a candidate key on `node_id`.
+There is no compatibility `node` column. Join `node_id` back to a source
+Relation explicitly when source metadata or another public field name is needed.
 
 <a id="reach"></a>
 
@@ -10511,14 +10536,15 @@ AsofJoinConstraints := Relation left_id omission requires a complete retained
   candidate key; Events retain their intrinsic identity; comparison time fields
   are non-null UTC timestamps or safe-integer milliseconds; key occurrences and
   ascending tie-break occurrences are retained; null equality keys do not match.
-SequenceBody := {by: [Field, ...] | [], id: Field, time: Field,
+SequenceBody := {by?: [Field, ...] | [], id: Field, time: Field,
   pattern: [{as: nonempty string, where: Predicate}, ...],
-  within: MillisecondValue, overlap: allow | disallow,
-  contiguity: adjacent | subsequence,
+  within: MillisecondValue, overlap?: allow | disallow,
+  contiguity?: adjacent | subsequence,
   max_matches_per_key?: PositiveIntegerValue, max_output_rows?: PositiveIntegerValue}
 SequenceConstraints := at least two uniquely labeled pattern elements; generated
   output names are valid and collision-free; Events id names the intrinsic role;
-  the explicit Events clock is numeric milliseconds, not a timestamp.
+  clocks on Relation and Events accept timestamps or integer milliseconds;
+  canonical completion inserts by: [], overlap: disallow, contiguity: adjacent.
 CalendarUnit := day | week | month | quarter | year
 CalendarTimestamp := canonical UTC millisecond timestamp in years 0001..9999 | ParamRef
 CalendarBucketBody := {time: Field, into: OutputFieldName, unit: CalendarUnit,

@@ -1418,7 +1418,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:b53274e7caf931ba4d0c272c4f7c8177571b3810f7977b4d141795c871c14a12 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:42b171710dc3c77766cf41cf81677f9ef7e794bd21cc01eec8e164c96cd8eb36 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
 
 <a id="parameter-value-projection"></a>
@@ -2176,11 +2176,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:17dce64a7870981c6e3325c69baf3f6264f3089974074754924a1b7bad62a3b1
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:69612197277a679d61a32a60c5fd77cd5eb51712c1dd75302093fa5276972961
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:2637cd5d00773adb47009f785bf1d14e80193b6b26ba43685eb03802e2c9ef78
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:9f4f744f939500de86873609ca9a543e590cd43dba936b3f2cea648d185200c1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a

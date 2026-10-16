@@ -1867,6 +1867,12 @@ output collisions, dimensions, profile and execution-resource obligations.
 The frontend does not duplicate grouping, numeric folds or identity encoding.
 An explicit `vectors()` bridge is required before Relation projection.
 
+All authored clock FieldRefs in `to_events`, `sequence`, `row_window`,
+`watermark_rows`, `asof_join` and `interval_join` accept the shared
+[timestamp or integer-millisecond domain](language.md#event-clock-domain).
+The original column is retained; only internal arithmetic converts timestamps.
+No numeric-only exception applies to an Events input.
+
 `row_window` and `window_events` retain the existing [window contract](language.md#event-windows),
 respectively Relation-to-Relation and Events-to-Events. `time` is a FieldRef,
 not a String or producer name. `kind` is the exact String `'fixed'` or
@@ -1879,9 +1885,12 @@ or offset. The common owner supplies default offset zero and retains the
 closed-open membership, clock, occurrence order, arithmetic and capacity rules.
 
 `watermark_events` preserves Events and the existing [watermark contract](language.md#event-bridges).
-Its closed arguments are a finite numeric `watermark_ms` literal, including
-negative/fractional values, and exact policy String `'mark'` or `'drop'`.
-Parameters cannot replace the threshold. The shared owner checks the Carrier,
+Its closed arguments are a finite numeric `watermark_ms` literal or whole
+declared numeric Parameter, including admitted negative/fractional values,
+and required exact policy String `'mark'` or `'drop'`.
+The common owner validates the Parameter declaration and bound value against
+the literal's domain and retains that value for the Run. Row expressions,
+implicit NOW() and recomputation on resume are refused. The shared owner checks the Carrier,
 fresh output names and values: late means time strictly below the threshold;
 equality is not late. Both policies preserve retained identity, payload and
 relative order. Use `events()` before ordinary Relation projection. These
@@ -2053,7 +2062,7 @@ The existing Graph diagnostic operations also enter ordinary Relation processing
 
 ```aql
 WITH stats AS (FROM g |> degree(direction: "out"))
-FROM stats |> WHERE degree > 0 |> SELECT node, degree |> RESULT active
+FROM stats |> WHERE degree > 0 |> SELECT node_id, degree |> RESULT active
 FROM g |> graph_bounds(max_nodes: 10, max_edges: @edge_limit)
   |> SELECT kind, node_id, actual, max |> RESULT violations
 FROM g |> components(kind: "strong", max_output_rows: 100)
@@ -2065,7 +2074,7 @@ Graph supplies the existing operation input. Bodies, typed parameter references
 and authored guards are preserved for the common checker and owner; omitted
 required arguments and invalid values are not replaced with defaults. Diagnostic
 thresholds select violations, rather than raising execution-resource ceilings.
-The Relation scopes are exactly `node, degree`, `kind, node_id, actual, max`, and
+The Relation scopes are exactly `node_id, degree`, `kind, node_id, actual, max`, and
 `node_id, component_id, component_size`, respectively. Graph identity types,
 nullable bounds `node_id`, component identity/order, selected capacity and
 atomic guard failures follow the existing machine contracts. WITH reuses the
@@ -2572,7 +2581,10 @@ FROM records AS e
 ```
 
 Closed keys are `by`, `id`, `time`, `pattern`, `within`, `overlap`, `contiguity`,
-and optional `max_matches_per_key`, `max_output_rows`. Required membership,
+with `by`, `overlap`, `contiguity`, `max_matches_per_key` and `max_output_rows`
+optional in the authored form. Omitted grouping and modes complete to `[]`,
+`'disallow'` and `'adjacent'` at check time; the closed canonical body stores
+them explicitly. `within` remains required. Required membership,
 pattern length, generated-name collisions and clock/identity validity remain
 with the common checker. `by`/`id`/`time` are ordinary current-row FieldRefs;
 label names use ordinary OutputName reserved/quoted-name rules. The original
