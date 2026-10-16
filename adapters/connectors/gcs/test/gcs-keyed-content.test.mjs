@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readGcsKeyedContent} from '../site/gcs-keyed-content.mjs';
+import * as providerMoon from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 
 const generation = '9007199254740993';
 const metadata = {bucket: 'actql-fixture', name: 'test/e\u0301%2F.csv',
@@ -15,7 +16,7 @@ const scope = {operation: 'gcs:file:read', resourceOrigin: 'https://storage.goog
 function fixture(reportedMediaType = 'text/csv') {
   const state = {requests: [], calls: [], charges: [], pages: [], verification: [],
     captures: [], currentChecks: 0, pending: undefined};
-  const options = {requestWire: JSON.stringify({resource, version: generation}),
+  const options = {moon: providerMoon, requestWire: JSON.stringify({resource, version: generation}),
     credential: {journal: {fixture: true}},
     limits: {maxMetadataBytes: 4096, maxContentBytes: 9, maxRequestBytes: 4096,
       maxAttempts: 2, maxTimeMs: 1000},

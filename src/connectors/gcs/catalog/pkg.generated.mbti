@@ -18,6 +18,8 @@ pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollection
 
 pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]
 
+pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]
+
 pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String
 
 pub fn object_collection_identity_json(ObjectCollectionBinding) -> String
@@ -107,6 +109,13 @@ pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUpl
 // Errors
 
 // Types and methods
+pub(all) enum ContentMetadataIssue {
+  InvalidMetadata
+  MetadataMismatch
+  RepresentationUnsupported
+  InvalidDigest
+} derive(Eq, @debug.Debug)
+
 pub struct ObjectCollectionBinding {
   installation_cid : String
   target_ref : String

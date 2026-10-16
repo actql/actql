@@ -76,6 +76,38 @@ unordered refusal and uses an explicit checked uniqueness/sort for publication.
 
 ## Original object request
 
+### Exact stored gzip Content
+
+The version-fixed content transport admits `contentEncoding: gzip` only as a
+stored representation selected by the original metadata response. Its media
+request explicitly uses `Accept-Encoding: gzip`; metadata still uses identity.
+For a nonempty gzip object, the same request selects the one complete stored
+byte range `0..size-1` derived from that metadata, with no added attempt. A 206
+reply must declare exactly that full interval and total; a 200 reply is usable
+only without a Content-Range and still must pass the same complete byte checks.
+Generation and metageneration conditions, original request observation and
+current Credential/Run scope are unchanged. A matching gzip response header,
+the original stored size and checksums are required before the same raw Buffer
+is handed to the existing Content capture owner. No gzip codec, transparent
+decompression, new attempt or alternative latest-version request is used.
+Identity reads keep their original request bytes and behavior.
+
+Missing/changed media representation, incomplete/foreign `Content-Range`, transformed or
+corrupt bytes, over-limit metadata and changed version headers still refuse.
+All actual response tickets and already-transferred bytes remain with the same
+RowRun/capture/Store cleanup owner; refusal or callback return is not cleanup
+ACK. The new bounded encoding field borrows the admitted metadata spelling,
+and its request/response/header views overlap under the existing envelope.
+It is not a new reservation, grant or normal numeric profile.
+
+This closes the exact full-object gzip representation path, not general
+partial-range assembly or live GCS/installed acceptance. A partial response
+still cannot become a complete ContentRef. The Google Cloud
+[transcoding contract](https://docs.cloud.google.com/storage/docs/transcoding)
+explains why identity negotiation or an ignored Range cannot prove stored-byte
+fidelity. A provider representation that does not satisfy the retained size,
+encoding and checksums is refused even if its decoded content looks correct.
+
 `ObjectMetadata` retains the admitted physical fields and digest of the actual
 input bytes. Its private projection emits generation, metageneration and size
 directly as exact decimal text from Int64; this control DTO is not a public
@@ -418,6 +450,32 @@ Provider protocol references: [objects.insert](https://docs.cloud.google.com/sto
 defines the upload endpoint, metadata/checksum and generation preconditions;
 this implementation's multipart framing and response consistency are not a
 live-service or full resumable acceptance claim.
+
+### Selected Content metadata admission
+
+The ordinary installed GCS provider passes its actual portable Connector
+module through keyed Content acquisition. `content_metadata_json` admits the
+original bounded UTF8 metadata bytes before the media request, preserving exact
+object/generation text and the established representation/checksum refusals.
+Repeated JSON keys, including escaped-equivalent names, are now rejected with
+`InvalidGcsContentMetadata` instead of JavaScript's last-wins interpretation.
+The original response charge and bytes remain the same acquisition's duty;
+rejection never starts media I/O, issues a ContentRef or refunds that duty.
+
+This is not the ordinary object-row schema: Content version text is not
+converted to Int64/binary64, and ignored provider fields do not become logical
+row metadata. The historical explicitly supplied source-only ABI remains on
+its original interpretation until its portable supplier is selected; its
+continued compatibility is not duplicate-key or new normal-profile acceptance.
+A selected module with missing Content ABI is refused before acquisition and
+never falls back to this legacy interpretation.
+
+The original raw bytes overlap the bounded parsed tree, decode indexes,
+digest decode scratch, private projection tree/writer/String, and its Node
+parsed view plus BigInt size. Projection spelling is bounded by the original
+metadata byte clamp plus 256, not another response allowance or reservation.
+These are managed components in the existing read envelope; no new numerical
+grant or zero-cost/GC/physical-cleanup conclusion follows from this admission.
 
 ## Verification boundary
 
