@@ -547,6 +547,23 @@ const nameMarkerName = 'submission-name-format.json';
 const nameMarker = Buffer.from(JSON.stringify({
   version: 'actql-client-request-journal/0.1', feature: 'scoped_submission_names',
 }));
+const nameTables = [
+  ['client_submission_names', `CREATE TABLE client_submission_names (
+          namespace_id TEXT NOT NULL,
+          actor_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          authority_scope_cid TEXT NOT NULL,
+          submission_id TEXT NOT NULL UNIQUE,
+          intent_cid TEXT NOT NULL,
+          binding_authenticator TEXT NOT NULL,
+          PRIMARY KEY (namespace_id, actor_id, name)
+        ) STRICT`],
+  ['client_submission_name_custody', `CREATE TABLE client_submission_name_custody (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          issued_count INTEGER NOT NULL CHECK (issued_count >= 0),
+          retained_count INTEGER NOT NULL CHECK (retained_count >= 0)
+        ) STRICT`],
+];
 const nameTriggers = [
   ['client_submission_name_insert_count', `CREATE TRIGGER client_submission_name_insert_count
     AFTER INSERT ON client_submission_names BEGIN
@@ -642,6 +659,10 @@ function inspectNameStorage(database, enabled) {
     AND name IN ('client_submission_names', 'client_submission_name_custody')`).all();
   if (!enabled && names.length === 0) return;
   if (!enabled || names.length !== 2) fail('UnknownClientRequestJournalFormat');
+  for (const [name, sql] of nameTables) {
+    if (database.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(name)?.sql !== sql) fail('UnknownClientRequestJournalFormat');
+  }
   const fields = database.prepare('PRAGMA table_info(client_submission_names)').all()
     .map(field => field.name).sort();
   const counters = database.prepare('PRAGMA table_info(client_submission_name_custody)').all()
@@ -977,21 +998,7 @@ export function openClientRequestJournal(directory, {
       // Old nonces are not names. This empty additive index never adopts or
       // searches their history. Once issued, a name is not evicted or reused.
       transaction.run(() => database.exec(`
-        CREATE TABLE client_submission_names (
-          namespace_id TEXT NOT NULL,
-          actor_id TEXT NOT NULL,
-          name TEXT NOT NULL,
-          authority_scope_cid TEXT NOT NULL,
-          submission_id TEXT NOT NULL UNIQUE,
-          intent_cid TEXT NOT NULL,
-          binding_authenticator TEXT NOT NULL,
-          PRIMARY KEY (namespace_id, actor_id, name)
-        ) STRICT;
-        CREATE TABLE client_submission_name_custody (
-          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-          issued_count INTEGER NOT NULL CHECK (issued_count >= 0),
-          retained_count INTEGER NOT NULL CHECK (retained_count >= 0)
-        ) STRICT;
+        ${nameTables.map(([, sql]) => `${sql};`).join('\n')}
         INSERT INTO client_submission_name_custody VALUES (1, 0, 0);
         ${nameTriggers.map(([, sql]) => `${sql};`).join('\n')}
       `));

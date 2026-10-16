@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
 import {mkdtemp, rm, unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -177,4 +178,133 @@ test('names reject malformed and oversized original strings before binding', asy
     assert.throws(() => f.resolve(name), {code: 'InvalidClientSubmissionName'});
   }
   f.database(db => assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submission_names').get().n, 0));
+});
+
+for (const afterCommit of [false, true]) {
+  test(`name COMMIT reply loss ${afterCommit ? 'after' : 'before'} commit retains atomic original custody`, async t => {
+    const f = await fixture(t);
+    const reference = f.ref(f.journal);
+    const exec = DatabaseSync.prototype.exec;
+    let lost = false;
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql === 'COMMIT' && !lost && this.prepare(
+        'SELECT issued_count FROM client_submission_name_custody').get().issued_count === 1) {
+        lost = true;
+        if (afterCommit) exec.call(this, sql);
+        throw new Error('FixtureNamedCommitReplyLost');
+      }
+      return exec.call(this, sql);
+    });
+    try {
+      assert.throws(() => f.resolve('public-request', intent(), {submissionRef: reference}),
+        {code: 'ClientRequestJournalCommitOutcomeUnknown'});
+      assert.equal(lost, true);
+    } finally {t.mock.restoreAll();}
+    const reopened = f.open();
+    f.database(db => {
+      const count = afterCommit ? 1 : 0;
+      assert.deepEqual({...db.prepare('SELECT * FROM client_submission_name_custody').get()},
+        {singleton: 1, issued_count: count, retained_count: count});
+      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submitted_intents').get().n, count);
+      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
+    });
+    if (afterCommit) {
+      const found = reopened.resolveOrBindSubmittedName('public-request', intent(),
+        {...scope, submissionRef: f.ref(reopened)}, moon);
+      assert.equal(found.inserted, false);
+      assert.deepEqual(found.submissionRef, reference);
+      assert.equal(found.phase, 'preparing', 'observation does not resume an unknown preparation');
+    }
+  });
+}
+
+test('weakened private name uniqueness or counter triggers refuse before startup changes', async t => {
+  for (const weakened of ['table', 'trigger']) {
+    const f = await fixture(t);
+    f.resolve();
+    f.database(db => {
+      if (weakened === 'trigger') db.exec('DROP TRIGGER client_submission_name_delete_count');
+      else db.exec(`
+        DROP TRIGGER client_submission_name_insert_count;
+        DROP TRIGGER client_submission_name_delete_count;
+        ALTER TABLE client_submission_names RENAME TO retained_name_fixture;
+        CREATE TABLE client_submission_names AS SELECT * FROM retained_name_fixture;
+      `);
+    });
+    assert.throws(() => f.open(), {code: 'UnknownClientRequestJournalFormat'});
+    f.database(db => assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submission_names').get().n, 1));
+  }
+});
+
+test('two independent processes cannot bind two intents for the same scoped name', async t => {
+  const children = [];
+  t.after(async () => {
+    for (const {child} of children) {
+      if (child.connected) child.send({stop: true});
+    }
+    await Promise.all(children.map(value => value.closed));
+  });
+  const f = await fixture(t);
+  const root = new URL('../../', import.meta.url).pathname;
+  const worker = `
+    import {pathToFileURL} from 'node:url';
+    const root = process.env.ACTQL_NAME_FIXTURE_ROOT;
+    const moon = await import(pathToFileURL(root + '/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'));
+    const {openClientRequestJournal} = await import(pathToFileURL(root + '/adapters/host-node/client-request-journal.mjs'));
+    const journal = openClientRequestJournal(process.env.ACTQL_NAME_FIXTURE_DIRECTORY,
+      {submissionEpochTtlMs:1000,submissionEpochNow:()=>1800000000000});
+    process.once('message', value => {
+      try {
+        if (value.stop === true) return;
+        const input = moon.clientSubmittedIntent(value.wire,1048576,65536,64);
+        const result = journal.resolveOrBindSubmittedName('public-request',input,value.fields,moon);
+        process.send({kind:'result',inserted:result.inserted,requestId:result.requestId});
+      } catch(error) {
+        process.send({kind:'refusal',code:error.code,errcode:error.errcode});
+      } finally {journal.close();process.disconnect();}
+    });
+    process.send({kind:'ready'});
+  `;
+  for (let index = 0; index < 2; index++) {
+    const child = spawn(process.execPath, ['--input-type=module', '-e', worker], {
+      cwd: root, env: {...process.env, ACTQL_NAME_FIXTURE_ROOT: root,
+        ACTQL_NAME_FIXTURE_DIRECTORY: f.path}, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', bytes => {stdout += bytes;});
+    child.stderr.on('data', bytes => {stderr += bytes;});
+    const ready = new Promise((resolve, reject) => {
+      child.on('message', value => {if (value.kind === 'ready') resolve();});
+      child.on('error', reject);
+      child.on('exit', code => {if (code !== 0) reject(new Error(`Fixture child ${code}: ${stderr}`));});
+    });
+    const reply = new Promise(resolve => child.on('message', value => {
+      if (value.kind !== 'ready') resolve(value);
+    }));
+    const closed = new Promise(resolve => child.once('close', (code, signal) => {
+      assert.equal(code, 0, stderr); assert.equal(signal, null); assert.equal(stdout, ''); resolve();
+    }));
+    children.push({child, ready, reply, closed});
+  }
+  await Promise.all(children.map(value => value.ready));
+  const candidates = children.map(() => f.ref(f.journal));
+  children.forEach((value, index) => value.child.send({wire: moon.clientSubmittedIntentWire(intent()),
+    fields: {...scope, submissionRef: candidates[index]}}));
+  const replies = await Promise.all(children.map(value => value.reply));
+  await Promise.all(children.map(value => value.closed));
+  assert.equal(replies.filter(value => value.kind === 'result' && value.inserted).length, 1);
+  for (const reply of replies.filter(value => value.kind === 'refusal')) {
+    assert.equal(reply.code, 'ERR_SQLITE_ERROR');
+    assert.equal(reply.errcode, 5, 'only a busy competing transaction is an allowed physical refusal');
+  }
+  const observed = f.resolve();
+  assert.equal(observed.inserted, false);
+  for (const reply of replies.filter(value => value.kind === 'result')) {
+    assert.equal(reply.requestId, observed.requestId);
+  }
+  f.database(db => {
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submission_names').get().n, 1);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submitted_intents').get().n, 1);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
+  });
 });
