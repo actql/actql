@@ -12,7 +12,8 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {installRunStateAuthority, installRunStateService} from '../host-common/run-state-access.mjs';
+import {installRunStateAuthority, installRunStateService,
+  inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
@@ -170,6 +171,26 @@ export async function openReadOpeningFixture(directory, loss,
       assert.equal(published.publication.publication.state, 'succeeded');
       await published.close(); assert.equal(published.cleanupPending(), false);
       return {ref: started.ref, durability: started.durability, revision: started.revision};
+    },
+    async observeRun({ref, principalId}) {
+      // Match the ordinary Host: only the same original journal frame and
+      // confirmed publication observation may issue a current Run state.
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const retained = journal.lookupRunDefinition(ref, moon, control);
+        const state = await inspectAuthorizedRunState(stateService, {
+          indexKey: ref, principalId, purpose: 'inspect',
+        });
+        const after = journal.lookupRunDefinition(ref, moon, control);
+        if (after?.revision !== retained?.revision) continue;
+        assert.ok(retained, 'Observation requires the original accepted Run');
+        try {
+          return JSON.parse(journal.publishRunState(retained, state, moon, control));
+        } catch (error) {
+          if (error?.code === 'RunStateObservationChanged') continue;
+          throw error;
+        }
+      }
+      throw new Error('RunStateObservationUnstable');
     }, resultService, stateService, maxRowBytes: 1024,
   };
   const submission = installNodeClientSubmission({journal, moon,
