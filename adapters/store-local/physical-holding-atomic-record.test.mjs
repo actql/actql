@@ -110,9 +110,16 @@ for (const mode of ['false', 'rejected']) {
       await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
       assert.equal(store.status().closed, false);
       refusing = false;
-      const first = failure.cleanupHandle.retry(), second = failure.cleanupHandle.retry();
-      assert.equal(first, second, 'one flight closes the same original FD');
-      assert.equal((await first).pending, false);
+      if (mode === 'false') {
+        // Even a sanitized/discarded error cannot lose this Store's original
+        // duty: shutdown drives the same close-only cleanup itself.
+        await store.close();
+        assert.equal(failure.cleanupHandle.status().pending, false);
+      } else {
+        const first = failure.cleanupHandle.retry(), second = failure.cleanupHandle.retry();
+        assert.equal(first, second, 'one flight closes the same original FD');
+        assert.equal((await first).pending, false);
+      }
       assert.equal((await failure.cleanupHandle.retry()).pending, false);
       assert.equal(writes, 1, 'cleanup never repeats metadata writes');
       assert.ok(closes >= 3);
@@ -129,3 +136,20 @@ for (const mode of ['false', 'rejected']) {
     }
   });
 }
+
+test('an already corrupt final holding remains refused without deletion or repair', async () => {
+  const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
+    prefix: 'holding-atomic-corrupt-', label: 'preexisting corrupt holding refusal'});
+  const directory = join(scratch.path, 'store');
+  const configuration = {directory, storeAuthorityCid: cid('atomic holding authority'),
+    capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
+    maxContractNodes: 256, maxContractDepth: 32};
+  const store = await openLocalPublicationStore(configuration, createPublicationContractControlFixture());
+  await store.close();
+  const path = join(directory, 'physical-holdings', cid('atomic original holding').slice(7) + '.json');
+  await fs.writeFile(path, Buffer.alloc(0), {flag: 'wx', mode: 0o600});
+  await assert.rejects(openLocalPublicationStore(configuration, createPublicationContractControlFixture()),
+    {code: 'InvalidPublicationPhysicalHoldingStore'});
+  assert.equal((await readFile(path)).length, 0);
+  scratch.passed();
+});
