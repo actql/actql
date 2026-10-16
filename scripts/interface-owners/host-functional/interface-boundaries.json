@@ -231,13 +231,14 @@
     {
       "module": "adapters/host-common/authorization-gate.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "af37a995b4ad04965c56f6dde2e0948d638c9d531af206e26716df27db3f41f8",
+      "sha256": "decff7d20aa2cdb2e6c715a107941c8429937b04cb9a006c9034e8ea311bbe2a",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
         "AUTHORIZATION_BOUNDARIES",
         "ExecutionAuthorizationError",
         "admitResumedDispatch",
+        "assertAuthorizationAccountCurrent",
         "authorizationDispatchFacts",
         "authorizationRuntimeCode",
         "createAuthorizationDecisionBudget",
@@ -298,6 +299,13 @@
           "name": "answerOf",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertAuthorizationAccountCurrent",
+          "parameters": [
+            "decision"
           ],
           "async": false
         },
@@ -372,6 +380,7 @@
             "runtime",
             "configuration",
             "configurationCid",
+            "readConfiguration",
             "context",
             "decide",
             "answeringAuthorities",
@@ -506,6 +515,18 @@
           "async": false
         },
         {
+          "name": "gateFor/assertCurrentAccount/assertCurrentAccount",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "gateFor/assertScopeAccountCurrent/assertScopeAccountCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "gateFor/awaitJoined/awaitJoined",
           "parameters": [
             "operation",
@@ -615,6 +636,25 @@
           "async": false
         },
         {
+          "name": "gateFor/gateScope/gateScope",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "gateFor/init:assertAccountCurrent/init:assertAccountCurrent",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "gateFor/init:assertConfigurationCurrent/init:assertConfigurationCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "gateFor/init:authorize/init:authorize",
           "parameters": [
             "boundary",
@@ -712,6 +752,13 @@
           "parameters": [
             "key",
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "gateFor/unavailable/unavailable",
+          "parameters": [
+            "code"
           ],
           "async": false
         },
@@ -884,7 +931,13 @@
             "subjectFields",
             "subjectFields/fields/fields",
             "subjectFields/subjectFields",
-            "text/text"
+            "text/text",
+            "gateFor/assertCurrentAccount/assertCurrentAccount",
+            "gateFor/assertScopeAccountCurrent/assertScopeAccountCurrent",
+            "gateFor/gateScope/gateScope",
+            "gateFor/init:assertAccountCurrent/init:assertAccountCurrent",
+            "gateFor/init:assertConfigurationCurrent/init:assertConfigurationCurrent",
+            "gateFor/unavailable/unavailable"
           ],
           "exports": [
             "AUTHORIZATION_BOUNDARIES",
@@ -897,6 +950,152 @@
             "decisionSubjectCid",
             "missingAuthorizationGate",
             "requireAuthorizedDispatch"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export const AUTHORIZATION_BOUNDARIES = Object.freeze(["
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export const AUTHORIZATION_BOUNDARIES = Object.freeze(["
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "// Account interpretation, delegated-request binding and Host-answer admission"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "maxRetainedDecisions = 1024} = {}) {"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "// A Host installation shares physical callback capacity across its short-lived"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "const FAILURE_REASONS = new Set(['timeout', 'unavailable', 'malformed_answer']);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "closed: false};"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "// Host-installed execution-authorization gate for protected boundaries."
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "// Host-installed execution-authorization gate for protected boundaries."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/authorization-gate.test.mjs",
+                "anchor": "test('deadline aborts only the child and retains uncooperative decisions',"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertAuthorizationAccountCurrent"
+          ],
+          "exports": [
+            "assertAuthorizationAccountCurrent"
           ],
           "attributes": {
             "responsibility": [
@@ -10983,7 +11182,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f7f739c9212655647141507bee066ec68dc90b50190ad4e16a8a8145fa21e3b5",
+      "sha256": "13164c3c705cade8cf49d6c06146c26353d11f2832e1ec9ea7b3c594281b2dff",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -11463,9 +11662,7 @@
         },
         {
           "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization",
-          "parameters": [
-            "options"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -11477,6 +11674,13 @@
         },
         {
           "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#3",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#4",
           "parameters": [],
           "async": false
         },
@@ -11554,6 +11758,11 @@
           "async": false
         },
         {
+          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:describe/init:describe",
           "parameters": [
             "view"
@@ -11622,9 +11831,7 @@
         },
         {
           "name": "installRemoteCheckpoints/init:effectTargetAuthorization/init:effectTargetAuthorization/init:effectTargetAuthorization",
-          "parameters": [
-            "options"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -11643,7 +11850,9 @@
         },
         {
           "name": "installRemoteCheckpoints/init:effectTargetAuthorization/init:effectTargetAuthorization/init:effectTargetAuthorization#4",
-          "parameters": [],
+          "parameters": [
+            "options"
+          ],
           "async": false
         },
         {
@@ -11653,6 +11862,11 @@
         },
         {
           "name": "installRemoteCheckpoints/init:effectTargetAuthorization/init:effectTargetAuthorization/init:effectTargetAuthorization#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/init:effectTargetAuthorization/init:effectTargetAuthorization/init:effectTargetAuthorization#7",
           "parameters": [],
           "async": false
         },
@@ -12603,7 +12817,10 @@
             "principals/principals",
             "trustedReviewers",
             "without/without",
-            "without/without/without"
+            "without/without/without",
+            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#4",
+            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/init:assertCurrent/init:assertCurrent",
+            "installRemoteCheckpoints/init:effectTargetAuthorization/init:effectTargetAuthorization/init:effectTargetAuthorization#7"
           ],
           "exports": [
             "MAX_MODEL_INPUT_BYTES",
@@ -13014,7 +13231,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e44bd4217b5973dd8f56d645a15275d219e50ec80140f94dc9bbf7bf8dbeefba",
+      "sha256": "81448b8d265e98caa70f81496b962c363d99df9aabaa075cdb9c367554adf5bb",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -13047,6 +13264,7 @@
             "inferPlanFor",
             "resultPolicyOriginalFor",
             "validateInstallation",
+            "updateTargetOriginals",
             "now"
           ],
           "async": false
@@ -13095,6 +13313,13 @@
         {
           "name": "installNodeClientEffectRun/init:accept/init:accept/compiled/compiled",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/init:capturePreparedOriginal/init:capturePreparedOriginal",
+          "parameters": [
+            "prepared"
+          ],
           "async": false
         },
         {
@@ -13181,7 +13406,8 @@
             "installNodeClientEffectRun/init:start/init:start",
             "installNodeClientEffectRun/init:start/init:start/init:start",
             "installNodeClientEffectRun/installNodeClientEffectRun",
-            "unsupported/unsupported"
+            "unsupported/unsupported",
+            "installNodeClientEffectRun/init:capturePreparedOriginal/init:capturePreparedOriginal"
           ],
           "exports": [
             "installNodeClientEffectRun",
@@ -14868,7 +15094,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "04eb2061a0cf9680baadbedd9a136f0ed681d564b158f58b9806c2f86a6ada75",
+      "sha256": "883c9e352393e3cdc4faf973de73b423adbea00577dbf5abe38eb95695f139f6",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -14932,7 +15158,8 @@
             "sourcePublication",
             "valuesMaxRows",
             "check",
-            "verifyRequestValuePolicy"
+            "verifyRequestValuePolicy",
+            "restoreEffectOriginal"
           ],
           "async": false
         },
@@ -14968,6 +15195,13 @@
           "name": "installNodeClientProgramPreparation/init:kindOf/init:kindOf",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientProgramPreparation/init:restoreOriginal/init:restoreOriginal",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -15039,7 +15273,8 @@
             "installNodeClientProgramPreparation/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified#2",
-            "serializeProgram"
+            "serializeProgram",
+            "installNodeClientProgramPreparation/init:restoreOriginal/init:restoreOriginal"
           ],
           "exports": [
             "installNodeClientEffectProgramPreparation",
@@ -15190,7 +15425,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ba7666510b4c9945aeac1bb383184d0e4fba3675789c2693c8d9588d93867e2c",
+      "sha256": "571bd936d395aac295ded87de238cbbee4266baea449d6530f7e41e4325269a4",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -15208,7 +15443,8 @@
         {
           "name": "admissionEvidenceShape",
           "parameters": [
-            "value"
+            "value",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -15288,7 +15524,8 @@
           "name": "evidenceJson",
           "parameters": [
             "value",
-            "maxBytes"
+            "maxBytes",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -15474,7 +15711,8 @@
             "maxRecords",
             "maxRunDefinitionWireBytes",
             "submissionEpochTtlMs",
-            "submissionEpochNow"
+            "submissionEpochNow",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -16311,7 +16549,8 @@
         {
           "name": "retainedEvidence",
           "parameters": [
-            "row"
+            "row",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -16351,7 +16590,8 @@
           "parameters": [
             "row",
             "publicationControl",
-            "maxWireBytes"
+            "maxWireBytes",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -16615,6 +16855,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "inputsOutputs": [
@@ -16629,6 +16873,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "identity": [
@@ -16643,6 +16891,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
               }
             ],
             "ownership": [
@@ -16657,6 +16913,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "synchronization": [
@@ -16671,6 +16935,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "failure": [
@@ -16685,6 +16957,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "cancellation": [
@@ -16699,6 +16979,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "resources": [
@@ -16713,6 +17001,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "extension": [
@@ -16727,6 +17023,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "verification": [
@@ -16737,6 +17041,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
               }
             ]
           }
@@ -20323,7 +20635,7 @@
     {
       "module": "adapters/host-node/effect-run-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4616b887396faa1596668e073402e533810cf4d31f159f7eb248bdf736fc8937",
+      "sha256": "9b6c3657138a8971a3527131e9c7de7765f6f525eb521cc2be5b8ed73a47124f",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -20362,15 +20674,31 @@
             "authorizeEvidenceRead",
             "contractLimits",
             "signal",
+            "restoreOriginal",
             "loadRuntime"
           ],
           "async": true
+        },
+        {
+          "name": "recoverAdmittedEffectRun/assertOriginalCurrent/assertOriginalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "recoverAdmittedEffectRun/assertOriginalCurrent/assertOriginalCurrent/assertOriginalCurrent",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "recoverAdmittedEffectRun/recoverAdmittedEffectRun",
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "recoverAdmittedEffectRun/recoverAdmittedEffectRun#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -20534,6 +20862,116 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "recoverAdmittedEffectRun/assertOriginalCurrent/assertOriginalCurrent",
+            "recoverAdmittedEffectRun/assertOriginalCurrent/assertOriginalCurrent/assertOriginalCurrent",
+            "recoverAdmittedEffectRun/recoverAdmittedEffectRun#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
@@ -20541,7 +20979,7 @@
     {
       "module": "adapters/host-node/effect-target-read-continuation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "476d674447d38ecb3192ef3e4fa33bccc30b98e7ce96ea21a5de963cdda2c4ed",
+      "sha256": "fd4266d4523af99ff85b71ce7254ee001554ab10de948ce85f6aaee6786f4974",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -20581,7 +21019,8 @@
             "journalPort",
             "effectTargetAuthority",
             "allowDefer",
-            "assertCurrent"
+            "assertCurrent",
+            "assertOriginalCurrent"
           ],
           "async": true
         },
@@ -20623,6 +21062,11 @@
         },
         {
           "name": "effectTargetReadContinuation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "effectTargetReadContinuation/current/current/current",
           "parameters": [],
           "async": false
         },
@@ -20784,7 +21228,8 @@
             "effectTargetReadContinuation/validate/validate",
             "fail/fail",
             "isEffectTargetReadRefusal/isEffectTargetReadRefusal",
-            "same/same"
+            "same/same",
+            "effectTargetReadContinuation/current/current/current"
           ],
           "exports": [
             "assertEffectTargetReadBinding",
@@ -27331,12 +27776,13 @@
     {
       "module": "adapters/host-node/installed-effect-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f1690eed2253ecc914f9a99d36123f13f0d6657e107bcd90f8c6fb41a4d6dd0a",
+      "sha256": "6e45fd20c6e5609ba12e2a62d3e990049cf3c4fea80c84006b7a2e9faf90d197",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
         "composeInstalledEffects",
         "installedEffectFor",
+        "installedUpdateTargets",
         "validPluralEffectPaths"
       ],
       "operations": [
@@ -27365,6 +27811,20 @@
         },
         {
           "name": "composeInstalledEffects/composeInstalledEffects#2",
+          "parameters": [
+            "effect"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledEffects/queryUpdateTargets/queryUpdateTargets",
+          "parameters": [
+            "effect"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledEffects/queryUpdateTargets/queryUpdateTargets#2",
           "parameters": [
             "effect"
           ],
@@ -27403,6 +27863,50 @@
           "name": "installedEffectFor/matches/matches/matches",
           "parameters": [
             "selector"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedUpdateTargets",
+          "parameters": [
+            "effect",
+            "aliases",
+            "environmentWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedUpdateTargets/bindings/bindings",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedUpdateTargets/installedUpdateTargets",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedUpdateTargets/installedUpdateTargets/matches/matches",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedUpdateTargets/installedUpdateTargets/matches/matches/matches",
+          "parameters": [
+            "selector"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedUpdateTargets/owned/owned",
+          "parameters": [
+            "owner"
           ],
           "async": false
         },
@@ -27567,12 +28071,165 @@
             "validPluralEffectPaths/validPluralEffectPaths",
             "validSelector",
             "validSelector/validSelector",
-            "validSelector/validSelector#2"
+            "validSelector/validSelector#2",
+            "composeInstalledEffects/queryUpdateTargets/queryUpdateTargets",
+            "composeInstalledEffects/queryUpdateTargets/queryUpdateTargets#2"
           ],
           "exports": [
             "composeInstalledEffects",
             "installedEffectFor",
             "validPluralEffectPaths"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function validPluralEffectPaths(paths) {"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function validPluralEffectPaths(paths) {"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings}"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "// Private installation routing over published facts. Selecting an owner never"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function validPluralEffectPaths(paths) {"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "const fail = code => { throw Object.assign(new TypeError(code), {code}); };"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "// Private installation routing over published facts. Selecting an owner never"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.test.mjs",
+                "anchor": "test('Effect paths preserve absent/singular routes and use only the Environment member upper bound', () => {"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedUpdateTargets",
+            "installedUpdateTargets/bindings/bindings",
+            "installedUpdateTargets/installedUpdateTargets",
+            "installedUpdateTargets/installedUpdateTargets/matches/matches",
+            "installedUpdateTargets/installedUpdateTargets/matches/matches/matches",
+            "installedUpdateTargets/owned/owned"
+          ],
+          "exports": [
+            "installedUpdateTargets"
           ],
           "attributes": {
             "responsibility": [
@@ -27879,7 +28536,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5558ea3e06ca95d99c4cd9a5b1dc3ca90837c9be1bd698f24a043853461f6856",
+      "sha256": "c0959c5539a53979a40ac0f033be6623e0cbba41bf13338bc475267021f770f6",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -28032,6 +28689,7 @@
             "environmentWire",
             "prepareCaptured",
             "prepareRecovered",
+            "validateRecoveredInstallation",
             "privateEvidenceKey",
             "queryTableBindings",
             "queryTableWriteAccesses",
@@ -28075,6 +28733,11 @@
         },
         {
           "name": "createInstalledEffectSite/init:resume/init:resume/gate/gate",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledEffectSite/init:resume/init:resume/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
           "parameters": [],
           "async": false
         },
@@ -28209,7 +28872,8 @@
             "noEffectRowWasSent/noEffectRowWasSent/noEffectRowWasSent",
             "ownedStage",
             "recordUnknown",
-            "terminalPreSendRefusal"
+            "terminalPreSendRefusal",
+            "createInstalledEffectSite/init:resume/init:resume/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent"
           ],
           "exports": [
             "createInstalledEffectSite"
@@ -28359,7 +29023,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "188bfd7944f1d545f5e16572e87a94fc4f58ccce047d5000f9f6305d842e691b",
+      "sha256": "68cc7356ec4b3c9af9375c27ea4947b72726160a8ce81f1b0a47612272d32eec",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -28378,6 +29042,13 @@
             "connectorTable"
           ],
           "async": true
+        },
+        {
+          "name": "installedEffectIdentity/exact/exact",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
         },
         {
           "name": "installedEffectPaths",
@@ -28495,6 +29166,20 @@
             "connectorTable"
           ],
           "async": true
+        },
+        {
+          "name": "splitUpdateTargetProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "splitUpdateTargetProfile/aliases/aliases",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -28515,7 +29200,8 @@
             "readProfileJson/release/release",
             "refuse/refuse",
             "runtimeBundleCid/runtimeBundleCid",
-            "selectInstallation"
+            "selectInstallation",
+            "installedEffectIdentity/exact/exact"
           ],
           "exports": [
             "installedEffectFor",
@@ -28525,6 +29211,151 @@
             "loadInstalledEffects",
             "publishInstalledEffectProfile"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "export {installedEffectFor} from './installed-effect-inventory.mjs';"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "export {installedEffectFor} from './installed-effect-inventory.mjs';"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "// An installation provides `environmentWire`, `connectorBindings`,"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "// publication owners stay the same, and the Host never branches on a"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "import {open, readFile} from 'node:fs/promises';"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "const refuse = (code, cause) => {"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "// the Host's Effect Site facts, and `close()`."
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "// Bound profile and identity-part reads before buffering, including files that"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "// The standard Host's installed Effects, each selected by its Host profile's"
+              },
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Outcomes and reconciliation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "anchor": "test('bounded formal history replay reuses admitted original transitions after restart', async t => {"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "splitUpdateTargetProfile",
+            "splitUpdateTargetProfile/aliases/aliases"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -30880,7 +31711,7 @@
     {
       "module": "adapters/host-node/local-account-config.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ab4079bfa78e300a347d07c22496d8173626c22ec2a604558b4c48d7caf5c713",
+      "sha256": "6bd2094d044b1784d4ccdcdfcd0f4c4afe8166ff44c1f4457835e43a554cd8ff",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -30890,6 +31721,7 @@
         "contentCid",
         "createLocalAuthorizationGate",
         "localAuthorizationContext",
+        "observeInstalledAccount",
         "readAccountConfiguration",
         "sourceReadAccountConfiguration"
       ],
@@ -30965,6 +31797,11 @@
           "async": true
         },
         {
+          "name": "createLocalAuthorizationGate/gate/gate",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createLocalAuthorizationGate/none/none",
           "parameters": [
             "value"
@@ -30991,6 +31828,21 @@
           "name": "normalizedText",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeAccountConfigurationWire",
+          "parameters": [
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledAccount",
+          "parameters": [
+            "moon",
+            "authorization"
           ],
           "async": false
         },
@@ -31031,7 +31883,8 @@
             "localAuthorizationContext",
             "normalizedText",
             "readAccountConfiguration",
-            "sourceReadAccountConfiguration"
+            "sourceReadAccountConfiguration",
+            "createLocalAuthorizationGate/gate/gate"
           ],
           "exports": [
             "ACCOUNT_CONFIG_INVALID",
@@ -31042,6 +31895,153 @@
             "localAuthorizationContext",
             "readAccountConfiguration",
             "sourceReadAccountConfiguration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "// NFC text. Used for the configuration CID and Local Host records."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "import {readFile, stat} from 'node:fs/promises';"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "throw Object.assign(new Error(code, {cause: detail}), {code});"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "// installs the Missing gate, which denies every protected boundary with"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "// The configuration is always explicit Host installation: a file the operator"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Account authorization routing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/authorization-gate.test.mjs",
+                "anchor": "test('deadline aborts only the child and retains uncooperative decisions',"
+              },
+              {
+                "path": "src/execution_authorization/pkg.generated.mbti",
+                "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "observeAccountConfigurationWire",
+            "observeInstalledAccount"
+          ],
+          "exports": [
+            "observeInstalledAccount"
           ],
           "attributes": {
             "responsibility": [
@@ -35233,7 +36233,7 @@
     {
       "module": "adapters/host-node/public-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a7f82739daa81e292d39abbeb50911ff9389f32668e2eb70c3856daaf20626e",
+      "sha256": "8e5a321999a83dc35d8aaaae197c0afc5011273f3b9d78914263c4216e3d7ed3",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -35892,7 +36892,7 @@
     {
       "module": "adapters/host-node/source-alias-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f2d0c8db230bc68eb4e886c5e342a534a7f63d7284d040ca76fb5bf69777eaa5",
+      "sha256": "3a96926ede0e09055cdeb56ff4cd85d9e078a12e3ca79b386c557c29f89f07e4",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -36098,7 +37098,8 @@
             "tableWrites",
             "namespace",
             "selectorNamespace",
-            "installedSources"
+            "installedSources",
+            "updateTargets"
           ],
           "async": false
         },
@@ -36106,6 +37107,13 @@
           "name": "sourceAliasPublication/publication/publication",
           "parameters": [
             "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasPublication/sourceAliasPublication",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -36234,7 +37242,8 @@
             "validBinding/validBinding/validBinding#2",
             "validBinding/validBinding/validBinding#3",
             "validBinding/validBinding/validBinding#4",
-            "validBinding/validBinding/validBinding#5"
+            "validBinding/validBinding/validBinding#5",
+            "sourceAliasPublication/sourceAliasPublication"
           ],
           "exports": [
             "observeSourceAliasNamespace",
