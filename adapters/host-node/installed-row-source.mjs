@@ -109,17 +109,29 @@ export function rowSourceMapping(moon, declaration, writesJson, resource,
 }
 
 // The Host account gate of one installed row source, under its own context.
+// A trusted existing installer may retain its original immutable context
+// preimage. This is installation DATA, not a decision, grant or current ACK;
+// the same Account Owner still admits the configuration and every decision.
 export async function installRowSourceAuthorization({accountConfiguration,
-  principalId, root, connectorRegistration}) {
+  principalId, root, connectorRegistration, originalContext, gateOptions = {}}) {
   if (!text(accountConfiguration) || !text(principalId) || !text(root) ||
-      !text(connectorRegistration)) {
+      !text(connectorRegistration) ||
+      (originalContext !== undefined &&
+        (originalContext === null || typeof originalContext !== 'object' ||
+          !Object.isFrozen(originalContext) ||
+          Object.getPrototypeOf(originalContext) !== Object.prototype ||
+          Object.keys(originalContext).length !== 2 ||
+          !Object.hasOwn(originalContext, 'principal') ||
+          !Object.hasOwn(originalContext, 'contextCid') ||
+          originalContext.principal !== principalId ||
+          !cidPattern.test(originalContext.contextCid ?? '')))) {
     fail('InvalidRowSourceAuthorizationInstallation');
   }
-  const context = Object.freeze({principal: principalId,
+  const context = originalContext ?? Object.freeze({principal: principalId,
     contextCid: cid({version: 'actql-installed-row-source-context/0.1',
       root, principalId, connectorRegistration})});
-  const gate = await createLocalAuthorizationGate({accountConfiguration,
-    principal: principalId, context});
+  const gate = await createLocalAuthorizationGate({...gateOptions,
+    accountConfiguration, principal: principalId, context});
   const issued = new WeakSet();
   const own = decision => {
     if (decision !== null && typeof decision === 'object') issued.add(decision);

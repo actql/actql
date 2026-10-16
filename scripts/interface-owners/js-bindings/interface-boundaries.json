@@ -54237,7 +54237,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "27e0938340ef1d82971c27088b4797cd498ef10d3f088837c30033411195cd85",
+      "sha256": "2fec5cc67f4e0c6037744d23513f16fda1c42e2a45bebcd3c5c3ae548763d0ef",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -54780,7 +54780,9 @@
             "accountConfiguration",
             "principalId",
             "root",
-            "connectorRegistration"
+            "connectorRegistration",
+            "originalContext",
+            "gateOptions"
           ],
           "async": true
         },
@@ -55003,7 +55005,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "createInstalledRowSource/acquire/acquire#5"
           ],
           "exports": [],
@@ -55742,6 +55743,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
+                "anchor": "shared installer retains its default context"
               }
             ]
           }

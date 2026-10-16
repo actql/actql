@@ -8424,7 +8424,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a2efc7de1500d115c9ca17f1f6fb147e7f106b9537ac0011d6d3181dbc236d82",
+      "sha256": "0d057ab3a061b913dc3aa1895777530ffb5ed753ba54c59a2d1271ca76bed886",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -8493,27 +8493,6 @@
             "gateOptions"
           ],
           "async": true
-        },
-        {
-          "name": "installSalesforceAuthorization/authorization/authorization",
-          "parameters": [
-            "args"
-          ],
-          "async": true
-        },
-        {
-          "name": "installSalesforceAuthorization/authorization/authorization#2",
-          "parameters": [
-            "args"
-          ],
-          "async": true
-        },
-        {
-          "name": "installSalesforceAuthorization/own/own",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite",
@@ -8907,7 +8886,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "cid/cid",
             "fail/fail",
             "handOverSiteRelease",
@@ -8916,9 +8894,6 @@
             "handOverSiteRelease/status/status",
             "installedSalesforceSiteBinding",
             "installSalesforceAuthorization",
-            "installSalesforceAuthorization/authorization/authorization",
-            "installSalesforceAuthorization/authorization/authorization#2",
-            "installSalesforceAuthorization/own/own",
             "loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead/admitCheckpointEffectTargetRead",
@@ -9075,6 +9050,10 @@
               {
                 "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
                 "anchor": "Salesforce Site close failure"
+              },
+              {
+                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
+                "anchor": "Salesforce compatibility installer preserves original context"
               }
             ]
           }
