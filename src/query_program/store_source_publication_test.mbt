@@ -269,7 +269,37 @@ test "Host STORE collection retains create none without inventing a row identity
     @environment.mapping_supports_operation(mapping, "store", "none", 100).unwrap().0,
     false,
   )
-  assert_true(resolved_store_target_command(selected) is Some(_))
+  let pair = resolved_store_target_command(selected).unwrap()
+  assert_eq(
+    @environment.store_command_mapping_operation(pair),
+    ("create", "none"),
+  )
+  assert_eq(
+    @environment.command_target_resource_kind(
+      @environment.store_command_target(pair),
+    ),
+    "file_collection",
+  )
+  assert_true(
+    @environment.select_mapping_permissions(
+      mapping,
+      "store",
+      "none",
+      ["content", "path"],
+      100,
+    )
+    is Err(@environment.MappingPermissionIssue::InvalidRequest),
+  )
+  assert_true(
+    @environment.select_mapping_permissions(
+      mapping,
+      "create",
+      "none",
+      ["content", "path"],
+      100,
+    )
+    is Ok(_),
+  )
   assert_true(
     @source_publication.bind_published_query_context(environment, wire, None)
     is Ok(_),
