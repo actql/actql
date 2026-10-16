@@ -17,6 +17,8 @@ pub(all) enum MappingShapeIssue {
 
 ///|
 pub struct MappingContractShape {
+  connector : ConnectorManifestEntry
+  store_command : StoreCommandReference?
   item : Member
   mapping_ref : String
   target_ref : String
@@ -283,7 +285,7 @@ pub fn check_mapping_contract_shapes(
           "resource_identity_cid", "target_schema_identity", "target_schema_reference",
           "target_schema", "primary_identity", "writable_fields", "required_fields",
           "conversions", "permission_rules", "required_permissions", "minimum_approval",
-          "row_mapping", "mapping_contract_cid",
+          "row_mapping", "mapping_contract_cid", "store_command",
         ]) {
         Ok(value) => value
         Err(_) => raise MappingShapeStop(InvalidMapping(index))
@@ -445,6 +447,13 @@ pub fn check_mapping_contract_shapes(
         is None {
         raise MappingShapeStop(InvalidMapping(index))
       }
+      let store_command = read_mapping_store_command(object, index)
+      if store_command is Some(_) {
+        if max_work - work.val < 4 {
+          raise MappingShapeStop(WorkLimit)
+        }
+        work.val += 4
+      }
       let minimum = mapping_shape_text(object, "minimum_approval", index)
       if minimum != "none" && minimum != "required" {
         raise MappingShapeStop(InvalidMapping(index))
@@ -454,6 +463,8 @@ pub fn check_mapping_contract_shapes(
       }
       by_ref[mapping_ref] = entries.length()
       entries.push({
+        connector: entry,
+        store_command,
         item,
         mapping_ref,
         target_ref,

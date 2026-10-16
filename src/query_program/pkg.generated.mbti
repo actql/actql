@@ -24,6 +24,8 @@ import {
 }
 
 // Values
+pub fn bind_store_target_publication(@check_environment.MappingContractShapes, @check_environment.CatalogContents, Array[UpdateTargetAlias], Int) -> Result[StoreTargetPublication, StoreTargetIssue]
+
 pub fn bind_update_target_publication(@check_environment.MappingContractShapes, Array[UpdateTargetAlias], Int) -> Result[UpdateTargetPublication, UpdateTargetIssue]
 
 pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?) -> Result[@stage_syntax.Program, Issue]
@@ -34,11 +36,23 @@ pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? :
 
 pub fn issue_without_source(Issue) -> Issue
 
+pub fn resolve_concrete_store_target_binding(StoreTargetPublication, String, String, Int) -> Result[ResolvedStoreTarget, StoreTargetIssue]
+
 pub fn resolve_concrete_update_target_binding(UpdateTargetPublication, String, String, Int) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
+
+pub fn resolve_store_target_binding(StoreTargetPublication, Array[@query_syntax.NamePart], Int) -> Result[ResolvedStoreTarget, StoreTargetIssue]
 
 pub fn resolve_table_write_binding(Array[TableWriteBinding], Array[@query_syntax.NamePart], Bool, Int) -> Result[TableWriteBinding, TableWriteBindingIssue]
 
 pub fn resolve_update_target_binding(UpdateTargetPublication, Array[@query_syntax.NamePart], @query_syntax.NamePart?, Int) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
+
+pub fn resolved_store_target(ResolvedStoreTarget) -> (String, String)
+
+pub fn resolved_store_target_command(ResolvedStoreTarget) -> @check_environment.StoreCommandBinding?
+
+pub fn resolved_store_target_identity(ResolvedStoreTarget) -> (String, String, String, String)
+
+pub fn resolved_store_target_mapping(ResolvedStoreTarget) -> @check_environment.MappingContractShape
 
 pub fn resolved_update_target(ResolvedUpdateTarget) -> (String, String)
 
@@ -47,6 +61,12 @@ pub fn resolved_update_target_identity(ResolvedUpdateTarget) -> (String, String,
 pub fn resolved_update_target_owner_cid(ResolvedUpdateTarget) -> String
 
 pub fn same_relation_path(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
+
+pub fn store_target_publication_catalogs(StoreTargetPublication) -> @check_environment.CatalogContents
+
+pub fn store_target_publication_environment(StoreTargetPublication) -> @check_environment.WireEnvironment
+
+pub fn store_target_publication_work(StoreTargetPublication) -> Int
 
 pub fn unresolved_relation_namespace_presence(Issue, Context) -> Bool?
 
@@ -197,11 +217,25 @@ pub struct RelationResolutionReference {
   // private fields
 }
 
+type ResolvedStoreTarget
+
 pub struct ResolvedUpdateTarget {
   publication : UpdateTargetPublication
   target_alias : UpdateTargetAlias
   mapping : @check_environment.MappingContractShape
 }
+
+pub(all) enum StoreTargetIssue {
+  InvalidPublication
+  ForeignEnvironment
+  UnresolvedTarget
+  AmbiguousTarget
+  UnresolvedMapping
+  AmbiguousMapping
+  WorkLimit
+} derive(Eq, @debug.Debug)
+
+type StoreTargetPublication
 
 pub(all) enum TableWriteAction {
   Create

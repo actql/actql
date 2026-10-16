@@ -85,3 +85,26 @@ response awaits, revocation/expiry despite equal material, every generated scope
 field, bounded UTF8 material, cleanup before/after send, and response loss with the
 original `unknown` use. Local TLS and SQLite cases are physical component evidence;
 they do not establish live HubSpot identity permissions or installed public E2E.
+
+### Non-row observation response accounting
+
+An accounted ordinary row acquisition exposes the private driver callback
+`consumeObservation(charge)`. The driver first passes the complete received body
+to `chargePage`, then uses this callback to consume that exact original ticket
+after its own observation validation. Common's
+`consume_row_run_observation_charge` accepts only the same accounted, reading
+RowRun and an unconsumed ticket. Foreign, replayed, omitted, closed, or unaccounted
+use cannot complete the read. Actual received bytes remain charged to the same
+Ledger through capture and cleanup; the callback adds no data row or data page.
+Unaccounted legacy drivers receive no such callback.
+
+This separates an identity response from a data page without issuing identity,
+permission, Source completion, or physical cleanup evidence. The installer still
+must authorize and count each actual request, fit identity and data responses
+within its original total transfer/request limits, and retain all overlapping
+response, decode, credential and cleanup controls. This entry selects no extra
+operation, permission, retry, numerical profile, or live Provider support.
+`row_observation_accounting_wbtest.mbt` exercises the real RowRun/Ledger and
+original bounded capture/cleanup. `installed-row-observation.test.mjs` consumes
+the compiled Node bridge with an in-process driver; it does not test HTTP,
+credential authorization, a normal tarball, or live HubSpot.

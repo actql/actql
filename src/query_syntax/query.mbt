@@ -191,6 +191,17 @@ pub(all) struct InferClause {
 }
 
 ///|
+// Authored STORE is resolved against the installed write Mapping. It is not
+// the canonical relation-store opcode or an inferred upload Command.
+pub(all) struct StoreEffectClause {
+  name : NamePart?
+  target : Array[NamePart]
+  set : Array[(NamePart, Expression)]
+  start : Int
+  end : Int
+}
+
+///|
 pub(all) struct NearestRolePair {
   keys : Array[Array[NamePart]]
   vector : Expression
@@ -268,6 +279,7 @@ struct Query {
   final_operations : Array[QueryOperation]
   effect : UpdateEffectClause?
   table_effect : TableEffectClause?
+  store_effect : StoreEffectClause?
   commands : Array[CommandEffectClause]
   work : Int
 }
@@ -1086,6 +1098,7 @@ fn QueryParser::bind_query(
     final_operations: [],
     effect: None,
     table_effect: None,
+    store_effect: None,
     commands: [],
     work: self.work,
   }
@@ -2225,6 +2238,7 @@ fn QueryParser::initial_from(
           final_operations: [],
           effect: None,
           table_effect: None,
+          store_effect: None,
           commands: [],
           work: self.work,
         },
@@ -2441,6 +2455,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     final_operations: [],
     effect: None,
     table_effect: None,
+    store_effect: None,
     commands: [],
     work: self.work,
   }
@@ -2482,7 +2497,9 @@ fn QueryParser::query(
       self.symbol(41)
       self.source_depth -= 1
     }
-    if body.effect is Some(_) || body.table_effect is Some(_) {
+    if body.effect is Some(_) ||
+      body.table_effect is Some(_) ||
+      body.store_effect is Some(_) {
       raise QueryAbort(
         "CTAS input cannot contain another terminal write",
         self.peek().start,
@@ -2759,6 +2776,7 @@ fn QueryParser::pipe(
       final_operations: [],
       effect: None,
       table_effect: None,
+      store_effect: None,
       commands: [],
       work: self.work,
     },
@@ -2784,9 +2802,10 @@ fn QueryParser::pipe_tail(
   let final_operations = input.final_operations.copy()
   let mut effect = input.effect
   let mut table_effect = input.table_effect
+  let mut store_effect = input.store_effect
   let commands = input.commands.copy()
   while self.peek().value == Pipe {
-    if effect is Some(_) || table_effect is Some(_) {
+    if effect is Some(_) || table_effect is Some(_) || store_effect is Some(_) {
       raise QueryAbort("EFFECT must be terminal", self.peek().start)
     }
     // Once a set is complete, a following relational operator consumes its
@@ -2826,6 +2845,7 @@ fn QueryParser::pipe_tail(
         final_operations,
         effect: None,
         table_effect: None,
+        store_effect: None,
         commands: [],
         work: self.work,
       }
@@ -2856,6 +2876,7 @@ fn QueryParser::pipe_tail(
         final_operations,
         effect: None,
         table_effect: None,
+        store_effect: None,
         commands: [],
         work: self.work,
       }
@@ -2888,6 +2909,7 @@ fn QueryParser::pipe_tail(
         final_operations,
         effect: None,
         table_effect: None,
+        store_effect: None,
         commands: [],
         work: self.work,
       }
@@ -3371,6 +3393,8 @@ fn QueryParser::pipe_tail(
         self.keyword("EFFECT")
         let name = self.name()
         table_effect = Some(self.table_create_clause(Some(name)))
+      } else if self.effect_is_store() {
+        store_effect = Some(self.store_effect_clause())
       } else {
         effect = Some(self.update_effect_clause())
       }
@@ -3423,6 +3447,7 @@ fn QueryParser::pipe_tail(
     final_operations,
     effect,
     table_effect,
+    store_effect,
     commands,
     work: self.work,
   }
@@ -3681,7 +3706,9 @@ pub fn parse_query(
     if parser.peek().value == Symbol(59) {
       ignore(parser.advance())
       while parser.has("EFFECT") {
-        if query.effect is Some(_) || query.table_effect is Some(_) {
+        if query.effect is Some(_) ||
+          query.table_effect is Some(_) ||
+          query.store_effect is Some(_) {
           raise QueryAbort(
             "Conflicting terminal Effect declarations",
             parser.peek().start,
@@ -3733,6 +3760,93 @@ pub fn terminal_table_effect(query : Query) -> TableEffectClause? {
 }
 
 ///|
+pub fn terminal_store_effect(query : Query) -> StoreEffectClause? {
+  query.store_effect.map(clause => {
+    ..clause,
+    target: clause.target.copy(),
+    set: clause.set.copy(),
+  })
+}
+
+///|
+fn QueryParser::effect_is_store(self : QueryParser) -> Bool {
+  guard token_at(self.source, self.index + 1) is Some(first) else {
+    return false
+  }
+  guard token_at(self.source, self.index + 2) is Some(second) else {
+    return false
+  }
+  let third = token_at(self.source, self.index + 3)
+  if third.map(token => token.value != Symbol(46)).unwrap_or(false) &&
+    (
+      keyword(second, "UPDATE") ||
+      keyword(second, "CREATE") ||
+      keyword(second, "STORE")
+    ) {
+    return keyword(second, "STORE")
+  }
+  keyword(first, "STORE")
+}
+
+///|
+fn QueryParser::store_effect_clause(
+  self : QueryParser,
+) -> StoreEffectClause raise QueryAbort {
+  self.node()
+  let start = self.peek().start
+  self.keyword("EFFECT")
+  let name = if self.has("STORE") &&
+    !(token_at(self.source, self.index + 1)
+    .map(token => keyword(token, "STORE"))
+    .unwrap_or(false) &&
+    token_at(self.source, self.index + 2)
+    .map(token => token.value != Symbol(46))
+    .unwrap_or(false)) {
+    None
+  } else {
+    Some(self.binding_name())
+  }
+  self.keyword("STORE")
+  let target = self.path()
+  if target.length() < 2 {
+    raise QueryAbort(
+      "Effect logical target requires a qualified name",
+      self.peek().start,
+    )
+  }
+  let assignments : Array[(NamePart, Expression)] = []
+  let assigned : Map[String, Bool] = Map([])
+  if self.has("SET") {
+    self.keyword("SET")
+    self.symbol(40)
+    while true {
+      self.node()
+      let field = self.name()
+      self.spend(field.value.length())
+      let key = ascii_upper(field.value)
+      if assigned.contains(key) {
+        raise QueryAbort("Duplicate STORE input field", self.peek().start)
+      }
+      assigned[key] = true
+      self.symbol(61)
+      assignments.push((field, self.expression()))
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+    self.symbol(41)
+  }
+  {
+    name,
+    target,
+    set: assignments,
+    start,
+    end: token_at(self.source, self.index - 1).unwrap().end,
+  }
+}
+
+///|
 fn QueryParser::table_create_clause(
   self : QueryParser,
   name : NamePart?,
@@ -3761,7 +3875,8 @@ pub fn effect_result_continuation(
       !has_postlude &&
       query.commands.is_empty() &&
       query.effect is None &&
-      query.table_effect is None
+      query.table_effect is None &&
+      query.store_effect is None
     ) ||
     !query.sets.is_empty() ||
     !query.final_operations.is_empty() {
@@ -3777,6 +3892,7 @@ pub fn effect_result_continuation(
           operations: Array::makei(index + 1, i => query.operations[i]),
           effect: None,
           table_effect: None,
+          store_effect: None,
           commands: [],
         }
         let tail = {

@@ -48,7 +48,7 @@ const jsonDomain = domain({body: {values: nodeValues}, dependencies: []});
 const identity = (domain, definition) => ({$json: {definition, domain, key: [1],
   key_types: [{kind: 'number'}]}});
 const columns = {
-  degree: [{name: 'degree', contract: number}, {name: 'node', contract: identityContract}],
+  degree: [{name: 'degree', contract: number}, {name: 'node_id', contract: identityContract}],
   graph_bounds: [{name: 'actual', contract: number},
     {name: 'kind', contract: {type: 'string', nullable: false}},
     {name: 'node_id', contract: {...identityContract, nullable: true}},
@@ -57,8 +57,8 @@ const columns = {
     {name: 'node_id', contract: identityContract}, {name: 'component_id', contract: identityContract}],
 };
 const degreeRows = (domain, direction) => [
-  {degree: direction === 'out' ? 0 : 1, node: identity(domain, 'M')},
-  {degree: direction === 'both' ? 3 : direction === 'out' ? 2 : 1, node: identity(domain, 'N')},
+  {degree: direction === 'out' ? 0 : 1, node_id: identity(domain, 'M')},
+  {degree: direction === 'both' ? 3 : direction === 'out' ? 2 : 1, node_id: identity(domain, 'N')},
 ];
 const boundsRows = domain => [
   {actual: 2, kind: 'nodes', node_id: null, max: 1},
@@ -109,7 +109,7 @@ export const graphDiagnosticSourceSuccesses = [
     [{actual: 2, kind: 'nodes', node_id: null, max: 0}],
     {parameterDeclarations, parameters: {p: 0}}),
   {name: 'graph-diagnostics-quoted-data-normalized-suffix', format: 'aql-text',
-    text: prefix + ', `stats` AS (FROM g |> normalize_graph() |> degree(direction: "out")) FROM `stats` |> WHERE degree > 0 |> SELECT degree, node |> ORDER BY degree DESC |> LIMIT 1 |> RESULT diagnostics',
+    text: prefix + ', `stats` AS (FROM g |> normalize_graph() |> degree(direction: "out")) FROM `stats` |> WHERE degree > 0 |> SELECT degree, node_id |> ORDER BY degree DESC |> LIMIT 1 |> RESULT diagnostics',
     results: results('degree', [degreeRows(sourceDomain, 'out')[1]]), sourceReadCount: 0},
   {name: 'graph-diagnostics-empty-typed-graph', format: 'aql-text',
     text: prefix.replace('11 AS edge_key)', '11 AS edge_key WHERE FALSE)') +
@@ -126,6 +126,7 @@ export const graphDiagnosticSourceRefusals = [
     ['bounds-fractional', 'graph_bounds(max_edges: 1.5)' + tail('graph_bounds')],
     ['components-kind', 'components(kind: "invented")' + tail('components')],
     ['components-zero-guard', 'components(kind: "weak", max_output_rows: 0)' + tail('components')],
+    ['legacy-degree-column', 'degree(direction: "both") |> SELECT node |> RESULT diagnostics'],
     ['lost-graph-column', 'degree(direction: "both") |> SELECT node_key |> RESULT diagnostics'],
     ['second-graph-call', 'degree(direction: "both") |> edge_rows() |> SELECT id |> RESULT diagnostics'],
   ].map(([name, suffix]) => ({name: 'graph-diagnostics-' + name, format: 'aql-text',

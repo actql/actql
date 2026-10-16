@@ -1,7 +1,7 @@
 ///|
 fn script_graph_diagnostic_fields(operation : String) -> Array[String]? {
   match operation {
-    "degree" => Some(["node", "degree"])
+    "degree" => Some(["node_id", "degree"])
     "graph_bounds" => Some(["kind", "node_id", "actual", "max"])
     "components" => Some(["node_id", "component_id", "component_size"])
     _ => None
