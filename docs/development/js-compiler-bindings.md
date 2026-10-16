@@ -19,13 +19,17 @@ retains its field order, reference identity, exact Int64 and original strings.
 Pair/triple constructors only encode existing callback tuple arguments; they
 cannot issue an opaque Model, Run, Scope, receipt or grant.
 
-Option representation is type-dependent. A reference Option uses its original
-reference or `undefined`; a Unit Option uses `undefined` or the compiler's
-absent sentinel. These are not general malformed-value validators. A caller
-must use the actual declared MoonBit return type and retain its existing value
-validation. Explicit `runtimeIsTaggedPresent/Absent` helpers preserve legacy
-tagged-adapter behavior; they are not a universal Option rule. Public DATA
-fields spelled `$tag` or `_0` are unrelated to this compiler binding.
+Option representation is qualified by the actual compiled export, not its
+surface type alone. The isolated probe's specialized reference Option uses its
+original reference or `undefined`, and its Unit Option uses `undefined` or an
+absent sentinel. The actual Run Host/Coordinator exports still return boxed
+Options, including their Array[String] values. `runtimeIsBoxedSome/None` and
+`runtimeUnboxedReferenceOption`/`runtimeUnboxedUnitOptionPresent` explicitly name
+these distinct layouts. They are not general malformed-value validators. A
+caller must check the actual export's representation and retain its existing
+payload validation; it must not dynamically guess a layout from an opaque value
+or infer one merely from a primitive probe. Public DATA fields spelled `$tag`
+or `_0` are unrelated to this compiler binding.
 
 ## Identity
 
@@ -90,6 +94,8 @@ This bounded, nonzero check builds only the JS binding probes, checks real
 generated-output freshness and uses the actual compiled Owners. The primitive
 probe covers success, contract refusal, malformed Result, reference/Unit Option,
 Unicode, exact Int64, original identity and same-typed tuple-role reversal.
+`packages/run-host-core/reference-options.test.mjs` separately checks the actual
+Run Host/Coordinator boxed Option exports, their absence and original bindings.
 The action probe checks every declared projection and rejects valid-number
 swaps at actual close/holding and unknown-commit boundaries. Its fixtures are
 not distributed runtime entrances or new operation Owners.

@@ -1,4 +1,4 @@
-import {runtimeField, runtimeIsError, runtimeIsTaggedAbsent, runtimeIsOk, runtimeIsTaggedPresent} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import * as owner from './dist/client_values_host_abi.js';
 
 const retainedInputEdges = new WeakMap();
@@ -276,8 +276,8 @@ export function effectSourceEvidenceFacts(prepared, compilation, stage, sourceIn
     throw new TypeError('InvalidRunHostSourceSelection');
   }
   const option = owner.clientValuesHostEffectSourceEvidenceFacts(value, stage, sourceIndex);
-  if (runtimeIsTaggedAbsent(option)) return undefined;
-  if (!runtimeIsTaggedPresent(option)) throw new Error('InvalidRunHostSourceEvidenceProjection');
+  if (runtimeIsBoxedNone(option)) return undefined;
+  if (!runtimeIsBoxedSome(option)) throw new Error('InvalidRunHostSourceEvidenceProjection');
   const facts = runtimeField(option, 0);
   if (!Array.isArray(facts) || facts.length !== 6 ||
       facts.some(field => typeof field !== 'string')) {
@@ -684,8 +684,8 @@ export function sourceEvidenceFacts(prepared, stage, sourceIndex) {
   }
   const option = owner.clientValuesHostSourceEvidenceFacts(
     requireHandle(preparations, prepared), stage, sourceIndex);
-  if (runtimeIsTaggedAbsent(option)) return undefined;
-  if (!runtimeIsTaggedPresent(option)) throw new Error('InvalidRunHostSourceEvidenceProjection');
+  if (runtimeIsBoxedNone(option)) return undefined;
+  if (!runtimeIsBoxedSome(option)) throw new Error('InvalidRunHostSourceEvidenceProjection');
   const facts = runtimeField(option, 0);
   if (!Array.isArray(facts) || facts.length !== 6 ||
       facts.some(value => typeof value !== 'string')) {

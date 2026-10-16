@@ -21,7 +21,7 @@ function emptyDurable() {
   return admitDurableJson(admissionDurableJson(prepareIntent(createJournal('coordinator-a'),request)));
 }
 
-test('actual Run Host reference Option preserves Source fields and absence',async()=>{
+test('actual Run Host boxed Option preserves Source fields and absence',async()=>{
   const fixture=await residentSourceEnvironment(root);
   const environment=admitEnvironment(fixture.wire,fixture.cid,{rela:true});
   const prepared=prepare(sourceProgram,'json',environment);
@@ -34,7 +34,7 @@ test('actual Run Host reference Option preserves Source fields and absence',asyn
   assert.throws(()=>sourceEvidenceFacts({...prepared},0,0),/ForeignRunHostHandle/u);
 });
 
-test('actual Effect reference Option keeps its original compilation binding',()=>{
+test('actual Effect boxed Option keeps its original compilation binding',()=>{
   const read=name=>readFileSync(new URL('./fixtures/'+name,import.meta.url),'utf8').trimEnd();
   const wire=read('source-compute-effect.environment.json');
   const environment=admitEnvironment(wire,JSON.parse(wire).evidence_bundle_cid,{rela:true});
@@ -46,13 +46,14 @@ test('actual Effect reference Option keeps its original compilation binding',()=
     sourceViewContractCid:view.contract_cid,carrierSchemaContractCid:view.output.schema.cid,
     sourceDataPolicyCid:view.output.data_policy.cid,dataClassification:'unknown'});
   assert.equal(effectSourceEvidenceFacts(prepared,compilation,1,0),undefined);
-  assert.throws(()=>effectSourceEvidenceFacts({...prepared},compilation,0,0),/ForeignRunHostHandle/u);
+  assert.throws(()=>effectSourceEvidenceFacts({...prepared},compilation,0,0),
+    {name:'TypeError',message:'ForeignRunHostCompilation'});
 });
 
-test('actual Coordinator Result of reference Option keeps absent Site output absent',()=>{
+test('actual Coordinator Result of boxed Option keeps absent Site output absent',()=>{
   assert.equal(acceptedSiteOutput(emptyDurable()),undefined);
 });
 
-test('actual Coordinator direct reference Option keeps absent Source observation absent',()=>{
+test('actual Coordinator direct boxed Option keeps absent Source observation absent',()=>{
   assert.equal(acceptedSourceObservation(emptyDurable()),undefined);
 });
