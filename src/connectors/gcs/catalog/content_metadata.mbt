@@ -74,7 +74,11 @@ pub fn content_metadata_json(
         (text == "identity" || text == "gzip") else {
         return Err(RepresentationUnsupported)
       }
-      if text == "gzip" { Some(text) } else { None }
+      if text == "gzip" {
+        Some(text)
+      } else {
+        None
+      }
     }
   }
   guard metadata_text(object, "crc32c", limits.max_bytes) is Some(crc32c) &&
@@ -99,11 +103,18 @@ pub fn content_metadata_json(
     "mediaType": media_type.to_json(),
     "crc32c": crc32c.to_json(),
   }
-  if encoding is Some(value) { fields["contentEncoding"] = value.to_json() }
-  if md5 is Some(value) { fields["md5"] = value.to_json() }
+  if encoding is Some(value) {
+    fields["contentEncoding"] = value.to_json()
+  }
+  if md5 is Some(value) {
+    fields["md5"] = value.to_json()
+  }
   // The private projection has bounded additional key spelling, not another
   // response allowance or a capacity grant. It overlaps the original bytes.
-  if limits.max_bytes > 2147483391 { return Err(InvalidMetadata) }
-  mutation_json(Json::object(fields), limits.max_bytes + 256, limits)
-  .map_err(_ => InvalidMetadata)
+  if limits.max_bytes > 2147483391 {
+    return Err(InvalidMetadata)
+  }
+  mutation_json(Json::object(fields), limits.max_bytes + 256, limits).map_err(_ => {
+    InvalidMetadata
+  })
 }
