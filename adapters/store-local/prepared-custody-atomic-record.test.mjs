@@ -53,12 +53,15 @@ for (const mode of ['empty', 'partial']) {
 test('healthy simultaneous prepared writers retain distinct exact original custody records', async t => {
   const scratch = await scratchFor('parallel original prepared custody');
   const directory = join(scratch.path, 'store'), store = await openStore(directory);
-  t.after(async () => { if (!store.status().closed) await store.close(); });
+  let stored = [];
+  t.after(async () => {
+    for (const value of stored) await value.prepared.release();
+    if (!store.status().closed) await store.close();
+  });
   const payloads = ['original first', 'original second'];
   const writers = payloads.map(bytes => store.createPreparedObjectWriter(Buffer.byteLength(bytes)));
   await Promise.all(writers.map((writer, i) => writer.append(payloads[i])));
-  const stored = await Promise.all(writers.map((writer, i) => writer.seal(cid(payloads[i]))));
-  t.after(async () => { for (const value of stored) await value.prepared.release(); });
+  stored = await Promise.all(writers.map((writer, i) => writer.seal(cid(payloads[i]))));
   const paths = await fs.readdir(join(directory, 'prepared-custody'));
   assert.equal(paths.length, 2);
   const records = await Promise.all(paths.map(async name => JSON.parse(
@@ -80,7 +83,7 @@ for (const mode of ['false', 'rejected']) {
     await writer.append(bytes);
     const originalOpen = fs.open;
     const primary = Object.freeze(Object.assign(new Error('Original custody FD close failure'), {code:'EIO'}));
-    let refusing = true, closes = 0, writes = 0, fd, failure;
+    let refusing = true, closes = 0, writes = 0, fd, failure, escaped, originalClose;
     fs.open = async (...args) => {
       const handle = await originalOpen(...args);
       const write = handle.write.bind(handle), close = handle.close.bind(handle);
@@ -90,6 +93,7 @@ for (const mode of ['false', 'rejected']) {
           '{"version":"actql-local-prepared-custody/0.1"')) {
           custody = true;
           assert.equal(fd ??= handle.fd, handle.fd);
+          originalClose = () => handle.fd < 0 ? undefined : close();
           writes++;
         }
         return write(...values);
@@ -109,7 +113,7 @@ for (const mode of ['false', 'rejected']) {
     };
     syncBuiltinESMExports();
     try {
-      await assert.rejects(writer.seal(cid(bytes)), error => {
+      await assert.rejects(writer.seal(cid(bytes)).then(value => { escaped = value; return value; }), error => {
         failure = error;
         return error.code === 'PublicationStoreCleanupPending';
       });
@@ -140,6 +144,8 @@ for (const mode of ['false', 'rejected']) {
       fs.open = originalOpen;
       syncBuiltinESMExports();
       if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+      await originalClose?.();
+      if (escaped?.prepared.status().pending) await escaped.prepared.release();
       await writer.cancel();
       if (!store.status().closed) await store.close();
     }
