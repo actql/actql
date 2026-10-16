@@ -31,6 +31,7 @@ fn insert_program(
 fn insert_static_result(
   program : @program.Program,
   mode : String,
+  parameters? : @wire.Cursor? = None,
 ) -> Result[
   @check.EffectProgramStaticCandidate,
   @stage_results.EffectStaticCandidateIssue,
@@ -40,7 +41,7 @@ fn insert_static_result(
     @check.prepare_effect_computation_candidate(
       program,
       environment,
-      None,
+      parameters,
       [],
       check_limits(),
       1,
@@ -295,4 +296,47 @@ test "INSERT may reuse one captured original field without inventing a Mapping c
   assert_eq(insert_field_value(program, "Name"), "body")
   assert_eq(insert_field_value(program, "City"), "body")
   assert_true(insert_static_result(program, "subset") is Ok(_))
+}
+
+///|
+test "INSERT Parameter expressions are evaluated once in the Relation capture rather than Effect literal templates" {
+  let context = {
+    ..short_command_context(),
+    parameter_declarations: Some(
+      parameter_reference_declarations(
+        "{\"p\":{\"type\":\"string\",\"nullable\":false}}",
+      ),
+    ),
+  }
+  let program = compile(
+    @query.parse_query(
+      "FROM messages |> EFFECT INSERT salesforce.Account (Name) VALUES (@P)",
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+    update_targets=Some(insert_publication("one")),
+  ).unwrap()
+  assert_eq(insert_fields(program).length(), 1)
+  assert_eq(insert_field_value(program, "Name"), insert_fields(program)[0])
+  let derives = store_capture_steps(program).filter(step => {
+    @wire.lookup(@wire.open_object(step).unwrap(), "derive") is Some(_)
+  })
+  assert_eq(derives.length(), 1)
+  let values = store_capture_field(derives[0], "derive")
+  assert_eq(@wire.object_length(values), Some(1))
+  assert_eq(
+    @wire.text(
+      store_capture_field(@wire.field_at(values, 0).unwrap().1, "$param"),
+    ),
+    Ok("p"),
+  )
+  assert_true(
+    insert_static_result(
+      program,
+      "one",
+      parameters=Some(analytic_frame_parameter_values("\"bound original\"")),
+    )
+    is Ok(_),
+  )
 }
