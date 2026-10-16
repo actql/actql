@@ -344,6 +344,15 @@ test "GCS reserved collision is exact and replacement preserves other opaque key
     )
     is Err(ReservedMetadata),
   )
+  assert_true(
+    prepare_object_metadata_patch(
+      binding,
+      mutation_original(),
+      @utf8.encode("{\"metadata\":{\"actql-request\":\"" + mutation_marker() + "\"}}"),
+      mutation_marker(),
+    )
+    is Err(ReservedMetadata),
+  )
   // This is only the before-send version guard, not reconciliation or an apply
   // classifier. Its success emits no receipt or applied outcome. A copied
   // marker cannot bypass the original metageneration check.
