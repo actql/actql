@@ -196,6 +196,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     if (name === 'admission') functions.push(`///|\nfn wire_${name}(value : Json, selected : Json) -> Bool {\n  wire_${name}_issue(value, selected) is None\n}\n`);
   }
   for (const [name, rule] of Object.entries(requestRules)) {
+    if (name === 'run_wait') continue;
     const expected = emit(schemas[rule.expectedSchema].properties[rule.matchRequest]);
     const alternatives = rule.schemas.map(schema => {
       const shape = `wire_${schema}_shape(value)`;
@@ -264,8 +265,18 @@ export function requestResponseRules(registry, schemas) {
     record(value) ? Object.fromEntries(Object.keys(value).sort().map(key =>
       [key, canonical(value[key])])) : value;
   const invalid = () => { throw new Error('InvalidClientHostRequestResponseRule'); };
-  if (!record(rules) || Object.keys(rules).sort().join() !== 'held,request_lookup') invalid();
+  if (!record(rules) || Object.keys(rules).sort().join() !== 'held,request_lookup,run_wait') invalid();
   return Object.fromEntries(Object.entries(rules).map(([name, rule]) => {
+    if (name === 'run_wait') {
+      if (!record(rule) || Object.keys(rule).sort().join() !== 'revisionField,schema,stableStatuses' ||
+          rule.schema !== 'run_state' || rule.revisionField !== 'revision' ||
+          !Array.isArray(rule.stableStatuses) || rule.stableStatuses.length === 0 ||
+          new Set(rule.stableStatuses).size !== rule.stableStatuses.length ||
+          rule.stableStatuses.some(status => !schemas.run_state.properties.status.enum.includes(status)) ||
+          JSON.stringify(canonical(schemas.run_state.properties.revision)) !==
+            JSON.stringify(canonical({type:'integer',minimum:0,maximum:9007199254740991}))) invalid();
+      return [name, rule];
+    }
     if (!record(rule) || Object.keys(rule).sort().join() !== 'matchRequest,schemas' ||
         typeof rule.matchRequest !== 'string' || !/^[a-zA-Z][a-zA-Z0-9]*$/u.test(rule.matchRequest) ||
         !Array.isArray(rule.schemas) || rule.schemas.length === 0 ||
@@ -287,6 +298,13 @@ export function requestResponseRules(registry, schemas) {
 
 export function jsRequestResponseRules(schemas, rules) {
   return Object.entries(rules).map(([name, rule]) => {
+    if (name === 'run_wait') {
+      return `export const validRunWaitContract = (value, since) =>\n` +
+        `  valid(value, schemas.${rule.schema}) &&\n` +
+        `  (since === null || valid(since, schemas.${rule.schema}.properties.${rule.revisionField})) &&\n` +
+        `  ${JSON.stringify(rule.stableStatuses)}.includes(value.status) &&\n` +
+        `  (since === null || value.${rule.revisionField} > since);\n`;
+    }
     const exportName = name === 'held' ? 'Held' : 'RequestLookup';
     const alternatives = rule.schemas.map(schema => {
       const shape = `valid(value, schemas.${schema})`;

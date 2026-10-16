@@ -22,6 +22,8 @@ test('generated Client–Host guards and types match the machine contract',
     assert.equal(outputs.types, await readFile(new URL(
       '../packages/client-wire/client-host.generated.d.ts', import.meta.url),
     'utf8'));
+    assert.equal(outputs.runWait, await readFile(new URL(
+      '../src/run_publication/run_wait.generated.mbt', import.meta.url), 'utf8'));
   });
 
 test('Native observation-only guards remain tested without adding a CLI operation', () => {
@@ -125,7 +127,8 @@ test('generated check validator rejects contradictory evidence and partial verif
     const {validCheckOutcomeShape: valid} = await import(
       '../packages/client-wire/client-host.generated.js');
     const report = {context_ref: 'ctx:fixture', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 1}], scope: {kind: 'bound_input'},
-      verdict: 'verified', reasons: [], coverage: {limits: [], unresolved: []}};
+      verdict: 'verified', reasons: [], coverage: {limits: [], unresolved: []},
+      runnable: {verdict:'no', reasons:[{code:'analysis_budget_exhausted'}]}};
     const outcome = report => ({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason, outcome_schema_cid: protocol.artifact_schema_cids.check_outcome,
       outcome: 'completed', report});
     assert.equal(valid(outcome(report)), true);
@@ -157,6 +160,7 @@ test('typed public facts are closed and locations bind declared input revisions'
   const outcome = reason => ({version: 'actql-check-outcome/0.1',
     reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
       context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
+      runnable: {verdict:'no', reasons:[{code:'analysis_budget_exhausted'}]},
       inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 6},
         {document_id: 'parameters', kind: 'structured', revision, byte_length: 20}],
       requirements: [], reasons: [reason], coverage: {limits: [], unresolved: []}}});
@@ -389,4 +393,24 @@ test('Run observation vocabulary derives from the registered state schema', asyn
   assert.match(buildClientHostWire(registry, future).module, /"cancelled","future_state"/);
   future.artifact_schemas.run_state.properties.status.enum.push('future_state');
   assert.throws(() => buildClientHostWire(registry, future), /InvalidRunStateDiscriminants/);
+});
+
+test('wait correlation and Common projection follow the same registered rule', async () => {
+  const original = buildClientHostWire(registry, protocol);
+  const changed = structuredClone(registry);
+  changed.request_response_rules.run_wait.stableStatuses.pop();
+  const projected = buildClientHostWire(changed, protocol);
+  assert.notEqual(projected.runWait, original.runWait);
+  assert.notEqual(projected.module, original.module);
+  assert.equal(projected.native, original.native,
+    'the remote CLI does not issue the physical wait observation');
+  for (const mutate of [
+    value => { delete value.request_response_rules.run_wait; },
+    value => { value.request_response_rules.run_wait.stableStatuses.push('future'); },
+    value => { value.request_response_rules.run_wait.stableStatuses.push('failed'); },
+    value => { value.request_response_rules.run_wait.revisionField = 'control'; },
+  ]) {
+    const invalid = structuredClone(registry); mutate(invalid);
+    assert.throws(() => buildClientHostWire(invalid, protocol), /InvalidClientHostRequestResponseRule/);
+  }
 });

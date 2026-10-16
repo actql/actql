@@ -131,7 +131,12 @@ export function buildClientHostWire(registry, protocol) {
     `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n` +
     `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n` +
     `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.fixes.items))};\n`;
-  return {module: module + jsResponseRules(rules) +
+  const wait = requestRules.run_wait;
+  const runWait = '// Generated from the existing Client–Host Run wait correlation rule.\n' +
+    '// Run: node scripts/generate-client-host-wire.mjs --write\n\n' +
+    '///|\nfn generated_run_wait_stable(status : String) -> Bool {\n  ' +
+    wait.stableStatuses.map(status => `status == ${JSON.stringify(status)}`).join(' ||\n  ') + '\n}\n';
+  return {runWait, module: module + jsResponseRules(rules) +
     jsRequestResponseRules(schemas, requestRules) + jsCheckReportRules(reportRules), types, native, nativeTests, nativeCheckOutcome};
 }
 
@@ -146,6 +151,7 @@ async function main() {
     ['packages/client-wire/client-host.generated.d.ts', outputs.types],
     ['src/cmd/native_client/wire.generated.mbt', outputs.native],
     ['src/cmd/native_client/wire_owner_observations.generated_wbtest.mbt', outputs.nativeTests],
+    ['src/run_publication/run_wait.generated.mbt', outputs.runWait],
   ];
   for (const [path, content] of files) {
     if (process.argv.includes('--write')) {

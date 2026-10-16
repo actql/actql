@@ -34402,7 +34402,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0d59271fb07382207ecdfcb55ca7237b49511b5ce2ba9a64a7d8f0c18c879dcd",
+      "sha256": "18a3d843802e15bf5995952a993feb5f193c06a75e7ac25e5d647b93ccfcb61e",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -35880,12 +35880,25 @@
             "ref",
             "actual",
             "until",
+            "since",
             "signal"
           ],
           "async": true
         },
         {
-          "name": "openInstalledHost/wait/wait/interrupted/interrupted",
+          "name": "openInstalledHost/wait/wait/interruption/interruption",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/wait/wait/observeStep/observeStep",
+          "parameters": [
+            "promise"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted",
           "parameters": [
             "_",
             "reject"
@@ -35893,18 +35906,15 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/wait/wait/interrupted/interrupted/interrupted",
+          "name": "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
           "parameters": [],
           "async": false
         },
         {
           "name": "openInstalledHost/wait/wait/wait",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/wait/wait/wait#2",
-          "parameters": [],
+          "parameters": [
+            "resolve"
+          ],
           "async": false
         },
         {
@@ -37134,10 +37144,11 @@
             "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
             "openInstalledHost/terminal/terminal",
             "openInstalledHost/wait/wait",
-            "openInstalledHost/wait/wait/interrupted/interrupted",
-            "openInstalledHost/wait/wait/interrupted/interrupted/interrupted",
             "openInstalledHost/wait/wait/wait",
-            "openInstalledHost/wait/wait/wait#2"
+            "openInstalledHost/wait/wait/interruption/interruption",
+            "openInstalledHost/wait/wait/observeStep/observeStep",
+            "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted",
+            "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted"
           ],
           "exports": [],
           "attributes": {
@@ -37149,6 +37160,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
               }
             ],
             "inputsOutputs": [
@@ -37159,6 +37174,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
               }
             ],
             "identity": [
@@ -37169,6 +37188,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -37179,6 +37202,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
               }
             ],
             "synchronization": [
@@ -37189,6 +37216,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
               }
             ],
             "failure": [
@@ -37199,6 +37230,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
               }
             ],
             "cancellation": [
@@ -37209,6 +37244,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
             "resources": [
@@ -37219,6 +37258,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               }
             ],
             "extension": [
@@ -37229,6 +37276,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
               }
             ],
             "verification": [
@@ -37243,6 +37294,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               }
             ]
           }
