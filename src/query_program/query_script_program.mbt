@@ -700,8 +700,8 @@ fn compile_query_script_with_source(
                 ),
               ]),
               retained,
-              keep_default=!prior_results.is_empty(),
-              implicit_primary=table_effect is None,
+              keep_default=!prior_results.is_empty() && store_target is None,
+              implicit_primary=table_effect is None && store_target is None,
             )
           },
         ),
@@ -796,8 +796,8 @@ fn compile_query_script_with_source(
         (name, port) in retained_result_exports(
           stage_context,
           retained,
-          keep_default=!prior_results.is_empty(),
-          implicit_primary=table_effect is None,
+          keep_default=!prior_results.is_empty() && store_target is None,
+          implicit_primary=table_effect is None && store_target is None,
         ).unwrap_or([(stage_context.result_name, stage_context.stage_result)]) {
         if table_effect is Some(_) && retained.is_empty() {
           continue

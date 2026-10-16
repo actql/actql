@@ -544,3 +544,41 @@ test "STORE SET siblings do not become expression bindings" {
     is Err(Expression(_) | UnknownColumn),
   )
 }
+
+///|
+test "STORE after a retained tap publishes only the authored Result" {
+  let program = store_capture_program(
+    "FROM files |> RESULT before_write |> WHERE path != '' |> EFFECT STORE storage.archive",
+  )
+  assert_eq(@program.exports(program), [
+    ("before_write", "main", "aql_retained_result_0"),
+  ])
+  assert_eq(@program.result_names(@program.stages(program).last().unwrap()), [
+    "aql_retained_result_0", "aql_private_store",
+  ])
+}
+
+///|
+test "STORE Model continuation keeps its original public prefix without an implicit tail Result" {
+  let query = @query.parse_query(
+    "FROM pair |> ASSERT UNIQUE BY (x) |> INFER score ITEM KEY (x) INPUT (n = y) KEEP (x, y) AS assessment |> RESULT classified |> SERIALIZE FORMAT JSONL PRESERVE ORDER OPTIONS (name = 'pair.jsonl', max_rows = 1, max_bytes = 128) |> EFFECT STORE storage.archive SET (path = name, content = content)",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(
+    query,
+    pair_context(),
+    construction_limits(),
+    store_targets=Some(store_capture_publication()),
+  ).unwrap()
+  assert_eq(@program.stage_count(program), 2)
+  assert_eq(@program.exports(program), [("classified", "main", "rows")])
+  assert_eq(@program.result_names(@program.stages(program).last().unwrap()), [
+    "aql_private_store",
+  ])
+  assert_eq(
+    @program.effect_header_count(
+      @program.collect_effect_headers(program, 1, 10000).unwrap(),
+    ),
+    1,
+  )
+}
