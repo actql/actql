@@ -348,7 +348,9 @@ test "GCS reserved collision is exact and replacement preserves other opaque key
     prepare_object_metadata_patch(
       binding,
       mutation_original(),
-      @utf8.encode("{\"metadata\":{\"actql-request\":\"" + mutation_marker() + "\"}}"),
+      @utf8.encode(
+        "{\"metadata\":{\"actql-request\":\"" + mutation_marker() + "\"}}",
+      ),
       mutation_marker(),
     )
     is Err(ReservedMetadata),
