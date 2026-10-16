@@ -12,6 +12,8 @@ pub fn hubspot_object_page_rows_wire(@catalog.ObjectPage, Int, Int, Int) -> Resu
 
 pub fn hubspot_object_schema_wire(@catalog.PropertyCatalog, Array[String], Int, Int, Int, Int, Int) -> Result[String, @catalog.ObjectPageIssue]
 
+pub fn hubspot_prepare_write_body(@catalog.PropertyCatalog, Array[String], Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.WriteBody, @catalog.WriteBodyIssue]
+
 pub fn hubspot_project_object_page(Bytes, @catalog.PropertyCatalog, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectPage, @catalog.ObjectPageIssue]
 
 pub fn hubspot_project_properties(Bytes, String, Int, Int, Int, Int, Int) -> Result[@catalog.PropertyCatalog, @catalog.PropertyIssue]
@@ -21,6 +23,14 @@ pub fn hubspot_property_catalog_object_type(@catalog.PropertyCatalog) -> String
 pub fn hubspot_recheck_account_identity_json(Bytes, String, Int, Int, Int) -> String
 
 pub fn hubspot_recheck_property_catalog(@catalog.PropertyCatalog, @catalog.PropertyCatalog, Int) -> Result[Unit, @catalog.PropertyIssue]
+
+pub fn hubspot_recheck_write_body(@catalog.WriteBody, @catalog.PropertyCatalog, Int) -> Result[Unit, @catalog.PropertyIssue]
+
+pub fn hubspot_write_body_properties_json(@catalog.WriteBody) -> String
+
+pub fn hubspot_write_body_property_names(@catalog.WriteBody) -> Array[String]
+
+pub fn hubspot_write_body_value_json(@catalog.WriteBody) -> String
 
 // Errors
 

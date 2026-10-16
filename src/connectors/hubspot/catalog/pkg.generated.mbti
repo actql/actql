@@ -21,6 +21,8 @@ pub fn object_row_values(ObjectRow) -> Array[@value_admission.CheckedValue]
 
 pub fn object_schema_wire(PropertyCatalog, Array[String], Int, Int, Int, Int, Int) -> Result[String, ObjectPageIssue]
 
+pub fn prepare_write_body(PropertyCatalog, Array[String], Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
+
 pub fn project_account_identity(Bytes, @source_value.ParseLimits) -> Result[AccountIdentity, AccountIdentityIssue]
 
 pub fn project_object_page(Bytes, PropertyCatalog, Array[String], ObjectPageLimits) -> Result[ObjectPage, ObjectPageIssue]
@@ -39,9 +41,17 @@ pub fn recheck_account_identity(AccountIdentity, String) -> Result[Unit, Account
 
 pub fn recheck_property_catalog(PropertyCatalog, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
 
+pub fn recheck_write_body(WriteBody, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
+
 pub fn require_property_write(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
 
 pub fn require_unique_property(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
+
+pub fn write_body_properties_json(WriteBody) -> String
+
+pub fn write_body_property_names(WriteBody) -> Array[String]
+
+pub fn write_body_value_json(WriteBody) -> String
 
 // Errors
 
@@ -132,6 +142,36 @@ pub struct PropertyMetadata {
   writable : Bool?
   // private fields
 } derive(Eq)
+
+pub struct WriteBody {
+  // private fields
+}
+
+pub(all) enum WriteBodyIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  MissingField(String)
+  UnexpectedField(String)
+  Property(PropertyIssue)
+  ValueAdmission(String, @value_admission.Issue)
+  UnlistedOption(String)
+  UnrepresentableValue(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteBodyLimits {
+  max_input_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_fields : Int
+  max_name_bytes : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+  max_comparison_work : Int
+  max_output_bytes : Int
+  max_output_nodes : Int
+  max_output_depth : Int
+}
 
 // Type aliases
 
