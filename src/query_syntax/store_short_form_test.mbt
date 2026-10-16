@@ -105,8 +105,8 @@ test "STORE never enters Pure Compute continuations or conflicting postludes" {
 test "STORE invalid target and malformed assignments are source refusals" {
   for
     suffix in [
-      "STORE files", "STORE 'local.files'", "STORE @destination", "STORE (local.files)",
-      "STORE local.files()", "STORE local.files + 1", "STORE local.files SET ()",
+      "", "STORE", "named STORE", "STORE files", "STORE 'local.files'", "STORE @destination",
+      "STORE (local.files)", "STORE local.files()", "STORE local.files + 1", "STORE local.files SET ()",
       "STORE local.files SET (content =)", "STORE local.files SET (content = c,)",
       "STORE local.files SET (content = c, content = c)", "STORE local.files SET (content = c, `content` = c)",
       "SELECT STORE local.files", "STORE local.files FORMAT 'json'",

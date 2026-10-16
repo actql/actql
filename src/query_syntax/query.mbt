@@ -3770,8 +3770,12 @@ pub fn terminal_store_effect(query : Query) -> StoreEffectClause? {
 
 ///|
 fn QueryParser::effect_is_store(self : QueryParser) -> Bool {
-  let first = token_at(self.source, self.index + 1).unwrap()
-  let second = token_at(self.source, self.index + 2).unwrap()
+  guard token_at(self.source, self.index + 1) is Some(first) else {
+    return false
+  }
+  guard token_at(self.source, self.index + 2) is Some(second) else {
+    return false
+  }
   let third = token_at(self.source, self.index + 3)
   if third.map(token => token.value != Symbol(46)).unwrap_or(false) &&
     (
