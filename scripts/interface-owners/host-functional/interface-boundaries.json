@@ -13279,7 +13279,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "import {ExecutionAuthorizationError, createAuthorizationDecisionBudget} from"
+                "anchor": "import {ExecutionAuthorizationError, createAuthorizationDecisionBudget,"
               },
               {
                 "path": "docs/spec/protocols/run.md",
