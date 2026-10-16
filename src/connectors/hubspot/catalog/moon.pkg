@@ -4,7 +4,9 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
   "actql/actql/sha256" @sha,
+  "moonbitlang/core/string",
 }
 
 import {
