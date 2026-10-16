@@ -252,6 +252,7 @@ async function callCredentialResource({
   maxRequestBytes = 1_048_576,
   maxResponseBytes = 1_048_576,
   returnRejectedResponse = false,
+  currentBeforeSend,
   signal,
 }, binding) {
   if (typeof control?.identity !== 'function' ||
@@ -261,7 +262,8 @@ async function callCredentialResource({
       typeof resolveSecret !== 'function' || typeof now !== 'function' ||
       !text(useId) || !count(maxRequestBytes) || maxRequestBytes === 0 ||
       !count(maxResponseBytes) || maxResponseBytes === 0 ||
-      typeof returnRejectedResponse !== 'boolean') {
+      typeof returnRejectedResponse !== 'boolean' ||
+      (currentBeforeSend !== undefined && typeof currentBeforeSend !== 'function')) {
     fail('InvalidRemoteCredentialCall');
   }
   const operation = operationFor(operations, scope, maxRequestBytes);
@@ -291,6 +293,21 @@ async function callCredentialResource({
     if (binding && (currentSecret.length > binding.maxSecretBytes ||
         Buffer.byteLength(currentSecret) > binding.maxSecretBytes)) {
       fail('RemoteCredentialSecretLimitExceeded');
+    }
+    // The original Host's current read check may require an asynchronous
+    // configuration read. Run it after the resolver await, without passing
+    // credential material or manufacturing a grant from its return value.
+    // Recheck the original binding and journal after this await as well.
+    if (currentBeforeSend !== undefined) {
+      // Preserve the original refusal before starting another Host read when
+      // retirement, cancellation or a replacement credential is already known.
+      if (binding?.retiring) fail('RemoteCredentialBindingRetiring');
+      if (binding?.secret !== undefined && binding.secret !== currentSecret) {
+        binding.changed = true;
+        fail('RemoteCredentialBindingChanged');
+      }
+      signal?.throwIfAborted();
+      await currentBeforeSend();
     }
     if (binding?.retiring) fail('RemoteCredentialBindingRetiring');
     if (binding?.secret !== undefined && binding.secret !== currentSecret) {

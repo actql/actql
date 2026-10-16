@@ -122,6 +122,12 @@ async function fixture(t, {onRequest, retain = false} = {}) {
   const address = server.address();
   const origin = `https://127.0.0.1:${address.port}`;
   const authority = generateKeyPairSync('ed25519');
+  if (retain) await Promise.all([
+    writeFile(join(root, 'credential-authority.key'), authority.privateKey.export({
+      format: 'pem', type: 'pkcs8'}), {mode: 0o600}),
+    writeFile(join(root, 'credential-authority.pub'), authority.publicKey.export({
+      format: 'pem', type: 'spki'})),
+  ]);
   const journal = openSqliteCredentialJournal(join(root, 'journal'), {
     credentialAuthorities: new Map([
       [
@@ -775,3 +781,114 @@ test('revocation while awaiting identity response refuses the next page before r
     assert.equal(setup.journal.recover().length, 1);
     assert.equal(closeHttpsCredentialBinding(binding), 'closed');
   });
+
+test('physical current callback follows the resolver without receiving credential material', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin);
+  const order = [];
+  const resolveSecret = async () => { order.push('resolver'); return 'provider-secret'; };
+  const {binding, invoke} = boundFixture(setup, original, resolveSecret);
+  const cause = Object.assign(new Error('OriginalHostCurrentDenied'),
+    {code: 'OriginalHostCurrentDenied'});
+  await assert.rejects(invoke(original, 'host-denied', {
+    currentBeforeSend: async (...args) => {
+      assert.deepEqual(args, []); order.push('current'); throw cause;
+    },
+  }), error => error === cause);
+  assert.deepEqual(order, ['resolver', 'current']);
+  assert.equal(setup.requests(), 0);
+  assert.equal(setup.journal.recover()[0].outcome, 'failed');
+  assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+});
+
+test('physical current callback cannot replace the final original journal authorization', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin);
+  const grant = control.prepare(original);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  let resolutions = 0, current = 0;
+  const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+  const {binding} = boundFixture(setup, original, resolveSecret);
+  await assert.rejects(call(setup, grant, original, 'revoke-during-current', {
+    binding, resolveSecret,
+    currentBeforeSend: async () => {
+      current++; await Promise.resolve(); setup.journal.revoke(control.identity(grant));
+    },
+  }));
+  assert.equal(resolutions, 1); assert.equal(current, 1);
+  assert.equal(setup.requests(), 0);
+  assert.equal(setup.journal.recover()[0].outcome, 'failed');
+  assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+});
+
+test('physical current callback retains cleanup pending across its await without a send', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin);
+  const entered = deferred(), released = deferred();
+  let resolutions = 0;
+  const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+  const {binding, invoke} = boundFixture(setup, original, resolveSecret);
+  const result = invoke(original, 'close-during-current', {
+    currentBeforeSend: async () => { entered.resolve(); await released.promise; },
+  });
+  await entered.promise;
+  await assert.rejects(invoke(original, 'nested-current'),
+    {code: 'RemoteCredentialBindingBusy'});
+  assert.equal(setup.journal.recover().length, 1);
+  assert.equal(closeHttpsCredentialBinding(binding), 'pending');
+  assert.equal(setup.requests(), 0);
+  released.resolve();
+  await assert.rejects(result, {code: 'RemoteCredentialBindingRetiring'});
+  assert.equal(resolutions, 1); assert.equal(setup.requests(), 0);
+  assert.equal(setup.journal.recover()[0].outcome, 'failed');
+  assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+  assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+});
+
+test('physical current callback shape fails before a nominal claim or resolver lookup', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin);
+  let resolutions = 0;
+  const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+  const {binding, invoke} = boundFixture(setup, original, resolveSecret);
+  await assert.rejects(invoke(original, 'invalid-current', {currentBeforeSend: true}),
+    {code: 'InvalidRemoteCredentialCall'});
+  assert.equal(resolutions, 0); assert.equal(setup.requests(), 0);
+  assert.equal(setup.journal.recover().length, 0);
+  assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+});
+
+test('physical current callback cancellation cannot send after its awaited check', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin);
+  const controller = new AbortController();
+  let resolutions = 0;
+  const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+  const {binding, invoke} = boundFixture(setup, original, resolveSecret);
+  await assert.rejects(invoke(original, 'cancel-during-current', {
+    signal: controller.signal,
+    currentBeforeSend: async () => {
+      await Promise.resolve(); controller.abort();
+    },
+  }), error => error === controller.signal.reason);
+  assert.equal(resolutions, 1); assert.equal(setup.requests(), 0);
+  assert.equal(setup.journal.recover()[0].outcome, 'failed');
+  assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+});
+
+test('known changed binding refuses before a subsequent Host current callback', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin);
+  let material = 'provider-secret', resolutions = 0, currentChecks = 0;
+  const resolveSecret = async () => { resolutions++; return material; };
+  const {binding, invoke} = boundFixture(setup, original, resolveSecret);
+  const currentBeforeSend = async () => { currentChecks++; };
+  await invoke(original, 'original-identity', {currentBeforeSend});
+  material = 'foreign-portal-secret';
+  await assert.rejects(invoke(original, 'changed-before-current', {currentBeforeSend}),
+    {code: 'RemoteCredentialBindingChanged'});
+  assert.equal(currentChecks, 1); assert.equal(resolutions, 2);
+  assert.equal(setup.requests(), 1);
+  assert.deepEqual(setup.journal.recover().map(use => use.outcome), ['succeeded', 'failed']);
+  assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+});
