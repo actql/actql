@@ -892,11 +892,20 @@ fn command() -> @argparse.Command {
       @argparse.Command("attach", options=[
         @argparse.OptionArg("ref-file", required=true),
       ]),
-      @argparse.Command("status", flags=[@argparse.FlagArg("json")], options=[
-        @argparse.OptionArg("ref-file"),
-        @argparse.OptionArg("submission-ref-file"),
-        @argparse.OptionArg("run-id"),
-      ]),
+      @argparse.Command(
+        "status",
+        flags=[@argparse.FlagArg("json")],
+        positionals=[
+          @argparse.PositionArg("run", conflicts_with=[
+            "run-id", "ref-file", "submission-ref-file",
+          ]),
+        ],
+        options=[
+          @argparse.OptionArg("ref-file"),
+          @argparse.OptionArg("submission-ref-file"),
+          @argparse.OptionArg("run-id", conflicts_with=["run"]),
+        ],
+      ),
       @argparse.Command("wait", options=[
         @argparse.OptionArg("ref-file", required=true),
         @argparse.OptionArg("until"),
@@ -940,6 +949,7 @@ fn command() -> @argparse.Command {
 
 ///|
 fn execute(matches : @argparse.Matches) -> String raise ClientStop {
+  normalize_native_status_arguments(matches)
   match required(matches, "mode") {
     "local" => return execute_native_local(matches)
     "remote" =>
