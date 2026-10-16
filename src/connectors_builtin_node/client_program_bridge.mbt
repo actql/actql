@@ -6555,13 +6555,64 @@ pub fn client_program_effect_plan_import_begin(
   max_fields : Int,
   max_work : Int,
 ) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  client_effect_plan_import_begin(
+    preview,
+    preview_index,
+    output,
+    material,
+    limits,
+    max_fields,
+    max_work,
+    None,
+  )
+}
+
+///|
+#export_name("clientProgramEffectPlanImportBeginWithTarget")
+pub fn client_program_effect_plan_import_begin_with_target(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+  target : @strategy.CapturedEffectCommandTarget,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  client_effect_plan_import_begin(
+    preview,
+    preview_index,
+    output,
+    material,
+    limits,
+    max_fields,
+    max_work,
+    Some(target),
+  )
+}
+
+///|
+fn client_effect_plan_import_begin(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+  published_target : @strategy.CapturedEffectCommandTarget?,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
   guard @strategy.captured_effect_preview_input_at(preview, preview_index)
     is Some(input) else {
     return Err(InvalidMember)
   }
   let verifier = match
     @strategy.prepare_captured_effect_plan_verifier(
-      preview, preview_index, max_fields, max_work,
+      preview,
+      preview_index,
+      max_fields,
+      max_work,
+      published_target~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Plan(issue))

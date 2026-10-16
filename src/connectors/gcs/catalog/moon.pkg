@@ -6,5 +6,9 @@ import {
   "actql/actql/sha256" @sha,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/contract_reference" @reference,
+  "actql/actql/value_contract" @contract,
+  "moonbitlang/core/encoding/base64",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
 }

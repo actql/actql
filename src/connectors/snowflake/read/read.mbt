@@ -7,9 +7,11 @@ pub(all) enum ReadIssue {
   Response(@response.ResponseIssue)
   SchemaMismatch(String)
   WrongPartition
+  WrongStatement
   Incomplete
   Closed
   TransportUnsettled
+  BorrowedRun
 }
 
 ///|
@@ -110,6 +112,12 @@ pub fn read_start_failure_cleanup(failure : ReadStartFailure) -> Read? {
 }
 
 ///|
+priv enum ReadCustody {
+  Original((@rows.RowAttempt) -> Bool)
+  InstalledBorrow(@rows.RowRunResponseBorrow)
+}
+
+///|
 /// Provider page progress only. Run, transfer, capture and cleanup responsibility
 /// remain in the original Common RowRun; no parallel Ledger is constructed.
 pub struct Read {
@@ -117,14 +125,35 @@ pub struct Read {
   priv run : @rows.RowRun
   priv limits : @response.ResponseLimits
   priv max_contract_pairs : Int
-  priv verify_transport : (@rows.RowAttempt) -> Bool
+  priv custody : ReadCustody
   priv mut transport_confirmed : Bool
+  priv mut transport_bound : Bool
+  priv mut retire_transport : (() -> Bool)?
   priv mut original : @response.ResultSet?
   priv mut pages : Int
   priv mut rows : Int64
   priv mut finished : Bool
   priv mut interrupted : Bool
   priv mut closed : Bool
+  priv mut statement_bound : Bool
+}
+
+///|
+fn valid_read_limits(
+  limits : @response.ResponseLimits,
+  max_contract_pairs : Int,
+) -> Bool {
+  !(max_contract_pairs <= 0 ||
+  limits.max_bytes <= 0 ||
+  limits.max_nodes <= 0 ||
+  limits.max_depth <= 0 ||
+  limits.max_columns <= 0 ||
+  limits.max_name_units <= 0 ||
+  limits.max_handle_units <= 0 ||
+  limits.max_partitions <= 0 ||
+  limits.max_rows < 0 ||
+  limits.max_total_rows < 0L ||
+  limits.max_total_rows > 2147483647L)
 }
 
 ///|
@@ -140,17 +169,7 @@ pub fn start_accounted_read(
 ) -> Result[Read, ReadStartFailure] {
   // The existing response Owner still validates every received envelope. These
   // are pre-start bounds for its exact page and Common's Int-indexed capture.
-  if max_contract_pairs <= 0 ||
-    limits.max_bytes <= 0 ||
-    limits.max_nodes <= 0 ||
-    limits.max_depth <= 0 ||
-    limits.max_columns <= 0 ||
-    limits.max_name_units <= 0 ||
-    limits.max_handle_units <= 0 ||
-    limits.max_partitions <= 0 ||
-    limits.max_rows < 0 ||
-    limits.max_total_rows < 0L ||
-    limits.max_total_rows > 2147483647L {
+  if !valid_read_limits(limits, max_contract_pairs) {
     return Err({ issue: InvalidLimits, cleanup: None, })
   }
   let run = match
@@ -170,14 +189,17 @@ pub fn start_accounted_read(
     run,
     limits,
     max_contract_pairs,
-    verify_transport,
+    custody: Original(verify_transport),
     transport_confirmed: false,
+    transport_bound: false,
+    retire_transport: None,
     original: None,
     pages: 0,
     rows: 0L,
     finished: false,
     interrupted: false,
     closed: false,
+    statement_bound: false,
   }
   match
     @rows.begin_row_run(
@@ -192,6 +214,113 @@ pub fn start_accounted_read(
       Err({ issue: Host(issue), cleanup: Some(read), })
     }
   }
+}
+
+///|
+fn read_available(read : Read) -> Bool {
+  if read.closed || read.interrupted {
+    return false
+  }
+  match read.custody {
+    Original(_) => true
+    InstalledBorrow(borrow) =>
+      read.transport_bound &&
+      @rows.check_row_run_response_borrow_current(borrow) is Ok(_)
+  }
+}
+
+///|
+/// Borrow exactly the Host's already-begun accounted run. The Host remains the
+/// sole finish/capture/close owner; this port reserves and begins nothing.
+pub fn borrow_accounted_read(
+  prepared : PreparedRead,
+  run : @rows.RowRun,
+  limits : @response.ResponseLimits,
+  max_contract_pairs : Int,
+) -> Result[Read, ReadIssue] {
+  if !valid_read_limits(limits, max_contract_pairs) {
+    return Err(InvalidLimits)
+  }
+  let borrow = match @rows.borrow_row_run_responses(run, prepared.acquisition) {
+    Ok(value) => value
+    Err(issue) => return Err(Host(issue))
+  }
+  Ok({
+    prepared,
+    run,
+    limits,
+    max_contract_pairs,
+    custody: InstalledBorrow(borrow),
+    transport_confirmed: false,
+    transport_bound: false,
+    retire_transport: None,
+    original: None,
+    pages: 0,
+    rows: 0L,
+    finished: false,
+    interrupted: false,
+    closed: false,
+    statement_bound: false,
+  })
+}
+
+///|
+/// The existing physical transport Owner supplies this exact reader's stop
+/// observation. It is not Source/publish authority, completion or a caller
+/// cancellation acknowledgement. Unknown leaves this same root funded.
+pub fn bind_borrowed_read_transport(
+  read : Read,
+  observe_stop : () -> Bool,
+) -> Result[Unit, ReadIssue] {
+  guard !read.closed &&
+    !read.interrupted &&
+    !read.transport_bound &&
+    read.custody is InstalledBorrow(borrow) else {
+    return Err(BorrowedRun)
+  }
+  let cleanup = fn() {
+    if !read.transport_confirmed {
+      if !observe_stop() {
+        return false
+      }
+      read.transport_confirmed = true
+    }
+    read.original = None
+    read.closed = true
+    read.retire_transport = None
+    true
+  }
+  match @rows.bind_row_run_response_borrow_cleanup(borrow, cleanup) {
+    Ok(_) => {
+      read.transport_bound = true
+      read.retire_transport = Some(cleanup)
+      Ok(())
+    }
+    Err(issue) => Err(Host(issue))
+  }
+}
+
+///|
+/// Retire only this provider alias after its same physical scope stops. The
+/// Common root remains with the original Host until that owner closes it.
+pub fn retire_borrowed_read(read : Read) -> Result[Unit, ReadIssue] {
+  guard read.custody is InstalledBorrow(_) else { return Err(BorrowedRun) }
+  if read.closed {
+    return Ok(())
+  }
+  if read.transport_bound {
+    guard read.retire_transport is Some(cleanup) else {
+      return Err(TransportUnsettled)
+    }
+    if !cleanup() {
+      return Err(TransportUnsettled)
+    }
+  } else {
+    // No statement candidate/admission is available before transport binding.
+    read.closed = true
+    read.original = None
+  }
+  Ok(())
 }
 
 ///|
@@ -220,7 +349,10 @@ fn first_values(
 /// Charge the exact provider envelope before parsing. The response's contracts
 /// must equal the selected original metadata contracts, not just its names.
 pub fn accept_first_result(read : Read, body : Bytes) -> Result[Int, ReadIssue] {
-  if read.closed || read.interrupted || read.finished {
+  if read.statement_bound {
+    return Err(WrongStatement)
+  }
+  if !read_available(read) || read.finished {
     return Err(Closed)
   }
   if read.original is Some(_) {
@@ -229,6 +361,22 @@ pub fn accept_first_result(read : Read, body : Bytes) -> Result[Int, ReadIssue] 
   let charge = match @rows.charge_row_run_page(read.run, body) {
     Ok(value) => value
     Err(issue) => return fail_read(read, Host(issue))
+  }
+  accept_charged_first_result(read, charge, body, None)
+}
+
+///|
+fn accept_charged_first_result(
+  read : Read,
+  charge : @rows.RowPageCharge,
+  body : Bytes,
+  expected_handle : String?,
+) -> Result[Int, ReadIssue] {
+  if !read_available(read) || read.finished {
+    return Err(Closed)
+  }
+  if read.original is Some(_) {
+    return fail_read(read, WrongPartition)
   }
   let acquisition = read.prepared.acquisition
   let contracts = []
@@ -250,6 +398,10 @@ pub fn accept_first_result(read : Read, body : Bytes) -> Result[Int, ReadIssue] 
     Err(@response.ContractMismatch(name)) =>
       return fail_read(read, SchemaMismatch(name))
     Err(issue) => return fail_read(read, Response(issue))
+  }
+  if expected_handle is Some(expected) &&
+    @response.result_set_handle(result) != expected {
+    return fail_read(read, WrongStatement)
   }
   let accepted = match
     @rows.accept_charged_row_run_values(
@@ -275,7 +427,10 @@ pub fn accept_result_partition(
   ordinal : Int,
   body : Bytes,
 ) -> Result[Int, ReadIssue] {
-  if read.closed || read.interrupted || read.finished {
+  if read.statement_bound {
+    return Err(WrongStatement)
+  }
+  if !read_available(read) || read.finished {
     return Err(Closed)
   }
   guard read.original is Some(original) &&
@@ -286,6 +441,24 @@ pub fn accept_result_partition(
   let charge = match @rows.charge_row_run_page(read.run, body) {
     Ok(value) => value
     Err(issue) => return fail_read(read, Host(issue))
+  }
+  accept_charged_result_partition(read, charge, ordinal, body)
+}
+
+///|
+fn accept_charged_result_partition(
+  read : Read,
+  charge : @rows.RowPageCharge,
+  ordinal : Int,
+  body : Bytes,
+) -> Result[Int, ReadIssue] {
+  if !read_available(read) || read.finished {
+    return Err(Closed)
+  }
+  guard read.original is Some(original) &&
+    ordinal == read.pages &&
+    ordinal < @response.result_set_partition_count(original) else {
+    return fail_read(read, WrongPartition)
   }
   let page = match
     @response.project_partition(body, original, ordinal, read.limits) {
@@ -319,7 +492,10 @@ pub fn accept_result_partition(
 /// Finishing page admission only enters Common's AwaitingCleanup state. It is
 /// neither a transport-stop ACK nor a captured Source or durable publication.
 pub fn finish_result_read(read : Read) -> Result[Unit, ReadIssue] {
-  if read.closed || read.interrupted || read.finished {
+  if read.custody is InstalledBorrow(_) {
+    return Err(BorrowedRun)
+  }
+  if !read_available(read) || read.finished {
     return Err(Closed)
   }
   guard read.original is Some(original) &&
@@ -348,6 +524,9 @@ pub fn interrupt_result_read(read : Read) -> Unit {
 /// Preserve the original run, response and metadata on a failed cleanup. A retry
 /// uses that same Common responsibility; it never constructs another attempt.
 pub fn close_result_read(read : Read) -> Result[Unit, ReadIssue] {
+  guard read.custody is Original(verify_transport) else {
+    return Err(BorrowedRun)
+  }
   if read.closed {
     return Ok(())
   }
@@ -356,7 +535,7 @@ pub fn close_result_read(read : Read) -> Result[Unit, ReadIssue] {
   // Common's acquisition registration. It is not a caller-provided read grant
   // or a logical cancellation ACK. Do not release the holding before it.
   if !read.transport_confirmed {
-    if !(read.verify_transport)(@rows.row_run_attempt(read.run)) {
+    if !verify_transport(@rows.row_run_attempt(read.run)) {
       return Err(TransportUnsettled)
     }
     read.transport_confirmed = true
@@ -378,7 +557,7 @@ pub fn result_read_usage(read : Read) -> (Int, Int64) {
 
 ///|
 pub fn result_read_original(read : Read) -> @response.ResultSet? {
-  if read.closed || read.interrupted {
+  if !read_available(read) {
     None
   } else {
     read.original
@@ -391,7 +570,10 @@ pub fn result_read_original(read : Read) -> @response.ResultSet? {
 pub fn capture_result_read(
   read : Read,
 ) -> Result[@rows.RowSourceCapture, ReadIssue] {
-  if read.closed || read.interrupted || !read.finished {
+  if read.custody is InstalledBorrow(_) {
+    return Err(BorrowedRun)
+  }
+  if !read_available(read) || !read.finished {
     return Err(Closed)
   }
   @rows.capture_row_run(read.run).map_err(issue => Host(issue))

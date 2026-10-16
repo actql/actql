@@ -1,6 +1,7 @@
 // Original Connector DATA only. The installed Common owner must retain its
 // checked Mapping/Command pair and issue the reference with actual currentness.
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {gcsUploadResult} from '../site/gcs-owned-upload-request.mjs';
 
 const originals = new WeakMap();
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -39,4 +40,64 @@ export function checkGcsCollectionTarget(original, selected, installationCid, ta
   }
   collectionResult(owner.moon, owner.moon.gcsCollectionCheckBinding(owner.binding,
     candidate.binding, installationCid, targetRef));
+}
+
+// The fixed provider projection borrows only this original collection handle.
+// It returns declaration DATA, never the handle or a Common ResourceReference.
+export function gcsCollectionUploadMapping(original, declaredWire, connectorId,
+  {maxBytes, maxNodes, maxDepth}) {
+  const owner = originals.get(original);
+  if (owner === undefined) fail('ForeignGcsCollectionTarget');
+  if (typeof declaredWire !== 'string' || typeof connectorId !== 'string') {
+    fail('GcsInvalidUploadDeclarationBinding');
+  }
+  if (![maxBytes, maxNodes, maxDepth].every(integer)) fail('GcsInvalidUploadDeclarationLimits');
+  try {
+    return checked(owner.moon.gcsUploadMappingJson(owner.binding, declaredWire, connectorId,
+      maxBytes, maxNodes, maxDepth));
+  } catch (failure) {
+    if (failure?.code !== 'MoonBitHostFailure') throw failure;
+    const code = owner.moon.gcsUploadDeclarationFailureCode(failure.cause);
+    throw Object.assign(new Error(code, {cause: failure.cause}), {code});
+  }
+}
+
+// Called only with the existing installed Host's original issuer. Possessing
+// the DATA frame or equal wire cannot replace that issuer or its currentness.
+export function issueGcsCollectionReference(original, pair, declaredWire, connectorId,
+  issuer, {maxBytes, maxNodes, maxDepth, maxWork}) {
+  const owner = originals.get(original);
+  if (owner === undefined) fail('ForeignGcsCollectionTarget');
+  if (typeof declaredWire !== 'string' || typeof connectorId !== 'string') {
+    fail('GcsForeignCollectionSelection');
+  }
+  if (![maxBytes, maxNodes, maxDepth, maxWork].every(integer)) {
+    fail('GcsCollectionReferenceInvalidLimits');
+  }
+  try {
+    return checked(owner.moon.gcsCollectionIssueReference(owner.binding, pair,
+      declaredWire, connectorId, issuer, maxBytes, maxNodes, maxDepth, maxWork));
+  } catch (failure) {
+    if (failure?.code !== 'MoonBitHostFailure') throw failure;
+    const code = owner.moon.gcsCollectionReferenceFailureCode(failure.cause);
+    throw Object.assign(new Error(code, {cause: failure.cause}), {code});
+  }
+}
+
+// The installed driver borrows this same provider collection handle. A copied
+// DATA frame cannot construct the upload binding; this is not an issuer/grant.
+export function prepareGcsCollectionUploadBinding(original, {commandCid, permissions,
+  metadata, maxContentBytes, maxBodyBytes, maxPathBytes, maxIdentityBytes}) {
+  const owner = originals.get(original);
+  if (owner === undefined) fail('ForeignGcsCollectionTarget');
+  if (typeof commandCid !== 'string' || !Array.isArray(permissions) ||
+      permissions.some(value => typeof value !== 'string') || !metadata ||
+      ![metadata.maxBytes, metadata.maxNodes, metadata.maxDepth,
+        maxBodyBytes, maxPathBytes, maxIdentityBytes].every(integer) ||
+      !Number.isInteger(metadata.maxEntries) || metadata.maxEntries < 0 ||
+      metadata.maxEntries > 2147483647 || !Number.isInteger(maxContentBytes) ||
+      maxContentBytes < 0 || maxContentBytes > 2147483647) fail('GcsInvalidUploadAbiLimits');
+  return gcsUploadResult(owner.moon, owner.moon.gcsUploadBinding(owner.binding,
+    commandCid, permissions, metadata.maxBytes, metadata.maxNodes, metadata.maxDepth,
+    metadata.maxEntries, maxContentBytes, maxBodyBytes, maxPathBytes, maxIdentityBytes));
 }

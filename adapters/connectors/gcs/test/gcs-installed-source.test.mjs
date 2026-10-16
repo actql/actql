@@ -23,6 +23,21 @@ const runtimeUrl = new URL('../../../../_build/js/release/build/' +
 const baseEnvironmentWire = await readFile(new URL('../../../../spec/local-check-environment.json',
   import.meta.url), 'utf8');
 
+function installationFailure(t, error) {
+  // Preserve the original failure and cleanup carrier. Emit only closed code
+  // names, never account/profile/key/credential values from nested errors.
+  const codes = [];
+  let current = error;
+  for (let index = 0; index < 8 && current !== undefined; index++) {
+    const code = current?.code ?? current?.message;
+    codes.push(typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(code)
+      ? code : '<non-code>');
+    current = current?.cause;
+  }
+  t.diagnostic(`Original installation failure codes: ${JSON.stringify(codes)}`);
+  throw error;
+}
+
 async function fixture(t) {
   const scratch = await createOwnedScratch({parent: new URL('../../../../_build/', import.meta.url).pathname,
     prefix: 'gcs-installed-', label: 'GCS standard Source installation fixture'});
@@ -153,13 +168,15 @@ test(`public ${entrance} GCS acceptance keyed Programs check against the install
     if (previousCertificates !== undefined) setDefaultCACertificates(previousCertificates);
   });
   if (entrance === 'Local') {
-    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation});
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation})
+      .catch(error => installationFailure(t, error));
   } else {
     const {key, cert, ca} = await fixtureCertificates(value.scratch.path);
     previousCertificates = getCACertificates('default');
     setDefaultCACertificates([...previousCertificates, ca.toString('utf8')]);
     host = await openInstalledRemoteHttpHost({...installation,
-      authenticate: header => header === 'Bearer gcs-fixture' ? userInfo().username : undefined});
+      authenticate: header => header === 'Bearer gcs-fixture' ? userInfo().username : undefined})
+      .catch(error => installationFailure(t, error));
     server = createServer({key, cert}, host.handler);
     await new Promise((resolve, reject) => {
       server.once('error', reject);

@@ -1211,3 +1211,39 @@ enforcement remain obligations of their retained evidence, not completed runtime
 checks. The result grants no execution or publication permission. Lowering must
 not treat this intermediate context as the final `CheckedProgram`, invent missing
 static decisions or independently replace main's remaining integration.
+
+## Published STORE Command target
+
+Object/file/stage STORE keeps its authored spelling and original typed
+ContentRef. Canonical relation `store` remains unchanged. The closed Command
+target alternative `published_store: {target_ref, mapping_ref}` carries only
+structural selection data; the checked Stage Result owner does not fabricate a
+ResourceRef column, Source, Values row, or permission.
+
+`bind_effect_command_targets` uses the same admitted Mapping shapes and Catalog
+references already held by the static Effect candidate. It resolves the exact
+Mapping and target, then delegates the original relationship to
+`check_environment.bind_store_command`. The returned opaque pair and original
+Effect occurrence remain available for installed capture; selecting a second
+Command by compatible schema or equal CID is not a substitute. The old field
+branch retains its original reads and work accounting. New lookup work and the
+existing pair owner's charged work share the original finite budget.
+
+The query lowerer retains the same opaque `StoreTargetPublication` through the
+Source frontend. It resolves the original target before SET binding, then uses
+the existing Relation expression lowerer and a single private Stage Result.
+Direct ContentRef fields retain their original values; computed SET fields are
+derived once from the preceding scope, including immutable ranges. Omitted SET
+keeps the current visible columns in order. A completed set or Model continuation
+is captured after its owning computation, without making a new public Result.
+Explicit public Results remain separately exported. Relation targets emit the
+existing canonical `store`; an original published Command pair emits the closed
+`command.target.published_store` alternative. This lowering does not construct a
+Ref or a new acquisition path.
+
+This static proof does not issue target authority. Installed preparation must
+retain the original trusted issuer/current closure and all installation, scope
+and generation identities through Run material adoption, Preview, apply and
+restore. Current grants remain independent. SET capture, ContentRef egress and
+availability custody, overwrite guards, Unknown, nonresend and cleanup retain
+their existing owners. Missing installed originals refuse before send.

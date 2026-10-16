@@ -35,3 +35,7 @@ import {
   "actql/actql/program_source_builder" @builder,
   "actql/actql/frontend_source_map" @origin,
 } for "test"
+
+formatter(
+  ignore: ["command_input_presence.generated_test.mbt"],
+)

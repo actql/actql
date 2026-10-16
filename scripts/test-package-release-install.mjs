@@ -139,6 +139,7 @@ try {
   assert.equal(events.filter(v => v === 'computed').length, 0);
   assert.equal(events.filter(v => v === 'physical_start_reserved').length, 0);
   await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.mjs'), join(local, 'short-queries.mjs'));
+  await copyFile(join(repository, 'scripts/fixtures/run-revision-assertions.mjs'), join(local, 'run-revision-assertions.mjs'));
   await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.typecheck.mts'), join(local, 'short-queries.typecheck.mts'));
   results.push(await run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
     '--strict', '--target', 'ES2022', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',

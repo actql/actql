@@ -96,6 +96,238 @@ records/references. Three separate representation clamps do not make their
 peak overlap a funded bound. Retain escaped borrowers through the original
 receiver's actual lifetime; WeakMap membership or deletion is not physical ACK.
 
+## Upload declaration closure
+
+The portable `object_upload_command_json` supplies the real GCS upload
+declaration. Its inline Command input and original `command_input` Envelope
+contain the same complete closed presence record. `content` and `name` are
+required; `content_type` and `overwrite` may be absent but are non-null when
+supplied. The typed ContentRef has no media restriction and is never reduced
+to a String, JSON payload or fabricated reference. Array order remains in the
+preimage. The role is the explicitly adopted Command-only extension, not a
+general optional Object ValueContract or an upgrade of legacy role bytes.
+
+`object_upload_catalog_json` preserves the original declaration's SourceViews,
+evidence and manifest while adding complete original roles and the Command to
+its Catalog. It checks the old complete registry correspondence and Catalog
+self-identity, rejects conflicting declarations, and returns `command_bodies`
+for the existing Common environment assembler. The final Catalog is self-sealed
+under the same initial 0.1 identity domain, not the previous Catalog CID.
+
+`object_upload_mapping_json` borrows the original collection binding and emits
+the exact Mapping-to-Command relationship for `connector://<id>/objects`.
+Its complete target schema retains all four field contracts, including the
+ContentRef. `primary_identity: null` remains collection-only `create/none`;
+the four exact field-set rules do not admit row STORE or invent a row key.
+The fixed Command's declared requirements cover both creation and explicit
+replacement/readback: `storage.objects.create`, `storage.objects.delete` and
+`storage.objects.get`. These are static requirements, not inferred permissions
+or a stronger credential identity. Approval/current authorization remain with
+their original owners. Optional fields are never assigned defaults by these
+declarations. Overwrite conditions belong to original Preview/physical request
+preparation, not to a refreshed Catalog observation after approval.
+
+The typed Node adapters use the existing checked Result facade. They return
+bounded immutable wire DATA, not a ResourceRef issuer or an installed original
+selection. The Mapping adapter borrows its original collection association;
+copied JS frames cannot recover that handle. Actual Common admission must
+validate every declared contract, the original Catalog/environment/pair and
+the selected installation before the existing trusted issuer supplies a target.
+The new `published_store` canonical selector is an independent Common change;
+no hidden Source/Result/Values field or Parameter Ref is introduced here.
+
+Declaration construction retains input wire, strict parser tree, ordinary JSON
+tree, canonical/hash/writer workspace, original/new Catalog and registry arrays,
+role/Command/Mapping representations and typed projection/callback records
+through their actual preparation lifetime. Repeated string parsing and escaped
+borrowers are not free. Bounds limit representation sizes, not aggregate
+funding, physical retirement or a normal numerical profile. The read-only
+installation is not silently activated for writes by these DATA functions;
+upload transport, exact Content acquisition, physical issuer/currentness,
+reconciliation and normal installed approval/restart acceptance remain needed.
+
+## Original collection reference selection
+
+`connectors/gcs/original_reference::issue_collection_reference` accepts the
+original collection DATA handle, Common's opaque `StoreCommandBinding`, the
+original declared Catalog, and an existing trusted `ReferenceIssuer`. It checks
+the complete original Mapping and Catalog bodies, including their contracts,
+permissions, scope identity and Command relationship. The Mapping, Command and
+Catalog must share their nominal Common environment. Identifier equality is
+not a substitute for these checks. A separate capture receiver must still
+check the exact pair, original inputs/member and Run lifecycle.
+
+The result is the existing value owner's original `CheckedValue`, with its
+non-null `file_collection` contract and original reference currentness closure.
+The typed private Node bridge does not reparse it, construct a replacement Ref,
+or grant read/write/approval. The supplied issuer must come from the actual
+installed Site and its original lifecycle, not from packet data or a caller
+Boolean. This primitive does not install that supplier, reissue a target from
+current configuration during restore, or establish installed STORE acceptance.
+
+Complete comparison has a shared finite work budget as well as byte/node/depth
+bounds. The original collection, pair, issuer and declared wire remain borrowed
+through the call; declaration construction, strict/ordinary parsed trees,
+canonical comparison trees/writers/Strings, the checked ResourceRef contract,
+reference envelope, authorization closure and escaped checked/reference aliases
+can overlap. They belong to the original Host/Run envelope, not free capacity.
+These structural bounds and contract-control tests are not a normal numerical
+profile or physical cleanup acknowledgment. The installed Site connection is
+described below. The actual Command capture caller, saved target/Run recovery,
+Preview and physical apply connection remain separate unfinished work.
+
+## Installed collection issuer
+
+The normal GCS `host-bundle.json` selects the real `connectors/gcs/host_node`
+provider. The existing Source installation composes the complete upload
+Command/Catalog/Mapping and creates the original collection from its exact
+project/bucket/prefix, Catalog and original Host binding. It adds no target
+Source, query column or synthetic Result. An explicitly supplied legacy
+source-only table has no collection hook; a declared but missing provider is
+refused instead of falling back to that legacy profile.
+
+`source.issueOriginalCollectionReference(pair, maxWork)` uses the checked Result
+facade and returns the existing original CheckedValue. The pair is the actual
+Common opaque selected pair, not a CID or a selector supplied as authority.
+The issuer and its currentness callback are created inside this same installed
+Site. The escaped reference retains that actual Site, whose existing journal,
+context, credential generation and selected runtime remain in its ownership
+graph. Its read-only `referenceCurrent()` observes the same closing state;
+it is neither Account permission nor physical cleanup acknowledgment. Closing
+or failed close refuses new issuance and invalidates reference availability,
+while the original close/cleanup owner and pending responsibility remain.
+Closing a different installation cannot retire this one.
+
+The hook's static representation clamps use the existing RowDeclaration Host's
+4,000,000 bytes / 400,000 nodes / depth 64 bounds, not Provider response limits
+or M1 numerical funding. The caller must provide its finite comparison work
+bound; omission or an invalid scalar is refused before invoking the bridge.
+Additional declarations/trees/strings, collection association, separate issuer
+token/two callbacks, hook/descriptors and Site lifecycle callback join the
+original Host/Run simultaneous holding inventory. The original issuer closure,
+checked/reference aliases and A's captured-input/proposal/proof aliases remain
+live until their actual last borrower retires. No GC/drop/close Boolean makes
+these managed allocations free or proves a physical ACK.
+
+Focused tests use the actual Common checker, compiled GCS provider, original
+installed credential Site and SQLite journal. A test-only typed fixture projects
+the Common pair/reference without JavaScript compiler-field inspection. The
+deliberate close failure uses the existing journal fault port and retries that
+same original journal. No token resolution, grant or provider send is exercised.
+These cases do not establish the installed Command capture/Run/Preview/apply or
+saved target reissuer/restore path, live GCS, a normal M1 profile or public STORE.
+
+## Exact object metadata pages
+
+`admit_object_metadata_page` shares the existing strict, bounded metadata
+parser and field checks with single-object GET admission. It parses the original
+response once, checks every item under the same scope and whole-page node/text
+bounds, and exposes no partially validated page. Generation, metageneration
+and size remain exact nonnegative Int64 values, including values above the
+binary64 safe-integer range. Empty pages retain their exact continuation token;
+an absent member is not NULL or an empty String. Unexpected nonempty prefix
+pages remain unavailable for this flat, delimiter-free physical profile.
+
+The opaque page retains its complete original response digest. Detached item
+fields hide only the exact private request marker and cannot mutate the page's
+metadata array. They are not single-object `ObjectMetadata` observations for
+mutation, issued Resource references, scan completion or apply receipts.
+An individual member is not reserialized into a supposed original GET response.
+
+The existing Decimal(19,0) carrier can preserve each checked Int64 coefficient
+and emits its specified decimal wire as JSON text without binary64 conversion.
+This is not a public String alias or permission to widen the GCS integer domain:
+GCS rejects Int64 overflow even when the wider Decimal contract could represent
+the coefficient. The current installed `files` view and its seven-column
+LIST_FILES projection are unchanged. The separately documented `gcs.objects`
+field set still needs its full original Source schema, physical page receiver
+and SDK/installed matching acceptance; this primitive does not claim them.
+
+The physical raw page, strict parser/decode trees, item array, per-item records,
+exact strings and metadata arrays, detached logical views, digest workspace,
+decimal admission/emission and pending physical callbacks can overlap. The
+same Source reservation must cover their actual lifetime before acquisition;
+page clamps do not establish that aggregate funding or retire an outstanding
+read/cleanup responsibility. No normal numerical profile is introduced.
+
+## Original multipart upload request
+
+The same original upload binding also supplies the checked current-object
+metadata path (`object_upload_metadata_path`) and its declared metadata byte
+clamp. `readGcsUploadTarget` uses those projections through the existing
+`gcs:file:read` Credential operation once. It returns the original status,
+accepted flag, response body backing and header references before the caller
+admits an `ObjectUploadObservation`. A 404 is not inferred from a failed read;
+an absent reply, another HTTP status or matching DATA is not an upload grant.
+This does not replace the version-fixed Content reader.
+
+The installed capture/Effect must fund and retain this read before invocation.
+Its path/encoded-name strings, invocation control, pending Promise, response
+body and header aliases overlap the original binding and metadata parser.
+The parsed observation and its raw response remain in the original capture
+and recovery custody. A read return, cancellation request or rejected response
+does not acknowledge native cleanup or release that reservation. The raw byte
+clamp is not the metadata tree/workspace bound or a normal numerical profile.
+The actual Content borrow and same-Site driver integration remain unfinished.
+
+`ObjectUploadBinding` borrows the original collection and copies the checked
+Command permission set. `ObjectUploadObservation` distinguishes an explicit
+physical 404 from an unobserved target; a 200 retains the original exact object
+metadata. Neither value authenticates the transport, supplies an installation
+owner, issues a Reference or grants a write. The installed caller must supply
+those original/current owners and the actual same-Store Content holding.
+
+`prepare_object_multipart_upload` constructs binary multipart bytes in the GCS
+MoonBit owner. It verifies the Content SHA256, computes big-endian base64 CRC32C,
+keeps the exact non-normalized name/media descriptor and includes the original
+operation marker in JSON metadata. An absent target uses `ifGenerationMatch=0`;
+replacement uses the observed generation and metageneration without binary64.
+An existing target without overwrite is refused. Optional overwrite presence
+remains distinct in the private request preimage. The Node ABI projects its
+closed `absent`/`false`/`true` DATA spellings in MoonBit, not a guessed compiler
+Option layout.
+
+The private `actql-gcs-object-upload-request/0.1` preimage binds the physical
+body SHA256/byte count/media type, exact path, original observation digest,
+collection/Catalog/installation/Command identities, lexical permission set and
+original ContentRef/content identities. It does not replace the Command input,
+approved Preview, original nominal pair, Run claim or saved recovery material.
+Targeted Preview DATA declares assignment of the reserved exact protocol key
+without exposing its token value. Marker/checksum consistency alone never
+settles an Effect or creates permission. Mutation of a separately exported body
+copy cannot change the sealed request.
+
+The multipart entry explicitly refuses bodies above 8 MiB with
+`RequiresResumable`; it does not silently fall back or claim the separate
+resumable session implementation is complete. The normal installed driver,
+same-Site Effect registration, live Content borrow, resumable/session recovery
+and ordinary installed STORE acceptance remain unfinished. No additional
+upload spelling or public wire/schema is introduced by this private primitive.
+
+The scoped transport emits one byte request through the existing Credential
+Owner and returns the same original response backing or thrown failure. It
+neither retries nor turns a 2xx, marker or body match into an applied receipt.
+Response capture, Unknown/nonresend, reconciliation and cleanup remain the
+original Effect/Store/Credential responsibilities. The actual Content must be
+borrowed from its existing authenticated holding, not reverse-looked-up by CID
+or recovered from current configuration.
+
+All parser/clamp limits are explicit structural bounds, not grants or normal
+numerical funding. Original collection/observation/binding records, permission
+copies, raw Content, metadata/canonical trees and strings, UTF8 header/tail,
+fixed assembly array and sealed body, body-copy projections, request preimage
+tree/String/encoding, SHA/CRC scratch, Node projection/WeakMap/control records,
+the scoped invocation's copied body, response and pending Promise/FD/cleanup
+aliases have their actual peak overlap. The original funded Host/Run envelope
+must cover these before calling/reading. Dropping a local alias, a weak key,
+cancel acknowledgement or function return does not prove physical retirement;
+unknown quantities and all four normal Model quotes remain None.
+
+Provider protocol references: [objects.insert](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/insert)
+defines the upload endpoint, metadata/checksum and generation preconditions;
+this implementation's multipart framing and response consistency are not a
+live-service or full resumable acceptance claim.
+
 ## Verification boundary
 
 The catalog white-box tests execute the portable semantics with independent

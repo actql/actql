@@ -1,0 +1,456 @@
+{
+  "qualification": "Source-reference responsibilities only; physical, installed and service outcomes are separately source qualified",
+  "declarations": [
+    {
+      "module": "adapters/connectors/snowflake/site/snowflake-sql-read.mjs",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing credential HTTPS scope, Account current fence and original Common RowRun borrower",
+      "sha256": "93fb33c13ed9ba907f74565a55ea5ea9f4048f8b881a79295a0357d422ca24e3",
+      "exports": [
+        "SNOWFLAKE_SQL_READ_OPERATION",
+        "readSnowflakeSqlApi"
+      ],
+      "operations": [
+        {
+          "name": "authorizationForRead",
+          "parameters": [
+            "value",
+            "original",
+            "frame"
+          ],
+          "async": false
+        },
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "decodeResponse",
+          "parameters": [
+            "response",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "decodeResponse/encoding/encoding",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSnowflakeSqlApi",
+          "parameters": [
+            "moon",
+            "prepared",
+            "rowRun",
+            "limits",
+            "warehouse",
+            "role",
+            "authenticationType",
+            "authorizationFor",
+            "credential",
+            "verifyRead",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "readSnowflakeSqlApi/readSnowflakeSqlApi",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "responseLimits",
+          "parameters": [
+            "moon",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "sha/sha",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "authorizationForRead",
+            "count/count",
+            "decodeResponse",
+            "decodeResponse/encoding/encoding",
+            "fail/fail",
+            "readSnowflakeSqlApi",
+            "readSnowflakeSqlApi/readSnowflakeSqlApi",
+            "responseLimits",
+            "sha/sha"
+          ],
+          "exports": [
+            "SNOWFLAKE_SQL_READ_OPERATION",
+            "readSnowflakeSqlApi"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/snowflake/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/snowflake/host/installed-snowflake-source.mjs",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Host, Account, credential Site and same-runtime Common RowRun borrower",
+      "sha256": "c366f7dbf62b47186abf48c213aa2ab858d2f2282e6b8ac85c39877f48aa97a8",
+      "exports": [
+        "INSTALLED_SNOWFLAKE_SITE_VERSION",
+        "INSTALLED_SNOWFLAKE_SOURCE_VERSION",
+        "checkInstalledSnowflakeSourceProfile",
+        "installedSnowflakeSourceIdentityParts",
+        "loadInstalledSnowflakeSource"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledSnowflakeSourceProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite",
+          "parameters": [
+            "site"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite/checkSite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSnowflakeSourceIdentityParts",
+          "parameters": [
+            "profile",
+            "providerProfile",
+            "read"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSnowflakeSource",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "moon",
+            "baseEnvironmentWire",
+            "runtimeBundleCid",
+            "resolveSecret",
+            "installation"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "binding",
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/site/site",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/target/target",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
+        },
+        {
+          "name": "readInputs/bodies/bodies",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs/readInputs",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "absolute/absolute",
+            "canonical/canonical",
+            "checkInstalledSnowflakeSourceProfile",
+            "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile",
+            "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile#2",
+            "checkSite",
+            "checkSite/checkSite",
+            "cid/cid",
+            "closed/closed",
+            "fail/fail",
+            "installedSnowflakeSourceIdentityParts",
+            "loadInstalledSnowflakeSource",
+            "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
+            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
+            "loadInstalledSnowflakeSource/site/site",
+            "loadInstalledSnowflakeSource/target/target",
+            "readInputs",
+            "readInputs/bodies/bodies",
+            "readInputs/readInputs",
+            "text/text"
+          ],
+          "exports": [
+            "INSTALLED_SNOWFLAKE_SITE_VERSION",
+            "INSTALLED_SNOWFLAKE_SOURCE_VERSION",
+            "checkInstalledSnowflakeSourceProfile",
+            "installedSnowflakeSourceIdentityParts",
+            "loadInstalledSnowflakeSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

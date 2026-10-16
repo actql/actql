@@ -8,7 +8,11 @@ import {
 // Values
 pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]
 
+pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]
+
 pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]
+
+pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]
 
 pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]
 
@@ -21,6 +25,14 @@ pub fn object_collection_resource_json(ObjectCollectionBinding) -> String
 pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields
 
 pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
+
+pub fn object_metadata_page_at(ObjectMetadataPage, Int) -> ObjectMetadataFields?
+
+pub fn object_metadata_page_count(ObjectMetadataPage) -> Int
+
+pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?
+
+pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String
 
 pub fn object_metadata_response_sha256(ObjectMetadata) -> String
 
@@ -46,15 +58,43 @@ pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequ
 
 pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?
 
+pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]
+
+pub fn object_upload_body_media_type(ObjectUploadRequest) -> String
+
+pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
+
+pub fn object_upload_cid(ObjectUploadRequest) -> String
+
+pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
+
+pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
+
+pub fn object_upload_metadata_max_bytes(ObjectUploadBinding) -> Int
+
+pub fn object_upload_metadata_path(ObjectUploadBinding, String) -> Result[String, ObjectUploadIssue]
+
+pub fn object_upload_path(ObjectUploadRequest) -> String
+
+pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]
+
+pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool
+
 pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]
 
 pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
 pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
+pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]
+
 pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]
 
+pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]
+
 pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]
+
+pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]
 
 // Errors
 
@@ -113,6 +153,12 @@ pub(all) struct ObjectMetadataLimits {
   max_metadata_entries : Int
 }
 
+pub struct ObjectMetadataPage {
+  items : Array[ObjectMetadataFields]
+  next_token : String?
+  response_sha256 : String
+}
+
 pub struct ObjectMutationBinding {
   kind : ObjectMutationKind
   bucket : String
@@ -154,6 +200,68 @@ pub(all) struct ObjectRequestLimits {
   max_path_bytes : Int
   max_body_bytes : Int
   max_identity_bytes : Int
+}
+
+pub struct ObjectUploadBinding {
+  collection : ObjectCollectionBinding
+  bucket : String
+  prefix : String
+  catalog_cid : String
+  command_cid : String
+  permissions : Array[String]
+  limits : ObjectUploadLimits
+}
+
+pub(all) enum ObjectUploadDeclarationIssue {
+  InvalidBinding
+  InvalidDeclaration
+  ConflictingCommand
+  CapacityExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ObjectUploadDeclarationLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) enum ObjectUploadIssue {
+  InvalidBinding
+  InvalidInput
+  ForeignBinding
+  ContentMismatch
+  TargetExists
+  StaleObservation
+  CapacityExceeded
+  RequiresResumable
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ObjectUploadLimits {
+  metadata : ObjectMetadataLimits
+  max_content_bytes : Int
+  max_body_bytes : Int
+  max_path_bytes : Int
+  max_identity_bytes : Int
+}
+
+pub struct ObjectUploadObservation {
+  binding : ObjectUploadBinding
+  name : String
+  original : ObjectMetadata?
+  response_sha256 : String
+}
+
+pub struct ObjectUploadRequest {
+  binding : ObjectUploadBinding
+  before : ObjectUploadObservation
+  path : String
+  body : Bytes
+  body_media_type : String
+  content_type : String
+  content_size : Int
+  content_crc32c : String
+  marker : String
+  cid : String
 }
 
 // Type aliases

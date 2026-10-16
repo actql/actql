@@ -7,12 +7,16 @@ export const installedConnectors = Object.freeze([
     name: "gcs", registration: "gcs",
     revision: "gcs/0.1",
     implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/gcs/host/gcs-collection-target.mjs", href: new URL("../connectors/gcs/host/gcs-collection-target.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/host/gcs-source-declaration.mjs", href: new URL("../connectors/gcs/host/gcs-source-declaration.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gcs/host/gcs-upload-declaration.mjs", href: new URL("../connectors/gcs/host/gcs-upload-declaration.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/host/installed-gcs-source.mjs", href: new URL("../connectors/gcs/host/installed-gcs-source.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-file-listing.mjs", href: new URL("../connectors/gcs/site/gcs-file-listing.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-keyed-content.mjs", href: new URL("../connectors/gcs/site/gcs-keyed-content.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs", href: new URL("../connectors/gcs/site/gcs-owned-upload-request.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-versioned-content.mjs", href: new URL("../connectors/gcs/site/gcs-versioned-content.mjs", import.meta.url).href}),
     ]),
+    providerBundle: "connectors/gcs/host_node",
     responseHeaders: Object.freeze(["content-encoding","content-range","x-goog-generation","x-goog-metageneration"]),
     source: Object.freeze({
       profileVersion: "actql-installed-gcs-source/0.1",
@@ -132,6 +136,20 @@ export const installedConnectors = Object.freeze([
       profileVersion: "actql-installed-sheets-effect/0.1",
       load: () => import("../connectors/sheets/host/installed-sheets.mjs")
         .then(module => Object.freeze({check: module.checkInstalledSheetsEffectProfile, identityParts: module.installedSheetsEffectIdentityParts, publish: module.publishInstalledSheetsEffect, load: module.loadInstalledSheetsEffect})),
+    }),
+  }),
+  Object.freeze({
+    name: "snowflake", registration: "snowflake",
+    revision: "snowflake/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/snowflake/host/installed-snowflake-source.mjs", href: new URL("../connectors/snowflake/host/installed-snowflake-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/snowflake/site/snowflake-sql-read.mjs", href: new URL("../connectors/snowflake/site/snowflake-sql-read.mjs", import.meta.url).href}),
+    ]),
+    responseHeaders: Object.freeze(["content-encoding"]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-snowflake-source/0.1",
+      load: () => import("../connectors/snowflake/host/installed-snowflake-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledSnowflakeSourceProfile, identityParts: module.installedSnowflakeSourceIdentityParts, load: module.loadInstalledSnowflakeSource})),
     }),
   }),
 ]);

@@ -283,3 +283,16 @@ test "public zero sequence window retains the common input rejection" {
     assert_true(!report.contains("\"check_unclassified\""), msg=report)
   }
 }
+
+///|
+test "Source STORE target omission stays undetermined without namespace authority" {
+  for format in ["sql", "aql-text"] {
+    let report = binding_check_report(
+      "SELECT 1 AS id |> EFFECT STORE hidden.objects", format,
+    )
+    assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+    assert_true(!report.contains("\"verdict\":\"invalid\""), msg=report)
+    assert_true(!report.contains("\"verdict\":\"verified\""), msg=report)
+    assert_true(!report.contains("check_internal"), msg=report)
+  }
+}

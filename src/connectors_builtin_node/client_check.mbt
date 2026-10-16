@@ -334,6 +334,12 @@ fn check_source_findings(
           findings.push(check_source_alias_absence(source_namespace, reference))
         QueryLowering(UnknownRelation) =>
           findings.push(Unresolved("source_resolution"))
+        QueryLowering(StoreTargetBinding(WorkLimit)) =>
+          findings.push(Limit("analysis_budget_exhausted"))
+        // A visible STORE publication is not a complete namespace absence or
+        // uniqueness proof, just like the original UPDATE publication.
+        QueryLowering(StoreTargetBinding(_)) =>
+          findings.push(Unresolved("source_resolution"))
         QueryLowering(UpdateTargetBinding(WorkLimit)) =>
           findings.push(Limit("analysis_budget_exhausted"))
         // A visible metadata subset cannot establish complete UPDATE target
