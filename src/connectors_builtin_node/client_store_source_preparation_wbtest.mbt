@@ -88,3 +88,49 @@ test "published STORE public source still requires the explicit Effect preparati
     )
   }
 }
+
+///|
+test "published STORE check source uses the original target and common input types" {
+  let environment = store_source_preparation_environment()
+  let publication = store_public_bridge_publication(environment)
+  for format in ["sql", "aql-text"] {
+    let report = client_program_check_source(
+      store_source_preparation_text(),
+      format,
+      environment,
+      publication,
+      None,
+      None,
+      "ctx:store",
+      "rev:store",
+      None,
+      None,
+      "corr:store",
+      "bound_input",
+      None,
+    )
+    assert_true(report.contains("\"verdict\":\"verified\""), msg=report)
+    let invalid = store_source_preparation_text().replace(
+      old="content = content",
+      new="content = 7",
+    )
+    let rejected = client_program_check_source(
+      invalid,
+      format,
+      environment,
+      publication,
+      None,
+      None,
+      "ctx:store",
+      "rev:store",
+      None,
+      None,
+      "corr:store",
+      "bound_input",
+      None,
+    )
+    assert_true(rejected.contains("\"verdict\":\"invalid\""), msg=rejected)
+    assert_true(rejected.contains("\"code\":\"query_invalid\""), msg=rejected)
+    assert_true(!rejected.contains("implementation_limit"), msg=rejected)
+  }
+}

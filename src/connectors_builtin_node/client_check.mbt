@@ -311,12 +311,20 @@ fn check_source_findings(
   ) catch {
     _ => return Failed("check_context_invalid")
   }
+  let store_targets = match
+    @source_publication.published_store_targets(
+      environment, visible_publication,
+    ) {
+    Ok(value) => value
+    Err(_) => return Failed("check_context_invalid")
+  }
   let (lowered, diagnostic_source) = match
     @source_frontend.lower_with_source(
       document,
       selected,
       Some(context),
       table_writes~,
+      store_targets~,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -642,6 +650,22 @@ fn check_source_findings(
             client_program_effect_limits(),
           ) {
           Ok(_) => return Report
+          Err(Static(CommandInputs(issue))) =>
+            match @effect_results.effect_command_input_issue_kind(issue) {
+              WorkLimit => {
+                findings.push(Limit("analysis_budget_exhausted"))
+                return Report
+              }
+              InvalidLimits => return Failed("check_internal")
+              InvalidContract => return Failed("check_context_invalid")
+              MissingField(_)
+              | UnknownField(_)
+              | IncompatibleField(_)
+              | IncompatibleLiteral(_) => {
+                findings.push(Violation("query_invalid"))
+                return Report
+              }
+            }
           // A failed closure never becomes a verified advisory check. Retain
           // the implementation limit until its typed diagnostic is projected.
           Err(_) => ()
