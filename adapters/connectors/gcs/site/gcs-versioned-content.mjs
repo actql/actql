@@ -73,7 +73,7 @@ function setup(options) {
   if ((moon !== undefined && (typeof moon?.gcsContentMetadataJson !== 'function' ||
       typeof moon?.gcsContentMetadataFailureCode !== 'function')) ||
       !limits || !count(limits.maxMetadataBytes) || limits.maxMetadataBytes === 0 ||
-      limits.maxMetadataBytes > 2147483391 ||
+      (moon !== undefined && limits.maxMetadataBytes > 2147483391) ||
       !count(limits.maxContentBytes) || !count(limits.maxRequestBytes) ||
       limits.maxRequestBytes === 0 || !count(limits.maxAttempts) ||
       limits.maxAttempts < 2 || !count(limits.maxTimeMs) || limits.maxTimeMs === 0 ||
@@ -146,18 +146,23 @@ function legacyMetadata(body, target, limits) {
       !exactText(value.contentType, 1024)) fail('GcsContentMetadataMismatch');
   if (value.contentEncoding !== undefined && value.contentEncoding !== 'identity' &&
       value.contentEncoding !== 'gzip') fail('GcsContentRepresentationUnsupported');
-  const digest = (text, length) => {
-    if (typeof text !== 'string' || text.length !== 4 * Math.ceil(length / 3)) fail('InvalidGcsContentDigest');
-    const bytes = Buffer.from(text, 'base64');
-    if (bytes.length !== length || bytes.toString('base64') !== text) fail('InvalidGcsContentDigest');
-    return text;
-  };
   return Object.freeze({bucket: target.bucket, objectName: target.objectName,
     generation: target.generation, metageneration: value.metageneration,
     sizeBytes: BigInt(value.size), mediaType: value.contentType,
     ...(value.contentEncoding === 'gzip' ? {contentEncoding: 'gzip'} : {}),
-    crc32c: digest(value.crc32c, 4),
-    ...(value.md5Hash === undefined ? {} : {md5: digest(value.md5Hash, 16)})});
+    crc32c: legacyDigest(value.crc32c, 4),
+    ...(value.md5Hash === undefined ? {} : {md5: legacyDigest(value.md5Hash, 16)})});
+}
+
+function legacyDigest(value, bytes) {
+  if (typeof value !== 'string' || value.length !== 4 * Math.ceil(bytes / 3)) {
+    fail('InvalidGcsContentDigest');
+  }
+  const decoded = Buffer.from(value, 'base64');
+  if (decoded.length !== bytes || decoded.toString('base64') !== value) {
+    fail('InvalidGcsContentDigest');
+  }
+  return value;
 }
 
 // Castagnoli's reflected polynomial. The 256-entry transport checksum table

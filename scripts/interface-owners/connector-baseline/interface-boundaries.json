@@ -5294,7 +5294,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dc00afbfd47792cec79cd4a3c64eeae5059a5ad8a3162f6f47c4e5871c8dd2ab",
+      "sha256": "0d13911b3c118fd1be9fcba1de3210a3e17bb5102703aabb51bbc570c3f487e5",
       "role": "physical-io",
       "owner": "Exact GCS generation/metageneration bytes and checksums; original capture owns ContentRef issuance",
       "exports": [
@@ -5380,19 +5380,19 @@
           "async": false
         },
         {
+          "name": "legacyDigest",
+          "parameters": [
+            "value",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "legacyMetadata",
           "parameters": [
             "body",
             "target",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "legacyMetadata/digest/digest",
-          "parameters": [
-            "text",
-            "length"
           ],
           "async": false
         },
@@ -5487,8 +5487,8 @@
             "exactText",
             "fail/fail",
             "gcsMetadataRequestWire",
+            "legacyDigest",
             "legacyMetadata",
-            "legacyMetadata/digest/digest",
             "metadata",
             "physicalRequest",
             "readGcsVersionedContent",
