@@ -42,7 +42,7 @@ test "actual INSERT Source retains create and refuses unconnected original purpo
     @decode.text(
       @decode.lookup(@decode.open_object(original).unwrap(), "field").unwrap(),
     ),
-    Some("Name"),
+    Ok("Name"),
   )
   assert_true(
     client_program_prepare_source_computation_with_parameters(
