@@ -9,6 +9,7 @@ import {interfaceAttributes, javascriptInterface} from './interface-inventory.mj
 import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
+import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 
 function fixture(t, sourceText = 'export function read(original) {return original;}') {
   const scratch = mkdtempSync(join(tmpdir(), 'actql-if-correspondence-'));
