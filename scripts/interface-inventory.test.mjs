@@ -137,9 +137,20 @@ test('namespace reexports and class methods retain their actual public names', (
   assert.notDeepEqual(before.operations, after.operations);
 });
 
-test('real stdlib wheel reader verifies five independent Python controls', () => {
+test('CommonJS actual and computed export targets preserve members or explicitly refuse unknown syntax', t => {
+  assert.deepEqual(javascriptInterface("module['exports'] = Object.freeze({read(){}});").exports, ['commonjs:read']);
+  assert.deepEqual(javascriptInterface('Object.assign(exports, {read(){}, write(){}});').exports,
+    ['commonjs:read', 'commonjs:write']);
+  const {root, put, declaration} = fixture(t);
+  put('entry.cjs', 'module.exports = unreviewed();');
+  const modules = javascriptClosure(root, ['entry.cjs']);
+  assert.throws(() => assertInterfaceCoverage({root, modules, declarations: modules.map(declaration)}),
+    /Unresolved interface syntax/u);
+});
+
+test('real stdlib wheel and source readers verify seven independent Python controls', () => {
   const result = spawnSync('python3', ['-B', '-m', 'unittest', 'discover', '-s', 'scripts',
     '-p', 'test_python_interface_inventory.py', '-v'], {encoding: 'utf8', timeout: 30000});
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stderr, /Ran 5 tests/u);
+  assert.match(result.stderr, /Ran 7 tests/u);
 });
