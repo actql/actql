@@ -2080,3 +2080,31 @@ remain distinct. The existing inner Runtime close ACK clears only its data;
 outer original Root/Reader/Host retirement still requires its original Owner's
 separate stop/cleanup acknowledgment. No pointer is a public integer identity,
 serialized wire, authority, or permission to recreate a missing original.
+# Private Native transport declarations
+
+The installed Native control component's named C shim definitions are the
+authority for the private scalar transport signatures. The existing headers
+and MoonBit registration roots retain the opaque callback types and calling
+convention. `scripts/generate-local-native-shim-bindings.py` derives the Python
+ctypes signatures and a C redeclaration header from those definitions; its
+read-only `--check` is part of the private provider producer. The generated
+`PARAMETERS` and `ORIGINS` entries retain parameter roles and source locations,
+so a same-width argument reorder changes the binding even when its machine
+signature is unchanged.
+
+The generated binder only configures an operation on an already selected
+library. It cannot load or adopt a provider, create custody, authorize a call,
+retry a physical operation, or determine whether cleanup completed. The
+existing Control, Backing, Domain, Parent Read, SQLite, Database, Lookup,
+Live Channel, Worker Selection and Packaged Product custody classes continue
+to enforce original-library identity, thread/reentry rules, persistent output
+slots, Unknown outcomes and same-carrier cleanup. UTF-16 parameters carry code
+unit counts; byte buffers and their byte capacities remain separate. Their
+per-operation bounds and refusal classifications stay in the existing shims
+and owners rather than in a second generated policy table.
+
+The generated C header is compiled against the original shim headers and
+definitions. The independent pre-generation signature fixture preserves all
+139 caller-selected declarations. Actual component probes remain necessary:
+declaration freshness and C syntax alone do not establish physical custody,
+runtime compatibility, ordinary funding or installed product acceptance.
