@@ -126,3 +126,15 @@ proof is fabricated. Simultaneous original bodies, page wire/parsed rows,
 metadata/maps and error-carrier aliases still require the normal wholephase
 supplier. These component paths do not adopt a numerical profile or ordinary
 installed/public/live-service support.
+
+
+The normal installation table now selects the private explicit row Source
+factory in `adapters/connectors/hubspot/host/installed-hubspot-source.mjs`.
+Its [boundary contract](../../../adapters/connectors/hubspot/host/README.md)
+keeps metadata permissions, original Credential binding and accounted RowRun
+cleanup with the standard Host. Full original property contracts (including
+arrays and decimal38) are restored without sampled schema inference. The
+original top-level record id supplies only a conditional Source key: same-page
+and cross-page duplicates refuse completion. These source/component connections
+are distinct from ordinary distribution acceptance, normal wholephase funding,
+public Cloud acceptance and the remaining record/association/enrolment Effects.

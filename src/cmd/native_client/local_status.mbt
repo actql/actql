@@ -1,4 +1,24 @@
 ///|
+// A public spelling for the same original ID selection, not a RunRef issuer
+// or an authorization. Normalize before project/file access as well as when
+// the existing dispatcher is called directly. Repeating it is a no-op.
+fn normalize_native_status_arguments(
+  matches : @argparse.Matches,
+) -> Unit raise ClientStop {
+  guard matches.subcommand is Some(("status", child)) &&
+    optional(child, "run") is Some(id) else {
+    return
+  }
+  for name in ["run-id", "ref-file", "submission-ref-file"] {
+    if optional(child, name) is Some(_) {
+      stop("ConflictingLocalStatusSelection")
+    }
+  }
+  child.values["run-id"] = [id]
+  ignore(child.values.remove("run"))
+}
+
+///|
 // Saved Owner observation only. A status query never prepares, starts, reads
 // payload bytes, grants access or reconstructs missing legacy state.
 fn local_saved_run_status(

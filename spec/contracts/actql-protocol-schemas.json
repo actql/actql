@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:b22df592841d96f141cedc0fb94e2a35f9943022e68c4fd9a60d6824ef194c1c",
+  "registry_cid": "sha256:4f89f97e27810ad1c473958b49ffc208f1840d6945fc391a4eac747469b1c61a",
   "schema_cids": {
     "model_task": "sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -10,8 +10,8 @@
     "observation_facts": "sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4",
     "event_delivery_evidence": "sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582",
     "source_view": "sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74",
-    "command_contract": "sha256:089b4bb20d9b047805d2176852265c3a4f4fd3822eaab80359b9e1bac8ca9a1b",
-    "connector_catalog": "sha256:5777408c086b03bc0a7d049c75797a633daa0ec9662dab0c462bfb572600eca6",
+    "command_contract": "sha256:b0d71becff026232f333383340906b34dcc02da645a9d3394daa21e9f8eff171",
+    "connector_catalog": "sha256:aa24ef07a561f8b60e3dfbb1238b8a70e237e43ef4c404003205f9f92f7d136f",
     "lock": "sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4",
     "effect_outcome": "sha256:9b2a918f994cd00147d4acd038639534dd767ff7f4e119b5a5fb43b9463592b1",
     "author_value_contract": "sha256:7deb73a773cf91e861d73dfc7b7b5331d77ee19605934e0198eb608eac69144d",
@@ -3966,6 +3966,49 @@
             "max_items": {
               "type": "integer",
               "minimum": 1
+            },
+            "binding": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "installation"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "identity_contract"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "identifier"
+                    },
+                    "identity_contract": {
+                      "allOf": [
+                        {
+                          "$ref": "#/$defs/value_contract"
+                        },
+                        {
+                          "properties": {
+                            "nullable": {
+                              "const": false
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -6367,6 +6410,49 @@
                 "resource_kind": {
                   "minLength": 1,
                   "type": "string"
+                },
+                "binding": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "installation"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "identity_contract"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "identifier"
+                        },
+                        "identity_contract": {
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/value_contract"
+                            },
+                            {
+                              "properties": {
+                                "nullable": {
+                                  "const": false
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
                 }
               },
               "required": [

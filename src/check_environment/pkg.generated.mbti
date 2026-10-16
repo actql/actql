@@ -529,6 +529,16 @@ pub fn protocol_value_type(ProtocolValueContract) -> @value_contract.Contract?
 
 pub fn protocol_value_usage(ProtocolValueContracts) -> (Int, Int, Int)
 
+pub fn published_command_binding_identifier_type(PublishedCommandBinding) -> @value_contract.Contract?
+
+pub fn published_command_binding_mode(PublishedCommandBinding) -> PublishedCommandBindingMode
+
+pub fn published_command_binding_target(PublishedCommandBinding) -> CommandTarget
+
+pub fn published_command_binding_usage(PublishedCommandBinding) -> (Int, Int)
+
+pub fn published_command_binding_work(PublishedCommandBinding) -> Int
+
 pub fn pushdown_carrier(PushdownContract) -> String?
 
 pub fn pushdown_contract_at(PushdownContracts, Int) -> PushdownContract?
@@ -612,6 +622,8 @@ pub fn select_command_target(CatalogContents, String, Int) -> Result[CommandTarg
 pub fn select_connector_source_evidence_members(WireEnvironment, ConnectorSourceEvidenceSelector) -> Result[ConnectorSourceEvidenceMembers, SourceEvidenceMemberIssue]
 
 pub fn select_mapping_permissions(MappingContractShape, String, String, Array[String], Int) -> Result[MappingPermissionSelection, MappingPermissionIssue]
+
+pub fn select_published_command_binding(CatalogContents, String, @value_contract.Limits, Int) -> Result[PublishedCommandBinding, PublishedCommandBindingIssue]
 
 pub fn selected_calendar_profile(SelectedCalendarProfile) -> @calendar_profile.Profile
 
@@ -1356,6 +1368,29 @@ type ModelTasks
 type ProtocolValueContract
 
 type ProtocolValueContracts
+
+pub struct PublishedCommandBinding {
+  target : CommandTarget
+  identifier : @value_contract.Contract?
+  work : Int
+  nodes : Int
+  text : Int
+}
+
+pub(all) enum PublishedCommandBindingIssue {
+  InvalidLimit
+  WorkLimit
+  MissingBinding
+  InvalidBinding
+  InvalidIdentifierType(@value_contract.AdmissionError)
+  UnsupportedIdentifierDomain
+  Command(CommandTargetIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublishedCommandBindingMode {
+  Installation
+  Identifier
+} derive(Eq, @debug.Debug)
 
 type PushdownContract
 

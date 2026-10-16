@@ -70,3 +70,38 @@ The required limits are `maxBytes`, `maxNodes`, `maxDepth`, `maxColumns`,
 `maxDeclarationNodes`. They are bounded caller selections, not grants. Source
 metadata type refusals remain named Common refusals; unsupported time/offset/bytes
 are not disguised as strings or JSON.
+
+## Lightweight Python Remote consumer
+
+For a Host already configured with the `snowflake.usage_30d` alias, the ordinary
+SDK-only installation uses the public Remote API. Source credentials stay with
+the Host's existing credential Site; they are not Python client options.
+
+```python
+from actql_sdk import Client
+
+with Client.connect(endpoint, token) as client:
+    original = client.new_submission()
+    execution = client.start_source(
+        "SELECT ACCOUNT_ID AS account_id, ACTIVE_USERS AS active_users, "
+        "TREND AS trend FROM snowflake.usage_30d |> RESULT usage",
+        format="sql", submission_ref=original,
+    )
+    state = execution.wait()
+    if state.status != "succeeded":
+        raise RuntimeError(state.status)
+    rows = execution.result("usage").all(max_rows=100)
+```
+
+Decimal values use their exact public decimal spelling, including values beyond
+binary64 precision; NULL remains `None`. The matching async methods use the same
+wire and original Run. Save both `execution.ref` and the original submission
+reference when another process needs lookup/attach. Lookup and attach do not
+restart the Source query or replace its original custody.
+
+The bounded Python consumer tests use a normally installed SDK-only wheel, with
+its RECORD and current source/generator inputs checked independently. They cover
+sync/async reads, application-owned typed rows without Pydantic, reader close,
+separate Python processes and a fresh Host process reopening the same new Store.
+These fixture results do not establish live Snowflake service, Python Local
+startup, an automatically acquired metadata snapshot or a new release cohort.

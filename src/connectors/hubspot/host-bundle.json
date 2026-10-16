@@ -1,0 +1,17 @@
+{
+  "installation": {
+    "registration": "hubspot",
+    "revision": "hubspot/0.1",
+    "providerBundle": "connectors/hubspot/host_node",
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-hubspot-source/0.1",
+      "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
+      "exports": {
+        "check": "checkInstalledHubSpotSourceProfile",
+        "identityParts": "installedHubSpotSourceIdentityParts",
+        "load": "loadInstalledHubSpotSource"
+      }
+    }
+  }
+}

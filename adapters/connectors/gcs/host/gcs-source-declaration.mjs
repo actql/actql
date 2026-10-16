@@ -53,7 +53,8 @@ function view(resource, schema, request, acquisition) {
     ...(acquisition === undefined ? {} : {acquisition_wire: canonical(acquisition)})};
 }
 
-export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid) {
+export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid,
+  {includeObjects = false} = {}) {
   const installed = checkInstalledGcsSourceProfile(profile);
   const {limits} = installed;
   const resource = {type: 'resource_ref', resource_kind: 'file', nullable: false};
@@ -73,6 +74,18 @@ export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid) {
       correlation: {request_fields: ['resource', 'version'], response_fields: ['resource', 'version'],
         identity: ['resource', 'version'], cardinality: 'one'}}),
   ];
+  if (includeObjects) {
+    // Exact provider Int64 values enter the existing Decimal carrier. The GCS
+    // parser retains its narrower signed Int64 range check; this does not
+    // advertise a wider decimal domain or round through a JS Number.
+    const integer = {type: 'decimal', precision: 19, scale: 0, nullable: false};
+    const optionalText = {type: 'string', nullable: true};
+    views.push(view('objects', {resource, version, name: {type: 'string', nullable: false},
+      size: integer, content_type: optionalText, generation: integer, metageneration: integer,
+      storage_class: optionalText, updated: {type: 'timestamp', nullable: true},
+      md5: optionalText, crc32c: optionalText, metadata: {type: 'json', nullable: true}},
+    request({prefix: {type: 'string', nullable: true}}), {kind: 'scan', authority: 'read_metadata'}));
+  }
   const restore = expected => checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     installed.connectorId, GCS_REGISTRATION, GCS_REVISION, JSON.stringify({views}), expected));
   const initial = JSON.parse(moon.clientProgramRowSourceDeclarationJson(restore(undefined)));

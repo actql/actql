@@ -199,7 +199,10 @@ pub fn begin_keyed_row_page(
   if bytes.length() > limits.max_bytes {
     return fail_read(read, KeyedLimit("response_bytes_per_page"))
   }
-  guard @source.parse_json_bytes(bytes, {
+  // Use the same external DATA decoder as ordinary physical rows. Normalizing
+  // arbitrary JSON keys here would irreversibly alter a typed JSON payload
+  // before correlation and the declared Value contracts can inspect it.
+  guard @source.parse_json_bytes_preserving(bytes, {
       max_input_bytes: limits.max_bytes,
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
