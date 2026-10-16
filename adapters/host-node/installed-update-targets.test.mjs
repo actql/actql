@@ -250,7 +250,10 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
       mapping: 'mapping:crm.account.0.v1', from: {result: 'rows'}, id: 'id',
       set: {Name: {field: 'name'}}}}};
     document.results = {updates: {from: {stage: 'main', result: 'rows'}}};
-    const prepared = prepare({kind: 'program', parameters: null, input: document});
+    // Match public startSource(..., {format: 'json'}), not the separate
+    // object-Program convenience route. Both must reach the same Effect Owner.
+    const prepared = prepare({kind: 'aql', parameters: null,
+      input: {text: JSON.stringify(document), format: 'json'}});
     assert.equal(prepare.kindOf(prepared), 'effectful');
     const occurrence = moon.clientProgramEffectInferOccurrence(prepared);
     assert.ok(occurrence);
