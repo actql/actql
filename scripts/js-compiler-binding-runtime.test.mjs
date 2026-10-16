@@ -3,6 +3,10 @@ import test from 'node:test';
 import * as compiled from '../_build/js/release/build/interface_binding_probe/interface_binding_probe.js';
 import {checked} from '../adapters/host-common/runtime-result.mjs';
 import {checked as duckChecked} from '../adapters/connectors/duckdb/node/runtime-result.mjs';
+import {checkedEffectPreparation, isEffectPreparationRefusal} from
+  '../adapters/host-common/effect-preparation-result.mjs';
+import {checkedSalesforceCatalogPreparation} from
+  '../adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs';
 import {runtimeIsOk, runtimeIsError, runtimeReferenceOption, runtimeUnitOptionPresent,
   runtimeField, runtimePair} from '../adapters/host-common/compiler-binding.generated.mjs';
 
@@ -47,4 +51,27 @@ test('malformed compiler returns are not success or a provider refusal', () => {
   }
   // These are public DATA field names, not a compiler result interpretation.
   assert.deepEqual(JSON.parse('{"_0":1,"$tag":"public"}'), {_0: 1, $tag: 'public'});
+});
+
+test('actual typed refusal keeps the existing preparation marker boundary', () => {
+  const refusal = compiled.bindingAccept(compiled.bindingOriginal(-1));
+  assert.throws(() => checkedEffectPreparation(refusal), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === 'BindingContractRefused' &&
+      isEffectPreparationRefusal(error));
+  assert.throws(() => checkedEffectPreparation({}), error =>
+    error.code === 'InvalidHostRuntimeResult' && !isEffectPreparationRefusal(error));
+});
+
+test('Salesforce projection does not turn unobserved Catalog failure into refusal', () => {
+  const refusal = compiled.bindingAccept(compiled.bindingOriginal(-1));
+  const observation = Object.freeze({});
+  for (const described of [false, true]) {
+    const moon = {salesforceCatalogObservationJson(original) {
+      assert.equal(original, observation);
+      return JSON.stringify({listed_resources: described ? [{outcome: 'described'}] : []});
+    }};
+    assert.throws(() => checkedSalesforceCatalogPreparation(refusal, moon, observation), error =>
+      error.code === 'MoonBitHostFailure' && error.cause === 'BindingContractRefused' &&
+        isEffectPreparationRefusal(error) === described);
+  }
 });
