@@ -8,12 +8,18 @@ import {createPlan} from './plan.mjs';
 import {createResources} from './resources.mjs';
 import {createExecutionFactory} from './run-observation.mjs';
 import {createSubmissionOperations} from './submission-observation.mjs';
-import {createTransport} from './transport.mjs';
+import {createTransport, loadLoopbackTransport} from './transport.mjs';
 import {validClientProfile} from '@actql/client-wire';
 
 export async function connectSelected(selected, port) {
+  let directLoopback;
+  if (selected.directLoopbackHttp) {
+    try { ({requestLoopbackClient: directLoopback} = await loadLoopbackTransport()); }
+    catch { fail('LoopbackHttpUnavailable'); }
+    if (typeof directLoopback !== 'function') fail('LoopbackHttpUnavailable');
+  }
   const lifecycle = createClientLifecycle(port);
-  const transport = await createTransport(selected, port, lifecycle.isClosed);
+  const transport = createTransport(selected, port, lifecycle.isClosed, directLoopback);
   const {exchange, responseValue} = transport;
   const profileResponse = await exchange('connect');
   let profile;
