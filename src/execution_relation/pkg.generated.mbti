@@ -513,6 +513,8 @@ pub fn completed_presence_cell(CompletedOutput, Int, Int) -> Result[RelationCell
 
 pub fn completed_relation_export_content(CompletedRelationExportReceipt) -> AdmittedOutputStreamReceipt
 
+pub fn completed_relation_export_content_field(CompletedRelationExportReceipt, Int, @relation_schema.Field, Int, Int) -> Result[@value_admission.ReferenceValue, CompletedExportIssue]
+
 pub fn completed_relation_export_content_reference(CompletedRelationExportReceipt, Int, Int) -> @value_admission.ReferenceValue?
 
 pub fn completed_relation_export_field_names(CompletedRelationExportReceipt) -> Array[String]

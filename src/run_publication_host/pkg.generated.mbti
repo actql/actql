@@ -219,6 +219,8 @@ pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCom
 
 pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, ClientEffectProducerArtifact, ClientRetainedTaskInput, ClientRetainedInputCurrent, () -> Bool) -> Result[ClientEffectLocalResultArtifact, ClientEffectTransferredArtifactIssue]
 
+pub fn borrow_client_effect_command_content(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, String, Int, Int) -> Result[ClientEffectCommandContent, ClientEffectCommandContentIssue]
+
 pub fn borrow_client_original_captured_prefix_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn borrow_client_original_keyed_captured_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @execution_query.CapturedInputSource, prefix? : @physical_resources.Reservation?) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
@@ -376,6 +378,12 @@ pub fn client_effect_allowed_run_authorization(ClientEffectAllowedRun) -> @run_p
 pub fn client_effect_allowed_run_prepared(ClientEffectAllowedRun) -> @run_publication.RunEvidenceValue
 
 pub fn client_effect_allowed_serialization_run(ClientEffectAllowedRun) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
+
+pub fn client_effect_command_content_current(ClientEffectCommandContent) -> Bool
+
+pub fn client_effect_command_content_matches(ClientEffectCommandContent, PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, String) -> Bool
+
+pub fn client_effect_command_content_wire(ClientEffectCommandContent) -> Result[String, ClientEffectCommandContentIssue]
 
 pub fn client_effect_compilation_compiled_plan(ClientEffectCompilation) -> @run_publication.PublicationContract
 
@@ -1799,6 +1807,8 @@ pub fn[A] register_client_keyed_acquisition(ClientKeyedAcquisition, String, (A) 
 
 pub fn register_client_model_raw_capture(ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @run_publication.BoundModelRawCapturePolicy, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, @execution_authorization.AdmittedAccountConfiguration, String, String, () -> Bool, () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientModelRawCaptureIssue], delegated_action? : @execution_authorization.RuntimeAction?) -> Result[ClientModelRawCaptureRegistration, ClientModelRawCaptureIssue]
 
+pub fn release_client_effect_command_content(ClientEffectCommandContent) -> Unit
+
 pub fn[A] reserve_client_keyed_acquisition_attempt(@query_planning.QueryEvidenceRegistration[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A], @query_planning.AcquisitionChoice[@program_check.KeyedExecution], @query_planning.PreparedAcquisition[@program_check.KeyedExecution, ClientKeyedAcquisition]) -> Result[(ClientKeyedAcquisition, @query_planning.QueryEvidenceAttemptAuthority[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A]), @query_planning.QueryEvidenceCustodyIssue]
 
 pub fn restore_client_effect_run_normalization(ClientEffectRunMaterials) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
@@ -2143,6 +2153,18 @@ pub(all) enum ClientEffectCheckpointMembersIssue {
   InvalidLimits
   WorkLimit
   UnsupportedInventory
+}
+
+type ClientEffectCommandContent
+
+pub(all) enum ClientEffectCommandContentIssue {
+  InvalidLimits
+  Limit
+  ForeignInput
+  MissingContentInput
+  Unavailable
+  Command(@stage_results.EffectPlanBindingIssue)
+  Export(@execution_relation.CompletedExportIssue)
 }
 
 pub struct ClientEffectCompilation {
