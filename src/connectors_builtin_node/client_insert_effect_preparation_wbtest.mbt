@@ -34,6 +34,16 @@ test "actual INSERT Source retains create and refuses unconnected original purpo
     0,
   ).unwrap()
   assert_eq(@stage_syntax.effect_header_kind(header), "create")
+  let values = @stage_syntax.effect_header_create_values(header).unwrap()
+  let fields = @decode.open_object(values).unwrap()
+  assert_eq(@decode.object_length(values), Some(1))
+  let original = @decode.lookup(fields, "Name").unwrap()
+  assert_eq(
+    @decode.text(
+      @decode.lookup(@decode.open_object(original).unwrap(), "field").unwrap(),
+    ),
+    Some("Name"),
+  )
   assert_true(
     client_program_prepare_source_computation_with_parameters(
       text,
