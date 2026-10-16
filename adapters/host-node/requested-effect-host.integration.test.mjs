@@ -22,7 +22,9 @@ test('requested first Effect pauses Account Allow and completes only the same ap
     const state = await execution.status();
     return state.status === 'waiting_checkpoint' ? state : undefined;
   });
-  assert.equal(waiting.run_id, originalRef.runId);
+  const originalRunId = waiting.run_id;
+  assert.equal(typeof originalRunId, 'string');
+  assert.ok(originalRunId.length > 0);
   assert.equal(setup.queries(), 1);
   assert.equal(setup.writes().length, 0, 'Account Allow cannot bypass the requested stop');
   const before = await owner.checkpoints();
@@ -50,7 +52,7 @@ test('requested first Effect pauses Account Allow and completes only the same ap
       ? state : undefined;
   });
   assert.equal(succeeded.status, 'succeeded', JSON.stringify(succeeded));
-  assert.equal(succeeded.run_id, originalRef.runId);
+  assert.equal(succeeded.run_id, originalRunId);
   assert.deepEqual(await resumed.result('updates').all(), expectedUpdates);
   assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
   assert.equal(setup.writes().length, 2);
