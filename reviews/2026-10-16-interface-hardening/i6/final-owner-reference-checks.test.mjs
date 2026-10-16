@@ -64,3 +64,20 @@ test('E fixed generated wire JS and Python use the same immutable syntax readers
     operations: result.modules.reduce((sum, value) => sum + value.operations.length, 0),
     sha256: createHash('sha256').update(bytes).digest('hex')}));
 });
+
+test('A final tuple overlay replaces by module and adds the original raw custody operation contracts', () => {
+  const metadata = read('a-js-binding-interface-declarations-3e626-overlay.json',
+    '7f672073b286f6103e59cea1e170336dadc04546b2dc66b508510566d46ba705');
+  check(metadata, read(metadata.syntaxProjection.path, metadata.syntaxProjection.sha256).modules, 2);
+  const baseline = read(metadata.baseIndex.path, metadata.baseIndex.sha256);
+  const merged = new Map(baseline.declarations.map(value => [value.module, value]));
+  metadata.declarations.forEach(value => merged.set(value.module, value));
+  assert.equal(merged.size, 54);
+  assert.equal([...merged.values()].reduce((sum, value) => sum + value.operations.length, 0), 3132);
+});
+
+test('E actual wire operations retain each original ten-attribute reference', () => {
+  const metadata = read('e-d0cc-owner-declarations.json',
+    '321d855dbacd4a66c78b794c6689c7b7e6c65384dd372dd49fbd948f61d7b996');
+  check(metadata, read('e-d0cc-owner-source-projection.json', metadata.syntaxProjectionSha256).modules, 5);
+});
