@@ -6237,7 +6237,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "27b4cf48827e91c0c6e3dea839e02874336a68ebc9d054e83fbeaf80f798eaae",
+      "sha256": "84510b09c8a0bc58d43ab09c493fc710731630516837cd90130fbc8457c71240",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -6298,7 +6298,8 @@
             "referenceIssuer",
             "listingPolicy",
             "captureContent",
-            "listingReportCapacity"
+            "listingReportCapacity",
+            "prepareAcquisition"
           ],
           "async": true
         },
@@ -6329,20 +6330,25 @@
         },
         {
           "name": "createInstalledRowSource/acquire/acquire#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/acquire#3",
           "parameters": [
             "index"
           ],
           "async": true
         },
         {
-          "name": "createInstalledRowSource/acquire/acquire#3",
+          "name": "createInstalledRowSource/acquire/acquire#4",
           "parameters": [
             "body"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/acquire/acquire#4",
+          "name": "createInstalledRowSource/acquire/acquire#5",
           "parameters": [
             "rows",
             "charge"
@@ -6952,6 +6958,7 @@
             "createInstalledRowSource/acquire/acquire#2",
             "createInstalledRowSource/acquire/acquire#3",
             "createInstalledRowSource/acquire/acquire#4",
+            "createInstalledRowSource/acquire/acquire#5",
             "createInstalledRowSource/acquire/complete/complete",
             "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
             "createInstalledRowSource/acquire/consumeObservation",

@@ -45,3 +45,17 @@ control input instead of rows. It neither increments pages nor admits values,
 finishes the scan, creates evidence or acknowledges transport cleanup. The
 existing ticket Owner checks original attempt, identity and single consumption;
 foreign/stale/repeated tickets retain its ordinary typed refusal/abort behavior.
+
+### Installed response-reader borrow
+
+`check_row_acquisition_original` checks the exact original requirement and
+declared view, not equal JSON or CID material. A trusted pure preparation callback
+cannot substitute an independently prepared acquisition.
+
+`borrow_row_run_responses` lends an already-begun accounted Direct RowRun once.
+It creates no reservation, Run or authorization. Before provider I/O the reader
+binds its same physical-stop observer into that RowRun's existing cleanup slot.
+The original Host retains finish, capture and close; logical abort does not
+erase the observer. Failed stop keeps the same reservation and cleanup debt.
+Only confirmed physical retirement permits the reader's aliases to disappear
+and the original Owner to release its root.

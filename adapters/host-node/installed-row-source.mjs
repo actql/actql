@@ -303,7 +303,12 @@ export async function createInstalledRowSource({moon, declaration,
   declared, environmentWire, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
-  listingReportCapacity}) {
+  listingReportCapacity, prepareAcquisition}) {
+  if (prepareAcquisition !== undefined &&
+      (typeof prepareAcquisition !== 'function' ||
+        typeof moon?.clientProgramRowSourceCheckOriginalAcquisition !== 'function')) {
+    fail('InvalidInstalledSourceAcquisitionPreparer');
+  }
   if (captureContent !== undefined && typeof captureContent !== 'function') {
     fail('InvalidInstalledContentCapture');
   }
@@ -548,8 +553,18 @@ export async function createInstalledRowSource({moon, declaration,
       occurrence,
     });
     const physicalBindingCid = valueCid(prepared.physicalBinding);
-    const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
-      declaration, requirement, queryContract, evidenceContract, listingPolicy));
+    // An installed provider may select its existing pure typed preparer. It
+    // must return this exact requirement/declaration's original acquisition;
+    // this is neither an I/O callback nor permission to replace a checked Run.
+    const acquisition = prepareAcquisition === undefined
+      ? checked(moon.clientProgramRowSourcePrepareAcquisition(
+        declaration, requirement, queryContract, evidenceContract, listingPolicy))
+      : prepareAcquisition(Object.freeze({declaration, requirement,
+        queryContract, evidenceContract}));
+    if (prepareAcquisition !== undefined) {
+      checked(moon.clientProgramRowSourceCheckOriginalAcquisition(
+        acquisition, declaration, requirement));
+    }
     const decision = await decideRead(prepared, access);
     const refused = decision?.action === 'deny'
       ? authorizationRuntimeCode(decision) : undefined;
@@ -569,6 +584,10 @@ export async function createInstalledRowSource({moon, declaration,
     try {
       return await acquire(state, options);
     } catch (error) {
+      if (state.closeFailed && error instanceof AcquisitionOpenError &&
+          error.recovery === undefined) {
+        throw new AcquisitionOpenError(error, 'unknown', state.recovery);
+      }
       throw acquisitionFailure(error, state.closeFailed ? 'unknown'
         : !state.started ? 'not_started' : 'stopped', state.recovery);
     }
@@ -582,6 +601,10 @@ export async function createInstalledRowSource({moon, declaration,
     try {
       return await acquire(state, options, true);
     } catch (error) {
+      if (state.closeFailed && error instanceof AcquisitionOpenError &&
+          error.recovery === undefined) {
+        throw new AcquisitionOpenError(error, 'unknown', state.recovery);
+      }
       throw acquisitionFailure(error, state.closeFailed ? 'unknown'
         : !state.started ? 'not_started' : 'stopped', state.recovery);
     }
@@ -1098,6 +1121,11 @@ export async function createInstalledRowSource({moon, declaration,
       state.started = true;
       await readPages({resource: owner.resource, columns, requestWire,
         operation, signal,
+        verifyRead: () => currentRead(prepared, access, signal),
+        // Same-runtime opaque borrowing for trusted installed adapters only.
+        // The original Host keeps finish/capture/close and physical capacity.
+        rowRun: Object.freeze({acquisition, run, requestId: nonce,
+          runInvocationCid, dispatchRequestCid}),
         ...(isListing ? {listing: rowListingCallbacks({moon, run, signal,
           currentRead: () => currentRead(prepared, access, signal)})} : {}),
         // The current read decision is taken again before every request.
