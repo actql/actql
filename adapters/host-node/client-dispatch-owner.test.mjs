@@ -280,7 +280,8 @@ test('diagnostic failure cannot stop Compute or bypass required ownership',
       const physical = {async close() { closes++; }, async cleanup() {},
         cleanupPending: () => false};
       const owner = installNodeClientDispatchOwner({
-        moon: {clientProgramOpenSourceFreeLocalHost: () => ({})},
+        moon: {clientProgramOpenSourceFreeLocalHost: () => ({}),
+          clientProgramRequiresAcquisitionResultPublication: () => false},
         control: stopControl,
         journal: {reservePhysicalStart: () => true,
           ...stopFacts(),
@@ -337,7 +338,8 @@ test('publication ownership survives a wrapped error and cleanup retry',
       cleanupPending: () => !permitCleanup,
     };
     const owner = installNodeClientDispatchOwner({
-      moon: {clientProgramOpenSourceFreeLocalHost: () => ({})},
+      moon: {clientProgramOpenSourceFreeLocalHost: () => ({}),
+        clientProgramRequiresAcquisitionResultPublication: () => false},
       control: stopControl,
       journal: {reservePhysicalStart: () => true,
         ...stopFacts(),
@@ -397,7 +399,8 @@ test('dispatch owner retains failed cleanup and retries without Compute',
       cleanupPending: () => !permitCleanup,
     };
     const owner = installNodeClientDispatchOwner({
-      moon: {clientProgramOpenSourceFreeLocalHost: () => ({})},
+      moon: {clientProgramOpenSourceFreeLocalHost: () => ({}),
+        clientProgramRequiresAcquisitionResultPublication: () => false},
       control: stopControl,
       journal: {
         ...stopFacts(),
@@ -609,7 +612,12 @@ function acquiringOwner(open) {
   let computes = 0;
   const access = {authorization: {}};
   const owner = installNodeClientDispatchOwner({
-    moon: {clientProgramAcquisitionCount: () => 1},
+    // Stop-law scalar fixture: physical acquisition always throws below.
+    // This ledger token is not Common capacity or a successful capture.
+    moon: {clientProgramAcquisitionCount: () => 1,
+      clientProgramRequiresAcquisitionResultPublication: () => false,
+      clientProgramPrepareSingleCapturedLocalInstalledLedger: () => ({}),
+      clientProgramMultiCapturedLedgerUsage: () => Array(9).fill(0n)},
     control: stopControl,
     journal: {reservePhysicalStart: () => true,
       ...stopFacts(),
@@ -619,7 +627,8 @@ function acquiringOwner(open) {
     hostConnection: () => true,
     observed: async () => {},
     planFor: () => ({runDefinition: {wire: 'definition'}}),
-    sourceProfile: {sourceAccess: access, admitsSource: source => source === 'fixture-source', open},
+    sourceProfile: {sourceAccess: access, admitsSource: source => source === 'fixture-source',
+      ledgerCapacity: () => ({capacity: {}, transferBytes: 0n, executionBytes: 0n}), open},
     runPublished: async () => { computes++; },
     now: () => '2026-09-28T00:00:00.000Z',
     namespaceId: 'namespace-a',
