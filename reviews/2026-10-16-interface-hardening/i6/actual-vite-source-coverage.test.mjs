@@ -20,6 +20,13 @@ test('normal OSS Vite inputs include the library dependency, browser modules and
     if (config.build.lib) await build({configFile, configLoader: 'native', logLevel: 'silent'});
   }
   const result = await viteInterfaceInventory(process.cwd(), configs);
+  assert(result.externalModules.some(value => value.name === 'react'));
+  assert.equal(result.externalModules.length, result.externalModuleCount);
+  for (const dependency of result.externalModules) {
+    assert.equal(dependency.version, lock.packages[dependency.installation].version);
+    assert.equal(dependency.integrity, lock.packages[dependency.installation].integrity);
+    assert.match(dependency.sha256, /^[a-f0-9]{64}$/u);
+  }
   for (const name of ['packages/explorer-ui/plan-explorer.tsx', 'packages/explorer/app/main.tsx',
     'packages/explorer-ui/flow-layout-worker.mjs', 'packages/explorer-ui/flow-layout-engine.mjs']) {
     assert(result.modules.some(value => value.module === name), `Missing actual Vite source: ${name}`);
