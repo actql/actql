@@ -297,34 +297,10 @@ pub fn prepare_object_multipart_upload(
   )
   let body = Bytes::from_array(bytes[:])
   let body_media_type = "multipart/related; boundary=" + boundary
-  let preimage : Json = {
-    "version": "actql-gcs-object-upload-request/0.1",
-    "resource_origin": "https://storage.googleapis.com",
-    "method": "POST",
-    "path": path.to_json(),
-    "body_sha256": ("sha256:" + @sha.hex(body)).to_json(),
-    "body_bytes": length.to_json(),
-    "body_media_type": body_media_type.to_json(),
-    "collection_identity_cid": binding.collection.identity_cid.to_json(),
-    "catalog_cid": binding.catalog_cid.to_json(),
-    "installation_cid": binding.collection.installation_cid.to_json(),
-    "command_cid": binding.command_cid.to_json(),
-    "permissions": Json::array(
-      binding.permissions.map(value => value.to_json()),
-    ),
-    "original_response_sha256": before.response_sha256.to_json(),
-    "content_ref_cid": content_ref_cid.to_json(),
-    "content_cid": expected_content_cid.to_json(),
-    "overwrite": match overwrite {
-      Some(value) => value.to_json()
-      None => Json::null()
-    },
-  }
   let wire = match
-    upload_json(
-      preimage,
-      binding.limits.max_identity_bytes,
-      binding.limits.metadata,
+    upload_request_wire(
+      binding, before, path, body, body_media_type, content_ref_cid, expected_content_cid,
+      overwrite,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -341,6 +317,47 @@ pub fn prepare_object_multipart_upload(
     marker,
     cid: "sha256:" + @sha.hex(@utf8.encode(wire)),
   })
+}
+
+///|
+fn upload_request_wire(
+  binding : ObjectUploadBinding,
+  before : ObjectUploadObservation,
+  path : String,
+  body : Bytes,
+  body_media_type : String,
+  content_ref_cid : String,
+  expected_content_cid : String,
+  overwrite : Bool?,
+) -> Result[String, ObjectUploadIssue] {
+  let preimage : Json = {
+    "version": "actql-gcs-object-upload-request/0.1",
+    "resource_origin": "https://storage.googleapis.com",
+    "method": "POST",
+    "path": path.to_json(),
+    "body_sha256": ("sha256:" + @sha.hex(body)).to_json(),
+    "body_bytes": body.length().to_json(),
+    "body_media_type": body_media_type.to_json(),
+    "collection_identity_cid": binding.collection.identity_cid.to_json(),
+    "catalog_cid": binding.catalog_cid.to_json(),
+    "installation_cid": binding.collection.installation_cid.to_json(),
+    "command_cid": binding.command_cid.to_json(),
+    "permissions": Json::array(
+      binding.permissions.map(value => value.to_json()),
+    ),
+    "original_response_sha256": before.response_sha256.to_json(),
+    "content_ref_cid": content_ref_cid.to_json(),
+    "content_cid": expected_content_cid.to_json(),
+    "overwrite": match overwrite {
+      Some(value) => value.to_json()
+      None => Json::null()
+    },
+  }
+  upload_json(
+    preimage,
+    binding.limits.max_identity_bytes,
+    binding.limits.metadata,
+  )
 }
 
 ///|

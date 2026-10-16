@@ -126,6 +126,21 @@ test "GCS multipart seals binary body marker CRC and independent request identit
   )
   let tail = @utf8.encode("\r\n--" + boundary + "--\r\n")
   assert_eq(body, head + upload_binary() + tail)
+  let preimage =
+    #|{"body_bytes":511,"body_media_type":"multipart/related; boundary=actql-e9489f37fb3051e9efa1dc916004d7274e7b63975e3209708947267f2393a9be","body_sha256":"sha256:d0bbda939f3adf67d2f13e4ab4138769a075ab50c459a0ddde5d56b3583e719c","catalog_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","collection_identity_cid":"sha256:93d97356b802ff54ebb1ec50e00a6c4c413a46b573d4ecbfa97895b56c9fc777","command_cid":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","content_cid":"sha256:e9489f37fb3051e9efa1dc916004d7274e7b63975e3209708947267f2393a9be","content_ref_cid":"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff","installation_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","method":"POST","original_response_sha256":"6999b5f816fc762d0c23bd2e8ebe851fafced05ade765cb3ba1266fcda3648c4","overwrite":null,"path":"/upload/storage/v1/b/bucket/o?uploadType=multipart&ifGenerationMatch=0","permissions":["storage.objects.create","storage.objects.delete","storage.objects.get"],"resource_origin":"https://storage.googleapis.com","version":"actql-gcs-object-upload-request/0.1"}
+  assert_eq(
+    upload_request_wire(
+      binding,
+      request.before,
+      request.path,
+      body,
+      request.body_media_type,
+      "sha256:" + "f".repeat(64),
+      "sha256:e9489f37fb3051e9efa1dc916004d7274e7b63975e3209708947267f2393a9be",
+      None,
+    ).unwrap(),
+    preimage,
+  )
   assert_eq(
     object_upload_cid(request),
     "sha256:6c286b44b63592dd69d7ab707b710fdf6b5bd0199594589d70fe9e27a535a4de",
