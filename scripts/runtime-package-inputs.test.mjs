@@ -41,8 +41,8 @@ test('actual ordinary coordinator boundary includes its production MoonBit depen
   assert(result.modules.every(value => !/_(?:test|wbtest|bbtest)\.mbt$/u.test(value.module)));
 });
 
-test('actual coordinator source graph records its generated artifact without pretending it was built', () => {
-  const result = sourceInterfaceClosure(process.cwd(), {distributionRoots:
+test('actual coordinator source graph records its generated artifact without pretending it was built', async () => {
+  const result = await sourceInterfaceClosure(process.cwd(), {distributionRoots:
     npmInterfaceRoots(process.cwd()).filter(value => value.name === '@actql/coordinator-core')});
   assert.equal(result.qualification, 'source-input-coverage-only');
   assert(result.modules.some(value => value.module === 'packages/coordinator-core/index.mjs'));

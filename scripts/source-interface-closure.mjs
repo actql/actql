@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {existsSync, readFileSync, realpathSync} from 'node:fs';
 import {dirname, relative, resolve} from 'node:path';
-import {buildSync} from 'esbuild';
+import {build} from 'esbuild';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
@@ -13,7 +13,7 @@ import {moonInterfaceClosure} from './moon-interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 import {typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
 
-export function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = []} = {}) {
+export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = []} = {}) {
   root = realpathSync(root);
   const roots = distributionRoots, plans = runtimePackageInputs(root);
   const local = localNodePackageInputs(root), artifacts = new Map();
@@ -43,7 +43,7 @@ export function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRo
       sourceEntrances.push(entrance);
     }
   }
-  const graph = buildSync({entryPoints: sourceEntrances, bundle: true,
+  const graph = await build({entryPoints: sourceEntrances, bundle: true,
     packages: 'external', platform: 'node', format: 'esm', target: 'node22',
     metafile: true, write: false, absWorkingDir: root,
     outdir: resolve(root, '_build/unused-interface-discovery'),
