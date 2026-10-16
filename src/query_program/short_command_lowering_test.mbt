@@ -560,3 +560,42 @@ test "short COMMAND retained occurrence comes from the actual Model continuation
   )
   assert_eq(short_command_selection_effect(selected), "send")
 }
+
+///|
+test "short COMMAND private capture is not an authored Result for a long postlude" {
+  for name in ["``", "aql_private_command"] {
+    let script = @query.parse_query_script(
+      "FROM messages |> EFFECT COMMAND mail.send ID id INPUT (body = body); EFFECT audit COMMAND FROM RESULT " +
+      name +
+      " AS t TARGET t.id CONTRACT c INPUT (body = t.body);",
+      syntax_limits(),
+    ).unwrap()
+    assert_true(
+      compile_query_script(
+        script,
+        short_command_context(),
+        construction_limits(),
+        command_targets=Some(command_publication_bind("installation")),
+      )
+      is Err(UnsupportedEffect),
+    )
+  }
+}
+
+///|
+test "short COMMAND private port does not reserve the same public Result spelling" {
+  let program = short_command_program(
+    "FROM messages |> RESULT aql_private_command |> EFFECT COMMAND mail.send ID id INPUT (body = body); EFFECT audit COMMAND FROM RESULT aql_private_command AS t TARGET t.mailbox CONTRACT c INPUT (body = t.body);",
+  )
+  assert_eq(@program.export_count(program), 1)
+  let headers = @program.collect_effect_headers(program, 10, 10000).unwrap()
+  assert_eq(@program.effect_header_count(headers), 2)
+  let audit = (0..<2)
+    .iter()
+    .map(index => @program.effect_header_at(headers, index).unwrap())
+    .find(header => @program.effect_header_id(header) == "audit")
+    .unwrap()
+  assert_true(
+    @program.effect_header_source_result(audit) != Some("aql_private_command"),
+  )
+}

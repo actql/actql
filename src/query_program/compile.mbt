@@ -197,7 +197,8 @@ priv struct RetainedResult {
   fields : Array[String]
   terminal : Bool
   carrier_complete : Bool
-  // Frontend construction metadata for a closed, unexported UPDATE input.
+  // Frontend construction metadata for closed private Effect inputs, not
+  // captured-value receipts, key proofs or execution authority.
   update : (String, Array[(String, @builder.Node)])?
   store : Bool
   command : (String, String?, Array[(String, @builder.Node)])?
@@ -7249,8 +7250,8 @@ pub fn compile_with_source(
   store_targets? : StoreTargetPublication? = None,
   command_targets? : CommandTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
-  // A parsed operation must never disappear into a pure Relation. The
-  // published Command target/key owner is required before this can lower.
+  // Terminal operations use the ordinary script compiler's original target
+  // selection and private Result capture; none may disappear into a pure query.
   // Binding and primary scopes must be installed before inspecting a JOIN
   // input. The standalone probe sees only Context inputs, not authored WITH
   // producers or transformed range inputs.
