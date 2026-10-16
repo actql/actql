@@ -7,8 +7,9 @@ const location = {kind: 'text', document_id: 'source', revision,
   start_byte: 6, end_byte: 6, precision: 'exact'};
 const observation = {version: 'actql-check-outcome/0.1',
   reason_schema_cid: 'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742',
-  outcome_schema_cid: 'sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a',
+  outcome_schema_cid: 'sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce',
   outcome: 'completed', report: {context_ref: 'ctx:independent', scope: {kind: 'bound_input'},
+    runnable: {verdict: 'no', reasons: [{code: 'query_syntax_invalid'}]},
     verdict: 'invalid', inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 6}],
     reasons: [{code: 'query_syntax_invalid', location}], requirements: [],
     coverage: {limits: [], unresolved: []}}};
@@ -22,6 +23,7 @@ const fixed = (name, expected, change = () => {}, options = {}) => {
       checkObservation: checked}};
 };
 const comment = report => {
+  report.runnable = {verdict: 'no', reasons: [{code: 'query_lexical_invalid'}]};
   report.inputs[0].byte_length = 2;
   report.reasons = [{code: 'query_lexical_invalid', facts: {issue: 'unterminated_comment'},
     location: {...location, start_byte: 0, end_byte: 0},
@@ -30,6 +32,8 @@ const comment = report => {
       edits: [{start_byte: 2, end_byte: 2, replacement: '*/'}]}]}];
 };
 const missing = report => {
+  report.runnable = {verdict: 'no', reasons: [
+    {code: 'bound_values_missing'}, {code: 'parameter_value_required'}]};
   report.verdict = 'undetermined'; report.inputs[0].byte_length = 14;
   report.inputs.push({document_id: 'parameter_declarations', kind: 'structured',
     revision: declarationRevision, byte_length: 23});
@@ -40,6 +44,7 @@ const missing = report => {
   report.coverage.limits = [{code: 'bound_values_missing'}];
 };
 const limit = report => {
+  report.runnable = {verdict: 'no', reasons: [{code: 'implementation_limit'}]};
   report.verdict = 'undetermined'; report.reasons = [];
   report.coverage.limits = [{code: 'implementation_limit',
     facts: {issue: 'function_lowering_unresolved'}, location: {...location}}];
@@ -47,6 +52,7 @@ const limit = report => {
 const aliasSource = 'SELECT 1 AS n FROM `e\u0301/~🧭`';
 const aliasOptions = {source: aliasSource};
 const aliasAbsence = report => {
+  report.runnable = {verdict: 'no', reasons: [{code: 'query_alias_absent'}]};
   // Independently fixed UTF-8 length of the original SQL above.
   report.inputs[0].byte_length = 30;
   report.reasons = [{code: 'query_alias_absent', facts: {namespace: 'queries',
@@ -120,6 +126,7 @@ const programFixed = (name, expected, change = () => {}, options = {}) => {
     byte_length: Buffer.byteLength(JSON.stringify(program), 'utf8')}];
   checked.report.reasons = [{code: 'program_structure_invalid', facts: {issue: 'missing_field'},
     location: {kind: 'structured', document_id: 'program', revision, pointer: ''}}];
+  checked.report.runnable = {verdict: 'no', reasons: [{code: 'program_structure_invalid'}]};
   change(checked.report, checked);
   return {name: `submission Program check: ${name}`, expected, kind: 'submission', operation: 'start',
     failureCode: 'SubmissionUnknown', program,
@@ -129,6 +136,7 @@ const programFixed = (name, expected, change = () => {}, options = {}) => {
 const selectorProgram = {version: 'actql/0.1', id: 'p', inputs: {
   'e\u0301/~': {kind: 'Source', connector: 'fixture', resource: 'absent', view: 'records'}}};
 const unregisteredSelector = report => {
+  report.runnable = {verdict: 'no', reasons: [{code: 'source_selector_unregistered'}]};
   report.reasons = [{code: 'source_selector_unregistered',
     facts: {namespace: 'test', connector: 'fixture', resource: 'absent', view: 'records'},
     location: {kind: 'structured', document_id: 'program', revision,
@@ -173,11 +181,13 @@ export const submissionProgramCheckWireCorpus = [
     code: 'close_block_comment', applicability: 'requires_review', risk: 'syntax_structure',
     target: {document_id: 'program', revision}, edits: [{start_byte: 32, end_byte: 32, replacement: '*/'}]}];}),
   programFixed('Program implementation location', true, report => {
+    report.runnable = {verdict: 'no', reasons: [{code: 'implementation_limit'}]};
     report.verdict = 'undetermined'; report.reasons = [];
     report.coverage.limits = [{code: 'implementation_limit',
       location: {kind: 'structured', document_id: 'program', revision, pointer: ''}}];
   }),
   programFixed('Program budget location', true, report => {
+    report.runnable = {verdict: 'no', reasons: [{code: 'analysis_budget_exhausted'}]};
     report.verdict = 'undetermined'; report.reasons = [];
     report.coverage.limits = [{code: 'analysis_budget_exhausted',
       location: {kind: 'structured', document_id: 'program', revision, pointer: ''}}];

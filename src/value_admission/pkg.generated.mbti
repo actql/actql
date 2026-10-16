@@ -142,6 +142,8 @@ pub fn issue_reference(ReferenceIssuer, @value_contract.Contract, String, Refere
 
 pub fn json_payload(Value) -> Value?
 
+pub fn normalize_decimal_text(String, Int, Int, Int) -> Result[String, DecimalTextIssue]
+
 pub fn null_value() -> Value
 
 pub fn number_value(Double) -> Value?
@@ -276,6 +278,14 @@ pub enum CompleteOrderPoll {
   OrderComplete(String, bytes~ : Int, work~ : Int)
   OrderFailed(CompleteOrderIssue, work~ : Int)
 }
+
+pub(all) enum DecimalTextIssue {
+  InvalidLimits
+  InputLimit
+  InvalidFormat
+  OutOfRange
+  BeyondScale
+} derive(Eq, @debug.Debug)
 
 pub struct DecimalValue {
   coefficient : String

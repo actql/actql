@@ -50,6 +50,24 @@ Sync calls reject with `SyncClientInRunningEventLoop` before I/O when a caller's
 event loop is running. Use the async facade there. The sync facade owns a private,
 persistent Runner; it does not stop or nest an application loop.
 
+`run.status()` and `run.wait()` return immutable `RunState` values. To wait
+for a later stable observation, pass the original state revision:
+
+```python
+previous = run.status()
+changed = run.wait(since=previous.revision)
+# Async: previous = await run.status(); changed = await run.wait(since=previous.revision)
+```
+
+`since` is a nonnegative safe integer. Omission sends JSON null; zero is an
+explicit revision. A successful response must be stable and newer than `since`.
+The Host may return `WaitTimeout` without changing the Run or
+`InvalidWaitRevision` for a future revision. The SDK preserves those errors,
+performs no status polling or automatic retry, and does not substitute
+`control.revision`. A transport timeout remains an uncertain exchange, not a
+Run cancellation or physical-stop acknowledgement. The unfinished Local wait
+condition supplier refuses explicit conditions rather than ignoring `since`.
+
 Closing the Client or reader releases its local connection resources. It never
 cancels a Run, proves Host cleanup, or resends an unknown operation. Explicitly
 call `run.cancel()` to request cancellation. Keep the original submission and
@@ -90,3 +108,35 @@ For development, install `packages/python-sdk[dev]` in a dedicated venv and run
 the repository root. This checks generated contracts, focused boundaries and
 typed consumer examples under the repository's bounded runner. It starts no Host
 and does not contact a package registry.
+
+### Application row schemas
+
+`result.all(schema=Row)` and `result.rows(schema=Row)` accept a Pydantic v2
+model class or a `TypeAdapter`. The SDK invokes `model_validate(row,
+strict=True)` or `validate_python(row, strict=True)` and returns that typed
+value. Pydantic remains an optional application dependency. A custom schema
+may implement the same synchronous `validate_python` method; it must raise
+on invalid data and honor `strict=True` without coercion.
+
+```python
+from pydantic import BaseModel
+
+class Update(BaseModel):
+    id: str
+    risk: float
+
+updates = execution.result("updates").all(schema=Update, max_rows=1000)
+# Async: updates = await execution.result("updates").all(schema=Update)
+```
+
+A mismatch raises `ClientError` with code `ResultSchemaMismatch`, the original
+`validation_error`, `attempt_id` and number of valid `rows_yielded`. The SDK
+error message does not interpolate private row values. Validation ends that
+reader and releases its transport; it does not cancel the Run or retry the
+read. Failed cleanup retains the original reader for explicit cleanup retry.
+
+Wire and decoded-row limits apply before application validation. The total
+retained-value limit continues to count the original decoded rows even when a
+schema returns smaller objects. Objects allocated by application validators
+remain application-owned; their size is not a new SDK memory guarantee. A
+schema cannot supply a missing protocol completion marker or Host receipt.

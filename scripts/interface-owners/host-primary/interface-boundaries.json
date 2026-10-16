@@ -3125,7 +3125,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "87d33ababac4c8e5506e7d77f8f7aba9a3d53e2db683329d8e9608f6b3e76bb6",
+      "sha256": "18a3d843802e15bf5995952a993feb5f193c06a75e7ac25e5d647b93ccfcb61e",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -4601,12 +4601,25 @@
             "ref",
             "actual",
             "until",
+            "since",
             "signal"
           ],
           "async": true
         },
         {
-          "name": "openInstalledHost/wait/wait/interrupted/interrupted",
+          "name": "openInstalledHost/wait/wait/interruption/interruption",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/wait/wait/observeStep/observeStep",
+          "parameters": [
+            "promise"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted",
           "parameters": [
             "_",
             "reject"
@@ -4614,18 +4627,15 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/wait/wait/interrupted/interrupted/interrupted",
+          "name": "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
           "parameters": [],
           "async": false
         },
         {
           "name": "openInstalledHost/wait/wait/wait",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/wait/wait/wait#2",
-          "parameters": [],
+          "parameters": [
+            "resolve"
+          ],
           "async": false
         },
         {
@@ -4968,10 +4978,7 @@
             "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
             "openInstalledHost/terminal/terminal",
             "openInstalledHost/wait/wait",
-            "openInstalledHost/wait/wait/interrupted/interrupted",
-            "openInstalledHost/wait/wait/interrupted/interrupted/interrupted",
             "openInstalledHost/wait/wait/wait",
-            "openInstalledHost/wait/wait/wait#2",
             "openInstalledRemoteHttpHost",
             "openInstalledRemoteHttpHost/init:close/init:close",
             "openInstalledRemoteHttpHost/init:handler/init:handler",
@@ -4986,7 +4993,11 @@
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
-            "validateValuesMaxRows"
+            "validateValuesMaxRows",
+            "openInstalledHost/wait/wait/interruption/interruption",
+            "openInstalledHost/wait/wait/observeStep/observeStep",
+            "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted",
+            "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -4999,6 +5010,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "One installed Local Host for the current OS user"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn prepare_run_state_observation("
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
               }
             ],
             "inputsOutputs": [
@@ -5009,18 +5028,42 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn RunStateObservation::wire("
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "exact submitted intent"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "installedHostShutdown"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
               }
             ],
             "synchronization": [
@@ -5031,30 +5074,78 @@
               {
                 "path": "adapters/host-node/local-account-config.mjs",
                 "anchor": "configuration is always explicit Host installation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-host-cleanup.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/embedded-local-close-public.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "cancellationRequested: current.cancellationRequested,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-host-policy.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "max_bytes : Int"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/client-check-composition.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "fail('UnknownClientRequestJournalFormat');"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
               }
             ],
             "verification": [
@@ -5065,6 +5156,22 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision persists independently of control and unchanged rereads across reopen'"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision-public.test.mjs",
+                "anchor": "test('actual Local Run state revision survives Host release and attach without another computation'"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               }
             ]
           }
