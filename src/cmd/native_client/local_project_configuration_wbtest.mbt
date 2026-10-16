@@ -418,3 +418,176 @@ test "a conflicting Remote connection never interprets an explicit project as pe
   assert_true(rejected)
   assert_eq(required(matches, "mode"), "remote")
 }
+
+///|
+fn project_bindings_fixture(
+  directory : String,
+  configuration : String,
+) -> LocalProjectConfiguration raise {
+  local_project_select_loaded(
+    command().parse(argv=["check", "never-read.aql"]),
+    @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap() +
+    "/" +
+    directory,
+    configuration,
+  )
+}
+
+///|
+test "plain project execution reads both selected empty declarations before changing the route" {
+  let project = project_bindings_fixture(
+    "plain", "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\",\"model_tasks\":\"model-tasks.json\"}",
+  )
+  assert_true(project.source_free_bindings is None)
+  let selected = local_project_read_execution_bindings(Some(project), "check")
+    .unwrap()
+    .unwrap()
+  let facts = selected.source_free_bindings.unwrap()
+  assert_true(facts.has_connectors_file())
+  assert_true(facts.has_model_tasks_file())
+  assert_eq(selected.state_directory, project.state_directory)
+  let matches = command().parse(argv=["check", "never-read.aql"])
+  assert_eq(required(matches, "mode"), "remote")
+  local_project_apply_selection(matches, Some(selected))
+  assert_eq(required(matches, "mode"), "local")
+  assert_eq(optional(matches, "config-file"), None)
+  assert_eq(optional(matches, "config-root"), Some("."))
+}
+
+///|
+test "project declaration paths use the selected project directory rather than process cwd" {
+  let project = project_bindings_fixture(
+    "plain", "{\"version\":\"actql-config/0.1\",\"connectors\":\"./nested/../connectors.json\"}",
+  )
+  let selected = local_project_read_execution_bindings(Some(project), "explain")
+    .unwrap()
+    .unwrap()
+  let facts = selected.source_free_bindings.unwrap()
+  assert_true(facts.has_connectors_file())
+  assert_false(facts.has_model_tasks_file())
+  local_project_require_execution_bindings(selected, "explain")
+}
+
+///|
+test "nonempty selected declarations cannot fall back to the packaged empty environment" {
+  for directory in ["connector", "model", "provider", "default-provider"] {
+    let project = project_bindings_fixture(
+      directory, "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\",\"model_tasks\":\"model-tasks.json\"}",
+    )
+    let matches = command().parse(argv=["check", "never-read.aql"])
+    assert_true(
+      try {
+        ignore(local_project_read_execution_bindings(Some(project), "check"))
+        false
+      } catch {
+        ClientStop(reason) => reason == "LocalProjectBindingsUnavailable"
+      },
+    )
+    assert_eq(required(matches, "mode"), "remote")
+    assert_eq(optional(matches, "state-dir"), None)
+  }
+}
+
+///|
+test "malformed and duplicate selected project declarations remain refusals" {
+  for directory in ["bad-connectors", "bad-model", "duplicate-connectors"] {
+    let project = project_bindings_fixture(
+      directory, "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\",\"model_tasks\":\"model-tasks.json\"}",
+    )
+    assert_true(
+      try {
+        ignore(local_project_read_execution_bindings(Some(project), "check"))
+        false
+      } catch {
+        ClientStop(reason) => reason == "InvalidProjectBindings"
+      },
+    )
+  }
+}
+
+///|
+test "a refused declaration Reader retains original cleanup and never substitutes an empty file" {
+  for
+    directory in [
+      "missing-bindings", "symlink-bindings", "oversize-bindings", "invalid-utf8-bindings",
+      "directory-bindings",
+    ] {
+    let project = project_bindings_fixture(
+      directory, "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\"}",
+    )
+    guard local_project_read_execution_bindings(Some(project), "check")
+      is Err(original) else {
+      fail("declaration physical refusal became source-free facts")
+    }
+    match directory {
+      "missing-bindings" => assert_true(original.issue() is @files.Missing)
+      "oversize-bindings" =>
+        assert_true(original.issue() is @files.CapacityExceeded)
+      "invalid-utf8-bindings" =>
+        assert_true(original.issue() is @files.InvalidUtf8)
+      _ => assert_true(original.issue() is @files.Filesystem(_))
+    }
+    original.retry_cleanup().unwrap()
+    assert_true(project.source_free_bindings is None)
+  }
+}
+
+///|
+test "saved operations do not read current declarations to repair original Run materials" {
+  let project = project_bindings_fixture(
+    "never-created", "{\"version\":\"actql-config/0.1\",\"connectors\":\"absent.json\",\"model_tasks\":\"absent.json\"}",
+  )
+  for
+    operation in [
+      "connect", "adopt", "status", "read", "cancel", "lookup-submission",
+    ] {
+    let selected = local_project_read_execution_bindings(
+        Some(project),
+        operation,
+      )
+      .unwrap()
+      .unwrap()
+    assert_true(selected.source_free_bindings is None)
+    local_project_require_execution_bindings(selected, operation)
+  }
+}
+
+///|
+test "unsupported mock profile refuses before any declaration IO and retains default route" {
+  let matches = command().parse(argv=["check", "never-read.aql"])
+  let project = local_project_select_loaded(
+    matches, "/never-created", "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\",\"connectors\":\"absent.json\",\"model_tasks\":\"absent.json\"}",
+  )
+  assert_true(
+    try {
+      ignore(local_project_read_execution_bindings(Some(project), "check"))
+      false
+    } catch {
+      ClientStop(reason) => reason == "LocalProjectBindingsUnavailable"
+    },
+  )
+  assert_eq(required(matches, "mode"), "remote")
+  assert_eq(optional(matches, "state-dir"), None)
+}
+
+///|
+test "declaration facts cannot be transplanted across selected file roles" {
+  let project = project_bindings_fixture(
+    "plain", "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\"}",
+  )
+  let wrong = @run_host.admit_client_source_free_project_bindings(
+    None,
+    Some(
+      "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":{}}",
+    ),
+  ).unwrap()
+  let selected = { ..project, source_free_bindings: Some(wrong), }
+  assert_true(
+    try {
+      local_project_require_execution_bindings(selected, "check")
+      false
+    } catch {
+      ClientStop(reason) => reason == "LocalProjectBindingsUnavailable"
+    },
+  )
+}
