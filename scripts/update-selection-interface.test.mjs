@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
-import {javascriptInterface} from './interface-inventory.mjs';
+import {sourceInterfaceClosure} from './source-interface-closure.mjs';
+import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
 import {generateUpdateTargetDataCodec} from './generate-update-target-data-codec.mjs';
@@ -19,10 +18,12 @@ const paths = [
   'adapters/host-node/embedded-local.mjs',
   'adapters/connectors/salesforce/host/installed-salesforce-effect.mjs',
 ];
-const modules = () => paths.map(module => {
-  const bytes = readFileSync(new URL(`../${module}`, import.meta.url));
-  return {module, sha256: createHash('sha256').update(bytes).digest('hex'),
-    ...javascriptInterface(bytes.toString('utf8'))};
+const source = await sourceInterfaceClosure(root, {distributionRoots:
+  npmInterfaceRoots(root).filter(value => value.name === '@actql/local-node')});
+const modules = () => paths.map(path => {
+  const actual = source.modules.find(value => value.module === path);
+  assert(actual, `Missing original UPDATE source: ${path}`);
+  return structuredClone(actual);
 });
 // This focused test selects only the R3 change boundary. The ordinary checker
 // continues to validate every declaration in the full distribution closure.
