@@ -4,7 +4,7 @@
 fn store_capture_context() -> Context {
   let declaration = @wire.admit(
     @source.parse_json(
-      "{\"carrier\":\"relation\",\"schema\":{\"path\":{\"type\":\"string\",\"nullable\":false},\"content\":{\"type\":\"content_ref\",\"nullable\":false}},\"primary_key\":[]}",
+      "{\"carrier\":\"relation\",\"schema\":{\"path\":{\"type\":\"string\",\"nullable\":false},\"content\":{\"type\":\"content_ref\",\"nullable\":false}}}",
       construction_limits().source.source,
     ).unwrap(),
     construction_limits().source.tree,
@@ -253,4 +253,98 @@ test "STORE WITH control retains the same captured input before terminal lowerin
     Ok(_) => ()
     Err(issue) => fail(store_capture_issue_label(issue))
   }
+}
+
+///|
+test "STORE never claims an empty primary key as input evidence" {
+  let valid = match store_capture_context().inputs[0].source {
+    Captured(source) => source
+    _ => abort("expected the captured declaration control")
+  }
+  let limits : @local_input.Limits = {
+    max_nodes: 100,
+    max_depth: 10,
+    max_text_bytes: 1000,
+  }
+  assert_true(@local_input.read(valid, limits) is Ok(_))
+  let invalid = @wire.admit(
+    @source.parse_json(
+      "{\"carrier\":\"relation\",\"primary_key\":[],\"schema\":{\"path\":{\"type\":\"string\",\"nullable\":false},\"content\":{\"type\":\"content_ref\",\"nullable\":false}}}",
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  assert_true(@local_input.read(invalid, limits) is Err(PrimaryKey(_)))
+}
+
+///|
+test "STORE set tail captures the completed UNION once" {
+  let program = store_capture_program(
+    "FROM files |> UNION ALL (FROM files) |> EFFECT STORE storage.archive SET (path = path, content = content)",
+  )
+  assert_eq(@program.export_count(program), 0)
+  let steps = store_capture_steps(program)
+  let union_steps = steps.filter(step => {
+    @wire.lookup(@wire.open_object(step).unwrap(), "union") is Some(_)
+  })
+  assert_eq(union_steps.length(), 1)
+  assert_eq(
+    @program.effect_header_count(
+      @program.collect_effect_headers(program, 10, 10000).unwrap(),
+    ),
+    1,
+  )
+  assert_eq(@program.result_names(@program.stages(program).last().unwrap()), [
+    "aql_private_store",
+  ])
+}
+
+///|
+test "STORE consumes immutable range values before the public projection drops them" {
+  let program = store_capture_program(
+    "FROM files AS original |> SET path = 'replacement' |> EFFECT STORE storage.archive SET (path = original.path, content = original.content)",
+  )
+  let capture = store_capture_private(program)
+  let capture_name = @wire.text(store_capture_field(capture, "from")).unwrap()
+  let step = store_capture_steps(program).filter(step => {
+      @wire.lookup(@wire.open_object(step).unwrap(), "as").map(value => {
+        @wire.text(value).unwrap()
+      }) ==
+      Some(capture_name)
+    })[0]
+  let selected = @wire.elements(store_capture_field(step, "select")).unwrap()
+  // The immutable range still names original slots, not the newly derived path.
+  assert_eq(@wire.text(selected[0]).unwrap(), "path")
+  assert_eq(@wire.text(selected[1]).unwrap(), "content")
+}
+
+///|
+test "STORE relation Mapping keeps canonical relation materialization" {
+  let query = @query.parse_query(
+    "FROM orders |> EFFECT STORE storage.archive SET (id = id, value = status)",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(
+    query,
+    fixture_context(),
+    construction_limits(),
+    store_targets=Some(store_target_publication("relation")),
+  ).unwrap()
+  let header = store_capture_header(program)
+  assert_eq(@program.effect_header_kind(header), "store")
+  assert_true(@program.effect_header_published_store_target(header) is None)
+  assert_eq(
+    @program.effect_header_source_result(header),
+    Some("aql_private_store"),
+  )
+  let body = @program.effect_header_body(header)
+  assert_eq(
+    @wire.text(store_capture_field(body, "target")).unwrap(),
+    "connector://storage/archive",
+  )
+  assert_eq(
+    @wire.text(store_capture_field(body, "mapping")).unwrap(),
+    "mapping:fixture.archive.v1",
+  )
+  assert_eq(@program.export_count(program), 0)
 }
