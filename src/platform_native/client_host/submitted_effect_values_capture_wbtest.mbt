@@ -83,6 +83,50 @@ fn submitted_values_capture_finish(
 }
 
 ///|
+// Fault placement only: physical material availability also invokes the real
+// Work clock. Count a successful control on this same immutable Work instead
+// of assuming that its second UTC callback is the terminal callback. No result
+// bytes or refusal expectation are derived from this scheduling observation.
+fn submitted_values_capture_pin_callbacks(
+  work : NativeClientSubmittedEffectValuesWork,
+  calls : Ref[Int],
+  armed : Ref[Bool],
+) -> Int raise {
+  calls.val = 0
+  armed.val = true
+  let control = work.pin_original_capture_inputs(1).unwrap()
+  armed.val = false
+  let count = calls.val
+  assert_true(@strategy.release_captured_effect_inputs(control))
+  assert_true(count >= 2)
+  calls.val = 0
+  count
+}
+
+///|
+fn submitted_values_capture_export_callbacks(
+  work : NativeClientSubmittedEffectValuesWork,
+  inputs : @strategy.CapturedEffectInputs,
+  calls : Ref[Int],
+  armed : Ref[Bool],
+) -> Int raise {
+  let index = submitted_values_capture_result(inputs)
+  let (rows, limits) = submitted_values_capture_limits()
+  calls.val = 0
+  armed.val = true
+  let control = work
+    .prepare_original_result_export(inputs, index, rows, 100, 10000, limits)
+    .unwrap()
+  armed.val = false
+  let count = calls.val
+  control.close()
+  assert_true(control.captured_export() is None)
+  assert_true(count >= 2)
+  calls.val = 0
+  count
+}
+
+///|
 test "Native submitted Values capture exports the original local Result without another claim" {
   let (host, work) = submitted_values_invocation_fixture(
     "values-capture-original",
@@ -205,13 +249,14 @@ test "Native submitted Values capture retains pin row and field bounds and calle
 test "Native submitted Values capture releases only new pins after terminal Work retirement" {
   let armed = Ref(false)
   let calls = Ref(0)
+  let terminal_call = Ref(0)
   let original : Ref[NativeClientSubmittedEffectValuesWork?] = Ref(None)
   let (host, work) = submitted_values_invocation_fixture(
     "values-capture-retired",
     utc=() => {
       if armed.val {
         calls.val += 1
-        if calls.val == 2 && original.val is Some(work) {
+        if calls.val == terminal_call.val && original.val is Some(work) {
           work.close() |> ignore
         }
       }
@@ -220,11 +265,12 @@ test "Native submitted Values capture releases only new pins after terminal Work
   )
   defer host.close() |> ignore
   defer work.close() |> ignore
+  terminal_call.val = submitted_values_capture_pin_callbacks(work, calls, armed)
   original.val = Some(work)
   armed.val = true
   let result = work.pin_original_capture_inputs(1)
   original.val = None
-  assert_eq(calls.val, 2)
+  assert_eq(calls.val, terminal_call.val)
   assert_true(result is Err(Work(Work(Unavailable))))
   assert_eq(work.usage().held_bytes, 0L)
   assert_true(
@@ -236,13 +282,14 @@ test "Native submitted Values capture releases only new pins after terminal Work
 test "Native submitted Values capture observes input retirement after the final current callback" {
   let armed = Ref(false)
   let calls = Ref(0)
+  let terminal_call = Ref(0)
   let original : Ref[@strategy.CapturedEffectInputs?] = Ref(None)
   let (host, work) = submitted_values_invocation_fixture(
     "values-capture-alias-retired",
     utc=() => {
       if armed.val {
         calls.val += 1
-        if calls.val == 2 && original.val is Some(inputs) {
+        if calls.val == terminal_call.val && original.val is Some(inputs) {
           @strategy.release_captured_effect_inputs(inputs) |> ignore
         }
       }
@@ -255,6 +302,9 @@ test "Native submitted Values capture observes input retirement after the final 
   defer @strategy.release_captured_effect_inputs(inputs) |> ignore
   let index = submitted_values_capture_result(inputs)
   let (rows, limits) = submitted_values_capture_limits()
+  terminal_call.val = submitted_values_capture_export_callbacks(
+    work, inputs, calls, armed,
+  )
   original.val = Some(inputs)
   armed.val = true
   let result = work.prepare_original_result_export(
@@ -262,7 +312,7 @@ test "Native submitted Values capture observes input retirement after the final 
   )
   original.val = None
   armed.val = false
-  assert_eq(calls.val, 2)
+  assert_eq(calls.val, terminal_call.val)
   assert_true(result is Err(Export(@local.MissingOutput)))
   assert_true(work.work.execution.material() is Some(_))
   assert_false(
@@ -275,6 +325,7 @@ test "Native submitted Values capture refuses expiry and cancellation after expo
   for cancel in [false, true] {
     let armed = Ref(false)
     let calls = Ref(0)
+    let terminal_call = Ref(0)
     let original : Ref[
       (NativeLocalHostConnection, NativeClientSubmittedEffectValuesWork)?,
     ] = Ref(None)
@@ -287,7 +338,7 @@ test "Native submitted Values capture refuses expiry and cancellation after expo
       utc=() => {
         if armed.val {
           calls.val += 1
-          if calls.val == 2 {
+          if calls.val == terminal_call.val {
             if cancel && original.val is Some((host, work)) {
               host.journal
               .transaction(() => {
@@ -315,13 +366,20 @@ test "Native submitted Values capture refuses expiry and cancellation after expo
     defer @strategy.release_captured_effect_inputs(inputs) |> ignore
     let index = submitted_values_capture_result(inputs)
     let (rows, limits) = submitted_values_capture_limits()
+    // The final Native Work UTC check immediately precedes its material's
+    // availability UTC check. Expiry/cancellation belongs at that Work check;
+    // the separate input-retirement test targets the later availability check.
+    terminal_call.val = submitted_values_capture_export_callbacks(
+        work, inputs, calls, armed,
+      ) -
+      1
     original.val = Some((host, work))
     armed.val = true
     let result = work.prepare_original_result_export(
       inputs, index, rows, 100, 10000, limits,
     )
     original.val = None
-    assert_eq(calls.val, 2)
+    assert_eq(calls.val, terminal_call.val)
     assert_true(
       if cancel {
         result is Err(Work(Work(Start(_))))
