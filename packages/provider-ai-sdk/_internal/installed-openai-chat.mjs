@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits} from './original-undici-transport.mjs';
@@ -216,7 +217,7 @@ function installedChatRegistration(config, originalUndici) {
           maxRequestBytes:requestLimits.maxBytes,
           maxHeaderBytes:requestLimits.maxHeaderBytes,maxHeaders:requestLimits.maxHeaders,
           checked(value) {
-            if (value?.$tag===1) return value._0;
+            if (runtimeIsOk(value)) return runtimeField(value, 0);
             issue('OpenAIOriginalCommonRefused');
           }}).preflight;
       },
