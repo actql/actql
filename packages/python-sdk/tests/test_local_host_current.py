@@ -1,4 +1,5 @@
 """Actual transaction loans and scalar bridge custody; not actual Wasm admission."""
+from local_abi_declaration_fixture import assert_current_local_abi
 import copy
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -193,7 +194,7 @@ class LocalHostCurrentTests(unittest.TestCase):
         self.assertTrue(core.close_host_current(loan))
 
     def test_closed_scalar_loader_and_namespace_revision_width_remain_exact(self):
-        self.assertEqual(LOCAL_CORE_ABI, 72)
+        assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_CURRENT_SIGNATURES, {
             'reserve': ('i64 i32 i32 i64', 'i32'), 'bind': ('i64 i32', 'i32'),
             'validate': ('i64 i32', 'i32'), 'produce': ('i64 i32', 'i32'),
