@@ -14,6 +14,7 @@ import {composeInstalledCheckEnvironment} from './installed-check-environment.mj
 import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
   installedRowEffectOwnerBinding} from './installed-row-effect.mjs';
 import {installNodePublicSourcePreparation} from './public-source-preparation.mjs';
+import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -177,6 +178,48 @@ function originalOwnerFixture(installed) {
   const originals = installUpdateTargetOriginals({moon, control, installedEffect: installed, limits});
   return {prepared, compilation, originals, control, limits};
 }
+
+test('actual JSON UPDATE preparation retains the installed selection in its original Run', async t => {
+  const f = await fixture(t);
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  try {
+    const environment = admitted(installed.environmentWire);
+    const publication = sourceAliasPublication(moon, environment, [], [],
+      {updateTargets: installed.queryUpdateTargets});
+    const prepare = installNodeClientProgramPreparation({moon, environment,
+      allowEffects: true, sourcePublication: publication});
+    const prepared = prepare({kind: 'program', parameters: null, input: {
+      version: 'actql/0.1', id: 'json-update-original', stages: [{id: 'apply', inputs: {},
+        steps: [{values: {schema: {id: {type: 'string', nullable: false},
+          name: {type: 'string', nullable: false}}, rows: [{id: 'original-id', name: 'Ada'}]},
+        as: 'selected'}],
+        results: {rows: {from: 'selected', fields: ['id', 'name']}},
+        effects: {save: {update: {target: 'connector://crm/account',
+          mapping: 'mapping:crm.account.0.v1', from: {result: 'rows'}, id: 'id',
+          set: {Name: {field: 'name'}}}}}}],
+      results: {updates: {from: {stage: 'apply', result: 'rows'}}},
+    }});
+    assert.equal(prepare.kindOf(prepared), 'effectful');
+    const control = runtimeCore(moon).publicationControl;
+    const originals = installUpdateTargetOriginals({moon, control, installedEffect: installed,
+      limits: {maxWireBytes: 1_000_000, maxNodes: 100_000, maxDepth: 100}});
+    const selection = originals.selectionsOf(prepared);
+    assert.equal(selection?.length, 1);
+    const compilation = checked(moon.clientProgramCompileLocalEffects(prepared));
+    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(compilation,
+      cid('1'), cid('2'), '2099-01-01T00:00:00.000Z'));
+    const definition = checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+      'json-update', 'json-update-run', '2026-10-16T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+    const identity = moon.clientProgramEffectRequestIdentity(prepared,
+      cid('a'), 'json-update-request', moon.clientProgramSourceFreeInputIntentCid());
+    const original = originals.captureRun({prepared, compilation, allowed, definition, identity});
+    assert.equal(typeof original?.materialsWire, 'string');
+    assert.equal(JSON.parse(moon.strategyPublicationContractJson(definition)).effect_target_selections_cid,
+      originalUpdateTargetSelectionsCid(selection));
+    assert.equal(f.counts.prepares, 0);
+    assert.equal(f.counts.credentials, 0);
+  } finally { await installed.close(); }
+});
 
 test('actual UPDATE Owner saves and restores the original prepared and Run data through the same SQLite journal', async t => {
   const f = await fixture(t);
