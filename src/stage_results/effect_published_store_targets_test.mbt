@@ -252,6 +252,24 @@ test "static candidate passes its same admitted Mapping owner into published STO
     effect_mapping_rule_count(effect_static_candidate_mapping_rules(candidate)),
     0,
   )
+  // Structural selection cannot act as an installed ReferenceIssuer. The old
+  // row-only projection must refuse instead of manufacturing a target.
+  let input = effect_command_input_at(
+    effect_static_candidate_command_inputs(candidate),
+    0,
+  ).unwrap()
+  assert_eq(
+    project_effect_command_row(
+      input,
+      effect_plan_test_row("{\"amount\":1}"),
+      10,
+      100,
+      1000,
+      100,
+      10,
+    ).unwrap_err(),
+    EffectCommandRowIssue::MissingTarget,
+  )
   let targets = effect_static_candidate_command_targets(candidate)
   assert_true(
     effect_command_target_store_binding(
