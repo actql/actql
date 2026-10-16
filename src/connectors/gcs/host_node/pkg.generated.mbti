@@ -73,6 +73,8 @@ pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadReq
 
 pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool
 
+pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]
+
 // Errors
 
 // Types and methods
