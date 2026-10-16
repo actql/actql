@@ -400,7 +400,7 @@ test "Native explain JSON preserves the exact original response in both alternat
 ///|
 test "Native human explain quotes authored terminal controls without executing them" {
   assert_eq(
-    local_explain_literal(Json::string("name\n\r\t\x1b[31m\"\\")),
+    local_explain_literal(Json::string("name\n\r\t\u001b[31m\"\\")),
     "\"name\\n\\r\\t\\u001b[31m\\\"\\\\\"",
   )
   let wire = local_static_plan_view(
@@ -409,12 +409,12 @@ test "Native human explain quotes authored terminal controls without executing t
   // A shape-only display vector, not a new compiler original or authority.
   let changed = wire.replace(
     old="\"names\":[\"original\"]",
-    new=new="\"names\":[\"name\\n\\u001b[31m\"]",
+    new="\"names\":[\"name\\n\\u001b[31m\"]",
   )
   assert_true(changed != wire)
   let display = local_explain_reply(changed, false)
   assert_true(display.contains("Names: [\"name\\n\\u001b[31m\"]\n"))
-  assert_false(display.contains("\x1b"))
+  assert_false(display.contains("\u001b"))
 }
 
 ///|
