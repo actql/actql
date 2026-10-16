@@ -1919,15 +1919,14 @@ Every preview declares one of:
 
 - `full_diff`: exact target identities, before/after, and target versions;
 - `targeted`: exact target identities and intended after/change with before
-  unavailable, guarded by a connector target version; or
-- `blind`: exact target scope cannot be resolved.
+  unavailable, guarded by the Connector's applicable target contract.
 
-<!-- requirement-block: preview-strength.a-blind-preview-may-be-displayed-but-must-not-be -->
+<!-- requirement-block: preview-strength.only-full-diff-and-targeted-are-admissible -->
 `update`, `delete`, and update-side `upsert` are apply-admissible only as
 `full_diff` or version-guarded `targeted`. `create`, `command`, and `store` do
 not require before state; command admissibility also depends on its declared
-preview strength. A `blind` preview may be displayed but MUST NOT be
-applied.
+preview strength. An unresolved target scope MUST be refused before a
+Preview is sealed or approved; it is not a third Preview strength.
 
 The resolved item limit counts created rows for create, unique target identities for
 update/delete, unique upsert keys for upsert, logical target-plus-payload items for command,

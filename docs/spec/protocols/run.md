@@ -408,8 +408,8 @@ or set CID. A missing field is not supplied with a default.
 The version form binds the connector's exact target version/content guard.
 An update, delete, or update-side upsert admitted as `full_diff` or `targeted`
 requires that form. An upsert with a present `before` row is update-side for
-this purpose. A blind preview may use the not-applicable form when no target
-version was observed. Create uses the not-applicable form. A command without a
+this purpose. Unresolved target scope cannot be admitted as a Preview.
+Create uses the not-applicable form. A command without a
 version guard may also use it. This form does not waive another required
 admission guard.
 `intended_changes` is required and has the closed form
@@ -799,7 +799,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:821609c0cc04ef0ca1b0760a1864673e4fa70a3709af5d33e37e5177477d2f3a
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:83add51a9d2c3aa700d512b226f2931e0075304afab4a08e9b32c4da3a31c772
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2

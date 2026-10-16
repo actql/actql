@@ -3,8 +3,9 @@
 The normative definition of ActQL 0.1: what a Program means, how it is
 checked and executed, and the wire formats Hosts, Connectors and clients
 exchange. This index says what each document owns and in which order to read
-them. The guides and concepts pages explain the same ideas for readers; when
-the two differ, the specification is right.
+them. The public documentation defines the v0.1 target. This specification
+defines the same behaviour normatively and is aligned to that target. A
+difference is a specification defect until the owner decides otherwise.
 
 ## What the specification is
 

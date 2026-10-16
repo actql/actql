@@ -1107,7 +1107,9 @@ reversibility, atomicity, outcome, reconciliation, cancellation, contract_cid
 The complete resolved contract, not only its authored reference, is bound as
 `resolved_command_contract_cid`. Permissions MUST be derived from this
 contract. They MUST NOT be authored or broadened by the Program.
-`preview: none|schema_only` produces a blind, non-applicable preview. A command
+`preview: none|schema_only` does not establish an applicable Preview; exact
+target scope and an admitted `full_diff` or `targeted` Preview are needed
+before approval or application. A command
 URL, HTTP method, raw provider payload, or command not owned by the selected
 Connector is invalid.
 
