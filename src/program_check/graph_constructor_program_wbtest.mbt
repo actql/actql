@@ -11,7 +11,7 @@ test "Graph diagnostics bind relation capacity before publication" {
   for
     (body, field, numeric) in [
       ("{\"graph_bounds\":{\"max_nodes\":0}}", "kind", "actual"),
-      ("{\"degree\":{\"direction\":\"both\"}}", "node", "degree"),
+      ("{\"degree\":{\"direction\":\"both\"}}", "node_id", "degree"),
     ] {
     let programs : Array[CheckedProgram] = []
     let _ = local_construction_fixture(

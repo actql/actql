@@ -364,7 +364,7 @@ fn lower_script_carrier_calls(
     } else if call.operation == "lag" {
       ["partition_by", "order_by", "field", "output"]
     } else if call.operation == "sequence" {
-      ["by", "id", "time", "pattern", "within", "overlap", "contiguity"]
+      ["id", "time", "pattern", "within"]
     } else if call.operation == "asof_join" {
       [
         "with", "kind", "by", "left_time", "right_time", "direction", "tolerance",
