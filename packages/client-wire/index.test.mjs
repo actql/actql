@@ -536,6 +536,22 @@ const summary = Object.freeze({checkpointId: 'prepare-a-preparation',
   createdAt: '2026-09-26T00:00:00.000Z',
   expiresAt: '2026-09-27T00:00:00.000Z', humanSummary: 'Run on site-a'});
 
+test('exact pending checkpoint lookup keeps the original ID and closed single-result response', async () => {
+  const {validCheckpointLookup} = await import('./index.mjs');
+  const body = {connection, after: '', limit: 1, checkpointId: summary.checkpointId};
+  assert.equal(validClientBody('checkpoints', body), true);
+  for (const checkpointId of [null, false, 1, '', 'x'.repeat(257), 'bad\n', '\ud800']) {
+    assert.equal(validClientBody('checkpoints', {...body, checkpointId}), false);
+  }
+  assert.equal(validCheckpointLookup({items: [summary]}, summary.checkpointId), true);
+  assert.equal(validCheckpointLookup({items: []}, summary.checkpointId), true);
+  assert.equal(validCheckpointLookup({items: [summary]}, 'foreign'), false);
+  assert.equal(validCheckpointLookup({items: [summary], next: 'cursor'}, summary.checkpointId), false);
+  assert.equal(validCheckpointLookup({items: [summary, summary]}, summary.checkpointId), false);
+  assert.equal(validCheckpointLookup({items: [], unknown: true}, summary.checkpointId), false);
+  assert.equal(validCheckpointLookup({items: []}, null), false);
+});
+
 test('a held request is a typed reply, distinct from a Run admission', () => {
   assert.equal(validHeldRequest(held, 'saved-a'), true);
   assert.equal(validHeldRequest(held, 'saved-b'), false);

@@ -142,7 +142,7 @@ export type WireClientBodyByOperation = Readonly<{
     resultName: string;
     attemptId: string;
   }>;
-  checkpoints: WireBodyBase & Readonly<{after: string; limit: number}>;
+  checkpoints: WireBodyBase & Readonly<{after: string; limit: number; checkpointId?: string}>;
   'checkpoint-review': WireBodyBase & Readonly<{
     checkpointCid: string;
     maxBytes: number;
@@ -229,6 +229,8 @@ export declare function validSubmitReply(value: unknown,
   selected: WireConnection, expectedRequestId: string):
   value is WireSubmitReply;
 export declare function validCheckpointPage(value: unknown, limit: number):
+  value is WireCheckpointPage;
+export declare function validCheckpointLookup(value: unknown, checkpointId: string):
   value is WireCheckpointPage;
 export declare function validCheckpointReview(value: unknown,
   expected: Readonly<{checkpointCid: string; maxBytes: number}>):

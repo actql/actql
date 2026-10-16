@@ -74,6 +74,20 @@ pub fn gcs_upload_observation(
 }
 
 ///|
+#export_name("gcsUploadTargetObservation")
+pub fn gcs_upload_target_observation(
+  binding : @catalog.ObjectUploadBinding,
+  name : String,
+  status : Int,
+  bytes : Bytes,
+  headers : Array[(String, String)],
+) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue] {
+  @catalog.admit_object_upload_target_observation(
+    binding, name, status, bytes, headers,
+  )
+}
+
+///|
 #export_name("gcsUploadPrepareMultipart")
 pub fn gcs_upload_prepare_multipart(
   binding : @catalog.ObjectUploadBinding,

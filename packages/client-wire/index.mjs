@@ -514,6 +514,14 @@ export function validCheckpointPage(value, limit) {
     boundedText(value.next, checkpointLimits.maxCursorLength);
 }
 
+// Exact pending-ID metadata only; it issues no approval or completion fact.
+export function validCheckpointLookup(value, checkpointId) {
+  return clientHostRequestKeys('checkpoints', {checkpointId}).includes('checkpointId') &&
+    validClientRequestOptionalFields('checkpoints', {checkpointId}) &&
+    validCheckpointPage(value, 1) && !Object.hasOwn(value, 'next') &&
+    value.items.every(item => item.checkpointId === checkpointId);
+}
+
 // The exact review projection a Checkpoint names, within the requested
 // bound. The caller still checks the decoded bytes against `artifactCid`.
 export function validCheckpointReview(value, expected) {
