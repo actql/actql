@@ -88,11 +88,19 @@ test('actual Content capture keeps the same original parent through an async pre
   await generated.store.commitPhysicalHolding(generated.holding, [generated.physical.prepared]);
   await generated.issue();
   let borrowed, preparations = 0, closes = 0, pending = true;
+  const closeObserved = Promise.withResolvers();
+  const closeAcknowledged = Promise.withResolvers();
   const host = await openContentCommandHost({scratch, generated,
     keys: generateKeyPairSync('ed25519'), entrance: 'Local',
     onPrepareContent() { assert.fail('The async child must not start a second synchronous preparation'); },
     prepareContentChild({originalContent, value, preparedRequest}) {
-      const release = async () => { closes++; pending = false; return true; };
+      const release = async () => {
+        closes++;
+        closeObserved.resolve();
+        await closeAcknowledged.promise;
+        pending = false;
+        return true;
+      };
       return Object.freeze({async prepare() {
         preparations++;
         borrowed = originalContent('content');
@@ -104,15 +112,22 @@ test('actual Content capture keeps the same original parent through an async pre
         return preparedRequest;
       }, release, retry: release, status: () => ({pending})});
     }});
-  t.after(host.close);
+  t.after(async () => { closeAcknowledged.resolve(); await host.close(); });
   const run = await host.client.start(host.fixture.program);
+  await closeObserved.promise;
+  assert.equal(closes, 1);
+  assert.equal(pending, true);
+  assert.equal(borrowed.current(), true,
+    'The actual still-pending original child retains the source/pin');
+  closeAcknowledged.resolve();
   const state = await run.wait({signal: AbortSignal.timeout(15000)});
   assert.equal(state.status, 'waiting_checkpoint');
   assert.equal(preparations, 1);
   assert.equal(host.reads(), 1);
   assert.equal(host.sends(), 0);
-  assert.equal(closes, 0, 'A returned request and captured Preview do not retire its original child');
-  assert.equal(borrowed.current(), true, 'The original source/pin remains current until the last borrower');
+  assert.equal(closes, 1);
+  assert.equal(borrowed.current(), false,
+    'The same Owner may retire inputs once the last original child actually acknowledges');
   await host.close();
   assert.equal(closes, 1);
   assert.equal(pending, false);
