@@ -19,6 +19,10 @@ const fail = () => { throw Object.assign(new TypeError('InvalidInstalledGcsSourc
 const exact = (value, maximum, empty = false) => typeof value === 'string' &&
   (empty || value.length > 0) && value.isWellFormed() &&
   !/[\u0000-\u001f\u007f]/u.test(value) && Buffer.byteLength(value) <= maximum;
+// A prefix is exact object-name/query data, not a header or identifier. Keep
+// the same scalar/UTF-8 ceiling without excluding legal object-name controls.
+const prefixText = value => typeof value === 'string' && value.isWellFormed() &&
+  Buffer.byteLength(value) <= 1024;
 const closed = (value, keys) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') === keys.slice().sort().join('\0');
 const positive = value => Number.isInteger(value) && value > 0 && value <= 2147483647;
@@ -28,7 +32,7 @@ const cid = value => `sha256:${createHash('sha256').update(canonical(value)).dig
 export function checkInstalledGcsSourceProfile(profile) {
   if (!closed(profile, profileKeys) || profile.version !== INSTALLED_GCS_SOURCE_VERSION ||
       !exact(profile.connectorId, 128) || !exact(profile.project, 128) ||
-      !exact(profile.bucket, 222) || !exact(profile.prefix, 1024, true) ||
+      !exact(profile.bucket, 222) || !prefixText(profile.prefix) ||
       !exact(profile.mediaType, 1024) ||
       !/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/u.test(profile.mediaType) ||
       !exact(profile.siteProfilePath, 4096) || !isAbsolute(profile.siteProfilePath) ||
