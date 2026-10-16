@@ -7,6 +7,13 @@ fn content_borrow_export_fixture(
   let (source, originals, _) = reference_export_fixture(
     conditional, first_live, second_live,
   )
+  (content_borrow_export(source), originals)
+}
+
+///|
+fn content_borrow_export(
+  source : CompletedOutput,
+) -> CompletedRelationExportReceipt {
   let stream = prepare_completed_relation_export(
     source,
     4,
@@ -20,7 +27,7 @@ fn content_borrow_export_fixture(
     ()
   }
   let (receipt, _) = finish_completed_relation_export(stream).unwrap()
-  (receipt, originals)
+  receipt
 }
 
 ///|
@@ -118,7 +125,7 @@ test "Content export borrow rechecks custody after original authorization callba
     }).unwrap(),
     (),
   ).unwrap()
-  let (receipt, _) = export_relation_all(source)
+  let receipt = content_borrow_export(source)
   retained.val = Some(receipt)
   assert_true(
     completed_relation_export_content_reference(receipt, 0, 1) is None,
