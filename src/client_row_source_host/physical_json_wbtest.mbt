@@ -70,7 +70,7 @@ test "physical row JSON keeps distinct Unicode data keys and literal marker thro
       #|[{"id":1,"payload":{"$json":"literal","é":"é\r\n","é":"é"},"é":null}]
     ),
   )
-  assert_eq(accept_row_source_page(read, bytes), Ok(1))
+  assert_eq(accept_row_source_page(read, bytes).unwrap(), 1)
   let captured = @execution.finish_admitted_input(read.input).unwrap()
   guard @execution.captured_presence_cell(captured, 0, 1)
     is Ok(@execution.Present(value)) &&
