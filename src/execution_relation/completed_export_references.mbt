@@ -10,6 +10,49 @@ priv struct CompletedExportReferences {
 }
 
 ///|
+/// Borrow one original Content occurrence from the exact successful export.
+/// Coordinates select the admitted export view, not a caller's envelope/CID.
+/// The caller must keep its original Result pin and physical Store custody;
+/// this read neither reissues a Reference nor admits byte acquisition.
+pub fn completed_relation_export_content_reference(
+  value : CompletedRelationExportReceipt,
+  row : Int,
+  column : Int,
+) -> @admitted.ReferenceValue? {
+  guard value.rows.source is Some(source) &&
+    completed_output_available(source) &&
+    @schema.field_at(value.rows.content.schema, column) is Some(field) &&
+    field.contract.shape is @contract.ContentRef(..) &&
+    value.rows.references is Some(references) &&
+    references.complete &&
+    !references.revoked &&
+    references.rows.get(row) is Some(cells) &&
+    cells.get(column) is Some(cell) &&
+    cell.length() == 1 &&
+    cell[0] is Some(reference) &&
+    @admitted.reference_content_metadata(reference) is Some(_) &&
+    @admitted.reference_available(reference) else {
+    return None
+  }
+  // Availability calls the original Host. A callback may retire this export
+  // while still returning true; do not cache its pre-callback custody check.
+  guard value.rows.source is Some(current_source) &&
+    physical_equal(current_source, source) &&
+    value.rows.references is Some(current_references) &&
+    physical_equal(current_references, references) &&
+    references.complete &&
+    !references.revoked &&
+    references.rows.get(row) is Some(current_cells) &&
+    current_cells.get(column) is Some(current_cell) &&
+    current_cell.length() == 1 &&
+    current_cell[0] is Some(current_reference) &&
+    physical_equal(current_reference, reference) else {
+    return None
+  }
+  Some(reference)
+}
+
+///|
 /// Row and column entries are bounded by admitted row/key nodes, and authority
 /// entries by admitted value nodes. Logical value work is not charged twice.
 fn prepare_completed_export_references(
