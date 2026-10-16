@@ -87,6 +87,8 @@ pub fn admit_client_run_materials(String, String, @pipeline_check_context.Expres
 
 pub fn admit_client_serialization_captured_input(PreparedClientProgram, ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
+pub fn admit_client_source_free_project_bindings(String?, String?) -> Result[ClientSourceFreeProjectBindings, ClientProjectBindingsIssue]
+
 pub fn admit_client_submission_epoch_token(String) -> Result[ClientSubmissionEpochToken, ClientSubmissionEpochTokenIssue]
 
 pub fn admit_client_submission_reference_record(String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
@@ -3046,6 +3048,11 @@ pub(all) struct ClientProgramPreparationLimits {
   max_graph_work : Int
 }
 
+pub(all) enum ClientProjectBindingsIssue {
+  InvalidBindings
+  BindingsUnavailable
+} derive(Eq, @debug.Debug)
+
 type ClientProjectConfiguration
 pub fn ClientProjectConfiguration::connectors_file(Self) -> String?
 pub fn ClientProjectConfiguration::lock_file(Self) -> String?
@@ -3629,6 +3636,10 @@ pub(all) enum ClientSerializationPreparationIssue {
   OutsideTask
   Barrier(@lowering_relation.SerializationPreparationIssue)
 }
+
+type ClientSourceFreeProjectBindings
+pub fn ClientSourceFreeProjectBindings::has_connectors_file(Self) -> Bool
+pub fn ClientSourceFreeProjectBindings::has_model_tasks_file(Self) -> Bool
 
 pub(all) enum ClientStageOwnerIssue {
   MissingCheckedStage(Int)
