@@ -54,7 +54,7 @@ def synthetic(change):
         memory = '(memory (export "memory") 1 257)'
     if change == 'unknown-export':
         declarations.append('(func (export "actql_unrecognized") (result i32) (i32.const 0))')
-    return wasmtime.wat2wasm('(module ' + memory + ' '.join(declarations) + ')')
+    return wasmtime.wat2wasm('(module ' + ' '.join(declarations) + memory + ')')
 
 
 cases = []
