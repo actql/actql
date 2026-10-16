@@ -143,7 +143,7 @@
     {
       "module": "packages/native-cli/bin/actql.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f6ae0af9f034df731614300ecb19244a61b495a54afedd983628fa83360c789d",
+      "sha256": "52440eb7f907bd174cf701cefa673bd4a71b3dbb6f1b4626059d64011d54e667",
       "exports": [
         "admitInstalledBinary",
         "launch",
@@ -210,6 +210,7 @@
       ],
       "imports": [
         "../lib/local-runtime.mjs",
+        "../lib/project-scaffold.mjs",
         "node:child_process",
         "node:crypto",
         "node:fs",

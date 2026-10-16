@@ -192,11 +192,13 @@ fn local_project_require_execution_bindings(
   selected : LocalProjectConfiguration,
   operation : String,
 ) -> Unit raise ClientStop {
-  // Saved Run operations use their retained installation/materials, never
+  // Adoption/connection select installation metadata only; project declarations
+  // cannot issue Host authority or execute mocks. Saved Run operations use their
+  // retained installation/materials, never
   // fresh project declarations to repair or recompile an original Run.
-  if ![
-      "adopt", "connect", "check", "explain", "run", "aql", "start", "new-submission",
-    ].contains(operation) {
+  if !["check", "explain", "run", "aql", "start", "new-submission"].contains(
+      operation,
+    ) {
     return
   }
   let metadata = selected.metadata

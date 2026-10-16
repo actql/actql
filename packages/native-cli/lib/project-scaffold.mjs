@@ -100,3 +100,33 @@ export function scaffoldProject(directory, template) {
   return Object.freeze({directory: root, configuration: join(root, 'actql.config.json'),
     stateDirectory: join(root, '.actql'), files: Object.freeze(created)});
 }
+
+// Parse only the public project-creation spelling. Runtime, approval and Host
+// suppliers remain fixed by the installed Native package, never by options.
+export function projectInitArguments(args) {
+  if (args[0] !== 'init') return undefined;
+  if (args.length === 2 && ['--help', '-h'].includes(args[1])) {
+    return Object.freeze({help: true});
+  }
+  let directory, template, positional = false;
+  for (let index = 1; index < args.length; index++) {
+    const value = args[index];
+    if (!positional && value === '--') { positional = true; continue; }
+    if (!positional && (value === '--template' || value.startsWith('--template='))) {
+      if (template !== undefined) fail('ACTQL_E_INIT_ARGUMENTS', 'Select one template.');
+      template = value === '--template' ? args[++index] : value.slice('--template='.length);
+      if (typeof template !== 'string' || template.length === 0 || template.startsWith('-')) {
+        fail('ACTQL_E_INIT_ARGUMENTS', 'The template option needs a name.');
+      }
+    } else {
+      if (!positional && value.startsWith('-')) {
+        fail('ACTQL_E_INIT_ARGUMENTS', 'Unknown init option.');
+      }
+      if (directory !== undefined) fail('ACTQL_E_INIT_ARGUMENTS', 'Select one project directory.');
+      directory = value;
+    }
+  }
+  // Validate before package admission or any filesystem write.
+  projectTemplateFiles(template);
+  return Object.freeze({directory: directory ?? '.', template});
+}
