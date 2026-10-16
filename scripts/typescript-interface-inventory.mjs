@@ -43,6 +43,14 @@ function compilerField(node) {
       literalValue(node.left) === '_') return '_<dynamic>';
 }
 
+function bindingNames(node) {
+  if (ts.isIdentifier(node)) return [node.text];
+  if (ts.isObjectBindingPattern(node) || ts.isArrayBindingPattern(node)) {
+    return node.elements.flatMap(value => ts.isOmittedExpression(value) ? [] : bindingNames(value.name));
+  }
+  return [];
+}
+
 export function typescriptInterface(source, filename = 'interface.ts') {
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
   assert.equal(tree.parseDiagnostics.length, 0, `Invalid TypeScript interface: ${filename}`);
@@ -72,7 +80,7 @@ export function typescriptInterface(source, filename = 'interface.ts') {
     }
     if (defaultExport) exports.push('default');
     else if (exported && name) exports.push(name);
-    if (exported && ts.isVariableStatement(node)) exports.push(...node.declarationList.declarations.map(value => value.name.getText(tree)));
+    if (exported && ts.isVariableStatement(node)) exports.push(...node.declarationList.declarations.flatMap(value => bindingNames(value.name)));
     if (ts.isExportAssignment(node)) exports.push('default');
     if (ts.isExportDeclaration(node)) {
       if (!node.exportClause) exports.push(`*:${node.moduleSpecifier?.text}`);

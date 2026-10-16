@@ -30,6 +30,12 @@ test('private TS arrow helpers and global declaration interfaces have actual nam
   assert.deepEqual(typescriptInterface('export default class Host {}').exports, ['default']);
 });
 
+test('TS destructured exports retain each actual local name instead of the entire binding text', () => {
+  assert.deepEqual(typescriptInterface(`export const {value: renamed, nested: {id}, ...rest} = source;
+    export const [first, , ...tail] = items; export const simple = () => 0;`).exports,
+  ['first', 'id', 'renamed', 'rest', 'simple', 'tail']);
+});
+
 test('TS and reflective compiler field access require the same generated authority', () => {
   assert.deepEqual(typescriptInterface('export const value = Reflect.get(result, "$tag") || result._0;').compilerFields,
     ['$tag', '_0']);
