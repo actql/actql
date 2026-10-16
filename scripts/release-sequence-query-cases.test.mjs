@@ -54,7 +54,9 @@ test('Sequence audit refuses missing rereads and altered original references val
   const audit = auditSequenceTransport(report);
   assert.equal(audit.actualNormal, 22); assert.equal(audit.actualRefusal, 9);
   assert.equal(audit.freshRereadNamedResults, 22);
-  for (const change of [r => {delete r.freshProcessReread;},
+  for (const change of [r => {r.actualNormal = 18;},
+    r => {r.completedRefusals[7].name = 'sequence-implicit-overlap';},
+    r => {delete r.freshProcessReread;},
     r => {r.freshProcessReread.complete = false;},
     r => {r.freshProcessReread.completed.pop();},
     r => {r.freshProcessReread.completed[0].ref = {run: 'new'};},
