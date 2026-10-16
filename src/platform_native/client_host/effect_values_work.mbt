@@ -97,11 +97,11 @@ fn open_native_client_effect_values_work(
     ) ||
     !physical_equal(owner, @strategy.captured_effect_run_owner(captured)) ||
     !physical_equal(
-      @checked.effect_program_run_admission(owner),
+      @effect_binding.effect_program_run_admission(owner),
       @host.client_effect_allowed_run_admission(materials.allowed),
     ) ||
     @publication.publication_contract_json(
-      @checked.effect_program_run_definition(owner),
+      @effect_binding.effect_program_run_definition(owner),
     ) !=
     @publication.publication_contract_json(materials.run_definition) {
     return Err(effect_values_work_failure(ForeignMaterials))

@@ -73,7 +73,7 @@ struct CheckedEffectSourcePort {
 /// This is not a captured input, Preview, or Effect apply permit.
 struct CheckedEffectRunDAG {
   computation : CheckedEffectComputationDAG
-  run : @checked.EffectProgramRunCandidate
+  run : @effect_binding.EffectProgramRunCandidate
 }
 
 ///|
@@ -229,11 +229,11 @@ pub fn checked_effect_computation_owner(
 /// candidate with equal CIDs cannot replace the graph's checked owner.
 pub fn bind_checked_effect_run_dag(
   computation : CheckedEffectComputationDAG,
-  run : @checked.EffectProgramRunCandidate,
+  run : @effect_binding.EffectProgramRunCandidate,
 ) -> Result[CheckedEffectRunDAG, RunIssue] {
   if !physical_equal(
       computation.candidate,
-      @checked.effect_program_run_static_candidate(run),
+      @effect_binding.effect_program_run_static_candidate(run),
     ) {
     return Err(ForeignCandidate)
   }
@@ -248,7 +248,7 @@ pub fn checked_effect_run_graph(value : CheckedEffectRunDAG) -> CheckedDAG {
 ///|
 pub fn checked_effect_run_owner(
   value : CheckedEffectRunDAG,
-) -> @checked.EffectProgramRunCandidate {
+) -> @effect_binding.EffectProgramRunCandidate {
   value.run
 }
 

@@ -6,6 +6,7 @@ import {
   "actql/actql/checkpoint_runtime",
   "actql/actql/decode_core",
   "actql/actql/effect_application",
+  "actql/actql/effect_program_binding",
   "actql/actql/encode_core",
   "actql/actql/execution_authorization",
   "actql/actql/execution_query",
@@ -1943,7 +1944,7 @@ pub(all) enum ClientCapturedEffectPreviewIssue {
   ForeignInput
   Identity(ClientEffectLocalIdentityIssue)
   Preview(@run_publication.EffectPreviewIdentityIssue)
-  Run(@program_check.EffectProgramRunPreviewIssue)
+  Run(@effect_program_binding.EffectProgramRunPreviewIssue)
   Capture(@physical_strategy.RunIssue)
 }
 
@@ -2264,7 +2265,7 @@ pub(all) enum ClientEffectRetainedInputIssue {
 }
 
 pub(all) enum ClientEffectRunIssue {
-  Admission(@program_check.EffectProgramRunIssue)
+  Admission(@effect_program_binding.EffectProgramRunIssue)
   Binding(@physical_strategy.RunIssue)
 }
 
