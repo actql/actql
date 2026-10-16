@@ -39,6 +39,32 @@ export function admitGcsUploadObservation(moon, binding, {name, statusCode, body
   return gcsUploadResult(moon, moon.gcsUploadObservation(binding, name, statusCode, bytes(body)));
 }
 
+// The existing installed capture/Effect owns funding and retains this original
+// response before parsing it. This read cannot turn a refusal into absence or
+// issue an upload grant, and never retries a missing response.
+export async function readGcsUploadTarget({moon, binding, name, authorization,
+  credential, callResource, maxRequestBytes, signal}) {
+  if (typeof name !== 'string' || !integer(maxRequestBytes)) {
+    fail('GcsInvalidUploadTargetRead');
+  }
+  const path = gcsUploadResult(moon, moon.gcsUploadMetadataPath(binding, name));
+  const maxResponseBytes = moon.gcsUploadMetadataMaxBytes(binding);
+  if (!integer(maxResponseBytes)) fail('GcsInvalidUploadTargetRead');
+  if (authorization?.scope?.resourceOrigin !== 'https://storage.googleapis.com' ||
+      authorization?.scope?.operation !== 'gcs:file:read') {
+    fail('ForeignGcsUploadTargetReadAuthorization');
+  }
+  signal?.throwIfAborted();
+  const response = await invokeScopedCredentialOperation({authorization, credential,
+    callResource, operation: 'gcs:file:read', method: 'GET', path,
+    headers: [['accept', 'application/json'], ['accept-encoding', 'identity']],
+    responseHeaders: ['content-encoding', 'x-goog-generation', 'x-goog-metageneration'],
+    maxRequestBytes, maxResponseBytes, signal});
+  return Object.freeze({observation: Object.freeze({useCid: response.useCid,
+    accepted: response.accepted, statusCode: response.statusCode, body: response.body}),
+    headers: response.headers});
+}
+
 export function prepareOwnedGcsMultipartUpload({moon, binding, before, contentBytes,
   contentRefCid, contentCid, mediaType, overwrite, marker, maxProjectionBytes}) {
   if (![contentRefCid, contentCid, mediaType, marker].every(value => typeof value === 'string') ||

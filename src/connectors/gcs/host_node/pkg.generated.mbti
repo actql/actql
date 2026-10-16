@@ -59,6 +59,10 @@ pub fn gcs_upload_failure_code(@catalog.ObjectUploadIssue) -> String
 
 pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]
 
+pub fn gcs_upload_metadata_max_bytes(@catalog.ObjectUploadBinding) -> Int
+
+pub fn gcs_upload_metadata_path(@catalog.ObjectUploadBinding, String) -> Result[String, @catalog.ObjectUploadIssue]
+
 pub fn gcs_upload_observation(@catalog.ObjectUploadBinding, String, Int, Bytes) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]
 
 pub fn gcs_upload_prepare_multipart(@catalog.ObjectUploadBinding, @catalog.ObjectUploadObservation, Bytes, String, String, String, String, String) -> Result[@catalog.ObjectUploadRequest, @catalog.ObjectUploadIssue]

@@ -77,6 +77,47 @@ fn upload_object_text(value : String, empty? : Bool = false) -> Bool {
 }
 
 ///|
+fn upload_name(binding : ObjectUploadBinding, name : String) -> Bool {
+  upload_object_text(name) &&
+  name != "." &&
+  name != ".." &&
+  !name.has_prefix(".well-known/acme-challenge/") &&
+  name.has_prefix(binding.prefix)
+}
+
+///|
+// This is an original binding's current-object GET, not a versioned Content
+// request or an authorization decision. The exact path is checked before I/O.
+pub fn object_upload_metadata_path(
+  binding : ObjectUploadBinding,
+  name : String,
+) -> Result[String, ObjectUploadIssue] {
+  if !upload_name(binding, name) {
+    return Err(InvalidInput)
+  }
+  let maximum = binding.limits.max_path_bytes
+  let bucket = match mutation_part(binding.bucket, maximum) {
+    Ok(value) => value
+    Err(_) => return Err(CapacityExceeded)
+  }
+  let object_name = match mutation_part(name, maximum) {
+    Ok(value) => value
+    Err(_) => return Err(CapacityExceeded)
+  }
+  let path = "/storage/v1/b/" + bucket + "/o/" + object_name
+  if @scalar.admit_utf8_length(path, maximum) is Err(_) {
+    Err(CapacityExceeded)
+  } else {
+    Ok(path)
+  }
+}
+
+///|
+pub fn object_upload_metadata_max_bytes(binding : ObjectUploadBinding) -> Int {
+  binding.limits.metadata.max_bytes
+}
+
+///|
 // Borrow the actual collection; do not recreate one from its equal DATA wire.
 // These declarations do not themselves establish an installed permission.
 pub fn prepare_object_upload_binding(
@@ -145,11 +186,7 @@ pub fn admit_object_upload_observation(
   status : Int,
   bytes : Bytes,
 ) -> Result[ObjectUploadObservation, ObjectUploadIssue] {
-  if !upload_object_text(name) ||
-    name == "." ||
-    name == ".." ||
-    name.has_prefix(".well-known/acme-challenge/") ||
-    !name.has_prefix(binding.prefix) {
+  if !upload_name(binding, name) {
     return Err(InvalidInput)
   }
   if bytes.length() > binding.limits.metadata.max_bytes {

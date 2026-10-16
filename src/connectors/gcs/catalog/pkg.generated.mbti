@@ -70,6 +70,10 @@ pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Resu
 
 pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
 
+pub fn object_upload_metadata_max_bytes(ObjectUploadBinding) -> Int
+
+pub fn object_upload_metadata_path(ObjectUploadBinding, String) -> Result[String, ObjectUploadIssue]
+
 pub fn object_upload_path(ObjectUploadRequest) -> String
 
 pub fn object_upload_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int) -> Result[String, ObjectUploadIssue]
