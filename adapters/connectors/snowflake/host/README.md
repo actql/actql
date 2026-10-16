@@ -37,7 +37,11 @@ bounded metadata snapshot; it does not refresh that snapshot or contact Snowflak
   SQL admission are not duplicated in this installation or a new validator.
 - Verification: real standard installation selection, Common SQL/decimal38/NULL,
   Account, SQLite credential journal, loopback TLS, original Host capture and
-  cleanup are exercised. Normal package/source gates do not establish a live
+  cleanup are exercised. Public Client Local/HTTPS fixtures also check SQL to
+  Named Result, repeated reads, attach and same-submission lookup without a
+  second Provider request. They use the same preplanned acquisition/Compute
+  Ledger and confirm its original reservations retire after client close.
+  Normal package/source gates do not establish a live
   service, installed npm release, Python Local/wheel, write or recovery campaign.
 
 ## Stored inputs

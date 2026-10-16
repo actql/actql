@@ -642,7 +642,34 @@ pub fn single_captured_local_ledger_limits(
         @duckdb_host.native_capture_configuration(selected),
       ),
     ) &&
-    @duckdb_host.configured_native_capacity(selected) is Some(native) &&
+    @duckdb_host.configured_native_capacity(selected) is Some(native) else {
+    return None
+  }
+  guard single_captured_compute_limits(
+      prepared, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Some(limits) else {
+    return None
+  }
+  single_captured_capacity_limits(
+    limits,
+    (native.retained_bytes, native.execution_bytes),
+  )
+}
+
+///|
+fn single_captured_compute_limits(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.LedgerLimits? {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let count = @strategy.graph_task_count(graph)
+  guard @strategy.graph_captured_prefix(graph) == 1 &&
+    count >= 2 &&
+    count <= 32 &&
     prepare_client_local_sequences(
       prepared, registry_body, values_body, fragment_body, ordered_body,
     )
@@ -661,19 +688,12 @@ pub fn single_captured_local_ledger_limits(
       inputs[consumer] += 1
     }
   }
-  guard client_local_sequence_capacity(
-      compute,
-      count,
-      retained_inputs=Some(inputs),
-      max_rows=@publication_host.prepared_client_values_max_rows(prepared),
-    )
-    is Some((limits, _, _)) else {
-    return None
-  }
-  single_captured_capacity_limits(
-    limits,
-    (native.retained_bytes, native.execution_bytes),
-  )
+  client_local_sequence_capacity(
+    compute,
+    count,
+    retained_inputs=Some(inputs),
+    max_rows=@publication_host.prepared_client_values_max_rows(prepared),
+  ).map(value => value.0)
 }
 
 ///|
@@ -785,6 +805,50 @@ pub fn prepare_serialization_captured_ledger(
     transfer_bytes: transport_bytes,
     retained_bytes: capacity.retained_bytes + prefix_retained_bytes,
     execution_bytes: execution_bytes + transport_execution_bytes,
+  }).to_option()
+}
+
+///|
+/// Admit one installed capture and its checked Compute suffix on the same
+/// original Run ledger, before Source I/O. Capacity stays bound to the checked
+/// requirement; neither this inventory nor the transport limits grant a read.
+pub fn prepare_single_captured_local_installed_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  capacity : ClientInstalledCaptureCapacity,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  guard prepare_local_query_requirement(
+      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Ok(requirement) &&
+    @planning.query_requirement_cid(requirement) ==
+    @planning.query_requirement_cid(capacity.requirement) &&
+    single_captured_compute_limits(
+      prepared, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Some(compute) &&
+    single_captured_capacity_limits(
+      compute,
+      (capacity.retained_bytes, capacity.execution_bytes),
+    )
+    is Some(limits) else {
+    return None
+  }
+  if transport_bytes < 0L ||
+    transport_bytes > 9223372036854775807L - limits.transfer_bytes ||
+    transport_execution_bytes < 0L ||
+    transport_execution_bytes >
+    limits.execution_bytes - capacity.execution_bytes {
+    return None
+  }
+  @resources.create_ledger({
+    ..limits,
+    transfer_bytes: limits.transfer_bytes + transport_bytes,
   }).to_option()
 }
 
