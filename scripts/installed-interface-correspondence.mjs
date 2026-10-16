@@ -4,7 +4,10 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {isAbsolute} from 'node:path';
+import {dirname, isAbsolute, relative, resolve} from 'node:path';
+import {existsSync, realpathSync} from 'node:fs';
+import {build} from 'esbuild';
+import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 import {projectOwnerSources} from './interface-owner-source-projection.mjs';
 import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
@@ -62,4 +65,45 @@ export function installedInterfaceCorrespondence({repository, directory, source,
   const coverage = interfaceOwnerCoverage({root: repository, modules: actual, owners, generated});
   return {qualification: 'installed/source/reference correspondence only; not release or runtime admission',
     source, package: installed.name, coverage, artifacts: installed.artifacts};
+}
+
+
+// Resolve real installed files with the existing packaging resolver. Compiled
+// members are exact, already admitted artifact references, never parsed helpers.
+export async function assertInstalledDependencyClosure({directory, modules, artifacts = [], runtimeBindings = []}) {
+  const root = realpathSync(directory), compiled = new Set(artifacts.map(value => resolve(root, value.module)));
+  const inside = path => !isAbsolute(relative(root, path)) && !relative(root, path).startsWith('..');
+  const entries = modules.filter(value => !/\.pyi?$/u.test(value.module)).map(value => resolve(root, value.module));
+  for (const binding of runtimeBindings) for (const specifier of binding.targets) {
+    if (!specifier.startsWith('.')) continue;
+    const path = resolve(dirname(resolve(root, binding.module)), specifier);
+    assert(inside(path) && existsSync(path), `Missing installed runtime dependency: ${binding.module}`);
+    if (!compiled.has(path) && !entries.includes(path)) entries.push(path);
+  }
+  if (!entries.length) return {modules: 0, qualification: 'no-JavaScript-installed-members'};
+  let graph;
+  try {
+    graph = await build({absWorkingDir: root, entryPoints: entries, bundle: true, packages: 'external',
+      platform: 'node', format: 'esm', target: 'node22', write: false, metafile: true,
+      outdir: resolve(root, '.unused-interface-dependency-graph'), logLevel: 'silent',
+      plugins: [{name: 'original-installed-compiled-members', setup(builder) {
+        builder.onResolve({filter: /^\./}, argument => {
+          const path = resolve(dirname(argument.importer), argument.path);
+          if (compiled.has(path)) return {path, external: true};
+        });
+      }}]});
+  } catch (failure) {
+    if (failure.errors?.length && failure.errors.every(value => /^Could not resolve /u.test(value.text))) {
+      assert.fail('Unresolved installed interface dependency');
+    }
+    throw failure;
+  }
+  for (const path of Object.keys(graph.metafile.inputs)) {
+    const actual = realpathSync(resolve(root, path)), module = relative(root, actual);
+    assert(inside(actual), `Escaped installed interface dependency: ${module}`);
+    assert(!isConnectorTestFixture(module) && !/(?:\.test|_test|_wbtest)\./u.test(module),
+      `Test authority in installed interface dependency: ${module}`);
+  }
+  return {modules: Object.keys(graph.metafile.inputs).length,
+    qualification: 'actual installed dependency closure; not product execution'};
 }

@@ -11,7 +11,7 @@ import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
-import {installedInterfaceCorrespondence} from './installed-interface-correspondence.mjs';
+import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, localNodeAdapterSourceInputs} from './build-local-node-adapters.mjs';
@@ -69,9 +69,14 @@ export async function releaseInterfaceCheck({repository, directory}) {
         return binding.source;
       });
       const checkedSource = await checkInterfaceOwners(repository, {manifests: [root.manifest], authoredEntrances});
-      reports.push(installedInterfaceCorrespondence({repository, directory: installed,
+      const bySource = new Map([...bindings.values()].map(value => [value.source, value.member]));
+      const runtimeBindings = checkedSource.runtimeBindings.filter(value => bySource.has(value.module))
+        .map(value => ({...value, module: bySource.get(value.module)}));
+      const dependencies = await assertInstalledDependencyClosure({directory: installed,
+        modules: actual.modules, artifacts, runtimeBindings});
+      reports.push({...installedInterfaceCorrespondence({repository, directory: installed,
         source: before.revision, bindings: [...bindings.values()], artifacts,
-        owners, generated: checkedSource.generatedQualification, checkedSource}));
+        owners, generated: checkedSource.generatedQualification, checkedSource}), dependencies});
     }
     assert.deepEqual(checkoutState(repository), before, 'Release interface source changed during verification');
     return {qualification: 'normal release/source/installed interface correspondence; not runtime or all-I6 acceptance',

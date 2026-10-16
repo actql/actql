@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {test} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
-import {installedInterfaceCorrespondence} from './installed-interface-correspondence.mjs';
+import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 
 function fixture(t, sourceText = 'export function read(original) {return original;}') {
@@ -134,4 +134,40 @@ test('installed lazy imports retain original checked target discovery rather tha
   assert.equal(installedInterfaceCorrespondence({...options, checkedSource}).coverage.covered, 2);
   assert.throws(() => installedInterfaceCorrespondence({...options, checkedSource: structuredClone(checkedSource)}),
     /Untrusted checked interface source/u);
+});
+
+
+test('actual installed resolver accepts neutral extraction and refuses a missing dependency at its policy assertion', async t => {
+  const {options, put} = fixture(t);
+  put(options.directory, 'entry.mjs', "export {value} from './neutral.mjs';");
+  put(options.directory, 'neutral.mjs', 'export const value = 1;');
+  const input = {directory: options.directory, modules: [{module: 'entry.mjs'}]};
+  assert.equal((await assertInstalledDependencyClosure(input)).modules, 2);
+  unlinkSync(join(options.directory, 'neutral.mjs'));
+  await assert.rejects(assertInstalledDependencyClosure(input), /Unresolved installed interface dependency/u);
+});
+
+test('actual installed resolver rejects foreign source and test authority before claiming member coverage', async t => {
+  const {options, put} = fixture(t);
+  const input = {directory: options.directory, modules: [{module: 'entry.mjs'}]};
+  put(options.directory, 'control.mjs', 'export const value = 1;');
+  put(options.directory, 'entry.mjs', "export {value} from './control.mjs';");
+  assert.equal((await assertInstalledDependencyClosure(input)).modules, 2);
+  put(options.directory, 'control.test.mjs', 'export const value = 1;');
+  put(options.directory, 'entry.mjs', "export {value} from './control.test.mjs';");
+  await assert.rejects(assertInstalledDependencyClosure(input), /Test authority in installed interface dependency/u);
+  put(dirname(options.directory), 'foreign.mjs', 'export const value = 1;');
+  put(options.directory, 'entry.mjs', "export {value} from '../foreign.mjs';");
+  await assert.rejects(assertInstalledDependencyClosure(input), /Escaped installed interface dependency/u);
+});
+
+test('resolved runtime targets remain actual installed obligations and exact compiled members are not parsed as authored helpers', async t => {
+  const {options, put} = fixture(t);
+  put(options.directory, 'runtime.js', 'compiler output placeholder: not JavaScript');
+  put(options.directory, 'entry.mjs', "export const load = () => import('./runtime.js');");
+  const input = {directory: options.directory, modules: [{module: 'entry.mjs'}],
+    artifacts: [{module: 'runtime.js'}], runtimeBindings: [{module: 'entry.mjs', targets: ['./runtime.js']}]};
+  assert.equal((await assertInstalledDependencyClosure(input)).modules, 1);
+  unlinkSync(join(options.directory, 'runtime.js'));
+  await assert.rejects(assertInstalledDependencyClosure(input), /Missing installed runtime dependency/u);
 });
