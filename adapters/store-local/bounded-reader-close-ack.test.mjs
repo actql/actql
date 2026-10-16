@@ -14,7 +14,7 @@ async function fixture(t, {outcomes = ['false', 'false'], primary, openFailure} 
   const path = join(scratch.path, 'original'), bytes = Buffer.from('original metadata bytes\n');
   await fs.writeFile(path, bytes, {mode: 0o600});
   const originalOpen = fs.open;
-  const closeFailure = Object.freeze(Object.assign(new Error('original metadata FD close'), {code: 'EIO'}));
+  const closeFailure = Object.assign(new Error('original metadata FD close'), {code: 'EIO'});
   let handle, nativeClose, caught, opens = 0, reads = 0, closes = 0, retired = 0, returned = 0;
   fs.open = async (...args) => {
     if (args[0] !== path) return Reflect.apply(originalOpen, fs, args);
@@ -122,11 +122,14 @@ for (const field of ['cleanupPending', 'cleanupHandle', 'cleanupError']) {
   });
 }
 
-test('bounded original healthy close and pre-acquisition failure retain existing behavior', async t => {
+test('bounded original healthy close retains existing bytes and single acknowledgement', async t => {
   const healthy = await fixture(t, {outcomes: []});
   assert.deepEqual(await healthy.read(), healthy.bytes);
   assert.deepEqual(healthy.counts(), {opens: 1, reads: 2, closes: 1, retired: 1, returned: 1});
   healthy.scratch.passed();
+});
+
+test('bounded original pre-acquisition failure keeps its identity and has no FD duty', async t => {
   const primary = Object.freeze(new Error('original open refusal'));
   const unopened = await fixture(t, {openFailure: primary});
   await assert.rejects(unopened.read(), error => error === primary);
