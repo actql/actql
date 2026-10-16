@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
+import {inspect} from 'node:util';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import * as objectFixture from '../../../../_build/js/release/build/connectors/gcs/fixtures/object_source_node/object_source_node.js';
+import * as provider from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {checkInstalledGcsSourceProfile, restoreGcsSourceDeclaration} from '../host/gcs-source-declaration.mjs';
 
@@ -50,6 +54,67 @@ test('exact decomposed/composed GCS scope strings never share a declaration scop
   assert.notEqual(original.scopeCid, composed.scopeCid);
   assert.notEqual(original.declared.catalog_cid, composed.declared.catalog_cid);
   assert.equal(original.versionCid, composed.versionCid);
+});
+
+test('ordinary objects declare exact Decimal contracts and genuine Source acquisition alongside unchanged file views', () => {
+  const input = profile(), legacy = restoreGcsSourceDeclaration(moon, input);
+  const original = restoreGcsSourceDeclaration(moon, input, undefined, {includeObjects: true});
+  assert.equal(original.declared.views.length, 3);
+  for (const resource of ['files', 'contents']) {
+    assert.deepEqual(original.declared.views.find(view => view.resource === resource),
+      legacy.declared.views.find(view => view.resource === resource));
+  }
+  assert.notEqual(original.declared.catalog_cid, legacy.declared.catalog_cid);
+  const catalog = JSON.parse(original.declared.catalog);
+  const objects = original.declared.views.find(view => view.resource === 'objects');
+  const schema = original.declared.contracts.map(JSON.parse).find(value => value.cid === objects.carrier_schema_cid);
+  for (const field of ['size', 'generation', 'metageneration']) {
+    assert.deepEqual(schema.body.fields[field], {nullable: false, precision: 19, scale: 0, type: 'decimal'});
+  }
+  assert.deepEqual(schema.body.fields.metadata, {nullable: true, type: 'json'});
+  const environment = rowSourceCheckEnvironment(baseWire.trimEnd(), original.declared);
+  const checkedEnvironment = moon.clientProgramCheckEnvironment(environment.wire,
+    environment.evidenceCid, false, false, true, false, false, false, false);
+  assert.ok(checkedEnvironment);
+  const document = {version: 'actql/0.1', id: 'gcs-real-object-source', stages: [{id: 's',
+    inputs: {objects: {connector: 'storage', resource: 'objects', view: 'records', request: {prefix: null}}},
+    steps: [{from: 'objects', filter: 'name IS NOT NULL', as: 'listed'},
+      {from: 'listed', select: ['resource', 'version', 'name', 'size', 'content_type', 'generation',
+        'metageneration', 'storage_class', 'updated', 'md5', 'crc32c', 'metadata'], as: 'rows'}],
+    results: {r: {from: 'rows', fields: ['name', 'size', 'generation', 'metageneration', 'metadata']}}}],
+    results: {r: {from: {stage: 's', result: 'r'}}}};
+  const unordered = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(document),
+    'json', checkedEnvironment, undefined);
+  assert.equal(moon.clientProgramPreparationReady(unordered), undefined,
+    'a JSON-bearing Source Result cannot invent deterministic publication order');
+  document.stages[0].steps.push(
+    {from: 'rows', assert_rows: {unique_by: ['name']}, as: 'unique_names'},
+    {from: 'unique_names', sort: [{name: 'asc'}], as: 'ordered'});
+  document.stages[0].results.r.from = 'ordered';
+  const prepared = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(document),
+    'json', checkedEnvironment, undefined);
+  assert.ok(moon.clientProgramPreparationReady(prepared),
+    inspect(moon.clientProgramPreparationIssue(prepared), {depth: 8, maxStringLength: 1000}));
+  assert.equal(catalog.source_views.length, 3);
+});
+
+test('actual installed object contracts consume GCS Int64 as Decimal and metadata as exact JSON', () => {
+  const original = restoreGcsSourceDeclaration(moon, profile(), undefined, {includeObjects: true});
+  const objects = original.declared.views.find(view => view.resource === 'objects');
+  const schema = original.declared.contracts.map(JSON.parse).find(value => value.cid === objects.carrier_schema_cid);
+  const body = Buffer.from('{"kind":"storage#objects","items":[{"bucket":"actql-fixture",' +
+    '"name":"test/e\u0301/file","generation":"9007199254740993","metageneration":"2",' +
+    '"size":"9223372036854775807","metadata":{"actql-request":"private","$json":"user","e\u0301":"e\u0301\\r\\n"}}]}');
+  const page = checked(provider.gcsObjectMetadataPage(body, 'actql-fixture', 'test/e\u0301/',
+    3, 8192, 8192, 64, 8192));
+  const row = checked(provider.gcsObjectMetadataPageRowJson(page, 0, 8192, 8192, 64));
+  const wire = checked(objectFixture.fixtureGcsObjectDataWire(JSON.stringify(schema.body.fields), row));
+  assert.equal(wire,
+    '["9223372036854775807","9007199254740993","2",{"$json":{"$json":"user","e\u0301":"e\u0301\\r\\n"}}]');
+  const wrong = structuredClone(schema.body.fields);
+  wrong.size = {type: 'string', nullable: false};
+  assert.throws(() => checked(objectFixture.fixtureGcsObjectDataWire(JSON.stringify(wrong), row)),
+    'the same textual transport must not masquerade as an admitted String carrier');
 });
 
 test('checked profile owns nested limits before later asynchronous installation', () => {

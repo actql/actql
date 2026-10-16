@@ -314,7 +314,10 @@ fn accept_row_source_page(
   if bytes.length() > limits.max_bytes {
     return fail_read(read, InvalidPage)
   }
-  guard @source.parse_json_bytes(bytes, {
+  // A physical page carries external DATA, not authored identifiers. Keep
+  // JSON payload keys exact before their checked Value contract is known.
+  // The existing row/typed-object readers still enforce the declared fields.
+  guard @source.parse_json_bytes_preserving(bytes, {
       max_input_bytes: limits.max_bytes,
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
