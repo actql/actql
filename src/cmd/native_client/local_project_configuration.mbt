@@ -75,11 +75,38 @@ fn local_project_select_loaded(
 }
 
 ///|
+// This chooses a frontend route only. A project cannot create adoption,
+// authority or a saved Run. Explicit Remote and legacy roots stay explicit.
+fn local_project_default_local_candidate(
+  matches : @argparse.Matches,
+) -> Bool raise ClientStop {
+  if !(matches.sources.get("mode") is Some(@argparse.Default)) ||
+    required(matches, "mode") != "remote" ||
+    matches.sources.get("config-file") is Some(@argparse.Argv) ||
+    matches.sources.get("config-root") is Some(@argparse.Argv) {
+    return false
+  }
+  for
+    name in [
+      "endpoint", "connection-root", "connection-file", "token-root", "token-file",
+      "http-library", "ca", "cert", "key",
+    ] {
+    if optional(matches, name) is Some(_) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 fn local_project_discovery_selected(
   matches : @argparse.Matches,
 ) -> Bool raise ClientStop {
   optional(matches, "config") is None &&
-  required(matches, "mode") == "local" &&
+  (
+    required(matches, "mode") == "local" ||
+    local_project_default_local_candidate(matches)
+  ) &&
   !(matches.sources.get("config-file") is Some(@argparse.Argv)) &&
   !(matches.sources.get("config-root") is Some(@argparse.Argv))
 }
@@ -104,7 +131,8 @@ fn local_project_requires_read(
   if explicit is None && !discover && optional(matches, "profile") is None {
     return false
   }
-  if required(matches, "mode") != "local" {
+  if required(matches, "mode") != "local" &&
+    !local_project_default_local_candidate(matches) {
     stop("Local project configuration is unavailable in Remote mode")
   }
   if explicit is Some(_) &&
@@ -176,8 +204,8 @@ fn local_project_read_from(
 fn local_project_read(
   matches : @argparse.Matches,
 ) -> Result[LocalProjectConfiguration?, @files.NativeBoundedTextFailure] raise ClientStop {
-  // Explicit Remote and legacy installation selections do not probe project
-  // files or silently switch their Host/mode. Discovery selects metadata only.
+  // Explicit Remote/legacy choices never probe project files. A default-mode
+  // candidate remains unchanged until a complete metadata read has succeeded.
   if !local_project_requires_read(matches) {
     return Ok(None)
   }
@@ -215,6 +243,23 @@ fn local_project_require_execution_bindings(
 }
 
 ///|
+fn local_project_apply_selection(
+  matches : @argparse.Matches,
+  selected : LocalProjectConfiguration?,
+) -> Unit raise ClientStop {
+  if selected is Some(project) {
+    let (operation, _) = matches.subcommand.unwrap_or_else(() => {
+      stop("LocalOperationUnavailable")
+    })
+    local_project_require_execution_bindings(project, operation)
+    if local_project_default_local_candidate(matches) {
+      matches.values["mode"] = ["local"]
+    }
+    matches.values["state-dir"] = [project.state_directory]
+  }
+}
+
+///|
 fn execute_native_project_selection(
   matches : @argparse.Matches,
 ) -> Result[String, @files.NativeBoundedTextFailure] raise ClientStop {
@@ -223,12 +268,6 @@ fn execute_native_project_selection(
     Ok(value) => value
     Err(original) => return Err(original)
   }
-  if selected is Some(project) {
-    let (operation, _) = matches.subcommand.unwrap_or_else(() => {
-      stop("LocalOperationUnavailable")
-    })
-    local_project_require_execution_bindings(project, operation)
-    matches.values["state-dir"] = [project.state_directory]
-  }
+  local_project_apply_selection(matches, selected)
   Ok(execute(matches))
 }

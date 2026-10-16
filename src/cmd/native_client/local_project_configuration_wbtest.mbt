@@ -83,7 +83,7 @@ test "project selection refuses Remote or conflicting legacy options before file
   for
     (argv, expected) in [
       (
-        ["--config", "never-open.json", "connect"],
+        ["--mode", "remote", "--config", "never-open.json", "connect"],
         "Local project configuration is unavailable in Remote mode",
       ),
       (
@@ -264,7 +264,7 @@ test "project ancestor traversal terminates at root and Remote never discovers a
   assert_eq(local_project_parent_directory("/"), None)
   assert_eq(local_project_parent_directory("/project"), Some("/"))
   assert_eq(local_project_parent_directory("/project/child"), Some("/project"))
-  let remote = command().parse(argv=["connect"])
+  let remote = command().parse(argv=["--mode", "remote", "connect"])
   assert_false(local_project_discovery_selected(remote))
   assert_true(local_project_read_from(remote, "/never-opened") is Ok(None))
   let legacy_root = command().parse(argv=[
@@ -272,4 +272,149 @@ test "project ancestor traversal terminates at root and Remote never discovers a
   ])
   assert_false(local_project_discovery_selected(legacy_root))
   assert_true(local_project_read_from(legacy_root, "/never-opened") is Ok(None))
+}
+
+///|
+test "default mode selects Local only after the existing nearest project reader completes" {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap()
+  let matches = command().parse(argv=["connect"])
+  assert_true(local_project_default_local_candidate(matches))
+  assert_true(matches.sources.get("mode") is Some(@argparse.Default))
+  let selected = local_project_read_from(matches, root + "/nearer/child").unwrap()
+  assert_eq(required(matches, "mode"), "remote")
+  assert_eq(optional(matches, "state-dir"), None)
+  local_project_apply_selection(matches, selected)
+  assert_eq(required(matches, "mode"), "local")
+  assert_eq(
+    optional(matches, "state-dir"),
+    Some(root + "/nearer/.nearer-state"),
+  )
+  local_project_apply_selection(matches, selected)
+  assert_eq(required(matches, "mode"), "local")
+}
+
+///|
+test "explicit project metadata uses the same default route without repairing an absent selected file" {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap()
+  let matches = command().parse(argv=[
+    "--config",
+    root + "/actql.config.json",
+    "connect",
+  ])
+  let selected = local_project_read(matches).unwrap()
+  assert_eq(required(matches, "mode"), "remote")
+  local_project_apply_selection(matches, selected)
+  assert_eq(required(matches, "mode"), "local")
+  let missing = command().parse(argv=[
+    "--config",
+    root + "/missing.json",
+    "connect",
+  ])
+  guard local_project_read(missing) is Err(original) else {
+    fail("missing explicit metadata unexpectedly selected a Host")
+  }
+  assert_true(original.issue() is @files.Missing)
+  original.retry_cleanup().unwrap()
+  assert_eq(required(missing, "mode"), "remote")
+  assert_eq(optional(missing, "state-dir"), None)
+}
+
+///|
+test "missing metadata is not an implicit Local adoption or installation selection" {
+  let matches = command().parse(argv=["connect"])
+  local_project_apply_selection(matches, None)
+  assert_eq(required(matches, "mode"), "remote")
+  assert_eq(optional(matches, "state-dir"), None)
+}
+
+///|
+test "an explicit Remote route never discovers an existing Local project" {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap()
+  let matches = command().parse(argv=["--mode", "remote", "connect"])
+  assert_false(local_project_default_local_candidate(matches))
+  assert_true(
+    local_project_read_from(matches, root + "/nearer/child") is Ok(None),
+  )
+  assert_eq(required(matches, "mode"), "remote")
+  assert_eq(optional(matches, "state-dir"), None)
+}
+
+///|
+test "Remote connection and legacy configuration selectors do not become Local through a project file" {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap()
+  for
+    name in [
+      "endpoint", "connection-root", "connection-file", "token-root", "token-file",
+      "http-library", "ca", "cert", "key", "config-root", "config-file",
+    ] {
+    let matches = command().parse(argv=[
+      "--" + name,
+      "original-selection",
+      "connect",
+    ])
+    assert_false(local_project_default_local_candidate(matches))
+    assert_true(
+      local_project_read_from(matches, root + "/nearer/child") is Ok(None),
+    )
+    assert_eq(required(matches, "mode"), "remote")
+    assert_eq(optional(matches, "state-dir"), None)
+  }
+}
+
+///|
+test "malformed or physically refused default project reads cannot switch mode or fall back" {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap()
+  let malformed = command().parse(argv=["connect"])
+  let rejected = try {
+    ignore(local_project_read_from(malformed, root + "/malformed/child"))
+    false
+  } catch {
+    ClientStop(reason) => reason == "InvalidProjectConfiguration"
+  }
+  assert_true(rejected)
+  assert_eq(required(malformed, "mode"), "remote")
+  for name in ["symlink", "oversize", "invalid-utf8", "directory"] {
+    let matches = command().parse(argv=["connect"])
+    guard local_project_read_from(matches, root + "/" + name + "/child")
+      is Err(original) else {
+      fail("invalid nearest metadata fell back")
+    }
+    original.retry_cleanup().unwrap()
+    assert_eq(required(matches, "mode"), "remote")
+    assert_eq(optional(matches, "state-dir"), None)
+  }
+}
+
+///|
+test "a project profile selects no mock execution or runtime permission in default mode" {
+  let matches = command().parse(argv=["check", "never-read.aql"])
+  let project = local_project_select_loaded(
+    matches, "/project", "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\"}",
+  )
+  let rejected = try {
+    local_project_apply_selection(matches, Some(project))
+    false
+  } catch {
+    ClientStop(reason) => reason == "LocalProjectBindingsUnavailable"
+  }
+  assert_true(rejected)
+  assert_eq(required(matches, "mode"), "remote")
+  assert_eq(optional(matches, "state-dir"), None)
+}
+
+///|
+test "a conflicting Remote connection never interprets an explicit project as permission to change Hosts" {
+  let matches = command().parse(argv=[
+    "--endpoint", "https://remote.example.invalid", "--config", "/never-opened/config.json",
+    "connect",
+  ])
+  let rejected = try {
+    ignore(local_project_read(matches))
+    false
+  } catch {
+    ClientStop(reason) =>
+      reason == "Local project configuration is unavailable in Remote mode"
+  }
+  assert_true(rejected)
+  assert_eq(required(matches, "mode"), "remote")
 }
