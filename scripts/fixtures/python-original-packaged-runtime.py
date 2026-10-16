@@ -121,6 +121,26 @@ if case == 'runtime-close':
             untouched = C.c_void_p()
             assert call(C.c_void_p(1), C.byref(untouched)) == -1
             assert untouched.value is None
+# Independent same-width role mutations at the actual compiled C boundary.
+# No Owner callback, read/capture, output slot or cleanup is acquired here.
+if case == 'runtime-close':
+    def utf16(text):
+        raw = text.encode('utf-16-le')
+        return (C.c_uint16 * (len(raw) // 2)).from_buffer_copy(raw)
+    args = [utf16(str(root)), utf16('a' * 40), utf16('darwin-arm64'), utf16(hashlib.sha256(manifest).hexdigest())]
+    for roles in ((0, 2, 1, 3), (0, 3, 2, 1)):
+        a, b, c, e = [args[i] for i in roles]
+        out = C.c_void_p()
+        owner = original._domain._owner
+        owner._enter()
+        try:
+            status = runtime_functions.capture(original._host, original._original,
+                a, len(a), b, len(b), c, len(c), e, len(e), 65536, C.byref(out))
+        finally:
+            owner._busy = False
+        assert status == -2 and out.value is None
+    print(json.dumps({'actual_C_same_width_role_swap_rejections': 2}), flush=True)
+
 if case == 'runtime-invalid':
     try:
         _OriginalPackagedRuntimeCustody._capture_original(original, runtime_functions,
