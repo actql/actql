@@ -4080,7 +4080,7 @@ export async function openLocalPublicationStore(
       throw error;
     } finally {
       try {
-        await handle.close();
+        if (await handle.close() === false) fail('PublicationStoreCleanupPending');
         closed?.();
       } catch (closeFailure) {
         // A view of this SAME original read/FD, not a replacement reader,
@@ -4095,7 +4095,8 @@ export async function openLocalPublicationStore(
           retry() {
             if (flight !== undefined) return flight;
             if (original === undefined) return Promise.resolve(status());
-            flight = Promise.resolve().then(() => original.close()).then(() => {
+            flight = Promise.resolve().then(async () => {
+              if (await original.close() === false) fail('PublicationStoreCleanupPending');
               original = undefined;
               const acknowledge = retire;
               retire = undefined;
@@ -4106,12 +4107,26 @@ export async function openLocalPublicationStore(
           },
         });
         const primary = readFailed ? readFailure : closeFailure;
-        const failure = primary !== null && typeof primary === 'object' &&
-          Object.isExtensible(primary) && primary.cleanupHandle === undefined
-          ? primary : new Error('PublicationObjectReaderCleanupPending', {cause: primary});
-        failure.cleanupHandle = cleanup;
-        failure.cleanupPending = true;
-        failure.cleanupError = closeFailure;
+        // Preserve ordinary mutable failures, but never let existing readonly
+        // fields or hostile accessors discard the same original FD duty.
+        let failure;
+        try {
+          failure = primary !== null && typeof primary === 'object' &&
+            Object.isExtensible(primary) && primary.cleanupHandle === undefined &&
+            ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+              const field = Object.getOwnPropertyDescriptor(primary, name);
+              return field === undefined || field.writable === true;
+            })
+            ? primary : new Error('PublicationObjectReaderCleanupPending', {cause: primary});
+          failure.cleanupHandle = cleanup;
+          failure.cleanupPending = true;
+          failure.cleanupError = closeFailure;
+        } catch {
+          failure = new Error('PublicationObjectReaderCleanupPending', {cause: primary});
+          failure.cleanupHandle = cleanup;
+          failure.cleanupPending = true;
+          failure.cleanupError = closeFailure;
+        }
         throw failure;
       }
     }
