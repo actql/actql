@@ -43153,10 +43153,12 @@
     {
       "module": "packages/run-host-core/checkpoints.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "1625a18c59510c098dfb524a9999322d44327183940c0b9215e1d92793d1212a",
+      "sha256": "41c2138b436016736e40d4b9d367be63a5dd17652999b751ba367046a0fcdffa",
       "role": "common-semantics",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
+        "RunStateObservation",
+        "RunStateObservationLimits",
         "checkpointAdmit",
         "checkpointExpiredAt",
         "checkpointLifecycleState",
@@ -43164,6 +43166,8 @@
         "checkpointWaitingState",
         "effectResumeClaimDecide",
         "effectSettlementCompletionAllowed",
+        "nextRunStateRevision",
+        "prepareRunStateObservation",
         "resolutionAdmit",
         "resolutionDecide",
         "resolutionProofPreimage",
@@ -43171,7 +43175,10 @@
         "resumeFenceDecide",
         "resumedApprovalAt",
         "runStateAdmit",
+        "runStateObservationKey",
+        "runStateObservationWire",
         "runTransitionAllowed",
+        "runWaitDecision",
         "verifiedAttestationPreimage",
         "waitingExitState"
       ],
@@ -43237,6 +43244,25 @@
             "to: string"
           ],
           "result": "boolean"
+        },
+        {
+          "name": "nextRunStateRevision",
+          "parameters": [
+            "value: RunStateObservation",
+            "priorKey: string | null",
+            "currentRevision: number"
+          ],
+          "result": "number"
+        },
+        {
+          "name": "prepareRunStateObservation",
+          "parameters": [
+            "wire: string",
+            "runId: string",
+            "currentRevision: number",
+            "limits: RunStateObservationLimits"
+          ],
+          "result": "RunStateObservation"
         },
         {
           "name": "resolutionAdmit",
@@ -43307,12 +43333,36 @@
           "result": "string"
         },
         {
+          "name": "runStateObservationKey",
+          "parameters": [
+            "value: RunStateObservation"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "runStateObservationWire",
+          "parameters": [
+            "value: RunStateObservation",
+            "revision: number"
+          ],
+          "result": "string"
+        },
+        {
           "name": "runTransitionAllowed",
           "parameters": [
             "from: string",
             "to: string"
           ],
           "result": "boolean"
+        },
+        {
+          "name": "runWaitDecision",
+          "parameters": [
+            "wire: string",
+            "since: number | null",
+            "limits: RunStateObservationLimits"
+          ],
+          "result": "'ready' | 'pending'"
         },
         {
           "name": "verifiedAttestationPreimage",
@@ -43343,6 +43393,8 @@
             "checkpointWaitingState",
             "effectResumeClaimDecide",
             "effectSettlementCompletionAllowed",
+            "nextRunStateRevision",
+            "prepareRunStateObservation",
             "resolutionAdmit",
             "resolutionDecide",
             "resolutionProofPreimage",
@@ -43350,11 +43402,16 @@
             "resumedApprovalAt",
             "resumeFenceDecide",
             "runStateAdmit",
+            "runStateObservationKey",
+            "runStateObservationWire",
             "runTransitionAllowed",
+            "runWaitDecision",
             "verifiedAttestationPreimage",
             "waitingExitState"
           ],
           "exports": [
+            "RunStateObservation",
+            "RunStateObservationLimits",
             "checkpointAdmit",
             "checkpointExpiredAt",
             "checkpointLifecycleState",
@@ -43362,6 +43419,8 @@
             "checkpointWaitingState",
             "effectResumeClaimDecide",
             "effectSettlementCompletionAllowed",
+            "nextRunStateRevision",
+            "prepareRunStateObservation",
             "resolutionAdmit",
             "resolutionDecide",
             "resolutionProofPreimage",
@@ -43369,7 +43428,10 @@
             "resumeFenceDecide",
             "resumedApprovalAt",
             "runStateAdmit",
+            "runStateObservationKey",
+            "runStateObservationWire",
             "runTransitionAllowed",
+            "runWaitDecision",
             "verifiedAttestationPreimage",
             "waitingExitState"
           ],
@@ -43400,6 +43462,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Checkpoint and Resolution admission"
+              },
+              {
+                "path": "packages/run-host-core/checkpoints.d.ts",
+                "anchor": "export declare function prepareRunStateObservation("
               }
             ],
             "identity": [
@@ -43414,6 +43480,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "packages/run-host-core/checkpoints.d.ts",
+                "anchor": "export interface RunStateObservation {"
               }
             ],
             "ownership": [
@@ -43442,6 +43512,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "packages/run-host-core/checkpoints.d.ts",
+                "anchor": "* row. A missing intermediate wire revision is completed by Core, not by a"
               }
             ],
             "failure": [
@@ -43484,6 +43558,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "packages/run-host-core/checkpoints.d.ts",
+                "anchor": "export interface RunStateObservationLimits {"
               }
             ],
             "extension": [
@@ -43512,6 +43590,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "packages/run-host-core/types.negative.test.ts",
+                "anchor": "const stateRevision: number = nextRunStateRevision("
               }
             ]
           }
@@ -43522,7 +43604,7 @@
     {
       "module": "packages/run-host-core/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "296a8f16040121944a8100ed61b3131e543848b71d28fad046b6137f8edfc214",
+      "sha256": "949c2f9134f2ec1745487da2ce58ffbc4095a5834975eb573335963b4988f3a0",
       "role": "common-semantics",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -43533,6 +43615,8 @@
         "checkpointWaitingState",
         "effectResumeClaimDecide",
         "effectSettlementCompletionAllowed",
+        "nextRunStateRevision",
+        "prepareRunStateObservation",
         "resolutionAdmit",
         "resolutionDecide",
         "resolutionProofPreimage",
@@ -43540,15 +43624,121 @@
         "resumeFenceDecide",
         "resumedApprovalAt",
         "runStateAdmit",
+        "runStateObservationKey",
+        "runStateObservationWire",
         "runTransitionAllowed",
+        "runWaitDecision",
         "verifiedAttestationPreimage",
         "waitingExitState"
       ],
-      "operations": [],
+      "operations": [
+        {
+          "name": "nextRunStateRevision",
+          "parameters": [
+            "token",
+            "priorKey",
+            "currentRevision"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationLimits",
+          "parameters": [
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationLimits/observationLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationResult",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationRevision",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "observationValue",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRunStateObservation",
+          "parameters": [
+            "wire",
+            "runId",
+            "currentRevision",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireRunStateOwner",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "requireRunStateOwner/requireRunStateOwner",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "runStateObservationKey",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "runStateObservationWire",
+          "parameters": [
+            "token",
+            "revision"
+          ],
+          "async": false
+        },
+        {
+          "name": "runWaitDecision",
+          "parameters": [
+            "wire",
+            "since",
+            "limits"
+          ],
+          "async": false
+        }
+      ],
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "nextRunStateRevision",
+            "observationLimits",
+            "observationLimits/observationLimits",
+            "observationResult",
+            "observationRevision",
+            "observationValue",
+            "prepareRunStateObservation",
+            "requireRunStateOwner",
+            "requireRunStateOwner/requireRunStateOwner",
+            "runStateObservationKey",
+            "runStateObservationWire",
+            "runWaitDecision"
           ],
           "exports": [
             "checkpointAdmit",
@@ -43558,6 +43748,8 @@
             "checkpointWaitingState",
             "effectResumeClaimDecide",
             "effectSettlementCompletionAllowed",
+            "nextRunStateRevision",
+            "prepareRunStateObservation",
             "resolutionAdmit",
             "resolutionDecide",
             "resolutionProofPreimage",
@@ -43565,7 +43757,10 @@
             "resumeFenceDecide",
             "resumedApprovalAt",
             "runStateAdmit",
+            "runStateObservationKey",
+            "runStateObservationWire",
             "runTransitionAllowed",
+            "runWaitDecision",
             "verifiedAttestationPreimage",
             "waitingExitState"
           ],
@@ -43596,6 +43791,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Checkpoint and Resolution admission"
+              },
+              {
+                "path": "src/checkpoint_runtime_node/run_state_observation.mbt",
+                "anchor": "pub fn run_state_observation_prepare("
               }
             ],
             "identity": [
@@ -43610,6 +43809,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "packages/run-host-core/checkpoints.mjs",
+                "anchor": "function observationValue(token)"
               }
             ],
             "ownership": [
@@ -43624,6 +43827,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "packages/run-host-core/checkpoints.mjs",
+                "anchor": "const runStateObservations = new WeakMap();"
               }
             ],
             "synchronization": [
@@ -43638,6 +43845,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn RunStateObservation::next_revision("
               }
             ],
             "failure": [
@@ -43652,6 +43863,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "packages/run-host-core/checkpoints.mjs",
+                "anchor": "function requireRunStateOwner()"
               }
             ],
             "cancellation": [
@@ -43680,6 +43895,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "packages/run-host-core/checkpoints.mjs",
+                "anchor": "function observationLimits(limits)"
               }
             ],
             "extension": [
@@ -43708,6 +43927,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "packages/run-host-core/checkpoints.test.mjs",
+                "anchor": "test('actual Run observation Owner"
               }
             ]
           }
