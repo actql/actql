@@ -22,6 +22,52 @@ test "public full and logical UPDATE preparation retain one concrete selection" 
     None,
   ).unwrap()
   assert_true(full.update_targets is Some(_))
+  let json = client_program_prepare_published_effect_computation_with_parameters(
+    full.document,
+    "json",
+    environment,
+    publication,
+    None,
+    [],
+  )
+  let json = client_program_effect_preparation_ready(json).unwrap()
+  let selection = @publication_host.prepared_client_effect_target_selections(
+    json,
+  ).unwrap()
+  let legacy = client_program_prepare_effect_computation_with_parameters(
+    full.document,
+    "json",
+    environment,
+    None,
+    [],
+  )
+  assert_true(
+    @publication_host.prepared_client_effect_target_selections(
+      client_program_effect_preparation_ready(legacy).unwrap(),
+    )
+    is None,
+  )
+  for
+    invalid in [
+      publication.replace(
+        old="ef3c11ecddf6d35749bb98df9820c0459b72190354495ffb87e877a5e5ae7d97",
+        new="a".repeat(64),
+      ),
+      publication.replace(old="installationOwnerCid", new="unknownOwnerCid"),
+      "{}",
+    ] {
+    assert_true(
+      client_program_prepare_published_effect_computation_with_parameters(
+        full.document,
+        "json",
+        environment,
+        invalid,
+        None,
+        [],
+      )
+      is EffectRejected(Input(SourcePreparation(Publication))),
+    )
+  }
   for
     target in [
       "salesforce.Account", "salesforce.Account MAPPING `mapping:crm.account.v1`",
@@ -52,6 +98,10 @@ test "public full and logical UPDATE preparation retain one concrete selection" 
     assert_true(
       @publication_host.prepared_client_effect_target_selections(prepared)
       is Some(_),
+    )
+    assert_eq(
+      @publication_host.prepared_client_effect_target_selections(prepared).unwrap(),
+      selection,
     )
   }
 }

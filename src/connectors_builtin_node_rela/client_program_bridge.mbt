@@ -2852,6 +2852,46 @@ pub fn client_program_prepare_effect_computation_with_parameters(
 }
 
 ///|
+/// JSON Effect preparation uses the same installed publication reader as
+/// text lowering. The retained selection belongs to the checked Effect owner;
+/// neither publication DATA nor a prepared handle authorizes a Run.
+#export_name("clientProgramPreparePublishedEffectComputationWithParameters")
+pub fn client_program_prepare_published_effect_computation_with_parameters(
+  document : String,
+  format : String,
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  parameters : String?,
+  evidence : Array[@context.StageCapacityInput],
+) -> ClientEffectProgramBridgeOutcome {
+  if !client_program_source_publication_valid(environment, publication) {
+    return EffectRejected(Input(SourcePreparation(Publication)))
+  }
+  let update_targets = match
+    @source_publication.published_update_targets(environment, publication) {
+    Ok(value) => value
+    Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
+  }
+  let (selected, supplied) = match client_program_input(format, parameters) {
+    Ok(value) => value
+    Err(issue) => return EffectRejected(Input(issue))
+  }
+  match
+    @publication_host.prepare_client_effect_computation(
+      document,
+      selected,
+      environment,
+      supplied,
+      evidence,
+      client_program_effect_limits(),
+      update_targets~,
+    ) {
+    Ok(value) => EffectPrepared(value)
+    Err(issue) => EffectRejected(Preparation(issue))
+  }
+}
+
+///|
 #export_name("clientProgramEffectPreparationReady")
 pub fn client_program_effect_preparation_ready(
   outcome : ClientEffectProgramBridgeOutcome,
