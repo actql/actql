@@ -77,6 +77,7 @@ fn graph_key_operation(
     GraphMatch(op) => Some(MatchOperation(op))
     Traverse(checked~, ..) => Some(TraverseOperation(checked))
     GraphComponents(op) => Some(ComponentsOperation(op))
+    GraphDegree(op) => Some(DegreeOperation(op))
     _ => None
   }
 }

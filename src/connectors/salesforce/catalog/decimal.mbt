@@ -38,135 +38,28 @@ priv enum DecimalIssue {
 }
 
 ///|
-/// The ActQL fixed-scale text of the JSON number `lexeme` as
-/// `decimal(precision, scale)`, computed from its digits alone, not through
-/// binary64. Trailing zeros beyond the scale are exact and dropped; a
-/// nonzero digit beyond it is `DecimalScale`, never rounded.
+/// The same provider number-text conversion through the Common Decimal Owner.
+/// The exact source lexeme was already bounded by the query body's limits.
 fn json_number_decimal(
   lexeme : String,
   precision : Int,
   scale : Int,
 ) -> Result[String, DecimalIssue] {
-  let size = lexeme.length()
-  let negative = size > 0 && lexeme[0] == '-'
-  let mut index = if negative { 1 } else { 0 }
-  let digits = StringBuilder()
-  let integer_start = index
-  while index < size && lexeme[index] >= '0' && lexeme[index] <= '9' {
-    digits.write_char(lexeme[index].to_int().unsafe_to_char())
-    index += 1
-  }
-  let integer_digits = index - integer_start
-  if integer_digits == 0 || (integer_digits > 1 && lexeme[integer_start] == '0') {
-    return Err(DecimalFormat)
-  }
-  let mut fraction_digits = 0
-  if index < size && lexeme[index] == '.' {
-    index += 1
-    while index < size && lexeme[index] >= '0' && lexeme[index] <= '9' {
-      digits.write_char(lexeme[index].to_int().unsafe_to_char())
-      index += 1
-      fraction_digits += 1
-    }
-    if fraction_digits == 0 {
-      return Err(DecimalFormat)
-    }
-  }
-  // The decimal exponent, bounded: beyond it a nonzero value is out of
-  // range or scale whatever its digits.
-  let mut exponent = 0
-  let mut exponent_overflow = false
-  if index < size && (lexeme[index] == 'e' || lexeme[index] == 'E') {
-    index += 1
-    let exponent_negative = index < size && lexeme[index] == '-'
-    if index < size && (lexeme[index] == '-' || lexeme[index] == '+') {
-      index += 1
-    }
-    let exponent_start = index
-    while index < size && lexeme[index] >= '0' && lexeme[index] <= '9' {
-      if exponent < 100000 {
-        exponent = exponent * 10 + (lexeme[index].to_int() - 48)
-      } else {
-        exponent_overflow = true
-      }
-      index += 1
-    }
-    if index == exponent_start {
-      return Err(DecimalFormat)
-    }
-    if exponent_negative {
-      exponent = -exponent
-    }
-  }
-  if index != size {
-    return Err(DecimalFormat)
-  }
-  // The value is `digits × 10^(exponent − fraction_digits)`; its coefficient
-  // at `scale` is `digits × 10^shift`.
-  let all = digits.to_string()
-  let mut first = 0
-  while first < all.length() && all[first] == '0' {
-    first += 1
-  }
-  if first == all.length() {
-    // Zero, whatever its sign or exponent.
-    return Ok(fixed_scale_text("0", false, scale))
-  }
-  let significant = all[first:].to_owned()
-  if exponent_overflow {
-    return Err(if exponent > 0 { DecimalRange } else { DecimalScale })
-  }
-  let shift = exponent - fraction_digits + scale
-  let coefficient = if shift >= 0 {
-    if significant.length() + shift > precision {
-      return Err(DecimalRange)
-    }
-    significant + "0".repeat(shift)
-  } else {
-    let kept = significant.length() + shift
-    let dropped = if kept > 0 {
-      significant[kept:].to_owned()
-    } else {
-      significant
-    }
-    for unit in dropped {
-      if unit != '0' {
-        return Err(DecimalScale)
-      }
-    }
-    if kept <= 0 {
-      return Ok(fixed_scale_text("0", false, scale))
-    }
-    significant[:kept].to_owned()
-  }
-  if coefficient.length() > precision {
-    return Err(DecimalRange)
-  }
-  Ok(fixed_scale_text(coefficient, negative, scale))
-}
-
-///|
-/// The ActQL canonical spelling of `coefficient × 10^(−scale)`.
-fn fixed_scale_text(
-  coefficient : String,
-  negative : Bool,
-  scale : Int,
-) -> String {
-  let padded = if coefficient.length() <= scale {
-    "0".repeat(scale + 1 - coefficient.length()) + coefficient
-  } else {
-    coefficient
-  }
-  let integer_end = padded.length() - scale
-  let text = if scale == 0 {
-    padded
-  } else {
-    padded[:integer_end].to_owned() + "." + padded[integer_end:].to_owned()
-  }
-  if negative && coefficient != "0" {
-    "-" + text
-  } else {
-    text
+  match
+    @admitted.normalize_decimal_text(
+      lexeme,
+      precision,
+      scale,
+      lexeme.length().max(1),
+    ) {
+    Ok(value) => Ok(value)
+    Err(
+      @admitted.InvalidFormat
+      | @admitted.InvalidLimits
+      | @admitted.InputLimit
+    ) => Err(DecimalFormat)
+    Err(@admitted.OutOfRange) => Err(DecimalRange)
+    Err(@admitted.BeyondScale) => Err(DecimalScale)
   }
 }
 

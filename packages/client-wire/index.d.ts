@@ -126,7 +126,7 @@ export type WireClientBodyByOperation = Readonly<{
   status: WireRefBody;
   'owner-observations': WireRefBody & Readonly<{
     cursors:readonly WireOwnerCursor[];maxEntries:number;maxWireBytes:number}>;
-  wait: WireRefBody & Readonly<{until: string | null}>;
+  wait: WireRefBody & Readonly<{until: string | null; since: number | null}>;
   cancel: WireRefBody & Readonly<{cancelId: string; expectedRevision: number; attemptRef: WireOperationAttemptRef}>;
   'lookup-cancellation': WireRefBody & Readonly<{cancelId: string; expectedRevision: number}>;
   reconcile: WireRefBody;
@@ -173,6 +173,7 @@ export type WireClientBody =
 
 export declare function validRunRef(value: unknown): value is WireRunRef;
 export declare function validRunState(value: unknown): value is WireRunState;
+export declare function validRunWaitContract(value: unknown, since: number | null): value is WireRunState;
 export declare function validCheckOutcome(value: unknown):
   value is WireCheckOutcome;
 export declare function validSubmitPreparationError(value: unknown):

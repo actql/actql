@@ -43,18 +43,20 @@ test('Sequence audit refuses missing rereads and altered original references val
     beforeSubmit: count(index), beforeRead: count(index + 1), afterReplay: count(index + 1)}));
   const completedRefusals = sequenceSourceRefusals.map((item, index) => ({name: item.name,
     submissionRef: {refusal: index}, outcome: {kind: 'not_accepted', problem: {code: item.expectedCode},
-      submissionRef: {refusal: index}}, beforeSubmit: count(18), afterRefusal: count(18)}));
-  const report = {mode: 'local', suite: 'sequence', complete: true, actualNormal: 18, actualRefusal: 9,
+      submissionRef: {refusal: index}}, beforeSubmit: count(22), afterRefusal: count(22)}));
+  const report = {mode: 'local', suite: 'sequence', complete: true, actualNormal: 22, actualRefusal: 9,
     expectedSuccessNames: completed.map(item => item.name), successNames: completed.map(item => item.name),
     expectedRefusalNames: completedRefusals.map(item => item.name), refusalNames: completedRefusals.map(item => item.name),
     completed, completedRefusals, providerObservation: quiet,
     freshProcessReread: {mode: 'local', suite: 'sequence', phase: 'fresh-process-reread', complete: true,
       providerObservation: quiet, completed: completed.map(item => ({...item,
-        beforeAcceptedRuns: 18, afterAcceptedRuns: 18}))}};
+        beforeAcceptedRuns: 22, afterAcceptedRuns: 22}))}};
   const audit = auditSequenceTransport(report);
-  assert.equal(audit.actualNormal, 18); assert.equal(audit.actualRefusal, 9);
-  assert.equal(audit.freshRereadNamedResults, 18);
-  for (const change of [r => {delete r.freshProcessReread;},
+  assert.equal(audit.actualNormal, 22); assert.equal(audit.actualRefusal, 9);
+  assert.equal(audit.freshRereadNamedResults, 22);
+  for (const change of [r => {r.actualNormal = 18;},
+    r => {r.completedRefusals[7].name = 'sequence-implicit-overlap';},
+    r => {delete r.freshProcessReread;},
     r => {r.freshProcessReread.complete = false;},
     r => {r.freshProcessReread.completed.pop();},
     r => {r.freshProcessReread.completed[0].ref = {run: 'new'};},
@@ -70,9 +72,9 @@ test('Sequence audit refuses missing rereads and altered original references val
   }
 });
 
-test('release Sequence selects all original 18 normal and 9 refusal inputs without rewriting them', () => {
+test('release Sequence selects all original explicit and adopted default inputs without rewriting them', () => {
   const selected = selectReleaseSequenceQueryCases();
-  assert.equal(selected.successes.length, 18);
+  assert.equal(selected.successes.length, 22);
   assert.equal(selected.refusals.length, 9);
   assert.deepEqual(selected.successes.map(value => value.name), releaseSequenceSuccessNames);
   assert.deepEqual(selected.refusals.map(value => value.name), releaseSequenceRefusalNames);
