@@ -308,7 +308,7 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
     throw error;
   } finally {
     try {
-      await handle.close();
+      if (await handle.close() === false) fail('PublicationMetadataReaderCleanupPending');
     } catch (closeFailure) {
       // Retain exactly this failed FD, not a pathname reopen or another read.
       // As for the existing object reader, the original caller's reservation
@@ -323,7 +323,8 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
         retry() {
           if (flight !== undefined) return flight;
           if (original === undefined) return Promise.resolve(status());
-          flight = Promise.resolve().then(() => original.close()).then(() => {
+          flight = Promise.resolve().then(() => original.close()).then(result => {
+            if (result === false) fail('PublicationMetadataReaderCleanupPending');
             original = undefined;
             const acknowledge = retire;
             retire = undefined;
@@ -334,12 +335,26 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
         },
       });
       const primary = readFailed ? readFailure : closeFailure;
-      const failure = primary !== null && typeof primary === 'object' &&
-        Object.isExtensible(primary) && primary.cleanupHandle === undefined
-        ? primary : new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
-      failure.cleanupHandle = cleanup;
-      failure.cleanupPending = true;
-      failure.cleanupError = closeFailure;
+      let failure;
+      try {
+        failure = primary !== null && typeof primary === 'object' &&
+          Object.isExtensible(primary) && primary.cleanupHandle === undefined &&
+          ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+            const field = Object.getOwnPropertyDescriptor(primary, name);
+            return field === undefined || field.writable === true;
+          })
+          ? primary : new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
+        failure.cleanupHandle = cleanup;
+        failure.cleanupPending = true;
+        failure.cleanupError = closeFailure;
+      } catch {
+        // Readonly fields/accessors must not mask the original read failure
+        // or discard the same FD. The fresh wrapper owns diagnostics only.
+        failure = new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
+        failure.cleanupHandle = cleanup;
+        failure.cleanupPending = true;
+        failure.cleanupError = closeFailure;
+      }
       throw failure;
     }
     closed?.();
