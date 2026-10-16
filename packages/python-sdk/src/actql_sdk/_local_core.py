@@ -187,6 +187,11 @@ class _Output:
     family: str = "material"
 
 
+# Existing publication field selection is separate from scalar signatures.
+_CommitMaterialField = Literal['wire', 'name', 'identity_field', 'identity']
+_COMMIT_MATERIAL_FIELDS = {'wire': 0, 'name': 1, 'identity_field': 2, 'identity': 3}
+
+
 # Scalar declarations are generated from the original MoonBit boundary.
 from ._local_wasm_abi import (
     LOCAL_CORE_ABI,
