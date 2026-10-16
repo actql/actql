@@ -8,7 +8,11 @@ import {
 // Values
 pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]
 
+pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]
+
 pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields
+
+pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
 pub fn object_metadata_response_sha256(ObjectMetadata) -> String
 
@@ -20,11 +24,17 @@ pub fn object_mutation_before(ObjectMutationRequest) -> ObjectMetadataFields
 
 pub fn object_mutation_body(ObjectMutationRequest) -> String
 
+pub fn object_mutation_body_for(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]
+
+pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]
+
 pub fn object_mutation_cid(ObjectMutationRequest) -> String
 
 pub fn object_mutation_method(ObjectMutationRequest) -> String
 
 pub fn object_mutation_path(ObjectMutationRequest) -> String
+
+pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]
 
 pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?
 
@@ -97,6 +107,7 @@ pub struct ObjectMutationRequest {
   body : String
   cid : String
   logical_after : ObjectMetadataFields?
+  authored_changes : String
 }
 
 pub(all) enum ObjectRequestIssue {
