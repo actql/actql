@@ -17,7 +17,7 @@ export function replaceInterfaceDeclarations(base, overlay) {
   return [...values.values()].sort((a, b) => a.module.localeCompare(b.module));
 }
 
-export function interfaceOwnerCoverage({root, modules, owners, requireComplete = true}) {
+export function interfaceOwnerCoverage({root, modules, owners, requireComplete = true, generated}) {
   const actual = new Map(), covered = new Set(), ids = new Set(), facets = [];
   for (const module of modules) {
     const previous = actual.get(module.module);
@@ -32,7 +32,7 @@ export function interfaceOwnerCoverage({root, modules, owners, requireComplete =
     const selected = owner.declarations.filter(value => actual.has(value.module));
     const selectedModules = selected.map(value => actual.get(value.module));
     assertInterfaceCoverage({root, modules: selectedModules, declarations: owner.declarations,
-      generated: owner.generated ?? [], readReference: owner.readReference});
+      generated: generated ?? owner.generated ?? [], readReference: owner.readReference});
     selected.forEach(value => covered.add(value.module));
     facets.push({owner: owner.id, modules: selected.length,
       qualification: owner.qualification ?? 'owner-reference-coverage-only'});
