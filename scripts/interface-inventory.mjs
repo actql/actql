@@ -105,10 +105,12 @@ export function packageEntrances(manifest, directory = '.') {
     return typeof value === 'string' ? [value] : value && typeof value === 'object'
       ? Object.values(value).flatMap(targets) : [];
   }
+  const base = resolve(directory);
   return ordered([...targets(manifest.exports), ...targets(manifest.bin),
     ...targets(manifest.main), ...targets(manifest.types)]).map(path => {
-    assert(inside(path), `Nonlocal distribution entrance: ${path}`);
-    return resolve(directory, path);
+    const target = resolve(base, path);
+    assert(inside(relative(base, target)), `Nonlocal distribution entrance: ${path}`);
+    return target;
   }).sort();
 }
 
