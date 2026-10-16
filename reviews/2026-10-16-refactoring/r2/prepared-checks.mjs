@@ -19,4 +19,4 @@ process.exitCode = await runLocalCheck({root, heavy: false,
     command: process.execPath, args: ['--input-type=module', '-e',
       'import {runFocusedTests} from "./scripts/test-execution.mjs"; ' +
       'process.exitCode=runFocusedTests("node",process.argv.slice(1),' +
-      '{cwd:process.cwd(),timeout:30000});', ...tests]}]});
+      '{cwd:process.cwd(),timeout:30000});', '--', ...tests]}]});
