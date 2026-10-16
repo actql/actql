@@ -35,6 +35,8 @@ import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
   './effect-target-read-inventory.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
+import {clientHostRequestKeys, validClientRequestOptionalFields} from
+  '../../packages/client-wire/client-host.generated.js';
 import {selectOriginalInferMetadataAcquisition,
   selectOriginalInferStoreBootstrapAcquisition,
   selectOriginalInferResourceCodecAcquisition} from './infer-operation.mjs';
@@ -2452,12 +2454,33 @@ export async function installRemoteCheckpoints({root, namespaceId,
 
     prepareAttemptIdOf,
 
-    async listCheckpoints({principalId, after, limit}) {
+    async listCheckpoints(input) {
+      const {principalId, after, limit, checkpointId} = input;
       if (!(principalId === ownerPrincipal || readers.has(principalId) ||
           answerers.has(principalId))) {
         fail('CheckpointListDenied');
       }
+      const lookup = Object.hasOwn(input, 'checkpointId');
+      if (lookup && (after !== '' || limit !== 1 ||
+          !clientHostRequestKeys('checkpoints', {checkpointId}).includes('checkpointId') ||
+          !validClientRequestOptionalFields('checkpoints', {checkpointId}))) {
+        fail('InvalidCheckpointLookup');
+      }
       journal.expire();
+      if (lookup) {
+        // Inspect uses this same Journal's exact ID/CID index and refuses
+        // ambiguous IDs. A CID fallback is not an ID match or a new grant.
+        const view = journal.inspect(checkpointId);
+        if (view === undefined || view.checkpointId !== checkpointId || view.closure !== 'pending') {
+          return Object.freeze({items: []});
+        }
+        const summary = await summaryOf(view);
+        const current = journal.inspect(view.checkpointCid);
+        if (current?.checkpointId !== checkpointId || current.closure !== 'pending') {
+          return Object.freeze({items: []});
+        }
+        return Object.freeze({items: [summary]});
+      }
       const bounded = Math.min(limit, MAX_PAGE);
       const rows = journal.listPending({after: after === '' ? undefined
         : after, limit: bounded + 1});

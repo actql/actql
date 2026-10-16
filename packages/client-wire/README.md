@@ -1,5 +1,20 @@
 # ActQL Client–Host wire shapes
 
+## Exact pending Checkpoint lookup
+
+The existing `checkpoints` request optionally selects `checkpointId`, using
+the original Checkpoint-summary ID spelling from the machine contract. This
+mode requires `after: ""` and `limit: 1`. The same Host/Journal returns zero
+or one pending summary, with no `next`; IDs are exact, not CID fallbacks.
+`validCheckpointLookup` checks the original requested ID against that closed
+response. The old paged request is unchanged when the selection is absent.
+
+This is safe metadata from the original Host scope, not permission, a signed
+answer, a new Checkpoint, completed Effect or physical cleanup. The Journal
+retains its ambiguity and lifetime checks; stale/foreign/fulfilled originals
+do not become fresh attempts. Callers use the existing review and signed
+resolution ports, with current authorization still checked by their Owners.
+
 `@actql/client-wire` is the structural request boundary for the public
 Client–Host HTTP protocol. It validates exact operation envelopes, connection
 selection, scoped Run references and bounded text before Host authorization.

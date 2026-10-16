@@ -1,6 +1,14 @@
 {
   "version": "actql-client-host/0.1",
   "request_optional_fields": {
+    "checkpoints": {
+      "checkpointId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256,
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+      }
+    },
     "submit": {
       "stopBefore": {"const": "commit"}
     },

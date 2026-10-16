@@ -2375,8 +2375,9 @@ async function openInstalledHost(originalInstallation) {
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
     prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check});
   const checkpointOperations = checkpoints === undefined ? {} : {
-    checkpoints: ({principalId: actual, after, limit}) =>
-      checkpoints.listCheckpoints({principalId: actual, after, limit}),
+    checkpoints: value => checkpoints.listCheckpoints({principalId: value.principalId,
+      after: value.after, limit: value.limit,
+      ...(Object.hasOwn(value, 'checkpointId') ? {checkpointId: value.checkpointId} : {})}),
     checkpointReview: ({principalId: actual, checkpointCid, maxBytes,
       signal}) => checkpoints.reviewCheckpoint({principalId: actual,
       checkpointCid, maxBytes, signal}),

@@ -92,6 +92,41 @@ call `run.cancel()` to request cancellation. Keep the original submission and
 cancellation references for lookup after response loss. A `not_found` lookup
 grants no permission to retry a write.
 
+### Configured Checkpoint signer and exact decisions
+
+Configure an application-owned `Signer` on `Client.connect(..., signer=signer)`
+or `AsyncClient.connect(..., signer=signer)` (and on the corresponding Local
+`open` factory). `Signer.sign` receives the original artifact CID's UTF-8
+bytes and returns an Ed25519 signature; async callbacks are supported. The
+SDK copies the signer selection, not its private key, and adds no crypto or
+Local-engine dependency to the lightweight Remote installation.
+
+```python
+from actql_sdk import Client, Signer
+
+signer = Signer("reviewer-key", "reviewer", application_sign,
+                authority_scope_cid=trusted_host_authority_scope_cid)
+with Client.connect(endpoint, token, signer=signer) as client:
+    client.approve(original_checkpoint_id)
+    # Or client.reject(original_checkpoint_id).
+```
+
+The convenience calls perform one exact pending-ID metadata lookup in the
+original Host/Journal and delegate to `resolve_checkpoints`. They do not cache
+Checkpoints, search pages, reconstruct a Preview, grant permission or replace
+the Host's current Account checks. Effect approval requires the signer's real
+authority scope; an ID or signer configuration alone supplies none. The same
+configured signer can serve explicit unsigned `resolve_checkpoints` items;
+an explicit method signer still overrides it. Already-signed items are not
+re-signed.
+
+An absent, fulfilled, cancelled or expired Checkpoint is not a new pending
+attempt. Invalid or mismatched lookup responses are refused before signing.
+Resolution reply loss remains `ResolutionUnknown` with the original signed
+wires retained; there is no automatic retry, new issuance or Effect send.
+Client close is not Run cancellation. Failed local cleanup retains the same
+signer/transport custody until the original cleanup succeeds.
+
 If connection negotiation fails and physical cleanup also fails, the
 `ClientConnectionCleanupFailed` error retains `original_error`, `cleanup_error`,
 and `cleanup_client`. Explicitly retry `cleanup_client.aclose()` for async or

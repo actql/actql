@@ -17799,6 +17799,14 @@ const operationKeys = {
 };
 
 const optionalRequestFields = {
+  "checkpoints": {
+    "checkpointId": {
+      "type": "string",
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  },
   "submit": {
     "stopBefore": {
       "const": "commit"

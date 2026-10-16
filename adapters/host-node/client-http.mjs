@@ -8,7 +8,7 @@ import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {deliverAuthorizedResult,
   describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
-import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, validCheckpointReview,
+import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, validCheckpointLookup, validCheckpointReview,
   validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
@@ -348,7 +348,9 @@ export function createClientHttpHandler({
         finally { observer.release(); }
       } else if (operation === 'checkpoints') {
         const page = await invoke(checkpoints);
-        if (!validCheckpointPage(page, body.limit)) {
+        if (!(Object.hasOwn(body, 'checkpointId')
+          ? validCheckpointLookup(page, body.checkpointId)
+          : validCheckpointPage(page, body.limit))) {
           invalid('InvalidClientHostCheckpointPage');
         }
         sendJson(page);
