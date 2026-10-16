@@ -1,0 +1,618 @@
+{
+  "qualification": "Independent authored static publication preimages; not a production upload selector or runtime/custody acceptance",
+  "cases": {
+    "relation": {
+      "environment": {
+        "version": "actql-check-environment/0.1",
+        "schema_snapshots": [],
+        "connector_capabilities": [],
+        "mapping_contracts": [
+          {
+            "schema": "actql.mapping_contract/0.1",
+            "mapping_ref": "mapping:fixture.archive.v1",
+            "version": "fixture-1",
+            "target_ref": "connector://storage/archive",
+            "connector_manifest_cid": "sha256:6960590acec3fcbd045e40dbb94ec08f77c3a2d271943b019a8ada57283a3208",
+            "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "target_schema_identity": "sha256:bd89154b566792abefae13b781921bdb85725e117f241b99ce245d14d0efa37a",
+            "target_schema": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "nullable": false
+                },
+                "value": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            },
+            "primary_identity": "id",
+            "writable_fields": [
+              "id",
+              "value"
+            ],
+            "required_fields": [
+              "id",
+              "value"
+            ],
+            "conversions": [],
+            "permission_rules": [
+              {
+                "effect_kind": "store",
+                "selector_class": "none",
+                "write_fields": [
+                  "id",
+                  "value"
+                ],
+                "permissions": [
+                  "scope:write"
+                ]
+              }
+            ],
+            "required_permissions": [],
+            "minimum_approval": "none",
+            "row_mapping": {
+              "id": {
+                "field": "id",
+                "null_behavior": "reject"
+              },
+              "value": {
+                "field": "value",
+                "null_behavior": "reject"
+              }
+            },
+            "mapping_contract_cid": "sha256:0b87a8caf4ee5b16c681c989bd20f746342c787b6cd4fd5cc8354f7e8b3cce87"
+          }
+        ],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [
+          {
+            "schema": "actql.connector_catalog/0.1",
+            "connector_id": "storage",
+            "connector_version": "fixture-1",
+            "contracts": [],
+            "commands": [],
+            "source_views": [],
+            "catalog_cid": "sha256:72bcd8da7d4e7e4b8bf2d9245d7ca27aa12ca830c8850b2ae2ff3ac1a8191a7a"
+          }
+        ],
+        "host_policy_profile": {},
+        "connector_manifest": {
+          "version": "actql-connectors/0.1",
+          "connectors": [
+            {
+              "connector": "fixture",
+              "connector_id": "storage",
+              "connector_version": "fixture-1"
+            }
+          ]
+        },
+        "evidence_bundle_cid": "sha256:686a0c4b0f6c94a9727f0d3971d4898602c37f7e80eeffb4205d17711f30a987"
+      },
+      "expected_environment_cid": "sha256:686a0c4b0f6c94a9727f0d3971d4898602c37f7e80eeffb4205d17711f30a987",
+      "expected_mapping_cid": "sha256:0b87a8caf4ee5b16c681c989bd20f746342c787b6cd4fd5cc8354f7e8b3cce87",
+      "catalog_cid": "sha256:72bcd8da7d4e7e4b8bf2d9245d7ca27aa12ca830c8850b2ae2ff3ac1a8191a7a"
+    },
+    "object": {
+      "environment": {
+        "version": "actql-check-environment/0.1",
+        "schema_snapshots": [],
+        "connector_capabilities": [],
+        "mapping_contracts": [
+          {
+            "schema": "actql.mapping_contract/0.1",
+            "mapping_ref": "mapping:fixture.archive.v1",
+            "version": "fixture-1",
+            "target_ref": "connector://storage/archive",
+            "connector_manifest_cid": "sha256:6960590acec3fcbd045e40dbb94ec08f77c3a2d271943b019a8ada57283a3208",
+            "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "target_schema_identity": "sha256:bd89154b566792abefae13b781921bdb85725e117f241b99ce245d14d0efa37a",
+            "target_schema": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "nullable": false
+                },
+                "value": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            },
+            "primary_identity": "id",
+            "writable_fields": [
+              "id",
+              "value"
+            ],
+            "required_fields": [
+              "id",
+              "value"
+            ],
+            "conversions": [],
+            "permission_rules": [
+              {
+                "effect_kind": "store",
+                "selector_class": "none",
+                "write_fields": [
+                  "id",
+                  "value"
+                ],
+                "permissions": [
+                  "scope:write"
+                ]
+              }
+            ],
+            "required_permissions": [],
+            "minimum_approval": "none",
+            "row_mapping": {
+              "id": {
+                "field": "id",
+                "null_behavior": "reject"
+              },
+              "value": {
+                "field": "value",
+                "null_behavior": "reject"
+              }
+            },
+            "store_command": {
+              "catalog_cid": "sha256:1442d63d3e52158944b356d5edd1c448628d4d277653c1a6d86d4906fe358ea7",
+              "command_ref": "command:fixture.upload.v1",
+              "command_contract_cid": "sha256:2024e0f48c6f29f89e2c602a46923697183b70ff9fb2be1db847a1374c630c94"
+            },
+            "mapping_contract_cid": "sha256:95de148023f83b5ef6a9a4f0e6453ef5a68b7bae5867d58b10feab0e6309d516"
+          }
+        ],
+        "source_views": [],
+        "command_contracts": [
+          {
+            "schema": "actql.command_contract/0.1",
+            "command_id": "command:fixture.upload.v1",
+            "connector_id": "storage",
+            "version": "fixture-1",
+            "target": {
+              "cardinality": "single",
+              "resource_kind": "file"
+            },
+            "contract_cid": "sha256:2024e0f48c6f29f89e2c602a46923697183b70ff9fb2be1db847a1374c630c94"
+          }
+        ],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [
+          {
+            "schema": "actql.connector_catalog/0.1",
+            "connector_id": "storage",
+            "connector_version": "fixture-1",
+            "contracts": [],
+            "commands": [
+              {
+                "schema": "actql.command_contract/0.1",
+                "command_id": "command:fixture.upload.v1",
+                "connector_id": "storage",
+                "version": "fixture-1",
+                "target": {
+                  "cardinality": "single",
+                  "resource_kind": "file"
+                },
+                "contract_cid": "sha256:2024e0f48c6f29f89e2c602a46923697183b70ff9fb2be1db847a1374c630c94"
+              }
+            ],
+            "source_views": [],
+            "catalog_cid": "sha256:1442d63d3e52158944b356d5edd1c448628d4d277653c1a6d86d4906fe358ea7"
+          }
+        ],
+        "host_policy_profile": {},
+        "connector_manifest": {
+          "version": "actql-connectors/0.1",
+          "connectors": [
+            {
+              "connector": "fixture",
+              "connector_id": "storage",
+              "connector_version": "fixture-1"
+            }
+          ]
+        },
+        "evidence_bundle_cid": "sha256:e0d5277f49f58186ffc6f914421db46d284cfd9937d7ad31c90a29fba417f342"
+      },
+      "expected_environment_cid": "sha256:e0d5277f49f58186ffc6f914421db46d284cfd9937d7ad31c90a29fba417f342",
+      "expected_mapping_cid": "sha256:95de148023f83b5ef6a9a4f0e6453ef5a68b7bae5867d58b10feab0e6309d516",
+      "catalog_cid": "sha256:1442d63d3e52158944b356d5edd1c448628d4d277653c1a6d86d4906fe358ea7"
+    },
+    "ambiguous": {
+      "environment": {
+        "version": "actql-check-environment/0.1",
+        "schema_snapshots": [],
+        "connector_capabilities": [],
+        "mapping_contracts": [
+          {
+            "connector_manifest_cid": "sha256:6960590acec3fcbd045e40dbb94ec08f77c3a2d271943b019a8ada57283a3208",
+            "conversions": [],
+            "mapping_ref": "mapping:fixture.other.v1",
+            "minimum_approval": "none",
+            "permission_rules": [
+              {
+                "effect_kind": "store",
+                "permissions": [
+                  "scope:other"
+                ],
+                "selector_class": "none",
+                "write_fields": [
+                  "id",
+                  "value"
+                ]
+              }
+            ],
+            "primary_identity": "id",
+            "required_fields": [
+              "id",
+              "value"
+            ],
+            "required_permissions": [],
+            "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "row_mapping": {
+              "id": {
+                "field": "id",
+                "null_behavior": "reject"
+              },
+              "value": {
+                "field": "value",
+                "null_behavior": "reject"
+              }
+            },
+            "schema": "actql.mapping_contract/0.1",
+            "target_ref": "connector://storage/archive",
+            "target_schema": {
+              "additional_properties": false,
+              "fields": {
+                "id": {
+                  "nullable": false,
+                  "type": "string"
+                },
+                "value": {
+                  "nullable": false,
+                  "type": "number"
+                }
+              },
+              "nullable": false,
+              "type": "object"
+            },
+            "target_schema_identity": "sha256:e33336737c8eaa9a7b76efeb383cc72b102f5a19086ff6b047e393524a7b57a5",
+            "version": "fixture-1",
+            "writable_fields": [
+              "id",
+              "value"
+            ],
+            "mapping_contract_cid": "sha256:868e9b1aa805bf2b9946396cc97134550e7a1179d35a22399a74c84cdb34e58a"
+          },
+          {
+            "schema": "actql.mapping_contract/0.1",
+            "mapping_ref": "mapping:fixture.archive.v1",
+            "version": "fixture-1",
+            "target_ref": "connector://storage/archive",
+            "connector_manifest_cid": "sha256:6960590acec3fcbd045e40dbb94ec08f77c3a2d271943b019a8ada57283a3208",
+            "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "target_schema_identity": "sha256:bd89154b566792abefae13b781921bdb85725e117f241b99ce245d14d0efa37a",
+            "target_schema": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "nullable": false
+                },
+                "value": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            },
+            "primary_identity": "id",
+            "writable_fields": [
+              "id",
+              "value"
+            ],
+            "required_fields": [
+              "id",
+              "value"
+            ],
+            "conversions": [],
+            "permission_rules": [
+              {
+                "effect_kind": "store",
+                "selector_class": "none",
+                "write_fields": [
+                  "id",
+                  "value"
+                ],
+                "permissions": [
+                  "scope:write"
+                ]
+              }
+            ],
+            "required_permissions": [],
+            "minimum_approval": "none",
+            "row_mapping": {
+              "id": {
+                "field": "id",
+                "null_behavior": "reject"
+              },
+              "value": {
+                "field": "value",
+                "null_behavior": "reject"
+              }
+            },
+            "mapping_contract_cid": "sha256:0b87a8caf4ee5b16c681c989bd20f746342c787b6cd4fd5cc8354f7e8b3cce87"
+          }
+        ],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [
+          {
+            "schema": "actql.connector_catalog/0.1",
+            "connector_id": "storage",
+            "connector_version": "fixture-1",
+            "contracts": [],
+            "commands": [],
+            "source_views": [],
+            "catalog_cid": "sha256:72bcd8da7d4e7e4b8bf2d9245d7ca27aa12ca830c8850b2ae2ff3ac1a8191a7a"
+          }
+        ],
+        "host_policy_profile": {},
+        "connector_manifest": {
+          "version": "actql-connectors/0.1",
+          "connectors": [
+            {
+              "connector": "fixture",
+              "connector_id": "storage",
+              "connector_version": "fixture-1"
+            }
+          ]
+        },
+        "evidence_bundle_cid": "sha256:e2d13ab4e22cee8b0f166b0cf17173ce057d6887e10dc77b4a0a24288be66c0b"
+      },
+      "expected_environment_cid": "sha256:e2d13ab4e22cee8b0f166b0cf17173ce057d6887e10dc77b4a0a24288be66c0b",
+      "expected_mapping_cid": "sha256:0b87a8caf4ee5b16c681c989bd20f746342c787b6cd4fd5cc8354f7e8b3cce87",
+      "catalog_cid": "sha256:72bcd8da7d4e7e4b8bf2d9245d7ca27aa12ca830c8850b2ae2ff3ac1a8191a7a"
+    },
+    "nonstore": {
+      "environment": {
+        "version": "actql-check-environment/0.1",
+        "schema_snapshots": [],
+        "connector_capabilities": [],
+        "mapping_contracts": [
+          {
+            "schema": "actql.mapping_contract/0.1",
+            "mapping_ref": "mapping:fixture.archive.v1",
+            "version": "fixture-1",
+            "target_ref": "connector://storage/archive",
+            "connector_manifest_cid": "sha256:6960590acec3fcbd045e40dbb94ec08f77c3a2d271943b019a8ada57283a3208",
+            "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "target_schema_identity": "sha256:bd89154b566792abefae13b781921bdb85725e117f241b99ce245d14d0efa37a",
+            "target_schema": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "nullable": false
+                },
+                "value": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            },
+            "primary_identity": "id",
+            "writable_fields": [
+              "id",
+              "value"
+            ],
+            "required_fields": [
+              "id",
+              "value"
+            ],
+            "conversions": [],
+            "permission_rules": [
+              {
+                "effect_kind": "create",
+                "selector_class": "none",
+                "write_fields": [
+                  "id",
+                  "value"
+                ],
+                "permissions": [
+                  "scope:write"
+                ]
+              }
+            ],
+            "required_permissions": [],
+            "minimum_approval": "none",
+            "row_mapping": {
+              "id": {
+                "field": "id",
+                "null_behavior": "reject"
+              },
+              "value": {
+                "field": "value",
+                "null_behavior": "reject"
+              }
+            },
+            "mapping_contract_cid": "sha256:5f739f8eb6bfa7502bd465da1e972a0a90b3d1015beec45be11840cf12c4febe"
+          }
+        ],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [
+          {
+            "schema": "actql.connector_catalog/0.1",
+            "connector_id": "storage",
+            "connector_version": "fixture-1",
+            "contracts": [],
+            "commands": [],
+            "source_views": [],
+            "catalog_cid": "sha256:72bcd8da7d4e7e4b8bf2d9245d7ca27aa12ca830c8850b2ae2ff3ac1a8191a7a"
+          }
+        ],
+        "host_policy_profile": {},
+        "connector_manifest": {
+          "version": "actql-connectors/0.1",
+          "connectors": [
+            {
+              "connector": "fixture",
+              "connector_id": "storage",
+              "connector_version": "fixture-1"
+            }
+          ]
+        },
+        "evidence_bundle_cid": "sha256:e98a039c5c6a01ac8e9d368505fcc635e5457fb02ee4611a02650ed480b289db"
+      },
+      "expected_environment_cid": "sha256:e98a039c5c6a01ac8e9d368505fcc635e5457fb02ee4611a02650ed480b289db",
+      "expected_mapping_cid": "sha256:5f739f8eb6bfa7502bd465da1e972a0a90b3d1015beec45be11840cf12c4febe",
+      "catalog_cid": "sha256:72bcd8da7d4e7e4b8bf2d9245d7ca27aa12ca830c8850b2ae2ff3ac1a8191a7a"
+    },
+    "foreignCatalog": {
+      "environment": {
+        "version": "actql-check-environment/0.1",
+        "schema_snapshots": [],
+        "connector_capabilities": [],
+        "mapping_contracts": [
+          {
+            "schema": "actql.mapping_contract/0.1",
+            "mapping_ref": "mapping:fixture.archive.v1",
+            "version": "fixture-1",
+            "target_ref": "connector://storage/archive",
+            "connector_manifest_cid": "sha256:6960590acec3fcbd045e40dbb94ec08f77c3a2d271943b019a8ada57283a3208",
+            "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "target_schema_identity": "sha256:bd89154b566792abefae13b781921bdb85725e117f241b99ce245d14d0efa37a",
+            "target_schema": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "nullable": false
+                },
+                "value": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            },
+            "primary_identity": "id",
+            "writable_fields": [
+              "id",
+              "value"
+            ],
+            "required_fields": [
+              "id",
+              "value"
+            ],
+            "conversions": [],
+            "permission_rules": [
+              {
+                "effect_kind": "store",
+                "selector_class": "none",
+                "write_fields": [
+                  "id",
+                  "value"
+                ],
+                "permissions": [
+                  "scope:write"
+                ]
+              }
+            ],
+            "required_permissions": [],
+            "minimum_approval": "none",
+            "row_mapping": {
+              "id": {
+                "field": "id",
+                "null_behavior": "reject"
+              },
+              "value": {
+                "field": "value",
+                "null_behavior": "reject"
+              }
+            },
+            "store_command": {
+              "catalog_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command_ref": "command:fixture.upload.v1",
+              "command_contract_cid": "sha256:2024e0f48c6f29f89e2c602a46923697183b70ff9fb2be1db847a1374c630c94"
+            },
+            "mapping_contract_cid": "sha256:3680d90debfe6a7c6c32b8cd1e4c39dde394d9f149a7441ec4bc01214778ca51"
+          }
+        ],
+        "source_views": [],
+        "command_contracts": [
+          {
+            "schema": "actql.command_contract/0.1",
+            "command_id": "command:fixture.upload.v1",
+            "connector_id": "storage",
+            "version": "fixture-1",
+            "target": {
+              "cardinality": "single",
+              "resource_kind": "file"
+            },
+            "contract_cid": "sha256:2024e0f48c6f29f89e2c602a46923697183b70ff9fb2be1db847a1374c630c94"
+          }
+        ],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [
+          {
+            "schema": "actql.connector_catalog/0.1",
+            "connector_id": "storage",
+            "connector_version": "fixture-1",
+            "contracts": [],
+            "commands": [
+              {
+                "schema": "actql.command_contract/0.1",
+                "command_id": "command:fixture.upload.v1",
+                "connector_id": "storage",
+                "version": "fixture-1",
+                "target": {
+                  "cardinality": "single",
+                  "resource_kind": "file"
+                },
+                "contract_cid": "sha256:2024e0f48c6f29f89e2c602a46923697183b70ff9fb2be1db847a1374c630c94"
+              }
+            ],
+            "source_views": [],
+            "catalog_cid": "sha256:1442d63d3e52158944b356d5edd1c448628d4d277653c1a6d86d4906fe358ea7"
+          }
+        ],
+        "host_policy_profile": {},
+        "connector_manifest": {
+          "version": "actql-connectors/0.1",
+          "connectors": [
+            {
+              "connector": "fixture",
+              "connector_id": "storage",
+              "connector_version": "fixture-1"
+            }
+          ]
+        },
+        "evidence_bundle_cid": "sha256:3536085ce3c1503e5bd8e10b90cd745742380a08723d7d2731e1bbe8ac059b74"
+      },
+      "expected_environment_cid": "sha256:3536085ce3c1503e5bd8e10b90cd745742380a08723d7d2731e1bbe8ac059b74",
+      "expected_mapping_cid": "sha256:3680d90debfe6a7c6c32b8cd1e4c39dde394d9f149a7441ec4bc01214778ca51",
+      "catalog_cid": "sha256:1442d63d3e52158944b356d5edd1c448628d4d277653c1a6d86d4906fe358ea7"
+    }
+  }
+}
