@@ -38,6 +38,7 @@ pub struct EffectHeader {
   contract_ref : String
   failure_policy : String
   body : @wire.Cursor
+  published_store : (String, String)?
 }
 
 ///|
@@ -79,6 +80,15 @@ pub fn effect_header_failure_policy(value : EffectHeader) -> String {
 ///|
 pub fn effect_header_body(value : EffectHeader) -> @wire.Cursor {
   value.body
+}
+
+///|
+/// Structural references only. The existing Environment owner must resolve the
+/// original Mapping/Command pair; this does not issue a target or permission.
+pub fn effect_header_published_store_target(
+  value : EffectHeader,
+) -> (String, String)? {
+  value.published_store
 }
 
 ///|
@@ -500,13 +510,35 @@ fn header_member(
   if !valid_ref {
     header_fail(contract_source, InvalidBody)
   }
-  if selected == "command" {
+  let published_store = if selected == "command" {
     let target = header_required(body, "target", source)
-    let view = header_object(target, ["field"])
-    ignore(header_text(header_required(view, "field", target)))
+    let view = header_object(target, ["field", "published_store"])
+    let publication = match @wire.lookup(view, "published_store") {
+      Some(publication) => {
+        ignore(header_object(target, ["published_store"]))
+        let selector = header_object(publication, ["target_ref", "mapping_ref"])
+        let target_ref = header_text(
+          header_required(selector, "target_ref", publication),
+        )
+        let mapping_ref = header_text(
+          header_required(selector, "mapping_ref", publication),
+        )
+        if !target_ref.has_prefix("connector://") ||
+          !@contract_ref.valid_mapping_ref(mapping_ref) {
+          header_fail(publication, InvalidBody)
+        }
+        Some((target_ref, mapping_ref))
+      }
+      None => {
+        ignore(header_text(header_required(view, "field", target)))
+        None
+      }
+    }
     ignore(header_required(body, "input", source))
+    publication
   } else {
     ignore(header_text(header_required(body, "target", source)))
+    None
   }
   let failure_policy = match @wire.lookup(body, "on_item_failure") {
     None => "halt"
@@ -570,6 +602,7 @@ fn header_member(
     contract_ref,
     failure_policy,
     body: source,
+    published_store,
   }
 }
 

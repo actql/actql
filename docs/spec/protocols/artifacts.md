@@ -955,7 +955,15 @@ spelling also admits object/file/stage writes with an original typed ContentRef;
 it does not imply a format or codec. Such a write may normalize to an existing
 typed Connector Command only through an explicitly published, checked relationship
 between the original write Mapping, exact Command Contract/member, target and
-installation. The checked selection and all those identities MUST remain bound
+installation. The canonical Command carries that selection as
+`target: {published_store: {target_ref, mapping_ref}}` alongside its exact
+`contract` reference; this is the narrow exception to the ordinary ResourceRef
+field target, not a second authored upload spelling. These references do not
+issue a ResourceRef or permission. The existing installed owner MUST obtain the
+original target from its trusted issuer, retain its current-check closure, and
+validate exact kind, target, scope, generation and installation/registration/
+revision correspondence. It MUST refuse missing originals before send and MUST
+NOT reconstruct them from current configuration on restore. The checked selection and all those identities MUST remain bound
 through compilation, original Run materials, Preview, apply and restore. A matching
 name or schema does not establish the relationship, and the Mapping MUST NOT be
 discarded after selection. Current installation and grants remain independently

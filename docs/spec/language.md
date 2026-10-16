@@ -8817,7 +8817,19 @@ The kind determines its authority class:
 Every normalized data Effect MUST retain an explicit `target` and a
 typed-qualified Mapping Contract reference in `mapping`, whether authored in
 the long form or uniquely resolved from the published short-form binding. Every command MUST explicitly declare
-a ResourceRef result field and Command Contract.
+a Command Contract and either a ResourceRef result field or the closed
+`published_store` target below. The latter is exclusively the normalization of
+an authored object/file/stage STORE through its original published Mapping and
+exact Command relationship; it does not issue a ResourceRef or grant. The
+canonical `store` opcode remains relation materialization. The selected Mapping,
+Command, Catalog, Environment and original installation relationship MUST remain
+bound to the same Effect occurrence through compilation, original Run materials,
+Preview, apply and restore. The installed owner MUST retain the trusted issuer's
+original target and current-check closure, including the exact resource kind,
+target, scope, generation and installation/registration/revision correspondence.
+A matching name, shape or CID MUST NOT substitute for those originals. Missing
+originals MUST refuse before send, and restore MUST NOT reconstruct them from
+current configuration. See [STORE normalization](protocols/artifacts.md#reference-admission).
 Effect `max_items` is an author guard as defined in [Author guards, resolved limits, and Plan facts](#resolved-limits), constraining the
 kind-specific scope units in [Preview strength, scope, and freshness](execution.md#preview-strength). Its resolved limit uses Result or literal
 scope proof, Contract ceiling, Host policy, and any authored guard. Preview
@@ -10728,7 +10740,11 @@ DeleteBody   := DataAuthority & DeleteSelector
 StoreBody    := DataAuthority & FromResult
 CommandBody  := {
   from: { result: ResultName },
-  target: { field: ResourceRefResultField },
+  target: { field: ResourceRefResultField }
+        | { published_store: {
+              target_ref: ConcreteLogicalTargetRef,
+              mapping_ref: MappingContractRef
+            } },
   contract: CommandContractRef,
   input: { InputField: ({ literal: JsonValue } | { field: ResultField }) }*,
   max_items?: PositiveIntegerValue,
@@ -10752,8 +10768,12 @@ EffectPredicate := SelectorPredicate<SelectorOperand>   (see [Predicates](#predi
 <!-- requirement-block: structural-grammar.every-literal-in-set-must-use-literal-an-object -->
 The grammar alternatives are exclusive. `create` accepts exactly one of a
 named result or payload; `update` and `delete` accept exactly one selector. A
-`command` consumes named-result ResourceRefs and its Connector-owned typed
-contract; it has neither a mapping nor an arbitrary URL/method/body escape.
+`command` consumes its named Result and Connector-owned typed contract. Its
+ordinary target is a ResourceRef field. The sole `published_store` alternative
+retains the original Mapping/Command pair selected for authored object STORE;
+its references are structural selection data, not target authority. Both target
+objects are closed, exclusive alternatives; NULL, extra fields and mixed forms
+MUST reject. It has no arbitrary Mapping selection or URL/method/body escape.
 [Predicates](#predicates) defines the shared predicate vocabulary; [Effect declarations](#effects) defines Effect
 selector scope.
 Every literal in `set` MUST use `{literal: ...}`; an object containing exactly
