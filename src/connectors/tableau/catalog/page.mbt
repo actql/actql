@@ -46,6 +46,7 @@ pub(all) struct CatalogRow {
   project_id : String?
   project_name : String?
   owner_id : String?
+  workbook_id : String?
   created_at : String?
   updated_at : String?
   tags : Array[String]?
@@ -317,6 +318,14 @@ fn catalog_row(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let workbook = if kind == Views {
+    match catalog_optional_identity(object, "workbook") {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    None
+  }
   let created_at = match catalog_optional_timestamp(object, "createdAt") {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -387,6 +396,7 @@ fn catalog_row(
       None => None
     },
     owner_id: owner.map(value => value.0),
+    workbook_id: workbook.map(value => value.0),
     created_at,
     updated_at,
     tags,
