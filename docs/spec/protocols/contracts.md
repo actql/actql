@@ -1028,7 +1028,7 @@ installation authority. The installed Owner MUST bind its original target and
 installation to the checked pair and retain the full selection through original
 Run materials, Preview, apply and restore, with current installation and grants
 independently checked. See the authored-vs-canonical
-[STORE distinction](artifacts.md#reference-admission-and-availability).
+[STORE distinction](artifacts.md#reference-admission).
 
 <!-- requirement-block: mapping-contracts.the-resolved-mapping-contract-must-derive-exactly-one-non-empty-permission mapping-contracts.preview-and-apply-must-reject-a-mapping-unless-exactly-one mapping-generation.product-c4d159e6b70f mapping-generation.product-9c63aad3384b classification-inheritance.product-340f5cf73a23 -->
 The resolved mapping contract MUST derive exactly one non-empty permission set
@@ -2316,7 +2316,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:b72f0e9566ffcb5495e801b342c9c578c90206a63e84761d367e5bd04bc0a13f
+../../../spec/contracts/actql-check-environment.json# sha256:26eef3a8e865b3ab2146de992cb4c70c9aa44c4766bdf11d0d0c453116297aeb
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9

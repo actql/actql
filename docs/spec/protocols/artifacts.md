@@ -950,7 +950,7 @@ artifact storage.
 
 <!-- requirement-block: store-normalization.original-selection-retained store-normalization.mapping-not-discarded -->
 The canonical `store` opcode remains relation materialization.
-The authored [`EFFECT STORE`](../query-text.md#short-effect-forms-and-sql-statements)
+The authored [`EFFECT STORE`](../query-text.md)
 spelling also admits object/file/stage writes with an original typed ContentRef;
 it does not imply a format or codec. Such a write may normalize to an existing
 typed Connector Command only through an explicitly published, checked relationship
