@@ -610,3 +610,106 @@ test "provider UTC seconds and milliseconds use the existing calendar admission"
     )
   }
 }
+
+///|
+test "view workbook identity comes from the returned workbook LUID not its name or path" {
+  let extra = ",\"workbook\":{\"id\":\"22222222-2222-2222-2222-222222222222\",\"name\":\"not-an-id\"},\"contentUrl\":\"OtherWorkbook/sheets/View\""
+  for direct in [true, false] {
+    let page = admit_catalog_page(
+      catalog_request(Views),
+      200,
+      catalog_fixture(Views, [catalog_fixture_row(1, extra~)], direct~),
+      catalog_limits(),
+    ).unwrap()
+    let row = catalog_page_rows(page)[0]
+    assert_eq(row.workbook_id, Some("22222222-2222-2222-2222-222222222222"))
+    assert_eq(row.content_url, Some("OtherWorkbook/sheets/View"))
+    assert_true(next_catalog_page(page, 256) is Ok(None))
+  }
+}
+
+///|
+test "missing and null view workbook metadata stay unknown without path inference" {
+  for
+    extra in [
+      ",\"contentUrl\":\"Finance/sheets/Sheet\"", ",\"workbook\":null,\"contentUrl\":\"Finance/sheets/Sheet\"",
+    ] {
+    let page = admit_catalog_page(
+      catalog_request(Views),
+      200,
+      catalog_fixture(Views, [catalog_fixture_row(1, extra~)]),
+      catalog_limits(),
+    ).unwrap()
+    assert_eq(catalog_page_rows(page)[0].workbook_id, None)
+  }
+}
+
+///|
+test "present malformed view workbook metadata refuses the complete page" {
+  for
+    workbook in [
+      "{}", "[]", "false", "\"22222222-2222-2222-2222-222222222222\"", "{\"id\":null}",
+      "{\"id\":1}", "{\"id\":\"Finance\"}", "{\"id\":\"22222222-2222-2222-2222-22222222222z\"}",
+      "{\"id\":\"22222222-2222-2222-2222-222222222222\",\"name\":false}",
+    ] {
+    let extra = ",\"workbook\":" + workbook
+    assert_true(
+      admit_catalog_page(
+        catalog_request(Views),
+        200,
+        catalog_fixture(Views, [catalog_fixture_row(1, extra~)]),
+        catalog_limits(),
+      )
+      is Err(InvalidResponse),
+    )
+  }
+}
+
+///|
+test "nonfirst view workbook failure cannot leave a partial successful catalog page" {
+  let first = catalog_fixture_row(
+    1,
+    extra=",\"workbook\":{\"id\":\"22222222-2222-2222-2222-222222222222\"}",
+  )
+  let second = catalog_fixture_row(
+    2,
+    extra=",\"workbook\":{\"id\":\"not-a-luid\"}",
+  )
+  assert_true(
+    admit_catalog_page(
+      catalog_request(Views),
+      200,
+      catalog_fixture(Views, [first, second], total="2"),
+      catalog_limits(),
+    )
+    is Err(InvalidResponse),
+  )
+}
+
+///|
+test "duplicate original workbook fields refuse instead of selecting a last identity" {
+  let extra = ",\"workbook\":{\"id\":\"22222222-2222-2222-2222-222222222222\",\"id\":\"33333333-3333-3333-3333-333333333333\"}"
+  assert_true(
+    admit_catalog_page(
+      catalog_request(Views),
+      200,
+      catalog_fixture(Views, [catalog_fixture_row(1, extra~)]),
+      catalog_limits(),
+    )
+    is Err(InvalidResponse),
+  )
+}
+
+///|
+test "another catalog kind never receives a view workbook correspondence" {
+  for kind in [Workbooks, DataSources, Flows] {
+    let extra = ",\"workbook\":{\"id\":\"22222222-2222-2222-2222-222222222222\"}"
+    let page = admit_catalog_page(
+      catalog_request(kind),
+      200,
+      catalog_fixture(kind, [catalog_fixture_row(1, extra~)]),
+      catalog_limits(),
+    ).unwrap()
+    assert_eq(catalog_page_rows(page)[0].workbook_id, None)
+  }
+}

@@ -93,6 +93,7 @@ pub(all) struct CatalogRow {
   project_id : String?
   project_name : String?
   owner_id : String?
+  workbook_id : String?
   created_at : String?
   updated_at : String?
   tags : Array[String]?
