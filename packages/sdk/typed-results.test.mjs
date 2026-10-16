@@ -15,7 +15,7 @@ const profile = {submissionEpoch, version: 'actql-client-host/0.1', mode: 'local
     maxReadWireBytes: 65536, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 65536,
     maxRows: 256, maxBatchRows: 3, maxBatchRetainedValueBytes: 4096}};
-const state = {version: 'actql-run-state/0.1', run_id: 'typed-run',
+const state = {version: 'actql-run-state/0.1', run_id: 'typed-run', revision: 23,
   status: 'succeeded', updated_at: time, next_action: {kind: 'read_result', results: ['answer']},
   result_available: true, result_availability: {answer: {state: 'available',
     observed_at: time, reason: 'confirmed_present'}}};
