@@ -139,9 +139,10 @@ test('GCS ordinary metadata reaches actual accounted Source capture with exact t
   assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(value.ledger).slice(4, 8),
     [0n, 0n, 0n, 0n]);
   assert.throws(() => checked(moon.clientProgramRestoreSourceCapture(original.requirement,
-    ...saved, value.issuer, original.capacity, () => false)), {code: 'MoonBitHostFailure'});
+    ...saved, value.ledger, original.capacity, () => false, value.issuer, undefined)),
+  {code: 'MoonBitHostFailure'});
   const restored = checked(moon.clientProgramRestoreSourceCapture(original.requirement,
-    ...saved, value.issuer, original.capacity, () => true));
+    ...saved, value.ledger, original.capacity, () => true, value.issuer, undefined));
   t.after(() => moon.clientProgramCloseSourceCapture(restored));
   const again = checked(moon.clientProgramExportSourceCapture(
     moon.clientProgramSourceCaptureSource(restored), original.requirement, binding));
