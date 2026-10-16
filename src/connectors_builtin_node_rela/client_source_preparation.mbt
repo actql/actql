@@ -35,6 +35,8 @@ fn client_source_preparation_issue_code(
         Encoding => "source_encoding"
         QueryLowering(issue) =>
           match issue {
+            CommandTargetBinding(WorkLimit) => "source_limit"
+            CommandTargetBinding(_) => "source_unresolved"
             UnknownRelation | UnresolvedRelation(_) => "source_unresolved"
             UnsupportedProjection
             | UnsupportedGrouping

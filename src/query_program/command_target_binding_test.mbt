@@ -355,12 +355,12 @@ test "equal Command declaration identities do not merge separate original enviro
 ///|
 test "legacy Command publication budget and concrete lookup keep the original ResourceRef contract" {
   let publication = command_publication_bind("legacy-field")
-  let alias = command_publication_alias()
-  let selected = resolve_command_target_binding(publication, alias.name, 100).unwrap()
+  let target_alias = command_publication_alias()
+  let selected = resolve_command_target_binding(publication, target_alias.name, 100).unwrap()
   let concrete = resolve_concrete_command_target_binding(
     publication,
-    alias.target_ref,
-    alias.command_ref,
+    target_alias.target_ref,
+    target_alias.command_ref,
     1000,
   ).unwrap()
   assert_true(resolved_command_target_binding(selected) is None)
@@ -381,14 +381,14 @@ test "legacy Command publication budget and concrete lookup keep the original Re
     max_text_bytes: 0,
   }
   assert_true(
-    bind_command_target_publication(catalogs, [alias], limits, exact) is Ok(_),
+    bind_command_target_publication(catalogs, [target_alias], limits, exact) is Ok(_),
   )
   assert_true(
-    bind_command_target_publication(catalogs, [alias], limits, exact - 1)
+    bind_command_target_publication(catalogs, [target_alias], limits, exact - 1)
     is Err(WorkLimit),
   )
   let copy = command_publication_bind("legacy-field")
-  let other = resolve_command_target_binding(copy, alias.name, 100).unwrap()
+  let other = resolve_command_target_binding(copy, target_alias.name, 100).unwrap()
   assert_eq(
     resolved_command_target_identity(selected),
     resolved_command_target_identity(other),

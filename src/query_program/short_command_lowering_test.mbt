@@ -324,3 +324,154 @@ test "short COMMAND Source lower retains the exact original publication only for
   ).unwrap()
   assert_true(machine.command_targets is None)
 }
+
+///|
+fn short_command_checked_candidate(
+  text : String,
+  mode : String,
+) -> @check.EffectComputationCandidate raise {
+  let environment = short_command_checked_environment(mode)
+  let publication = @source_publication.published_command_targets(
+      environment,
+      command_source_publication(environment),
+    )
+    .unwrap()
+    .unwrap()
+  let program = compile(
+    @query.parse_query(text, syntax_limits()).unwrap(),
+    short_command_context(),
+    construction_limits(),
+    command_targets=Some(publication),
+  ).unwrap()
+  @check.prepare_effect_computation_candidate(
+    program,
+    environment,
+    None,
+    [],
+    check_limits(),
+    10,
+    10000,
+  ).unwrap()
+}
+
+///|
+fn short_command_checked_targets(
+  candidate : @check.EffectComputationCandidate,
+) -> @stage_results.EffectCommandTargets {
+  let results = @stage_results.bind_effect_results(
+    @check.effect_computation_headers(candidate),
+    @check.effect_computation_stage_results(candidate),
+    10000,
+  ).unwrap()
+  @stage_results.bind_effect_command_targets(
+    results,
+    @check.effect_computation_catalog_references(candidate),
+    10000,
+  ).unwrap()
+}
+
+///|
+test "short COMMAND actual Common binding keeps typed payload and original ID distinct from bounded target" {
+  for
+    (mode, target) in [
+      ("installation", ""),
+      ("identifier", " TARGET 'mailbox-1'"),
+    ] {
+    let candidate = short_command_checked_candidate(
+      "FROM messages |> EFFECT COMMAND mail.send" +
+      target +
+      " ID id INPUT (body = body)",
+      mode,
+    )
+    let targets = short_command_checked_targets(candidate)
+    let inputs = @stage_results.bind_effect_command_inputs(targets, {
+      max_work: 10000,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    }).unwrap()
+    let input = @stage_results.effect_command_input_at(inputs, 0).unwrap()
+    assert_eq(
+      @schema.field_reference_name(
+        @stage_results.effect_command_input_key(input).unwrap(),
+      ),
+      "id",
+    )
+    assert_eq(@stage_results.effect_command_input_field_count(input), 1)
+    assert_eq(
+      @stage_results.effect_command_input_field_name(
+        @stage_results.effect_command_input_field_at(input, 0).unwrap(),
+      ),
+      "body",
+    )
+    let original = @stage_results.effect_command_input_target(input)
+    assert_eq(
+      @environment.command_target_id(
+        @stage_results.effect_command_target_contract(original),
+      ),
+      "command:mail.send.v1",
+    )
+  }
+}
+
+///|
+test "short COMMAND actual Common rejects absent or incompatible required payload without defaults" {
+  for
+    (input, kind) in [
+      ("", @stage_results.MissingField("body")),
+      (" INPUT ()", @stage_results.MissingField("body")),
+      (" INPUT (body = 1)", @stage_results.IncompatibleField("body")),
+    ] {
+    let candidate = short_command_checked_candidate(
+      "FROM messages |> EFFECT COMMAND mail.send ID id" + input,
+      "installation",
+    )
+    let targets = short_command_checked_targets(candidate)
+    let issue = @stage_results.bind_effect_command_inputs(targets, {
+      max_work: 10000,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    }).unwrap_err()
+    assert_eq(@stage_results.effect_command_input_issue_kind(issue), kind)
+  }
+}
+
+///|
+test "short COMMAND actual Common never promotes a scalar field into a legacy ResourceRef" {
+  let candidate = short_command_checked_candidate(
+    "FROM messages |> EFFECT COMMAND mail.send TARGET mailbox ID id INPUT (body = body)",
+    "legacy-field",
+  )
+  let issue = @stage_results.bind_effect_results(
+    @check.effect_computation_headers(candidate),
+    @check.effect_computation_stage_results(candidate),
+    10000,
+  ).unwrap_err()
+  assert_eq(
+    @stage_results.effect_result_binding_issue_kind(issue),
+    @stage_results.InvalidCommandTarget,
+  )
+}
+
+///|
+test "short COMMAND actual Common enforces the original identifier domain beyond matching scalar kind" {
+  let candidate = short_command_checked_candidate(
+    "FROM messages |> EFFECT COMMAND mail.send TARGET mailbox ID id INPUT (body = body)",
+    "identifier",
+  )
+  let results = @stage_results.bind_effect_results(
+    @check.effect_computation_headers(candidate),
+    @check.effect_computation_stage_results(candidate),
+    10000,
+  ).unwrap()
+  let issue = @stage_results.bind_effect_command_targets(
+    results,
+    @check.effect_computation_catalog_references(candidate),
+    10000,
+  ).unwrap_err()
+  assert_eq(
+    @stage_results.effect_command_target_issue_kind(issue),
+    @stage_results.PublishedCommandIdentifierMismatch,
+  )
+}
