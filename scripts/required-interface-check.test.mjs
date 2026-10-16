@@ -7,6 +7,7 @@ import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {test} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
+import {checkInterfaceOwners, checkedOriginalInterface} from './check-interface-owners.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = source => createHash('sha256').update(source).digest('hex');
@@ -122,4 +123,21 @@ test('lexical runtime references need their actual builder target mapping and pr
     packageCalls.push(reference); return [reference.specifier];
   }}).unresolvedSyntax, []);
   assert.deepEqual(packageCalls, [{kind: 'package-resolution', specifier: '@owner/runtime'}]);
+});
+
+
+test('actual member-derived dormant inputs need primary coverage and checked source evidence cannot be copied', async t => {
+  const f = fixture(t);
+  f.put('neutral/dormant.mjs', 'export const value = 1;');
+  f.check();
+  await assert.rejects(checkInterfaceOwners(f.root, {authoredEntrances: ['neutral/dormant.mjs']}),
+    /Unregistered distributed interfaces: neutral\/dormant.mjs/u);
+  f.declarations.push(f.declaration('neutral/dormant.mjs')); f.check();
+  const checked = await checkInterfaceOwners(f.root, {authoredEntrances: ['neutral/dormant.mjs']});
+  const original = checkedOriginalInterface(f.root, 'neutral/dormant.mjs', checked);
+  assert.equal(original.module, 'neutral/dormant.mjs');
+  assert.throws(() => checkedOriginalInterface(f.root, original.module, structuredClone(checked)),
+    /Untrusted checked interface source/u);
+  checked.modules.find(value => value.module === original.module).sha256 = '0'.repeat(64);
+  assert.equal(checkedOriginalInterface(f.root, original.module, checked).sha256, original.sha256);
 });

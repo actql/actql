@@ -7,6 +7,7 @@ import {dirname, join} from 'node:path';
 import {test} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
 import {installedInterfaceCorrespondence} from './installed-interface-correspondence.mjs';
+import {checkInterfaceOwners} from './check-interface-owners.mjs';
 
 function fixture(t, sourceText = 'export function read(original) {return original;}') {
   const scratch = mkdtempSync(join(tmpdir(), 'actql-if-correspondence-'));
@@ -110,4 +111,27 @@ test('foreign compiled Source is refused before parsing or self-reported verific
   const {options} = fixture(t);
   options.artifacts = [{module: 'runtime.js', sourceSha: '0'.repeat(40), verification: true}];
   assert.throws(() => installedInterfaceCorrespondence(options), /Foreign installed interface artifact source/u);
+});
+
+
+test('installed lazy imports retain original checked target discovery rather than suppressing unresolved syntax', async t => {
+  const source = "const target = new URL('./runtime-owner.mjs', import.meta.url); export const load = () => import(target.href);";
+  const {options, put, commit, declaration} = fixture(t, source);
+  const dependencySource = 'export const value = 1;';
+  const dependency = {module: 'outside/runtime-owner.mjs', sha256: createHash('sha256').update(dependencySource).digest('hex'),
+    ...javascriptInterface(dependencySource)};
+  const dependentDeclaration = {...declaration, ...dependency, contracts: [{...declaration.contracts[0],
+    operations: ['<module>'], exports: ['value']}]};
+  put(options.repository, 'package.json', JSON.stringify({name: '@example/original', exports: './outside/owner.mjs'}));
+  put(options.repository, dependency.module, dependencySource);
+  put(options.repository, 'interface-boundaries.json', JSON.stringify([declaration, dependentDeclaration]));
+  put(options.directory, 'runtime-owner.mjs', dependencySource);
+  options.owners[0].declarations.push(dependentDeclaration);
+  options.bindings.push({member: 'runtime-owner.mjs', source: dependency.module});
+  commit();
+  assert.throws(() => installedInterfaceCorrespondence(options), /Unresolved interface syntax/u);
+  const checkedSource = await checkInterfaceOwners(options.repository);
+  assert.equal(installedInterfaceCorrespondence({...options, checkedSource}).coverage.covered, 2);
+  assert.throws(() => installedInterfaceCorrespondence({...options, checkedSource: structuredClone(checkedSource)}),
+    /Untrusted checked interface source/u);
 });

@@ -18,7 +18,7 @@ import {productionRuntimeModules} from '../adapters/workers/moon-runtime.mjs';
 import {pythonModuleInterfaces} from './python-interface-sources.mjs';
 
 export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = [],
-  reportUnresolvedEntrances = false} = {}) {
+  reportUnresolvedEntrances = false, authoredEntrances = []} = {}) {
   root = realpathSync(root);
   const roots = distributionRoots, availablePlans = runtimePackageInputs(root);
   const includesLocal = roots.some(value => value.name === '@actql/local-node');
@@ -54,7 +54,8 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   const commands = new Set(roots.flatMap(value => value.commands ?? []));
   const entrances = [...new Set([...roots.flatMap(value => value.entrances)
     .filter(path => !/\.d\.[cm]?ts$/u.test(path)),
-    ...(includesLocal ? local.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path))])];
+    ...(includesLocal ? local.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path)),
+    ...authoredEntrances])];
   const sourceEntrances = [], artifactReferences = new Set(), unresolvedEntrances = [];
   const dataEntrances = [], pythonEntrances = [], scriptEntrances = new Set();
   const copyReferences = new Map();
@@ -69,6 +70,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
     return source;
   }
   for (const entrance of entrances) {
+    assert(!relative(root, resolve(root, entrance)).startsWith('..'), `Escaped authored interface entrance: ${entrance}`);
     if (artifacts.has(resolve(root, entrance))) artifactReferences.add(resolve(root, entrance));
     else {
       const source = copiedSource(resolve(root, entrance));

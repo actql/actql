@@ -1,7 +1,7 @@
 // Required source-side admission from ordinary distribution entrances. Actual
 // archives, target behavior and installed acceptance remain separate checks.
 import assert from 'node:assert/strict';
-import {existsSync} from 'node:fs';
+import {existsSync, realpathSync} from 'node:fs';
 import {dirname, isAbsolute, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {npmInterfaceRoots, repositoryFiles} from './distribution-interface-roots.mjs';
@@ -11,7 +11,18 @@ import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
 import {interfaceGenerationFreshness} from './interface-generation-freshness.mjs';
 
-export async function checkInterfaceOwners(root, {manifests = []} = {}) {
+// Validation evidence stays with this checker instance and original root. A
+// serialized report cannot supply a different runtime-dependency resolution.
+const checkedSources = new WeakMap();
+export function checkedOriginalInterface(root, module, checked) {
+  const original = checkedSources.get(checked);
+  assert(original && original.root === realpathSync(root), 'Untrusted checked interface source');
+  const value = original.modules.get(module);
+  assert(value, `Missing checked original interface: ${module}`);
+  return structuredClone(value);
+}
+
+export async function checkInterfaceOwners(root, {manifests = [], authoredEntrances = []} = {}) {
   root = resolve(root);
   const files = repositoryFiles(root), allRoots = npmInterfaceRoots(root, files);
   const python = pythonInterfaceSources(root);
@@ -31,7 +42,7 @@ export async function checkInterfaceOwners(root, {manifests = []} = {}) {
     const {viteInterfaceInventory} = await import('./vite-interface-inventory.mjs');
     vite = await viteInterfaceInventory(root, configs);
   }
-  const source = await sourceInterfaceClosure(root, {distributionRoots: roots, generatedInputs: vite.sourceArtifacts});
+  const source = await sourceInterfaceClosure(root, {distributionRoots: roots, generatedInputs: vite.sourceArtifacts, authoredEntrances});
   assert.deepEqual(source.unresolvedEntrances, [], 'Unresolved normal distribution entrances');
   const pythonRoots = manifests.length ? python.roots.filter(value => manifests.includes(value.manifest)) : python.roots;
   const pythonMembers = new Set(pythonRoots.flatMap(value => value.entrances));
@@ -50,11 +61,14 @@ export async function checkInterfaceOwners(root, {manifests = []} = {}) {
   const result = interfaceOwnerCoverage({root, modules: [...modules.values()],
     owners: interfaceOwnerDeclarations(root, files), generated: freshness?.generated, requireComplete: true});
   assert(result.complete && result.primaryComplete, 'Incomplete required interface responsibility');
-  return {qualification: 'required normal source/generation interface check; not artifact or runtime acceptance',
+  const checked = {qualification: 'required normal source/generation interface check; not artifact or runtime acceptance',
     result, modules: [...modules.values()], roots, pythonRoots, runtimeBindings: source.runtimeBindings,
     artifacts: source.artifacts, moon: source.moon, generated: vite.generated,
     buildInputs: vite.buildInputs, freshness: freshness && {qualification: freshness.qualification, checked: freshness.checked},
     generatedQualification: freshness?.generated};
+  checkedSources.set(checked, {root: realpathSync(root),
+    modules: new Map([...modules].map(([name, value]) => [name, structuredClone(value)]))});
+  return checked;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -70,7 +84,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     }
   }
   const checked = await checkInterfaceOwners(root, {manifests});
-  console.log(JSON.stringify({qualification: checked.qualification, ...checked.result,
+  console.log(JSON.stringify({...checked.result, qualification: checked.qualification,
     generationChecks: checked.freshness?.checked.length ?? 0,
     compiledArtifactReferences: checked.artifacts.length, artifactAcceptance: 'not-executed', newProductE2E: 0}));
 }

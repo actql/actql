@@ -9,7 +9,8 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {verifyPackageRelease, inventory} from './package-release.mjs';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
-import {interfaceGenerationFreshness} from './interface-generation-freshness.mjs';
+import {checkInterfaceOwners} from './check-interface-owners.mjs';
+import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 import {installedInterfaceCorrespondence} from './installed-interface-correspondence.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
@@ -27,7 +28,6 @@ export async function releaseInterfaceCheck({repository, directory}) {
     'Release interface recipe differs from original source');
   const roots = npmInterfaceRoots(repository), plans = runtimePackageInputs(repository);
   const owners = interfaceOwnerDeclarations(repository);
-  const freshness = interfaceGenerationFreshness(repository);
   const manifestSha256 = hash(readFileSync(join(directory, 'release.json')));
   return {manifest, async verifyConsumer(consumer, names) {
     assert.equal(new Set(names).size, names.length, 'Duplicate installed interface package');
@@ -62,9 +62,16 @@ export async function releaseInterfaceCheck({repository, directory}) {
           verification: {manifestSha256, originalSha256: item.originalSha256,
             build: `scripts/${plan.script}.mjs`, sourcePackages: plan.sources}};
       });
+      const actual = installedInterfaceInventory(installed, {artifacts});
+      const authoredEntrances = actual.modules.map(module => {
+        const binding = bindings.get(module.module);
+        assert(binding, `Unbound installed authored interface: ${module.module}`);
+        return binding.source;
+      });
+      const checkedSource = await checkInterfaceOwners(repository, {manifests: [root.manifest], authoredEntrances});
       reports.push(installedInterfaceCorrespondence({repository, directory: installed,
         source: before.revision, bindings: [...bindings.values()], artifacts,
-        owners, generated: freshness.generated}));
+        owners, generated: checkedSource.generatedQualification, checkedSource}));
     }
     assert.deepEqual(checkoutState(repository), before, 'Release interface source changed during verification');
     return {qualification: 'normal release/source/installed interface correspondence; not runtime or all-I6 acceptance',

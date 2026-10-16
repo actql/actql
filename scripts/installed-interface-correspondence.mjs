@@ -9,13 +9,14 @@ import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 import {projectOwnerSources} from './interface-owner-source-projection.mjs';
 import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
+import {checkedOriginalInterface} from './check-interface-owners.mjs';
 
 const inside = path => typeof path === 'string' && path.length && !isAbsolute(path) &&
   !path.split(/[\\/]/u).includes('..');
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
 export function installedInterfaceCorrespondence({repository, directory, source,
-  bindings, artifacts = [], owners, generated = []}) {
+  bindings, artifacts = [], owners, generated = [], checkedSource}) {
   assert.match(source, /^[a-f0-9]{40}$/u);
   const byMember = new Map();
   for (const binding of bindings) {
@@ -49,6 +50,13 @@ export function installedInterfaceCorrespondence({repository, directory, source,
     assert.deepEqual(module.operations, input.operations, `Changed installed interface operations: ${module.module}`);
     assert.deepEqual(module.compilerFields ?? [], input.compilerFields ?? [],
       `Changed installed compiler representation: ${module.module}`);
+    if (checkedSource) {
+      const checked = checkedOriginalInterface(repository, binding.source, checkedSource);
+      for (const field of ['sha256', 'exports', 'operations', 'compilerFields']) {
+        assert.deepEqual(checked[field] ?? [], input[field] ?? [], `Changed checked source interface: ${binding.source}:${field}`);
+      }
+      return checked;
+    }
     return input;
   });
   const coverage = interfaceOwnerCoverage({root: repository, modules: actual, owners, generated});
