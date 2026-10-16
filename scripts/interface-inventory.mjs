@@ -154,16 +154,31 @@ export function packageEntrances(manifest, directory = '.') {
   }).sort();
 }
 
-function reference(root, ref) {
+function reference(root, ref, readReference) {
   assert(ref && Object.keys(ref).sort().join() === 'anchor,path', 'Invalid interface reference');
   assert(typeof ref.path === 'string' && inside(ref.path) && typeof ref.anchor === 'string' && ref.anchor.length,
     'Invalid interface reference');
+  assert(!ref.path.split('/').includes('..'), 'Invalid interface reference traversal');
+  if (readReference) {
+    assert(readReference(ref.path).includes(ref.anchor), `Missing interface reference: ${ref.path}#${ref.anchor}`);
+    return;
+  }
   const path = realpathSync(resolve(root, ref.path));
   assert(inside(relative(realpathSync(root), path)), 'Interface reference escapes owner');
   assert(readFileSync(path, 'utf8').includes(ref.anchor), `Missing interface reference: ${ref.path}#${ref.anchor}`);
 }
 
-export function assertInterfaceCoverage({root, modules, declarations, generated = []}) {
+export function assertInterfaceCoverage({root, modules, declarations, generated = [], readReference}) {
+  const references = new Map();
+  const read = path => {
+    if (!references.has(path)) references.set(path, readReference
+      ? readReference(path) : (() => {
+        const actual = realpathSync(resolve(root, path));
+        assert(inside(relative(realpathSync(root), actual)), 'Interface reference escapes owner');
+        return readFileSync(actual, 'utf8');
+      })());
+    return references.get(path);
+  };
   const byModule = new Map();
   for (const declaration of declarations) {
     assert(!byModule.has(declaration.module), `Duplicate interface classification: ${declaration.module}`);
@@ -178,7 +193,7 @@ export function assertInterfaceCoverage({root, modules, declarations, generated 
       for (const [name, value] of Object.entries(contract.attributes)) {
       if (Array.isArray(value)) {
         assert(value.length, `Empty interface attribute: ${declaration.module}:${name}`);
-        value.forEach(ref => reference(root, ref));
+        value.forEach(ref => reference(root, ref, read));
       } else assert(value && Object.keys(value).join() === 'notApplicable' &&
         typeof value.notApplicable === 'string' && value.notApplicable.trim().length > 0,
       `Unexplained interface attribute: ${declaration.module}:${name}`);
@@ -208,8 +223,8 @@ export function assertInterfaceCoverage({root, modules, declarations, generated 
         `Unverified generated binding: ${module.module}`);
       // The generator owner supplies a verified output digest, never a comment
       // or filename suffix. Its actual read-only freshness test is mandatory.
-      reference(root, proof.generator);
-      reference(root, proof.freshness);
+      reference(root, proof.generator, read);
+      reference(root, proof.freshness, read);
     }
   }
   return modules.length;
