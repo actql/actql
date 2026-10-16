@@ -2905,7 +2905,8 @@
         "negotiated",
         "re",
         "utf16_length",
-        "valid"
+        "valid",
+        "valid_run_wait"
       ],
       "imports": [
         "._values",
@@ -2979,9 +2980,17 @@
             "value",
             "schema"
           ]
+        },
+        {
+          "async": false,
+          "name": "valid_run_wait",
+          "parameters": [
+            "value",
+            "since"
+          ]
         }
       ],
-      "sha256": "33d690bc3811d617256f926edce9ea8f451905a54482963d6194df7ea815e70d",
+      "sha256": "e1a09aaae643ad4703b08bb15ece745b8ef3d46b9025aa3d870f4a7f2e3336b8",
       "role": "public-wire-codec",
       "owner": "E / existing registered Client-Host, protocol and publication wire Owners",
       "contracts": [
@@ -3604,6 +3613,96 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "valid_run_wait"
+          ],
+          "exports": [
+            "valid_run_wait"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_wire_codec.py",
+                "anchor": "valid_run_wait"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "A read alone does not advance it."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              },
+              {
+                "path": "scripts/python-client-wire-codec.mjs",
+                "anchor": "def valid_run_wait"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_wait_since.py",
+                "anchor": "test_same_and_older_state_revision_are_not_success"
+              }
+            ]
+          }
         }
       ]
     },
@@ -3628,7 +3727,8 @@
         "unicodedata",
         "utf16_length",
         "valid",
-        "valid_body"
+        "valid_body",
+        "valid_run_wait"
       ],
       "imports": [
         "._wire_codec",
@@ -3732,7 +3832,7 @@
           ]
         }
       ],
-      "sha256": "591fee06bb5efbb641bbbd839d2c7880ed185271e5c7abed3a254e26ab7ead6e",
+      "sha256": "4a7e49d3f8fe162b76b50e5c07fc6f0a4531d9134ba67fabacef3637fd597e68",
       "role": "public-wire-codec",
       "owner": "E / existing registered Client-Host, protocol and publication wire Owners",
       "contracts": [
@@ -4460,6 +4560,90 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "valid_run_wait"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_wire.py",
+                "anchor": "valid_run_wait"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "A read alone does not advance it."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_wait_since.py",
+                "anchor": "test_same_and_older_state_revision_are_not_success"
               }
             ]
           }
