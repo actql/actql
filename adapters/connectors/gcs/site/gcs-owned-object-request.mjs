@@ -122,7 +122,8 @@ export async function sendOwnedGcsObjectRequest({request, authorization, credent
   const response = await invokeScopedCredentialOperation({authorization, credential,
     callResource, operation: request.operation, method: request.method, path: request.path,
     body: request.has_body ? request.body : undefined,
-    headers: [['accept', 'application/json'], ['content-type', 'application/json']],
+    // Content framing belongs to the existing physical HTTP/credential owner.
+    headers: [['accept', 'application/json']],
     responseHeaders: ['x-goog-generation', 'x-goog-metageneration'],
     maxRequestBytes, maxResponseBytes, signal});
   return Object.freeze({observation: Object.freeze({useCid: response.useCid,

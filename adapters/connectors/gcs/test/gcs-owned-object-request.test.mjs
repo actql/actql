@@ -99,6 +99,7 @@ test('one scoped invocation retains original response backing without interpreti
     assert.equal(physical.method, 'PATCH');
     assert.equal(physical.path, r.path);
     assert.equal(physical.body, r.body);
+    assert.deepEqual(physical.headers, [['accept', 'application/json']]);
     assert.ok(physical.path.endsWith('ifGenerationMatch=9007199254740993&ifMetagenerationMatch=2'));
     return {accepted: true, useCid: 'physical-original', statusCode: 200, body, headers};
   });
