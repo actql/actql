@@ -46,7 +46,8 @@ export function prepareOwnedGcsMultipartUpload({moon, binding, before, contentBy
     fail('GcsInvalidUploadAbiInput');
   }
   const handle = gcsUploadResult(moon, moon.gcsUploadPrepareMultipart(binding, before,
-    bytes(contentBytes), contentRefCid, contentCid, mediaType, overwrite, marker));
+    bytes(contentBytes), contentRefCid, contentCid, mediaType,
+    overwrite === undefined ? 'absent' : overwrite ? 'true' : 'false', marker));
   const request = Object.freeze(JSON.parse(gcsUploadResult(moon,
     moon.gcsUploadProjection(binding, handle, maxProjectionBytes))));
   originals.set(request, Object.freeze({moon, binding, handle}));

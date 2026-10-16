@@ -65,9 +65,17 @@ pub fn gcs_upload_prepare_multipart(
   content_ref_cid : String,
   content_cid : String,
   media_type : String,
-  overwrite : Bool?,
+  overwrite_presence : String,
   marker : String,
 ) -> Result[@catalog.ObjectUploadRequest, @catalog.ObjectUploadIssue] {
+  // The private physical ABI carries a closed DATA spelling, not compiler
+  // Option<Bool> layout. Never collapse absent into an explicit false.
+  let overwrite : Bool? = match overwrite_presence {
+    "absent" => None
+    "false" => Some(false)
+    "true" => Some(true)
+    _ => return Err(InvalidInput)
+  }
   @catalog.prepare_object_multipart_upload(
     binding, before, content, content_ref_cid, content_cid, media_type, overwrite,
     marker,
