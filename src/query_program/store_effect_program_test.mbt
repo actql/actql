@@ -418,7 +418,7 @@ test "source Frontend preserves the original STORE publication and private outpu
   let publication = store_capture_publication()
   let lowered = @frontend.lower(
     "FROM files |> EFFECT STORE storage.archive SET (path = path, content = content)",
-    Pipe,
+    Aql,
     Some(store_capture_context()),
     store_targets=Some(publication),
   ).unwrap()
