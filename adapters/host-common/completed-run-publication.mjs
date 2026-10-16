@@ -1192,7 +1192,7 @@ export async function recoverCompletedEffectfulComputation(options) {
     effectSourceHoldings: Object.freeze(sourceHoldings),
   }));
   return Object.freeze({execution: null, storedResults, computation,
-    preview, connectorRecovery: Object.freeze(connectorRecovery)});
+    preview, invocation, connectorRecovery: Object.freeze(connectorRecovery)});
 }
 
 // Recognize only the existing owner's exact post-publication cleanup error.

@@ -128,6 +128,17 @@ provider DATA and optional target-read binding. The existing evidence owner hash
 the exact canonical bytes. A requested-stop Checkpoint must bind that exact
 continuation content CID; omission, substitution or a noncanonical rewrite is
 not an alternative representation of that selected original.
+Cold continuation uses the same saved Effect Run-materials codec and its actual
+original request, compiled owner, policy evidence and Run Definition. A selected
+target's retained original already carries that codec and is not duplicated.
+For a requested stop without that target record, the existing request journal
+retains the bounded `effectOriginalRunWire` in its original admission evidence.
+Missing material is not reconstructed from current installation configuration.
+The Common owner binds the re-admitted material to the historical Preview and
+Invocation before projecting the same requested-stop continuation. It does not
+recreate a captured live input borrow, Compute, permission or a resume claim.
+The existing Journal's approved Resolution, same-Run claim and one-shot entry
+separately own fulfillment; current Account decisions still own dispatch.
 Source text, declarations, parameter
 values and data member names are preserved by the common value canonicalizer.
 This receipt provides no checker verdict, execution authority or Run CID.

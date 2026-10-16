@@ -3,6 +3,8 @@
 // not a pristine packed consumer or a live-service/Model qualification.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
 import {approveHeldSet, expectedOrgAfterSuccess, expectedUpdates,
   readComputeEffectInstallation, waitFor} from
   '../connectors/salesforce/test/read-compute-effect.fixture.mjs';
@@ -11,7 +13,22 @@ test('requested first Effect pauses Account Allow and completes only the same ap
   // The Allow is selected before the original Site/profile is published. No
   // current configuration or retained original is rewritten after admission.
   const setup = await readComputeEffectInstallation(t, {effect: 'allow'});
-  const first = await setup.openHost();
+  const diagnostics = [];
+  const observations = {};
+  t.after(async () => {
+    const observed = {observations,
+      diagnostics: diagnostics.map(event => ({name: event.name,
+        code: event.detail?.code, cause: event.detail?.cause?.code})),
+      queries: setup.queries(), writes: setup.writes().length};
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+      t.diagnostic(JSON.stringify(observed));
+      return;
+    }
+    const path = join(setup.root, 'requested-stop-observations.json');
+    await writeFile(path, JSON.stringify(observed) + '\n', {mode: 0o600});
+    t.diagnostic(`Requested-stop authorized facts retained: ${path}`);
+  });
+  const first = await setup.openHost({diagnostics});
   const owner = await first.as('owner-token');
   const submissionRef = await setup.persistSubmission(owner.newSubmission({
     nonce: 'requested-effect-allow'}));
@@ -23,6 +40,7 @@ test('requested first Effect pauses Account Allow and completes only the same ap
     return state.status === 'waiting_checkpoint' ? state : undefined;
   });
   const originalRunId = waiting.run_id;
+  observations.beforeApproval = waiting;
   assert.equal(typeof originalRunId, 'string');
   assert.ok(originalRunId.length > 0);
   assert.equal(setup.queries(), 1);
@@ -32,22 +50,24 @@ test('requested first Effect pauses Account Allow and completes only the same ap
   assert.equal(before.items[0].kind, 'effect_set');
   await first.close();
 
-  const reviewHost = await setup.openHost();
+  const reviewHost = await setup.openHost({diagnostics});
   const recoveredOwner = await reviewHost.as('owner-token');
   const lookup = await recoveredOwner.lookupSubmission(submissionRef);
   assert.equal(lookup.kind, 'ready');
   assert.deepEqual(lookup.admission.ref, originalRef);
   const sameRun = await recoveredOwner.attach(originalRef);
   const checkpoint = await approveHeldSet(reviewHost, sameRun);
+  observations.afterApproval = await sameRun.status();
   assert.equal(checkpoint.checkpointCid, before.items[0].checkpointCid);
   assert.equal(setup.writes().length, 0, 'the answer is not a physical send');
   await reviewHost.close();
 
-  const resumedHost = await setup.openHost();
+  const resumedHost = await setup.openHost({diagnostics});
   const resumedOwner = await resumedHost.as('owner-token');
   const resumed = await resumedOwner.attach(originalRef);
   const succeeded = await waitFor(async () => {
     const state = await resumed.status();
+    observations.lastResume = state;
     return ['succeeded', 'failed', 'needs_reconciliation', 'cancelled'].includes(state.status)
       ? state : undefined;
   });
@@ -61,7 +81,7 @@ test('requested first Effect pauses Account Allow and completes only the same ap
     'fulfillment stays in the existing Checkpoint/Resolution rather than repeating the stop');
   await resumedHost.close();
 
-  const finalHost = await setup.openHost();
+  const finalHost = await setup.openHost({diagnostics});
   const finalOwner = await finalHost.as('owner-token');
   const final = await finalOwner.attach(originalRef);
   assert.equal((await final.status()).status, 'succeeded');

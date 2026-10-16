@@ -54,6 +54,10 @@ function effectUnitId(facts) {
 }
 
 function requestedStopOriginal(facts, stage) {
+  if (stage.requestedStop !== undefined) {
+    stage.assertRequestedStopCurrent();
+    return stage.requestedStop;
+  }
   const original = facts.originalSubmittedIntent;
   if (original === undefined) return undefined;
   original.assertCurrent();
@@ -137,7 +141,8 @@ function authorization(facts, stage, beforeDefer) {
     reviewWire: facts.control.effectComputationPreviewWire(stage.preview),
     continuationWire: continuation(facts, stage, false, requestedStop),
     ...(requestedStop === undefined ? {} : {requestedStop,
-      assertRequestedStopCurrent: () => facts.originalSubmittedIntent.assertCurrent()}),
+      assertRequestedStopCurrent: stage.assertRequestedStopCurrent ??
+        (() => facts.originalSubmittedIntent.assertCurrent())}),
     beforeDefer,
     targetReads: facts.targetReads,
   });

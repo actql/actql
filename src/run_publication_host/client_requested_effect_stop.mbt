@@ -8,7 +8,13 @@ struct ClientRequestedEffectStop {
   request : ClientRequestIdentity
   allowed : ClientEffectAllowedRun
   definition : @publication.PublicationContract
-  preview : @strategy.CapturedEffectPreviewInputs
+  preview : ClientRequestedEffectStopPreview
+}
+
+///|
+priv enum ClientRequestedEffectStopPreview {
+  LiveStopPreview(@strategy.CapturedEffectPreviewInputs)
+  SavedStopPreview(@effect_binding.EffectProgramRunPreview)
 }
 
 ///|
@@ -19,6 +25,7 @@ pub(all) enum ClientRequestedEffectStopIssue {
   ForeignContinuation
   Limit
   OriginalLifetime
+  RestoredPreview(@effect_binding.EffectProgramRunPreviewIssue)
   Checkpoint(@checkpoint.CheckpointIssue)
 }
 
@@ -51,7 +58,55 @@ pub fn issue_client_requested_effect_stop(
     request,
     allowed,
     definition,
-    preview,
+    preview: LiveStopPreview(preview),
+  }
+  check_requested_effect_stop_original(original).map(_ => Some(original))
+}
+
+///|
+/// Rebind the saved original materials and the already admitted historical
+/// Preview. This performs no capture, re-execution, approval or dispatch. The
+/// Host must separately confirm the same original Journal and Store custody.
+pub fn restore_client_requested_effect_stop(
+  intent : ClientSubmittedIntent,
+  reference : ClientSubmissionReferenceRecord,
+  request : ClientRequestIdentity,
+  materials : ClientEffectRunMaterials,
+  invocation : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  limits : ClientCapturedEffectPreviewLimits,
+) -> Result[ClientRequestedEffectStop?, ClientRequestedEffectStopIssue] {
+  if !intent.stop_before_commit {
+    return Ok(None)
+  }
+  guard materials.request is Some(original_request) &&
+    client_request_identity_relation(original_request, request) == SameRequest &&
+    client_submission_reference_matches_request(reference, request) &&
+    physical_equal(materials.prepared, materials.compilation.owner) &&
+    physical_equal(materials.compilation, materials.allowed.compilation) else {
+    return Err(ForeignRequest)
+  }
+  let run = match
+    bind_client_effect_compiled_run(
+      materials.prepared, materials.allowed, materials.run_definition,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignRun)
+  }
+  let stages = @syntax.stages(materials.prepared.source)
+  let checked = match
+    @effect_binding.bind_effect_program_run_preview(
+      run, invocation, stages.length() - 1, preview, limits.max_work, limits.plan,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(RestoredPreview(issue))
+  }
+  let original : ClientRequestedEffectStop = {
+    intent,
+    request,
+    allowed: materials.allowed,
+    definition: materials.run_definition,
+    preview: SavedStopPreview(checked),
   }
   check_requested_effect_stop_original(original).map(_ => Some(original))
 }
@@ -63,7 +118,10 @@ fn check_requested_effect_stop_original(
   original : ClientRequestedEffectStop,
 ) -> Result[Unit, ClientRequestedEffectStopIssue] {
   let prepared = original.allowed.compilation.owner
-  let checked = @strategy.captured_effect_preview_owner(original.preview)
+  let checked = match original.preview {
+    LiveStopPreview(preview) => @strategy.captured_effect_preview_owner(preview)
+    SavedStopPreview(preview) => preview
+  }
   let run = @effect_binding.effect_program_run_preview_owner(checked)
   if !physical_equal(
       @effect_binding.effect_program_run_static_candidate(run),
@@ -87,11 +145,26 @@ fn check_requested_effect_stop_original(
     client_effect_compilation_unit_id(original.allowed.compilation) {
     return Err(ForeignPreview)
   }
-  if !@strategy.captured_effect_preview_inputs_available(original.preview) ||
-    !@strategy.captured_effect_preview_inputs_retained(original.preview) {
-    return Err(OriginalLifetime)
+  if original.preview is LiveStopPreview(preview) {
+    if !@strategy.captured_effect_preview_inputs_available(preview) ||
+      !@strategy.captured_effect_preview_inputs_retained(preview) {
+      return Err(OriginalLifetime)
+    }
   }
   Ok(())
+}
+
+///|
+fn requested_effect_stop_preview_cid(
+  original : ClientRequestedEffectStop,
+) -> String? {
+  match original.preview {
+    LiveStopPreview(preview) => @strategy.captured_effect_preview_subject_cid(preview)
+    SavedStopPreview(preview) =>
+      Some(@publication.effect_preview_semantic_identity(
+        @effect_binding.effect_program_run_preview_identity(preview),
+      ))
+  }
 }
 
 ///|
@@ -174,7 +247,7 @@ fn emit_requested_effect_stop_continuation(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard @strategy.captured_effect_preview_subject_cid(original.preview)
+  guard requested_effect_stop_preview_cid(original)
     is Some(preview_cid) else {
     return Err(OriginalLifetime)
   }
@@ -325,7 +398,7 @@ pub fn seal_client_requested_effect_stop(
     return Err(ForeignRun)
   }
   if body.required_artifact_cid !=
-    @strategy.captured_effect_preview_subject_cid(original.preview).unwrap_or(
+    requested_effect_stop_preview_cid(original).unwrap_or(
       "",
     ) {
     return Err(ForeignPreview)

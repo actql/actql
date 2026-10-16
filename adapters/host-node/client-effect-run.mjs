@@ -119,6 +119,20 @@ export function installNodeClientEffectRun({moon,
       const identity = moon.clientProgramEffectRequestIdentity(prepared,
         authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid());
       if (identity === undefined) throw denied();
+      let requestedStop = false;
+      if (submission !== undefined) {
+        const original = journal.lookupSubmittedIntent(submission,
+          {authorityScopeCid, currentAuthorization: submission.currentAuthorization === true}, moon);
+        if (original?.requestId !== requestId || original.intentCid !== submission.intentCid) {
+          throw denied();
+        }
+        // Reuse the existing submitted-intent reader ceilings, not the
+        // independent Effect-material limits above.
+        const intent = moon.clientSubmittedIntent(original.intentWire,
+          1048576, 65536, 64);
+        if (intent === undefined) throw denied();
+        requestedStop = moon.clientSubmittedIntentRequestsCommitStop(intent);
+      }
       const compiled = () => compile(prepared);
       const accepted = await journal.admitOrLookupDefinition(identity, {
         namespaceId, lookupExpiresAt, submission,
@@ -137,6 +151,16 @@ export function installNodeClientEffectRun({moon,
             moon.strategyPublicationContractJson(definition), limits);
           const updateTargetRunOriginal = updateTargetOriginals?.captureRun({prepared,
             allowed, definition, identity});
+          // Selected UPDATE/STORE custody already contains this exact codec;
+          // do not retain a second serialized copy. Other requested stops need
+          // the same original materials before acceptance, not current config
+          // reconstruction when their first Effect is resumed after restart.
+          const effectOriginalRunWire = !requestedStop || updateTargetRunOriginal !== undefined
+            ? undefined : updateTargetOriginals?.captureEffectMaterials({allowed, definition, identity});
+          if (requestedStop && updateTargetRunOriginal === undefined && effectOriginalRunWire === undefined) {
+            throw Object.assign(new Error('RequestedEffectStopOriginalUnavailable'),
+              {code: 'RequestedEffectStopOriginalUnavailable'});
+          }
           const modelCompiled = inferPlanFor?.(prepared) === undefined ? undefined :
             control.adoptCheckedClientEffectInferRun(allowed, runDefinition,
               resultPolicyOriginal, limits);
@@ -150,6 +174,7 @@ export function installNodeClientEffectRun({moon,
               authorization: moon.strategyRunEvidenceJson(
                 moon.clientProgramAllowedEffectRunAuthorization(allowed)),
               ...(updateTargetRunOriginal === undefined ? {} : {updateTargetRunOriginal}),
+              ...(effectOriginalRunWire === undefined ? {} : {effectOriginalRunWire}),
               ...(resultPolicyOriginal === undefined ? {} :
                 {resultPolicyOriginal}),
               ...(modelCompiled === undefined ? {} : {

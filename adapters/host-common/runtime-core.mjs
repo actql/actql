@@ -1,4 +1,4 @@
-import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {publicationAction} from './publication-action.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
@@ -4039,6 +4039,13 @@ function publicationControl(moon) {
     },
     requestedEffectStopIntentCid(original) {
       return moon.clientProgramRequestedEffectStopIntentCid(original);
+    },
+    restoreRequestedEffectStop(original, identity, materials, invocation, preview, limits) {
+      const admitted = computationPreviewTokens.get(preview);
+      if (admitted === undefined) throw new TypeError('Foreign Effect computation Preview');
+      return runtimeUnboxedReferenceOption(checked(moon.clientProgramRestoreRequestedEffectStop(
+        original.intent, original.referenceWire, identity, materials,
+        token(invocation), admitted, limits)));
     },
     sealRequestedEffectStop(original, bodyWire, continuationWire, limits) {
       issuanceLimits(limits, 'Requested Effect stop');

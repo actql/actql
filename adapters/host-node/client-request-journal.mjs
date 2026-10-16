@@ -301,10 +301,15 @@ function admissionEvidenceShape(value, updateOriginalControl) {
   if (Object.keys(value).some(key => !['authorization', 'prepared',
     'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
     'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal',
-    'submittedIntentCid'].includes(key)) ||
+    'submittedIntentCid', 'effectOriginalRunWire'].includes(key)) ||
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.submittedIntentCid !== undefined && !cid(value.submittedIntentCid)) return false;
+  // Bounded original-codec DATA only. Its Common material reader must still
+  // admit the full Run/request/evidence pair before a restored use. Presence
+  // in this private record is neither that admission nor a resume permission.
+  if (value.effectOriginalRunWire !== undefined &&
+      (typeof value.effectOriginalRunWire !== 'string' || value.effectOriginalRunWire.length === 0)) return false;
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
   if (value.updateTargetRunOriginal !== undefined &&
       updateOriginalControl?.run(value.updateTargetRunOriginal, value) !== true) return false;
