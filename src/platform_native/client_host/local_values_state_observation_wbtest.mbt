@@ -236,7 +236,43 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     )
     is Err(Candidate(Unavailable)),
   )
+  let names_original = host
+    .lookup_submitted_run_original_by_id(
+      crypto, "operator", "cli", "values-state-original",
+    )
+    .unwrap()
+  let before_names_run = run_record_body(
+    journal.retained(request).unwrap().unwrap(),
+  ).unwrap()
+  let before_names_submission = journal
+    .retained_submission(reference)
+    .unwrap()
+    .unwrap().revision
+  assert_eq(
+    host
+    .lookup_original_result_names_json(
+      crypto, "operator", "cli", names_original, store, "local-test",
+    )
+    .unwrap(),
+    None,
+  )
   pending.commit().unwrap() |> ignore
+  assert_eq(
+    host
+    .lookup_original_result_names_json(
+      crypto, "operator", "cli", names_original, store, "local-test",
+    )
+    .unwrap(),
+    Some("[\"answer\"]"),
+  )
+  assert_eq(
+    run_record_body(journal.retained(request).unwrap().unwrap()).unwrap(),
+    before_names_run,
+  )
+  assert_eq(
+    journal.retained_submission(reference).unwrap().unwrap().revision,
+    before_names_submission,
+  )
   let observed = host
     .observe_publication_run_state(
       publisher,
@@ -495,6 +531,12 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   candidate.release().unwrap()
   assert_true(work.close())
   assert_true(store.close().unwrap())
+  assert_true(
+    host.lookup_original_result_names_json(
+      crypto, "operator", "cli", names_original, store, "local-test",
+    )
+    is Err(PublicationObservation(@publication_store.Closed)),
+  )
   assert_true(
     host.observe_publication_run_state(
       publisher,
