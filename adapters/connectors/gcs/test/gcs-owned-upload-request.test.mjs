@@ -7,7 +7,7 @@ import * as moon from '../../../../_build/js/release/build/connectors/gcs/host_n
 import {prepareGcsCollectionTarget, prepareGcsCollectionUploadBinding} from '../host/gcs-collection-target.mjs';
 import {admitGcsUploadObservation, prepareOwnedGcsMultipartUpload, ownedGcsUploadBody,
   recheckOwnedGcsUpload, ownedGcsUploadResponseMatches, sendOwnedGcsUpload,
-  readGcsUploadTarget} from '../site/gcs-owned-upload-request.mjs';
+  readGcsUploadTarget, projectOwnedGcsUploadResponse} from '../site/gcs-owned-upload-request.mjs';
 import {admitGcsObjectMetadata} from '../site/gcs-owned-object-request.mjs';
 
 const token = digit => `sha256:${digit.repeat(64)}`;
@@ -234,4 +234,65 @@ test('target metadata read refuses foreign scope before I/O and preserves the ex
   assert.equal(calls, 0);
   await assert.rejects(readGcsUploadTarget(options), error => error === failure);
   assert.equal(calls, 1, 'read failure does not authorize retry or upload');
+});
+
+const uploadResponseBody = changes => existingBody({generation: '9007199254740994',
+  metageneration: '1', size: '4', contentType: 'application/octet-stream',
+  crc32c: 'crxyRA==', metadata: {'actql-request': token('d')}, ...changes});
+
+test('direct upload response projection belongs to the exact original request and actual physical frame', async () => {
+  const {binding: original} = binding();
+  const request = prepare(original, existing(original), {overwrite: true});
+  const answer = await send(request, async () => ({accepted: true, statusCode: 200,
+    body: uploadResponseBody(), headers: []}));
+  assert.deepEqual(projectOwnedGcsUploadResponse(request, answer, 1024),
+    {kind: 'typed-success-response', outcome: {state: 'applied', result: {}}});
+  for (const physical of [{...answer}, answer.observation, request]) {
+    assert.throws(() => projectOwnedGcsUploadResponse(request, physical, 1024),
+      {code: 'ForeignGcsUploadResponse'});
+  }
+  const equalRequest = prepare(original, existing(original), {overwrite: true});
+  assert.equal(equalRequest.request_cid, request.request_cid);
+  assert.throws(() => projectOwnedGcsUploadResponse(equalRequest, answer, 1024),
+    {code: 'ForeignGcsUploadResponse'});
+  assert.throws(() => ownedGcsUploadBody(answer), {code: 'ForeignGcsUploadRequest'});
+});
+
+test('only the retained direct conditional response can project conflict, never a later metadata GET', async () => {
+  const {binding: original} = binding();
+  const request = prepare(original, absent(original));
+  const port = async () => ({accepted: false, statusCode: 412, body: Buffer.from('{}'), headers: []});
+  const answer = await send(request, port);
+  assert.deepEqual(projectOwnedGcsUploadResponse(request, answer, 1024),
+    {kind: 'typed-failure-response', outcome: {state: 'failed', error: {
+      code: 'conflict', message: 'The original GCS upload precondition failed'}}});
+  const read = await readGcsUploadTarget({moon, binding: original, name,
+    authorization: authorization({operation: 'gcs:file:read'}), credential: {},
+    maxRequestBytes: 4096, callResource: port});
+  assert.throws(() => projectOwnedGcsUploadResponse(request, read, 1024),
+    {code: 'ForeignGcsUploadResponse'});
+});
+
+test('missing marker mismatched bytes malformed response and ambiguous status do not settle an upload', async () => {
+  for (const [statusCode, body] of [[503, uploadResponseBody()], [200, Buffer.from('{}')],
+    [200, Buffer.from([255])], [200, uploadResponseBody({metadata: {}})],
+    [200, uploadResponseBody({metadata: {'actql-request': 'copied-foreign'}})],
+    [200, uploadResponseBody({crc32c: 'AAAAAA=='})], [200, uploadResponseBody({metageneration: '2'})]]) {
+    const {binding: original} = binding();
+    const request = prepare(original, absent(original));
+    const answer = await send(request, async () => ({accepted: statusCode === 200,
+      statusCode, body, headers: []}));
+    assert.deepEqual(projectOwnedGcsUploadResponse(request, answer, 1024), {kind: 'provider-response'});
+    assert.equal(answer.observation.body, body);
+  }
+  const {binding: original} = binding();
+  const request = prepare(original, absent(original));
+  const invalid = await send(request, async () => ({accepted: true, statusCode: 412,
+    body: Buffer.from('{}'), headers: []}));
+  assert.throws(() => projectOwnedGcsUploadResponse(request, invalid, 1024), {code: 'GcsInvalidUploadResponse'});
+  const other = binding();
+  const nextRequest = prepare(other.binding, absent(other.binding));
+  const answer = await send(nextRequest, async () => ({accepted: true, statusCode: 200,
+    body: uploadResponseBody(), headers: []}));
+  assert.throws(() => projectOwnedGcsUploadResponse(nextRequest, answer, 1), {code: 'GcsUploadCapacityExceeded'});
 });
