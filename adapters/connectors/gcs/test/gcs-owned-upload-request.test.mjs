@@ -96,6 +96,22 @@ test('optional overwrite and exact Int64 replacement observations survive the ty
     prepare(original, absent(original), {overwrite: false}).request_cid);
 });
 
+test('JSON upload names preserve exact legal controls and prefix while rejecting CR LF and foreign scope', () => {
+  const {binding: original} = binding();
+  for (const name of ['in/a\tb', 'in/\x7f', 'in/#[]*?', 'in/../literal', 'in/e\u0301']) {
+    const before = admitGcsUploadObservation(moon, original,
+      {name, statusCode: 404, body: Buffer.from('{}')});
+    const request = prepare(original, before);
+    assert.equal(request.name, name);
+    const first = Buffer.from(ownedGcsUploadBody(request)).toString('utf8');
+    assert.ok(first.includes(`"name":${JSON.stringify(name)}`));
+  }
+  for (const name of ['in/a\rb', 'in/a\nb', 'outside/a', 'in', '']) {
+    assert.throws(() => admitGcsUploadObservation(moon, original,
+      {name, statusCode: 404, body: Buffer.from('{}')}), {code: 'GcsInvalidUploadInput'});
+  }
+});
+
 test('binary transport invokes one original scoped operation and returns the same rejected response backing', async () => {
   const {binding: original} = binding();
   const request = prepare(original, absent(original));

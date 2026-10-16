@@ -67,6 +67,16 @@ fn upload_text(value : String, maximum : Int, empty? : Bool = false) -> Bool {
 }
 
 ///|
+// Provider object text is opaque Unicode. XML/CLI compatibility advice is
+// not an additional naming restriction for the JSON upload API.
+fn upload_object_text(value : String, empty? : Bool = false) -> Bool {
+  (empty || !value.is_empty()) &&
+  @scalar.admit_utf8_length(value, 1024) is Ok(_) &&
+  !value.contains("\r") &&
+  !value.contains("\n")
+}
+
+///|
 // Borrow the actual collection; do not recreate one from its equal DATA wire.
 // These declarations do not themselves establish an installed permission.
 pub fn prepare_object_upload_binding(
@@ -104,7 +114,7 @@ pub fn prepare_object_upload_binding(
     metadata_text(resource, "boundary_cid", 71) is Some(catalog_cid) else {
     return Err(InvalidBinding)
   }
-  if !upload_text(bucket, 222) || !upload_text(prefix, 1024, empty=true) {
+  if !upload_text(bucket, 222) || !upload_object_text(prefix, empty=true) {
     return Err(InvalidBinding)
   }
   let owned = permissions.copy()
@@ -135,7 +145,11 @@ pub fn admit_object_upload_observation(
   status : Int,
   bytes : Bytes,
 ) -> Result[ObjectUploadObservation, ObjectUploadIssue] {
-  if !upload_text(name, 1024) || !name.has_prefix(binding.prefix) {
+  if !upload_object_text(name) ||
+    name == "." ||
+    name == ".." ||
+    name.has_prefix(".well-known/acme-challenge/") ||
+    !name.has_prefix(binding.prefix) {
     return Err(InvalidInput)
   }
   if bytes.length() > binding.limits.metadata.max_bytes {

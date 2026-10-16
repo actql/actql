@@ -4407,7 +4407,7 @@
     },
     {
       "module": "src/connectors/gcs/catalog/object_upload.mbt",
-      "sha256": "3be89433bc966170a0351879e9b6be7f1b96a43c1ccdacdaa458e3fda6e0713d",
+      "sha256": "48b699adb7a887da20062c74eb090128d1932d4e3a1268cdbce3fe35da9f435e",
       "operations": [
         {
           "name": "admit_object_upload_observation",
@@ -4458,6 +4458,10 @@
           "declaration": "upload_json ( value : Json , maximum : Int , limits : ObjectMetadataLimits , ) - > Result [ String , ObjectUploadIssue ]"
         },
         {
+          "name": "upload_object_text",
+          "declaration": "upload_object_text ( value : String , empty ? : Bool"
+        },
+        {
           "name": "upload_request_wire",
           "declaration": "upload_request_wire ( binding : ObjectUploadBinding , before : ObjectUploadObservation , path : String , body : Bytes , body_media_type : String , content_ref_cid : String , expected_content_cid : String , overwrite : Bool ? , ) - > Result [ String , ObjectUploadIssue ]"
         },
@@ -4486,6 +4490,7 @@
             "recheck_object_upload",
             "upload_crc32c",
             "upload_json",
+            "upload_object_text",
             "upload_request_wire",
             "upload_text"
           ],

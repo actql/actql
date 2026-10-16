@@ -11,6 +11,7 @@ fn upload_request_limits() -> ObjectUploadLimits {
 
 ///|
 fn upload_request_binding(
+  prefix? : String = "in/",
   permissions? : Array[String] = [
     "storage.objects.create", "storage.objects.delete", "storage.objects.get",
   ],
@@ -19,7 +20,7 @@ fn upload_request_binding(
   let collection = prepare_object_collection_binding(
     "project",
     "bucket",
-    "in/",
+    prefix,
     "connector://exports/objects",
     "file_collection",
     "sha256:" + "a".repeat(64),
@@ -32,6 +33,38 @@ fn upload_request_binding(
     permissions,
     limits,
   ).unwrap()
+}
+
+///|
+test "GCS upload exact names preserve legal controls without changing the collection scope" {
+  let binding = upload_request_binding()
+  for name in ["in/a\tb", "in/\u007f", "in/#[]*?", "in/../literal", "in/é"] {
+    let before = admit_object_upload_observation(binding, name, 404, b"{}").unwrap()
+    let request = upload_request(binding, before).unwrap()
+    let projection = object_upload_projection_json(binding, request, 8192).unwrap()
+    assert_true(projection.contains(name.to_json().stringify()))
+  }
+  for name in ["in/a\rb", "in/a\nb", "outside/a", "in", ""] {
+    assert_true(
+      admit_object_upload_observation(binding, name, 404, b"{}")
+      is Err(InvalidInput),
+    )
+  }
+  let root = upload_request_binding(prefix="")
+  for name in [".", "..", ".well-known/acme-challenge/token"] {
+    assert_true(
+      admit_object_upload_observation(root, name, 404, b"{}")
+      is Err(InvalidInput),
+    )
+  }
+  let prefixed = upload_request_binding(prefix="in/\t")
+  assert_true(
+    admit_object_upload_observation(prefixed, "in/\tfile", 404, b"{}") is Ok(_),
+  )
+  assert_true(
+    admit_object_upload_observation(prefixed, "in/file", 404, b"{}")
+    is Err(InvalidInput),
+  )
 }
 
 ///|
