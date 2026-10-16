@@ -1,0 +1,255 @@
+{
+  "qualification": "Private CLI project preparation only. Template/filesystem responsibilities do not initialize Host/Store/keys, authorize execution or establish installed acceptance.",
+  "declarations": [
+    {
+      "module": "packages/native-cli/lib/project-template.mjs",
+      "sha256": "e9fff14b4d834377135d0fee1a4235190a61e9b15bb85dfd8693760574f8091f",
+      "exports": [
+        "projectTemplateFiles"
+      ],
+      "operations": [
+        {
+          "name": "json/json",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectTemplateFiles",
+          "parameters": [
+            "template"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "responsibilityFacet": "primary",
+      "owner": "D / existing CLI project preparation; existing Host installation and credential Owners retain authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "json/json",
+            "projectTemplateFiles"
+          ],
+          "exports": [
+            "projectTemplateFiles"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/project-template.mjs",
+                "anchor": "// Project inputs from the public Quickstart."
+              },
+              {
+                "path": "docs/getting-started/quickstart.md",
+                "anchor": "## 1. The project"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/project-template.mjs",
+                "anchor": "export function projectTemplateFiles("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/project-template.mjs",
+                "anchor": "// authority, signers, credential grants or runtime implementation."
+              }
+            ],
+            "ownership": {
+              "notApplicable": "Finite immutable strings only; no file, Host, opaque handle or key is acquired."
+            },
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/project-template.mjs",
+                "anchor": "export function projectTemplateFiles("
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/project-template.mjs",
+                "anchor": "if (template !== undefined && template !== 'churn-risk-mock')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous data selection has no await, cancellation callback, dispatch or physical resource to retire."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/project-template.mjs",
+                "anchor": "const json = value => JSON.stringify(value, null, 2)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/reference/configuration.md",
+                "anchor": "## `actql.config.json`"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "anchor": "test('the Quickstart template prepares seven inputs"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/native-cli/lib/project-scaffold.mjs",
+      "sha256": "a0009cb4220e5e76f9a3b055be2b36be2af202d4f2a8777a5a7df62569d70fe5",
+      "exports": [
+        "scaffoldProject"
+      ],
+      "operations": [
+        {
+          "name": "emptyDirectory/emptyDirectory",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "message"
+          ],
+          "async": false
+        },
+        {
+          "name": "same/same",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "scaffoldProject",
+          "parameters": [
+            "directory",
+            "template"
+          ],
+          "async": false
+        },
+        {
+          "name": "scaffoldProject/checkRoot/checkRoot",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./project-template.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "D / existing CLI project preparation; existing Host installation and credential Owners retain authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "emptyDirectory/emptyDirectory",
+            "fail/fail",
+            "same/same",
+            "scaffoldProject",
+            "scaffoldProject/checkRoot/checkRoot"
+          ],
+          "exports": [
+            "scaffoldProject"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// Private installer preparation."
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "export function scaffoldProject("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "export function scaffoldProject("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// Host, issue a key, adopt configuration or report a runnable mock installation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// Each write is exclusive."
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// preparation receipt can hide an outstanding cleanup responsibility."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "const checkRoot = () => {"
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "const fd = openSync("
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// inspection; retry cannot overwrite the partial project or any existing state."
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "code: 'ACTQL_E_PROJECT_CLEANUP_PENDING'"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous private setup primitive has no Run, operation, cancellation or retry state machine. An interrupted project remains partial and cannot be silently overwritten."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "const files = projectTemplateFiles(template);"
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "try { return directory.readSync() === null; }"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// The existing installation Owner must create state with its exclusive"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "anchor": "test('the Quickstart template prepares seven inputs"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
