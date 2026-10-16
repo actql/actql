@@ -7,7 +7,7 @@ import './source-dependency-closure.test.mjs';
 import './query-boundary-behavior.test.mjs';
 import './query-dependency-policy.test.mjs';
 import {productionPackageImports, scopedPackageImports} from './source-dependency-closure.mjs';
-import {adapterModuleGraph} from './adapter-module-graph.mjs';
+import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {assertCommonAdapterGraph, assertOpaqueHandles, assertProductionBoundary,
   assertProductionImports, assertPublicBoundary, concreteDependencies,
   conformanceDependencies, publicFunction} from './query-dependency-policy.mjs';
@@ -41,7 +41,7 @@ test('captured DAG consumes obligations without operation-template dependencies'
 });
 
 test('common serial adapter closure permits helper extraction but no Connector or test authority', () => {
-  assertCommonAdapterGraph(adapterModuleGraph(process.cwd(), [
+  assertCommonAdapterGraph(localModuleGraphInputs(process.cwd(), [
     'adapters/host-common/strategy.mjs',
     'adapters/host-common/execution-sites.mjs',
     'adapters/host-common/managed-site-transfer.mjs',

@@ -11,9 +11,14 @@ composition. It adds no manifest grammar or second dependency authority.
 The gate allows additional neutral helpers, reordered imports and aliases.
 It rejects concrete/transitive Connector dependencies, production conformance
 imports, public representation leaks and retired public authority surfaces.
-The existing `adapterModuleGraph` resolves the actual common JS import closure,
-including reexports; a test module cannot become product authority through a
-neutral intermediary. Public opaque types and operation signatures remain
+The existing resolver exposes its complete local source input closure through
+`localModuleGraphInputs`, before any adapter ownership filtering. The common
+policy checks that closure, including relative reexports into `fixtures/` or
+`packages/`; a test module cannot disappear through the packaging projection.
+The packaging API `adapterModuleGraph` retains its adapter-only projection and
+entry validation. Neutral helpers outside `adapters/` remain allowed, and bare
+external dependencies remain external rather than expanding this audit's scope.
+Public opaque types and operation signatures remain
 contract assertions. Private function names, variable names, call order inferred
 from text, complete neutral import lists and positional-call regexes are gone.
 
@@ -61,13 +66,19 @@ Use the repository's pinned Node and ordinary locked test dependencies:
 ```sh
 node reviews/2026-10-16-refactoring/r2/prepared-checks.mjs boundaries
 node reviews/2026-10-16-refactoring/r2/prepared-checks.mjs mutations
+node reviews/2026-10-16-refactoring/r2/prepared-checks.mjs graph
 ```
 
-Both use the existing non-Heavy guard, 60 seconds / TERM grace 5, and the existing
+All use the existing non-Heavy guard, 60 seconds / TERM grace 5, and the existing
 nonzero focused wrapper with a 30-second child limit. No Moon, Native, packed
 producer, Provider or installed campaign is started. Preserve every attempt's
 original guard and focused receipts; later success does not replace earlier
 failure.
+
+`graph` selects the complete-closure counterexamples, the unchanged packaging
+projection/entry contract, the real common adapter closure and the existing
+Connector installation generator consumer. It does not rerun the earlier
+boundary/SQLite/Host or source-qualified mutation acceptance.
 
 ## Original assertion responsibilities
 
