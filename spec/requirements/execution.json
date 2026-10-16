@@ -1280,7 +1280,7 @@
     },
     {
       "requirement_id": "actql.execution/run-states.run-creation-and-lifecycle-operations-must-expose-the-closed-actql-run-state-0-2",
-      "statement_sha256": "d8d5dcba14fade305b163a7f8f0f0a99c30643106138f382df23caf6da99ac39",
+      "statement_sha256": "8c73a34b1a490999364dbc3a8477fffbb9128a3db467312d4a6df458170f77ed",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -1763,6 +1763,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/policy-routing.standard-local-bootstrap",
+      "statement_sha256": "8f5c26d055ae2d3a15528cf899c7d9c91c8f4d4787ef880e1d6ed0dc88735415",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "policy-routing",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection",
       "statement_sha256": "8ebac4232d21469a265be0b70b4ded80cbb95e5ba85aea9832e7221ce2a83617",
       "status": "pending",
@@ -1956,7 +1967,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "approval-renewal",
+        "anchor": "reconciliation",
         "kind": "prose"
       }
     },

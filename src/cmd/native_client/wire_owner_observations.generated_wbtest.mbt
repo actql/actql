@@ -2,7 +2,7 @@
 // Run: node scripts/generate-client-host-wire.mjs --write
 
 ///|
-fn wire_rule_961(value : Json) -> Bool {
+fn wire_rule_990(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "run" ||
     text == "effect" ||
@@ -32,7 +32,7 @@ fn wire_owner_ref_shape(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_961(item) {
+    if !wire_rule_990(item) {
       return false
     }
   }
@@ -50,7 +50,7 @@ fn wire_owner_ref_shape(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_965(value : Json) -> Bool {
+fn wire_rule_994(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if text.iter().count() < 1 {
     return false
@@ -81,7 +81,7 @@ fn wire_owner_cursor_shape(value : Json) -> Bool {
     }
   }
   if fields.get("value") is Some(item) {
-    if !wire_rule_965(item) {
+    if !wire_rule_994(item) {
       return false
     }
   }
@@ -89,7 +89,7 @@ fn wire_owner_cursor_shape(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_967(value : Json) -> Bool {
+fn wire_rule_996(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "non_atomic") {
     return false
@@ -98,7 +98,7 @@ fn wire_rule_967(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_968(value : Json) -> Bool {
+fn wire_rule_997(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "owner_local") {
     return false
@@ -107,7 +107,7 @@ fn wire_rule_968(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_973(value : Json) -> Bool {
+fn wire_rule_1002(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "unavailable") {
     return false
@@ -116,7 +116,7 @@ fn wire_rule_973(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_975(value : Json) -> Bool {
+fn wire_rule_1004(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "acquisition_failed" ||
     text == "limit_exceeded" ||
@@ -128,7 +128,7 @@ fn wire_rule_975(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_974(value : Json) -> Bool {
+fn wire_rule_1003(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -139,7 +139,7 @@ fn wire_rule_974(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_975(item) {
+    if !wire_rule_1004(item) {
       return false
     }
   }
@@ -147,7 +147,7 @@ fn wire_rule_974(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_971(value : Json) -> Bool {
+fn wire_rule_1000(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "owner" || key == "kind" || key == "problem") {
@@ -161,17 +161,17 @@ fn wire_rule_971(value : Json) -> Bool {
     return false
   }
   if fields.get("owner") is Some(item) {
-    if !wire_rule_961(item) {
+    if !wire_rule_990(item) {
       return false
     }
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_973(item) {
+    if !wire_rule_1002(item) {
       return false
     }
   }
   if fields.get("problem") is Some(item) {
-    if !wire_rule_974(item) {
+    if !wire_rule_1003(item) {
       return false
     }
   }
@@ -179,7 +179,7 @@ fn wire_rule_971(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_977(value : Json) -> Bool {
+fn wire_rule_1006(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "run") {
     return false
@@ -188,7 +188,7 @@ fn wire_rule_977(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_979(value : Json) -> Bool {
+fn wire_rule_1008(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "observed") {
     return false
@@ -197,7 +197,7 @@ fn wire_rule_979(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_982(value : Json) -> Bool {
+fn wire_rule_1011(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "not_provided") {
     return false
@@ -206,7 +206,7 @@ fn wire_rule_982(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_981(value : Json) -> Bool {
+fn wire_rule_1010(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -217,7 +217,7 @@ fn wire_rule_981(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_982(item) {
+    if !wire_rule_1011(item) {
       return false
     }
   }
@@ -225,7 +225,7 @@ fn wire_rule_981(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_984(value : Json) -> Bool {
+fn wire_rule_1013(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "retention_expired") {
     return false
@@ -234,7 +234,7 @@ fn wire_rule_984(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_983(value : Json) -> Bool {
+fn wire_rule_1012(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -245,7 +245,7 @@ fn wire_rule_983(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_984(item) {
+    if !wire_rule_1013(item) {
       return false
     }
   }
@@ -253,7 +253,7 @@ fn wire_rule_983(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_986(value : Json) -> Bool {
+fn wire_rule_1015(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "history_unrecoverable") {
     return false
@@ -262,7 +262,7 @@ fn wire_rule_986(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_985(value : Json) -> Bool {
+fn wire_rule_1014(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -273,7 +273,7 @@ fn wire_rule_985(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_986(item) {
+    if !wire_rule_1015(item) {
       return false
     }
   }
@@ -281,7 +281,7 @@ fn wire_rule_985(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_988(value : Json) -> Bool {
+fn wire_rule_1017(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "cursor_mismatch") {
     return false
@@ -290,7 +290,7 @@ fn wire_rule_988(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_987(value : Json) -> Bool {
+fn wire_rule_1016(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -301,7 +301,7 @@ fn wire_rule_987(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_988(item) {
+    if !wire_rule_1017(item) {
       return false
     }
   }
@@ -309,7 +309,7 @@ fn wire_rule_987(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_990(value : Json) -> Bool {
+fn wire_rule_1019(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "cursor_expired") {
     return false
@@ -318,7 +318,7 @@ fn wire_rule_990(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_989(value : Json) -> Bool {
+fn wire_rule_1018(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -329,7 +329,7 @@ fn wire_rule_989(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_990(item) {
+    if !wire_rule_1019(item) {
       return false
     }
   }
@@ -337,7 +337,7 @@ fn wire_rule_989(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_992(value : Json) -> Bool {
+fn wire_rule_1021(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "limit_exceeded") {
     return false
@@ -346,7 +346,7 @@ fn wire_rule_992(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_991(value : Json) -> Bool {
+fn wire_rule_1020(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -357,7 +357,7 @@ fn wire_rule_991(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_992(item) {
+    if !wire_rule_1021(item) {
       return false
     }
   }
@@ -365,7 +365,7 @@ fn wire_rule_991(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_994(value : Json) -> Bool {
+fn wire_rule_1023(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "acquisition_failed") {
     return false
@@ -374,7 +374,7 @@ fn wire_rule_994(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_993(value : Json) -> Bool {
+fn wire_rule_1022(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -385,7 +385,7 @@ fn wire_rule_993(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_994(item) {
+    if !wire_rule_1023(item) {
       return false
     }
   }
@@ -393,7 +393,7 @@ fn wire_rule_993(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_996(value : Json) -> Bool {
+fn wire_rule_1025(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "page") {
     return false
@@ -402,7 +402,7 @@ fn wire_rule_996(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1001(value : Json) -> Bool {
+fn wire_rule_1030(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "prepared" ||
     text == "dispatching" ||
@@ -416,7 +416,7 @@ fn wire_rule_1001(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_998(value : Json) -> Bool {
+fn wire_rule_1027(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "revision" || key == "entryCid" || key == "state") {
@@ -443,7 +443,7 @@ fn wire_rule_998(value : Json) -> Bool {
     }
   }
   if fields.get("state") is Some(item) {
-    if !wire_rule_1001(item) {
+    if !wire_rule_1030(item) {
       return false
     }
   }
@@ -451,13 +451,13 @@ fn wire_rule_998(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_997(value : Json) -> Bool {
+fn wire_rule_1026(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() > 1000 {
     return false
   }
   for item in items {
-    if !wire_rule_998(item) {
+    if !wire_rule_1027(item) {
       return false
     }
   }
@@ -465,7 +465,7 @@ fn wire_rule_997(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_995(value : Json) -> Bool {
+fn wire_rule_1024(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "entries" || key == "cursor") {
@@ -479,12 +479,12 @@ fn wire_rule_995(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_996(item) {
+    if !wire_rule_1025(item) {
       return false
     }
   }
   if fields.get("entries") is Some(item) {
-    if !wire_rule_997(item) {
+    if !wire_rule_1026(item) {
       return false
     }
   }
@@ -497,16 +497,16 @@ fn wire_rule_995(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_980(value : Json) -> Bool {
+fn wire_rule_1009(value : Json) -> Bool {
   if [
-      wire_rule_981(value),
-      wire_rule_983(value),
-      wire_rule_985(value),
-      wire_rule_987(value),
-      wire_rule_989(value),
-      wire_rule_991(value),
-      wire_rule_993(value),
-      wire_rule_995(value),
+      wire_rule_1010(value),
+      wire_rule_1012(value),
+      wire_rule_1014(value),
+      wire_rule_1016(value),
+      wire_rule_1018(value),
+      wire_rule_1020(value),
+      wire_rule_1022(value),
+      wire_rule_1024(value),
     ]
     .filter(fn(ok) { ok })
     .length() !=
@@ -517,7 +517,7 @@ fn wire_rule_980(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1009(value : Json) -> Bool {
+fn wire_rule_1038(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "waiting_checkpoint") {
     return false
@@ -526,13 +526,13 @@ fn wire_rule_1009(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1008(value : Json) -> Bool {
+fn wire_rule_1037(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("status") {
     return false
   }
   if fields.get("status") is Some(item) {
-    if !wire_rule_1009(item) {
+    if !wire_rule_1038(item) {
       return false
     }
   }
@@ -540,7 +540,7 @@ fn wire_rule_1008(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1012(value : Json) -> Bool {
+fn wire_rule_1041(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "resolve_checkpoint") {
     return false
@@ -549,7 +549,7 @@ fn wire_rule_1012(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1011(value : Json) -> Bool {
+fn wire_rule_1040(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("kind") {
     return false
@@ -558,7 +558,7 @@ fn wire_rule_1011(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1012(item) {
+    if !wire_rule_1041(item) {
       return false
     }
   }
@@ -566,13 +566,13 @@ fn wire_rule_1011(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1010(value : Json) -> Bool {
+fn wire_rule_1039(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("checkpoint") {
     return false
   }
   if fields.get("next_action") is Some(item) {
-    if !wire_rule_1011(item) {
+    if !wire_rule_1040(item) {
       return false
     }
   }
@@ -580,15 +580,15 @@ fn wire_rule_1010(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1007(value : Json) -> Bool {
-  if wire_rule_1008(value) && !wire_rule_1010(value) {
+fn wire_rule_1036(value : Json) -> Bool {
+  if wire_rule_1037(value) && !wire_rule_1039(value) {
     return false
   }
   true
 }
 
 ///|
-fn wire_rule_1015(value : Json) -> Bool {
+fn wire_rule_1044(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "needs_reconciliation") {
     return false
@@ -597,13 +597,13 @@ fn wire_rule_1015(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1014(value : Json) -> Bool {
+fn wire_rule_1043(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("status") {
     return false
   }
   if fields.get("status") is Some(item) {
-    if !wire_rule_1015(item) {
+    if !wire_rule_1044(item) {
       return false
     }
   }
@@ -611,7 +611,7 @@ fn wire_rule_1014(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1017(value : Json) -> Bool {
+fn wire_rule_1046(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("checkpoint") {
     return false
@@ -620,7 +620,7 @@ fn wire_rule_1017(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1020(value : Json) -> Bool {
+fn wire_rule_1049(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "reconcile") {
     return false
@@ -629,13 +629,13 @@ fn wire_rule_1020(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1021(value : Json) -> Bool {
+fn wire_rule_1050(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() < 1 {
     return false
   }
   for item in items {
-    if !wire_rule_676(item) {
+    if !wire_rule_702(item) {
       return false
     }
   }
@@ -651,7 +651,7 @@ fn wire_rule_1021(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1019(value : Json) -> Bool {
+fn wire_rule_1048(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "effects") {
@@ -665,12 +665,12 @@ fn wire_rule_1019(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1020(item) {
+    if !wire_rule_1049(item) {
       return false
     }
   }
   if fields.get("effects") is Some(item) {
-    if !wire_rule_1021(item) {
+    if !wire_rule_1050(item) {
       return false
     }
   }
@@ -678,7 +678,7 @@ fn wire_rule_1019(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1024(value : Json) -> Bool {
+fn wire_rule_1053(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "reconcile_run") {
     return false
@@ -687,7 +687,7 @@ fn wire_rule_1024(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1025(value : Json) -> Bool {
+fn wire_rule_1054(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "execution_unknown") {
     return false
@@ -696,7 +696,7 @@ fn wire_rule_1025(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1023(value : Json) -> Bool {
+fn wire_rule_1052(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "reason") {
@@ -710,12 +710,12 @@ fn wire_rule_1023(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1024(item) {
+    if !wire_rule_1053(item) {
       return false
     }
   }
   if fields.get("reason") is Some(item) {
-    if !wire_rule_1025(item) {
+    if !wire_rule_1054(item) {
       return false
     }
   }
@@ -723,8 +723,8 @@ fn wire_rule_1023(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1018(value : Json) -> Bool {
-  if [wire_rule_1019(value), wire_rule_1023(value)]
+fn wire_rule_1047(value : Json) -> Bool {
+  if [wire_rule_1048(value), wire_rule_1052(value)]
     .filter(fn(ok) { ok })
     .length() !=
     1 {
@@ -734,13 +734,13 @@ fn wire_rule_1018(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1016(value : Json) -> Bool {
-  if wire_rule_1017(value) {
+fn wire_rule_1045(value : Json) -> Bool {
+  if wire_rule_1046(value) {
     return false
   }
   guard value is Object(fields) else { return false }
   if fields.get("next_action") is Some(item) {
-    if !wire_rule_1018(item) {
+    if !wire_rule_1047(item) {
       return false
     }
   }
@@ -748,15 +748,15 @@ fn wire_rule_1016(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1013(value : Json) -> Bool {
-  if wire_rule_1014(value) && !wire_rule_1016(value) {
+fn wire_rule_1042(value : Json) -> Bool {
+  if wire_rule_1043(value) && !wire_rule_1045(value) {
     return false
   }
   true
 }
 
 ///|
-fn wire_rule_1028(value : Json) -> Bool {
+fn wire_rule_1057(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "succeeded") {
     return false
@@ -765,13 +765,13 @@ fn wire_rule_1028(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1027(value : Json) -> Bool {
+fn wire_rule_1056(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("status") {
     return false
   }
   if fields.get("status") is Some(item) {
-    if !wire_rule_1028(item) {
+    if !wire_rule_1057(item) {
       return false
     }
   }
@@ -779,7 +779,7 @@ fn wire_rule_1027(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1032(value : Json) -> Bool {
+fn wire_rule_1061(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "read_result" || text == "refresh_availability" || text == "none") {
     return false
@@ -788,13 +788,13 @@ fn wire_rule_1032(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1031(value : Json) -> Bool {
+fn wire_rule_1060(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("kind") {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1032(item) {
+    if !wire_rule_1061(item) {
       return false
     }
   }
@@ -802,13 +802,13 @@ fn wire_rule_1031(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1029(value : Json) -> Bool {
-  if wire_rule_1017(value) {
+fn wire_rule_1058(value : Json) -> Bool {
+  if wire_rule_1046(value) {
     return false
   }
   guard value is Object(fields) else { return false }
   if fields.get("next_action") is Some(item) {
-    if !wire_rule_1031(item) {
+    if !wire_rule_1060(item) {
       return false
     }
   }
@@ -816,15 +816,15 @@ fn wire_rule_1029(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1026(value : Json) -> Bool {
-  if wire_rule_1027(value) && !wire_rule_1029(value) {
+fn wire_rule_1055(value : Json) -> Bool {
+  if wire_rule_1056(value) && !wire_rule_1058(value) {
     return false
   }
   true
 }
 
 ///|
-fn wire_rule_1035(value : Json) -> Bool {
+fn wire_rule_1064(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "preparing" ||
     text == "running" ||
@@ -837,13 +837,13 @@ fn wire_rule_1035(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1034(value : Json) -> Bool {
+fn wire_rule_1063(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("status") {
     return false
   }
   if fields.get("status") is Some(item) {
-    if !wire_rule_1035(item) {
+    if !wire_rule_1064(item) {
       return false
     }
   }
@@ -851,7 +851,7 @@ fn wire_rule_1034(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1039(value : Json) -> Bool {
+fn wire_rule_1068(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "none") {
     return false
@@ -860,13 +860,13 @@ fn wire_rule_1039(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1038(value : Json) -> Bool {
+fn wire_rule_1067(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("kind") {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1039(item) {
+    if !wire_rule_1068(item) {
       return false
     }
   }
@@ -874,13 +874,13 @@ fn wire_rule_1038(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1036(value : Json) -> Bool {
-  if wire_rule_1017(value) {
+fn wire_rule_1065(value : Json) -> Bool {
+  if wire_rule_1046(value) {
     return false
   }
   guard value is Object(fields) else { return false }
   if fields.get("next_action") is Some(item) {
-    if !wire_rule_1038(item) {
+    if !wire_rule_1067(item) {
       return false
     }
   }
@@ -888,26 +888,26 @@ fn wire_rule_1036(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1033(value : Json) -> Bool {
-  if wire_rule_1034(value) && !wire_rule_1036(value) {
+fn wire_rule_1062(value : Json) -> Bool {
+  if wire_rule_1063(value) && !wire_rule_1065(value) {
     return false
   }
   true
 }
 
 ///|
-fn wire_rule_1042(_value : Json) -> Bool {
+fn wire_rule_1071(_value : Json) -> Bool {
   true
 }
 
 ///|
-fn wire_rule_1041(value : Json) -> Bool {
+fn wire_rule_1070(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("result_availability") {
     return false
   }
   if fields.get("result_availability") is Some(item) {
-    if !wire_rule_1042(item) {
+    if !wire_rule_1071(item) {
       return false
     }
   }
@@ -915,7 +915,7 @@ fn wire_rule_1041(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1046(value : Json) -> Bool {
+fn wire_rule_1075(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "none" ||
     text == "resolve_checkpoint" ||
@@ -927,10 +927,10 @@ fn wire_rule_1046(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1045(value : Json) -> Bool {
+fn wire_rule_1074(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1046(item) {
+    if !wire_rule_1075(item) {
       return false
     }
   }
@@ -938,15 +938,15 @@ fn wire_rule_1045(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1043(value : Json) -> Bool {
+fn wire_rule_1072(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if fields.get("result_available") is Some(item) {
-    if !wire_rule_663(item) {
+    if !wire_rule_689(item) {
       return false
     }
   }
   if fields.get("next_action") is Some(item) {
-    if !wire_rule_1045(item) {
+    if !wire_rule_1074(item) {
       return false
     }
   }
@@ -954,15 +954,15 @@ fn wire_rule_1043(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1040(value : Json) -> Bool {
-  if wire_rule_1041(value) && !wire_rule_1043(value) {
+fn wire_rule_1069(value : Json) -> Bool {
+  if wire_rule_1070(value) && !wire_rule_1072(value) {
     return false
   }
   true
 }
 
 ///|
-fn wire_rule_1047(value : Json) -> Bool {
+fn wire_rule_1076(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "actql-run-state/0.1") {
     return false
@@ -971,7 +971,7 @@ fn wire_rule_1047(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1049(value : Json) -> Bool {
+fn wire_rule_1078(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "preparing" ||
     text == "running" ||
@@ -987,7 +987,7 @@ fn wire_rule_1049(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1050(value : Json) -> Bool {
+fn wire_rule_1079(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if text.length() != 24 {
     return false
@@ -1012,7 +1012,7 @@ fn wire_rule_1050(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1054(value : Json) -> Bool {
+fn wire_rule_1083(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "run_scope" ||
     text == "read_access" ||
@@ -1026,7 +1026,7 @@ fn wire_rule_1054(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1051(value : Json) -> Bool {
+fn wire_rule_1080(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "checkpoint_id" || key == "checkpoint_cid" || key == "kind") {
@@ -1043,17 +1043,17 @@ fn wire_rule_1051(value : Json) -> Bool {
     return false
   }
   if fields.get("checkpoint_id") is Some(item) {
-    if !wire_rule_676(item) {
+    if !wire_rule_702(item) {
       return false
     }
   }
   if fields.get("checkpoint_cid") is Some(item) {
-    if !wire_rule_759(item) {
+    if !wire_rule_785(item) {
       return false
     }
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1054(item) {
+    if !wire_rule_1083(item) {
       return false
     }
   }
@@ -1061,7 +1061,7 @@ fn wire_rule_1051(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1056(value : Json) -> Bool {
+fn wire_rule_1085(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "checkpoint_id") {
@@ -1075,12 +1075,12 @@ fn wire_rule_1056(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1012(item) {
+    if !wire_rule_1041(item) {
       return false
     }
   }
   if fields.get("checkpoint_id") is Some(item) {
-    if !wire_rule_676(item) {
+    if !wire_rule_702(item) {
       return false
     }
   }
@@ -1088,7 +1088,7 @@ fn wire_rule_1056(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1061(value : Json) -> Bool {
+fn wire_rule_1090(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "read_result") {
     return false
@@ -1097,7 +1097,7 @@ fn wire_rule_1061(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1060(value : Json) -> Bool {
+fn wire_rule_1089(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "results") {
@@ -1111,12 +1111,12 @@ fn wire_rule_1060(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1061(item) {
+    if !wire_rule_1090(item) {
       return false
     }
   }
   if fields.get("results") is Some(item) {
-    if !wire_rule_1021(item) {
+    if !wire_rule_1050(item) {
       return false
     }
   }
@@ -1124,7 +1124,7 @@ fn wire_rule_1060(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1064(value : Json) -> Bool {
+fn wire_rule_1093(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "refresh_availability") {
     return false
@@ -1133,7 +1133,7 @@ fn wire_rule_1064(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1063(value : Json) -> Bool {
+fn wire_rule_1092(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "results") {
@@ -1147,12 +1147,12 @@ fn wire_rule_1063(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1064(item) {
+    if !wire_rule_1093(item) {
       return false
     }
   }
   if fields.get("results") is Some(item) {
-    if !wire_rule_1021(item) {
+    if !wire_rule_1050(item) {
       return false
     }
   }
@@ -1160,7 +1160,7 @@ fn wire_rule_1063(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1066(value : Json) -> Bool {
+fn wire_rule_1095(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -1171,7 +1171,7 @@ fn wire_rule_1066(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1039(item) {
+    if !wire_rule_1068(item) {
       return false
     }
   }
@@ -1179,14 +1179,14 @@ fn wire_rule_1066(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1055(value : Json) -> Bool {
+fn wire_rule_1084(value : Json) -> Bool {
   if [
-      wire_rule_1056(value),
-      wire_rule_1019(value),
-      wire_rule_1060(value),
-      wire_rule_1063(value),
-      wire_rule_1066(value),
-      wire_rule_1023(value),
+      wire_rule_1085(value),
+      wire_rule_1048(value),
+      wire_rule_1089(value),
+      wire_rule_1092(value),
+      wire_rule_1095(value),
+      wire_rule_1052(value),
     ]
     .filter(fn(ok) { ok })
     .length() !=
@@ -1197,7 +1197,7 @@ fn wire_rule_1055(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1071(value : Json) -> Bool {
+fn wire_rule_1100(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if text.length() < 9 || !text.has_prefix("ACTQL_E_") {
     return false
@@ -1213,7 +1213,7 @@ fn wire_rule_1071(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1070(value : Json) -> Bool {
+fn wire_rule_1099(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "code" || key == "message") {
@@ -1227,12 +1227,12 @@ fn wire_rule_1070(value : Json) -> Bool {
     return false
   }
   if fields.get("code") is Some(item) {
-    if !wire_rule_1071(item) {
+    if !wire_rule_1100(item) {
       return false
     }
   }
   if fields.get("message") is Some(item) {
-    if !wire_rule_676(item) {
+    if !wire_rule_702(item) {
       return false
     }
   }
@@ -1240,7 +1240,7 @@ fn wire_rule_1070(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1077(value : Json) -> Bool {
+fn wire_rule_1106(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "available") {
     return false
@@ -1249,13 +1249,13 @@ fn wire_rule_1077(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1076(value : Json) -> Bool {
+fn wire_rule_1105(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("state") {
     return false
   }
   if fields.get("state") is Some(item) {
-    if !wire_rule_1077(item) {
+    if !wire_rule_1106(item) {
       return false
     }
   }
@@ -1263,7 +1263,7 @@ fn wire_rule_1076(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1079(value : Json) -> Bool {
+fn wire_rule_1108(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "confirmed_present") {
     return false
@@ -1272,10 +1272,10 @@ fn wire_rule_1079(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1078(value : Json) -> Bool {
+fn wire_rule_1107(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if fields.get("reason") is Some(item) {
-    if !wire_rule_1079(item) {
+    if !wire_rule_1108(item) {
       return false
     }
   }
@@ -1283,21 +1283,21 @@ fn wire_rule_1078(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1075(value : Json) -> Bool {
-  if wire_rule_1076(value) && !wire_rule_1078(value) {
+fn wire_rule_1104(value : Json) -> Bool {
+  if wire_rule_1105(value) && !wire_rule_1107(value) {
     return false
   }
   true
 }
 
 ///|
-fn wire_rule_1081(value : Json) -> Bool {
+fn wire_rule_1110(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("state") {
     return false
   }
   if fields.get("state") is Some(item) {
-    if !wire_rule_783(item) {
+    if !wire_rule_812(item) {
       return false
     }
   }
@@ -1305,7 +1305,7 @@ fn wire_rule_1081(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1084(value : Json) -> Bool {
+fn wire_rule_1113(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "retention_expired" ||
     text == "deleted" ||
@@ -1318,10 +1318,10 @@ fn wire_rule_1084(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1083(value : Json) -> Bool {
+fn wire_rule_1112(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if fields.get("reason") is Some(item) {
-    if !wire_rule_1084(item) {
+    if !wire_rule_1113(item) {
       return false
     }
   }
@@ -1329,30 +1329,21 @@ fn wire_rule_1083(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1080(value : Json) -> Bool {
-  if wire_rule_1081(value) && !wire_rule_1083(value) {
+fn wire_rule_1109(value : Json) -> Bool {
+  if wire_rule_1110(value) && !wire_rule_1112(value) {
     return false
   }
   true
 }
 
 ///|
-fn wire_rule_1087(value : Json) -> Bool {
-  guard value is String(text) else { return false }
-  if !(text == "unknown") {
-    return false
-  }
-  true
-}
-
-///|
-fn wire_rule_1086(value : Json) -> Bool {
+fn wire_rule_1115(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if !fields.contains("state") {
     return false
   }
   if fields.get("state") is Some(item) {
-    if !wire_rule_1087(item) {
+    if !wire_rule_80(item) {
       return false
     }
   }
@@ -1360,7 +1351,7 @@ fn wire_rule_1086(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1089(value : Json) -> Bool {
+fn wire_rule_1118(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "store_query_failed" ||
     text == "clock_uncertain" ||
@@ -1371,10 +1362,10 @@ fn wire_rule_1089(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1088(value : Json) -> Bool {
+fn wire_rule_1117(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   if fields.get("reason") is Some(item) {
-    if !wire_rule_1089(item) {
+    if !wire_rule_1118(item) {
       return false
     }
   }
@@ -1382,15 +1373,15 @@ fn wire_rule_1088(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1085(value : Json) -> Bool {
-  if wire_rule_1086(value) && !wire_rule_1088(value) {
+fn wire_rule_1114(value : Json) -> Bool {
+  if wire_rule_1115(value) && !wire_rule_1117(value) {
     return false
   }
   true
 }
 
 ///|
-fn wire_rule_1090(value : Json) -> Bool {
+fn wire_rule_1119(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "available" || text == "unavailable" || text == "unknown") {
     return false
@@ -1399,7 +1390,7 @@ fn wire_rule_1090(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1092(value : Json) -> Bool {
+fn wire_rule_1121(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "confirmed_present" ||
     text == "retention_expired" ||
@@ -1416,14 +1407,14 @@ fn wire_rule_1092(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1074(value : Json) -> Bool {
-  if !wire_rule_1075(value) {
+fn wire_rule_1103(value : Json) -> Bool {
+  if !wire_rule_1104(value) {
     return false
   }
-  if !wire_rule_1080(value) {
+  if !wire_rule_1109(value) {
     return false
   }
-  if !wire_rule_1085(value) {
+  if !wire_rule_1114(value) {
     return false
   }
   guard value is Object(fields) else { return false }
@@ -1445,22 +1436,22 @@ fn wire_rule_1074(value : Json) -> Bool {
     return false
   }
   if fields.get("state") is Some(item) {
-    if !wire_rule_1090(item) {
+    if !wire_rule_1119(item) {
       return false
     }
   }
   if fields.get("observed_at") is Some(item) {
-    if !wire_rule_1050(item) {
+    if !wire_rule_1079(item) {
       return false
     }
   }
   if fields.get("reason") is Some(item) {
-    if !wire_rule_1092(item) {
+    if !wire_rule_1121(item) {
       return false
     }
   }
   if fields.get("cause_cid") is Some(item) {
-    if !wire_rule_759(item) {
+    if !wire_rule_785(item) {
       return false
     }
   }
@@ -1468,7 +1459,7 @@ fn wire_rule_1074(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1095(value : Json) -> Bool {
+fn wire_rule_1124(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if text.iter().count() < 1 {
     return false
@@ -1477,23 +1468,23 @@ fn wire_rule_1095(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1094(value : Json) -> Bool {
+fn wire_rule_1123(value : Json) -> Bool {
   if value is String(_) {
-    return wire_rule_1095(value)
+    return wire_rule_1124(value)
   }
   true
 }
 
 ///|
-fn wire_rule_1073(value : Json) -> Bool {
+fn wire_rule_1102(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for _key, item in fields {
-    if !false && !wire_rule_1074(item) {
+    if !false && !wire_rule_1103(item) {
       return false
     }
   }
   for key, _ in fields {
-    if !wire_rule_1094(Json::string(key)) {
+    if !wire_rule_1123(Json::string(key)) {
       return false
     }
   }
@@ -1501,7 +1492,7 @@ fn wire_rule_1073(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1097(value : Json) -> Bool {
+fn wire_rule_1126(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
   if number != number.floor() ||
     number < -9007199254740991.0 ||
@@ -1518,7 +1509,7 @@ fn wire_rule_1097(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1099(value : Json) -> Bool {
+fn wire_rule_1128(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "unknown" || text == "confirmed") {
     return false
@@ -1527,7 +1518,7 @@ fn wire_rule_1099(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1096(value : Json) -> Bool {
+fn wire_rule_1125(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "revision" ||
@@ -1546,17 +1537,17 @@ fn wire_rule_1096(value : Json) -> Bool {
     return false
   }
   if fields.get("revision") is Some(item) {
-    if !wire_rule_1097(item) {
+    if !wire_rule_1126(item) {
       return false
     }
   }
   if fields.get("cancellation_requested") is Some(item) {
-    if !wire_rule_367(item) {
+    if !wire_rule_393(item) {
       return false
     }
   }
   if fields.get("physical_stop") is Some(item) {
-    if !wire_rule_1099(item) {
+    if !wire_rule_1128(item) {
       return false
     }
   }
@@ -1564,20 +1555,20 @@ fn wire_rule_1096(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1006(value : Json) -> Bool {
-  if !wire_rule_1007(value) {
+fn wire_rule_1035(value : Json) -> Bool {
+  if !wire_rule_1036(value) {
     return false
   }
-  if !wire_rule_1013(value) {
+  if !wire_rule_1042(value) {
     return false
   }
-  if !wire_rule_1026(value) {
+  if !wire_rule_1055(value) {
     return false
   }
-  if !wire_rule_1033(value) {
+  if !wire_rule_1062(value) {
     return false
   }
-  if !wire_rule_1040(value) {
+  if !wire_rule_1069(value) {
     return false
   }
   guard value is Object(fields) else { return false }
@@ -1591,7 +1582,8 @@ fn wire_rule_1006(value : Json) -> Bool {
       key == "result_available" ||
       key == "terminal_error" ||
       key == "result_availability" ||
-      key == "control") {
+      key == "control" ||
+      key == "revision") {
       return false
     }
   }
@@ -1616,53 +1608,61 @@ fn wire_rule_1006(value : Json) -> Bool {
   if !fields.contains("result_availability") {
     return false
   }
+  if !fields.contains("revision") {
+    return false
+  }
   if fields.get("version") is Some(item) {
-    if !wire_rule_1047(item) {
+    if !wire_rule_1076(item) {
       return false
     }
   }
   if fields.get("run_id") is Some(item) {
-    if !wire_rule_676(item) {
+    if !wire_rule_702(item) {
       return false
     }
   }
   if fields.get("status") is Some(item) {
-    if !wire_rule_1049(item) {
+    if !wire_rule_1078(item) {
       return false
     }
   }
   if fields.get("updated_at") is Some(item) {
-    if !wire_rule_1050(item) {
+    if !wire_rule_1079(item) {
       return false
     }
   }
   if fields.get("checkpoint") is Some(item) {
-    if !wire_rule_1051(item) {
+    if !wire_rule_1080(item) {
       return false
     }
   }
   if fields.get("next_action") is Some(item) {
-    if !wire_rule_1055(item) {
+    if !wire_rule_1084(item) {
       return false
     }
   }
   if fields.get("result_available") is Some(item) {
-    if !wire_rule_367(item) {
+    if !wire_rule_393(item) {
       return false
     }
   }
   if fields.get("terminal_error") is Some(item) {
-    if !wire_rule_1070(item) {
+    if !wire_rule_1099(item) {
       return false
     }
   }
   if fields.get("result_availability") is Some(item) {
-    if !wire_rule_1073(item) {
+    if !wire_rule_1102(item) {
       return false
     }
   }
   if fields.get("control") is Some(item) {
-    if !wire_rule_1096(item) {
+    if !wire_rule_1125(item) {
+      return false
+    }
+  }
+  if fields.get("revision") is Some(item) {
+    if !wire_rule_142(item) {
       return false
     }
   }
@@ -1670,15 +1670,15 @@ fn wire_rule_1006(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1005(value : Json) -> Bool {
-  if !wire_rule_1006(value) {
+fn wire_rule_1034(value : Json) -> Bool {
+  if !wire_rule_1035(value) {
     return false
   }
   true
 }
 
 ///|
-fn wire_rule_1003(value : Json) -> Bool {
+fn wire_rule_1032(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "revision" || key == "value") {
@@ -1694,7 +1694,7 @@ fn wire_rule_1003(value : Json) -> Bool {
     }
   }
   if fields.get("value") is Some(item) {
-    if !wire_rule_1005(item) {
+    if !wire_rule_1034(item) {
       return false
     }
   }
@@ -1702,7 +1702,7 @@ fn wire_rule_1003(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_976(value : Json) -> Bool {
+fn wire_rule_1005(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "owner" ||
@@ -1729,7 +1729,7 @@ fn wire_rule_976(value : Json) -> Bool {
     return false
   }
   if fields.get("owner") is Some(item) {
-    if !wire_rule_977(item) {
+    if !wire_rule_1006(item) {
       return false
     }
   }
@@ -1739,17 +1739,17 @@ fn wire_rule_976(value : Json) -> Bool {
     }
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_979(item) {
+    if !wire_rule_1008(item) {
       return false
     }
   }
   if fields.get("history") is Some(item) {
-    if !wire_rule_980(item) {
+    if !wire_rule_1009(item) {
       return false
     }
   }
   if fields.get("snapshot") is Some(item) {
-    if !wire_rule_1003(item) {
+    if !wire_rule_1032(item) {
       return false
     }
   }
@@ -1757,7 +1757,7 @@ fn wire_rule_976(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1106(value : Json) -> Bool {
+fn wire_rule_1136(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "limit_exceeded" || text == "acquisition_failed") {
     return false
@@ -1766,7 +1766,7 @@ fn wire_rule_1106(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1105(value : Json) -> Bool {
+fn wire_rule_1135(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind") {
@@ -1777,7 +1777,7 @@ fn wire_rule_1105(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1106(item) {
+    if !wire_rule_1136(item) {
       return false
     }
   }
@@ -1785,7 +1785,7 @@ fn wire_rule_1105(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1100(value : Json) -> Bool {
+fn wire_rule_1130(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "owner" ||
@@ -1812,7 +1812,7 @@ fn wire_rule_1100(value : Json) -> Bool {
     return false
   }
   if fields.get("owner") is Some(item) {
-    if !wire_rule_977(item) {
+    if !wire_rule_1006(item) {
       return false
     }
   }
@@ -1822,17 +1822,17 @@ fn wire_rule_1100(value : Json) -> Bool {
     }
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_979(item) {
+    if !wire_rule_1008(item) {
       return false
     }
   }
   if fields.get("history") is Some(item) {
-    if !wire_rule_980(item) {
+    if !wire_rule_1009(item) {
       return false
     }
   }
   if fields.get("snapshotProblem") is Some(item) {
-    if !wire_rule_1105(item) {
+    if !wire_rule_1135(item) {
       return false
     }
   }
@@ -1840,7 +1840,7 @@ fn wire_rule_1100(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1108(value : Json) -> Bool {
+fn wire_rule_1138(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "effect") {
     return false
@@ -1849,7 +1849,7 @@ fn wire_rule_1108(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1114(value : Json) -> Bool {
+fn wire_rule_1144(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "state") {
@@ -1860,7 +1860,7 @@ fn wire_rule_1114(value : Json) -> Bool {
     return false
   }
   if fields.get("state") is Some(item) {
-    if !wire_rule_1001(item) {
+    if !wire_rule_1030(item) {
       return false
     }
   }
@@ -1868,7 +1868,7 @@ fn wire_rule_1114(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1112(value : Json) -> Bool {
+fn wire_rule_1142(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "revision" || key == "value") {
@@ -1884,7 +1884,7 @@ fn wire_rule_1112(value : Json) -> Bool {
     }
   }
   if fields.get("value") is Some(item) {
-    if !wire_rule_1114(item) {
+    if !wire_rule_1144(item) {
       return false
     }
   }
@@ -1892,7 +1892,7 @@ fn wire_rule_1112(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1107(value : Json) -> Bool {
+fn wire_rule_1137(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "owner" ||
@@ -1919,7 +1919,7 @@ fn wire_rule_1107(value : Json) -> Bool {
     return false
   }
   if fields.get("owner") is Some(item) {
-    if !wire_rule_1108(item) {
+    if !wire_rule_1138(item) {
       return false
     }
   }
@@ -1929,17 +1929,17 @@ fn wire_rule_1107(value : Json) -> Bool {
     }
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_979(item) {
+    if !wire_rule_1008(item) {
       return false
     }
   }
   if fields.get("history") is Some(item) {
-    if !wire_rule_980(item) {
+    if !wire_rule_1009(item) {
       return false
     }
   }
   if fields.get("snapshot") is Some(item) {
-    if !wire_rule_1112(item) {
+    if !wire_rule_1142(item) {
       return false
     }
   }
@@ -1947,7 +1947,7 @@ fn wire_rule_1107(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1116(value : Json) -> Bool {
+fn wire_rule_1146(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "owner" ||
@@ -1974,7 +1974,7 @@ fn wire_rule_1116(value : Json) -> Bool {
     return false
   }
   if fields.get("owner") is Some(item) {
-    if !wire_rule_1108(item) {
+    if !wire_rule_1138(item) {
       return false
     }
   }
@@ -1984,17 +1984,17 @@ fn wire_rule_1116(value : Json) -> Bool {
     }
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_979(item) {
+    if !wire_rule_1008(item) {
       return false
     }
   }
   if fields.get("history") is Some(item) {
-    if !wire_rule_980(item) {
+    if !wire_rule_1009(item) {
       return false
     }
   }
   if fields.get("snapshotProblem") is Some(item) {
-    if !wire_rule_1105(item) {
+    if !wire_rule_1135(item) {
       return false
     }
   }
@@ -2002,13 +2002,13 @@ fn wire_rule_1116(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_970(value : Json) -> Bool {
+fn wire_rule_999(value : Json) -> Bool {
   if [
-      wire_rule_971(value),
-      wire_rule_976(value),
-      wire_rule_1100(value),
-      wire_rule_1107(value),
-      wire_rule_1116(value),
+      wire_rule_1000(value),
+      wire_rule_1005(value),
+      wire_rule_1130(value),
+      wire_rule_1137(value),
+      wire_rule_1146(value),
     ]
     .filter(fn(ok) { ok })
     .length() !=
@@ -2019,13 +2019,13 @@ fn wire_rule_970(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_969(value : Json) -> Bool {
+fn wire_rule_998(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() > 5 {
     return false
   }
   for item in items {
-    if !wire_rule_970(item) {
+    if !wire_rule_999(item) {
       return false
     }
   }
@@ -2033,13 +2033,13 @@ fn wire_rule_969(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1127(value : Json) -> Bool {
+fn wire_rule_1157(value : Json) -> Bool {
   guard value is Null else { return false }
   true
 }
 
 ///|
-fn wire_rule_1128(value : Json) -> Bool {
+fn wire_rule_1158(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "generation" || key == "revision" || key == "entryCid") {
@@ -2074,8 +2074,8 @@ fn wire_rule_1128(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1126(value : Json) -> Bool {
-  if [wire_rule_1127(value), wire_rule_1128(value)]
+fn wire_rule_1156(value : Json) -> Bool {
+  if [wire_rule_1157(value), wire_rule_1158(value)]
     .filter(fn(ok) { ok })
     .length() !=
     1 {
@@ -2085,7 +2085,7 @@ fn wire_rule_1126(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1123(value : Json) -> Bool {
+fn wire_rule_1153(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "owner" || key == "snapshotCid" || key == "historyHead") {
@@ -2106,7 +2106,7 @@ fn wire_rule_1123(value : Json) -> Bool {
     }
   }
   if fields.get("historyHead") is Some(item) {
-    if !wire_rule_1126(item) {
+    if !wire_rule_1156(item) {
       return false
     }
   }
@@ -2114,13 +2114,13 @@ fn wire_rule_1123(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1122(value : Json) -> Bool {
+fn wire_rule_1152(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() > 5 {
     return false
   }
   for item in items {
-    if !wire_rule_1123(item) {
+    if !wire_rule_1153(item) {
       return false
     }
   }
@@ -2128,7 +2128,7 @@ fn wire_rule_1122(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1134(value : Json) -> Bool {
+fn wire_rule_1164(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
   if number != number.floor() ||
     number < -9007199254740991.0 ||
@@ -2145,7 +2145,7 @@ fn wire_rule_1134(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1133(value : Json) -> Bool {
+fn wire_rule_1163(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "index" || key == "kind") {
@@ -2159,12 +2159,12 @@ fn wire_rule_1133(value : Json) -> Bool {
     return false
   }
   if fields.get("index") is Some(item) {
-    if !wire_rule_1134(item) {
+    if !wire_rule_1164(item) {
       return false
     }
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_973(item) {
+    if !wire_rule_1002(item) {
       return false
     }
   }
@@ -2172,13 +2172,13 @@ fn wire_rule_1133(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1132(value : Json) -> Bool {
+fn wire_rule_1162(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() > 5 {
     return false
   }
   for item in items {
-    if !wire_rule_1133(item) {
+    if !wire_rule_1163(item) {
       return false
     }
   }
@@ -2219,27 +2219,27 @@ fn wire_owner_observations_shape(value : Json) -> Bool {
     }
   }
   if fields.get("consistency") is Some(item) {
-    if !wire_rule_967(item) {
+    if !wire_rule_996(item) {
       return false
     }
   }
   if fields.get("ordering") is Some(item) {
-    if !wire_rule_968(item) {
+    if !wire_rule_997(item) {
       return false
     }
   }
   if fields.get("owners") is Some(item) {
-    if !wire_rule_969(item) {
+    if !wire_rule_998(item) {
       return false
     }
   }
   if fields.get("revisionVector") is Some(item) {
-    if !wire_rule_1122(item) {
+    if !wire_rule_1152(item) {
       return false
     }
   }
   if fields.get("unmatchedCursors") is Some(item) {
-    if !wire_rule_1132(item) {
+    if !wire_rule_1162(item) {
       return false
     }
   }
@@ -2247,7 +2247,7 @@ fn wire_owner_observations_shape(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1136(value : Json) -> Bool {
+fn wire_rule_1166(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "actql-run-plan-view/0.1") {
     return false
@@ -2256,7 +2256,7 @@ fn wire_rule_1136(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1139(value : Json) -> Bool {
+fn wire_rule_1169(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "actql-plan-view/0.1") {
     return false
@@ -2265,7 +2265,7 @@ fn wire_rule_1139(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1142(value : Json) -> Bool {
+fn wire_rule_1172(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "actql-logical-map/0.1") {
     return false
@@ -2274,7 +2274,7 @@ fn wire_rule_1142(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1149(value : Json) -> Bool {
+fn wire_rule_1179(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "actql-logical-step-key/0.1") {
     return false
@@ -2283,7 +2283,7 @@ fn wire_rule_1149(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1154(value : Json) -> Bool {
+fn wire_rule_1184(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "operation") {
     return false
@@ -2292,7 +2292,7 @@ fn wire_rule_1154(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1153(value : Json) -> Bool {
+fn wire_rule_1183(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "operation_ordinal") {
@@ -2306,12 +2306,12 @@ fn wire_rule_1153(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1154(item) {
+    if !wire_rule_1184(item) {
       return false
     }
   }
   if fields.get("operation_ordinal") is Some(item) {
-    if !wire_rule_919(item) {
+    if !wire_rule_948(item) {
       return false
     }
   }
@@ -2319,7 +2319,7 @@ fn wire_rule_1153(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1157(value : Json) -> Bool {
+fn wire_rule_1187(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "input_output") {
     return false
@@ -2328,7 +2328,7 @@ fn wire_rule_1157(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1156(value : Json) -> Bool {
+fn wire_rule_1186(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "input_port_ordinal") {
@@ -2342,12 +2342,12 @@ fn wire_rule_1156(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1157(item) {
+    if !wire_rule_1187(item) {
       return false
     }
   }
   if fields.get("input_port_ordinal") is Some(item) {
-    if !wire_rule_919(item) {
+    if !wire_rule_948(item) {
       return false
     }
   }
@@ -2355,8 +2355,8 @@ fn wire_rule_1156(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1152(value : Json) -> Bool {
-  if [wire_rule_1153(value), wire_rule_1156(value)]
+fn wire_rule_1182(value : Json) -> Bool {
+  if [wire_rule_1183(value), wire_rule_1186(value)]
     .filter(fn(ok) { ok })
     .length() !=
     1 {
@@ -2366,7 +2366,7 @@ fn wire_rule_1152(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1148(value : Json) -> Bool {
+fn wire_rule_1178(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "version" ||
@@ -2393,7 +2393,7 @@ fn wire_rule_1148(value : Json) -> Bool {
     return false
   }
   if fields.get("version") is Some(item) {
-    if !wire_rule_1149(item) {
+    if !wire_rule_1179(item) {
       return false
     }
   }
@@ -2403,12 +2403,12 @@ fn wire_rule_1148(value : Json) -> Bool {
     }
   }
   if fields.get("stage_ordinal") is Some(item) {
-    if !wire_rule_919(item) {
+    if !wire_rule_948(item) {
       return false
     }
   }
   if fields.get("occurrence") is Some(item) {
-    if !wire_rule_1152(item) {
+    if !wire_rule_1182(item) {
       return false
     }
   }
@@ -2421,7 +2421,7 @@ fn wire_rule_1148(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1161(value : Json) -> Bool {
+fn wire_rule_1191(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if text.iter().count() < 1 {
     return false
@@ -2430,13 +2430,13 @@ fn wire_rule_1161(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1160(value : Json) -> Bool {
+fn wire_rule_1190(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() < 0 {
     return false
   }
   for item in items {
-    if !wire_rule_1161(item) {
+    if !wire_rule_1191(item) {
       return false
     }
   }
@@ -2452,7 +2452,7 @@ fn wire_rule_1160(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1164(value : Json) -> Bool {
+fn wire_rule_1194(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "analytic" ||
     text == "append" ||
@@ -2531,8 +2531,8 @@ fn wire_rule_1164(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1162(value : Json) -> Bool {
-  if [wire_rule_1127(value), wire_rule_1164(value)]
+fn wire_rule_1192(value : Json) -> Bool {
+  if [wire_rule_1157(value), wire_rule_1194(value)]
     .filter(fn(ok) { ok })
     .length() !=
     1 {
@@ -2542,7 +2542,7 @@ fn wire_rule_1162(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1168(value : Json) -> Bool {
+fn wire_rule_1198(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "input" || text == "output") {
     return false
@@ -2552,7 +2552,7 @@ fn wire_rule_1168(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1170(value : Json) -> Bool {
+fn wire_rule_1200(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "relation" ||
     text == "graph" ||
@@ -2565,7 +2565,7 @@ fn wire_rule_1170(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1174(value : Json) -> Bool {
+fn wire_rule_1204(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "stage_input") {
     return false
@@ -2574,7 +2574,7 @@ fn wire_rule_1174(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1173(value : Json) -> Bool {
+fn wire_rule_1203(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "stage_ordinal" || key == "input_port_ordinal") {
@@ -2591,17 +2591,17 @@ fn wire_rule_1173(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1174(item) {
+    if !wire_rule_1204(item) {
       return false
     }
   }
   if fields.get("stage_ordinal") is Some(item) {
-    if !wire_rule_919(item) {
+    if !wire_rule_948(item) {
       return false
     }
   }
   if fields.get("input_port_ordinal") is Some(item) {
-    if !wire_rule_919(item) {
+    if !wire_rule_948(item) {
       return false
     }
   }
@@ -2609,7 +2609,7 @@ fn wire_rule_1173(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1178(value : Json) -> Bool {
+fn wire_rule_1208(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "logical_output") {
     return false
@@ -2618,7 +2618,7 @@ fn wire_rule_1178(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1177(value : Json) -> Bool {
+fn wire_rule_1207(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "step_id" || key == "output_port_id") {
@@ -2635,7 +2635,7 @@ fn wire_rule_1177(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1178(item) {
+    if !wire_rule_1208(item) {
       return false
     }
   }
@@ -2653,8 +2653,8 @@ fn wire_rule_1177(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1172(value : Json) -> Bool {
-  if [wire_rule_1173(value), wire_rule_1177(value)]
+fn wire_rule_1202(value : Json) -> Bool {
+  if [wire_rule_1203(value), wire_rule_1207(value)]
     .filter(fn(ok) { ok })
     .length() !=
     1 {
@@ -2664,7 +2664,7 @@ fn wire_rule_1172(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1181(value : Json) -> Bool {
+fn wire_rule_1211(value : Json) -> Bool {
   if !(value is True || value is False) {
     return false
   }
@@ -2672,8 +2672,8 @@ fn wire_rule_1181(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1182(value : Json) -> Bool {
-  if [wire_rule_1127(value), wire_rule_1161(value)]
+fn wire_rule_1212(value : Json) -> Bool {
+  if [wire_rule_1157(value), wire_rule_1191(value)]
     .filter(fn(ok) { ok })
     .length() !=
     1 {
@@ -2683,7 +2683,7 @@ fn wire_rule_1182(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1166(value : Json) -> Bool {
+fn wire_rule_1196(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "port_id" ||
@@ -2727,17 +2727,17 @@ fn wire_rule_1166(value : Json) -> Bool {
     }
   }
   if fields.get("role") is Some(item) {
-    if !wire_rule_1168(item) {
+    if !wire_rule_1198(item) {
       return false
     }
   }
   if fields.get("port_ordinal") is Some(item) {
-    if !wire_rule_919(item) {
+    if !wire_rule_948(item) {
       return false
     }
   }
   if fields.get("carrier") is Some(item) {
-    if !wire_rule_1170(item) {
+    if !wire_rule_1200(item) {
       return false
     }
   }
@@ -2747,17 +2747,17 @@ fn wire_rule_1166(value : Json) -> Bool {
     }
   }
   if fields.get("source") is Some(item) {
-    if !wire_rule_1172(item) {
+    if !wire_rule_1202(item) {
       return false
     }
   }
   if fields.get("can_sample") is Some(item) {
-    if !wire_rule_1181(item) {
+    if !wire_rule_1211(item) {
       return false
     }
   }
   if fields.get("sample_reason") is Some(item) {
-    if !wire_rule_1182(item) {
+    if !wire_rule_1212(item) {
       return false
     }
   }
@@ -2765,13 +2765,13 @@ fn wire_rule_1166(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1165(value : Json) -> Bool {
+fn wire_rule_1195(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() < 1 {
     return false
   }
   for item in items {
-    if !wire_rule_1166(item) {
+    if !wire_rule_1196(item) {
       return false
     }
   }
@@ -2779,7 +2779,7 @@ fn wire_rule_1165(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1146(value : Json) -> Bool {
+fn wire_rule_1176(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "step_id" ||
@@ -2823,37 +2823,37 @@ fn wire_rule_1146(value : Json) -> Bool {
     }
   }
   if fields.get("key") is Some(item) {
-    if !wire_rule_1148(item) {
+    if !wire_rule_1178(item) {
       return false
     }
   }
   if fields.get("names") is Some(item) {
-    if !wire_rule_1160(item) {
+    if !wire_rule_1190(item) {
       return false
     }
   }
   if fields.get("operator") is Some(item) {
-    if !wire_rule_1162(item) {
+    if !wire_rule_1192(item) {
       return false
     }
   }
   if fields.get("ports") is Some(item) {
-    if !wire_rule_1165(item) {
+    if !wire_rule_1195(item) {
       return false
     }
   }
   if fields.get("can_stop_before") is Some(item) {
-    if !wire_rule_1181(item) {
+    if !wire_rule_1211(item) {
       return false
     }
   }
   if fields.get("can_stop_after") is Some(item) {
-    if !wire_rule_1181(item) {
+    if !wire_rule_1211(item) {
       return false
     }
   }
   if fields.get("stop_reason") is Some(item) {
-    if !wire_rule_1182(item) {
+    if !wire_rule_1212(item) {
       return false
     }
   }
@@ -2861,13 +2861,13 @@ fn wire_rule_1146(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1145(value : Json) -> Bool {
+fn wire_rule_1175(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() < 0 {
     return false
   }
   for item in items {
-    if !wire_rule_1146(item) {
+    if !wire_rule_1176(item) {
       return false
     }
   }
@@ -2875,7 +2875,7 @@ fn wire_rule_1145(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1141(value : Json) -> Bool {
+fn wire_rule_1171(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "version" ||
@@ -2902,7 +2902,7 @@ fn wire_rule_1141(value : Json) -> Bool {
     return false
   }
   if fields.get("version") is Some(item) {
-    if !wire_rule_1142(item) {
+    if !wire_rule_1172(item) {
       return false
     }
   }
@@ -2917,7 +2917,7 @@ fn wire_rule_1141(value : Json) -> Bool {
     }
   }
   if fields.get("steps") is Some(item) {
-    if !wire_rule_1145(item) {
+    if !wire_rule_1175(item) {
       return false
     }
   }
@@ -2930,7 +2930,7 @@ fn wire_rule_1141(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1189(value : Json) -> Bool {
+fn wire_rule_1219(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "static") {
     return false
@@ -2939,7 +2939,7 @@ fn wire_rule_1189(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1190(value : Json) -> Bool {
+fn wire_rule_1220(value : Json) -> Bool {
   guard value is Number(number, ..) else { return false }
   if !(number == 0.0) {
     return false
@@ -2948,7 +2948,7 @@ fn wire_rule_1190(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1194(value : Json) -> Bool {
+fn wire_rule_1224(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "exact" || text == "bound" || text == "estimate") {
     return false
@@ -2958,7 +2958,7 @@ fn wire_rule_1194(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1195(value : Json) -> Bool {
+fn wire_rule_1225(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if text.is_empty() || (text.length() > 1 && text[0] == '0') {
     return false
@@ -2972,7 +2972,7 @@ fn wire_rule_1195(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1193(value : Json) -> Bool {
+fn wire_rule_1223(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" ||
@@ -2999,17 +2999,17 @@ fn wire_rule_1193(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_1194(item) {
+    if !wire_rule_1224(item) {
       return false
     }
   }
   if fields.get("value") is Some(item) {
-    if !wire_rule_1195(item) {
+    if !wire_rule_1225(item) {
       return false
     }
   }
   if fields.get("unit") is Some(item) {
-    if !wire_rule_1161(item) {
+    if !wire_rule_1191(item) {
       return false
     }
   }
@@ -3027,7 +3027,7 @@ fn wire_rule_1193(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1199(value : Json) -> Bool {
+fn wire_rule_1229(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" || key == "unit" || key == "reason") {
@@ -3044,17 +3044,17 @@ fn wire_rule_1199(value : Json) -> Bool {
     return false
   }
   if fields.get("kind") is Some(item) {
-    if !wire_rule_913(item) {
+    if !wire_rule_942(item) {
       return false
     }
   }
   if fields.get("unit") is Some(item) {
-    if !wire_rule_1161(item) {
+    if !wire_rule_1191(item) {
       return false
     }
   }
   if fields.get("reason") is Some(item) {
-    if !wire_rule_1161(item) {
+    if !wire_rule_1191(item) {
       return false
     }
   }
@@ -3062,8 +3062,8 @@ fn wire_rule_1199(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1192(value : Json) -> Bool {
-  if [wire_rule_1193(value), wire_rule_1199(value)]
+fn wire_rule_1222(value : Json) -> Bool {
+  if [wire_rule_1223(value), wire_rule_1229(value)]
     .filter(fn(ok) { ok })
     .length() !=
     1 {
@@ -3073,13 +3073,13 @@ fn wire_rule_1192(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1191(value : Json) -> Bool {
+fn wire_rule_1221(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() < 0 {
     return false
   }
   for item in items {
-    if !wire_rule_1192(item) {
+    if !wire_rule_1222(item) {
       return false
     }
   }
@@ -3087,13 +3087,13 @@ fn wire_rule_1191(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1207(value : Json) -> Bool {
+fn wire_rule_1237(value : Json) -> Bool {
   guard value is Array(items) else { return false }
   if items.length() < 0 {
     return false
   }
   for item in items {
-    if !wire_rule_1170(item) {
+    if !wire_rule_1200(item) {
       return false
     }
   }
@@ -3109,7 +3109,7 @@ fn wire_rule_1207(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1203(value : Json) -> Bool {
+fn wire_rule_1233(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "static_plan" ||
@@ -3148,37 +3148,37 @@ fn wire_rule_1203(value : Json) -> Bool {
     return false
   }
   if fields.get("static_plan") is Some(item) {
-    if !wire_rule_1181(item) {
+    if !wire_rule_1211(item) {
       return false
     }
   }
   if fields.get("inspect") is Some(item) {
-    if !wire_rule_1181(item) {
+    if !wire_rule_1211(item) {
       return false
     }
   }
   if fields.get("durable_control") is Some(item) {
-    if !wire_rule_1181(item) {
+    if !wire_rule_1211(item) {
       return false
     }
   }
   if fields.get("sample_capture") is Some(item) {
-    if !wire_rule_1207(item) {
+    if !wire_rule_1237(item) {
       return false
     }
   }
   if fields.get("full_intermediate_retention") is Some(item) {
-    if !wire_rule_1207(item) {
+    if !wire_rule_1237(item) {
       return false
     }
   }
   if fields.get("cost_guard") is Some(item) {
-    if !wire_rule_1181(item) {
+    if !wire_rule_1211(item) {
       return false
     }
   }
   if fields.get("execution_batch") is Some(item) {
-    if !wire_rule_1181(item) {
+    if !wire_rule_1211(item) {
       return false
     }
   }
@@ -3191,7 +3191,7 @@ fn wire_rule_1203(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1138(value : Json) -> Bool {
+fn wire_rule_1168(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "version" ||
@@ -3226,7 +3226,7 @@ fn wire_rule_1138(value : Json) -> Bool {
     return false
   }
   if fields.get("version") is Some(item) {
-    if !wire_rule_1139(item) {
+    if !wire_rule_1169(item) {
       return false
     }
   }
@@ -3236,27 +3236,27 @@ fn wire_rule_1138(value : Json) -> Bool {
     }
   }
   if fields.get("logical_map") is Some(item) {
-    if !wire_rule_1141(item) {
+    if !wire_rule_1171(item) {
       return false
     }
   }
   if fields.get("observation") is Some(item) {
-    if !wire_rule_1189(item) {
+    if !wire_rule_1219(item) {
       return false
     }
   }
   if fields.get("provider_io") is Some(item) {
-    if !wire_rule_1190(item) {
+    if !wire_rule_1220(item) {
       return false
     }
   }
   if fields.get("quantities") is Some(item) {
-    if !wire_rule_1191(item) {
+    if !wire_rule_1221(item) {
       return false
     }
   }
   if fields.get("capabilities") is Some(item) {
-    if !wire_rule_1203(item) {
+    if !wire_rule_1233(item) {
       return false
     }
   }
@@ -3281,7 +3281,7 @@ fn wire_run_plan_view_shape(value : Json) -> Bool {
     return false
   }
   if fields.get("version") is Some(item) {
-    if !wire_rule_1136(item) {
+    if !wire_rule_1166(item) {
       return false
     }
   }
@@ -3291,7 +3291,7 @@ fn wire_run_plan_view_shape(value : Json) -> Bool {
     }
   }
   if fields.get("plan_view") is Some(item) {
-    if !wire_rule_1138(item) {
+    if !wire_rule_1168(item) {
       return false
     }
   }

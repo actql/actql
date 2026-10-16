@@ -1858,6 +1858,69 @@ schema-valid manifest or matching CID alone does not prove that every required
 fact was issued, that each witness is valid, or that each limit has one exact
 executable consumer. Those remain Plan-admission obligations.
 
+<a id="explanation"></a>
+
+### Public execution explanations
+
+<!-- requirement-block: explanation.projection-and-no-io -->
+`actql-explanation/0.1` MUST be a read-only projection of the existing checked
+logical Plan, physical strategy and, in Run mode, original retained execution
+evidence, using their original identities without creating a new Plan owner.
+Static explanation creates no Run, performs no external Provider query or
+business-data read, calls no model and sends no Effect. It may use already
+supplied Catalog, Capability, contract and scoped statistics. Pre-acquisition
+information remains a static ceiling or Catalog estimate, not measured rows
+or a selected JOIN engine.
+
+<!-- requirement-block: explanation.logical-physical-realized -->
+An explanation MUST distinguish logical operations and ports, physical
+candidates and realized execution, with Site and Engine or API Interface as
+independent attributes and placement states `fixed`, `deferred`, `proposed`,
+`candidate`, `excluded` or `realized`.
+A Local-only profile may fix the Site while leaving the Engine deferred.
+Only actually installed and admitted candidates are listed. An unselected
+candidate is not realized; bounded candidate exploration does not establish
+global optimality. A strategy change for unexecuted work preserves checked
+meaning, input/target obligations, permissions, bounds and approval scope.
+
+<!-- requirement-block: explanation.pushdown-and-transfer -->
+Pushdown explanation MUST retain per-condition dependency, eligibility,
+selection reason and necessary residual evaluation, distinguishing a declared
+Capability from a condition actually built into the selected Source request.
+INFER-dependent conditions remain after INFER and are not pushable to its
+preceding Sources. NULL, numeric, comparison, failure and acquisition-scope
+semantics constrain eligibility. JOIN candidates also require authorized
+availability of both inputs and admissible transfers; having one input at a
+Site does not prove JOIN feasibility there.
+
+<!-- requirement-block: explanation.quantities-and-approval -->
+The projection MUST distinguish estimates, enforced bounds and actual values,
+with explicit unknown or unavailable states and retained provenance for known
+quantities, never substituting zero for missing rows, bytes, time or cost.
+Estimates retain their basis, observation time and applicable scope; costs
+include the selected strategy's acquisition, computation, transfer, conversion,
+holding and completion without double-counting. Effect explanations expose
+`Checkpoint: none|conditional|required` separately from placement and do not
+invent a Preview or an approval. INFER exposes its task, admitted inputs/output
+contract and call bounds without disclosing protected prompts or values.
+
+<!-- requirement-block: explanation.run-evidence-and-disclosure -->
+Run-mode explanation MUST use retained original Plan, placement, pushdown,
+strategy-change and outcome evidence under current viewing authorization,
+without recompiling against current settings or resuming/replaying work.
+Missing evidence is unavailable, not an inferred historical fact. Only the
+Run's retained evidence supplies actual counts, measured quantities, original
+Checkpoints, applied/accepted/failed/unknown outcomes and their references.
+Human-readable vertical blocks, verbose details, CLI and SDK JSON derive from
+this same projection and disclosure policy, never separate planning logic.
+
+The closed machine schema is pinned below. All identifiers and evidence
+references retain their existing Owner domains; this schema grants no execution
+authority. CLI `--verbose`, `--json`, `--run`, output formatting and redaction
+options are informative bindings of this projection.
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/explanation sha256:97a6fb2d9269e78ee277223bff8a9f251140d76a6eee1b5025d7714b846d402b -->
+
 <a id="diagnostic-documents"></a>
 
 ### Diagnostic documents
@@ -2045,6 +2108,18 @@ An analysis budget or an implementation limit, including a budget of the declara
 `context_ref` MUST distinguish String values that differ in any scalar, so composed and decomposed spellings and CR, LF and CRLF are different bindings; only object member names are canonicalized.
 `context_ref` MUST NOT be a public hash of supplied values or grant any access.
 
+<!-- requirement-block: public-check.runnable-is-not-validity-or-authority -->
+Every completed public check report MUST carry `runnable: {verdict, reasons}`,
+where verdict is `yes`, `no` or `unknown`, independently of language validity.
+A yes verdict has no blocking reasons; no or unknown carries at least one
+public check Reason code in a closed `{code}` record; no new private facts
+are attached here. Invalid reports are no, undetermined reports are unknown,
+and verified reports can still be no or unknown because Parameters, ModelTask
+bindings, Host Capabilities or admitted limits are unavailable. The verdict
+uses the same check environment and disclosure rules and does not grant run,
+read, model, Effect or recovery authority. Partial failed reports never confer
+runnable authority; unavailable outcomes have no invented report.
+
 ### Ranked candidate acquisition contract
 
 A SourceView admitted for `search_candidates` publishes a closed ranked-search
@@ -2183,7 +2258,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:9f4f744f939500de86873609ca9a543e590cd43dba936b3f2cea648d185200c1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:3a157209380fb4f53a3c7ed98b929e04e590ca03fdc036126ee920da6466d93f
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:b518bf2533adce50cc86448a1cc63246c2cfc01f34fe1da5b8916152a4aa851f

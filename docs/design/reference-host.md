@@ -133,3 +133,21 @@ Compute, provider dispatch or authorization. Construction failure transfers any
 already-held, unfinished gates through the existing cleanup-handle protocol.
 The dispatch owner may record physical stop and retire custody only after every
 retained child confirms completion.
+
+## Standard Local configuration
+
+A standard Local project uses `actql.config.json` for Program-facing project
+configuration and `host.json` for Host-owned connections, credentials and
+policy references. `actql init` creates a selected project template; creating
+files does not start a Run, acquire business data, call a model or apply an
+Effect. The public [configuration reference](../reference/configuration.md)
+owns these filenames and user-facing options.
+
+Absent `account_config` uses the explicit, durably adopted standard Local
+bootstrap defined by [execution policy routing](../spec/execution.md#policy-routing).
+Reads from configured connections and registered INFER tasks are allowed;
+Effects delegate to `effect_policy`, defaulting to `review`. An explicit
+account deny always prevents dispatch. Project configuration never grants
+itself authority, and an invalid configured policy never falls back to these
+defaults. Mock fixture replacement remains explicit and cannot substitute
+fixture credentials or permissions into a real connection.

@@ -1354,10 +1354,17 @@ export type WireRunStateShape = Readonly<{
   cancellation_requested: boolean;
   physical_stop: "unknown" | "confirmed";
 }>;
+  revision: number;
 }>;
 export type WireCheckOutcomeShape = Readonly<{
   outcome: "completed";
   report: Readonly<{
+  runnable: Readonly<{
+  verdict: "yes" | "no" | "unknown";
+  reasons: readonly Readonly<{
+  code: string;
+}>[];
+}>;
   context_ref: string;
   omissions?: Readonly<{
   requirements: true;
@@ -1639,6 +1646,12 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   outcome: "failed";
   partial_report?: Readonly<{
+  runnable: Readonly<{
+  verdict: "yes" | "no" | "unknown";
+  reasons: readonly Readonly<{
+  code: string;
+}>[];
+}>;
   context_ref: string;
   omissions?: Readonly<{
   requirements: true;

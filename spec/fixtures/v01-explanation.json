@@ -1,0 +1,865 @@
+{
+  "contract": "actql-explanation/0.1",
+  "scope": "Independent structural fixtures only; no runtime evidence or authority.",
+  "cases": [
+    {
+      "id": "local-site-fixed-engine-deferred",
+      "valid": true,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "static-cannot-be-realized",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "realized",
+              "id": "DuckDB"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "chosen-engine-needs-identity",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "fixed"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "engine-and-interface-are-exclusive",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": [],
+            "interface": {
+              "state": "deferred"
+            }
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "unknown-estimate-is-not-zero",
+      "valid": true,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [
+          {
+            "step_id": "join_1",
+            "quantity": {
+              "name": "rows",
+              "kind": "estimate",
+              "state": "unknown",
+              "unit": "rows",
+              "reason": "statistics_unavailable"
+            }
+          }
+        ],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "unknown-estimate-cannot-carry-value",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [
+          {
+            "step_id": "join_1",
+            "quantity": {
+              "name": "rows",
+              "kind": "estimate",
+              "state": "unknown",
+              "unit": "rows",
+              "reason": "statistics_unavailable",
+              "value": 0
+            }
+          }
+        ],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "known-estimate-needs-provenance",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [
+          {
+            "step_id": "join_1",
+            "quantity": {
+              "name": "rows",
+              "kind": "estimate",
+              "state": "known",
+              "unit": "rows",
+              "value": 2
+            }
+          }
+        ],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "static-cannot-publish-actual-count",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [
+          {
+            "step_id": "join_1",
+            "quantity": {
+              "name": "rows",
+              "kind": "actual",
+              "state": "known",
+              "unit": "rows",
+              "value": 2,
+              "provenance": {
+                "owner_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "scope_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "observed_at": 0
+              }
+            }
+          }
+        ],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "run-needs-original-run-identity",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "run",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "retained-run-shape-with-actual-count",
+      "valid": true,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "run",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "realized",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "realized",
+              "id": "ActQL RelA"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [
+          {
+            "step_id": "join_1",
+            "quantity": {
+              "name": "rows",
+              "kind": "actual",
+              "state": "known",
+              "unit": "rows",
+              "value": 2,
+              "provenance": {
+                "owner_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "scope_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "observed_at": 0
+              }
+            }
+          }
+        ],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": [],
+        "run_identity_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "id": "redacted-condition-has-no-text",
+      "valid": true,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [
+          {
+            "step_id": "join_1",
+            "condition_id": "condition_1",
+            "expression_state": "redacted",
+            "dependencies": [
+              "infer_1"
+            ],
+            "eligible_sites": [],
+            "decision": "not_eligible",
+            "reason": "depends_on_infer",
+            "residual_condition_ids": [
+              "condition_1"
+            ]
+          }
+        ],
+        "quantities": [],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "redaction-cannot-leak-expression",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [
+          {
+            "step_id": "join_1",
+            "condition_id": "condition_1",
+            "expression_state": "redacted",
+            "dependencies": [
+              "infer_1"
+            ],
+            "eligible_sites": [],
+            "decision": "not_eligible",
+            "reason": "depends_on_infer",
+            "residual_condition_ids": [
+              "condition_1"
+            ],
+            "expression": "private value"
+          }
+        ],
+        "quantities": [],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "static-effect-has-conditional-checkpoint",
+      "valid": true,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [
+          {
+            "step_id": "effect_1",
+            "target": "salesforce.Account",
+            "contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "checkpoint": "conditional",
+            "preview_state": "unavailable",
+            "outcomes": [],
+            "evidence_cids": []
+          }
+        ],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "static-effect-cannot-invent-preview",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [
+          {
+            "step_id": "effect_1",
+            "target": "salesforce.Account",
+            "contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "checkpoint": "conditional",
+            "preview_state": "retained",
+            "outcomes": [],
+            "evidence_cids": [],
+            "preview_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "static-effect-cannot-invent-outcomes",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [
+          {
+            "step_id": "effect_1",
+            "target": "salesforce.Account",
+            "contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "checkpoint": "conditional",
+            "preview_state": "unavailable",
+            "outcomes": [
+              "applied"
+            ],
+            "evidence_cids": []
+          }
+        ],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
+      }
+    },
+    {
+      "id": "closed-explanation-rejects-private-payload",
+      "valid": false,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": [],
+        "credentials": {
+          "token": "not-a-real-secret"
+        }
+      }
+    }
+  ]
+}

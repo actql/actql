@@ -7439,6 +7439,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/infer.publication-failure-and-max-items",
+      "statement_sha256": "02d4b2b0249469f9c99134ab28dd18ec056dfb9005efe31b81f938297da83b92",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/external-joins.an-actql-program-must-not-contain-a-lookup-step",
       "statement_sha256": "93801406bc574f49ac61948fbae2c96a77a61da05456166595eace6106d1ac52",
       "status": "pending",
@@ -8365,17 +8376,6 @@
     {
       "requirement_id": "actql.language/results-and-delivery.the-effective-data-and-retention-policies-must-satisfy-that-evidence",
       "statement_sha256": "8f1dde531d77adcf3458799431438813f62398b43095373226f97399a6e72a5e",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "results-and-delivery",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/infer.publication-failure-and-max-items",
-      "statement_sha256": "02d4b2b0249469f9c99134ab28dd18ec056dfb9005efe31b81f938297da83b92",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

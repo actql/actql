@@ -1378,8 +1378,9 @@ can complete its Run while its provider operation remains pending ([Outcomes and
 <!-- requirement-block: run-states.run-creation-and-lifecycle-operations-must-expose-the-closed-actql-run-state-0-2 -->
 Run creation and lifecycle operations MUST expose the closed
 `actql-run-state/0.1` projection: Run identity, immutable outcome state, update
-time, optional Checkpoint identity, per-Result availability observations, their
-all-Results aggregate, and one state-consistent next action. Each availability
+time, a state-level monotonic `revision`, optional Checkpoint identity,
+per-Result availability observations, their all-Results aggregate, and one
+state-consistent next action. Each availability
 entry distinguishes `available`, `unavailable`, and `unknown`, records the
 observation time and bounded reason, and may cite a cause. A failed Store query
 is `unknown`, not evidence that data is absent. `result_available` is true only
@@ -1757,6 +1758,19 @@ never re-materialized to restore removed or restricted grants. The
 configuration document is `actql-execution-account-config/0.1`, whose wire form
 and exact overlap rule are bound by the [Run protocol](protocols/run.md#account-config).
 
+<!-- requirement-block: policy-routing.standard-local-bootstrap -->
+A standard Local Host without an authored `account_config` MUST materialize
+and durably adopt the explicit bootstrap profile that allows pure computation,
+reads from configured connections and INFER through registered ModelTasks,
+while delegating every Effect to `effect_policy`, whose default is `review`.
+This default is not inferred from a missing or invalid authorization record.
+Supplying an explicit account configuration replaces bootstrap routing, without
+merging its grants into that configuration; an explicit deny cannot be
+bypassed by Host policy, a callback or a previously materialized bootstrap.
+All ordinary credential, egress, resource, currentness and approval checks
+remain required. An unreadable, invalid or revoked configuration is refused,
+not treated as absence or a request to restore the bootstrap profile.
+
 <!-- requirement-block: policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection -->
 Initial denial and later denial are distinct. A denial or technical decision
 failure before Run creation follows [Checkpoints and Resolutions](#checkpoints).
@@ -2031,6 +2045,10 @@ themselves new business inputs. A valid template and instantiation produce new
 exact-Preview authorization evidence, not a copied signature. Changed metadata
 requires a new review projection and attestation, even with unchanged computation.
 
+<a id="reconciliation"></a>
+
+### Outcomes and reconciliation
+
 <!-- requirement-block: effect-outcomes.upsert-action-and-conflict -->
 An applied upsert row outcome MUST carry `action: created` or `action: updated`
 in its typed outcome, reflecting the provider-confirmed branch of the original
@@ -2039,10 +2057,6 @@ A failed apply-time condition is `failed` with error code `conflict`. It does
 not authorize redispatch, refreshing the approved version, or changing the
 fixed target set. Unknown outcomes still require Connector-recognized evidence
 and are never resolved by blindly resending the mutation.
-
-<a id="reconciliation"></a>
-
-### Outcomes and reconciliation
 
 A typed command returns exactly one `EffectOutcome`:
 

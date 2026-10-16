@@ -752,12 +752,34 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "242cbc48cdf403f5db18ae227914af7083c7b690ed49083b9fa542db0715a741",
+      "statement_sha256": "c592492758d482f712a53a48db72df631b1e2f67a906007eff3651e6542def99",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/run-observation.state-revision",
+      "statement_sha256": "3b6eeef2be47c1a09c87e74be67d847742169374235be1b26197d64d70faecb0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "run-observation-revisions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/run-observation.wait-since",
+      "statement_sha256": "dc39005ab8078b442a95eead82c504de18629ad697b451a8461a70c098c65f26",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "run-observation-revisions",
         "kind": "prose"
       }
     },
@@ -768,7 +790,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "run-observation-revisions",
         "kind": "prose"
       }
     },
@@ -779,7 +801,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "run-observation-revisions",
         "kind": "prose"
       }
     },
@@ -790,7 +812,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "run-observation-revisions",
         "kind": "prose"
       }
     },
@@ -801,7 +823,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "run-observation-revisions",
         "kind": "prose"
       }
     },
@@ -812,7 +834,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "run-observation-revisions",
         "kind": "prose"
       }
     },

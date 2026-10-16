@@ -800,7 +800,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_checkpoint_reply sha256:087b35471447e082dbdb4f39e77bb91b4bfb90de7be348aebb57d395d9617784
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/observation_facts sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/event_delivery_evidence sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/effect_outcome sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/effect_outcome sha256:9b2a918f994cd00147d4acd038639534dd767ff7f4e119b5a5fb43b9463592b1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_evidence sha256:63485b767c477d6ed77853478eefbf7f3af055c2bfac78e915e2db8bb89b51bc
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_input_logical sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c
@@ -813,7 +813,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_set_apply_receipt sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:8a80246cc33e6c8b3997085e15a31deb8b975c5f060bfebd5fb250e40a22f57c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:62f9011e9e702f3d620f70513eac6260a21b980687b7574c1bdce55984b1aba8
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/runtime_error sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_context sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2
@@ -828,7 +828,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_scope sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:4e50bf4d62354e45aca753d9f436e1002721c78604bcf2a7bfcf6365f8200dc5
@@ -854,6 +854,29 @@ closure only after its typed correspondence and authority have been admitted.
 ```
 <!-- lookup-identity-pins:end -->
 
+
+<a id="run-observation-revisions"></a>
+
+### Run observation revisions and waiting
+
+<!-- requirement-block: run-observation.state-revision -->
+Every `actql-run-state/0.1` observation MUST carry a state-level nonnegative
+safe-integer `revision`, monotonically advancing for published logical state,
+control or Result-availability changes of that original Run and preserved
+across restart and attach.
+A read alone does not advance it. It is distinct from `control.revision`,
+which tracks the cancellation-control owner. Exhaustion is refused rather
+than wrapping or resetting a revision. A revision conveys neither approval
+nor physical-stop evidence.
+
+<!-- requirement-block: run-observation.wait-since -->
+A `wait({since})` request MUST validate `since` as an observed state revision
+and return a stable waiting or terminal observation whose revision is greater
+than `since`, or an explicit timeout without a fabricated state change.
+Without since, an already stable observation returns immediately. With since,
+the same stable revision does not satisfy the wait. Status and wait use the
+same original Run projection and current read authorization; neither starts,
+resumes, reacquires or resends work to make progress visible.
 
 ### Client cancellation observations
 
