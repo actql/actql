@@ -95,9 +95,14 @@ test "GCS multipart seals binary body marker CRC and independent request identit
     "/upload/storage/v1/b/bucket/o?uploadType=multipart&ifGenerationMatch=0",
   )
   assert_eq(
-    object_upload_cid(request),
-    "sha256:6c286b44b63592dd69d7ab707b710fdf6b5bd0199594589d70fe9e27a535a4de",
+    binding.collection.identity_cid,
+    "sha256:93d97356b802ff54ebb1ec50e00a6c4c413a46b573d4ecbfa97895b56c9fc777",
   )
+  assert_eq(
+    request.before.response_sha256,
+    "6999b5f816fc762d0c23bd2e8ebe851fafced05ade765cb3ba1266fcda3648c4",
+  )
+  assert_eq(request.content_crc32c, "crxyRA==")
   let boundary = "actql-e9489f37fb3051e9efa1dc916004d7274e7b63975e3209708947267f2393a9be"
   assert_eq(
     object_upload_body_media_type(request),
@@ -121,6 +126,10 @@ test "GCS multipart seals binary body marker CRC and independent request identit
   )
   let tail = @utf8.encode("\r\n--" + boundary + "--\r\n")
   assert_eq(body, head + upload_binary() + tail)
+  assert_eq(
+    object_upload_cid(request),
+    "sha256:6c286b44b63592dd69d7ab707b710fdf6b5bd0199594589d70fe9e27a535a4de",
+  )
   assert_eq(
     recheck_object_upload(binding, request, upload_absent(binding)),
     Ok(()),
@@ -225,12 +234,13 @@ test "GCS multipart distinguishes original absence response and optional input p
   )
   for status in [0, 201, 403, 410, 500] {
     assert_true(
-      admit_object_upload_observation(binding, "in/é%2F.bin", status, b"{}").is_err(),
+      admit_object_upload_observation(binding, "in/é%2F.bin", status, b"{}")
+      is Err(_),
     )
   }
   for name in ["elsewhere/file", "in/file\r\n", ""] {
     assert_true(
-      admit_object_upload_observation(binding, name, 404, b"{}").is_err(),
+      admit_object_upload_observation(binding, name, 404, b"{}") is Err(_),
     )
   }
 }
@@ -258,7 +268,7 @@ test "GCS multipart validates original content and exact bounded body allocation
       max_body_bytes: maximum,
     })
     let result = upload_request(exact, upload_absent(exact))
-    assert_eq(result.is_ok(), maximum == 511)
+    assert_eq(result is Ok(_), maximum == 511)
     if maximum == 510 {
       assert_true(result is Err(CapacityExceeded))
     }

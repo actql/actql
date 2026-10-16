@@ -295,7 +295,7 @@ pub fn prepare_object_multipart_upload(
     0,
     tail.length(),
   )
-  let body = Bytes::from_fixedarray(bytes)
+  let body = Bytes::from_array(bytes[:])
   let body_media_type = "multipart/related; boundary=" + boundary
   let preimage : Json = {
     "version": "actql-gcs-object-upload-request/0.1",
@@ -315,7 +315,10 @@ pub fn prepare_object_multipart_upload(
     "original_response_sha256": before.response_sha256.to_json(),
     "content_ref_cid": content_ref_cid.to_json(),
     "content_cid": expected_content_cid.to_json(),
-    "overwrite": overwrite.to_json(),
+    "overwrite": match overwrite {
+      Some(value) => value.to_json()
+      None => Json::null()
+    },
   }
   let wire = match
     upload_json(
@@ -375,7 +378,7 @@ pub fn object_upload_body_for(
     Err(ForeignBinding)
   } else {
     // Foreign runtimes can mutate Bytes: never export the sealed backing.
-    Ok(request.body.copy())
+    Ok(Bytes::makei(request.body.length(), index => request.body[index]))
   }
 }
 
