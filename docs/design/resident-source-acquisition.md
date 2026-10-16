@@ -79,3 +79,6 @@ closures, single-flight Promise, exported carrier/cause, first/latest errors
 and frozen status arrays remain owned until actual close. An acquired adapter
 and the outer initialization carrier can overlap them. These are explicit
 holding components, not zero-priced allocations or a normal Model profile.
+The same cleanup facet also retains the exact primary failure reference for
+existing installation error projections, including read-plus-close failure;
+consumers do not reconstruct that reference from error names or nested causes.
