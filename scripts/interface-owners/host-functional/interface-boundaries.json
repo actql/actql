@@ -15206,7 +15206,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "883c9e352393e3cdc4faf973de73b423adbea00577dbf5abe38eb95695f139f6",
+      "sha256": "c14fab081c1f7712e7376079e9190439e01a88b262a8fd649899700c079f79ff",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -15249,7 +15249,8 @@
           "parameters": [
             "moon",
             "environment",
-            "evidence"
+            "evidence",
+            "publication"
           ],
           "async": false
         },
@@ -15380,13 +15381,13 @@
             "installNodeClientProgramPreparation/disclosed/disclosed/disclosed#2",
             "installNodeClientProgramPreparation/init:assertOwned/init:assertOwned",
             "installNodeClientProgramPreparation/init:kindOf/init:kindOf",
+            "installNodeClientProgramPreparation/init:restoreOriginal/init:restoreOriginal",
             "installNodeClientProgramPreparation/init:sourceCheckFailure/init:sourceCheckFailure",
             "installNodeClientProgramPreparation/prepare/prepare",
             "installNodeClientProgramPreparation/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified#2",
-            "serializeProgram",
-            "installNodeClientProgramPreparation/init:restoreOriginal/init:restoreOriginal"
+            "serializeProgram"
           ],
           "exports": [
             "installNodeClientEffectProgramPreparation",
@@ -15409,6 +15410,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "restoreOriginal(original) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "inputsOutputs": [
@@ -15427,6 +15432,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "restoreOriginal(original) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "identity": [
@@ -15445,6 +15454,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "restoreOriginal(original) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "ownership": [
@@ -15463,6 +15476,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "restoreOriginal(original) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "synchronization": [
@@ -15481,6 +15498,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "restoreOriginal(original) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "failure": [
@@ -15499,6 +15520,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "restoreOriginal(original) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "cancellation": [
@@ -15513,6 +15538,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "resources": [
@@ -15527,6 +15556,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "extension": [
@@ -15545,6 +15578,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "restoreOriginal(original) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "verification": [
@@ -15555,6 +15592,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual JSON Model UPDATE acceptance saves and restores both originals in the same SQLite Run'"
               }
             ]
           }
@@ -36629,7 +36670,7 @@
     {
       "module": "adapters/host-node/public-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8e5a321999a83dc35d8aaaae197c0afc5011273f3b9d78914263c4216e3d7ed3",
+      "sha256": "7daa7d48370a42695912456e2bae11232923bd1da9b843b624a3ec6ec36da1f1",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -36680,6 +36721,15 @@
             "supplied"
           ],
           "async": false
+        },
+        {
+          "name": "installNodePublicSourcePreparation/init:prepareEffect/init:prepareEffect",
+          "parameters": [
+            "document",
+            "format",
+            "supplied"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -36690,7 +36740,8 @@
             "checkedPublication/checkedPublication",
             "exact/exact",
             "installNodePublicSourcePreparation",
-            "installNodePublicSourcePreparation/init:prepare/init:prepare"
+            "installNodePublicSourcePreparation/init:prepare/init:prepare",
+            "installNodePublicSourcePreparation/init:prepareEffect/init:prepareEffect"
           ],
           "exports": [
             "installNodePublicSourcePreparation"
@@ -36712,6 +36763,10 @@
               {
                 "path": "adapters/host-node/public-source-preparation.mjs",
                 "anchor": "function checkedPublication(moon, environment, publication) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "inputsOutputs": [
@@ -36730,6 +36785,10 @@
               {
                 "path": "adapters/host-node/public-source-preparation.mjs",
                 "anchor": "function checkedPublication(moon, environment, publication) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "identity": [
@@ -36748,6 +36807,10 @@
               {
                 "path": "adapters/host-node/public-source-preparation.mjs",
                 "anchor": "function checkedPublication(moon, environment, publication) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "ownership": [
@@ -36766,6 +36829,10 @@
               {
                 "path": "adapters/host-node/public-source-preparation.mjs",
                 "anchor": "function checkedPublication(moon, environment, publication) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "synchronization": [
@@ -36784,6 +36851,10 @@
               {
                 "path": "adapters/host-node/public-source-preparation.mjs",
                 "anchor": "function checkedPublication(moon, environment, publication) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "failure": [
@@ -36802,6 +36873,10 @@
               {
                 "path": "adapters/host-node/public-source-preparation.mjs",
                 "anchor": "function checkedPublication(moon, environment, publication) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "cancellation": [
@@ -36816,6 +36891,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "resources": [
@@ -36830,6 +36909,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "extension": [
@@ -36848,6 +36931,10 @@
               {
                 "path": "adapters/host-node/public-source-preparation.mjs",
                 "anchor": "function checkedPublication(moon, environment, publication) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               }
             ],
             "verification": [
@@ -36858,6 +36945,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual JSON Model UPDATE acceptance saves and restores both originals in the same SQLite Run'"
               }
             ]
           }
