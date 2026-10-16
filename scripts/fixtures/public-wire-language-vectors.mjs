@@ -12,7 +12,7 @@ const cancellation = {kind:'accepted',ref:wireRef,cancelRef,revision:8};
 const held = {kind:'held', requestId:'original',prepareAttemptId:'prepare-a',state:'resuming',durability:'durable',lookupExpiresAt:'2026-10-04T10:00:00Z'};
 const revision = 'rev:'+'1'.repeat(64);
 // Explicit current pins copied from the registered owner, not resolved at test time.
-const report = {version:'actql-check-outcome/0.1',reason_schema_cid:'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742',outcome_schema_cid:'sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a',outcome:'completed',report:{context_ref:'ctx:fixture',scope:{kind:'bound_input'},verdict:'invalid',inputs:[{document_id:'source',revision,kind:'text',byte_length:10}],reasons:[{code:'future_violation',location:{kind:'text',document_id:'source',revision,start_byte:1,end_byte:5,precision:'exact'}}],requirements:[],coverage:{limits:[],unresolved:[]}}};
+const report = {version:'actql-check-outcome/0.1',reason_schema_cid:'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742',outcome_schema_cid:'sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce',outcome:'completed',report:{context_ref:'ctx:fixture',scope:{kind:'bound_input'},verdict:'invalid',runnable:{verdict:'no',reasons:[{code:'future_violation'}]},inputs:[{document_id:'source',revision,kind:'text',byte_length:10}],reasons:[{code:'future_violation',location:{kind:'text',document_id:'source',revision,start_byte:1,end_byte:5,precision:'exact'}}],requirements:[],coverage:{limits:[],unresolved:[]}}};
 const vectors=[];
 const add = (name,operation,value,expected,extra={}) => vectors.push({name,operation,valueJSON:q(value),expected,...extra});
 const raw = (name,operation,valueJSON,expected,extra={}) => vectors.push({name,operation,valueJSON,expected,...extra});
@@ -33,6 +33,24 @@ for(const [label,text,expected] of [
 ]) {
  add('profile scope '+label,'profile',{...profile,scopeRef:text},expected);
  add('Run namespace '+label,'run_ref',{...wireRef,namespaceId:text},expected);
+}
+// Whole-string non-control identifiers: independent registered-class vectors.
+// A final LF is a control character, not an optional regex terminator. Keep
+// separators/spaces and literal escape spellings distinct from decoded C0.
+for (const point of [...Array.from({length:32}, (_, i) => i), 127]) {
+ const character=String.fromCodePoint(point);
+ for (const [position,text] of [['leading',character+'id'],['embedded','i'+character+'d'],['final','id'+character]])
+  add('Run non-control U+'+point.toString(16).padStart(4,'0')+' '+position,'run_ref',{...wireRef,namespaceId:text},false);
+}
+for (const [label,text,expected] of [
+ ['only LF','\n',false],['only CR','\r',false],['final CRLF','id\r\n',false],
+ ['space',' ',true],['padded space',' id ',true],['line separator','\u2028',true],
+ ['final line separator','id\u2028',true],['paragraph separator','\u2029',true],
+ ['final paragraph separator','id\u2029',true],['literal escape','\\n',true],
+ ['literal Unicode escape','\\u000a',true],['NEL','\u0085',true],['astral','😀',true],
+]) {
+ add('Run non-control '+label,'run_ref',{...wireRef,namespaceId:text},expected);
+ add('profile non-control '+label,'profile',{...profile,scopeRef:text},expected);
 }
 for(const [label,value,expected] of [['missing',undefined,true],['null',null,false],['valid','reason',true]]) {
  const valueHeld={...held,state:'ended',endReason:'cancelled'};
@@ -87,7 +105,7 @@ for (const [label,name,expected] of [
  ['composed','é',true],['decomposed','e\u0301',true],['reserved','__cid',false],['dot','a.b',false],
 ]) {
  const value=structuredClone(report);
- value.report.verdict='verified';value.report.scope={kind:'template_only'};value.report.reasons=[];
+ value.report.verdict='verified';value.report.runnable={verdict:'no',reasons:[{code:'parameter_value_required'}]};value.report.scope={kind:'template_only'};value.report.reasons=[];
  value.report.requirements=[{code:'parameter_value_required',facts:{parameter:'object',expected_type:'object',admission:{
   kind:'parameter_declaration',contract_schema_cid:'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947',
   contract:{type:'object',nullable:false,additional_properties:false,fields:{[name]:{type:'string',nullable:false}}},
