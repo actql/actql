@@ -128,6 +128,28 @@ test('SDK submitted-intent CID has an independent value-preserving preimage', as
   client.close();
 });
 
+test('SDK read-only original has an independent fingerprint and cannot be disabled', async () => {
+  let sends = 0;
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    async perform(operation, body) {
+      if (operation === 'connect') return profile;
+      assert.equal(operation, 'submit-intent'); sends++;
+      assert.equal(body.readOnly, true);
+      assert.equal(body.intentCid, 'sha256:2b7e2e13949315aa9877b748f60fd0b922f8271d663808af2fabd61c12745719');
+      return submissionAttempt(body, {kind: 'preparing', submissionRef: body.submissionRef, intentCid: body.intentCid});
+    },
+  });
+  try {
+    const pending = client.start({}, {readOnly: true});
+    assert.equal(getSubmissionInput(pending).readOnly, true);
+    await assert.rejects(pending, {code: 'SubmissionPreparing'});
+    for (const readOnly of [false, null, undefined, 'true', 1, {}]) {
+      await assert.rejects(client.start({}, {readOnly}), {code: 'InvalidClientPayload'});
+    }
+    assert.equal(sends, 1);
+  } finally {await client.close();}
+});
+
 test('SDK reconnect lookup preserves the original epoch and nonce without submission', async () => {
   const original = {epoch, nonce: 'retained-original'};
   let calls = 0;

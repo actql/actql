@@ -184,11 +184,14 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     let body;
     try {
       const stopBefore = options.stopBefore;
+      const readOnly = options.readOnly;
       if (stopBefore !== undefined && stopBefore !== 'commit') fail('InvalidClientPayload');
+      if (Object.hasOwn(options, 'readOnly') && readOnly !== true) fail('InvalidClientPayload');
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
         attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
         kind, input, parameters: options.parameters ?? null,
         ...(stopBefore === undefined ? {} : {stopBefore}),
+        ...(readOnly === undefined ? {} : {readOnly}),
         ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
     } catch {fail('InvalidClientPayload');}
     if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
@@ -206,7 +209,8 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       let intentCid;
       try {intentCid = await bytesCid(new TextEncoder().encode(canonicalJson({
         intent: {kind, input: body.input, parameters: body.parameters,
-          ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {})},
+          ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
+          ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})},
         version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));}
       catch (cause) {throw submissionNotSent(context, cause);}
       let outcome;

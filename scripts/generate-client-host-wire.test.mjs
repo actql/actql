@@ -15,6 +15,14 @@ test('optional request fields are closed projections of the registered operation
     kind: 'program', input: {}, parameters: null};
   assert.equal(validClientBody('submit', body), true);
   assert.equal(validClientBody('submit', {...body, stopBefore: 'commit'}), true);
+  assert.equal(validClientBody('submit', {...body, readOnly: true}), true);
+  assert.equal(validClientBody('submit', {...body, readOnly: true, stopBefore: 'commit'}), true);
+  for (const readOnly of [undefined, false, null, 'true', 1, {}, []]) {
+    assert.equal(validClientBody('submit', {...body, readOnly}), false);
+  }
+  for (const key of ['readonly', 'read_only', 'queryOnly']) {
+    assert.equal(validClientBody('submit', {...body, [key]: true}), false);
+  }
   for (const stopBefore of [undefined, null, '', 'prepare', false, 1, {}, ['commit']]) {
     assert.equal(validClientBody('submit', {...body, stopBefore}), false);
   }

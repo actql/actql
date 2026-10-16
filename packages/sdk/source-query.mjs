@@ -59,7 +59,7 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     signal = options.signal;
     // startSource captures JSON source/declarations/parameters synchronously,
     // before credentials or I/O. Do not serialize caller-owned inputs twice.
-    admission = startSource(text, {format, parameters, signal,
+    admission = startSource(text, {format, parameters, signal, readOnly: true,
       ...(options.attemptId === undefined ? {} : {attemptId: options.attemptId}),
       ...(options.requestId === undefined ? {} : {requestId: options.requestId}),
       ...(options.submissionRef === undefined ? {} : {submissionRef: options.submissionRef}),

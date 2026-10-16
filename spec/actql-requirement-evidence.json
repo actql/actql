@@ -17064,6 +17064,39 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/original-read-only-continuation",
+      "statement_sha256": "31b35a9add909c426f59e9edbbbfc2642d925413f1b86185b2f54e373a237e52",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the same-preparation inventory restriction at Common and installed submit boundaries.",
+      "source": {
+        "anchor": "original-read-only-continuation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-read-only-identity",
+      "statement_sha256": "5d39eea180f3c92f3e8a8ac39a530121dd1c029f4914a9ab6cdf3896ccb76dbf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify independent absent/selected identities, malformed choices and identity conflicts.",
+      "source": {
+        "anchor": "original-read-only-continuation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-read-only-recovery",
+      "statement_sha256": "110efde8aceeb79eddab127e1b4f6c8c8abc50c3b4254c0764385c1545565107",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify original saved intent and Run/material admission without current-configuration reconstruction.",
+      "source": {
+        "anchor": "original-read-only-continuation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/client-cancellation-observation",
       "statement_sha256": "5ccee102fb448815c214cda63bef0ab48011cee2d0e8d1ed539337b81fb6b170",
       "status": "pending",
