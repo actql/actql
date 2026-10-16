@@ -158,13 +158,33 @@ fn readme_hero_checked_effect(
     { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 100, },
     100000,
   ).unwrap()
-  @check.close_effect_computation_static(candidate, mappings, {
-    max_members: 1,
-    max_work: 1000,
-    max_admission_nodes: 100,
-    max_admission_depth: 10,
-    max_admission_text_bytes: 1000,
-  }).unwrap()
+  match
+    @check.close_effect_computation_static(candidate, mappings, {
+      max_members: 1,
+      max_work: 1000,
+      max_admission_nodes: 100,
+      max_admission_depth: 10,
+      max_admission_text_bytes: 1000,
+    }) {
+    Ok(checked) => checked
+    Err(MappingRules(issue)) =>
+      fail(
+        "hero mapping rules: " +
+        @debug.to_string(@stage_results.effect_mapping_rule_issue_kind(issue)),
+      )
+    Err(MappingShapes(issue)) =>
+      fail(
+        "hero mapping shape: " +
+        @debug.to_string(@stage_results.effect_mapping_shape_issue_kind(issue)),
+      )
+    Err(Results(issue)) =>
+      fail(
+        "hero result binding: " +
+        @debug.to_string(@stage_results.effect_result_binding_issue_kind(issue)),
+      )
+    Err(WorkLimit) => fail("hero static work limit")
+    Err(_) => fail("hero other static closure refusal")
+  }
 }
 
 ///|
