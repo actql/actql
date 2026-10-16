@@ -521,7 +521,8 @@ test "a refused declaration Reader retains original cleanup and never substitute
     }
     match directory {
       "missing-bindings" => assert_true(original.issue() is @files.Missing)
-      "oversize-bindings" => assert_true(original.issue() is @files.CapacityExceeded)
+      "oversize-bindings" =>
+        assert_true(original.issue() is @files.CapacityExceeded)
       "invalid-utf8-bindings" =>
         assert_true(original.issue() is @files.InvalidUtf8)
       _ => assert_true(original.issue() is @files.Filesystem(_))
