@@ -178,7 +178,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Host, Account, credential Site and same-runtime Common RowRun borrower",
-      "sha256": "c366f7dbf62b47186abf48c213aa2ab858d2f2282e6b8ac85c39877f48aa97a8",
+      "sha256": "2bf21424bb0656d33d523650ef1f37cc0226aa72d374860e36e1fbf44b42b329",
       "exports": [
         "INSTALLED_SNOWFLAKE_SITE_VERSION",
         "INSTALLED_SNOWFLAKE_SOURCE_VERSION",
@@ -231,6 +231,13 @@
         },
         {
           "name": "checkSite/checkSite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite/materialKeys/materialKeys",
           "parameters": [
             "key"
           ],
@@ -299,22 +306,27 @@
         },
         {
           "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
-          "parameters": [
-            "options"
-          ],
-          "async": false
+          "parameters": [],
+          "async": true
         },
         {
           "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
           "parameters": [
             "options"
           ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#3",
+          "parameters": [
+            "options"
+          ],
           "async": true
         },
         {
-          "name": "loadInstalledSnowflakeSource/site/site",
+          "name": "loadInstalledSnowflakeSource/site/init:close/init:close",
           "parameters": [],
-          "async": true
+          "async": false
         },
         {
           "name": "loadInstalledSnowflakeSource/target/target",
@@ -364,6 +376,7 @@
             "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile#2",
             "checkSite",
             "checkSite/checkSite",
+            "checkSite/materialKeys/materialKeys",
             "cid/cid",
             "closed/closed",
             "fail/fail",
@@ -373,7 +386,8 @@
             "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
-            "loadInstalledSnowflakeSource/site/site",
+            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#3",
+            "loadInstalledSnowflakeSource/site/init:close/init:close",
             "loadInstalledSnowflakeSource/target/target",
             "readInputs",
             "readInputs/bodies/bodies",
@@ -445,6 +459,183 @@
             "verification": [
               {
                 "path": "adapters/connectors/snowflake/host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/snowflake/site/snowflake-key-pair.mjs",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Credential Site material lifetime and original HTTPS acquisition binding",
+      "sha256": "9da0fd85a5a7dfe6f5ce3229a4647707f51d52bb0c5fe3cf67a26e47fe653493",
+      "exports": [
+        "checkSnowflakeKeyPairProfile",
+        "openSnowflakeKeyPairMaterial"
+      ],
+      "operations": [
+        {
+          "name": "checkSnowflakeKeyPairProfile",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSnowflakeKeyPairProfile/checkSnowflakeKeyPairProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSnowflakeKeyPairProfile/checkSnowflakeKeyPairProfile#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "environmentName/environmentName",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSnowflakeKeyPairMaterial",
+          "parameters": [
+            "profile",
+            "maxSecretBytes",
+            "resolveMaterial",
+            "now"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSnowflakeKeyPairMaterial/ensureOpen/ensureOpen",
+          "parameters": [
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSnowflakeKeyPairMaterial/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSnowflakeKeyPairMaterial/init:resolveSecret/init:resolveSecret",
+          "parameters": [
+            "context",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "openSnowflakeKeyPairMaterial/material",
+          "parameters": [
+            "context",
+            "name",
+            "signal",
+            "empty"
+          ],
+          "async": true
+        },
+        {
+          "name": "openSnowflakeKeyPairMaterial/openSnowflakeKeyPairMaterial",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkSnowflakeKeyPairProfile",
+            "checkSnowflakeKeyPairProfile/checkSnowflakeKeyPairProfile",
+            "checkSnowflakeKeyPairProfile/checkSnowflakeKeyPairProfile#2",
+            "environmentName/environmentName",
+            "fail/fail",
+            "openSnowflakeKeyPairMaterial",
+            "openSnowflakeKeyPairMaterial/ensureOpen/ensureOpen",
+            "openSnowflakeKeyPairMaterial/init:close/init:close",
+            "openSnowflakeKeyPairMaterial/init:resolveSecret/init:resolveSecret",
+            "openSnowflakeKeyPairMaterial/material",
+            "openSnowflakeKeyPairMaterial/openSnowflakeKeyPairMaterial"
+          ],
+          "exports": [
+            "checkSnowflakeKeyPairProfile",
+            "openSnowflakeKeyPairMaterial"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/snowflake/site/README.md",
                 "anchor": "- Verification:"
               }
             ]
