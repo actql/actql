@@ -23,6 +23,7 @@ fn published_selection_prepare(
   mixed? : Bool = false,
   selected? : Bool = true,
   foreign_publication? : Bool = false,
+  member_limit? : Int = 2,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] raise {
   let environment = published_selection_environment()
   let publication_environment = if foreign_publication {
@@ -31,6 +32,18 @@ fn published_selection_prepare(
     environment
   }
   let (_, _, limits) = local_update_normalization_fixture()
+  // The original single-member fixture remains unchanged. A two-occurrence
+  // test explicitly selects two static member slots; this is not a product
+  // policy change or authority, and its one-slot counter still refuses.
+  let limits = if mixed {
+    {
+      ..limits,
+      max_members: member_limit,
+      effects: { ..limits.effects, max_members: member_limit, },
+    }
+  } else {
+    limits
+  }
   let mappings = @environment.check_mapping_contract_shapes(
     @checked.checking_environment_wire(publication_environment),
     limits.mapping,
@@ -231,6 +244,12 @@ test "valid mixed UPDATE and published STORE keep ordered separate original occu
     restore_client_effect_run_target_selections(restored).unwrap(),
     Some(expected),
   )
+}
+
+///|
+test "mixed selection retains the explicit static member ceiling" {
+  let bounded = published_selection_prepare(mixed=true, member_limit=1)
+  assert_true(bounded is Err(Candidate(Headers(_))))
 }
 
 ///|
