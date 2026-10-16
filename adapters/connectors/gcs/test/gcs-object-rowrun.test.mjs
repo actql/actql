@@ -30,7 +30,8 @@ const expected = {resource, version: '9007199254740993', name: 'in/e\u0301%2F.cs
   metadata: {$json: {'$json': 'user', 'e\u0301': 'e\u0301\r\n%2F'}}};
 
 async function fixture({pages = [{kind: 'storage#objects', nextPageToken: 'next'},
-  {kind: 'storage#objects', items: [object]}], admitReference = true, attempts = 1} = {}) {
+  {kind: 'storage#objects', items: [object]}], admitReference = true,
+  attempts = 1, holdings = 1} = {}) {
   const profile = {version: 'actql-installed-gcs-source/0.1', connectorId: 'storage',
     project: 'fixture-project', bucket: 'actql-fixture', prefix: 'in/',
     mediaType: 'text/csv', siteProfilePath: '/fixture/site.json', accountConfigurationWire: '{}',
@@ -104,15 +105,16 @@ async function fixture({pages = [{kind: 'storage#objects', nextPageToken: 'next'
     ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
   const preparedSource = await adapter.prepare(inputs);
   // Independent finite component capacity, not an adopted normal Host price.
-  const ledger = checked(moon.clientProgramAcquisitionLedger(attempts, 1,
+  const ledger = checked(moon.clientProgramAcquisitionLedger(attempts, holdings,
     32768n, 100000000n, 100000000n, 0));
   return {adapter, state, issuer, ledger, inputs: {...inputs, preparedSource}};
 }
 
 test('GCS ordinary metadata reaches actual accounted Source capture with exact typed rows and original raw charges', async t => {
   // Three explicit same-Ledger lifecycle attempts: acquisition, refused
-  // unavailable restoration, then admitted restoration. No reset/refund.
-  const value = await fixture({attempts: 3});
+  // unavailable restoration, then admitted restoration. Two cumulative
+  // holding identities are issued; release does not refund those counters.
+  const value = await fixture({attempts: 3, holdings: 2});
   const capture = await value.adapter.openCapture({...value.inputs, ledger: value.ledger})
     .catch(error => {
       // This fixture contains no credentials or service values. Preserve the
@@ -163,6 +165,7 @@ test('GCS ordinary metadata reaches actual accounted Source capture with exact t
   assert.equal(moon.clientProgramSourceCaptureSource(restored), undefined);
   assert.deepEqual(moon.clientProgramSourceCaptureUsage(restored), [0n, 0n, 0n]);
   assert.equal(moon.clientProgramMultiCapturedLedgerUsage(value.ledger)[1], 3n);
+  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(value.ledger)[2], 2n);
 });
 
 test('GCS ordinary Source refuses insufficient original Ledger capacity before any grant or physical call', async () => {
