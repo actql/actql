@@ -54,12 +54,13 @@ test "sequence omitted defaults emit the same complete canonical occurrence as t
   let step = @decode.open_object(@decode.element_at(steps, 1).unwrap()).unwrap()
   let params = @decode.lookup(step, "params").unwrap()
   assert_eq(@decode.object_length(params), Some(8))
-  assert_eq(
-    (0..<8).to_array().map(index => @decode.field_at(params, index).unwrap().0),
-    [
-      "by", "contiguity", "id", "overlap", "pattern", "time", "time_domain", "within_ms",
-    ],
-  )
+  let names = []
+  for index in 0..<8 {
+    names.push(@decode.field_at(params, index).unwrap().0)
+  }
+  assert_eq(names, [
+    "by", "contiguity", "id", "overlap", "pattern", "time", "time_domain", "within_ms",
+  ])
   let params = @decode.open_object(params).unwrap()
   assert_eq(
     @decode.array_length(@decode.lookup(params, "by").unwrap()),
@@ -78,8 +79,9 @@ test "sequence omitted defaults emit the same complete canonical occurrence as t
       value,
     )
   }
-  assert_eq(
-    @decode.number(@decode.lookup(params, "within_ms").unwrap()).unwrap(),
-    20.0,
-  )
+  guard @decode.view(@decode.lookup(params, "within_ms").unwrap())
+    is NumberValue(within) else {
+    fail("completed duration must remain numeric")
+  }
+  assert_eq(within, 20.0)
 }
