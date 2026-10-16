@@ -344,16 +344,26 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
             return field === undefined || field.writable === true;
           })
           ? primary : new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
-        failure.cleanupHandle = cleanup;
-        failure.cleanupPending = true;
-        failure.cleanupError = closeFailure;
+        // Define own data fields: inherited setters can silently discard an
+        // assignment even on an ordinary extensible Error subclass. Preserve
+        // existing writable own-field attributes and ordinary error identity.
+        Object.defineProperties(failure, {
+          cleanupHandle: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupHandle') ??
+            {writable: true, enumerable: true, configurable: true}), value: cleanup},
+          cleanupPending: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupPending') ??
+            {writable: true, enumerable: true, configurable: true}), value: true},
+          cleanupError: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupError') ??
+            {writable: true, enumerable: true, configurable: true}), value: closeFailure},
+        });
       } catch {
         // Readonly fields/accessors must not mask the original read failure
         // or discard the same FD. The fresh wrapper owns diagnostics only.
         failure = new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
-        failure.cleanupHandle = cleanup;
-        failure.cleanupPending = true;
-        failure.cleanupError = closeFailure;
+        Object.defineProperties(failure, {
+          cleanupHandle: {value: cleanup, writable: true, enumerable: true, configurable: true},
+          cleanupPending: {value: true, writable: true, enumerable: true, configurable: true},
+          cleanupError: {value: closeFailure, writable: true, enumerable: true, configurable: true},
+        });
       }
       throw failure;
     }

@@ -101,3 +101,13 @@ commit replies and delayed directory ACKs. Protocol admission uses the explicit
 contract-control fixture; these are real Store/filesystem/process tests, not
 genuine Core admission, installed Model acceptance, Provider I/O or numerical
 funding proof. Original installed failures remain separately source-qualified.
+# Bounded-reader diagnostic transfer
+
+The failed metadata reader defines own cleanup data properties rather than
+invoking inherited setters on the primary Error. Safe writable own properties
+retain their original attributes; readonly/frozen primaries remain the cause of
+a fresh diagnostic wrapper. The same FD, retry flight and original retirement
+callback are unchanged. Three definition descriptors and the fallback
+descriptor object overlap the existing inspection descriptors/control frame;
+they are not free storage or a proof of the retained error graph's byte size.
+
