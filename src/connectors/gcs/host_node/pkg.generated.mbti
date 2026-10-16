@@ -6,6 +6,18 @@ import {
 }
 
 // Values
+pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]
+
+pub fn gcs_collection_check_binding(@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionBinding, String, String) -> Result[Unit, @catalog.ObjectCollectionIssue]
+
+pub fn gcs_collection_failure_code(@catalog.ObjectCollectionIssue) -> String
+
+pub fn gcs_collection_identity_cid(@catalog.ObjectCollectionBinding) -> String
+
+pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String
+
+pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String
+
 pub fn gcs_object_failure_code(GcsFailure) -> String
 
 pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]
