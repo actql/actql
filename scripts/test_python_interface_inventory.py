@@ -46,6 +46,31 @@ class InterfaceInventoryTests(unittest.TestCase):
         self.assertEqual(before['exports'], ['A'])
         self.assertEqual(after['exports'], ['A', 'B'])
 
+    def test_overloads_keep_each_occurrence_and_original_parameters(self):
+        result = python_interface('''from typing import overload
+class Client:
+    @overload
+    def check(self, program: str): ...
+    @overload
+    def check(self, program: bytes, *, source: str): ...
+    def check(self, program, **options): ...
+''')
+        self.assertEqual(result['exports'], ['Client', 'overload'])
+        self.assertEqual(result['operations'], [
+            {'name': 'Client', 'parameters': [], 'async': False},
+            {'name': 'Client/check', 'parameters': ['self', 'program'], 'async': False},
+            {'name': 'Client/check#2', 'parameters': ['self', 'program', 'source'], 'async': False},
+            {'name': 'Client/check#3', 'parameters': ['self', 'program', '**options'], 'async': False},
+        ])
+
+    def test_repeated_private_nested_helpers_are_not_collapsed(self):
+        result = python_interface('''def outer():
+    def _decide(value): return value
+    def _decide(value, reason): return reason
+''')
+        self.assertEqual([operation['name'] for operation in result['operations']],
+                         ['outer', 'outer/_decide', 'outer/_decide#2'])
+
     def test_old_or_modified_wheel_bytes_fail_record_verification(self):
         with self.assertRaisesRegex(ValueError, 'Wheel original digest mismatch'):
             wheel_interfaces(self.wheel({'owner/__init__.py': b''}, corrupt=True))
