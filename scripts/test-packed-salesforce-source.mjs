@@ -678,6 +678,11 @@ if (process.env.PACKED_RCE_TRANSPORT === 'https') {
       ? 'admission-review-reader' : undefined});
   remoteServer = createServer({key: readFileSync('org.key'),
     cert: readFileSync('org.crt')}, remoteHost.handler);
+  // The Host and Client share this fixture's event loop. Synchronous Common
+  // work can outlive an idle keep-alive socket; do not let its expiry race
+  // the next original request. Close after each response, without retries or
+  // changing any request, operation, timeout, or product limit.
+  remoteServer.maxRequestsPerSocket = 1;
   await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
   connection = {mode: 'remote', durability: 'durable',
     endpoint: 'https://127.0.0.1:' + remoteServer.address().port + '/',
