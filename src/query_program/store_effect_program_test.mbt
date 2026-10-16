@@ -58,8 +58,7 @@ fn store_capture_issue_label(issue : Issue) -> String {
       @debug.to_string(detail.kind)
     BindingPreparationSource(LocalProgram(Pipeline(_, detail)), _) =>
       @debug.to_string(detail.kind)
-    BindingPreparation(LocalProgram(Order(_, detail))) =>
-      @debug.to_string(detail)
+    BindingPreparation(LocalProgram(Order(_, _))) => "LocalProgram.Order"
     _ => private_update_issue_label(issue)
   }
 }
