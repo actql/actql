@@ -1,6 +1,7 @@
 supported_targets = "native"
 
 import {
+  "actql/actql/effect_program_binding" @effect_binding,
   "actql/actql/platform_native/installed_arena_control" @arena,
   "actql/actql/platform_native/host_bootstrap" @bootstrap,
   "actql/actql/run_publication_host" @host,

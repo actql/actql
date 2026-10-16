@@ -822,7 +822,7 @@ fn verify_captured_private_table_input(
     max_nodes: 4096,
     max_depth: 32,
   }
-  let bound = @program_check.bind_effect_program_run_preview(
+  let bound = @effect_binding.bind_effect_program_run_preview(
     @strategy.captured_effect_run_owner(effect_run),
     run_invocation,
     0,
@@ -908,7 +908,7 @@ fn verify_captured_private_table_input(
     swapped, run_cid, authoring_cid, 65536, 4096, 32,
   ).unwrap()
   assert_true(
-    @program_check.bind_effect_program_run_preview(
+    @effect_binding.bind_effect_program_run_preview(
       @strategy.captured_effect_run_owner(effect_run),
       run_invocation,
       0,
@@ -917,8 +917,8 @@ fn verify_captured_private_table_input(
       plan_limits,
     )
     is Err(
-      @program_check.Static(
-        @program_check.Inventory(
+      @effect_binding.Static(
+        @effect_binding.Inventory(
           @stage_results.Inventory(@stage_results.SourceMismatch("save"))
         )
       )

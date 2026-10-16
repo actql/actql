@@ -17,6 +17,7 @@ import {
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
   "actql/actql/effect_application",
+  "actql/actql/effect_program_binding",
   "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
@@ -3847,7 +3848,7 @@ pub(all) enum ClientEffectPreviewAuthorIssue {
 
 pub(all) enum ClientEffectPreviewInputIssue {
   Identity(@run_publication.EffectPreviewIdentityIssue)
-  Binding(@program_check.EffectProgramRunPreviewIssue)
+  Binding(@effect_program_binding.EffectProgramRunPreviewIssue)
   Footprint(@effect_application.EffectFootprintIssue)
   Captured(@physical_strategy.RunIssue)
 }

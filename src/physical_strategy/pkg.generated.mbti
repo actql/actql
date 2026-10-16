@@ -5,6 +5,7 @@ import {
   "actql/actql/canonical_json",
   "actql/actql/connector_sdk",
   "actql/actql/effect_application",
+  "actql/actql/effect_program_binding",
   "actql/actql/encode_core",
   "actql/actql/execution_authorization",
   "actql/actql/execution_query",
@@ -52,9 +53,9 @@ pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Resu
 
 pub fn[T] bind_captured_effect_local_result_managed_export(CapturedEffectInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
 
-pub fn bind_captured_effect_preview_inputs(CapturedEffectRunDAG, CapturedEffectInputs, @program_check.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
+pub fn bind_captured_effect_preview_inputs(CapturedEffectRunDAG, CapturedEffectInputs, @effect_program_binding.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
 
-pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @program_check.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
+pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @effect_program_binding.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
 
 pub fn bind_operational_profile_template(String, PolicyRequest) -> Result[String, SearchIssue]
 
@@ -190,7 +191,7 @@ pub fn captured_effect_preview_ledger_identity(CapturedEffectPreviewInputs) -> @
 
 pub fn captured_effect_preview_member_count(CapturedEffectPreviewInputs) -> Int?
 
-pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @program_check.EffectProgramRunPreview
+pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @effect_program_binding.EffectProgramRunPreview
 
 pub fn captured_effect_preview_plan_terminal(CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, CapturedEffectPlanIssue]
 
@@ -210,7 +211,7 @@ pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
 
 pub fn captured_effect_run_matches_checked(CapturedEffectRunDAG, CheckedEffectRunDAG) -> Bool
 
-pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @program_check.EffectProgramRunCandidate
+pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @effect_program_binding.EffectProgramRunCandidate
 
 pub fn captured_effect_run_source_at(CapturedEffectRunDAG, Int) -> CheckedEffectSourcePort?
 
@@ -372,11 +373,11 @@ pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedD
 
 pub fn checked_effect_computation_owner(CheckedEffectComputationDAG) -> @program_check.EffectProgramStaticCandidate
 
-pub fn checked_effect_preview_source_indexes(CheckedEffectRunDAG, @program_check.EffectProgramRunPreview, Int) -> Result[Array[Int?], RunIssue]
+pub fn checked_effect_preview_source_indexes(CheckedEffectRunDAG, @effect_program_binding.EffectProgramRunPreview, Int) -> Result[Array[Int?], RunIssue]
 
 pub fn checked_effect_run_graph(CheckedEffectRunDAG) -> CheckedDAG
 
-pub fn checked_effect_run_owner(CheckedEffectRunDAG) -> @program_check.EffectProgramRunCandidate
+pub fn checked_effect_run_owner(CheckedEffectRunDAG) -> @effect_program_binding.EffectProgramRunCandidate
 
 pub fn checked_effect_run_source_at(CheckedEffectRunDAG, Int) -> CheckedEffectSourcePort?
 

@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/effect_program_binding" @effect_binding,
   "actql/actql/native_values_integration" @native_values_fixture,
   "actql/actql/client_row_source_host" @row_host,
   "actql/actql/connector_conformance" @conformance,

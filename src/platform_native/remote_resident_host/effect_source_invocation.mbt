@@ -126,7 +126,7 @@ pub fn ResidentSourceCompute::effect_source_publication_invocation(
     ) ||
     @publication.publication_contract_identity(materials.run_definition) !=
     @publication.publication_contract_identity(
-      @checked.effect_program_run_definition(
+      @effect_binding.effect_program_run_definition(
         @strategy.checked_effect_run_owner(
           @host.prepared_client_effect_run_graph(original.bound),
         ),
