@@ -44,7 +44,12 @@ fn store_capture_program(source : String) -> @program.Program raise {
     Err(issue) =>
       fail(
         "STORE lowerer refused: " +
-        @debug.to_string(issue) +
+        match issue {
+          BindingPreparation(LocalProgram(Pipeline(_, detail))) => @debug.to_string(detail.kind)
+          BindingPreparationSource(LocalProgram(Pipeline(_, detail)), _) => @debug.to_string(detail.kind)
+          BindingPreparation(LocalProgram(Order(_, detail))) => @debug.to_string(detail)
+          _ => private_update_issue_label(issue)
+        } +
         " source=" +
         source,
       )
