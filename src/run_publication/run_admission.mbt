@@ -377,7 +377,9 @@ pub fn issue_run_definition(
     @encode.string_value(writer, admission.compiled_plan_cid)
     @encode.key(writer, "created_at")
     @encode.string_value(writer, created_at)
-    if publication_contract_effect_target_selections_cid(admission.compiled_plan)
+    if publication_contract_effect_target_selections_cid(
+        admission.compiled_plan,
+      )
       is Some(selection_cid) {
       @encode.key(writer, "effect_target_selections_cid")
       @encode.string_value(writer, selection_cid)

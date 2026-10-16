@@ -330,7 +330,8 @@ pub fn admit_client_effect_run_materials(
     request != expected_request {
     return Err(Request(IdentityMismatch))
   }
-  if normalization_profile is Some(_) || prepared.target_selections is Some(_) ||
+  if normalization_profile is Some(_) ||
+    prepared.target_selections is Some(_) ||
     infer is Some(_) {
     let canonical = match
       encode_prepared_client_effect_materials(

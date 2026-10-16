@@ -256,7 +256,8 @@ pub fn admit_prepared_client_effect_run_publication(
   let identity = prepared_client_effect_identity(value)
   if @publication.publication_contract_effect_target_selections_cid(
       compiled_plan,
-    ) != client_effect_target_selections_cid(value) {
+    ) !=
+    client_effect_target_selections_cid(value) {
     return Err(@publication.RunAdmissionCheckedProgramMismatch)
   }
   @publication.admit_checked_run_publication(
@@ -295,7 +296,8 @@ pub fn bind_prepared_client_effect_run(
 ) -> Result[PreparedClientEffectRun, ClientEffectRunIssue] {
   if @publication.publication_contract_effect_target_selections_cid(
       run_definition,
-    ) != client_effect_target_selections_cid(computation) {
+    ) !=
+    client_effect_target_selections_cid(computation) {
     return Err(TargetSelection)
   }
   let owner = match

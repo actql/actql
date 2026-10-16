@@ -215,7 +215,9 @@ pub fn client_program_effect_target_selection_matches_prepared(
   original : @publication_host.ClientEffectUpdateTargetSelections,
   prepared : @publication_host.PreparedClientEffectComputation,
 ) -> Bool {
-  @publication_host.client_effect_target_selection_matches_prepared(original, prepared)
+  @publication_host.client_effect_target_selection_matches_prepared(
+    original, prepared,
+  )
 }
 
 ///|
@@ -225,7 +227,9 @@ pub fn client_program_effect_target_selection_matches_run(
   prepared : @publication_host.PreparedClientEffectComputation,
   definition : @publication.PublicationContract,
 ) -> Bool {
-  @publication_host.client_effect_target_selection_matches_run(original, prepared, definition)
+  @publication_host.client_effect_target_selection_matches_run(
+    original, prepared, definition,
+  )
 }
 
 ///|
@@ -235,7 +239,9 @@ pub fn client_program_effect_target_selection_current(
   prepared : @publication_host.PreparedClientEffectComputation,
   observations : String,
 ) -> Bool {
-  @publication_host.client_effect_target_selection_current(original, prepared, observations)
+  @publication_host.client_effect_target_selection_current(
+    original, prepared, observations,
+  )
 }
 
 ///|
@@ -254,25 +260,41 @@ pub fn client_program_effect_target_installations_shape(wire : String) -> Bool {
 
 ///|
 #export_name("clientProgramEffectTargetPreparedOriginalShape")
-pub fn client_program_effect_target_prepared_original_shape(wire : String) -> Bool {
+pub fn client_program_effect_target_prepared_original_shape(
+  wire : String,
+) -> Bool {
   @publication_host.client_effect_target_prepared_original_shape(wire)
 }
 
 ///|
 #export_name("clientProgramEffectTargetRunOriginalShape")
 pub fn client_program_effect_target_run_original_shape(
-  wire : String, evidence : Array[String],
+  wire : String,
+  evidence : Array[String],
 ) -> Bool {
   match evidence {
-    [] => @publication_host.client_effect_target_run_original_shape(wire, None, None)
-    [prepared, authorization] => @publication_host.client_effect_target_run_original_shape(wire, Some(prepared), Some(authorization))
+    [] =>
+      @publication_host.client_effect_target_run_original_shape(
+        wire,
+        None,
+        None,
+      )
+    [prepared, authorization] =>
+      @publication_host.client_effect_target_run_original_shape(
+        wire,
+        Some(prepared),
+        Some(authorization),
+      )
     _ => false
   }
 }
 
 ///|
 #export_name("clientProgramEffectTargetOriginalDataEqual")
-pub fn client_program_effect_target_original_data_equal(left : String, right : String) -> Bool {
+pub fn client_program_effect_target_original_data_equal(
+  left : String,
+  right : String,
+) -> Bool {
   @publication_host.client_effect_target_original_data_equal(left, right)
 }
 
@@ -305,5 +327,7 @@ pub fn client_program_effect_target_selection_members_current(
   prepared : @publication_host.PreparedClientEffectComputation,
   members : String,
 ) -> Bool {
-  @publication_host.client_effect_target_selection_members_current(original, prepared, members)
+  @publication_host.client_effect_target_selection_members_current(
+    original, prepared, members,
+  )
 }

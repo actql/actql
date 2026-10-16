@@ -45,9 +45,8 @@ pub(all) struct ClientValuesRunMaterials {
 let client_run_materials_fields : Array[String] = [
   "check_environment", "check_environment_cid", "client_request_identity", "created_at",
   "effect_target_selections_json", "infer_execution_contract_cid", "infer_execution_contract_json",
-  "normalization_journal_json", "parameters", "prepared_invocation",
-  "program", "program_format", "run_authorization", "run_id", "scope_id", "valid_until",
-  "version",
+  "normalization_journal_json", "parameters", "prepared_invocation", "program", "program_format",
+  "run_authorization", "run_id", "scope_id", "valid_until", "version",
 ]
 
 ///|

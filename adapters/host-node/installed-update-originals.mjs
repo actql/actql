@@ -81,6 +81,9 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     const compilation = moon.clientProgramEffectRunMaterialsCompilation(restored);
     const allowed = moon.clientProgramEffectRunMaterialsAllowed(restored);
     const definition = moon.clientProgramEffectRunMaterialsDefinition(restored);
+    // Retain the existing whole Run/material binding admission as well as the
+    // nominal selection/preparation projection. No replacement Run is issued.
+    checked(moon.clientProgramEffectRunMaterialsTargetSelections(restored));
     const selections = selectionsOf(prepared);
     if (selections === undefined || updateTargetSelectionsCid(selections, moon) !== expectedSelectionCid ||
         !updateTargetSelectionMatchesRun(selections, prepared, definition)) fail();

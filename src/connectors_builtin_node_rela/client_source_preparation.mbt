@@ -259,7 +259,11 @@ fn client_program_lower_source(
   // checked Effect owner. Selection is retained material, never a permission.
   match
     @source_frontend.lower(
-      document, selected, Some(context), table_writes~, update_targets~,
+      document,
+      selected,
+      Some(context),
+      table_writes~,
+      update_targets~,
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(SourcePreparation(Frontend(issue)))

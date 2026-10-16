@@ -117,7 +117,9 @@ test "selected Model originals restore the exact compilation graph and nominal o
   ).unwrap()
   let run_cid = @publication.publication_contract_identity(definition)
   let restored = target_selection_materials_admit(
-    materials, run_cid, Some(request),
+    materials,
+    run_cid,
+    Some(request),
   ).unwrap()
   assert_eq(
     issue_client_effect_prepared_original(held.compilation).unwrap(),
@@ -132,12 +134,12 @@ test "selected Model originals restore the exact compilation graph and nominal o
     materials,
   )
   for current in [compilation, held.compilation, restored.compilation] {
-    let (graph, occurrence) = client_effect_compilation_infer_original(
-      current,
-    ).unwrap()
+    let (graph, occurrence) = client_effect_compilation_infer_original(current).unwrap()
     assert_true(physical_equal(graph, current.compiled.infer.unwrap()))
     assert_true(client_infer_occurrence_matches_plan(occurrence, graph))
-    assert_true(client_infer_occurrence_matches_effect(occurrence, current.owner))
+    assert_true(
+      client_infer_occurrence_matches_effect(occurrence, current.owner),
+    )
     assert_eq(
       @publication.publication_contract_identity(current.compiled.compiled_plan),
       plan_cid,
@@ -181,7 +183,9 @@ test "selected Model originals restore the exact compilation graph and nominal o
   )
   assert_true(
     target_selection_materials_admit(
-      materials, "sha256:" + "f".repeat(64), Some(request),
+      materials,
+      "sha256:" + "f".repeat(64),
+      Some(request),
     )
     is Err(RunMismatch),
   )
@@ -216,26 +220,42 @@ test "both Model original readers refuse missing malformed and changed execution
   ).unwrap()
   let run_cid = @publication.publication_contract_identity(definition)
   let (execution_cid, execution_wire) = client_effect_original_infer_input(
-    compilation,
-  ).unwrap().unwrap()
+      compilation,
+    )
+    .unwrap()
+    .unwrap()
   let mutate = fn(wire : String) -> Array[String] raise @encode.EncodeFailure {
     let missing_cid = target_selection_replace_field(
-      wire, "infer_execution_contract_cid", None,
+      wire,
+      "infer_execution_contract_cid",
+      None,
     )
     [
       missing_cid,
-      target_selection_replace_field(wire, "infer_execution_contract_json", None),
       target_selection_replace_field(
-        missing_cid, "infer_execution_contract_json", None,
-      ),
-      target_projection_replace_raw_field(
-        wire, "infer_execution_contract_json", Some("null"),
-      ),
-      target_projection_replace_raw_field(
-        wire, "infer_execution_contract_cid", Some("1"),
+        wire,
+        "infer_execution_contract_json",
+        None,
       ),
       target_selection_replace_field(
-        wire, "infer_execution_contract_cid", Some("sha256:" + "f".repeat(64)),
+        missing_cid,
+        "infer_execution_contract_json",
+        None,
+      ),
+      target_projection_replace_raw_field(
+        wire,
+        "infer_execution_contract_json",
+        Some("null"),
+      ),
+      target_projection_replace_raw_field(
+        wire,
+        "infer_execution_contract_cid",
+        Some("1"),
+      ),
+      target_selection_replace_field(
+        wire,
+        "infer_execution_contract_cid",
+        Some("sha256:" + "f".repeat(64)),
       ),
       target_selection_replace_field(
         wire,
@@ -260,10 +280,18 @@ test "both Model original readers refuse missing malformed and changed execution
       target_selection_replace_field(
         wire,
         "infer_execution_contract_json",
-        Some(target_projection_replace_raw_field(execution_wire, "extra", Some("true"))),
+        Some(
+          target_projection_replace_raw_field(
+            execution_wire,
+            "extra",
+            Some("true"),
+          ),
+        ),
       ),
       target_selection_replace_field(
-        wire, "infer_execution_contract_json", Some(" " + execution_wire),
+        wire,
+        "infer_execution_contract_json",
+        Some(" " + execution_wire),
       ),
     ]
   }
@@ -272,7 +300,8 @@ test "both Model original readers refuse missing malformed and changed execution
   }
   for candidate in mutate(materials) {
     assert_true(
-      target_selection_materials_admit(candidate, run_cid, Some(request)) is Err(_),
+      target_selection_materials_admit(candidate, run_cid, Some(request))
+      is Err(_),
     )
   }
   // Independently mutate and reidentify a valid contract. Local self-CID
@@ -283,12 +312,16 @@ test "both Model original readers refuse missing malformed and changed execution
     None,
   )
   let changed = target_projection_replace_raw_field(
-    unsigned, "max_total_duration_ms", Some("999"),
+    unsigned,
+    "max_total_duration_ms",
+    Some("999"),
   )
   let changed_cid = "sha256:" + @sha.hex(@utf8.encode(changed))
   assert_true(changed_cid != execution_cid)
   let changed_body = target_projection_replace_raw_field(
-    changed, "self_cid", Some("\"" + changed_cid + "\""),
+    changed,
+    "self_cid",
+    Some("\"" + changed_cid + "\""),
   )
   assert_true(
     restore_client_effect_original_infer(
@@ -298,10 +331,14 @@ test "both Model original readers refuse missing malformed and changed execution
     )
     is Ok(Some(_)),
   )
-  let replace_execution = fn(wire : String) -> String raise @encode.EncodeFailure {
+  let replace_execution = fn(
+    wire : String,
+  ) -> String raise @encode.EncodeFailure {
     target_selection_replace_field(
       target_selection_replace_field(
-        wire, "infer_execution_contract_cid", Some(changed_cid),
+        wire,
+        "infer_execution_contract_cid",
+        Some(changed_cid),
       ),
       "infer_execution_contract_json",
       Some(changed_body),
@@ -313,7 +350,9 @@ test "both Model original readers refuse missing malformed and changed execution
   )
   assert_true(
     target_selection_materials_admit(
-      replace_execution(materials), run_cid, Some(request),
+      replace_execution(materials),
+      run_cid,
+      Some(request),
     )
     is Err(_),
   )
@@ -326,7 +365,9 @@ test "both Model original readers refuse missing malformed and changed execution
   )
   let foreign_cid = "sha256:" + @sha.hex(@utf8.encode(foreign))
   let foreign_body = target_projection_replace_raw_field(
-    foreign, "self_cid", Some("\"" + foreign_cid + "\""),
+    foreign,
+    "self_cid",
+    Some("\"" + foreign_cid + "\""),
   )
   assert_true(
     restore_client_effect_original_infer(
@@ -347,7 +388,9 @@ test "non-Model originals remain absent and generic materials cannot discard Mod
     definition,
     request=Some(request),
   ).unwrap()
-  assert_true(client_effect_compilation_infer_original(allowed.compilation) is None)
+  assert_true(
+    client_effect_compilation_infer_original(allowed.compilation) is None,
+  )
   assert_false(original.contains("infer_execution_contract"))
   assert_false(materials.contains("infer_execution_contract"))
   let (_, model, model_definition, model_request) = selected_infer_original_fixture()
@@ -357,7 +400,9 @@ test "non-Model originals remain absent and generic materials cannot discard Mod
     request=Some(model_request),
   ).unwrap()
   let generic = target_selection_replace_field(
-    wire, "effect_target_selections_json", None,
+    wire,
+    "effect_target_selections_json",
+    None,
   )
   assert_true(
     read_client_run_materials_input(
@@ -368,12 +413,14 @@ test "non-Model originals remain absent and generic materials cannot discard Mod
     )
     is Err(MaterialsEvidence("infer_execution_contract")),
   )
-  let (cid, body) = client_effect_original_infer_input(
-    model.compilation,
-  ).unwrap().unwrap()
+  let (cid, body) = client_effect_original_infer_input(model.compilation)
+    .unwrap()
+    .unwrap()
   assert_true(
     restore_client_effect_original_infer(
-      allowed.compilation.owner, Some((cid, body)), run_materials_limits(),
+      allowed.compilation.owner,
+      Some((cid, body)),
+      run_materials_limits(),
     )
     is Err(Input(MaterialsEvidence("infer_execution_contract"))),
   )
@@ -395,26 +442,35 @@ test "serialized Model original reconstruction retains the Content component" {
     max_evidence_nodes: 100000,
   }
   let component = issue_installed_client_composed_infer_plan_graph(
-    occurrence, execution, bounds.sequence, bounds.max_evidence_bytes,
-    bounds.max_evidence_nodes, bounds.max_evidence_depth,
+    occurrence,
+    execution,
+    bounds.sequence,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
+    bounds.max_evidence_depth,
   ).unwrap()
   let compilation = issue_prepared_client_effect_compilation(
-    owner, run_materials_manifests(), bounds.sequence, bounds.max_sequence_steps,
-    bounds.max_sequence_work, bounds.max_evidence_bytes, bounds.max_evidence_nodes,
+    owner,
+    run_materials_manifests(),
+    bounds.sequence,
+    bounds.max_sequence_steps,
+    bounds.max_sequence_work,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
     bounds.max_evidence_depth,
     infer=Some(component),
   ).unwrap()
   let allowed = issue_client_effect_allowed_run(
-    compilation, "sha256:" + "a".repeat(64), "sha256:" + "b".repeat(64),
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
     "2026-10-16T00:00:00.000Z",
   ).unwrap()
   let definition = issue_client_effect_run_definition(
     allowed, "serialized-original", "serialized-run", "2026-10-15T00:00:00.000Z",
     "2026-10-16T00:00:00.000Z",
   ).unwrap()
-  let wire = issue_prepared_client_effect_run_materials(
-    allowed, definition,
-  ).unwrap()
+  let wire = issue_prepared_client_effect_run_materials(allowed, definition).unwrap()
   let (_, _, effect_limits) = client_composed_effect_base_fixture()
   let restored = admit_client_effect_run_materials(
     wire,
@@ -438,7 +494,8 @@ test "serialized Model original reconstruction retains the Content component" {
   )
   assert_eq(
     issue_prepared_client_effect_run_materials(
-      restored.allowed, restored.run_definition,
+      restored.allowed,
+      restored.run_definition,
     ).unwrap(),
     wire,
   )

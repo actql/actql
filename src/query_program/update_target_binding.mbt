@@ -36,7 +36,10 @@ pub struct ResolvedUpdateTarget {
 
 ///|
 pub fn resolved_update_target(value : ResolvedUpdateTarget) -> (String, String) {
-  (value.target_alias.target_ref, @environment.mapping_shape_reference(value.mapping))
+  (
+    value.target_alias.target_ref,
+    @environment.mapping_shape_reference(value.mapping),
+  )
 }
 
 ///|
@@ -73,7 +76,9 @@ pub fn bind_update_target_publication(
     remaining -= cost
     if target_alias.name.is_empty() ||
       target_alias.name.length() > 16 ||
-      target_alias.name.any(part => part.value.is_empty() || part.value.length() > 1024) ||
+      target_alias.name.any(part => {
+        part.value.is_empty() || part.value.length() > 1024
+      }) ||
       !target_alias.target_ref.has_prefix("connector://") ||
       target_alias.target_ref.length() <= 12 ||
       target_alias.target_ref.length() > 4096 ||
@@ -135,7 +140,9 @@ pub fn resolve_update_target_binding(
       selected_alias = Some(target_alias)
     }
   }
-  guard selected_alias is Some(target_alias) else { return Err(UnresolvedTarget) }
+  guard selected_alias is Some(target_alias) else {
+    return Err(UnresolvedTarget)
+  }
   let mut selected_mapping : @environment.MappingContractShape? = None
   for mapping in publication.candidates {
     if remaining < 1 {
@@ -199,14 +206,17 @@ pub fn resolve_concrete_update_target_binding(
     }
     match selected_alias {
       Some(previous) =>
-        if previous.installation_binding_cid != target_alias.installation_binding_cid ||
+        if previous.installation_binding_cid !=
+          target_alias.installation_binding_cid ||
           previous.installation_owner_cid != target_alias.installation_owner_cid {
           return Err(AmbiguousTarget)
         }
       None => selected_alias = Some(target_alias)
     }
   }
-  guard selected_alias is Some(target_alias) else { return Err(UnresolvedTarget) }
+  guard selected_alias is Some(target_alias) else {
+    return Err(UnresolvedTarget)
+  }
   let mut selected_mapping : @environment.MappingContractShape? = None
   for mapping in publication.candidates {
     if remaining < 1 {

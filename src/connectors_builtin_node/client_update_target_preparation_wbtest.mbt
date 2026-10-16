@@ -22,18 +22,29 @@ test "public full and logical UPDATE preparation retain one concrete selection" 
     None,
   ).unwrap()
   assert_true(full.update_targets is Some(_))
-  for target in [
-    "salesforce.Account", "salesforce.Account MAPPING `mapping:crm.account.v1`",
-  ] {
+  for
+    target in [
+      "salesforce.Account", "salesforce.Account MAPPING `mapping:crm.account.v1`",
+    ] {
     let short = client_program_lower_source(
-      prefix + target + suffix, "sql", environment, publication, None,
+      prefix + target + suffix,
+      "sql",
+      environment,
+      publication,
+      None,
     ).unwrap()
     assert_eq(short.document, full.document)
     assert_true(short.update_targets is Some(_))
     let prepared = match
       client_program_prepare_source_computation_with_parameters(
-        prefix + target + suffix, "sql", environment, publication, None, None,
-        true, [],
+        prefix + target + suffix,
+        "sql",
+        environment,
+        publication,
+        None,
+        None,
+        true,
+        [],
       ) {
       SourceEffect(EffectPrepared(value)) => value
       _ => abort("expected ordinary prepared Effect owner")

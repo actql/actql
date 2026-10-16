@@ -68,7 +68,12 @@ fn restore_client_effect_original_infer(
           occurrence,
           @utf8.encode(wire),
           cid,
-          { max_bytes: 65536, max_nodes: 4096, max_depth: 64, max_members: 256, },
+          {
+            max_bytes: 65536,
+            max_nodes: 4096,
+            max_depth: 64,
+            max_members: 256,
+          },
           1000000,
         ) {
         Ok(value) => value

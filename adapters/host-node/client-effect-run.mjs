@@ -33,7 +33,8 @@ export function installNodeClientEffectRun({moon,
         typeof resultPolicyOriginalFor !== 'function') ||
       (validateInstallation !== undefined && typeof validateInstallation !== 'function') ||
       (updateTargetOriginals !== undefined &&
-        typeof moon?.clientProgramEffectTargetSelections !== 'function') ||
+        (typeof moon?.clientProgramEffectTargetSelections !== 'function' ||
+         typeof moon?.clientProgramEffectTargetSelectionOriginal !== 'function')) ||
       typeof execute !== 'function' ||
       typeof journal?.reservePhysicalStart !== 'function' ||
       typeof now !== 'function' ||

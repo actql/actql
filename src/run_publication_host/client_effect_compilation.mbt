@@ -408,7 +408,8 @@ fn issue_client_effect_compilation_internal(
   }
   if @publication.publication_contract_effect_target_selections_cid(
       compiled.compiled_plan,
-    ) != client_effect_target_selections_cid(owner) {
+    ) !=
+    client_effect_target_selections_cid(owner) {
     return Err(Encoding)
   }
   Ok({ owner, compiled, normalization_profile, })

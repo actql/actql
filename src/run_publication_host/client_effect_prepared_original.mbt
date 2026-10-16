@@ -124,8 +124,8 @@ pub fn admit_client_effect_prepared_original(
   let object = match
     @decode.closed_object(root, [
       "check_environment", "check_environment_cid", "effect_target_selections_json",
-      "infer_execution_contract_cid", "infer_execution_contract_json",
-      "normalization_profile_cid", "normalization_profile_key", "parameters", "program",
+      "infer_execution_contract_cid", "infer_execution_contract_json", "normalization_profile_cid",
+      "normalization_profile_key", "parameters", "program",
     ]) {
     Ok(value) => value
     Err(_) => return Err(Input(MaterialsMalformed))

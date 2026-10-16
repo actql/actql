@@ -274,14 +274,16 @@ fn client_task_plan_target_selections_cid(
       max_wire_bytes,
       max_nodes,
       max_depth,
-    ) is Some(body) &&
+    )
+    is Some(body) &&
     @canonical.object_field(body, "execution_material") is Some(material) else {
     return Err(Encoding)
   }
   match @canonical.object_field(material, "effect_target_selections") {
     None => Ok(None)
     Some(selection) => {
-      guard selection is @canonical.Array(values) && @canonical.array_count(values) > 0 else {
+      guard selection is @canonical.Array(values) &&
+        @canonical.array_count(values) > 0 else {
         return Err(Encoding)
       }
       let cid = @canonical.cid_value(
