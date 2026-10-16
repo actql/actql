@@ -10,6 +10,8 @@ const metadata = {bucket: 'actql-fixture', name: 'test/e\u0301%2F.csv',
 const payload = Buffer.from('123456789');
 const resource = Object.freeze({$fixtureResource: 'original-resource'});
 const content = Object.freeze({$fixtureContent: 'actually-verified-bytes'});
+const expectedRow = (mediaType = 'text/csv') => ({resource, version: generation,
+  name: 'test/e\u0301%2F.csv', media_type: mediaType, content});
 const scope = {operation: 'gcs:file:read', resourceOrigin: 'https://storage.googleapis.com',
   siteGeneration: 1, connectorRegistration: 'gcs', connectorRevision: 'gcs/0.1'};
 
@@ -60,7 +62,7 @@ test('keyed GCS capture sequences actual request observations and consumes metad
   const {options, state} = fixture();
   await readGcsKeyedContent(options);
   assert.equal(state.requests.length, 2); assert.equal(state.calls.length, 2);
-  assert.deepEqual(state.pages, [[], [{resource, version: generation, content}]]);
+  assert.deepEqual(state.pages, [[], [expectedRow()]]);
   assert.equal(state.charges.length, 2); assert.equal(state.pending, undefined);
   assert.equal(state.captures.length, 1); assert.equal(state.currentChecks, 1);
   assert.deepEqual(state.verification, [9]);
@@ -98,7 +100,7 @@ for (const [name, reportedMediaType] of [
     assert.equal(captured.metadata.generation, generation);
     assert.equal(captured.metadata.metageneration, '9007199254740995');
     assert.deepEqual(captured.bytes, payload);
-    assert.deepEqual(state.pages, [[], [{resource, version: generation, content}]]);
+    assert.deepEqual(state.pages, [[], [expectedRow(reportedMediaType)]]);
     assert.equal(state.pending, undefined);
     assert.equal(state.requests.length, 2);
     assert.equal(state.calls.length, 2, 'report preservation does not reacquire content');
@@ -106,6 +108,39 @@ for (const [name, reportedMediaType] of [
     assert.deepEqual(state.verification, [9]);
   });
 }
+
+test('the explicit source-only legacy path retains its original three-column content row', async () => {
+  const {options, state} = fixture();
+  options.moon = undefined;
+  await readGcsKeyedContent(options);
+  assert.deepEqual(state.pages, [[], [{resource, version: generation, content}]]);
+  assert.equal(state.calls.length, 2);
+  assert.equal(state.charges.length, 2);
+  assert.equal(state.pending, undefined);
+});
+
+test('the public name and media type borrow original metadata across the asynchronous capture', async () => {
+  const {options, state} = fixture('Text/Plain;Label="e\u0301"');
+  const capture = options.captureContent;
+  options.captureContent = async observed => {
+    await Promise.resolve();
+    // A capture callback cannot change the checked original metadata which
+    // supplies both the ContentRef report and its public companion columns.
+    assert.equal(Object.isFrozen(observed.metadata), true);
+    assert.throws(() => { observed.metadata.objectName = 'foreign/name'; }, TypeError);
+    assert.throws(() => { observed.metadata.mediaType = 'application/octet-stream'; }, TypeError);
+    return capture(observed);
+  };
+  await readGcsKeyedContent(options);
+  const row = state.pages[1][0];
+  assert.deepEqual(row, expectedRow('Text/Plain;Label="e\u0301"'));
+  assert.equal(row.name, state.captures[0].metadata.objectName);
+  assert.equal(row.media_type, state.captures[0].metadata.mediaType);
+  assert.equal(row.resource, resource);
+  assert.equal(row.content, content);
+  assert.equal(state.calls.length, 2);
+  assert.equal(state.charges.length, 2);
+});
 
 test('wrong media bytes leave the original physical ticket pending and produce no ContentRef row', async () => {
   const {options, state} = fixture(); const call = options.callResource;
@@ -160,7 +195,7 @@ test('keyed row consumer failure keeps captured bytes and the exact media charge
     throw failure;
   };
   await assert.rejects(readGcsKeyedContent(options), error => error === failure);
-  assert.deepEqual(attempted, [{rows: [{resource, version: generation, content}],
+  assert.deepEqual(attempted, [{rows: [expectedRow()],
     charge: state.charges[1]}]);
   assert.equal(attempted[0].charge, state.pending);
   assert.equal(state.captures.length, 1);

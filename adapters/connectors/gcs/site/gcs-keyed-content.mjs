@@ -67,6 +67,11 @@ export async function readGcsKeyedContent({moon, requestWire, resolveResource,
   });
   signal?.throwIfAborted();
   await consumePage([{resource: request.resource, version: request.version,
+    // Borrow the same checked original metadata. The explicit source-only
+    // legacy declaration keeps its three-column carrier; no profile value or
+    // normalized/re-resolved name substitutes for provider metadata.
+    ...(moon === undefined ? {} : {name: captured.metadata.objectName,
+      media_type: captured.metadata.mediaType}),
     content: captured.receipt}], {charge: mediaCharge});
   signal?.throwIfAborted();
 }

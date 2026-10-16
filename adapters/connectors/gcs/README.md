@@ -32,9 +32,12 @@ newly reconstructed provider response or a freshly issued permission.
 
 The standard provider-backed installation publishes `objects` as a genuine
 ordinary Source beside `files` and `contents`. It does not fabricate a Source
-field to carry a collection STORE target. The earlier two view declarations
-remain byte-identical, while the complete extended Catalog has its own CID.
-An explicitly supplied source-only legacy installation keeps its two views.
+field to carry a collection STORE target. The seven-column listing declaration
+remains byte-identical. Ordinary `contents` declares the five public columns
+`resource`, `version`, `name`, `media_type` and `content`, and the complete
+extended Catalog has its own CID. An explicitly supplied source-only legacy
+installation keeps its original two views, including the three-column
+`contents` carrier.
 
 `object_listing_prefix` interprets the original typed Request before I/O.
 Absent or NULL prefix selects the installed prefix; an explicit prefix may

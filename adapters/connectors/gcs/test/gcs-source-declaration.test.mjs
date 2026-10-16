@@ -56,14 +56,12 @@ test('exact decomposed/composed GCS scope strings never share a declaration scop
   assert.equal(original.versionCid, composed.versionCid);
 });
 
-test('ordinary objects declare exact Decimal contracts and genuine Source acquisition alongside unchanged file views', () => {
+test('ordinary objects declare exact Decimal contracts and genuine Sources beside the unchanged listing', () => {
   const input = profile(), legacy = restoreGcsSourceDeclaration(moon, input);
   const original = restoreGcsSourceDeclaration(moon, input, undefined, {includeObjects: true});
   assert.equal(original.declared.views.length, 3);
-  for (const resource of ['files', 'contents']) {
-    assert.deepEqual(original.declared.views.find(view => view.resource === resource),
-      legacy.declared.views.find(view => view.resource === resource));
-  }
+  assert.deepEqual(original.declared.views.find(view => view.resource === 'files'),
+    legacy.declared.views.find(view => view.resource === 'files'));
   assert.notEqual(original.declared.catalog_cid, legacy.declared.catalog_cid);
   const catalog = JSON.parse(original.declared.catalog);
   const objects = original.declared.views.find(view => view.resource === 'objects');
@@ -115,6 +113,27 @@ test('actual installed object contracts consume GCS Int64 as Decimal and metadat
   wrong.size = {type: 'string', nullable: false};
   assert.throws(() => checked(objectFixture.fixtureGcsObjectDataWire(JSON.stringify(wrong), row)),
     'the same textual transport must not masquerade as an admitted String carrier');
+});
+
+test('ordinary contents declares five public fields and retains its original lookup identity', () => {
+  const input = profile(), legacy = restoreGcsSourceDeclaration(moon, input);
+  const ordinary = restoreGcsSourceDeclaration(moon, input, undefined, {includeObjects: true});
+  const carrier = (owner, resource) => {
+    const view = owner.declared.views.find(value => value.resource === resource);
+    return owner.declared.contracts.map(JSON.parse).find(value => value.cid === view.carrier_schema_cid).body.fields;
+  };
+  const fields = carrier(ordinary, 'contents'), old = carrier(legacy, 'contents');
+  assert.deepEqual(Object.keys(fields).sort(), ['content', 'media_type', 'name', 'resource', 'version']);
+  assert.deepEqual(fields.name, {nullable: false, type: 'string'});
+  assert.deepEqual(fields.media_type, {nullable: false, type: 'string'});
+  for (const name of ['content', 'resource', 'version']) assert.deepEqual(fields[name], old[name]);
+  assert.deepEqual(Object.keys(old).sort(), ['content', 'resource', 'version']);
+  assert.notEqual(ordinary.declared.views.find(value => value.resource === 'contents').carrier_schema_cid,
+    legacy.declared.views.find(value => value.resource === 'contents').carrier_schema_cid);
+  const catalog = JSON.parse(ordinary.declared.catalog);
+  assert.deepEqual(catalog.source_views.find(value => value.acquisition.authority === 'read_content').acquisition,
+    {kind: 'fetch', authority: 'read_content', correlation: {request_fields: ['resource', 'version'],
+      response_fields: ['resource', 'version'], identity: ['resource', 'version'], cardinality: 'one'}});
 });
 
 test('checked profile owns nested limits before later asynchronous installation', () => {
