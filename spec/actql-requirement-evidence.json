@@ -8737,6 +8737,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/effects.create-values-complete-write-set",
+      "statement_sha256": "0d7e3cfa833c23176e34a310d888d30ef49a238085283a1ad4e81359c84023ed",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/effects.create-values-original-capture",
       "statement_sha256": "31921a3eb4e59c2240097579c6b71939250c18908b74b1f3eea65f4281263300",
       "status": "pending",

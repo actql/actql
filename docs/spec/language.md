@@ -8949,8 +8949,15 @@ The existing Common Effect owner MUST validate every supplied target value and
 required/writable field, conversion, null/omission rule, multiplicity and original
 row identity against the same complete original Mapping, target, checked
 occurrence, Environment and captured input. Omission remains absent rather than
-NULL, an implicit default or an invented source field. Empty maps are subject to
-those original create requirements, not an unrelated UPDATE nonempty-SET rule.
+NULL, an implicit default or an invented source field.
+
+<!-- requirement-block: effects.create-values-complete-write-set -->
+Explicit values select
+the complete write set; unselected legacy `row_mapping` source, default and
+null-behavior entries MUST NOT fill or override that set. Selected values still
+satisfy the target value contract, required fields and exact permission rule.
+Empty maps are subject to those original create requirements, not an unrelated
+UPDATE nonempty-SET rule.
 
 <!-- requirement-block: effects.create-values-original-capture -->
 SQL/terminal INSERT expressions MUST be evaluated once by the existing Relation
