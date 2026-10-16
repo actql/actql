@@ -230,4 +230,9 @@ test('a runtime import of a declaration still reaches the real runtime resolver'
   await assert.rejects(assertInstalledDependencyClosure({directory: options.directory,
     modules: installedInterfaceInventory(options.directory).modules}), failure =>
     failure.errors?.some(value => /must be initialized/u.test(value.text)));
+  put(options.directory, 'entry.mjs', 'export const load = target => import(target);');
+  await assert.rejects(assertInstalledDependencyClosure({directory: options.directory,
+    modules: installedInterfaceInventory(options.directory).modules,
+    runtimeBindings: [{module: 'entry.mjs', targets: ['./contract.d.ts']}]}), failure =>
+    failure.errors?.some(value => /must be initialized/u.test(value.text)));
 });
