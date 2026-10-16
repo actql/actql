@@ -483,6 +483,347 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
+      "sha256": "8c6918d155664f120e835f5c82e536aa7255e6e42c922022ef0b16a3737a5365",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
+      "exports": [
+        "INSTALLED_HUBSPOT_SITE_VERSION",
+        "INSTALLED_HUBSPOT_SOURCE_VERSION",
+        "checkInstalledHubSpotSourceProfile",
+        "installedHubSpotSourceIdentityParts",
+        "loadInstalledHubSpotSource"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledHubSpotSourceProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite",
+          "parameters": [
+            "site"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite/checkSite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedHubSpotSourceIdentityParts",
+          "parameters": [
+            "profile",
+            "providerProfile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "moon",
+            "provider",
+            "baseEnvironmentWire",
+            "runtimeBundleCid",
+            "resolveSecret"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "binding",
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/view/view",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/authorize/authorize",
+          "parameters": [
+            "operation",
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/current/current",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/site/site",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource/target/target",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
+        },
+        {
+          "name": "readInputs/decode/decode",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs/readInputs",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "absolute/absolute",
+            "canonical/canonical",
+            "checkInstalledHubSpotSourceProfile",
+            "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile",
+            "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#2",
+            "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#3",
+            "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#4",
+            "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#5",
+            "checkSite",
+            "checkSite/checkSite",
+            "cid/cid",
+            "closed/closed",
+            "fail/fail",
+            "installedHubSpotSourceIdentityParts",
+            "loadInstalledHubSpotSource",
+            "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/view/view",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/authorize/authorize",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/current/current",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
+            "loadInstalledHubSpotSource/site/site",
+            "loadInstalledHubSpotSource/target/target",
+            "positive/positive",
+            "readInputs",
+            "readInputs/decode/decode",
+            "readInputs/readInputs",
+            "text/text"
+          ],
+          "exports": [
+            "INSTALLED_HUBSPOT_SITE_VERSION",
+            "INSTALLED_HUBSPOT_SOURCE_VERSION",
+            "checkInstalledHubSpotSourceProfile",
+            "installedHubSpotSourceIdentityParts",
+            "loadInstalledHubSpotSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

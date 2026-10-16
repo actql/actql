@@ -17,7 +17,11 @@ const schema = original => checked(provider.hubspotObjectSchemaWire(original,
   ['tags', 'amount'], 3, 100, 4096, 100, 10));
 
 test('actual provider schema restores through the original Common full relation declaration', () => {
-  const wire = schema(project());
+  const original = project();
+  assert.deepEqual(provider.hubspotPropertyCatalogNames(original), ['amount', 'tags']);
+  assert.equal(provider.hubspotObjectRelationFactsWire(),
+    '{"relation_keys":{"candidate_keys":[["id"]]}}');
+  const wire = schema(original);
   assert.equal(wire, expectedSchema);
   const view = {resource: 'companies', resource_kind: 'object', schema_wire: wire,
     schema_cid: 'sha256:13fc10be1d9680b918191baa0c4c324da72be7479bd4dc6b8dc1ffa85db84b8b'};
