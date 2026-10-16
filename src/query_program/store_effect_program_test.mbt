@@ -64,9 +64,13 @@ fn store_capture_private(program : @program.Program) -> @wire.Cursor {
 
 ///|
 fn store_capture_steps(program : @program.Program) -> Array[@wire.Cursor] {
-  @program.stages(program).flat_map(stage => {
-    @wire.elements(store_capture_field(@program.stage_body(stage), "steps")).unwrap()
-  })
+  let steps : Array[@wire.Cursor] = []
+  for stage in @program.stages(program) {
+    steps.append(
+      @wire.elements(store_capture_field(@program.stage_body(stage), "steps")).unwrap(),
+    )
+  }
+  steps
 }
 
 ///|
@@ -126,20 +130,32 @@ test "STORE collection uses its original Command pair and one private input" {
 
 ///|
 test "STORE SET evaluates one existing Relation expression and retains ContentRef" {
-  let program = store_capture_program("FROM files |> EFFECT upload STORE storage.archive SET (path = CONCAT(path, '.csv'), content = content)")
+  let program = store_capture_program(
+    "FROM files |> EFFECT upload STORE storage.archive SET (path = CONCAT(path, '.csv'), content = content)",
+  )
   assert_eq(@program.effect_header_id(store_capture_header(program)), "upload")
-  let derives = store_capture_steps(program).filter(step => @wire.lookup(@wire.open_object(step).unwrap(), "derive") is Some(_))
+  let derives = store_capture_steps(program).filter(step => {
+    @wire.lookup(@wire.open_object(step).unwrap(), "derive") is Some(_)
+  })
   assert_eq(derives.length(), 1)
-  let derive = store_capture_field(derives[0], "derive")
-  assert_eq(@wire.object_length(derive), Some(1))
-  let expression = @wire.field_at(derive, 0).unwrap().1
+  let derivation = store_capture_field(derives[0], "derive")
+  assert_eq(@wire.object_length(derivation), Some(1))
+  let expression = @wire.field_at(derivation, 0).unwrap().1
   let args = @wire.elements(store_capture_field(expression, "concat")).unwrap()
   assert_eq(args.length(), 2)
   assert_eq(@wire.text(store_capture_field(args[0], "field")).unwrap(), "path")
-  assert_eq(@wire.text(store_capture_field(args[1], "literal")).unwrap(), ".csv")
+  assert_eq(
+    @wire.text(store_capture_field(args[1], "literal")).unwrap(),
+    ".csv",
+  )
   let capture = store_capture_private(program)
-  let alias = @wire.text(store_capture_field(capture, "from")).unwrap()
-  let step = store_capture_steps(program).filter(step => @wire.lookup(@wire.open_object(step).unwrap(), "as").map(value => @wire.text(value).unwrap()) == Some(alias))[0]
+  let capture_name = @wire.text(store_capture_field(capture, "from")).unwrap()
+  let step = store_capture_steps(program).filter(step => {
+      @wire.lookup(@wire.open_object(step).unwrap(), "as").map(value => {
+        @wire.text(value).unwrap()
+      }) ==
+      Some(capture_name)
+    })[0]
   let selected = @wire.elements(store_capture_field(step, "select")).unwrap()
   assert_eq(@wire.text(selected[1]).unwrap(), "content")
 }
