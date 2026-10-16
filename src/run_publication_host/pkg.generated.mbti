@@ -1067,9 +1067,13 @@ pub fn client_submission_reference_record_wire(ClientSubmissionReferenceRecord) 
 
 pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
+pub fn client_submitted_intent_effect_compatible(ClientSubmittedIntent, PreparedClientEffectComputation) -> Bool
+
 pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?, run_state_observation? : (Int64, String?)?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_submitted_intent_requests_commit_stop(ClientSubmittedIntent) -> Bool
+
+pub fn client_submitted_intent_requests_read_only(ClientSubmittedIntent) -> Bool
 
 pub fn client_submitted_intent_transition(String, String) -> Bool
 

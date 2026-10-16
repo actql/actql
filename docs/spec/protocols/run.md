@@ -910,6 +910,34 @@ the same stable revision does not satisfy the wait. Status and wait use the
 same original Run projection and current read authorization; neither starts,
 resumes, reacquires or resends work to make progress visible.
 
+<a id="original-read-only-continuation"></a>
+
+### Original read-only submission continuation
+
+<!-- requirement-block: original-read-only-continuation -->
+An optional `readOnly: true` in the original Client submit packet and opaque
+submitted intent MUST restrict that same Common preparation's complete checked
+Effect inventory before Source acquisition, Model invocation, Effect Preview
+or dispatch, including zero-row, unreachable and currently denied Effects.
+
+<!-- requirement-block: original-read-only-identity -->
+The restriction MUST participate in the original canonical fingerprint and
+durable saved intent, preserving absent original bytes and CIDs, rejecting
+false, null and unknown spellings, and treating a changed choice under the same
+submission identity as an intent conflict rather than a replacement Run.
+
+<!-- requirement-block: original-read-only-recovery -->
+Recovery MUST preserve the restriction through the original saved intent and
+Run/material admission, without inferring it from current configuration,
+equal-CID data, a short-query label or a new preparation.
+
+The choice is a continuation restriction, not Account authority. It does not
+imply `stopBefore:commit`, and approval does not allow an Effect when both
+choices occur. Effect-free Source and Model work keeps its original current
+authorization, egress and resource requirements. General startSource behavior
+without the field is unchanged. Node and Python short queries select the field
+on that same original submit packet, not through a separate preflight request.
+
 <a id="client-cancellation-observations"></a>
 
 ### Client cancellation observations
