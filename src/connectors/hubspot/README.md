@@ -19,9 +19,12 @@ values instead of labels. Unknown native types remain explicit refusals when
 selected, without discarding unrelated supported properties. Missing write
 metadata stays unconfirmed. Value-readonly, calculated and archived properties
 cannot become writable through definition-editability metadata. Alternate keys
-require the provider's standard object-specific key or positive custom
-uniqueness metadata. Mutable name/option projections are copies; they cannot
-modify the original observation.
+require an enforced provider key or positive uniqueness metadata. An observed
+company `domain` with false or missing `hasUniqueValue` is not a candidate key:
+HubSpot explicitly does not deduplicate API-created companies by domain. Lookup
+syntax and UI/import deduplication are not a global uniqueness guarantee. Record
+IDs and positively enforced custom unique keys retain their supported path.
+Mutable name/option projections are copies; they cannot modify the original observation.
 
 The parse/admission limits cover the original complete response before
 projection. A truncated response, duplicate property/JSON key, malformed flag or
@@ -40,7 +43,8 @@ is never permission to follow another origin. Input parsing and simultaneous
 output-value budgets remain distinct from physical funding.
 
 Provider reference:
-[HubSpot properties API](https://developers.hubspot.com/docs/api-reference/legacy/crm/properties/guide).
+[HubSpot properties API](https://developers.hubspot.com/docs/api-reference/legacy/crm/properties/guide),
+[API company deduplication exception](https://knowledge.hubspot.com/records/deduplication-of-records?content_language=English).
 Authenticated paging transport, discovery/current binding, installed publication,
 record Effects, associations and enrolment still need their physical caller
 connections; these pure observations do not establish ordinary installed or

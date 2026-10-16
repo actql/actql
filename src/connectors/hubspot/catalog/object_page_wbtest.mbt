@@ -233,3 +233,55 @@ test "returned row and field arrays cannot modify the original page" {
     is @admitted.Text("original"),
   )
 }
+
+///|
+fn check_duplicate_company_domain(properties_body : String) -> Unit raise {
+  let properties = catalog(properties_body)
+  let observed = project_object_page(
+    @utf8.encode(
+      (
+        #|{"results":[{"id":"101","archived":false,"properties":{"domain":"same.example","external_key":"first"}},{"id":"202","archived":false,"properties":{"domain":"same.example","external_key":"second"}}]}
+      ),
+    ),
+    properties,
+    ["domain", "external_key"],
+    page_limits(),
+  ).unwrap()
+  let rows = object_page_rows(observed)
+  assert_eq(rows.length(), 2)
+  assert_eq(rows[0].id, "101")
+  assert_eq(rows[1].id, "202")
+  for row in rows {
+    assert_true(
+      object_row_values(row)[0].value is @admitted.Text("same.example"),
+    )
+  }
+  assert_true(object_row_values(rows[0])[1].value is @admitted.Text("first"))
+  assert_true(object_row_values(rows[1])[1].value is @admitted.Text("second"))
+  // Reading both records is valid; their shared lookup value cannot prove a
+  // unique write target. The actual property Owner makes that independent call.
+  assert_eq(
+    require_unique_property(properties, "domain"),
+    Err(UniqueKeyUnconfirmed("domain")),
+  )
+  assert_eq(require_unique_property(properties, "hs_object_id"), Ok(()))
+  assert_eq(require_unique_property(properties, "external_key"), Ok(()))
+}
+
+///|
+test "two company ids can retain the same domain when metadata says nonunique" {
+  check_duplicate_company_domain(
+    (
+      #|{"results":[{"name":"domain","type":"string","fieldType":"text","hasUniqueValue":false},{"name":"external_key","type":"string","fieldType":"text","hasUniqueValue":true},{"name":"hs_object_id","type":"number","fieldType":"number","hasUniqueValue":false}]}
+    ),
+  )
+}
+
+///|
+test "two company ids can retain the same domain when uniqueness metadata is missing" {
+  check_duplicate_company_domain(
+    (
+      #|{"results":[{"name":"domain","type":"string","fieldType":"text"},{"name":"external_key","type":"string","fieldType":"text","hasUniqueValue":true},{"name":"hs_object_id","type":"number","fieldType":"number","hasUniqueValue":false}]}
+    ),
+  )
+}

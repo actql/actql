@@ -90,3 +90,35 @@ For development, install `packages/python-sdk[dev]` in a dedicated venv and run
 the repository root. This checks generated contracts, focused boundaries and
 typed consumer examples under the repository's bounded runner. It starts no Host
 and does not contact a package registry.
+
+### Application row schemas
+
+`result.all(schema=Row)` and `result.rows(schema=Row)` accept a Pydantic v2
+model class or a `TypeAdapter`. The SDK invokes `model_validate(row,
+strict=True)` or `validate_python(row, strict=True)` and returns that typed
+value. Pydantic remains an optional application dependency. A custom schema
+may implement the same synchronous `validate_python` method; it must raise
+on invalid data and honor `strict=True` without coercion.
+
+```python
+from pydantic import BaseModel
+
+class Update(BaseModel):
+    id: str
+    risk: float
+
+updates = execution.result("updates").all(schema=Update, max_rows=1000)
+# Async: updates = await execution.result("updates").all(schema=Update)
+```
+
+A mismatch raises `ClientError` with code `ResultSchemaMismatch`, the original
+`validation_error`, `attempt_id` and number of valid `rows_yielded`. The SDK
+error message does not interpolate private row values. Validation ends that
+reader and releases its transport; it does not cancel the Run or retry the
+read. Failed cleanup retains the original reader for explicit cleanup retry.
+
+Wire and decoded-row limits apply before application validation. The total
+retained-value limit continues to count the original decoded rows even when a
+schema returns smaller objects. Objects allocated by application validators
+remain application-owned; their size is not a new SDK memory guarantee. A
+schema cannot supply a missing protocol completion marker or Host receipt.
