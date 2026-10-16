@@ -73,7 +73,11 @@ export function installedInterfaceCorrespondence({repository, directory, source,
 export async function assertInstalledDependencyClosure({directory, modules, artifacts = [], runtimeBindings = []}) {
   const root = realpathSync(directory), compiled = new Set(artifacts.map(value => resolve(root, value.module)));
   const inside = path => !isAbsolute(relative(root, path)) && !relative(root, path).startsWith('..');
-  const entries = modules.filter(value => !/\.pyi?$/u.test(value.module)).map(value => resolve(root, value.module));
+  // Declaration files retain their full syntax/source/Owner correspondence,
+  // but do not emit runtime code. Actual value imports still use the resolver
+  // below, so this cannot exempt a runtime dependency on a declaration file.
+  const entries = modules.filter(value => !/(?:\.pyi?|\.d\.[cm]?ts)$/u.test(value.module))
+    .map(value => resolve(root, value.module));
   for (const binding of runtimeBindings) for (const specifier of binding.targets) {
     if (!specifier.startsWith('.')) continue;
     const path = resolve(dirname(resolve(root, binding.module)), specifier);
