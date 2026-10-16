@@ -1247,3 +1247,51 @@ and generation identities through Run material adoption, Preview, apply and
 restore. Current grants remain independent. SET capture, ContentRef egress and
 availability custody, overwrite guards, Unknown, nonresend and cleanup retain
 their existing owners. Missing installed originals refuse before send.
+
+## Published Command installation names
+
+Mapping-free Commands use a separate `CommandTargetPublication`, bound to the
+original checked Catalog contents. Each positive installed alias supplies its
+complete logical name, concrete target reference, exact Command reference and
+original installation binding/owner CIDs. The existing Common Command reader
+retains the original ResourceRef-field mode or admits the explicitly declared
+fixed-installation or identifier mode and its complete checked identifier
+domain. The opaque selection keeps the exact Command contract in all modes;
+only the latter two modes expose a `PublishedCommandBinding`. Absence is not a
+fixed-installation default, and malformed explicit presence cannot fall back to
+the field mode. Neither a suffix match nor the shape of an
+input value selects a Command, a Mapping or an installation.
+
+The Host's private `commandTargets` publication section is closed and is admitted
+in full before a read context is exposed, including entries unused by that
+query. Missing Command references and malformed installation identities refuse.
+A legacy field-only declaration retains its ResourceRef-field obligation; its
+presence in the publication does not supply a target field or issue a Ref. Logical-name ambiguity has no first-match
+preference. Reconnecting an already normalized target and Command rejects
+conflicting installation originals without reselecting a logical name. Alias
+paths are copied; checked Command/Catalog/environment originals are retained.
+Repeated declarations share the caller's work and checked-type budgets.
+
+This publication is not a ResourceRef, currentness closure or execution grant.
+It cannot stand in for the trusted fixed or identifier issuer at capture, nor
+restore a saved original from today's configuration. The installed and captured
+input owners retain and recheck those originals through Preview, apply and Run
+restoration. Authored input-row ID correspondence remains distinct from target
+identifier selection and mutation identity. A lowerer must not discard that ID
+or turn an unsupported Effect into a successful pure query.
+
+The canonical Command `input_key` is admitted by the existing Effect header
+owner and resolved to one guaranteed-present, non-null KeyComparable Result
+field. The Stage Result binding gives it a separate role from the target
+identifier and payload fields. `effect_command_input_key` returns that original
+field only under the same opaque `EffectCommandInputBinding`; neither the
+getter nor a caller-supplied field name issues key or uniqueness evidence.
+
+The captured-input owner must validate the complete original occurrence under
+its existing bounded cursor, workspace, cancellation and cleanup accounting.
+Both proposal construction and later payload-proof construction refuse when
+that original-input obligation cannot be discharged. A retained Preview cannot
+make a missing key proof available. Field-target and published-target Commands
+with an absent key retain their prior preparation and encoding behavior. The
+key is correspondence metadata, not an extra payload member or mutation-key
+component; different row IDs cannot authorize duplicate sends.

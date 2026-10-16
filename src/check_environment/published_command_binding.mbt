@@ -87,6 +87,18 @@ pub fn select_published_command_binding(
     Err(issue) => return Err(Command(issue))
   }
   guard declaration is Some(source) else { return Err(MissingBinding) }
+  admit_published_command_binding(target, source, limits, max_work)
+}
+
+///|
+// Both selection entrances use this same original declaration reader. A
+// malformed explicit binding cannot become a legacy ResourceRef target.
+fn admit_published_command_binding(
+  target : CommandTarget,
+  source : @decode.Cursor,
+  limits : @value_contract.Limits,
+  max_work : Int,
+) -> Result[PublishedCommandBinding, PublishedCommandBindingIssue] {
   let remaining = max_work - command_target_work(target)
   if remaining < 2 {
     return Err(WorkLimit)
@@ -162,4 +174,72 @@ pub fn select_published_command_binding(
     nodes,
     text,
   })
+}
+
+///|
+/// One original Command selection, retaining legacy ResourceRef meaning when
+/// no binding is declared. This is not a target value, issuer or grant.
+struct CommandTargetSelection {
+  target : CommandTarget
+  published : PublishedCommandBinding?
+}
+
+///|
+pub fn command_target_selection_target(
+  value : CommandTargetSelection,
+) -> CommandTarget {
+  value.target
+}
+
+///|
+pub fn command_target_selection_published(
+  value : CommandTargetSelection,
+) -> PublishedCommandBinding? {
+  value.published
+}
+
+///|
+pub fn command_target_selection_work(value : CommandTargetSelection) -> Int {
+  value.published
+  .map(published_command_binding_work)
+  .unwrap_or(command_target_work(value.target))
+}
+
+///|
+pub fn command_target_selection_usage(
+  value : CommandTargetSelection,
+) -> (Int, Int) {
+  value.published.map(published_command_binding_usage).unwrap_or((0, 0))
+}
+
+///|
+/// Walk the Catalog once, then admit its exact declared mode. None is solely
+/// the existing ResourceRef-field mode, never a default installation target.
+pub fn select_command_target_binding(
+  contents : CatalogContents,
+  reference : String,
+  limits : @value_contract.Limits,
+  max_work : Int,
+) -> Result[CommandTargetSelection, PublishedCommandBindingIssue] {
+  if max_work < 0 ||
+    limits.max_nodes < 0 ||
+    limits.max_depth < 0 ||
+    limits.max_text_bytes < 0 {
+    return Err(InvalidLimit)
+  }
+  let (target, declaration) = match
+    select_command_target_parts(contents, reference, max_work, true) {
+    Ok(value) => value
+    Err(CommandTargetIssue::WorkLimit) => return Err(WorkLimit)
+    Err(issue) => return Err(Command(issue))
+  }
+  let published = match declaration {
+    None => None
+    Some(source) =>
+      match admit_published_command_binding(target, source, limits, max_work) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+  }
+  Ok({ target, published, })
 }

@@ -158,17 +158,27 @@ pub fn prepare_effect_static_candidate(
       references,
       remaining,
       mappings=Some(mappings),
+      value_limits=Some({
+        max_nodes: limits.max_admission_nodes - literal_nodes,
+        max_depth: limits.max_admission_depth,
+        max_text_bytes: limits.max_admission_text_bytes - literal_text,
+      }),
     ) {
     Ok(value) => value
     Err(issue) => return Err(CommandTargets(issue))
   }
   remaining -= effect_command_targets_work(command_targets)
+  let (target_nodes, target_text) = effect_command_targets_usage(
+    command_targets,
+  )
   let command_inputs = match
     bind_effect_command_inputs(command_targets, {
       max_work: remaining,
-      max_nodes: limits.max_admission_nodes - literal_nodes,
+      max_nodes: limits.max_admission_nodes - literal_nodes - target_nodes,
       max_depth: limits.max_admission_depth,
-      max_text_bytes: limits.max_admission_text_bytes - literal_text,
+      max_text_bytes: limits.max_admission_text_bytes -
+      literal_text -
+      target_text,
     }) {
     Ok(value) => value
     Err(issue) => return Err(CommandInputs(issue))

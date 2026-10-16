@@ -55,11 +55,14 @@ const originalStoreTarget = {type: 'object', additionalProperties: false,
     properties: {target_ref: {type: 'string', pattern: '^connector://'},
       mapping_ref: {type: 'string', pattern: '^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$'}}}}};
 
-test('both real artifact Program schemas retain exclusive original field and published STORE targets', () => {
+test('both real artifact Program schemas retain all exclusive original Command target forms', () => {
   for (const program of parameterPrograms(registry)) {
     const command = program.properties.effects.additionalProperties.oneOf
       .find(member => member.properties?.command).properties.command;
-    assert.deepEqual(command.properties.target, {oneOf: [oldFieldTarget, originalStoreTarget]});
+    assert.deepEqual(command.properties.target, {oneOf: [oldFieldTarget, originalStoreTarget, {
+      type:'object',additionalProperties:false,required:['published_command'],properties:{published_command:{
+        type:'object',additionalProperties:false,required:['target_ref'],properties:{
+          target_ref:{type:'string',pattern:'^connector://'},identifier_field:{type:'string',minLength:1}}}}}]});
     assert.deepEqual(command.required, ['from', 'target', 'contract', 'input']);
     assert.equal(command.additionalProperties, false);
     // The actual Program syntax reader exercises these alternatives in
