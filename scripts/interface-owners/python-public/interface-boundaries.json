@@ -4333,7 +4333,7 @@
           "async": false
         }
       ],
-      "sha256": "a79c965d063da1cc2b3066a014584d4be72348d4338d2524a27533570c3b5fc6",
+      "sha256": "6e6ad9348dd944199d01670086464be2aa639547bb9fd84b134586c827274244",
       "role": "observation-presentation",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -7492,7 +7492,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_query.py",
-      "sha256": "9d32b9da01ae688ae05552b3b61c8f0e1e732cbe88942017f0b9af53ed2133c8",
+      "sha256": "0aa4070482fe0251ac4a9c859a1ed5a622f4844dbf980b0c62889c34f7d37dde",
       "exports": [
         "AsyncQuery",
         "AsyncQueryReader",

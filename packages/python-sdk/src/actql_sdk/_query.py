@@ -35,6 +35,7 @@ class AsyncQuery(_OriginalQueryHandle):
     def __init__(self, client, body, result_name):
         self._client, self._body, self._name = client, body, result_name
         self._lock = asyncio.Lock()
+        self._selecting_task = None
         self._entered = False
         self._result = None
         self._failure = None
@@ -55,12 +56,16 @@ class AsyncQuery(_OriginalQueryHandle):
         return error
 
     async def _select(self):
+        current = asyncio.current_task()
+        if current is not None and current is self._selecting_task:
+            raise ClientError('QueryConsumptionInProgress')
         async with self._lock:
             if self._entered:
                 if self._failure is not None:
                     raise self._failure
                 return self._result
             self._entered = True
+            self._selecting_task = current
             try:
                 # The Client captured readOnly in this same original packet.
                 # There is no second check/preparation, polling or resubmission.
@@ -96,6 +101,8 @@ class AsyncQuery(_OriginalQueryHandle):
                     failure.submission_ref = freeze(snapshot(self._body['submissionRef']))
                     failure.attempt_ref = freeze(snapshot(self._body['attemptRef']))
                 raise
+            finally:
+                self._selecting_task = None
             return self._result
 
     def rows(self, **read_options):
