@@ -1,512 +1,70 @@
 {
   "kind": "Independent review-to-evidence map; not a product contract, operation registry or alternate semantic SSOT",
   "createdAt": "2026-10-16T01:13:07.865646+00:00",
-  "sources": {
-    "oss": "02f9e53f29b4913d5c6e8276d2ac248800fe8173",
-    "tree": "4a8d2c2a847b376d3110b811261c9ad87d52fb66",
-    "cloud": "fdaa1eca675dc89c74c8eec751e3c152265eef7c",
-    "cloudFormalOSS": "285637aab982a7acc9ad269ce9bdc6fdf397a250"
-  },
+  "sources": {"oss":"02f9e53f29b4913d5c6e8276d2ac248800fe8173","tree":"4a8d2c2a847b376d3110b811261c9ad87d52fb66","cloud":"fdaa1eca675dc89c74c8eec751e3c152265eef7c","cloudFormalOSS":"285637aab982a7acc9ad269ce9bdc6fdf397a250"},
   "reviewSha256": "fc6d83f261d772cf938549482163562256d99244ff16c4baf9c055ae9210eb27",
   "planSha256": "d5da2ef0a9ce44253d7caec928b6ad47d7a50918172decfb89925555616ead7e",
-  "counts": {
-    "implementation": 8,
-    "additionalIF": 8,
-    "attributes": 10,
-    "layers": 4,
-    "mutations": 6,
-    "families": 3,
-    "vectorCategories": 8,
-    "faultCategories": 8
-  },
+  "counts": {"implementation":8,"additionalIF":8,"attributes":10,"layers":4,"mutations":6,"families":3,"vectorCategories":8,"faultCategories":8},
   "requirements": [
-    {
-      "id": "I1",
-      "owner": "D",
-      "title": "Current ABI and fixture/artifact alignment",
-      "requirement": "All fixtures selected by each current runner match the reviewed ABI, actual artifact and asserted property; mismatch rejects at entry; historical cases retain historical artifact/digest.",
-      "baselineLocations": [
-        "src/client_host_wasm/version.mbt",
-        "packages/python-sdk/src/actql_sdk/_local_core.py",
-        "scripts/check-python-local-core.mjs",
-        "scripts/fixtures/python-local-source-environment-abi.py"
-      ],
-      "status": "Read-confirmed current74/current-selected42; all runner branches and early refusal remain unverified.",
-      "independentCurrentExecution": "not run"
-    },
-    {
-      "id": "I2",
-      "owner": "C",
-      "title": "Sheets connector semantic authority",
-      "requirement": "Preserve original request bytes/CIDs/ResourceRef/catalog and all restored Effect/request/config refusal conditions through one connector MoonBit authority, Node and Native.",
-      "baselineLocations": [
-        "adapters/connectors/sheets/host/sheets-range-command.mjs",
-        "adapters/connectors/sheets/site/sheets-exchange.mjs",
-        "src/connectors/sheets/host_node/bridge.mbt"
-      ],
-      "status": "Read-confirmed JS preimage/identity/catalog/recoverRequests; candidate independent gold and Node/Native evidence pending.",
-      "independentCurrentExecution": "not run"
-    },
-    {
-      "id": "I3",
-      "owner": "A",
-      "title": "Compiler-dependent Result/Option/tuple binding",
-      "requirement": "One generated managed binding; distributed wrappers do not directly interpret compiler internals; actual compiled success/refusal/malformed outcomes retain distinctions.",
-      "baselineLocations": [
-        "adapters/host-common/runtime-result.mjs",
-        "packages/run-host-core/index.mjs",
-        "packages/provider-http/_internal/installed-http-chat.mjs",
-        "adapters/connectors/salesforce/site/salesforce-query-read.mjs"
-      ],
-      "status": "Read-confirmed separate Result and Option/payload interpretations; generated-shim coverage and real conversions pending.",
-      "independentCurrentExecution": "not run"
-    },
-    {
-      "id": "I4",
-      "owner": "A/D/F",
-      "title": "Authoritative binding correspondence",
-      "requirement": "Existing normative contracts plus MoonBit boundary declarations determine actions, named/unit/order/ownership-aware arguments/results, Python signatures, C declarations/calling convention and adopted Cloud types.",
-      "baselineLocations": [
-        "packages/run-host-core/publication-action.mjs",
-        "src/run_publication/runtime_progress.mbt",
-        "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
-        "Cloud src/run/installed-runtime.ts"
-      ],
-      "status": "Handwritten action/ctypes/signature lists remain baseline. Prior Cloud adopted typing is present; no claim it needs rebuilding.",
-      "independentCurrentExecution": "not run"
-    },
-    {
-      "id": "I5",
-      "owner": "E",
-      "title": "Equivalent limited Remote codecs",
-      "requirement": "Normative expectations, generated/reused codec semantics, no Remote engine/Wasmtime requirement; execute independent JS/Python/Native vectors.",
-      "baselineLocations": [
-        "scripts/generate-client-publication-wire.mjs",
-        "scripts/generate-python-client-wire.mjs",
-        "scripts/generate-native-client-wire.mjs",
-        "packages/python-sdk/src/actql_sdk/_wire.py"
-      ],
-      "status": "Read-confirmed integer negative-zero and string-unit branches. Normative resolution and actual language vector evidence pending.",
-      "independentCurrentExecution": "not run"
-    },
-    {
-      "id": "I6",
-      "owner": "B",
-      "title": "Distribution-derived interface discovery and drift gates",
-      "requirement": "Discover real package/wheel/CLI/Cloud production dependencies and exported operations, classify and fail unregistered additions; connect existing checks and meaningful mutations.",
-      "baselineLocations": [
-        "scripts/packed-package-boundaries.mjs",
-        "scripts/source-dependency-closure.mjs",
-        "scripts/check-connector-dispatch-boundary.mjs",
-        "packages/*/package.json",
-        "packages/*/pyproject.toml"
-      ],
-      "status": "13 npm manifests and3 Python pyprojects independently enumerated; this is a root snapshot, not completed closure discovery.",
-      "independentCurrentExecution": "not run"
-    },
-    {
-      "id": "I7",
-      "owner": "C/F/all producers",
-      "title": "Additional A-H contracts and actual owners",
-      "requirement": "Close all additional boundary requirements, ten attributes and applicable real-owner normal/fault tests without another authority/scheduler/retry ledger.",
-      "baselineLocations": [
-        "See additional A-H rows and existing owning contracts",
-        "each producer supplies actual operations and evidence."
-      ],
-      "status": "All A-H explicit. Unexplained missing/unsupported interfaces remain gaps, not exclusions.",
-      "independentCurrentExecution": "not run"
-    },
-    {
-      "id": "I8",
-      "owner": "G/Root",
-      "title": "Independent integrated artifact/product acceptance",
-      "requirement": "Audit whole explicit review scope, then one normally generated adopted integrated artifact set and existing installed real business route at Root-frozen cut.",
-      "baselineLocations": [
-        "scripts/package-release.mjs",
-        "scripts/composition-release-input.mjs",
-        "scripts/test-real-cross-connector-release.mjs",
-        "Cloud vendor/oss-artifacts.json"
-      ],
-      "status": "No new IF product execution or final cut yet. Previous R8/02f acceptance is historical only.",
-      "independentCurrentExecution": "not run"
-    },
-    {
-      "id": "IF-A",
-      "owner": "C/B",
-      "title": "Core/connector/Compute",
-      "requirement": "Connector-neutral Core; independent Source and Command extension with original scheduler/approval/recovery unchanged; preserve third-Compute acceptance.",
-      "baselineLocations": [
-        "scripts/check-connector-addition.mjs",
-        "scripts/check-connector-dispatch-boundary.mjs",
-        "scripts/backend-semantic-boundary.test.mjs"
-      ],
-      "status": "Current complete operation contracts/real-owner fault evidence not yet independently qualified."
-    },
-    {
-      "id": "IF-B",
-      "owner": "F",
-      "title": "Core/Store/Journal",
-      "requirement": "Prepared transition and physical committed/conflict/outcome-unknown differ; lost commit reply reconciles the same original attempt; physical DB/fsync/corruption stay physical.",
-      "baselineLocations": [
-        "adapters/host-node/sqlite-checkpoint-journal.test.mjs",
-        "adapters/host-node/sqlite-effect-history-page.test.mjs",
-        "Cloud test/effect-run-custody.test.ts"
-      ],
-      "status": "Current complete operation contracts/real-owner fault evidence not yet independently qualified."
-    },
-    {
-      "id": "IF-C",
-      "owner": "C/E",
-      "title": "Control/data",
-      "requirement": "Bounded DTOs distinct from buffers/data; schema, missing/NULL, numeric/encoding, order/chunk/EOS, ownership, maxima and copy accounting; no forced full materialization.",
-      "baselineLocations": [
-        "adapters/connectors/sheets",
-        "adapters/connectors/table",
-        "packages/python-sdk/src/actql_sdk/_local_core.py"
-      ],
-      "status": "Current complete operation contracts/real-owner fault evidence not yet independently qualified."
-    },
-    {
-      "id": "IF-D",
-      "owner": "F",
-      "title": "Host/Credential",
-      "requirement": "External authentication does not grant ActQL authority; all owner scope fields plus operation/time/revocation/limits; recheck after await at final irreversible operation.",
-      "baselineLocations": [
-        "src/remote_credential/credential.mbt",
-        "adapters/host-common/owned-invocation-context.mjs",
-        "adapters/site-node/https-credential-resource.mjs"
-      ],
-      "status": "Current complete operation contracts/real-owner fault evidence not yet independently qualified."
-    },
-    {
-      "id": "IF-E",
-      "owner": "F",
-      "title": "Coordinator/Site/Transfer",
-      "requirement": "Admission/start/external outcome/publication/physical release distinct; authenticated durable identity covers lost/duplicate/reordered/stale generation/delayed ACK/failed cleanup.",
-      "baselineLocations": [
-        "adapters/host-common/remote-coordinator-abi.test.mjs",
-        "adapters/host-node/remote-site-coordinator.test.mjs",
-        "Cloud test/site-response-custody.test.ts"
-      ],
-      "status": "Current complete operation contracts/real-owner fault evidence not yet independently qualified."
-    },
-    {
-      "id": "IF-F",
-      "owner": "F/A",
-      "title": "Core/INFER Provider",
-      "requirement": "Original request/prompt meaning, response interpretation, raw capture/retention and physical transport distinct; provider bytes issue no success/retry/completion/permission.",
-      "baselineLocations": [
-        "packages/provider-http/_internal/installed-http-chat.mjs",
-        "packages/provider-ai-sdk",
-        "adapters/host-node/infer-operation-approval.test.mjs"
-      ],
-      "status": "Current complete operation contracts/real-owner fault evidence not yet independently qualified."
-    },
-    {
-      "id": "IF-G",
-      "owner": "F/E",
-      "title": "Core/observation",
-      "requirement": "Use owner projections; observer/UI faults cannot change confirmed state, permission or success; copied bounded observations retain no authority.",
-      "baselineLocations": [
-        "adapters/host-common/task-observation.mjs",
-        "adapters/host-common/observation.mjs",
-        "packages/sdk/internal/operation-ports.mjs"
-      ],
-      "status": "Current complete operation contracts/real-owner fault evidence not yet independently qualified."
-    },
-    {
-      "id": "IF-H",
-      "owner": "D/G/all producers",
-      "title": "Source/binding/artifact",
-      "requirement": "Adopt matching source, compiler, generator, contract, wrapper, public types and actual artifact; separate wire/private ABI/package/toolchain versions.",
-      "baselineLocations": [
-        "scripts/package-release.mjs",
-        "scripts/check-python-local-core.mjs",
-        "scripts/native-cli-release.mjs",
-        "Cloud vendor/oss-artifacts.json"
-      ],
-      "status": "Current complete operation contracts/real-owner fault evidence not yet independently qualified."
-    },
-    {
-      "id": "T01",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "responsibility",
-      "requirement": "Semantic MoonBit owner and physical-operation owner; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "T02",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "inputs_outputs",
-      "requirement": "Named typed values, units, ranges, absence/NULL and encoding; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "T03",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "identity",
-      "requirement": "Instance, original Run/request and generation binding; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "T04",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "ownership",
-      "requirement": "Borrow/own, retention/release, copying and serialization; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "T05",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "synchronization",
-      "requirement": "Sync/async, reentry/concurrency and callback lifetime; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "T06",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "failure",
-      "requirement": "Typed refusal, physical failure, Unknown and contract mismatch; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "T07",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "cancellation_cleanup",
-      "requirement": "Cancel acceptance versus stopped versus physically released; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "T08",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "resources",
-      "requirement": "Maximum bytes/rows/work; reservation/accounting owner and time; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "T09",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "extension",
-      "requirement": "Required/optional capabilities, extension points and unknown variants; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "T10",
-      "owner": "each operation owner; B coverage; G independent review",
-      "title": "verification",
-      "requirement": "Freshness, actual artifacts, independent vectors and fault tests; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.",
-      "status": "Required for each discovered distributed operation; unexplained omissions remain open."
-    },
-    {
-      "id": "L1",
-      "owner": "B/producers/G",
-      "title": "Discovery",
-      "requirement": "Actual distributed roots/production closures/exports; outside-dir file/helper/export must fail unregistered.",
-      "status": "No new integrated evidence yet."
-    },
-    {
-      "id": "L2",
-      "owner": "B/producers/G",
-      "title": "Correspondence",
-      "requirement": "Read-only generation/types/actions/signatures/docs versus actual JS/Wasm/Native exports/imports/memory/calling convention; approved generated shim only.",
-      "status": "No new integrated evidence yet."
-    },
-    {
-      "id": "L3",
-      "owner": "B/producers/G",
-      "title": "Meaning",
-      "requirement": "Independent cross-language vectors and actual-owner copied/foreign/stale/lost/reentrant/partial/cancel/cleanup-pending cases.",
-      "status": "No new integrated evidence yet."
-    },
-    {
-      "id": "L4",
-      "owner": "B/producers/G",
-      "title": "Detection",
-      "requirement": "Mutations fail the intended assertion/gate; setup/import failures do not establish behavioral detection, except deliberate static contract/type probes.",
-      "status": "No new integrated evidence yet."
-    },
-    {
-      "id": "M1",
-      "owner": "A/D/B",
-      "title": "Swap action numbers",
-      "requirement": "Generated correspondence plus actual semantic boundary",
-      "status": "Candidate and intended-failure evidence pending."
-    },
-    {
-      "id": "M2",
-      "owner": "A/D/B",
-      "title": "Swap same-typed argument roles",
-      "requirement": "Meaningful asymmetric independent input; scalar signature equality is insufficient",
-      "status": "Candidate and intended-failure evidence pending."
-    },
-    {
-      "id": "M3",
-      "owner": "F/B",
-      "title": "Omit one scope field",
-      "requirement": "Original owner refuses foreign/changed scope, including after await",
-      "status": "Candidate and intended-failure evidence pending."
-    },
-    {
-      "id": "M4",
-      "owner": "F/B",
-      "title": "Turn Unknown into success or unsent",
-      "requirement": "Lost reply/recovery retains original uncertain operation; no resend or false success",
-      "status": "Candidate and intended-failure evidence pending."
-    },
-    {
-      "id": "M5",
-      "owner": "D/G/B",
-      "title": "Mix an old artifact",
-      "requirement": "Adopted source/compiler/generator/contract/wrapper/type/artifact correspondence rejects stale member",
-      "status": "Candidate and intended-failure evidence pending."
-    },
-    {
-      "id": "M6",
-      "owner": "B/producers",
-      "title": "Add unregistered Python/other-language decision code",
-      "requirement": "Actual distributed discovery plus semantic-access/dependency checks rejects the new file/export/helper",
-      "status": "Candidate and intended-failure evidence pending."
-    },
-    {
-      "id": "FAMILY-P",
-      "owner": "existing semantic/binding/physical owner",
-      "title": "Same-process opaque",
-      "requirement": "Typed operations and owner-bound opaque handles; private compiler shim; no forced JSON or extracted internals",
-      "status": "Preserve separate representations and distinct reserve/produce/close and cancel/stop/release."
-    },
-    {
-      "id": "FAMILY-L",
-      "owner": "existing semantic/binding/physical owner",
-      "title": "Local scalar ABI",
-      "requirement": "Wasm/Native buffers/handles/memory/thread/ownership; no foreign instance/process pointers or handles",
-      "status": "Preserve separate representations and distinct reserve/produce/close and cancel/stop/release."
-    },
-    {
-      "id": "FAMILY-R",
-      "owner": "existing semantic/binding/physical owner",
-      "title": "Remote wire",
-      "requirement": "Version/schema/correlation/closed variant/limits/capabilities; no wire local handle or SDK execution authority",
-      "status": "Preserve separate representations and distinct reserve/produce/close and cancel/stop/release."
-    },
-    {
-      "id": "V1",
-      "owner": "E/D; G independent review",
-      "title": "negative zero",
-      "requirement": "Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.",
-      "status": "Current matching artifact execution pending."
-    },
-    {
-      "id": "V2",
-      "owner": "E/D; G independent review",
-      "title": "bool versus int",
-      "requirement": "Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.",
-      "status": "Current matching artifact execution pending."
-    },
-    {
-      "id": "V3",
-      "owner": "E/D; G independent review",
-      "title": "integer/numeric bounds",
-      "requirement": "Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.",
-      "status": "Current matching artifact execution pending."
-    },
-    {
-      "id": "V4",
-      "owner": "E/D; G independent review",
-      "title": "Unicode and length units",
-      "requirement": "Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.",
-      "status": "Current matching artifact execution pending."
-    },
-    {
-      "id": "V5",
-      "owner": "E/D; G independent review",
-      "title": "NULL versus omission",
-      "requirement": "Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.",
-      "status": "Current matching artifact execution pending."
-    },
-    {
-      "id": "V6",
-      "owner": "E/D; G independent review",
-      "title": "unknown variant",
-      "requirement": "Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.",
-      "status": "Current matching artifact execution pending."
-    },
-    {
-      "id": "V7",
-      "owner": "E/D; G independent review",
-      "title": "correlated identifiers",
-      "requirement": "Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.",
-      "status": "Current matching artifact execution pending."
-    },
-    {
-      "id": "V8",
-      "owner": "E/D; G independent review",
-      "title": "stale revisions",
-      "requirement": "Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.",
-      "status": "Current matching artifact execution pending."
-    },
-    {
-      "id": "FAULT1",
-      "owner": "affected real owner",
-      "title": "copied handle",
-      "requirement": "Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.",
-      "status": "Current actual owner evidence pending."
-    },
-    {
-      "id": "FAULT2",
-      "owner": "affected real owner",
-      "title": "foreign instance",
-      "requirement": "Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.",
-      "status": "Current actual owner evidence pending."
-    },
-    {
-      "id": "FAULT3",
-      "owner": "affected real owner",
-      "title": "stale generation",
-      "requirement": "Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.",
-      "status": "Current actual owner evidence pending."
-    },
-    {
-      "id": "FAULT4",
-      "owner": "affected real owner",
-      "title": "lost response",
-      "requirement": "Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.",
-      "status": "Current actual owner evidence pending."
-    },
-    {
-      "id": "FAULT5",
-      "owner": "affected real owner",
-      "title": "reentry",
-      "requirement": "Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.",
-      "status": "Current actual owner evidence pending."
-    },
-    {
-      "id": "FAULT6",
-      "owner": "affected real owner",
-      "title": "partial construction",
-      "requirement": "Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.",
-      "status": "Current actual owner evidence pending."
-    },
-    {
-      "id": "FAULT7",
-      "owner": "affected real owner",
-      "title": "cancellation",
-      "requirement": "Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.",
-      "status": "Current actual owner evidence pending."
-    },
-    {
-      "id": "FAULT8",
-      "owner": "affected real owner",
-      "title": "cleanup pending",
-      "requirement": "Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.",
-      "status": "Current actual owner evidence pending."
-    }
+    {"id":"I1","owner":"D","title":"Current ABI and fixture/artifact alignment","requirement":"All fixtures selected by each current runner match the reviewed ABI, actual artifact and asserted property; mismatch rejects at entry; historical cases retain historical artifact/digest.","baselineLocations":["src/client_host_wasm/version.mbt","packages/python-sdk/src/actql_sdk/_local_core.py","scripts/check-python-local-core.mjs","scripts/fixtures/python-local-source-environment-abi.py"],"status":"Read-confirmed current74/current-selected42; all runner branches and early refusal remain unverified.","independentCurrentExecution":"not run"},
+    {"id":"I2","owner":"C","title":"Sheets connector semantic authority","requirement":"Preserve original request bytes/CIDs/ResourceRef/catalog and all restored Effect/request/config refusal conditions through one connector MoonBit authority, Node and Native.","baselineLocations":["adapters/connectors/sheets/host/sheets-range-command.mjs","adapters/connectors/sheets/site/sheets-exchange.mjs","src/connectors/sheets/host_node/bridge.mbt"],"status":"Read-confirmed JS preimage/identity/catalog/recoverRequests; candidate independent gold and Node/Native evidence pending.","independentCurrentExecution":"not run"},
+    {"id":"I3","owner":"A","title":"Compiler-dependent Result/Option/tuple binding","requirement":"One generated managed binding; distributed wrappers do not directly interpret compiler internals; actual compiled success/refusal/malformed outcomes retain distinctions.","baselineLocations":["adapters/host-common/runtime-result.mjs","packages/run-host-core/index.mjs","packages/provider-http/_internal/installed-http-chat.mjs","adapters/connectors/salesforce/site/salesforce-query-read.mjs"],"status":"Read-confirmed separate Result and Option/payload interpretations; generated-shim coverage and real conversions pending.","independentCurrentExecution":"not run"},
+    {"id":"I4","owner":"A/D/F","title":"Authoritative binding correspondence","requirement":"Existing normative contracts plus MoonBit boundary declarations determine actions, named/unit/order/ownership-aware arguments/results, Python signatures, C declarations/calling convention and adopted Cloud types.","baselineLocations":["packages/run-host-core/publication-action.mjs","src/run_publication/runtime_progress.mbt","packages/python-sdk/src/actql_sdk/_local_native_runtime.py","Cloud src/run/installed-runtime.ts"],"status":"Handwritten action/ctypes/signature lists remain baseline. Prior Cloud adopted typing is present; no claim it needs rebuilding.","independentCurrentExecution":"not run"},
+    {"id":"I5","owner":"E","title":"Equivalent limited Remote codecs","requirement":"Normative expectations, generated/reused codec semantics, no Remote engine/Wasmtime requirement; execute independent JS/Python/Native vectors.","baselineLocations":["scripts/generate-client-publication-wire.mjs","scripts/generate-python-client-wire.mjs","scripts/generate-native-client-wire.mjs","packages/python-sdk/src/actql_sdk/_wire.py"],"status":"Read-confirmed integer negative-zero and string-unit branches. Normative resolution and actual language vector evidence pending.","independentCurrentExecution":"not run"},
+    {"id":"I6","owner":"B","title":"Distribution-derived interface discovery and drift gates","requirement":"Discover real package/wheel/CLI/Cloud production dependencies and exported operations, classify and fail unregistered additions; connect existing checks and meaningful mutations.","baselineLocations":["scripts/packed-package-boundaries.mjs","scripts/source-dependency-closure.mjs","scripts/check-connector-dispatch-boundary.mjs","packages/*/package.json","packages/*/pyproject.toml"],"status":"13 npm manifests and3 Python pyprojects independently enumerated; this is a root snapshot, not completed closure discovery.","independentCurrentExecution":"not run"},
+    {"id":"I7","owner":"C/F/all producers","title":"Additional A-H contracts and actual owners","requirement":"Close all additional boundary requirements, ten attributes and applicable real-owner normal/fault tests without another authority/scheduler/retry ledger.","baselineLocations":["See additional A-H rows and existing owning contracts","each producer supplies actual operations and evidence."],"status":"All A-H explicit. Unexplained missing/unsupported interfaces remain gaps, not exclusions.","independentCurrentExecution":"not run"},
+    {"id":"I8","owner":"G/Root","title":"Independent integrated artifact/product acceptance","requirement":"Audit whole explicit review scope, then one normally generated adopted integrated artifact set and existing installed real business route at Root-frozen cut.","baselineLocations":["scripts/package-release.mjs","scripts/composition-release-input.mjs","scripts/test-real-cross-connector-release.mjs","Cloud vendor/oss-artifacts.json"],"status":"No new IF product execution or final cut yet. Previous R8/02f acceptance is historical only.","independentCurrentExecution":"not run"},
+    {"id":"IF-A","owner":"C/B","title":"Core/connector/Compute","requirement":"Connector-neutral Core; independent Source and Command extension with original scheduler/approval/recovery unchanged; preserve third-Compute acceptance.","baselineLocations":["scripts/check-connector-addition.mjs","scripts/check-connector-dispatch-boundary.mjs","scripts/backend-semantic-boundary.test.mjs"],"status":"Current complete operation contracts/real-owner fault evidence not yet independently qualified."},
+    {"id":"IF-B","owner":"F","title":"Core/Store/Journal","requirement":"Prepared transition and physical committed/conflict/outcome-unknown differ; lost commit reply reconciles the same original attempt; physical DB/fsync/corruption stay physical.","baselineLocations":["adapters/host-node/sqlite-checkpoint-journal.test.mjs","adapters/host-node/sqlite-effect-history-page.test.mjs","Cloud test/effect-run-custody.test.ts"],"status":"Current complete operation contracts/real-owner fault evidence not yet independently qualified."},
+    {"id":"IF-C","owner":"C/E","title":"Control/data","requirement":"Bounded DTOs distinct from buffers/data; schema, missing/NULL, numeric/encoding, order/chunk/EOS, ownership, maxima and copy accounting; no forced full materialization.","baselineLocations":["adapters/connectors/sheets","adapters/connectors/table","packages/python-sdk/src/actql_sdk/_local_core.py"],"status":"Current complete operation contracts/real-owner fault evidence not yet independently qualified."},
+    {"id":"IF-D","owner":"F","title":"Host/Credential","requirement":"External authentication does not grant ActQL authority; all owner scope fields plus operation/time/revocation/limits; recheck after await at final irreversible operation.","baselineLocations":["src/remote_credential/credential.mbt","adapters/host-common/owned-invocation-context.mjs","adapters/site-node/https-credential-resource.mjs"],"status":"Current complete operation contracts/real-owner fault evidence not yet independently qualified."},
+    {"id":"IF-E","owner":"F","title":"Coordinator/Site/Transfer","requirement":"Admission/start/external outcome/publication/physical release distinct; authenticated durable identity covers lost/duplicate/reordered/stale generation/delayed ACK/failed cleanup.","baselineLocations":["adapters/host-common/remote-coordinator-abi.test.mjs","adapters/host-node/remote-site-coordinator.test.mjs","Cloud test/site-response-custody.test.ts"],"status":"Current complete operation contracts/real-owner fault evidence not yet independently qualified."},
+    {"id":"IF-F","owner":"F/A","title":"Core/INFER Provider","requirement":"Original request/prompt meaning, response interpretation, raw capture/retention and physical transport distinct; provider bytes issue no success/retry/completion/permission.","baselineLocations":["packages/provider-http/_internal/installed-http-chat.mjs","packages/provider-ai-sdk","adapters/host-node/infer-operation-approval.test.mjs"],"status":"Current complete operation contracts/real-owner fault evidence not yet independently qualified."},
+    {"id":"IF-G","owner":"F/E","title":"Core/observation","requirement":"Use owner projections; observer/UI faults cannot change confirmed state, permission or success; copied bounded observations retain no authority.","baselineLocations":["adapters/host-common/task-observation.mjs","adapters/host-common/observation.mjs","packages/sdk/internal/operation-ports.mjs"],"status":"Current complete operation contracts/real-owner fault evidence not yet independently qualified."},
+    {"id":"IF-H","owner":"D/G/all producers","title":"Source/binding/artifact","requirement":"Adopt matching source, compiler, generator, contract, wrapper, public types and actual artifact; separate wire/private ABI/package/toolchain versions.","baselineLocations":["scripts/package-release.mjs","scripts/check-python-local-core.mjs","scripts/native-cli-release.mjs","Cloud vendor/oss-artifacts.json"],"status":"Current complete operation contracts/real-owner fault evidence not yet independently qualified."},
+    {"id":"T01","owner":"each operation owner; B coverage; G independent review","title":"responsibility","requirement":"Semantic MoonBit owner and physical-operation owner; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"T02","owner":"each operation owner; B coverage; G independent review","title":"inputs_outputs","requirement":"Named typed values, units, ranges, absence/NULL and encoding; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"T03","owner":"each operation owner; B coverage; G independent review","title":"identity","requirement":"Instance, original Run/request and generation binding; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"T04","owner":"each operation owner; B coverage; G independent review","title":"ownership","requirement":"Borrow/own, retention/release, copying and serialization; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"T05","owner":"each operation owner; B coverage; G independent review","title":"synchronization","requirement":"Sync/async, reentry/concurrency and callback lifetime; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"T06","owner":"each operation owner; B coverage; G independent review","title":"failure","requirement":"Typed refusal, physical failure, Unknown and contract mismatch; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"T07","owner":"each operation owner; B coverage; G independent review","title":"cancellation_cleanup","requirement":"Cancel acceptance versus stopped versus physically released; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"T08","owner":"each operation owner; B coverage; G independent review","title":"resources","requirement":"Maximum bytes/rows/work; reservation/accounting owner and time; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"T09","owner":"each operation owner; B coverage; G independent review","title":"extension","requirement":"Required/optional capabilities, extension points and unknown variants; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"T10","owner":"each operation owner; B coverage; G independent review","title":"verification","requirement":"Freshness, actual artifacts, independent vectors and fault tests; reference existing owning contract or explicit applicable/nonapplicable rationale, never invent a second semantic authority.","status":"Required for each discovered distributed operation; unexplained omissions remain open."},
+    {"id":"L1","owner":"B/producers/G","title":"Discovery","requirement":"Actual distributed roots/production closures/exports; outside-dir file/helper/export must fail unregistered.","status":"No new integrated evidence yet."},
+    {"id":"L2","owner":"B/producers/G","title":"Correspondence","requirement":"Read-only generation/types/actions/signatures/docs versus actual JS/Wasm/Native exports/imports/memory/calling convention; approved generated shim only.","status":"No new integrated evidence yet."},
+    {"id":"L3","owner":"B/producers/G","title":"Meaning","requirement":"Independent cross-language vectors and actual-owner copied/foreign/stale/lost/reentrant/partial/cancel/cleanup-pending cases.","status":"No new integrated evidence yet."},
+    {"id":"L4","owner":"B/producers/G","title":"Detection","requirement":"Mutations fail the intended assertion/gate; setup/import failures do not establish behavioral detection, except deliberate static contract/type probes.","status":"No new integrated evidence yet."},
+    {"id":"M1","owner":"A/D/B","title":"Swap action numbers","requirement":"Generated correspondence plus actual semantic boundary","status":"Candidate and intended-failure evidence pending."},
+    {"id":"M2","owner":"A/D/B","title":"Swap same-typed argument roles","requirement":"Meaningful asymmetric independent input; scalar signature equality is insufficient","status":"Candidate and intended-failure evidence pending."},
+    {"id":"M3","owner":"F/B","title":"Omit one scope field","requirement":"Original owner refuses foreign/changed scope, including after await","status":"Candidate and intended-failure evidence pending."},
+    {"id":"M4","owner":"F/B","title":"Turn Unknown into success or unsent","requirement":"Lost reply/recovery retains original uncertain operation; no resend or false success","status":"Candidate and intended-failure evidence pending."},
+    {"id":"M5","owner":"D/G/B","title":"Mix an old artifact","requirement":"Adopted source/compiler/generator/contract/wrapper/type/artifact correspondence rejects stale member","status":"Candidate and intended-failure evidence pending."},
+    {"id":"M6","owner":"B/producers","title":"Add unregistered Python/other-language decision code","requirement":"Actual distributed discovery plus semantic-access/dependency checks rejects the new file/export/helper","status":"Candidate and intended-failure evidence pending."},
+    {"id":"FAMILY-P","owner":"existing semantic/binding/physical owner","title":"Same-process opaque","requirement":"Typed operations and owner-bound opaque handles; private compiler shim; no forced JSON or extracted internals","status":"Preserve separate representations and distinct reserve/produce/close and cancel/stop/release."},
+    {"id":"FAMILY-L","owner":"existing semantic/binding/physical owner","title":"Local scalar ABI","requirement":"Wasm/Native buffers/handles/memory/thread/ownership; no foreign instance/process pointers or handles","status":"Preserve separate representations and distinct reserve/produce/close and cancel/stop/release."},
+    {"id":"FAMILY-R","owner":"existing semantic/binding/physical owner","title":"Remote wire","requirement":"Version/schema/correlation/closed variant/limits/capabilities; no wire local handle or SDK execution authority","status":"Preserve separate representations and distinct reserve/produce/close and cancel/stop/release."},
+    {"id":"V1","owner":"E/D; G independent review","title":"negative zero","requirement":"Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.","status":"Current matching artifact execution pending."},
+    {"id":"V2","owner":"E/D; G independent review","title":"bool versus int","requirement":"Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.","status":"Current matching artifact execution pending."},
+    {"id":"V3","owner":"E/D; G independent review","title":"integer/numeric bounds","requirement":"Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.","status":"Current matching artifact execution pending."},
+    {"id":"V4","owner":"E/D; G independent review","title":"Unicode and length units","requirement":"Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.","status":"Current matching artifact execution pending."},
+    {"id":"V5","owner":"E/D; G independent review","title":"NULL versus omission","requirement":"Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.","status":"Current matching artifact execution pending."},
+    {"id":"V6","owner":"E/D; G independent review","title":"unknown variant","requirement":"Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.","status":"Current matching artifact execution pending."},
+    {"id":"V7","owner":"E/D; G independent review","title":"correlated identifiers","requirement":"Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.","status":"Current matching artifact execution pending."},
+    {"id":"V8","owner":"E/D; G independent review","title":"stale revisions","requirement":"Independent normative expectation executed through actual JS/Python/Native entry, not product-output-derived expectation.","status":"Current matching artifact execution pending."},
+    {"id":"FAULT1","owner":"affected real owner","title":"copied handle","requirement":"Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.","status":"Current actual owner evidence pending."},
+    {"id":"FAULT2","owner":"affected real owner","title":"foreign instance","requirement":"Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.","status":"Current actual owner evidence pending."},
+    {"id":"FAULT3","owner":"affected real owner","title":"stale generation","requirement":"Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.","status":"Current actual owner evidence pending."},
+    {"id":"FAULT4","owner":"affected real owner","title":"lost response","requirement":"Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.","status":"Current actual owner evidence pending."},
+    {"id":"FAULT5","owner":"affected real owner","title":"reentry","requirement":"Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.","status":"Current actual owner evidence pending."},
+    {"id":"FAULT6","owner":"affected real owner","title":"partial construction","requirement":"Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.","status":"Current actual owner evidence pending."},
+    {"id":"FAULT7","owner":"affected real owner","title":"cancellation","requirement":"Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.","status":"Current actual owner evidence pending."},
+    {"id":"FAULT8","owner":"affected real owner","title":"cleanup pending","requirement":"Select for each changed IF; explain nonapplicability; mock-only success cannot prove original identity/physical cleanup.","status":"Current actual owner evidence pending."}
   ],
   "newExecutedTests": 0,
   "productEdits": 0,
   "finalIntegratedCut": "not selected; Root selects after convergence",
-  "separateBlockers": [
-    "Foundation d2f3 original two actual-repository FAIL; existing disposition only",
-    "Old feature goals paused; #2329 prior execution hold unchanged"
-  ],
+  "separateBlockers": ["Foundation d2f3 original two actual-repository FAIL; existing disposition only","Old feature goals paused; #2329 prior execution hold unchanged"],
   "completionRule": "Existing whole explicit review scope, normally integrated and matching actual evidence; old R8 passes and owner reports alone are not new acceptance."
 }
