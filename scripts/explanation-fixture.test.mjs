@@ -37,8 +37,9 @@ function valid(value, node) {
   if (node.const !== undefined && JSON.stringify(value) !== JSON.stringify(node.const)) return false;
   if (node.enum && !node.enum.some(v => JSON.stringify(v) === JSON.stringify(value))) return false;
   if (typeof value === 'string') {
-    if (node.minLength !== undefined && value.length < node.minLength) return false;
-    if (node.maxLength !== undefined && value.length > node.maxLength) return false;
+    const length = [...value].length;
+    if (node.minLength !== undefined && length < node.minLength) return false;
+    if (node.maxLength !== undefined && length > node.maxLength) return false;
     if (node.pattern !== undefined && !new RegExp(node.pattern, 'u').test(value)) return false;
   }
   if (typeof value === 'number') {
@@ -95,5 +96,13 @@ test('an effect without its policy attribute is refused', () => {
   const base = fixture.cases.find(c => c.id === 'static-effect-has-conditional-checkpoint');
   const value = structuredClone(base.value);
   delete value.effects[0].policy;
+  assert.equal(valid(value, schema), false);
+});
+
+test('explanation string limits count Unicode code points rather than UTF-16 units', () => {
+  const value = structuredClone(fixture.cases.find(c => c.id === 'local-site-fixed-engine-deferred').value);
+  value.steps[0].step_id = '\u{1f9ed}'.repeat(256);
+  assert.equal(valid(value, schema), true);
+  value.steps[0].step_id += '\u{1f9ed}';
   assert.equal(valid(value, schema), false);
 });
