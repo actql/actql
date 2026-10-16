@@ -4664,6 +4664,8 @@
         "DeliveryRecord",
         "Held",
         "HeldCheckpoint",
+        "InstalledEffectContinuation",
+        "InstalledEffectContinuationRequestedStop",
         "Literal",
         "LookupFound",
         "LookupFoundRef",
@@ -4905,6 +4907,7 @@
         "SubmissionRestartSubmissionRef",
         "SubmissionRestartSubmissionRefEpoch",
         "SubmitPreparationError",
+        "SubmittedIntent",
         "TypedDict",
         "ValueContract",
         "ValueContract0",
@@ -4924,7 +4927,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "b48243e08b2ec3e4c25e482170914863a06dfbc7b9bb847655cbdc3a4279cf41",
+      "sha256": "2d4923f2f239fb8153a875b5a59f01640c55531a30e8950f1c81f85a604d6cdf",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -5137,6 +5140,8 @@
             "DeliveryRecord",
             "Held",
             "HeldCheckpoint",
+            "InstalledEffectContinuation",
+            "InstalledEffectContinuationRequestedStop",
             "Literal",
             "LookupFound",
             "LookupFoundRef",
@@ -5378,6 +5383,7 @@
             "SubmissionRestartSubmissionRef",
             "SubmissionRestartSubmissionRefEpoch",
             "SubmitPreparationError",
+            "SubmittedIntent",
             "TypedDict",
             "ValueContract",
             "ValueContract0",
@@ -5413,6 +5419,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "<!-- requirement-block: run-observation.state-revision -->"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"installed_effect_continuation\""
               }
             ],
             "identity": [
@@ -5487,6 +5497,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"installed_effect_continuation\""
               }
             ],
             "verification": [
@@ -5501,6 +5515,10 @@
               {
                 "path": "spec/requirements/run.json",
                 "anchor": "\"requirement_id\": \"actql.protocol.run/run-observation.state-revision\""
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"installed_effect_continuation\""
               }
             ]
           }
