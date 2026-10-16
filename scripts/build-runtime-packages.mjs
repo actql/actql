@@ -6,29 +6,10 @@ import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {occurrences, repositoryOccurrences, violations} from './check-owned-contract-versions.mjs';
 import {assertGeneratedOwnedContracts} from './generated-owned-contracts.mjs';
-import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const packages = {
-  'run-host-core': {sources: ['client_values_host_abi', 'checkpoint_runtime_node',
-    'connectors_workers_bridge'],
-    script: 'build-run-host-core-package', args: ['--runtime-only'],
-    files: ['packages/run-host-core/dist/client_values_host_abi.js',
-      'packages/run-host-core/dist/checkpoint_runtime_node.js',
-      'packages/run-host-core/dist/workers_finite.js',
-      'packages/run-host-core/dist/workers_finite_payload.js']},
-  'coordinator-core': {sources: ['remote_coordinator_abi'],
-    script: 'build-remote-coordinator-package',
-    files: ['packages/coordinator-core/dist/remote_coordinator_abi.js']},
-  'transfer-core': {sources: ['remote_transfer_abi'],
-    script: 'build-remote-transfer-package',
-    files: ['packages/transfer-core/dist/remote_transfer_abi.js']},
-  get 'local-node'() {
-    const local = localNodePackageInputs(root);
-    return {sources: local.runtimePackages, script: 'build-local-node-assets',
-      files: local.runtimeFiles.map(path => `packages/local-node/_build/js/release/build/${path}`)};
-  },
-};
+const packages = runtimePackageInputs(root);
 // A resolved external Host compiles only the inventory's exact package
 // targets. Its workspace is supplied by the trusted build harness; this
 // function never resolves modules from a registry or rewrites Core inputs.
