@@ -1,6 +1,6 @@
 {
   "source": "a6cabd33cd55bdd9f59850877ef2a88412d648a7",
-  "qualification": "Existing Store/representation responsibility references over B actual AST closure. No new semantic parser, scheduler, ledger, capacity authority or physical support grant; no product changes. Original declared same-process bodies/row codecs remain distinct from public Remote wire.",
+  "qualification": "Existing Store/representation responsibility references over B actual AST closure. No new semantic parser, scheduler, ledger, capacity authority or physical support grant; the initial reference-only supply made the initial reference-only supply made the initial reference-only supply made no product changes. Later explicitly owned product changes and source-qualified tests are recorded separately; the source/projection above is not a runtime acceptance receipt. Later explicitly owned product changes and source-qualified tests are recorded separately; the source/projection above is not a runtime acceptance receipt. Later explicitly owned product changes and source-qualified tests are recorded separately; the source/projection above is not a runtime acceptance receipt. Original declared same-process bodies/row codecs remain distinct from public Remote wire.",
   "projection": {
     "path": "i6-f-store-uncovered-projection.json",
     "sha256": "4f02763736fb74e739d4ffab6951c46514f92aaacde1daa93c3ae4eb3d1ca3f7"
@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "86c82209fb7124a7bbec5d6af0aa79a7b1db8214189dc262305ca2f18153c169",
+      "sha256": "ba3172b99077e4a3d2d1653001b2a279f7219a1412f4f59c34f4c471dcaa30ef",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -6566,6 +6566,34 @@
           "async": false
         },
         {
+          "name": "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord",
+          "parameters": [
+            "path",
+            "bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "privateEvidenceWireLimitForObject",
           "parameters": [
             "maximum"
@@ -7214,6 +7242,11 @@
             "openLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/physical/physical",
             "openLocalPublicationStore/withSemanticCommit/withSemanticCommit",
             "openLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
+            "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord",
+            "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry",
+            "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry",
+            "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry#2",
+            "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status",
             "privateEvidenceWireLimitForObject",
             "processIsAlive",
             "PublicationStoreError/constructor:constructor/constructor:constructor",
@@ -7270,6 +7303,10 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "## Ownership and scope"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
               }
             ],
             "inputsOutputs": [
@@ -7280,24 +7317,40 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "bounded UTF-8 text or bounded byte frames"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "Equal CIDs do not establish ownership or availability"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "until native stop and exact-generation removal are confirmed"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "copied before awaited I/O"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
               }
             ],
             "failure": [
@@ -7308,24 +7361,40 @@
               {
                 "path": "adapters/store-local/original-reader-close-custody.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/bounded-close-custody.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "Frame and remaining-reservation limits"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "alternative representation requires verified conversion"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
               }
             ],
             "verification": [
@@ -7336,11 +7405,31 @@
               {
                 "path": "adapters/store-local/close-retirement.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
+                "anchor": "an already corrupt final holding remains refused"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./metadata-deletion-owner.mjs",
+        "./object-writer-owner.mjs",
+        "./publication-commit-owner.mjs",
+        "./result-deletion-owner.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/store-local/representations.mjs",
