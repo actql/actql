@@ -68,6 +68,76 @@ pub fn gcs_object_metadata_json(
 }
 
 ///|
+#export_name("gcsObjectMetadataPage")
+pub fn gcs_object_metadata_page(
+  bytes : Bytes,
+  bucket : String,
+  prefix : String,
+  max_items : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_entries : Int,
+) -> Result[@catalog.ObjectMetadataPage, GcsFailure] {
+  @catalog.admit_object_metadata_page(bytes, bucket, prefix, max_items, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_metadata_entries: max_entries,
+  }).map_err(issue => Metadata(issue))
+}
+
+///|
+#export_name("gcsObjectMetadataPageCount")
+pub fn gcs_object_metadata_page_count(
+  page : @catalog.ObjectMetadataPage,
+) -> Int {
+  @catalog.object_metadata_page_count(page)
+}
+
+///|
+#export_name("gcsObjectMetadataPageNextToken")
+pub fn gcs_object_metadata_page_next_token(
+  page : @catalog.ObjectMetadataPage,
+) -> String? {
+  @catalog.object_metadata_page_next_token(page)
+}
+
+///|
+#export_name("gcsObjectMetadataPageRowJson")
+pub fn gcs_object_metadata_page_row_json(
+  page : @catalog.ObjectMetadataPage,
+  index : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, GcsFailure] {
+  @catalog.object_metadata_page_row_json(page, index, max_bytes, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_metadata_entries: max_nodes,
+  }).map_err(issue => Metadata(issue))
+}
+
+///|
+#export_name("gcsObjectListingPrefix")
+pub fn gcs_object_listing_prefix(
+  installed_prefix : String,
+  request : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, GcsFailure] {
+  @catalog.object_listing_prefix(installed_prefix, request, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_metadata_entries: max_nodes,
+  }).map_err(issue => Metadata(issue))
+}
+
+///|
 #export_name("gcsObjectMutationBinding")
 pub fn gcs_object_mutation_binding(
   kind : String,

@@ -109,3 +109,100 @@ pub fn object_metadata_page_response_sha256(
 ) -> String {
   page.response_sha256
 }
+
+///|
+// Detached Source DATA, not issued Resource authority. The installed Source
+// supplies its original ResourceRef beside this row. Signed Int64s use the
+// existing Decimal(19,0) textual admission, never binary64 or a String field
+// contract. RowSource consumes raw Source DATA: metadata is an ordinary object,
+// not the exported Value wire's $json envelope.
+pub fn object_metadata_page_row_json(
+  page : ObjectMetadataPage,
+  index : Int,
+  max_bytes : Int,
+  limits : ObjectMetadataLimits,
+) -> Result[String, ObjectMetadataIssue] {
+  guard object_metadata_page_at(page, index) is Some(fields) else {
+    return Err(InvalidMetadata)
+  }
+  if max_bytes < 1 ||
+    limits.max_bytes < 1 ||
+    limits.max_nodes < 1 ||
+    limits.max_depth < 1 ||
+    limits.max_metadata_entries < 0 {
+    return Err(InvalidLimits)
+  }
+  if fields.metadata is Some(entries) &&
+    entries.length() > limits.max_metadata_entries {
+    return Err(BudgetExceeded)
+  }
+  let row : Map[String, Json] = {
+    "version": fields.generation.to_string().to_json(),
+    "name": fields.name.to_json(),
+    "size": fields.size.to_string().to_json(),
+    "generation": fields.generation.to_string().to_json(),
+    "metageneration": fields.metageneration.to_string().to_json(),
+  }
+  for
+    (name, value) in [
+      ("content_type", fields.content_type),
+      ("storage_class", fields.storage_class),
+      ("updated", fields.updated),
+      ("md5", fields.md5),
+      ("crc32c", fields.crc32c),
+    ] {
+    row[name] = match value {
+      Some(text) => text.to_json()
+      None => Json::null()
+    }
+  }
+  row["metadata"] = match fields.metadata {
+    None => Json::null()
+    Some(entries) => {
+      let values : Map[String, Json] = Map([])
+      for (name, value) in entries {
+        values[name] = value.to_json()
+      }
+      Json::object(values)
+    }
+  }
+  mutation_json(Json::object(row), max_bytes, limits).map_err(_ => {
+    BudgetExceeded
+  })
+}
+
+///|
+// The original typed Request may narrow the installed scope, never widen it.
+// Absence/SQL NULL select that installed prefix; no glob or name normalization
+// is inferred from arbitrary strings or a later provider result.
+pub fn object_listing_prefix(
+  installed_prefix : String,
+  request : Bytes,
+  limits : ObjectMetadataLimits,
+) -> Result[String, ObjectMetadataIssue] {
+  if @scalar.admit_utf8_length(installed_prefix, 1024) is Err(_) {
+    return Err(ObjectMismatch)
+  }
+  let root = match metadata_cursor(request, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @decode.closed_object(root, ["prefix"]) is Ok(object) else {
+    return Err(InvalidMetadata)
+  }
+  let prefix = match @decode.lookup(object, "prefix") {
+    None => installed_prefix
+    Some(value) if @decode.is_null(value) => installed_prefix
+    Some(value) =>
+      match @decode.text(value) {
+        Ok(prefix) => prefix
+        Err(_) => return Err(InvalidMetadata)
+      }
+  }
+  if !prefix.has_prefix(installed_prefix) ||
+    @scalar.admit_utf8_length(prefix, 1024) is Err(_) {
+    Err(ObjectMismatch)
+  } else {
+    Ok(prefix)
+  }
+}
