@@ -585,7 +585,7 @@ test "provider UTC seconds and milliseconds use the existing calendar admission"
       ("2024-02-29T01:02:03Z", "2024-02-29T01:02:03.000Z"),
       ("2026-10-02T01:02:03.123Z", "2026-10-02T01:02:03.123Z"),
     ] {
-    let extra = ",\"updatedAt\":\"" + input + "\"" // Replaced below to preserve one JSON escape.
+    let extra = ",\"updatedAt\":\"" + input + "\""
     let page = admit_catalog_page(
       catalog_request(Workbooks),
       200,
