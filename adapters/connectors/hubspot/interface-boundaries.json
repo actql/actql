@@ -183,6 +183,306 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+      "sha256": "52065ea15db16c90102cd9190b2f1653d605b61c8ee51fddc401c8f130f95452",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing HubSpot Source/Decode, Host current, Credential nominal use and original accounted RowRun owners",
+      "exports": [
+        "HUBSPOT_OBJECT_LIST_OPERATION",
+        "HUBSPOT_PROPERTIES_READ_OPERATION",
+        "HubSpotObjectReadFailure",
+        "readHubSpotObjects"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "HubSpotObjectReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects",
+          "parameters": [
+            "moon",
+            "originalPortalId",
+            "originalCatalog",
+            "objectType",
+            "properties",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "consumePage",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "readHubSpotObjects/account/account",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/authorization/authorization",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "readHubSpotObjects/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/readHubSpotObjects",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/readHubSpotObjects#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/readHubSpotObjects#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/readHubSpotObjects#4",
+          "parameters": [
+            "total",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/readHubSpotObjects#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/receive/receive",
+          "parameters": [
+            "operation",
+            "path",
+            "query"
+          ],
+          "async": true
+        },
+        {
+          "name": "readHubSpotObjects/receive/receive/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/receive/receive/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/recheckProperties/recheckProperties",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "readHubSpotObjects/slot/slot",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readHubSpotObjects/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "segment/segment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment/segment",
+          "parameters": [
+            "unit"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "HubSpotObjectReadFailure/constructor:constructor/constructor:constructor",
+            "positive/positive",
+            "readHubSpotObjects",
+            "readHubSpotObjects/account/account",
+            "readHubSpotObjects/authorization/authorization",
+            "readHubSpotObjects/provider/provider",
+            "readHubSpotObjects/readHubSpotObjects",
+            "readHubSpotObjects/readHubSpotObjects#2",
+            "readHubSpotObjects/readHubSpotObjects#3",
+            "readHubSpotObjects/readHubSpotObjects#4",
+            "readHubSpotObjects/readHubSpotObjects#5",
+            "readHubSpotObjects/receive/receive",
+            "readHubSpotObjects/receive/receive/response/response",
+            "readHubSpotObjects/receive/receive/response/response/response",
+            "readHubSpotObjects/recheckProperties/recheckProperties",
+            "readHubSpotObjects/slot/slot",
+            "readHubSpotObjects/verify/verify",
+            "segment/segment",
+            "segment/segment/segment"
+          ],
+          "exports": [
+            "HUBSPOT_OBJECT_LIST_OPERATION",
+            "HUBSPOT_PROPERTIES_READ_OPERATION",
+            "HubSpotObjectReadFailure",
+            "readHubSpotObjects"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "anchor": "export async function readHubSpotObjects"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/host_node/object_page_bridge.mbt",
+                "anchor": "pub fn hubspot_project_object_page("
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/object_page_wire.mbt",
+                "anchor": "pub fn encode_object_page_rows("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "anchor": "invocationBindingsMatch(next.scope, context.scope)"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property_current.mbt",
+                "anchor": "pub fn recheck_property_catalog("
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "function acquireBinding("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "anchor": "Object.defineProperty(this, 'observations'"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "export function closeHttpsCredentialBinding("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "anchor": "currentBeforeSend: () => verify(operation)"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "journal.authorize("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "anchor": "export class HubSpotObjectReadFailure"
+              },
+              {
+                "path": "adapters/site-node/sqlite-credential-journal.mjs",
+                "anchor": "finish(useCid, outcome)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "export function closeHttpsCredentialBinding("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "anchor": "const charge = await context.callbacks.chargeResponse(response.body);"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn accept_charged_row_run_page("
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn consume_row_run_observation_charge("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/host_node/moon.pkg",
+                "anchor": "supported_targets = \"js\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-object-read.test.mjs",
+                "anchor": "test('actual bound identity"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property_current_wbtest.mbt",
+                "anchor": "test \"current property recheck"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
