@@ -4,5 +4,7 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/sha256" @sha,
+  "actql/actql/canonical_json" @canonical,
+  "actql/actql/decode_scalar" @scalar,
   "moonbitlang/core/encoding/utf8",
 }
