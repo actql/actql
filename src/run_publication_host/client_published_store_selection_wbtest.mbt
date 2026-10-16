@@ -227,7 +227,9 @@ test "published STORE selection preserves independent eight-field bytes and Plan
 test "valid mixed UPDATE and published STORE keep ordered separate original occurrences" {
   let admitted = published_selection_prepare(mixed=true)
   assert_eq(
-    admitted.map(_ => ()).map_err(issue => {
+    admitted
+    .map(_ => ())
+    .map_err(issue => {
       match issue {
         Syntax(_) => "syntax"
         Candidate(_) => "candidate"
