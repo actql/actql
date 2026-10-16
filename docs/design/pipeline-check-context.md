@@ -1295,3 +1295,33 @@ make a missing key proof available. Field-target and published-target Commands
 with an absent key retain their prior preparation and encoding behavior. The
 key is correspondence metadata, not an extra payload member or mutation-key
 component; different row IDs cannot authorize duplicate sends.
+
+### Short Command Source normalization
+
+The short terminal Command resolves its original published operation before
+lowering ID, TARGET or INPUT expressions. A legacy field-mode contract requires
+TARGET and preserves its ResourceRef obligation. A fixed-installation contract
+refuses TARGET; an identifier contract requires it and retains the original
+checked identifier domain. Neither the ID nor the input payload chooses that
+interpretation or an installation.
+
+The current Relation closes one private Stage Result containing the original
+ID field and the demanded target and payload fields. Computed values use the
+ordinary Relation expression lowerer once before that barrier. Omitted INPUT
+remains empty, just like explicit `INPUT ()`; same-named columns are not copied
+implicitly. The ID lowers to Command `input_key`, separately from target
+identifier selection, payload and mutation identity. Existing input-key proof
+obligations still apply to the complete original captured occurrence.
+
+Only authored public Results are exported. A completed set or Model/Result
+continuation feeds the same private capture without re-evaluating its producer.
+An omitted effect name is `aql_command_effect`; explicit and completed names
+share the existing uniqueness rules with long Command postludes.
+
+Source lowering retains the exact opaque Command publication, not only its
+canonical target and contract strings. Re-parsing a machine Program cannot
+create that publication. A missing installed original/capture connection is an
+explicit preparation limitation, not permission to discard the selection,
+reconstruct it from current configuration or treat a pure query as a successful
+Effect. Static normalization and type closure do not prove current authority,
+whole-input uniqueness, Preview, apply or durable recovery.
