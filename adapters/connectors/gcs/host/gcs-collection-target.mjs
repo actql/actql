@@ -40,3 +40,23 @@ export function checkGcsCollectionTarget(original, selected, installationCid, ta
   collectionResult(owner.moon, owner.moon.gcsCollectionCheckBinding(owner.binding,
     candidate.binding, installationCid, targetRef));
 }
+
+// The fixed provider projection borrows only this original collection handle.
+// It returns declaration DATA, never the handle or a Common ResourceReference.
+export function gcsCollectionUploadMapping(original, declaredWire, connectorId,
+  {maxBytes, maxNodes, maxDepth}) {
+  const owner = originals.get(original);
+  if (owner === undefined) fail('ForeignGcsCollectionTarget');
+  if (typeof declaredWire !== 'string' || typeof connectorId !== 'string') {
+    fail('GcsInvalidUploadDeclarationBinding');
+  }
+  if (![maxBytes, maxNodes, maxDepth].every(integer)) fail('GcsInvalidUploadDeclarationLimits');
+  try {
+    return checked(owner.moon.gcsUploadMappingJson(owner.binding, declaredWire, connectorId,
+      maxBytes, maxNodes, maxDepth));
+  } catch (failure) {
+    if (failure?.code !== 'MoonBitHostFailure') throw failure;
+    const code = owner.moon.gcsUploadDeclarationFailureCode(failure.cause);
+    throw Object.assign(new Error(code, {cause: failure.cause}), {code});
+  }
+}

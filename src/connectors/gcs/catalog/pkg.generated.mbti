@@ -46,6 +46,12 @@ pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequ
 
 pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?
 
+pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
+
+pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
+
+pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
+
 pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]
 
 pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]
@@ -154,6 +160,19 @@ pub(all) struct ObjectRequestLimits {
   max_path_bytes : Int
   max_body_bytes : Int
   max_identity_bytes : Int
+}
+
+pub(all) enum ObjectUploadDeclarationIssue {
+  InvalidBinding
+  InvalidDeclaration
+  ConflictingCommand
+  CapacityExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ObjectUploadDeclarationLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
 }
 
 // Type aliases

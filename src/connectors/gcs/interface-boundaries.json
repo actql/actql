@@ -371,7 +371,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "4cfa286f4248d80321b5a92fb966ce84c65ae3316d1c42abdef5fcb788e8d633",
+      "sha256": "93638336169603c5e49dcdec08e62a309010e33f18ec1cdf4cd16aab09867429",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -395,6 +395,9 @@
         "pub fn object_mutation_path(ObjectMutationRequest) -> String",
         "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
         "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
+        "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+        "pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+        "pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
         "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
         "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
@@ -487,6 +490,18 @@
           "declaration": "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?"
         },
         {
+          "name": "object_upload_catalog_json",
+          "declaration": "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]"
+        },
+        {
+          "name": "object_upload_command_json",
+          "declaration": "pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]"
+        },
+        {
+          "name": "object_upload_mapping_json",
+          "declaration": "pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]"
+        },
+        {
           "name": "prepare_object_collection_binding",
           "declaration": "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]"
         },
@@ -531,6 +546,9 @@
             "object_mutation_path",
             "object_mutation_projection_json",
             "object_mutation_protocol_behavior",
+            "object_upload_catalog_json",
+            "object_upload_command_json",
+            "object_upload_mapping_json",
             "prepare_object_collection_binding",
             "prepare_object_delete",
             "prepare_object_metadata_patch",
@@ -558,6 +576,9 @@
             "pub fn object_mutation_path(ObjectMutationRequest) -> String",
             "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
             "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
+            "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+            "pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
+            "pub fn object_upload_mapping_json(ObjectCollectionBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
             "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
             "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
@@ -589,6 +610,14 @@
               {
                 "path": "scripts/mapping-contract.mjs",
                 "anchor": "collection_resource_identity:"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Upload declaration closure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub fn object_upload_catalog_json"
               }
             ],
             "inputsOutputs": [
@@ -603,6 +632,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_collection_binding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_command_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_mapping_json"
               }
             ],
             "identity": [
@@ -621,6 +658,18 @@
               {
                 "path": "src/connectors/gcs/catalog/collection_identity.mbt",
                 "anchor": "actql-gcs-resource-scope/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "command_input"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "collection_cid"
+              },
+              {
+                "path": "src/check_environment/command_input_contract.mbt",
+                "anchor": "pub fn command_target_input_contract"
               }
             ],
             "ownership": [
@@ -643,6 +692,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "binding : ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const owner = originals.get(original)"
               }
             ],
             "synchronization": [
@@ -661,6 +718,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
                 "anchor": "export function checkGcsCollectionTarget"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "copied JS frames cannot recover that handle"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "member_environment(mapping.item)"
               }
             ],
             "failure": [
@@ -679,6 +744,14 @@
               {
                 "path": "src/connectors/gcs/host_node/collection.mbt",
                 "anchor": "pub fn gcs_collection_failure_code"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/upload.mbt",
+                "anchor": "pub fn gcs_upload_declaration_failure_code"
               }
             ],
             "cancellation": {
@@ -704,6 +777,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Three separate representation clamps"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) struct ObjectUploadDeclarationLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Declaration construction retains input wire"
               }
             ],
             "extension": [
@@ -722,6 +803,14 @@
               {
                 "path": "src/connectors/gcs/catalog/collection_identity.mbt",
                 "anchor": "target_ref is an explicitly selected"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "explicitly adopted Command-only extension"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The new `published_store` canonical selector"
               }
             ],
             "verification": [
@@ -740,6 +829,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-collection-target.test.mjs",
                 "anchor": "same data, copied projections"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration_wbtest.mbt",
+                "anchor": "GCS upload declares exact optional presence"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/upload_test.mbt",
+                "anchor": "GCS complete upload role is admitted by original Common"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "anchor": "real GCS upload declares the independent complete presence role"
               }
             ]
           }
@@ -1090,7 +1191,11 @@
             "gcs_object_recheck",
             "gcs_object_request_body",
             "gcs_object_request_changes",
-            "gcs_object_request_projection"
+            "gcs_object_request_projection",
+            "gcs_upload_catalog_json",
+            "gcs_upload_command_json",
+            "gcs_upload_declaration_failure_code",
+            "gcs_upload_mapping_json"
           ],
           "exports": [
             "pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]",
@@ -1109,6 +1214,10 @@
             "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
             "pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
             "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
+            "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
+            "pub fn gcs_upload_command_json(String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
+            "pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String",
+            "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
             "pub enum GcsFailure {"
           ],
           "attributes": {
@@ -1128,6 +1237,14 @@
               {
                 "path": "scripts/mapping-contract.mjs",
                 "anchor": "collection_resource_identity:"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Upload declaration closure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub fn object_upload_catalog_json"
               }
             ],
             "inputsOutputs": [
@@ -1146,6 +1263,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_collection_binding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_command_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_mapping_json"
               }
             ],
             "identity": [
@@ -1164,6 +1289,18 @@
               {
                 "path": "src/connectors/gcs/catalog/collection_identity.mbt",
                 "anchor": "actql-gcs-resource-scope/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "command_input"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "collection_cid"
+              },
+              {
+                "path": "src/check_environment/command_input_contract.mbt",
+                "anchor": "pub fn command_target_input_contract"
               }
             ],
             "ownership": [
@@ -1182,6 +1319,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "binding : ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const owner = originals.get(original)"
               }
             ],
             "synchronization": [
@@ -1200,6 +1345,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
                 "anchor": "export function checkGcsCollectionTarget"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "copied JS frames cannot recover that handle"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "member_environment(mapping.item)"
               }
             ],
             "failure": [
@@ -1218,6 +1371,14 @@
               {
                 "path": "src/connectors/gcs/host_node/collection.mbt",
                 "anchor": "pub fn gcs_collection_failure_code"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/upload.mbt",
+                "anchor": "pub fn gcs_upload_declaration_failure_code"
               }
             ],
             "cancellation": [
@@ -1246,6 +1407,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Three separate representation clamps"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) struct ObjectUploadDeclarationLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Declaration construction retains input wire"
               }
             ],
             "extension": [
@@ -1264,6 +1433,14 @@
               {
                 "path": "src/connectors/gcs/catalog/collection_identity.mbt",
                 "anchor": "target_ref is an explicitly selected"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "explicitly adopted Command-only extension"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The new `published_store` canonical selector"
               }
             ],
             "verification": [
@@ -1282,6 +1459,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-collection-target.test.mjs",
                 "anchor": "same data, copied projections"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration_wbtest.mbt",
+                "anchor": "GCS upload declares exact optional presence"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/upload_test.mbt",
+                "anchor": "GCS complete upload role is admitted by original Common"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "anchor": "real GCS upload declares the independent complete presence role"
               }
             ]
           }
@@ -1304,6 +1493,10 @@
         "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
         "pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
         "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
+        "pub fn gcs_upload_command_json(String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
+        "pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String",
+        "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
         "pub enum GcsFailure {"
       ],
       "operations": [
@@ -1370,9 +1563,25 @@
         {
           "name": "gcs_object_request_projection",
           "declaration": "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]"
+        },
+        {
+          "name": "gcs_upload_catalog_json",
+          "declaration": "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]"
+        },
+        {
+          "name": "gcs_upload_command_json",
+          "declaration": "pub fn gcs_upload_command_json(String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]"
+        },
+        {
+          "name": "gcs_upload_declaration_failure_code",
+          "declaration": "pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String"
+        },
+        {
+          "name": "gcs_upload_mapping_json",
+          "declaration": "pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]"
         }
       ],
-      "sha256": "370935f118a6c5911acb80b6b08e69c9b49b9e3511d9516864470c8da0f9a738"
+      "sha256": "5f56845dbcd9685a7078534ba857d86c612cd5e09547518a34ce838c5e7c14dd"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -2019,12 +2228,14 @@
             "checkGcsCollectionTarget",
             "collectionResult",
             "fail/fail",
+            "gcsCollectionUploadMapping",
             "integer/integer",
             "prepareGcsCollectionTarget",
             "prepareGcsCollectionTarget/prepareGcsCollectionTarget"
           ],
           "exports": [
             "checkGcsCollectionTarget",
+            "gcsCollectionUploadMapping",
             "prepareGcsCollectionTarget"
           ],
           "attributes": {
@@ -2036,6 +2247,14 @@
               {
                 "path": "scripts/mapping-contract.mjs",
                 "anchor": "collection_resource_identity:"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Upload declaration closure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub fn object_upload_catalog_json"
               }
             ],
             "inputsOutputs": [
@@ -2046,6 +2265,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_collection_binding"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_command_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_mapping_json"
               }
             ],
             "identity": [
@@ -2056,6 +2283,18 @@
               {
                 "path": "src/connectors/gcs/catalog/collection_identity.mbt",
                 "anchor": "actql-gcs-resource-scope/0.1"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "command_input"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "collection_cid"
+              },
+              {
+                "path": "src/check_environment/command_input_contract.mbt",
+                "anchor": "pub fn command_target_input_contract"
               }
             ],
             "ownership": [
@@ -2066,6 +2305,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "binding : ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const owner = originals.get(original)"
               }
             ],
             "synchronization": [
@@ -2076,6 +2323,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
                 "anchor": "export function checkGcsCollectionTarget"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "copied JS frames cannot recover that handle"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "member_environment(mapping.item)"
               }
             ],
             "failure": [
@@ -2086,6 +2341,14 @@
               {
                 "path": "src/connectors/gcs/host_node/collection.mbt",
                 "anchor": "pub fn gcs_collection_failure_code"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/upload.mbt",
+                "anchor": "pub fn gcs_upload_declaration_failure_code"
               }
             ],
             "cancellation": {
@@ -2099,6 +2362,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Three separate representation clamps"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) struct ObjectUploadDeclarationLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Declaration construction retains input wire"
               }
             ],
             "extension": [
@@ -2109,6 +2380,14 @@
               {
                 "path": "src/connectors/gcs/catalog/collection_identity.mbt",
                 "anchor": "target_ref is an explicitly selected"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "explicitly adopted Command-only extension"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The new `published_store` canonical selector"
               }
             ],
             "verification": [
@@ -2119,6 +2398,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-collection-target.test.mjs",
                 "anchor": "same data, copied projections"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration_wbtest.mbt",
+                "anchor": "GCS upload declares exact optional presence"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/upload_test.mbt",
+                "anchor": "GCS complete upload role is admitted by original Common"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "anchor": "real GCS upload declares the independent complete presence role"
               }
             ]
           }
@@ -2126,6 +2417,7 @@
       ],
       "exports": [
         "checkGcsCollectionTarget",
+        "gcsCollectionUploadMapping",
         "prepareGcsCollectionTarget"
       ],
       "operations": [
@@ -2151,6 +2443,18 @@
           "name": "fail/fail",
           "parameters": [
             "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "gcsCollectionUploadMapping",
+          "parameters": [
+            "original",
+            "declaredWire",
+            "connectorId",
+            "maxBytes",
+            "maxNodes",
+            "maxDepth"
           ],
           "async": false
         },
@@ -2191,7 +2495,508 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "114d527c939ec429bffc134cf2bc2493afad1c008ac624c338235169ced14af5"
+      "sha256": "4c1f04d08f8a3eaab1329e82a548e2b6341ae9e830ce5a0ed8b7060b0882114a"
+    },
+    {
+      "module": "src/connectors/gcs/catalog/upload_declaration.mbt",
+      "role": "connector-semantics",
+      "owner": "Existing GCS upload declaration semantics; Common retains original Envelope/Catalog/Mapping admission and ResourceReference issuance",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "object_upload_catalog_json",
+            "object_upload_command_json",
+            "object_upload_mapping_json",
+            "upload_command_bundle",
+            "upload_declaration_json",
+            "upload_declaration_reference",
+            "upload_declaration_seal",
+            "upload_member_cid",
+            "upload_read_declaration_json",
+            "upload_sorted_members"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Upload declaration closure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub fn object_upload_catalog_json"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_command_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_mapping_json"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "command_input"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "collection_cid"
+              },
+              {
+                "path": "src/check_environment/command_input_contract.mbt",
+                "anchor": "pub fn command_target_input_contract"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "binding : ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const owner = originals.get(original)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "copied JS frames cannot recover that handle"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "member_environment(mapping.item)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/upload.mbt",
+                "anchor": "pub fn gcs_upload_declaration_failure_code"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded declaration DATA only. No Content acquisition, asynchronous cleanup ACK, approval, installation or send permission is issued. Original Common and physical Owners retain cancellation and pending custody."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) struct ObjectUploadDeclarationLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Declaration construction retains input wire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "explicitly adopted Command-only extension"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The new `published_store` canonical selector"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration_wbtest.mbt",
+                "anchor": "GCS upload declares exact optional presence"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/upload_test.mbt",
+                "anchor": "GCS complete upload role is admitted by original Common"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "anchor": "real GCS upload declares the independent complete presence role"
+              }
+            ]
+          }
+        }
+      ],
+      "operations": [
+        {
+          "name": "object_upload_catalog_json",
+          "declaration": "object_upload_catalog_json ( declared_wire : String , connector_id : String , limits : ObjectUploadDeclarationLimits , ) - > Result [ String , ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "object_upload_command_json",
+          "declaration": "object_upload_command_json ( connector_id : String , limits : ObjectUploadDeclarationLimits , ) - > Result [ String , ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "object_upload_mapping_json",
+          "declaration": "object_upload_mapping_json ( binding : ObjectCollectionBinding , declared_wire : String , connector_id : String , limits : ObjectUploadDeclarationLimits , ) - > Result [ String , ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "upload_command_bundle",
+          "declaration": "upload_command_bundle ( connector_id : String , limits : ObjectUploadDeclarationLimits , ) - > Result [ Json , ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "upload_declaration_json",
+          "declaration": "upload_declaration_json ( value : Json , limits : ObjectUploadDeclarationLimits , ) - > Result [ String , ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "upload_declaration_reference",
+          "declaration": "upload_declaration_reference ( value : Json ) - > Json"
+        },
+        {
+          "name": "upload_declaration_seal",
+          "declaration": "upload_declaration_seal ( value : Json , field : String , limits : ObjectUploadDeclarationLimits , ) - > Result [ Json , ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "upload_member_cid",
+          "declaration": "upload_member_cid ( value : Json , field : String ) - > String ?"
+        },
+        {
+          "name": "upload_read_declaration_json",
+          "declaration": "upload_read_declaration_json ( wire : String , limits : ObjectUploadDeclarationLimits , ) - > Result [ Json , ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "upload_sorted_members",
+          "declaration": "upload_sorted_members ( values : Array [ Json ] , field : String , ) - > Result [ Array [ Json ] , ObjectUploadDeclarationIssue ]"
+        }
+      ],
+      "exports": [],
+      "sha256": "99c6711e9e416fbfda31b599e41fff9d12b3ad49472568adb016f2bf53cbdc85"
+    },
+    {
+      "module": "src/connectors/gcs/host_node/upload.mbt",
+      "role": "physical-io",
+      "owner": "Existing GCS typed provider declaration DATA bridge; no installation, permission or original reference issuance",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gcs_upload_catalog_json",
+            "gcs_upload_command_json",
+            "gcs_upload_declaration_failure_code",
+            "gcs_upload_mapping_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Upload declaration closure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub fn object_upload_catalog_json"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_command_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_mapping_json"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "command_input"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "collection_cid"
+              },
+              {
+                "path": "src/check_environment/command_input_contract.mbt",
+                "anchor": "pub fn command_target_input_contract"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "binding : ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const owner = originals.get(original)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "copied JS frames cannot recover that handle"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "member_environment(mapping.item)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/upload.mbt",
+                "anchor": "pub fn gcs_upload_declaration_failure_code"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded declaration DATA only. No Content acquisition, asynchronous cleanup ACK, approval, installation or send permission is issued. Original Common and physical Owners retain cancellation and pending custody."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) struct ObjectUploadDeclarationLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Declaration construction retains input wire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "explicitly adopted Command-only extension"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The new `published_store` canonical selector"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration_wbtest.mbt",
+                "anchor": "GCS upload declares exact optional presence"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/upload_test.mbt",
+                "anchor": "GCS complete upload role is admitted by original Common"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "anchor": "real GCS upload declares the independent complete presence role"
+              }
+            ]
+          }
+        }
+      ],
+      "operations": [
+        {
+          "name": "gcs_upload_catalog_json",
+          "declaration": "gcs_upload_catalog_json ( declared_wire : String , connector_id : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "gcs_upload_command_json",
+          "declaration": "gcs_upload_command_json ( connector_id : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "gcs_upload_declaration_failure_code",
+          "declaration": "gcs_upload_declaration_failure_code ( issue : @ catalog . ObjectUploadDeclarationIssue , ) - > String"
+        },
+        {
+          "name": "gcs_upload_mapping_json",
+          "declaration": "gcs_upload_mapping_json ( binding : @ catalog . ObjectCollectionBinding , declared_wire : String , connector_id : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . ObjectUploadDeclarationIssue ]"
+        }
+      ],
+      "exports": [],
+      "sha256": "f9bb63924f751b6b10e32315d659b413148b01b9b106af30beac28dac458c27d"
+    },
+    {
+      "module": "adapters/connectors/gcs/host/gcs-upload-declaration.mjs",
+      "role": "physical-io",
+      "owner": "Existing GCS checked typed DATA projection; compiler representation remains under the existing generated binding",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "argumentsFor",
+            "declarationResult",
+            "fail/fail",
+            "gcsUploadCatalogDeclaration",
+            "gcsUploadCommandDeclaration",
+            "integer/integer"
+          ],
+          "exports": [
+            "gcsUploadCatalogDeclaration",
+            "gcsUploadCommandDeclaration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Upload declaration closure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub fn object_upload_catalog_json"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_upload_command_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_upload_mapping_json"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "command_input"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "collection_cid"
+              },
+              {
+                "path": "src/check_environment/command_input_contract.mbt",
+                "anchor": "pub fn command_target_input_contract"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "binding : ObjectCollectionBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "anchor": "const owner = originals.get(original)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "copied JS frames cannot recover that handle"
+              },
+              {
+                "path": "src/check_environment/store_command.mbt",
+                "anchor": "member_environment(mapping.item)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/upload.mbt",
+                "anchor": "pub fn gcs_upload_declaration_failure_code"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded declaration DATA only. No Content acquisition, asynchronous cleanup ACK, approval, installation or send permission is issued. Original Common and physical Owners retain cancellation and pending custody."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) struct ObjectUploadDeclarationLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Declaration construction retains input wire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "explicitly adopted Command-only extension"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The new `published_store` canonical selector"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration_wbtest.mbt",
+                "anchor": "GCS upload declares exact optional presence"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/upload_test.mbt",
+                "anchor": "GCS complete upload role is admitted by original Common"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "anchor": "real GCS upload declares the independent complete presence role"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "gcsUploadCatalogDeclaration",
+        "gcsUploadCommandDeclaration"
+      ],
+      "operations": [
+        {
+          "name": "argumentsFor",
+          "parameters": [
+            "connectorId",
+            "maxBytes",
+            "maxNodes",
+            "maxDepth"
+          ],
+          "async": false
+        },
+        {
+          "name": "declarationResult",
+          "parameters": [
+            "moon",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "gcsUploadCatalogDeclaration",
+          "parameters": [
+            "moon",
+            "declaredWire",
+            "connectorId",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "gcsUploadCommandDeclaration",
+          "parameters": [
+            "moon",
+            "connectorId",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "baef75746000fe59b629bd1eb7f269248b40c6a3d37c54adf13110ab5767f4f6"
     }
   ]
 }
