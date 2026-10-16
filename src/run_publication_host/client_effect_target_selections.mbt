@@ -26,7 +26,7 @@ priv struct ClientEffectUpdateTargetSelection {
 
 ///|
 /// Retained by the existing checked preparation, never an execution permit.
-priv struct ClientEffectUpdateTargetSelections {
+pub struct ClientEffectUpdateTargetSelections {
   wire : String
 }
 
@@ -183,6 +183,43 @@ pub fn prepared_client_effect_target_selections(
   prepared : PreparedClientEffectComputation,
 ) -> String? {
   prepared.target_selections.map(value => value.wire)
+}
+
+///|
+/// Borrow the exact existing selection Owner. DATA, equal bytes and a matching
+/// CID cannot construct or replace this original value.
+pub fn client_effect_target_selection_original(
+  prepared : PreparedClientEffectComputation,
+) -> Array[ClientEffectUpdateTargetSelections] {
+  match prepared.target_selections {
+    None => []
+    Some(value) => [value]
+  }
+}
+
+///|
+pub fn client_effect_target_selection_wire(
+  original : ClientEffectUpdateTargetSelections,
+) -> String {
+  original.wire
+}
+
+///|
+pub fn client_effect_target_selection_cid(
+  original : ClientEffectUpdateTargetSelections,
+) -> String {
+  "sha256:" + @sha.hex(@utf8.encode(original.wire))
+}
+
+///|
+pub fn client_effect_target_selection_matches_prepared(
+  original : ClientEffectUpdateTargetSelections,
+  prepared : PreparedClientEffectComputation,
+) -> Bool {
+  match prepared.target_selections {
+    None => false
+    Some(value) => physical_equal(original, value)
+  }
 }
 
 ///|
