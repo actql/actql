@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from test_local_native_control_custody import Function
 from test_local_native_original_read import ParentReadFixture
+from actql_sdk._local_native_runtime_abi import BINDING_VERSION, BINDING_SHA256
 from actql_sdk._local_native_runtime import (
     _OriginalPackagedRuntimeCustody, _OriginalPackagedRuntimeFunctions,
     _OriginalPackagedRuntimeError,
@@ -22,6 +23,8 @@ class RuntimeFixture(ParentReadFixture):
         self.runtime_capture_fault = self.runtime_originals_fault = None
         self.runtime_call_fault = self.runtime_drop_fault = self.runtime_finish_fault = None
         functions = {
+            'binding_version': lambda: BINDING_VERSION,
+            'binding_byte': lambda index: BINDING_SHA256.encode('ascii')[index],
             'capture_utf16_into': self.capture_runtime,
             'originals_into': self.runtime_originals,
             'drop_reply': self.runtime_drop,
@@ -88,6 +91,37 @@ class RuntimeFixture(ParentReadFixture):
 
 
 class OriginalRuntimeTests(unittest.TestCase):
+    def test_stale_binding_refuses_before_original_operation(self):
+        f = RuntimeFixture()
+        f.host._functions.library.actql_packaged_runtime_binding_version = Function(lambda: 0)
+        with self.assertRaisesRegex(ValueError, 'Native Runtime binding'):
+            _OriginalPackagedRuntimeFunctions(f.host._functions.library)
+        self.assertEqual(f.runtime_events, [])
+        self.assertIsNone(f.read._runtime_original)
+
+    def test_different_compiled_declaration_refuses_before_original_operation(self):
+        f = RuntimeFixture()
+        f.host._functions.library.actql_packaged_runtime_binding_byte = Function(lambda _: ord('0'))
+        with self.assertRaisesRegex(ValueError, 'Native Runtime binding'):
+            _OriginalPackagedRuntimeFunctions(f.host._functions.library)
+        self.assertEqual(f.runtime_events, [])
+        self.assertIsNone(f.read._runtime_original)
+
+    def test_same_width_utf16_roles_keep_independent_meaning(self):
+        f = RuntimeFixture()
+        observed = []
+        original = f.capture_runtime
+        def capture(h, r, a, an, b, bn, c, cn, d, dn, ceiling, out):
+            observed.append((bytes(a).decode('utf-16-le'), bytes(b).decode('utf-16-le'),
+                             bytes(c).decode('utf-16-le'), bytes(d).decode('utf-16-le')))
+            return original(h, r, a, an, b, bn, c, cn, d, dn, ceiling, out)
+        f.host._functions.library.actql_packaged_runtime_capture_utf16_into = Function(capture)
+        f.runtime_functions = _OriginalPackagedRuntimeFunctions(f.host._functions.library)
+        r = f.capture()
+        self.assertEqual(observed, [('/private/runtime/日本😀', 'a' * 40, 'darwin-arm64', 'b' * 64)])
+        r.close()
+        f.read.close()
+
     def test_inner_close_clears_original_slots_without_parent_retirement(self):
         f = RuntimeFixture(); r = f.capture()
         self.assertEqual((r._host.value, r._original_read.value, r._runtime.value), (101, 701, 901))
