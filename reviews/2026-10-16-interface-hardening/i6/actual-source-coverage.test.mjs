@@ -19,6 +19,6 @@ test('actual ordinary package source intake reports unresolved generated entranc
   console.log(JSON.stringify({qualification: result.qualification, roots: result.roots.length,
     modules: result.modules.length, types: result.types.length, moonModules: result.moon.modules.length,
     unresolvedEntrances: result.unresolvedEntrances,
-    compilerFields: result.modules.filter(value => value.compilerFields.length)
+    compilerFields: result.modules.filter(value => value.compilerFields?.length)
       .map(({module, compilerFields}) => ({module, compilerFields}))}));
 });
