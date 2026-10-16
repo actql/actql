@@ -6,6 +6,11 @@ import {
   "actql/actql/value_contract" @value,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/sha256" @sha,
+  "actql/actql/decode_core" @decode,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
 } for "test"
+
+formatter(
+  ignore: ["command_environment_receiver.generated_test.mbt"],
+)
