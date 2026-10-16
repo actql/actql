@@ -676,6 +676,8 @@ pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, In
 
 pub fn prepare_result_material_holds_step(ResultMaterialHolds, String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
 
+pub fn prepare_run_state_observation(String, String, Int64, Int, Int, Int) -> Result[RunStateObservation, RunStateObservationIssue]
+
 pub fn prepare_stored_captured_content_reference(String, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[CapturedContentReference, GeneratedContentReferenceIssue]
 
 pub fn prepare_stored_generated_content_reference(String, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[StoredGeneratedContentReference, GeneratedContentReferenceIssue]
@@ -871,6 +873,8 @@ pub fn run_publication_prepared(RunPublicationAdmission) -> RunEvidenceValue
 pub fn run_publication_start_current(RunPublicationAdmission, PublicationContract, String) -> Bool
 
 pub fn run_publication_template_cid(RunPublicationAdmission) -> String
+
+pub fn run_wait_ready(String, Int64?, Int, Int, Int) -> Result[Bool, RunWaitIssue]
 
 pub fn seal_completed_file_listing_observation(CompletedSourceObservationBody, Int, Array[CompletedFileListingReportRow]) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
@@ -2107,6 +2111,25 @@ pub(all) enum RunStateIssue {
   InvalidObservationTime(String)
   EffectSetMismatch
   Encoding
+} derive(Eq, @debug.Debug)
+
+type RunStateObservation
+pub fn RunStateObservation::key(Self) -> String
+pub fn RunStateObservation::next_revision(Self, String?, Int64) -> Result[Int64, RunStateObservationIssue]
+pub fn RunStateObservation::wire(Self, Int64) -> Result[String, RunStateObservationIssue]
+
+pub(all) enum RunStateObservationIssue {
+  InvalidObservation
+  ForeignRun
+  InvalidRevision
+  RevisionExhausted
+  InvalidPriorObservation
+  ObservationEncoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunWaitIssue {
+  InvalidState
+  InvalidSince
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SourceInputLogicalIssue {

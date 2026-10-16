@@ -2,6 +2,25 @@
 // issuer remains the only owner of the state and physical-stop rules.
 import {checked} from './runtime-result.mjs';
 
+export function installedRunWaitDecision(moon, state, since) {
+  return moon.clientProgramRunWaitDecision(JSON.stringify(state), since !== null,
+    since === null ? 0n : BigInt(since));
+}
+
+// The actual request-journal owner supplies the already admitted Run id and
+// counter from its original row. No JS canonical identity or state machine.
+export function prepareInstalledRunStateObservation(moon, {
+  state, runId, revision, priorKey,
+}) {
+  const observation = checked(moon.clientProgramPrepareRunStateObservation(
+    JSON.stringify(state), runId, BigInt(revision)));
+  const key = moon.clientProgramRunStateObservationKey(observation);
+  const next = checked(moon.clientProgramRunStateObservationRevision(
+    observation, priorKey !== null, priorKey ?? '', BigInt(revision)));
+  const wire = checked(moon.clientProgramRunStateObservationWire(observation, next));
+  return Object.freeze({key, revision: Number(next), wire});
+}
+
 export function issueInstalledRunObservationKey(moon, {
   outcome, revision, cleanupPending, physicalCloseConfirmed,
 }) {

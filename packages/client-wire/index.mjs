@@ -1,4 +1,5 @@
 export {checkReasonSchemaCid, checkOutcomeSchemaCid, checkOutcomeProtocol, runStateProtocol} from './client-host.generated.js';
+export {validRunWaitContract} from './client-host.generated.js';
 export * from './interactive-control.generated.js';
 // Structural Client–Host wire admission only. The Host's MoonBit owners decide
 // identities, authorization, state transitions, publication and retry.
@@ -472,8 +473,8 @@ export function validClientBody(operation, body) {
     ['json', 'jsonl', 'csv'].includes(body.format);
   if (operation === 'delivery-attempt') return boundedText(body.resultName) &&
     boundedText(body.attemptId);
-  if (operation === 'wait') return body.until === null ||
-    boundedText(body.until, 128);
+  if (operation === 'wait') return (body.until === null || boundedText(body.until, 128)) &&
+    (body.since === null || Number.isSafeInteger(body.since) && body.since >= 0);
   return true;
 }
 
