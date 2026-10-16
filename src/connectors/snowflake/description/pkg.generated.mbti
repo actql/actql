@@ -1,0 +1,91 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/snowflake/description"
+
+import {
+  "actql/actql/client_row_source_host",
+  "actql/actql/connectors/snowflake/catalog",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn description_column_contract(TableDescription, Int) -> @value_contract.Contract?
+
+pub fn description_column_count(TableDescription) -> Int
+
+pub fn description_column_max_characters(TableDescription, Int) -> Int64?
+
+pub fn description_column_name(TableDescription, Int) -> String?
+
+pub fn description_column_nullable(TableDescription, Int) -> Bool?
+
+pub fn description_column_numeric_properties(TableDescription, Int) -> (Int64?, Int64?)?
+
+pub fn description_column_type(TableDescription, Int) -> String?
+
+pub fn description_matches_response(TableDescription, @catalog.ResultSet) -> Bool
+
+pub fn description_matches_target(TableDescription, TableTarget) -> Bool
+
+pub fn description_response_count(TableDescription) -> Int
+
+pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
+
+pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]
+
+pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]
+
+pub fn read_projection_fields(ReadProjection) -> Array[String]
+
+pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool
+
+pub fn read_projection_relation_view(ReadProjection, String) -> @client_row_source_host.RowRelationViewSpec
+
+pub fn read_projection_schema(ReadProjection) -> (String, String)
+
+pub fn read_projection_statement(ReadProjection) -> String
+
+pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum DescriptionIssue {
+  InvalidLimits
+  InvalidTarget
+  DescriptionLimit
+  WrongDescriptionShape
+  IncompleteDescription
+  ForeignPartition
+  ForeignTarget
+  InvalidColumn(String)
+  DuplicateColumn(String)
+  UnknownColumn(String)
+  UnsupportedType(String, String)
+  InvalidSelection
+  InvalidSchema
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DescriptionLimits {
+  max_columns : Int
+  max_name_bytes : Int
+  max_schema_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub struct ReadProjection {
+  // private fields
+}
+
+pub struct TableDescription {
+  // private fields
+}
+
+pub struct TableTarget {
+  // private fields
+}
+
+// Type aliases
+
+// Traits

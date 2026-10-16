@@ -678,6 +678,18 @@ fn request_body(
         Some(value) => Json::string(value)
         None => Json::null()
       }
+      fields["since"] = match optional(child, "since") {
+        None => Json::null()
+        Some(value) => {
+          let revision : Int64 = @string.from_str(value) catch {
+            _ => stop("InvalidWaitRevision")
+          }
+          if revision < 0L || revision > 9007199254740991L {
+            stop("InvalidWaitRevision")
+          }
+          Json::number(revision.to_double())
+        }
+      }
     }
     "read" | "delivery-attempt" => {
       fields["ref"] = json_file(root, required(child, "ref-file"), 8192L)
@@ -754,6 +766,8 @@ fn command() -> @argparse.Command {
       @argparse.OptionArg("mode", default_values=["remote"], global=true),
       @argparse.OptionArg("config-root", default_values=["."], global=true),
       @argparse.OptionArg("config-file", global=true),
+      @argparse.OptionArg("config", global=true),
+      @argparse.OptionArg("profile", global=true),
       @argparse.OptionArg("state-dir", global=true),
       @argparse.OptionArg("input-root", global=true),
       @argparse.OptionArg("endpoint", global=true),
@@ -862,6 +876,7 @@ fn command() -> @argparse.Command {
       @argparse.Command("wait", options=[
         @argparse.OptionArg("ref-file", required=true),
         @argparse.OptionArg("until"),
+        @argparse.OptionArg("since"),
       ]),
       @argparse.Command("cancel", options=[
         @argparse.OptionArg("ref-file", required=true),
@@ -1225,10 +1240,24 @@ fn main {
       abort("native Client argument failure")
     }
   }
-  let value = execute(matches) catch {
+  let selected = execute_native_project_selection(matches) catch {
     ClientStop(message) => {
       fail_command(message)
       abort("native Client operation failure")
+    }
+  }
+  let value = match selected {
+    Ok(value) => value
+    Err(original) => {
+      // Retry retirement on the same Root/Reader only. A cleanup failure is
+      // still a failure; process exit is not a filesystem retirement ACK.
+      if original.retry_cleanup() is Err(_) {
+        fail_command("ProjectConfigurationReadCleanupPending")
+      } else {
+        fail_command("ProjectConfigurationReadUnavailable")
+      }
+      ignore(original.issue())
+      abort("native Client project input failure")
     }
   }
   if matches.subcommand is Some(("read", _)) {
