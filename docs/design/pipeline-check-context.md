@@ -1229,6 +1229,18 @@ Command by compatible schema or equal CID is not a substitute. The old field
 branch retains its original reads and work accounting. New lookup work and the
 existing pair owner's charged work share the original finite budget.
 
+The query lowerer retains the same opaque `StoreTargetPublication` through the
+Source frontend. It resolves the original target before SET binding, then uses
+the existing Relation expression lowerer and a single private Stage Result.
+Direct ContentRef fields retain their original values; computed SET fields are
+derived once from the preceding scope, including immutable ranges. Omitted SET
+keeps the current visible columns in order. A completed set or Model continuation
+is captured after its owning computation, without making a new public Result.
+Explicit public Results remain separately exported. Relation targets emit the
+existing canonical `store`; an original published Command pair emits the closed
+`command.target.published_store` alternative. This lowering does not construct a
+Ref or a new acquisition path.
+
 This static proof does not issue target authority. Installed preparation must
 retain the original trusted issuer/current closure and all installation, scope
 and generation identities through Run material adoption, Preview, apply and
