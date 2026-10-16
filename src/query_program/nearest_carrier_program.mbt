@@ -70,6 +70,7 @@ fn lower_script_nearest_carrier(
   retained : Array[RetainedResult]?,
   set_head? : Bool = false,
   graphs? : Array[ScriptGraph] = [],
+  insert_target? : ResolvedInsertTarget? = None,
 ) -> Input raise Abort {
   guard @query.operation_at(query, 0) is Some(Nearest(clause)) else {
     raise Abort(InvalidQuery)
@@ -104,6 +105,7 @@ fn lower_script_nearest_carrier(
       reserved,
       output,
       retained~,
+      insert_target~,
       set_head~,
       graphs~,
     )
@@ -209,6 +211,7 @@ fn lower_script_nearest_carrier(
     reserved,
     output,
     retained~,
+    insert_target~,
     set_head~,
     graphs~,
   )

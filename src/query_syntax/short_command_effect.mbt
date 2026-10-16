@@ -36,6 +36,7 @@ fn QueryParser::effect_is_short_command(self : QueryParser) -> Bool {
       keyword(second, "UPDATE") ||
       keyword(second, "UPSERT") ||
       keyword(second, "DELETE") ||
+      keyword(second, "INSERT") ||
       keyword(second, "CREATE") ||
       keyword(second, "STORE") ||
       keyword(second, "COMMAND")

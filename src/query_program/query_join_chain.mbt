@@ -298,6 +298,7 @@ fn compile_join_chain_steps(
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
   checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
+  insert_target? : ResolvedInsertTarget? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if inputs.length() != @query.join_part_count(query) + 1 ||
     (
@@ -674,6 +675,7 @@ fn compile_join_chain_steps(
     true,
     final_from,
     retained~,
+    insert_target~,
     initial_scope=Some(scope),
     preserved_scope~,
     parameter_declarations~,

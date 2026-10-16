@@ -291,6 +291,7 @@ struct Query {
   effect : UpdateEffectClause?
   table_effect : TableEffectClause?
   store_effect : StoreEffectClause?
+  insert_effect : InsertEffectClause?
   short_command_effect : ShortCommandEffectClause?
   commands : Array[CommandEffectClause]
   work : Int
@@ -1111,6 +1112,7 @@ fn QueryParser::bind_query(
     effect: None,
     table_effect: None,
     store_effect: None,
+    insert_effect: None,
     short_command_effect: None,
     commands: [],
     work: self.work,
@@ -2252,6 +2254,7 @@ fn QueryParser::initial_from(
           effect: None,
           table_effect: None,
           store_effect: None,
+          insert_effect: None,
           short_command_effect: None,
           commands: [],
           work: self.work,
@@ -2470,6 +2473,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     effect: None,
     table_effect: None,
     store_effect: None,
+    insert_effect: None,
     short_command_effect: None,
     commands: [],
     work: self.work,
@@ -2515,6 +2519,7 @@ fn QueryParser::query(
     if body.effect is Some(_) ||
       body.table_effect is Some(_) ||
       body.store_effect is Some(_) ||
+      body.insert_effect is Some(_) ||
       body.short_command_effect is Some(_) {
       raise QueryAbort(
         "CTAS input cannot contain another terminal write",
@@ -2793,6 +2798,7 @@ fn QueryParser::pipe(
       effect: None,
       table_effect: None,
       store_effect: None,
+      insert_effect: None,
       short_command_effect: None,
       commands: [],
       work: self.work,
@@ -2820,12 +2826,14 @@ fn QueryParser::pipe_tail(
   let mut effect = input.effect
   let mut table_effect = input.table_effect
   let mut store_effect = input.store_effect
+  let mut insert_effect = input.insert_effect
   let mut short_command_effect = input.short_command_effect
   let commands = input.commands.copy()
   while self.peek().value == Pipe {
     if effect is Some(_) ||
       table_effect is Some(_) ||
       store_effect is Some(_) ||
+      insert_effect is Some(_) ||
       short_command_effect is Some(_) {
       raise QueryAbort("EFFECT must be terminal", self.peek().start)
     }
@@ -2867,6 +2875,7 @@ fn QueryParser::pipe_tail(
         effect: None,
         table_effect: None,
         store_effect: None,
+        insert_effect: None,
         short_command_effect: None,
         commands: [],
         work: self.work,
@@ -2899,6 +2908,7 @@ fn QueryParser::pipe_tail(
         effect: None,
         table_effect: None,
         store_effect: None,
+        insert_effect: None,
         short_command_effect: None,
         commands: [],
         work: self.work,
@@ -2933,6 +2943,7 @@ fn QueryParser::pipe_tail(
         effect: None,
         table_effect: None,
         store_effect: None,
+        insert_effect: None,
         short_command_effect: None,
         commands: [],
         work: self.work,
@@ -3419,6 +3430,8 @@ fn QueryParser::pipe_tail(
         table_effect = Some(self.table_create_clause(Some(name)))
       } else if self.effect_is_short_command() {
         short_command_effect = Some(self.short_command_effect_clause())
+      } else if self.effect_is_insert() {
+        insert_effect = Some(self.insert_effect_clause())
       } else if self.effect_is_store() {
         store_effect = Some(self.store_effect_clause())
       } else {
@@ -3474,6 +3487,7 @@ fn QueryParser::pipe_tail(
     effect,
     table_effect,
     store_effect,
+    insert_effect,
     short_command_effect,
     commands,
     work: self.work,
@@ -3735,7 +3749,8 @@ pub fn parse_query(
       while parser.has("EFFECT") {
         if query.effect is Some(_) ||
           query.table_effect is Some(_) ||
-          query.store_effect is Some(_) {
+          query.store_effect is Some(_) ||
+          query.insert_effect is Some(_) {
           raise QueryAbort(
             "Conflicting terminal Effect declarations",
             parser.peek().start,
@@ -3812,6 +3827,7 @@ fn QueryParser::effect_is_store(self : QueryParser) -> Bool {
       keyword(second, "UPDATE") ||
       keyword(second, "UPSERT") ||
       keyword(second, "DELETE") ||
+      keyword(second, "INSERT") ||
       keyword(second, "CREATE") ||
       keyword(second, "STORE") ||
       keyword(second, "COMMAND")
@@ -3910,6 +3926,7 @@ pub fn effect_result_continuation(
       query.effect is None &&
       query.table_effect is None &&
       query.store_effect is None &&
+      query.insert_effect is None &&
       query.short_command_effect is None
     ) ||
     !query.sets.is_empty() ||
@@ -3927,6 +3944,7 @@ pub fn effect_result_continuation(
           effect: None,
           table_effect: None,
           store_effect: None,
+          insert_effect: None,
           short_command_effect: None,
           commands: [],
         }
@@ -3988,39 +4006,7 @@ fn QueryParser::update_effect_clause(
   } else {
     raise QueryAbort("Expected UPDATE, UPSERT or DELETE", self.peek().start)
   }
-  let (target, mapping) = if self.has("TARGET") &&
-    !token_at(self.source, self.index + 1)
-    .map(token => token.value == Symbol(46))
-    .unwrap_or(false) {
-    self.keyword("TARGET")
-    let expression = self.expression()
-    let target = match
-      expression_node(expression, expression_root(expression)).unwrap().kind {
-      StringLiteral(value) => value
-      _ =>
-        raise QueryAbort(
-          "Effect TARGET requires a string literal",
-          self.peek().start,
-        )
-    }
-    self.keyword("MAPPING")
-    (ConcreteTarget(target), Some(self.name()))
-  } else {
-    let path = self.path()
-    if path.length() < 2 {
-      raise QueryAbort(
-        "Effect logical target requires a qualified name",
-        self.peek().start,
-      )
-    }
-    let mapping = if self.has("MAPPING") {
-      self.keyword("MAPPING")
-      Some(self.name())
-    } else {
-      None
-    }
-    (LogicalTarget(path), mapping)
-  }
+  let (target, mapping) = self.record_effect_target()
   let result = if self.has("FROM") {
     self.keyword("FROM")
     self.keyword("RESULT")

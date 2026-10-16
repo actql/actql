@@ -126,6 +126,8 @@ pub fn terminal_command_effect_count(Query) -> Int
 
 pub fn terminal_effect(Query) -> UpdateEffectClause?
 
+pub fn terminal_insert_effect(Query) -> InsertEffectClause?
+
 pub fn terminal_short_command_effect(Query) -> ShortCommandEffectClause?
 
 pub fn terminal_store_effect(Query) -> StoreEffectClause?
@@ -355,6 +357,14 @@ pub(all) struct InferClause {
   keep : Array[KeepItem]
   name : NamePart
   origin : @frontend_source_map.Origin?
+}
+
+pub(all) struct InsertEffectClause {
+  name : NamePart?
+  target : UpdateEffectTarget
+  mapping : NamePart?
+  fields : Array[NamePart]
+  values : Array[Expression]?
 }
 
 pub(all) enum Issue {

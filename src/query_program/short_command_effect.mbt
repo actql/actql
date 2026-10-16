@@ -133,6 +133,7 @@ fn lower_short_command_capture(
       carrier_complete: false,
       update: None,
       store: false,
+      insert: false,
       command: Some((id, target, assignments)),
     },
     body,

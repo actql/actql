@@ -340,7 +340,8 @@ pub fn client_program_prepare_source_computation_with_parameters(
           Rejected(SourcePreparation(CommandTargetOriginalsUnavailable)),
         )
       }
-      if lowered.keyed_effect_kind is Some(Upsert | Delete) {
+      if lowered.keyed_effect_kind is Some(Upsert | Delete) ||
+        lowered.insert_effect {
         // The existing original selection owner currently admits UPDATE and
         // published STORE only. Never discard a new keyed operation's purpose.
         return SourcePure(

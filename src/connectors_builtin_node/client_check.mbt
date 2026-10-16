@@ -654,7 +654,8 @@ fn check_source_findings(
         @program_check.diagnostic_cause(diagnostic)
         is Source(UnsupportedEffects(_)) {
         if lowered.command_selection is Some(_) ||
-          lowered.keyed_effect_kind is Some(Upsert | Delete) {
+          lowered.keyed_effect_kind is Some(Upsert | Delete) ||
+          lowered.insert_effect {
           findings.push(Limit("implementation_limit"))
           return Report
         }

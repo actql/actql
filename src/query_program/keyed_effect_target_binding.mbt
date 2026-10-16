@@ -8,9 +8,10 @@ fn keyed_effect_operation(kind : @query.KeyedEffectKind) -> String {
 }
 
 ///|
-fn keyed_effect_candidates(
+fn record_effect_candidates(
   publication : UpdateTargetPublication,
-  kind : @query.KeyedEffectKind,
+  operation : String,
+  selector : String,
   max_work : Int,
 ) -> Result[(Array[@environment.MappingContractShape], Int), UpdateTargetIssue] {
   if max_work < 0 {
@@ -26,14 +27,7 @@ fn keyed_effect_candidates(
     let mapping = @environment.mapping_shape_at(publication.mappings, index).unwrap()
     let (supported, work) = match
       @environment.mapping_supports_operation(
-        mapping,
-        keyed_effect_operation(kind),
-        if kind == Upsert {
-          "key"
-        } else {
-          "id"
-        },
-        remaining,
+        mapping, operation, selector, remaining,
       ) {
       Ok(value) => value
       Err(@environment.MappingPermissionIssue::WorkLimit) =>
@@ -64,7 +58,16 @@ pub fn resolve_keyed_effect_target_binding(
     )
   }
   let (candidates, remaining) = match
-    keyed_effect_candidates(publication, kind, max_work) {
+    record_effect_candidates(
+      publication,
+      keyed_effect_operation(kind),
+      if kind == Upsert {
+        "key"
+      } else {
+        "id"
+      },
+      max_work,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -89,7 +92,16 @@ pub fn resolve_concrete_keyed_effect_target_binding(
     )
   }
   let (candidates, remaining) = match
-    keyed_effect_candidates(publication, kind, max_work) {
+    record_effect_candidates(
+      publication,
+      keyed_effect_operation(kind),
+      if kind == Upsert {
+        "key"
+      } else {
+        "id"
+      },
+      max_work,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

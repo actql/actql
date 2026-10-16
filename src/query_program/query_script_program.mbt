@@ -48,6 +48,7 @@ fn lower_script_relation(
   positional_set_output? : Bool = false,
   allow_nonrelation? : Bool = false,
   set_head? : Bool = false,
+  insert_target? : ResolvedInsertTarget? = None,
 ) -> Input raise Abort {
   let (known, graphs) = lower_script_bindings(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
@@ -85,6 +86,7 @@ fn lower_script_relation(
         reserved,
         output,
         retained.unwrap_or([]),
+        insert_target~,
         known~,
         current=Some(graph),
         continuation=Some((context, sources)),
@@ -102,6 +104,7 @@ fn lower_script_relation(
         known~,
         graphs~,
         retained~,
+        insert_target~,
         positional_set_output~,
         set_head~,
         continuation=Some((context, sources)),
@@ -122,6 +125,7 @@ fn lower_script_relation(
       reserved,
       output,
       retained~,
+      insert_target~,
       allow_nonrelation~,
       set_head~,
     )
@@ -138,6 +142,7 @@ fn lower_script_relation(
       reserved,
       output,
       retained,
+      insert_target~,
       set_head~,
       graphs~,
     )
@@ -194,6 +199,7 @@ fn lower_script_relation(
     reserved,
     output,
     retained~,
+    insert_target~,
     carry_ranges~,
     retain_value_table~,
     graphs~,
@@ -219,6 +225,7 @@ fn lower_script_relation_term(
   graphs? : Array[ScriptGraph] = [],
   positional_set_output? : Bool = false,
   set_head? : Bool = false,
+  insert_target? : ResolvedInsertTarget? = None,
 ) -> Input raise Abort {
   if script_has_graph_rows(query) {
     let graph = require_script_graph_input(
@@ -237,6 +244,7 @@ fn lower_script_relation_term(
       known~,
       graphs~,
       retained~,
+      insert_target~,
       positional_set_output~,
       set_head~,
       continuation=Some((context, sources)),
@@ -262,6 +270,7 @@ fn lower_script_relation_term(
       steps,
       reserved,
       retained,
+      insert_target~,
       preserved_scope=preserved,
       positional_set_output~,
     )
@@ -325,6 +334,7 @@ fn lower_script_relation_term(
     nearest_inputs~,
     nearest_vectors~,
     retained~,
+    insert_target~,
     parameter_declarations=context.parameter_declarations,
     initial_scope=script_input_scope(
       construction,
@@ -465,6 +475,17 @@ fn compile_query_script_with_source(
         )
       None => None
     }
+    let insert_target = match @query.terminal_insert_effect(root) {
+      Some(clause) =>
+        Some(
+          resolve_insert_effect_target(
+            clause,
+            update_targets,
+            limits.max_expression_work,
+          ),
+        )
+      None => None
+    }
     // Complete authoritative target selection before the existing Relation
     // lowerer resolves ID/SET or builds a private UPDATE capture.
     let update_target = match @query.terminal_effect(root) {
@@ -563,6 +584,7 @@ fn compile_query_script_with_source(
           known=stage_known,
           graphs~,
           retained=Some(retained),
+          insert_target~,
           continuation=Some((stage_context, stage_sources)),
         )
       } else if @query.graph_query(current) is Some(_) && !graph_row_set {
@@ -575,6 +597,7 @@ fn compile_query_script_with_source(
           reserved,
           "aql_script_result",
           retained,
+          insert_target~,
           known=stage_known,
           current=resolved_graph,
           continuation=Some((stage_context, stage_sources)),
@@ -591,6 +614,7 @@ fn compile_query_script_with_source(
           reserved,
           "aql_script_result",
           retained=Some(retained),
+          insert_target~,
           graphs~,
         )
       }
@@ -691,6 +715,22 @@ fn compile_query_script_with_source(
         retained.push(capture)
         stage_steps.append(body.map(entries => construction.object(entries)))
       }
+      if @query.terminal_insert_effect(current) is Some(clause) &&
+        !retained.any(result => result.insert) {
+        let (capture, body) = lower_insert_capture(
+          construction,
+          clause,
+          insert_target.unwrap(),
+          result.name,
+          result.visible_fields.map(field => (field, field)),
+          [],
+          result.visible_fields,
+          limits.max_expression_work,
+          reserved_bindings=reserved,
+        )
+        retained.push(capture)
+        stage_steps.append(body.map(entries => construction.object(entries)))
+      }
       if @query.terminal_short_command_effect(current) is Some(clause) &&
         !retained.any(result => result.command is Some(_)) {
         let (capture, body) = lower_short_command_capture(
@@ -731,9 +771,11 @@ fn compile_query_script_with_source(
               retained,
               keep_default=!prior_results.is_empty() &&
                 store_target is None &&
+                insert_target is None &&
                 command_target is None,
               implicit_primary=table_effect is None &&
                 store_target is None &&
+                insert_target is None &&
                 command_target is None,
             )
           },
@@ -802,6 +844,20 @@ fn compile_query_script_with_source(
               construction,
               clause,
               store_target.unwrap(),
+              stage_context.stage_result,
+              retained,
+            ),
+          ),
+        )
+      }
+      if @query.terminal_insert_effect(current) is Some(clause) {
+        stage_entries.push(
+          (
+            "effects",
+            lower_insert_effect(
+              construction,
+              clause,
+              insert_target.unwrap(),
               stage_context.stage_result,
               retained,
             ),
