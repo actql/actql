@@ -11,8 +11,25 @@ import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
 export async function viteInterfaceInventory(root, configs) {
   root = realpathSync(root);
-  const modules = new Map(), assets = new Map(), generated = [], external = new Set();
+  const modules = new Map(), assets = new Map(), generated = [], external = new Map();
   const compiled = new Map(), copied = new Map(), consumed = new Set();
+  // Vite remains the module resolver. These are installed roots from the
+  // selected ordinary lock, not a second import resolver or a name-based
+  // exemption for arbitrary checkout-external source. Workspace links remain
+  // authored inputs. Archive integrity is still the normal release audit's job.
+  const lockPath = resolve(root, 'package-lock.json');
+  const lockBytes = existsSync(lockPath) ? readFileSync(lockPath) : undefined;
+  const lock = lockBytes ? JSON.parse(lockBytes) : {packages: {}};
+  const installed = Object.entries(lock.packages ?? {}).flatMap(([installation, pin]) => {
+    const match = /(?:^|\/)node_modules\/((?:@[^/]+\/)?[^/]+)$/u.exec(installation);
+    const path = resolve(root, installation);
+    if (!match || pin.link || !pin.version || !pin.integrity || !pin.resolved || !existsSync(path)) return [];
+    return [{installation, directory: realpathSync(path), name: pin.name ?? match[1], pin}];
+  }).sort((a, b) => b.directory.length - a.directory.length);
+  const contains = (parent, path) => {
+    const name = relative(parent, path);
+    return !isAbsolute(name) && name !== '..' && !name.startsWith('../');
+  };
   const inside = path => {
     const name = relative(root, path);
     return !isAbsolute(name) && name !== '..' && !name.startsWith('../');
@@ -32,13 +49,22 @@ export async function viteInterfaceInventory(root, configs) {
       consumed.add(original);
       return;
     }
-    if (!inside(original)) {
-      external.add(original);
+    const dependency = installed.find(value => contains(value.directory, original));
+    if (dependency) {
+      const manifest = JSON.parse(readFileSync(resolve(dependency.directory, 'package.json'), 'utf8'));
+      assert.equal(manifest.name, dependency.name, `Mixed installed Vite dependency: ${dependency.installation}`);
+      assert.equal(manifest.version, dependency.pin.version, `Mixed installed Vite dependency: ${dependency.installation}`);
+      external.set(original, {installation: dependency.installation, name: manifest.name, version: manifest.version,
+        resolved: dependency.pin.resolved, integrity: dependency.pin.integrity,
+        member: relative(dependency.directory, original),
+        sha256: createHash('sha256').update(readFileSync(original)).digest('hex')});
       return;
     }
     const module = relative(root, original);
     assert(!isConnectorTestFixture(module) && !/(?:\.test|_test|_wbtest)\./u.test(module),
       `Test authority in Vite interface: ${module}`);
+    assert(inside(original) && !module.split('/').includes('node_modules'),
+      `Unregistered Vite source outside authored checkout or pinned installation: ${module}`);
     const bytes = readFileSync(original), sha256 = createHash('sha256').update(bytes).digest('hex');
     if (/\.[cm]?[jt]sx?$/u.test(module)) {
       modules.set(module, {module, sha256, ...(/\.[cm]?tsx?$/u.test(module)
@@ -97,7 +123,10 @@ export async function viteInterfaceInventory(root, configs) {
   return {qualification: 'configured-vite-input-coverage-only',
     modules: [...modules.values()].sort((a, b) => a.module.localeCompare(b.module)),
     assets: [...assets.values()].sort((a, b) => a.module.localeCompare(b.module)),
-    externalModuleCount: external.size, generated,
+    externalModuleCount: external.size,
+    externalModules: [...external.values()].sort((a, b) =>
+      `${a.installation}/${a.member}`.localeCompare(`${b.installation}/${b.member}`)),
+    dependencyLockSha256: lockBytes && createHash('sha256').update(lockBytes).digest('hex'), generated,
     sourceArtifacts: [...compiled].sort(([a], [b]) => a.localeCompare(b)).map(([path, value]) => ({
       module: relative(root, path), sha256: value.sha256, build: value.config, sourcePackages: [],
       qualification: 'configured-vite-output; requires-normal-artifact-admission'})),

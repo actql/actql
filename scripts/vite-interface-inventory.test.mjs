@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {test} from 'node:test';
 import {viteInterfaceInventory} from './vite-interface-inventory.mjs';
@@ -45,4 +45,56 @@ test('configured Vite closure refuses outside-directory test authority at its po
   put('other/authority.test.mjs', 'export function read(value) {return value;}');
   await assert.rejects(viteInterfaceInventory(directory, ['vite.config.mjs']),
     /Test authority in Vite interface: other\/authority.test.mjs/u);
+});
+
+function foreignFixture(t) {
+  const project = fixture(t);
+  const foreign = mkdtempSync(join(process.cwd(), '_build/interface-vite-foreign-'));
+  t.after(() => rmSync(foreign, {recursive: true}));
+  return {...project, foreign};
+}
+
+test('configured Vite closure refuses checkout-external test authority before external counting', async t => {
+  const {directory, put, foreign} = foreignFixture(t);
+  writeFileSync(join(foreign, 'outcome.test.mjs'), 'export function read(value) {return value;}');
+  put('sdk/entry.mjs', `export {read} from ${JSON.stringify(join(foreign, 'outcome.test.mjs'))};`);
+  await assert.rejects(viteInterfaceInventory(directory, ['vite.config.mjs']),
+    /Test authority in Vite interface: .*outcome\.test\.mjs/u);
+});
+
+test('configured Vite closure refuses neutral foreign source without installed provenance', async t => {
+  const {directory, put, foreign} = foreignFixture(t);
+  writeFileSync(join(foreign, 'neutral.mjs'), 'export function read(value) {return value;}');
+  put('sdk/entry.mjs', `export {read} from ${JSON.stringify(join(foreign, 'neutral.mjs'))};`);
+  await assert.rejects(viteInterfaceInventory(directory, ['vite.config.mjs']), /Unregistered Vite source/u);
+});
+
+test('configured Vite closure identifies pinned installed inputs without admitting a foreign namesake', async t => {
+  const {directory, put, foreign} = foreignFixture(t);
+  const dependency = join(foreign, 'installed');
+  mkdirSync(dependency);
+  const manifest = {name: 'neutral-dependency', version: '1.0.0', type: 'module', exports: './neutral.mjs'};
+  writeFileSync(join(dependency, 'package.json'), JSON.stringify(manifest));
+  writeFileSync(join(dependency, 'neutral.mjs'), 'export function read(value) {return value;}');
+  mkdirSync(join(directory, 'node_modules'));
+  symlinkSync(dependency, join(directory, 'node_modules/neutral-dependency'));
+  put('package-lock.json', JSON.stringify({lockfileVersion: 3, packages: {
+    'node_modules/neutral-dependency': {version: '1.0.0', resolved: 'https://example.invalid/neutral.tgz',
+      integrity: 'sha512-synthetic-lock-pin'}}}));
+  put('sdk/entry.mjs', 'export {read} from "neutral-dependency";');
+  const admitted = await viteInterfaceInventory(directory, ['vite.config.mjs']);
+  assert.equal(admitted.externalModuleCount, 1);
+  assert.deepEqual(admitted.externalModules.map(({installation, name, version, member}) =>
+    ({installation, name, version, member})), [{installation: 'node_modules/neutral-dependency',
+    name: 'neutral-dependency', version: '1.0.0', member: 'neutral.mjs'}]);
+  assert.match(admitted.externalModules[0].sha256, /^[a-f0-9]{64}$/u);
+  // The lock pin identifies the actual installation, not a package.json name
+  // supplied by another authored directory. This is not archive verification.
+  writeFileSync(join(foreign, 'package.json'), JSON.stringify(manifest));
+  writeFileSync(join(foreign, 'neutral.mjs'), 'export function read(value) {return value;}');
+  put('sdk/entry.mjs', `export {read} from ${JSON.stringify(join(foreign, 'neutral.mjs'))};`);
+  await assert.rejects(viteInterfaceInventory(directory, ['vite.config.mjs']), /Unregistered Vite source/u);
+  put('sdk/entry.mjs', 'export {read} from "neutral-dependency";');
+  writeFileSync(join(dependency, 'package.json'), JSON.stringify({...manifest, version: '2.0.0'}));
+  await assert.rejects(viteInterfaceInventory(directory, ['vite.config.mjs']), /Mixed installed Vite dependency/u);
 });
