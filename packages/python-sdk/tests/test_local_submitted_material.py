@@ -1,4 +1,5 @@
 """Independent scalar custody tests, not actual Wasm or durable admission."""
+from local_abi_declaration_fixture import assert_current_local_abi
 import copy
 from threading import RLock
 import unittest
@@ -126,7 +127,7 @@ class SubmittedMaterialCustodyTests(unittest.TestCase):
         self.assertNotIn('cancel', [name for _, name, _ in calls])
 
     def test_strict_private_abi_requires_original_submitted_row_export(self):
-        self.assertEqual(LOCAL_CORE_ABI, 72)
+        assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_MATERIAL_SIGNATURES['reserve_submitted_rows'],
                          ('i64 i32 i32 i32 i32 i64', 'i32'))
 

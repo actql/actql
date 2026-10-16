@@ -1,4 +1,5 @@
 """Original scalar custody, not actual Wasm, public admission or publication."""
+from local_abi_declaration_fixture import assert_current_local_abi
 import copy
 import unittest
 
@@ -17,7 +18,7 @@ class SourceFreeComputeTests(unittest.TestCase):
         return core, custody, inputs, run, start, calls, codes
 
     def test_closed_abi_addition_is_exact_and_versioned(self):
-        self.assertEqual(LOCAL_CORE_ABI, 72)
+        assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_COMPUTE_SIGNATURES, {
             'reserve': ('i64 i32 i32', 'i32'),
             'reserve_source_free': ('i64 i32 i32 i32', 'i32'),
