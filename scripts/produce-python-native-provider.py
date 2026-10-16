@@ -13,6 +13,7 @@ from pathlib import Path
 import platform
 import shlex
 import subprocess
+import sys
 import time
 
 
@@ -20,10 +21,10 @@ ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/platform_native/installed_arena_entry'
 LIBRARY = 'libactql_native_control.dylib'
 PACKAGE_INPUT = ROOT / 'scripts/python-native-provider-packages.json'
-# Exact ordinary entry dependency closure observed at source 9f1a948d. This is
-# compiler recipe selection, never runtime compatibility or resource authority.
+# Exact ordinary entry dependency closure, including effect_program_binding.
+# This is compiler recipe selection, never runtime compatibility or authority.
 _packages = json.loads(PACKAGE_INPUT.read_bytes())
-if (type(_packages) is not list or len(_packages) != 161
+if (type(_packages) is not list or len(_packages) != 162
         or any(type(p) is not str or not p.startswith('actql/actql/') for p in _packages)
         or len(set(_packages)) != len(_packages)):
     raise ValueError('Selected Native package inventory is unavailable')
@@ -79,7 +80,7 @@ def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
             raise ValueError('Selected Native package registry is missing')
         parts[0] = str(moon_home / 'bin/moonc')
         commands.append(parts)
-    if (sum(c[1] == 'build-package' for c in commands) != 161
+    if (sum(c[1] == 'build-package' for c in commands) != 162
             or sum(c[1] == 'link-core' for c in commands) != 1):
         raise ValueError('Selected Native emission inventory changed')
     if {c[c.index('-pkg') + 1] for c in commands if c[1] == 'build-package'} != PACKAGES:
@@ -160,6 +161,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     if (run(['git', 'rev-parse', 'HEAD'], capture=True).strip() != source
             or run(['git', 'status', '--porcelain'], capture=True)):
         raise ValueError('Exact committed clean Native provider source required')
+    run([sys.executable, str(ROOT / 'scripts/generate-local-native-runtime-binding.py'), '--check'])
+    run([sys.executable, str(ROOT / 'scripts/generate-local-native-shim-bindings.py'), '--check'])
     pin = json.loads((ROOT / 'toolchain.json').read_text())
     marker = json.loads((moon_home / 'installed.json').read_text())
     if marker != {'pin': pin, 'platform': 'darwin-arm64'}:
@@ -294,7 +297,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             or run(['git', 'status', '--porcelain'], capture=True)):
         raise ValueError('Original Native provider source changed during build')
     record = {'source': source, 'target': 'aarch64-apple-darwin', 'deployment_target': '11.0',
-              'emission_build_packages': 161, 'emission_link_core': 1,
+              'emission_build_packages': 162, 'emission_link_core': 1,
               'diagnostic_debug_registry_omitted': False,
               'c_compile': len(objects), 'c_link': 1, 'emitted_c': original(emitted),
               'library': original(library), 'objects': [original(path) for path in objects],
