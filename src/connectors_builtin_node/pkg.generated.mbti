@@ -1856,6 +1856,8 @@ pub fn client_program_row_source_close_accounted(@client_row_source_host.RowRun)
 
 pub fn client_program_row_source_columns(@client_row_source_host.RowAcquisition) -> Array[String]
 
+pub fn client_program_row_source_consume_observation_charge(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
 
 pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
