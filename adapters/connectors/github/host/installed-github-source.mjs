@@ -200,6 +200,7 @@ export async function publishGitHubRepository(checkedProfile, {root,
   const {declared} = await restore(moon, checkedProfile.connectorId, undefined);
   const opened = await openSite(checkedProfile, site, {root, principalId,
     moon, runtimeBundleCid, resolveSecret, installation});
+  let primaryFailure;
   try {
     const decision = await opened.authorization.authorize('acquisition',
       {connection: opened.connection, resource: 'issues', operation: 'read'},
@@ -251,8 +252,17 @@ export async function publishGitHubRepository(checkedProfile, {root,
     await writeFile(temporary, canonicalJson(publication), {mode: 0o600});
     await rename(temporary, checkedProfile.publicationPath);
     return Object.freeze({...publication});
+  } catch (cause) {
+    primaryFailure = cause;
+    throw cause;
   } finally {
-    opened.site.close();
+    try { await opened.site.close(); }
+    catch (cause) {
+      // Publication may already be durable. Retain only the original Site's
+      // cleanup, never repeat discovery or replace its original refusal.
+      throw await retainInstalledHostInitializationFailure(primaryFailure ?? cause,
+        {sourceProfile: opened.site});
+    }
   }
 }
 

@@ -548,6 +548,7 @@ pub(all) enum GraphKeyOperation {
   MatchOperation(@graph_typing.CheckedMatch)
   TraverseOperation(@graph_typing.CheckedTraverse)
   ComponentsOperation(@graph_typing.CheckedComponents)
+  DegreeOperation(@graph_typing.CheckedDegree)
 }
 
 pub struct InferInputBinding {

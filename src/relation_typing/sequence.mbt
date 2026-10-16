@@ -135,8 +135,10 @@ pub fn check_sequence(
       Timestamp if event_id is None => true
       _ => fail(ts, IncompatibleColumn(time_name))
     }
-    let by = decoded(@decode.required(obj, "by"), body)
-    let sources = decoded(@decode.elements(by), by)
+    let sources = match @decode.lookup(obj, "by") {
+      None => []
+      Some(by) => decoded(@decode.elements(by), by)
+    }
     let keys : Array[KeyField] = []
     let output : Array[(@schema.FieldName, @contract.Contract)] = []
     let seen : Map[String, Bool] = Map([])
@@ -153,17 +155,23 @@ pub fn check_sequence(
         output.push((field, c))
       }
     }
-    let os = decoded(@decode.required(obj, "overlap"), body)
-    let overlap = match decoded(@decode.text(os), os) {
-      "allow" => Allow
-      "disallow" => Disallow
-      _ => fail(os, InvalidBody)
+    let overlap = match @decode.lookup(obj, "overlap") {
+      None => Disallow
+      Some(os) =>
+        match decoded(@decode.text(os), os) {
+          "allow" => Allow
+          "disallow" => Disallow
+          _ => fail(os, InvalidBody)
+        }
     }
-    let cs = decoded(@decode.required(obj, "contiguity"), body)
-    let contiguity = match decoded(@decode.text(cs), cs) {
-      "adjacent" => Adjacent
-      "subsequence" => Subsequence
-      _ => fail(cs, InvalidBody)
+    let contiguity = match @decode.lookup(obj, "contiguity") {
+      None => Adjacent
+      Some(cs) =>
+        match decoded(@decode.text(cs), cs) {
+          "adjacent" => Adjacent
+          "subsequence" => Subsequence
+          _ => fail(cs, InvalidBody)
+        }
     }
     let ps = decoded(@decode.required(obj, "pattern"), body)
     let parts = decoded(@decode.elements(ps), ps)

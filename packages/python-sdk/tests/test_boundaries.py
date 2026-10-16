@@ -108,6 +108,8 @@ class ContractTests(unittest.TestCase):
     def test_pins_location_revision_and_scope_relationships_are_checked(self):
         original = check_report()
         self.assertTrue(wire.check_outcome(original))
+        self.assertFalse(wire.check_outcome(original | {'report': {key: value for key, value in original['report'].items() if key != 'runnable'}}))
+        self.assertFalse(wire.check_outcome(original | {'report': original['report'] | {'runnable': False}}))
         for mutate in ['pin', 'revision', 'position', 'classification']:
             value = deepcopy(original)
             if mutate == 'pin': value['reason_schema_cid'] = 'sha256:' + '0' * 64
@@ -119,6 +121,7 @@ class ContractTests(unittest.TestCase):
         for field, rejected in (
             ('reason_schema_cid', 'sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac'),
             ('outcome_schema_cid', 'sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f'),
+            ('outcome_schema_cid', 'sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a'),
             ('outcome_schema_cid', 'sha256:' + '0' * 64),
         ):
             with self.subTest(rejected_schema_pin=field, cid=rejected):

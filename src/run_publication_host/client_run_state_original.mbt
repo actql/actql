@@ -33,6 +33,15 @@ pub fn prepare_client_run_state_original(
     Ok(_) => ()
     Err(_) => return Err(CustodyLost)
   }
+  encode_client_run_state_original(definition, manifest, state_wire)
+}
+
+///|
+fn encode_client_run_state_original(
+  definition : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  state_wire : String,
+) -> Result[ClientRunStateOriginal, ClientJournalDecodingIssue] {
   try {
     let writer = @encode.writer(131072, 8, 1)
     @encode.begin_object(writer)
@@ -59,6 +68,25 @@ pub fn prepare_client_run_state_original(
 pub fn restore_client_run_state_original(
   definition : @publication.PublicationContract,
   wire : String,
+) -> Result[ClientRunStateOriginal, ClientJournalDecodingIssue] {
+  restore_client_run_state_original_body(definition, wire, false)
+}
+
+///|
+/// Validate authentic retained metadata without making missing historical
+/// observation counters into public state, permission or a restoration repair.
+pub fn validate_client_historical_run_state_original(
+  definition : @publication.PublicationContract,
+  wire : String,
+) -> Result[Unit, ClientJournalDecodingIssue] {
+  restore_client_run_state_original_body(definition, wire, true).map(_ => ())
+}
+
+///|
+fn restore_client_run_state_original_body(
+  definition : @publication.PublicationContract,
+  wire : String,
+  historical : Bool,
 ) -> Result[ClientRunStateOriginal, ClientJournalDecodingIssue] {
   let parsed = match
     @source.parse_json_bytes_preserving(@utf8.encode(wire), {
@@ -95,6 +123,19 @@ pub fn restore_client_run_state_original(
     ) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
+  }
+  if historical {
+    if @publication.validate_historical_original_succeeded_run_state(
+        definition, manifest, state_wire, 65536, 8192, 64,
+      )
+      is Err(_) {
+      return Err(CustodyLost)
+    }
+    return match
+      encode_client_run_state_original(definition, manifest, state_wire) {
+      Ok(original) if original.wire == wire => Ok(original)
+      _ => Err(CustodyLost)
+    }
   }
   match prepare_client_run_state_original(definition, manifest, state_wire) {
     Ok(original) if original.wire == wire => Ok(original)

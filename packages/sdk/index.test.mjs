@@ -158,6 +158,7 @@ test('check outcome explanations preserve unknown problems and reject malformed 
   assert.equal(unavailable.problem.kind, 'unknown');
   assert.equal(unavailable.report, undefined);
   const report = {context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'undetermined',
+    runnable: {verdict: 'no', reasons: [{code: 'implementation_limit'}]},
     inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 6}],
     reasons: [], requirements: [], coverage: {limits: [{code: 'implementation_limit'}], unresolved: []}};
   const partial = explainCheckOutcome({...metadata, outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'future'},
@@ -244,7 +245,7 @@ const profile = Object.freeze({version: 'actql-client-host/0.1',
     maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}});
 const admission = Object.freeze({ref, durability: 'durable', revision: 4});
 const state = Object.freeze({version: 'actql-run-state/0.1',
-  run_id: 'run-a', status: 'succeeded',
+  run_id: 'run-a', revision: 11, status: 'succeeded',
   updated_at: '2026-09-24T00:00:00.000Z',
   next_action: {kind: 'refresh_availability', results: ['answer']},
   result_available: false,
@@ -282,6 +283,7 @@ test('check rejects a location inside an original UTF-8 scalar', async t => {
     ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
       reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
+        runnable: {verdict: 'no', reasons: [{code: 'supplied_value_type_mismatch'}]},
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 18}],
         reasons: [{code: 'query_syntax_invalid', location: {kind: 'text',
           document_id: 'source', revision, start_byte: start, end_byte: 12,
@@ -327,6 +329,9 @@ test('check refuses a Host verdict that contradicts its own evidence',
     const report = (verdict, reasons, limits, unresolved) => ({version, reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
       outcome: 'completed', report: {context_ref: 'ctx:a', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 13}],
         scope: {kind: 'bound_input'}, verdict, reasons,
+        runnable: verdict === 'verified' ? {verdict: 'yes', reasons: []} :
+          {verdict: 'no', reasons: [{code: reasons[0]?.code ?? limits[0]?.code ??
+            unresolved[0]?.reason ?? 'fixture_blocked'}]},
         coverage: {limits, unresolved}}});
     const limit = [{code: 'analysis_budget_exhausted'}];
     const open = [{boundary: 'source_resolution',
@@ -1355,6 +1360,7 @@ test('check retains detached submitted inputs while credentials are pending', as
     return Response.json({version: 'actql-check-outcome/0.1',
       reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
+        runnable: {verdict: 'no', reasons: [{code: 'supplied_value_type_mismatch'}]},
         inputs: [
           {document_id: 'source', kind: 'text', revision: 'rev:' + '1'.repeat(64), byte_length: 13},
           {document_id: 'parameter_declarations', kind: 'structured', revision: 'rev:' + '2'.repeat(64), byte_length: 23},

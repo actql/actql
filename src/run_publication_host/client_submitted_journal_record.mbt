@@ -7,6 +7,9 @@ pub(all) struct ClientSubmittedJournalEncoding {
   intent : ClientSubmittedIntent
   run_admission : (ClientRequestIdentity, String, Int64)?
   run_state_original : String?
+  // Original public observation counter/key, separate from SQL/control CAS.
+  // None is historical absence, not a newly issued zero-counter row.
+  run_state_observation : (Int64, String?)?
 }
 
 ///|
@@ -28,7 +31,8 @@ pub fn decode_client_submitted_journal_row(
     })
     is Ok(cursor) &&
     @decode.closed_object(cursor, [
-      "intent", "phase", "reference", "run_admission", "run_state_original", "version",
+      "intent", "phase", "reference", "run_admission", "run_state_key", "run_state_original",
+      "run_state_revision", "version",
     ])
     is Ok(object) else {
     return Err(CustodyLost)
@@ -70,6 +74,29 @@ pub fn decode_client_submitted_journal_row(
         _ => return Err(CustodyLost)
       }
   }
+  let run_state_observation = match
+    (
+      @decode.lookup(object, "run_state_revision"),
+      @decode.lookup(object, "run_state_key"),
+    ) {
+    (None, None) => None
+    (Some(counter), Some(key)) => {
+      let revision = match @decode.safe_integer(counter) {
+        Ok(value) if value >= 0L => value
+        _ => return Err(CustodyLost)
+      }
+      let key = if @decode.is_null(key) {
+        None
+      } else {
+        match @decode.text(key) {
+          Ok(value) => Some(value)
+          _ => return Err(CustodyLost)
+        }
+      }
+      Some((revision, key))
+    }
+    _ => return Err(CustodyLost)
+  }
   if phase != (if run_admission is Some(_) { "ready" } else { "preparing" }) ||
     !client_submitted_intent_transition(phase, phase) {
     return Err(CustodyLost)
@@ -80,9 +107,16 @@ pub fn decode_client_submitted_journal_row(
       intent,
       run_admission~,
       run_state_original~,
+      run_state_observation~,
     ) {
     Ok(original) if original == body =>
-      Ok({ reference, intent, run_admission, run_state_original, })
+      Ok({
+        reference,
+        intent,
+        run_admission,
+        run_state_original,
+        run_state_observation,
+      })
     _ => Err(CustodyLost)
   }
 }

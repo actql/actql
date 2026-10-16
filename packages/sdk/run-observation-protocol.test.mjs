@@ -14,7 +14,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
     maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
-const running = () => ({version: 'actql-run-state/0.1', run_id: 'original-run',
+const running = () => ({version: 'actql-run-state/0.1', run_id: 'original-run', revision: 31,
   status: 'running', updated_at: '2026-10-07T00:00:00.000Z',
   next_action: {kind: 'none'}, result_available: false, result_availability: {answer: {state: 'unavailable', reason: 'not_published', observed_at: '2026-10-07T00:00:00.000Z'}}});
 const capture = async promise => {
@@ -232,7 +232,8 @@ function changing(object, key, first, later, counts) {
 }
 const paths = [
   ...['status', 'wait', 'reconcile'].map(operation => ({name: operation,
-    reply: running, call: f => f.run[operation](), code: 'InvalidHostRunState', key: 'run_id',
+    reply: () => operation === 'wait' ? {...running(), status: 'succeeded'} : running(),
+    call: f => f.run[operation](), code: 'InvalidHostRunState', key: 'run_id',
     first: 'original-run', later: 'replacement-run',
     assert: answer => assert.equal(answer.run_id, 'original-run', '[check-mutation:response-capture-run]')})),
   {name: 'lookupRequest', reply: lookup, call: f => f.client.lookupRequest('saved'),
@@ -282,9 +283,20 @@ for (const path of paths) {
     const answer = await path.call(f);
     path.assert(answer);
     assert.deepEqual(counts, Object.fromEntries(Object.keys(counts).map(key => [key, 1])), '[check-mutation:response-capture-once]');
-    const second = await path.call(f);
+    if (['status', 'wait', 'reconcile'].includes(path.name)) {
+      // A later captured response naming another Run is now a refusal; it
+      // cannot replace this handle's first admitted original observation.
+      let failure;
+      await assert.rejects(path.call(f), error => {
+        failure = error; return error.code === 'InvalidHostRunState';
+      });
+      assert.equal(explainRunObservationFailure(failure).problem, 'stale_observation');
+      assert.equal(counts[path.key], 2, 'One capture for each original or rejected response');
+    } else {
+      const second = await path.call(f);
+      assert.notEqual(second, answer);
+    }
     path.assert(answer);
-    assert.notEqual(second, answer);
     assert.equal(Object.isFrozen(reply), false);
     assert.equal(f.operations.length, 4);
     assert.equal(sdk.explainRequestLookup(structuredClone(answer)), undefined);
