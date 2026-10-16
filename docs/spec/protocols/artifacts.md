@@ -946,8 +946,18 @@ effective data-policy CID. The Content issuer evidence and external egress
 admission MUST respectively bind that same effective data-policy CID and reject
 unknown classification before any provider call. Resolution MUST validate store/workspace scope,
 availability, expiry, size/range, and content CID. Raw bytes remain in host
-artifact storage. `store` remains relation
-materialization. File/binary upload is a typed Connector command.
+artifact storage. The canonical `store` opcode remains relation materialization.
+The authored [`EFFECT STORE`](../query-text.md#short-effect-forms-and-sql-statements)
+spelling also admits object/file/stage writes with an original typed ContentRef;
+it does not imply a format or codec. Such a write may normalize to an existing
+typed Connector Command only through an explicitly published, checked relationship
+between the original write Mapping, exact Command Contract/member, target and
+installation. The checked selection and all those identities MUST remain bound
+through compilation, original Run materials, Preview, apply and restore. A matching
+name or schema does not establish the relationship, and the Mapping MUST NOT be
+discarded after selection. Current installation and grants remain independently
+checked; ContentRef availability/egress custody, approval, overwrite conditions,
+Unknown, nonresend and cleanup obligations are unchanged.
 
 <!-- requirement-block: reference-admission.each-concrete-artifactref-presented-for-external-egress-must-have-exactly reference-admission.before-provider-access-admission-must-check-checked-at-now reference-admission.lease-evidence-must-bind-the-store-contract-and-host-policy reference-admission.the-interval-must-satisfy-both-sets-of-limits-and-must reference-admission.the-interval-must-satisfy-both-sets-of-limits-and-must.second reference-admission.a-store-unable-to-promise-availability-for-the-requested-interval reference-admission.the-host-must-maintain-a-valid-lease-until-it-has reference-admission.if-continued-coverage-cannot-be-established-the-host-must-stop stage-receipt-view.product-11ae22332ea1 stage-receipt-view.product-5566e5e2191f -->
 Each concrete ContentRef presented for external egress MUST have exactly one
