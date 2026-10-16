@@ -80,3 +80,56 @@ def valid(value, schema):
             return False
         return all(key not in value or valid(value[key], field) for key, field in properties.items())
     return True
+
+
+def negotiated(value, schema, selected):
+    if not valid(value, schema) or not valid(selected, 'connection'):
+        return False
+    rules = CONTRACT['response_rules'][schema]
+    if any(value.get(key) != selected.get(key) for key in rules['matchConnection']):
+        return False
+    if any(selected.get(key) == expected and value.get(key) != expected
+           for key, expected in rules['requireRequested'].items()):
+        return False
+    return True
+
+
+def correlated(value, schema, request_id):
+    rules = CONTRACT['request_response_rules'][schema]
+    return (any(valid(value, name) for name in rules['schemas'])
+            and value.get(rules['matchRequest']) == request_id)
+
+
+def check_outcome(value):
+    if not valid(value, 'check_outcome') or value['outcome_schema_cid'] != CONTRACT['check_outcome_schema_cid']:
+        return False
+    report = value.get('report', value.get('partial_report'))
+    if report is None:
+        return True
+    documents = {item['document_id']: item for item in report['inputs']}
+    occurrences = report['reasons'] + report['requirements'] + report['coverage']['limits']
+    if len(documents) != len(report['inputs']):
+        return False
+    if 'program' in documents:
+        if documents['program']['kind'] != 'structured' or {'source', 'parameter_declarations'} & documents.keys():
+            return False
+    elif documents.get('source', {}).get('kind') != 'text':
+        return False
+    if any(item['kind'] != 'structured' for key, item in documents.items() if key != 'source'):
+        return False
+    for reason in occurrences:
+        location = reason.get('location')
+        if location is not None:
+            doc = documents.get(location['document_id'])
+            if doc is None or (doc['revision'], doc['kind']) != (location['revision'], location['kind']):
+                return False
+            if location['kind'] == 'text' and not 0 <= location['start_byte'] <= location['end_byte'] <= doc['byte_length']:
+                return False
+    for reason in occurrences:
+        for fix in reason.get('fixes', []):
+            doc = documents.get(fix['target']['document_id'])
+            if doc is None or doc['kind'] != 'text' or doc['revision'] != fix['target']['revision']:
+                return False
+            if any(edit['start_byte'] != doc['byte_length'] or edit['end_byte'] != doc['byte_length'] for edit in fix['edits']):
+                return False
+    return True

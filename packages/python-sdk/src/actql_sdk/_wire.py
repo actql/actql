@@ -1,7 +1,8 @@
 """Closed wire admission, separate from Host-owned execution decisions."""
 import re
 import unicodedata
-from ._wire_codec import CONTRACT, SCHEMAS, valid, utf16_length
+from ._wire_codec import (CONTRACT, SCHEMAS, valid, utf16_length, correlated, check_outcome,
+                          negotiated as negotiated_contract)
 
 
 def bounded_text(value, limit=256):
@@ -28,54 +29,8 @@ def restart(value, fresh):
 
 
 def negotiated(value, schema, selected):
-    if not valid(value, schema) or not valid(selected, 'connection'):
-        return False
-    rules = CONTRACT['response_rules'][schema]
-    if any(value.get(key) != selected.get(key) for key in rules['matchConnection']):
-        return False
-    if any(selected.get(key) == expected and value.get(key) != expected
-           for key, expected in rules['requireRequested'].items()):
-        return False
-    return schema != 'profile' or 'submissionEpoch' not in value or epoch(value['submissionEpoch'])
-
-
-def correlated(value, schema, request_id):
-    rules = CONTRACT['request_response_rules'][schema]
-    return (any(valid(value, name) for name in rules['schemas'])
-            and value.get(rules['matchRequest']) == request_id)
-
-
-def check_outcome(value):
-    if not valid(value, 'check_outcome') or value['outcome_schema_cid'] != CONTRACT['check_outcome_schema_cid']:
-        return False
-    report = value.get('report', value.get('partial_report'))
-    if report is None:
-        return True
-    documents = {item['document_id']: item for item in report['inputs']}
-    if len(documents) != len(report['inputs']):
-        return False
-    if 'program' in documents:
-        if documents['program']['kind'] != 'structured' or {'source', 'parameter_declarations'} & documents.keys():
-            return False
-    elif documents.get('source', {}).get('kind') != 'text':
-        return False
-    if any(item['kind'] != 'structured' for key, item in documents.items() if key != 'source'):
-        return False
-    for reason in report['reasons'] + report['requirements'] + report['coverage']['limits']:
-        location = reason.get('location')
-        if location is not None:
-            doc = documents.get(location['document_id'])
-            if doc is None or (doc['revision'], doc['kind']) != (location['revision'], location['kind']):
-                return False
-            if location['kind'] == 'text' and not 0 <= location['start_byte'] <= location['end_byte'] <= doc['byte_length']:
-                return False
-        for fix in reason.get('fixes', []):
-            doc = documents.get(fix['target']['document_id'])
-            if doc is None or doc['kind'] != 'text' or doc['revision'] != fix['target']['revision']:
-                return False
-            if any(edit['start_byte'] != doc['byte_length'] or edit['end_byte'] != doc['byte_length'] for edit in fix['edits']):
-                return False
-    return True
+    return (negotiated_contract(value, schema, selected)
+            and (schema != 'profile' or 'submissionEpoch' not in value or epoch(value['submissionEpoch'])))
 
 
 def submission_outcome(value, selected, expected, intent_cid=None, unresolved=None, *, lookup=False):
