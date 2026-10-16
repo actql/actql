@@ -629,6 +629,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "abort_row_run",
             "accept_charged_row_run_page",
             "accept_charged_row_run_values",
