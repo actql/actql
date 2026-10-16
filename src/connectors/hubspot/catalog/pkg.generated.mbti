@@ -19,6 +19,8 @@ pub fn object_page_rows(ObjectPage) -> Array[ObjectRow]
 
 pub fn object_row_values(ObjectRow) -> Array[@value_admission.CheckedValue]
 
+pub fn object_schema_wire(PropertyCatalog, Array[String], Int, Int, Int, Int, Int) -> Result[String, ObjectPageIssue]
+
 pub fn project_account_identity(Bytes, @source_value.ParseLimits) -> Result[AccountIdentity, AccountIdentityIssue]
 
 pub fn project_object_page(Bytes, PropertyCatalog, Array[String], ObjectPageLimits) -> Result[ObjectPage, ObjectPageIssue]
