@@ -60,9 +60,9 @@ fn local_product_selected_location(
 fn local_product_operation(operation : String) -> Bool {
   [
     "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "explain",
-    "new-submission", "lookup-submission", "checkpoint-state", "lookup-preparation-grant",
-    "lookup-preparation-raw", "lookup-cancellation", "cancel", "delivery-attempt",
-    "read", "start", "aql", "run", "status",
+    "new-submission", "lookup-submission", "lookup-request", "checkpoint-state",
+    "lookup-preparation-grant", "lookup-preparation-raw", "lookup-cancellation",
+    "cancel", "delivery-attempt", "read", "start", "aql", "run", "status",
   ].contains(operation)
 }
 
