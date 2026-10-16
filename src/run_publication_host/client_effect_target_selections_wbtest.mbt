@@ -137,7 +137,7 @@ fn target_selection_replace_field(
   wire : String,
   field : String,
   replacement : String?,
-) -> String {
+) -> String raise @encode.EncodeFailure {
   let source = @source.parse_json_bytes(@utf8.encode(wire), {
     max_input_bytes: 1000000,
     max_nodes: 8192,

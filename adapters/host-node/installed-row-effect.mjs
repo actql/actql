@@ -90,6 +90,8 @@ import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {issueUpdateTargetInstallation, assertUpdateTargetSelectionCurrent,
+  assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
 
 // Private provenance: copies of an adapter cannot introduce an installation.
 const rowInstallations = new WeakMap();
@@ -159,55 +161,33 @@ const installationFacts = owner => ({
   connection: owner.connection, profile: owner.profile,
   continuation_binding: owner.continuationBinding,
 });
-const ownerBinding = owner => {
-  const facts = installationFacts(owner);
-  return Object.freeze({cid: cid(facts), wire: canonicalJson(facts)});
-};
+const ownerBinding = owner => issueUpdateTargetInstallation(owner.moon, installationFacts(owner));
 export function installedRowEffectOwnerBinding(adapter) {
   const owner = rowInstallations.get(adapter);
   return owner === undefined || Array.isArray(owner) ? undefined : ownerBinding(owner);
 }
 
-const selectionKeys = Object.freeze(['stage_index', 'effect_id', 'target_ref',
-  'mapping_ref', 'mapping_cid', 'check_environment_cid',
-  'installation_binding_cid', 'installation_owner_cid'].sort());
 const selectionChanged = cause => {
   throw refusedEffectPreparation(Object.assign(
     new Error('InstalledRowEffectInstallationChanged', {cause}),
     {code: 'InstalledRowEffectInstallationChanged'}));
 };
-const selectionMatchesOwner = (selection, owner) =>
-  selection.installation_binding_cid === owner.bindingCid &&
-  selection.installation_owner_cid === ownerBinding(owner).cid &&
-  owner.owned.kinds.includes('update') && owner.installed.some(mapping =>
-    mapping.target === selection.target_ref &&
-    mapping.mappingRef === selection.mapping_ref &&
-    mapping.mappingCid === selection.mapping_cid &&
-    mapping.rules.some(rule => rule.effect_kind === 'update'));
+const updateObservations = owners => owners.map(owner => ({installation: ownerBinding(owner),
+  update: owner.owned.kinds.includes('update'), mappings: owner.installed.map(mapping => ({
+    target: mapping.target, mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid,
+    update: mapping.rules.some(rule => rule.effect_kind === 'update')}))}));
 const validateOwnerSelections = (owners, selections) => {
   if (selections === undefined) return undefined;
-  if (!Array.isArray(selections) || selections.length === 0 ||
-      owners.length === 0) selectionChanged();
-  const occurrences = new Set();
-  return Object.freeze(selections.map(selection => {
-    if (selection === null || typeof selection !== 'object' ||
-        Array.isArray(selection) ||
-        Object.keys(selection).sort().join('\0') !== selectionKeys.join('\0') ||
-        !Number.isSafeInteger(selection.stage_index) || selection.stage_index < 0 ||
-        ![selection.effect_id, selection.target_ref, selection.mapping_ref]
-          .every(text) ||
-        ![selection.mapping_cid, selection.check_environment_cid,
-          selection.installation_binding_cid, selection.installation_owner_cid]
-          .every(value => cidPattern.test(value ?? '')) ||
-        owners.filter(owner => selectionMatchesOwner(selection, owner)).length !== 1) {
-      selectionChanged();
-    }
-    const occurrence = JSON.stringify([selection.stage_index, selection.effect_id]);
-    if (occurrences.has(occurrence)) selectionChanged();
-    occurrences.add(occurrence);
-    return Object.freeze({...selection});
-  }));
+  try { assertUpdateTargetSelectionCurrent(selections, updateObservations(owners)); }
+  catch (cause) { selectionChanged(cause); }
+  return selections;
 };
+
+// Current physical installation facts; semantic matching stays in Common.
+export function installedRowEffectUpdateObservations(adapter) {
+  const owner = rowInstallations.get(adapter);
+  return updateObservations(owner === undefined ? [] : Array.isArray(owner) ? owner : [owner]);
+}
 
 // The Host has already checked the original Core selection owners. This
 // boundary additionally binds those tuples to the actual installed driver.
@@ -478,30 +458,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     if (selections === undefined) return undefined;
     const liveAssertion = facts.assertUpdateSelectionCurrent;
     if (typeof liveAssertion !== 'function') selectionChanged();
-    const prepared = facts.prepared;
     const updates = members.filter(member => member.kind === 'update');
-    const descriptors = prepared === undefined ? undefined :
-      new Map(updates.map(member => [member.effectId,
-        checked(moon.clientProgramEffectMemberDescriptor(prepared,
-          member.stageIndex, member.effectId, limits.planWork))]));
     const assertCurrent = () => {
       validateOwnerSelections(owners, selections);
-      if (selections.length !== updates.length || updates.some(member => {
-        const selection = selections.find(value => value.effect_id === member.effectId &&
-          value.stage_index === (member.stageIndex ?? stageIndex));
-        if (descriptors !== undefined && selection !== undefined) {
-          const descriptor = descriptors.get(member.effectId);
-          if (descriptor._1 !== selection.effect_id || descriptor._2 !== 'update' ||
-              descriptor._3 !== selection.target_ref ||
-              descriptor._4 !== selection.mapping_ref ||
-              descriptor._5 !== selection.mapping_cid) return true;
-        }
-        return selection === undefined ||
-          selection.mapping_ref !== member.mapping.mappingRef ||
-          selection.mapping_cid !== member.mapping.mappingCid ||
-          selection.target_ref !== member.mapping.target ||
-          !selectionMatchesOwner(selection, ownerOf(member));
-      })) selectionChanged();
+      try {
+        assertUpdateTargetSelectionMembersCurrent(selections, updates.map(member => {
+          ownerOf(member);
+          return {stage_index: member.stageIndex ?? stageIndex, effect_id: member.effectId,
+            target_ref: member.mapping.target, mapping_ref: member.mapping.mappingRef,
+            mapping_cid: member.mapping.mappingCid};
+        }));
+      } catch (cause) { selectionChanged(cause); }
       const result = liveAssertion();
       // A live-owner assertion must finish before the physical operation.
       if (typeof result?.then === 'function') {

@@ -280,8 +280,10 @@ fn client_task_plan_target_selections_cid(
   }
   match @canonical.object_field(material, "effect_target_selections") {
     None => Ok(None)
-    Some(@canonical.Array(values)) if !@canonical.array_values(values).is_empty() => {
-      let selection = @canonical.Array(values)
+    Some(selection) => {
+      guard selection is @canonical.Array(values) && @canonical.array_count(values) > 0 else {
+        return Err(Encoding)
+      }
       let cid = @canonical.cid_value(
         selection, max_wire_bytes, max_nodes, max_depth,
       ) catch {
@@ -289,7 +291,6 @@ fn client_task_plan_target_selections_cid(
       }
       Ok(Some(cid))
     }
-    _ => Err(Encoding)
   }
 }
 

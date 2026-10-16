@@ -182,3 +182,126 @@ pub fn client_program_effect_run_materials_target_selections(
 ) -> Result[String?, @publication_host.ClientEffectUpdateTargetIssue] {
   @publication_host.restore_client_effect_run_target_selections(value)
 }
+
+///|
+#export_name("clientProgramEffectTargetSelectionOriginal")
+pub fn client_program_effect_target_selection_original(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Array[@publication_host.ClientEffectUpdateTargetSelections] {
+  @publication_host.client_effect_target_selection_original(prepared)
+}
+
+///|
+#export_name("clientProgramEffectTargetSelectionWire")
+pub fn client_program_effect_target_selection_wire(
+  original : @publication_host.ClientEffectUpdateTargetSelections,
+) -> String {
+  @publication_host.client_effect_target_selection_wire(original)
+}
+
+///|
+#export_name("clientProgramEffectTargetSelectionCid")
+pub fn client_program_effect_target_selection_cid(
+  original : @publication_host.ClientEffectUpdateTargetSelections,
+) -> String {
+  @publication_host.client_effect_target_selection_cid(original)
+}
+
+///|
+#export_name("clientProgramEffectTargetSelectionMatchesPrepared")
+pub fn client_program_effect_target_selection_matches_prepared(
+  original : @publication_host.ClientEffectUpdateTargetSelections,
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Bool {
+  @publication_host.client_effect_target_selection_matches_prepared(original, prepared)
+}
+
+///|
+#export_name("clientProgramEffectTargetSelectionMatchesRun")
+pub fn client_program_effect_target_selection_matches_run(
+  original : @publication_host.ClientEffectUpdateTargetSelections,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  @publication_host.client_effect_target_selection_matches_run(original, prepared, definition)
+}
+
+///|
+#export_name("clientProgramEffectTargetSelectionCurrent")
+pub fn client_program_effect_target_selection_current(
+  original : @publication_host.ClientEffectUpdateTargetSelections,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  observations : String,
+) -> Bool {
+  @publication_host.client_effect_target_selection_current(original, prepared, observations)
+}
+
+///|
+#export_name("clientProgramIssueEffectTargetInstallation")
+pub fn client_program_issue_effect_target_installation(
+  facts : String,
+) -> Result[(String, String), @publication_host.ClientEffectUpdateTargetIssue] {
+  @publication_host.issue_client_effect_target_installation(facts)
+}
+
+///|
+#export_name("clientProgramEffectTargetInstallationsShape")
+pub fn client_program_effect_target_installations_shape(wire : String) -> Bool {
+  @publication_host.client_effect_target_installations_shape(wire)
+}
+
+///|
+#export_name("clientProgramEffectTargetPreparedOriginalShape")
+pub fn client_program_effect_target_prepared_original_shape(wire : String) -> Bool {
+  @publication_host.client_effect_target_prepared_original_shape(wire)
+}
+
+///|
+#export_name("clientProgramEffectTargetRunOriginalShape")
+pub fn client_program_effect_target_run_original_shape(
+  wire : String, evidence : Array[String],
+) -> Bool {
+  match evidence {
+    [] => @publication_host.client_effect_target_run_original_shape(wire, None, None)
+    [prepared, authorization] => @publication_host.client_effect_target_run_original_shape(wire, Some(prepared), Some(authorization))
+    _ => false
+  }
+}
+
+///|
+#export_name("clientProgramEffectTargetOriginalDataEqual")
+pub fn client_program_effect_target_original_data_equal(left : String, right : String) -> Bool {
+  @publication_host.client_effect_target_original_data_equal(left, right)
+}
+
+///|
+#export_name("clientProgramEffectTargetSelectionDataCid")
+pub fn client_program_effect_target_selection_data_cid(
+  wire : String,
+) -> Result[String, @publication_host.ClientEffectUpdateTargetIssue] {
+  @publication_host.client_effect_target_selection_data_cid(wire)
+}
+
+///|
+#export_name("clientProgramEffectTargetRunSelectionCid")
+pub fn client_program_effect_target_run_selection_cid(
+  wire : String,
+) -> Result[Array[String], @publication_host.ClientEffectUpdateTargetIssue] {
+  @publication_host.client_effect_target_run_selection_cid(wire)
+}
+
+///|
+#export_name("clientProgramEffectTargetOriginalCodecLimits")
+pub fn client_program_effect_target_original_codec_limits() -> Array[Int] {
+  @publication_host.client_effect_target_original_codec_limits()
+}
+
+///|
+#export_name("clientProgramEffectTargetSelectionMembersCurrent")
+pub fn client_program_effect_target_selection_members_current(
+  original : @publication_host.ClientEffectUpdateTargetSelections,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  members : String,
+) -> Bool {
+  @publication_host.client_effect_target_selection_members_current(original, prepared, members)
+}

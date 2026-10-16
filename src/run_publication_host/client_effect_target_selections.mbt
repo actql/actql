@@ -172,7 +172,7 @@ fn prepare_client_effect_target_selections(
   if entries.is_empty() {
     Ok(None)
   } else {
-    encode_client_effect_target_selections(entries).map(Some)
+    encode_client_effect_target_selections(entries).map(value => Some(value))
   }
 }
 

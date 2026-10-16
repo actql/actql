@@ -73,11 +73,11 @@ export async function recoverAdmittedEffectRun({
     void Promise.resolve(original).catch(() => {});
     fail('EffectRecoveryOriginalSelectionUnavailable');
   }
-  const selectionCid = runUpdateSelectionCid(retained.runDefinition);
+  const selectionCid = runUpdateSelectionCid(retained.runDefinition, moon);
   if (selectionCid === undefined ? original.updateTargetSelections !== undefined :
       !Array.isArray(original.updateTargetSelections) ||
       typeof original.assertUpdateSelectionCurrent !== 'function' ||
-      updateTargetSelectionsCid(original.updateTargetSelections) !== selectionCid) {
+      updateTargetSelectionsCid(original.updateTargetSelections, moon) !== selectionCid) {
     fail('EffectRecoveryOriginalSelectionUnavailable');
   }
   const assertOriginalCurrent = () => {

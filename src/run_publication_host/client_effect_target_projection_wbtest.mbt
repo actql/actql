@@ -3,7 +3,7 @@ fn target_projection_replace_raw_field(
   wire : String,
   field : String,
   replacement : String?,
-) -> String {
+) -> String raise @encode.EncodeFailure {
   let root = parse_plan_identity_value(wire, 1000000, 100000, 100).unwrap()
   let writer = @encode.writer(1000000, 100000, 100)
   @encode.begin_object(writer)
@@ -34,7 +34,7 @@ fn target_projection_replace_raw_field(
 fn target_projection_reseal(
   value : @publication.PublicationContract,
   selection_cid : String?,
-) -> @publication.PublicationContract {
+) -> @publication.PublicationContract raise @encode.EncodeFailure {
   let body = target_projection_replace_raw_field(
     @publication.publication_contract_json(value),
     @publication.publication_contract_identity_field(value),

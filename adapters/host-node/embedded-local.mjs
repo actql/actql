@@ -56,7 +56,8 @@ import {installedEffectFor, installedUpdateTargets} from './installed-effect-inv
 import {installedRowEffectDescriptors, validateInstalledUpdateOwnerSelections}
   from './installed-row-effect.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
-import {runUpdateSelectionCid} from './update-target-original-shape.mjs';
+import {runUpdateSelectionCid, createUpdateTargetOriginalShapeControl,
+  assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
 import {assertInstalledConnectorTable} from './installed-connectors.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
@@ -386,12 +387,13 @@ async function openInstalledHost(originalInstallation) {
     if (selections !== undefined || Object.hasOwn(provider ?? {}, 'stage_index')) {
       const preview = JSON.parse(facts.control.effectComputationPreviewWire(
         facts.recovered.computation.preview));
-      const updates = preview.effects.filter(member => member.effect_kind === 'update');
-      if (selections === undefined || updates.length !== selections.length ||
-          selections.some(selection => selection.stage_index !== provider?.stage_index ||
-            !updates.some(member => member.effect_id === selection.effect_id &&
-              member.target === selection.target_ref && member.mapping === selection.mapping_ref &&
-              member.resolved_mapping_contract_cid === selection.mapping_cid))) {
+      try {
+        assertUpdateTargetSelectionMembersCurrent(selections,
+          preview.effects.filter(member => member.effect_kind === 'update').map(member => ({
+            stage_index: provider?.stage_index, effect_id: member.effect_id,
+            target_ref: member.target, mapping_ref: member.mapping,
+            mapping_cid: member.resolved_mapping_contract_cid})));
+      } catch {
         throw refusedEffectPreparation(clientOperationError('InstalledEffectOriginalSelectionChanged'));
       }
     }
@@ -587,6 +589,7 @@ async function openInstalledHost(originalInstallation) {
           parentDirectory:snapshotDirectory,signal})),
     authorization?.faultInjection);
     journal = openClientRequestJournal(journalDirectory, {
+      updateOriginalControl: createUpdateTargetOriginalShapeControl(moon),
       // Private fault hooks exercise the real installed admission clock;
       // Programs and public transport requests cannot select these values.
       submissionEpochTtlMs: authorization?.faultInjection?.submissionEpochTtlMs,
@@ -726,7 +729,7 @@ async function openInstalledHost(originalInstallation) {
   const prepareCapturedSubmission = async (submission, ref) => {
     const retained = ref === undefined ? undefined : journal.lookupRunDefinition(ref, moon, control);
     if (retained !== undefined &&
-        runUpdateSelectionCid(retained.runDefinition) !== undefined &&
+        runUpdateSelectionCid(retained.runDefinition, moon) !== undefined &&
         submission.updateTargetPreparedOriginal === undefined) {
       throw clientOperationError('InstalledEffectOriginalSelectionChanged');
     }
