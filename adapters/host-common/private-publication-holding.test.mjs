@@ -19,14 +19,16 @@ const binding = Object.freeze({
 
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-private-owner-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
   const store = await openLocalPublicationStore({
     directory, storeAuthorityCid: cid('c'),
     capacityBytes: 1024 * 1024, maxObjectBytes: 4096,
     maxObjects: 20, maxContractNodes: 200, maxContractDepth: 16,
     privateEvidenceKey: Buffer.alloc(32, 7),
   }, runtimeCore(moon).publicationControl);
-  t.after(() => store.close());
+  t.after(async () => {
+    assert.equal(await store.close(), true);
+    await rm(directory, {recursive: true, force: true});
+  });
   return store;
 }
 

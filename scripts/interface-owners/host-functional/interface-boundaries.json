@@ -5896,7 +5896,7 @@
     {
       "module": "adapters/host-common/private-publication-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3626e9ad44313bf78b2287f1c627aa47d0c4debe6a6b26f64335f9bdc973a94b",
+      "sha256": "c9abcb4ae01486855163dfff75ffecc64a0e4523ec37987166a2e082426d9808",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
