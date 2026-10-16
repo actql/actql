@@ -37,17 +37,22 @@ test('independent Source and Command are absent from the product table and admit
 });
 
 test('independent Source uses the original acquisition owner and exact bounded capture rather than a connector evaluator', async () => {
-  const fixture = contentCommandFixture();
+  const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
+    'independent-data', 'reference-source', 'reference-source/0.1', JSON.stringify({views: [{
+      resource: 'records', resource_kind: 'reference_record',
+      fields: [{name: 'name', type: 'string', nullable: false}]}]}), undefined));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
+  const sourceEnvironment = rowSourceCheckEnvironment(baseWire, declared);
   // Select only an ordinary scalar from the independently registered Source.
   // No invented Ref or successful permission double is needed for this owner
   // test; real current Ref/approval/dispatch are exercised by the public cases.
   const program = {version: 'actql/0.1', id: 'independent-source-addition', stages: [{
-    id: 'read', inputs: {remote: {connector: 'content-fixture', resource: 'transfers'}},
+    id: 'read', inputs: {remote: {connector: 'independent-data', resource: 'records'}},
     steps: [{filter: 'true', as: 'all_rows'}, {select: ['name'], as: 'out'}],
     results: {r: {from: 'out', fields: ['name']}}}],
     results: {r: {from: {stage: 'read', result: 'r'}}}};
   const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
-    JSON.stringify(program), 'json', fixture.environment, undefined);
+    JSON.stringify(program), 'json', environment(sourceEnvironment.wire), undefined);
   const prepared = moon.clientProgramPreparationReady(outcome);
   assert.ok(prepared, inspect(moon.clientProgramPreparationIssue(outcome), {depth: 6}));
   const read = path => readFile(new URL(`../spec/${path}`, import.meta.url), 'utf8');
@@ -59,7 +64,7 @@ test('independent Source uses the original acquisition owner and exact bounded c
     JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
   const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
-    fixture.declaration, requirement, query, evidence));
+    declaration, requirement, query, evidence));
   assert.equal(checked(moon.clientProgramRowSourceRequestWire(acquisition)), '{}');
   const expected = ['{"name":"é\\r\\n"}', '{"name":"é\\r\\n"}'];
   const bytes = Buffer.from('[{"name":"é\\r\\n"},{"name":"é\\r\\n"}]');
