@@ -4017,6 +4017,14 @@ pub fn client_program_requested_effect_stop_checkpoint(
 }
 
 ///|
+#export_name("clientProgramRequestedEffectStopLifetime")
+pub fn client_program_requested_effect_stop_lifetime(
+  original : @publication_host.ClientRequestedEffectStop,
+) -> Result[(String, String), @publication_host.ClientRequestedEffectStopIssue] {
+  @publication_host.client_requested_effect_stop_lifetime(original)
+}
+
+///|
 #export_name("clientProgramRequestedEffectStopContinuation")
 pub fn client_program_requested_effect_stop_continuation(
   original : @publication_host.ClientRequestedEffectStop,

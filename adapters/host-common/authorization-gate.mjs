@@ -943,6 +943,24 @@ function gateFor(core, context) {
       assertScopeAccountCurrent();
     },
 
+    // Read only this original Account's current classification. A separate
+    // continuation restriction may stop an otherwise admissible tuple before
+    // asking for a delegated Host answer. This returns no dispatch decision,
+    // permit, approval or resume admission and does not populate their cache.
+    observeAccountOutcome(scope) {
+      checkedScope(scope);
+      const account = assertScopeAccountCurrent();
+      const outcome = JSON.parse(core.moon.executionAuthorizationEvaluationJson(
+        core.moon.executionAuthorizationEvaluate(account, context.principal,
+          scope.connection, scope.resource, scope.operation)));
+      ensureOpen();
+      if (!['allow', 'deny', 'delegate'].includes(outcome.outcome)) {
+        unavailable('AuthorizationCurrentAccountUnavailable');
+      }
+      return Object.freeze({outcome: outcome.outcome,
+        ...(outcome.entry_id === undefined ? {} : {entryId: outcome.entry_id})});
+    },
+
     // Evaluate one protected boundary for the exact scope. The tuple principal
     // is the Host context principal; the caller supplies only the Host-derived
     // connection/resource/operation and the sealed subject CID.

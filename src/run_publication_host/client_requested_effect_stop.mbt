@@ -104,6 +104,22 @@ pub fn client_requested_effect_stop_intent_cid(
 }
 
 ///|
+/// Original Run lifetime DATA for the Host's bounded Checkpoint expiration.
+/// This neither extends that lifetime nor establishes approval/currentness.
+pub fn client_requested_effect_stop_lifetime(
+  original : ClientRequestedEffectStop,
+) -> Result[(String, String), ClientRequestedEffectStopIssue] {
+  match check_requested_effect_stop_original(original) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match @publication.run_definition_lifetime(original.definition) {
+    Some(value) => Ok(value)
+    None => Err(ForeignRun)
+  }
+}
+
+///|
 fn requested_effect_stop_value(
   wire : String,
   limits : @checkpoint.WireLimits,

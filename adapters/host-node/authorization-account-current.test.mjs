@@ -75,6 +75,40 @@ test('the configuration-only fence is non-authorizing and observes original scop
     {code: 'AuthorizationDecisionScopeClosed'});
 });
 
+test('requested-stop Account observation preserves outcomes without a Host answer or dispatch', () => {
+  for (const outcome of ['allow', 'deny', 'delegate']) {
+    const x = fixture({wire: accountWire({outcome}), decide() {
+      throw new Error('MustNotAskForDelegation');
+    }});
+    try {
+      const before = x.gate.counters();
+      const observed = x.gate.observeAccountOutcome(scope);
+      assert.deepEqual(observed, {outcome, entryId: 'entry'});
+      assert.equal(Object.isFrozen(observed), true);
+      assert.equal(authorizationDispatchFacts(observed), undefined);
+      assert.throws(() => assertAuthorizationAccountCurrent(observed),
+        {code: 'ForeignAuthorizationDecision'});
+      assert.deepEqual(x.gate.counters(), before);
+      assert.equal(x.decisions(), 0);
+    } finally { x.gate.close(); }
+    assert.throws(() => x.gate.observeAccountOutcome(scope),
+      {code: 'AuthorizationDecisionScopeClosed'});
+  }
+});
+
+test('requested-stop Account observation refuses a changed original configuration before an answer', () => {
+  let wire = accountWire({outcome: 'delegate'});
+  const x = fixture({wire, readConfiguration: () => wire});
+  try {
+    assert.equal(x.gate.observeAccountOutcome(scope).outcome, 'delegate');
+    wire = accountWire({configuration_cid: cid('d')});
+    assert.throws(() => x.gate.observeAccountOutcome(scope),
+      {code: 'AuthorizationCurrentAccountChanged'});
+    assert.equal(x.decisions(), 0);
+    assert.equal(x.gate.counters().protectedDispatches, 0);
+  } finally { x.gate.close(); }
+});
+
 test('same original delegate remains delegated without requesting another Host answer', async () => {
   const x = fixture({wire: accountWire({outcome: 'delegate'}),
     decide: view => ({decision: 'permit', subject: view.subject, authority: 'host', claims: []})});

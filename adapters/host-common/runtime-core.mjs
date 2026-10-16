@@ -4030,6 +4030,19 @@ function publicationControl(moon) {
       }
       return wire;
     },
+    // Private original Client/Checkpoint binding. These operations accept the
+    // Common-issued opaque view, never a wire/CID reconstructed substitute.
+    requestedEffectStopLifetime(original) {
+      const lifetime = checked(moon.clientProgramRequestedEffectStopLifetime(original));
+      return Object.freeze({createdAt: runtimeField(lifetime, 0),
+        validUntil: runtimeField(lifetime, 1)});
+    },
+    sealRequestedEffectStop(original, bodyWire, continuationWire, limits) {
+      issuanceLimits(limits, 'Requested Effect stop');
+      return checked(moon.clientProgramRequestedEffectStopCheckpoint(original,
+        bodyWire, continuationWire, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth));
+    },
     effectPrivateEvidenceBinding(preview, storeAuthorityCid) {
       const ownedPreview = computationPreviewTokens.get(preview);
       if (ownedPreview === undefined) {
