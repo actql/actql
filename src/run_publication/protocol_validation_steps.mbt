@@ -26,6 +26,11 @@ priv struct ProtocolValidationCursor {
   nodes : Array[ProtocolSchemaRule]
   budget : ProtocolValidationBudget
   pending : Array[ProtocolValidationFrame]
+  // Only the private historical RunState reader selects this exact root.
+  // It does not alter current schema validation or any nested object's rules.
+  mut historical_run_state_root : @json.FrozenArray[
+    (String, @json.CanonicalValue),
+  ]?
   mut result : Bool
   mut closed : Bool
 }
@@ -36,11 +41,20 @@ fn start_protocol_validation(
   index : Int,
   nodes : Array[ProtocolSchemaRule],
   budget : ProtocolValidationBudget,
+  historical_run_state? : Bool = false,
 ) -> ProtocolValidationCursor {
   {
     nodes,
     budget,
     pending: [Visit(value, index)],
+    historical_run_state_root: if historical_run_state {
+      match value {
+        @json.Object(fields) => Some(fields)
+        _ => None
+      }
+    } else {
+      None
+    },
     result: false,
     closed: false,
   }
@@ -186,6 +200,10 @@ fn ProtocolValidationCursor::step(self : ProtocolValidationCursor) -> Unit {
       }
       if required_index == required.length() {
         pending.push(ObjectNext(fields, schema, 0))
+      } else if required[required_index] == "revision" &&
+        self.historical_run_state_root is Some(root) &&
+        physical_equal(root, fields) {
+        pending.push(Required(fields, schema, required_index + 1, 0))
       } else if search == @json.array_count(fields) {
         self.result = false
       } else {
@@ -286,5 +304,6 @@ fn ProtocolValidationCursor::advance(
 fn ProtocolValidationCursor::cancel(self : ProtocolValidationCursor) -> Unit {
   self.closed = true
   self.pending.clear()
+  self.historical_run_state_root = None
   self.result = false
 }

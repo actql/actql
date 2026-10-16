@@ -477,3 +477,40 @@ pub fn parse_effect_outcome_shape(
   }
   Ok(value)
 }
+
+///|
+// Exact historical root-field omission through the same generated rule table
+// and validator. No temporary revision/wire, copied table or larger budget.
+// Current public validation cannot select this private compatibility path.
+fn validate_historical_run_state_shape(
+  value : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  guard generated_protocol_schema_root("run_state", true) is Some(root) else {
+    return false
+  }
+  let cursor = start_protocol_validation(
+    value,
+    root,
+    protocol_schema_nodes(),
+    {
+      remaining: if max_nodes > 268435455 {
+        2147483647
+      } else {
+        max_nodes * 8
+      },
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    },
+    historical_run_state=true,
+  )
+  while !cursor.advance(256).0 {
+    ()
+  }
+  let result = cursor.result
+  cursor.cancel()
+  result
+}

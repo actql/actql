@@ -1,7 +1,7 @@
-# HubSpot property and record observations
+# HubSpot account, property and record observations
 
-`catalog` projects one bounded, complete HubSpot properties response into
-Connector metadata and the existing Common value contracts. It does not perform
+`catalog` projects bounded, complete account-details, properties and record-page
+responses into observations and the existing Common value contracts. It does not perform
 I/O or declare an installed Source, Effect, current authorization or executable
 Mapping. The approved complete Connector target remains
 [the public HubSpot page](../../../docs/connectors/hubspot.md).
@@ -49,3 +49,37 @@ Authenticated paging transport, discovery/current binding, installed publication
 record Effects, associations and enrolment still need their physical caller
 connections; these pure observations do not establish ordinary installed or
 real-service acceptance.
+
+The account-details projection reads the complete original response through
+Source and Decode. Its `portalId` follows the provider's int32 declaration;
+Common's exact source-text conversion also checks the original numeric token,
+so binary64 rounding cannot turn a fractional identifier into another account.
+Original response bytes determine the provenance digest. Other account metadata,
+including `accountType`, is not interpreted as policy or permission. The same
+observation must match the original canonical portal identifier; it is never a
+grant or a substitute for the private Credential acquisition binding.
+
+The private `host_node` bridge supplies this projection to
+`adapters/connectors/hubspot/site/hubspot-account-read.mjs`. That entry requires
+an existing binding, a separately authorized `hubspot:account:details` operation,
+current read callbacks, and original response-charge/consumption callbacks before
+starting I/O. It does not create an acquisition or authorize an identity probe
+implicitly. Complete success and rejection bodies are charged before decoding;
+current read checks surround disclosure and awaited charge consumption. A later
+refusal retains the original bounded response on the private error carrier with
+the original cause/code. A lost reply keeps the Credential journal's Unknown,
+without automatic re-probing or a replacement-token request.
+
+The component fixtures use actual Common/Credential/Account owners, SQLite and
+loopback TLS. Complete responses use the same actual RowRun/Ledger. The lost-reply
+case separately qualifies Credential/transport Unknown, not unreported RowRun
+transfer funding. Normal Source installer/discovery/publication, page transport,
+wholephase retained/scratch/cleanup funding, ordinary artifact adoption and live
+service acceptance are still required. No normal numerical profile is adopted.
+The original binding and any same-owner cleanup responsibility must remain with
+the acquisition; this observation entry does not close or replace that owner.
+
+Provider account shape reference:
+[HubSpot's published account-info v3 specification](https://github.com/HubSpot/HubSpot-public-api-spec-collection/blob/main/PublicApiSpecs/Account/Account%20Info/Rollouts/136890/v3/accountInfo.json).
+The selected endpoint/shape is research input, not evidence of live token scope,
+account rights, server enforcement, or support for another API version.
