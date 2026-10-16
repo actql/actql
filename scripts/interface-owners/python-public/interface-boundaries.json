@@ -3619,7 +3619,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_run_state.py",
-      "sha256": "211f7dc732de152444de87ad6ebcb2909fe7ad91cd60d65c5bde4e3285a42eda",
+      "sha256": "883ab38d07793248f2c3058d1351e75c97f59a12be85d5ecdb818413c546d115",
       "exports": [
         "Any",
         "ClientError",
@@ -3719,7 +3719,7 @@
         "typing"
       ],
       "responsibilityFacet": "primary",
-      "role": "public-run-observation",
+      "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Immutable dataclass projection delegates admission to the existing generated wire; it creates no Run revision, permission, resource or recovery authority.",
       "contracts": [

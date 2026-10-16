@@ -32,6 +32,8 @@ class RunStateValueTests(unittest.TestCase):
         self.assertEqual(value.to_dict(), original)
         self.assertIsNone(value.checkpoint)
         self.assertNotIn('checkpoint', value)
+        self.assertIs(type(RunState(state(7.0)).revision), int)
+        self.assertEqual(RunState(state(7.0)).revision, 7)
 
     def test_asdict_and_to_dict_are_detached_and_never_mutate_original_state(self):
         original = state()

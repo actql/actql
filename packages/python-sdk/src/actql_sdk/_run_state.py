@@ -86,4 +86,7 @@ class RunState(Observation):
             raise ClientError('InvalidHostRunState')
         Observation.__init__(self, captured)  # type: ignore[no-untyped-call]
         for field in fields(self):
-            object.__setattr__(self, field.name, _field_value(self.get(field.name)))
+            value = self.get(field.name)
+            # The wire admits mathematical JSON integers, including 7.0.
+            # A safe, already validated revision has an exact Python int view.
+            object.__setattr__(self, field.name, int(value) if field.name == 'revision' else _field_value(value))
