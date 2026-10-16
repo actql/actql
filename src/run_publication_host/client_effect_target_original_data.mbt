@@ -511,13 +511,9 @@ pub fn client_effect_target_selection_matches_run(
   if !client_effect_target_selection_matches_prepared(original, prepared) {
     return false
   }
-  match
-    client_effect_target_run_selection_cid(
-      @publication.publication_contract_json(definition),
-    ) {
-    Ok([cid]) => cid == client_effect_target_selection_cid(original)
-    _ => false
-  }
+  @publication.publication_contract_name(definition) == "run_definition" &&
+  @publication.publication_contract_effect_target_selections_cid(definition) ==
+  Some(client_effect_target_selection_cid(original))
 }
 
 ///|

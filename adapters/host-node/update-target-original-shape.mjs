@@ -4,7 +4,10 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {encodeUpdateTargetData} from './update-target-data.generated.mjs';
 
-const selectionOriginal = Symbol('original checked UPDATE selection');
+// Conversion aliases borrow Common's opaque original. Copying every DATA
+// property cannot copy this association; Common still checks the original on
+// every use. This is not another selection issuer or semantic registry.
+const selectionOriginals = new WeakMap();
 const invalid = () => { throw new TypeError('InvalidEffectTargetSelections'); };
 
 export function retainUpdateTargetSelection(moon, prepared) {
@@ -17,26 +20,25 @@ export function retainUpdateTargetSelection(moon, prepared) {
   for (const entry of entries) Object.freeze(entry);
   // This is a conversion alias, not a new issuer. Every semantic operation
   // checks the original opaque value with its original prepared Owner again.
-  Object.defineProperty(entries, selectionOriginal,
-    {value: Object.freeze({moon, original, prepared})});
+  selectionOriginals.set(entries, Object.freeze({moon, original, prepared}));
   return Object.freeze(entries);
 }
 
 export function assertUpdateTargetSelectionCurrent(selections, observations, prepared) {
-  const binding = selections?.[selectionOriginal];
+  const binding = selectionOriginals.get(selections);
   if (binding === undefined || !binding.moon.clientProgramEffectTargetSelectionCurrent(
     binding.original, prepared ?? binding.prepared, encodeUpdateTargetData(observations))) invalid();
 }
 
 export function updateTargetSelectionMatchesRun(selections, prepared, definition) {
-  const binding = selections?.[selectionOriginal];
+  const binding = selectionOriginals.get(selections);
   return binding !== undefined && binding.prepared === prepared &&
     binding.moon.clientProgramEffectTargetSelectionMatchesRun(
       binding.original, prepared, definition);
 }
 
 export function assertUpdateTargetSelectionMembersCurrent(selections, members, prepared) {
-  const binding = selections?.[selectionOriginal];
+  const binding = selectionOriginals.get(selections);
   if (binding === undefined || !binding.moon.clientProgramEffectTargetSelectionMembersCurrent(
     binding.original, prepared ?? binding.prepared, encodeUpdateTargetData(members))) invalid();
 }
@@ -75,7 +77,7 @@ export function runUpdateSelectionCid(runDefinition, moon) {
 }
 
 export function updateTargetSelectionsCid(selections, moon) {
-  const binding = selections?.[selectionOriginal];
+  const binding = selectionOriginals.get(selections);
   if (binding !== undefined) {
     if (moon !== undefined && moon !== binding.moon ||
         !binding.moon.clientProgramEffectTargetSelectionMatchesPrepared(binding.original, binding.prepared)) invalid();

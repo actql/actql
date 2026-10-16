@@ -58,7 +58,7 @@ test "original DATA Owner retains independent installation bytes CID and NFC wit
 ///|
 test "original DATA Owner checks opaque prepared occurrence installation generation and Run together" {
   let installation_cid = "sha256:9ee844e04eda0aa8f6e901a0fdc3fcd2694aa4bf94ad053b2308a5ae3ef4a2ca"
-  let (prepared, _, definition, _) = target_selection_fixture(
+  let (prepared, allowed, definition, _) = target_selection_fixture(
     owner_cid=installation_cid,
   )
   let (foreign, _, foreign_run, _) = target_selection_fixture()
@@ -71,6 +71,13 @@ test "original DATA Owner checks opaque prepared occurrence installation generat
   )
   assert_true(
     client_effect_target_selection_matches_run(original, prepared, definition),
+  )
+  assert_false(
+    client_effect_target_selection_matches_run(
+      original,
+      prepared,
+      client_effect_compilation_compiled_plan(allowed.compilation),
+    ),
   )
   assert_false(
     client_effect_target_selection_matches_run(original, prepared, foreign_run),
