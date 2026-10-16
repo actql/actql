@@ -3,10 +3,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
+import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {readBoundedLocalMetadata} from './publication-store.mjs';
+import {openLocalPublicationStore, readBoundedLocalMetadata} from './publication-store.mjs';
+import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
 async function fixture(t, {outcomes = ['false', 'false'], primary, openFailure} = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
@@ -136,4 +138,64 @@ test('bounded original pre-acquisition failure keeps its identity and has no FD 
   assert.deepEqual(unopened.counts(), {opens: 1, reads: 0, closes: 0, retired: 1, returned: 0});
   assert.equal(primary.cleanupHandle, undefined);
   unopened.scratch.passed();
+});
+
+test('actual Store original binding keeps its read count through false close and close-only retry', async t => {
+  const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
+    prefix: 'bounded-store-ack-', label: 'same Store metadata FD acknowledgement'});
+  const directory = join(scratch.path, 'store'), path = join(directory, 'store.json');
+  // Real Store/FD/ownership; contract admission is the existing explicit
+  // double. These storage observations are DATA, never Core/Run admission.
+  const store = await openLocalPublicationStore({directory,
+    storeAuthorityCid: `sha256:${createHash('sha256').update('original metadata FD').digest('hex')}`,
+    capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
+    maxContractNodes: 256, maxContractDepth: 32}, createPublicationContractControlFixture());
+  const originalOpen = fs.open;
+  let original, nativeClose, failure, blocked = true, opens = 0, closes = 0;
+  fs.open = async (...args) => {
+    const handle = await Reflect.apply(originalOpen, fs, args);
+    if (args[0] !== path) return handle;
+    opens++;
+    assert.equal(original, undefined, 'pending original binding cannot open a replacement read');
+    original = handle;
+    nativeClose = handle.close.bind(handle);
+    handle.close = async () => {
+      closes++;
+      return blocked ? false : nativeClose();
+    };
+    return handle;
+  };
+  syncBuiltinESMExports();
+  t.after(async () => {
+    blocked = false;
+    fs.open = originalOpen;
+    syncBuiltinESMExports();
+    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+    if (original?.fd >= 0) await nativeClose();
+    if (!store.status().closed) await store.close();
+  });
+  await assert.rejects(store.observeOriginalModelStorageBinding(), error => {
+    failure = error;
+    return error.cleanupPending === true;
+  });
+  assert(original.fd >= 0);
+  assert.equal(opens, 1);
+  await assert.rejects(store.observeOriginalModelStorageBinding(), {code: 'PublicationStoreCleanupPending'});
+  await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
+  assert.equal(store.status().closed, false);
+  assert.equal(closes, 1, 'Store close cannot pretend that a pending caller FD retired');
+  const cleanup = failure.cleanupHandle;
+  await assert.rejects(cleanup.retry(), {code: 'PublicationMetadataReaderCleanupPending'});
+  assert.equal(cleanup.status().pending, true);
+  assert.equal(opens, 1);
+  blocked = false;
+  await cleanup.retry();
+  assert.equal(original.fd, -1);
+  assert.equal(closes, 3);
+  fs.open = originalOpen;
+  syncBuiltinESMExports();
+  assert.ok(await store.observeOriginalModelStorageBinding(), 'normal new observation resumes only after retirement');
+  await store.close();
+  assert.equal(store.status().closed, true);
+  scratch.passed();
 });
