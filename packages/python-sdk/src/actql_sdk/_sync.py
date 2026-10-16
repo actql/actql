@@ -2,6 +2,7 @@
 import asyncio
 from ._async import AsyncClient
 from ._errors import ClientError
+from ._query import _OriginalQueryHandle
 
 
 def _outside_loop():
@@ -125,19 +126,10 @@ class Client:
         return self._call(self._client.reject, checkpoint_id)
 
 
-class Query:
+class Query(_OriginalQueryHandle):
     """A synchronous view of the same lazy submission and Result readers."""
     def __init__(self, client, query):
         self._client, self._query = client, query
-
-    def __copy__(self):
-        raise TypeError('OriginalQueryNotCopyable')
-
-    def __deepcopy__(self, memo):
-        raise TypeError('OriginalQueryNotCopyable')
-
-    def __reduce_ex__(self, protocol):
-        raise TypeError('OriginalQueryNotSerializable')
 
     @property
     def execution(self):
@@ -238,7 +230,7 @@ class Reader:
         return self._client._call(self._reader.delivery_attempt)
 
 
-class QueryReader(Reader):
+class QueryReader(Reader, _OriginalQueryHandle):
     """Use the existing Runner for a deferred original Result reader."""
     def close(self):
         _outside_loop()

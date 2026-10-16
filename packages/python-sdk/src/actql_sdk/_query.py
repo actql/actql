@@ -18,7 +18,19 @@ from ._errors import ClientError
 from ._reader import AsyncReader, _capture_rows, tighter
 
 
-class AsyncQuery:
+class _OriginalQueryHandle:
+    """Copying local call custody must not create a second independent handle."""
+    def __copy__(self):
+        raise TypeError('OriginalQueryNotCopyable')
+
+    def __deepcopy__(self, memo):
+        raise TypeError('OriginalQueryNotCopyable')
+
+    def __reduce_ex__(self, protocol):
+        raise TypeError('OriginalQueryNotSerializable')
+
+
+class AsyncQuery(_OriginalQueryHandle):
     """One lazy original query; each explicit read has its own delivery attempt."""
     def __init__(self, client, body, result_name):
         self._client, self._body, self._name = client, body, result_name
@@ -28,15 +40,6 @@ class AsyncQuery:
         self._failure = None
         self._execution = None
         self._state = None
-
-    def __copy__(self):
-        raise TypeError('OriginalQueryNotCopyable')
-
-    def __deepcopy__(self, memo):
-        raise TypeError('OriginalQueryNotCopyable')
-
-    def __reduce_ex__(self, protocol):
-        raise TypeError('OriginalQueryNotSerializable')
 
     @property
     def execution(self):
@@ -110,7 +113,7 @@ class AsyncQuery:
         return await result._all(rows, size, captured)
 
 
-class AsyncQueryReader:
+class AsyncQueryReader(_OriginalQueryHandle):
     """Defer construction to the same Result reader, without owning a Run."""
     def __init__(self, query, captured):
         self._query, self._captured = query, captured
