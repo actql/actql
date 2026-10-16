@@ -122,8 +122,11 @@ def source_projects(root: Path, files=None) -> dict:
         project = data.get('project')
         if project is None:
             continue
-        discovery = data.get('tool', {}).get('setuptools', {}).get('packages', {}).get('find')
-        if not isinstance(discovery, dict) or not isinstance(discovery.get('where'), list):
+        backend = data.get('build-system', {}).get('build-backend', 'setuptools.build_meta')
+        if backend != 'setuptools.build_meta':
+            raise ValueError('Unregistered Python distribution backend: ' + manifest)
+        discovery = data.get('tool', {}).get('setuptools', {}).get('packages', {}).get('find', {'where': ['.']})
+        if not isinstance(discovery, dict) or not isinstance(discovery.get('where'), list) or not discovery['where']:
             raise ValueError('Unregistered Python distribution discovery: ' + manifest)
         directories = [(root / path.parent / where).resolve() for where in discovery['where']]
         if any(not directory.is_relative_to(root) for directory in directories):
@@ -140,7 +143,7 @@ def source_projects(root: Path, files=None) -> dict:
                 members.append(name)
                 modules[name] = {'module': name, 'sha256': hashlib.sha256(raw).hexdigest(),
                                  **python_interface(raw.decode('utf-8'))}
-        roots.append({'kind': 'python-wheel', 'name': project['name'], 'manifest': manifest,
+        roots.append({'kind': 'python-wheel-source-candidate', 'name': project['name'], 'manifest': manifest,
                       'entrances': sorted(members), 'scripts': project.get('scripts', {})})
     return {'qualification': 'source-input-coverage-only', 'roots': roots,
             'modules': [modules[name] for name in sorted(modules)]}

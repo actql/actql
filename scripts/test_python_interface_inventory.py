@@ -65,9 +65,11 @@ class InterfaceInventoryTests(unittest.TestCase):
             self.assertEqual(result['roots'][0]['name'], 'new-sdk')
             self.assertEqual(result['modules'][0]['operations'][0]['name'], 'decide')
 
-    def test_current_three_python_projects_are_actual_source_roots(self):
+    def test_current_normal_python_projects_are_present_without_hiding_experimental_candidates(self):
         result = source_projects(Path(__file__).resolve().parent.parent)
-        self.assertEqual({value['name'] for value in result['roots']}, {'actql', 'actql-sdk', 'actql-local-runtime'})
+        discovered = {value['name'] for value in result['roots']}
+        self.assertTrue({'actql', 'actql-sdk', 'actql-local-runtime'} <= discovered)
+        self.assertIn('actql-local-wasm-probe', discovered)
         self.assertTrue(any(value['module'].endswith('/_wire.py') for value in result['modules']))
 
 

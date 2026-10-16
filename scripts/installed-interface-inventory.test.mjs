@@ -50,6 +50,6 @@ test('missing real exported member refuses at the package entrance', t => {
 
 test('normal Python source roots are parsed without importing product or Local engines', () => {
   const result = pythonInterfaceSources(process.cwd());
-  assert.equal(result.roots.length, 3);
+  assert(result.roots.length >= 3);
   assert(result.modules.some(value => value.module.endsWith('/_local_core.py')));
 });

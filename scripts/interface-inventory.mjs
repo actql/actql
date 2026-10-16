@@ -21,6 +21,11 @@ export const interfaceAttributes = Object.freeze([
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const inside = path => !isAbsolute(path) && path !== '..' && !path.startsWith('../');
 const ordered = values => [...new Set(values)].sort();
+const propertyName = node => node?.type === 'MemberExpression'
+  ? node.computed ? node.property.type === 'Literal' ? node.property.value : undefined : node.property.name
+  : undefined;
+const exportsObject = node => node?.type === 'Identifier' && node.name === 'exports' ||
+  node?.type === 'MemberExpression' && node.object.name === 'module' && propertyName(node) === 'exports';
 
 function names(pattern) {
   if (!pattern) return [];
@@ -38,7 +43,21 @@ function names(pattern) {
 export function javascriptInterface(source) {
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module',
     allowHashBang: true, locations: true});
-  const operations = [], exports = [], imports = [], compilerFields = [], occurrences = new Map();
+  const operations = [], exports = [], imports = [], compilerFields = [], unresolvedSyntax = [], occurrences = new Map();
+  function commonJsMembers(value) {
+    if (value?.type === 'CallExpression' && value.callee.type === 'MemberExpression' &&
+        value.callee.object.name === 'Object' && propertyName(value.callee) === 'freeze') value = value.arguments[0];
+    if (value?.type !== 'ObjectExpression') {
+      unresolvedSyntax.push('dynamic CommonJS export value');
+      return;
+    }
+    for (const property of value.properties) {
+      const key = property.computed ? property.key.type === 'Literal' ? property.key.value : undefined
+        : property.key?.name ?? property.key?.value;
+      if (typeof key === 'string') exports.push(`commonjs:${key}`);
+      else unresolvedSyntax.push('dynamic CommonJS export member');
+    }
+  }
   function visit(node, scope = []) {
     if (!node || typeof node !== 'object') return;
     let childScope = scope;
@@ -62,19 +81,22 @@ export function javascriptInterface(source) {
     if (node.type === 'ImportExpression' && node.source.type === 'Literal') imports.push(node.source.value);
     if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require' &&
         node.arguments[0]?.type === 'Literal') imports.push(node.arguments[0].value);
+    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
+        node.callee.object.name === 'Reflect' && propertyName(node.callee) === 'get' &&
+        node.arguments[1]?.type === 'Literal' && /^(?:\$tag|_\d+)$/u.test(node.arguments[1].value)) {
+      compilerFields.push(node.arguments[1].value);
+    }
+    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
+        node.callee.object.name === 'Object' && propertyName(node.callee) === 'assign' &&
+        exportsObject(node.arguments[0])) node.arguments.slice(1).forEach(commonJsMembers);
     if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression') {
       const target = node.left;
-      if (target.object.type === 'Identifier' && target.object.name === 'exports') {
-        exports.push(`commonjs:${target.property.name ?? target.property.value ?? '<computed>'}`);
+      if (exportsObject(target.object)) {
+        const name = propertyName(target);
+        if (typeof name === 'string') exports.push(`commonjs:${name}`);
+        else unresolvedSyntax.push('dynamic CommonJS export assignment');
       }
-      if (target.object.type === 'Identifier' && target.object.name === 'module' && target.property.name === 'exports') {
-        const value = node.right.type === 'CallExpression' && node.right.callee.type === 'MemberExpression' &&
-          node.right.callee.object.name === 'Object' && node.right.callee.property.name === 'freeze'
-          ? node.right.arguments[0] : node.right;
-        exports.push(...value.type === 'ObjectExpression'
-          ? value.properties.map(property => `commonjs:${property.key?.name ?? property.key?.value ?? '<spread>'}`)
-          : ['<dynamic-commonjs>']);
-      }
+      if (exportsObject(target)) commonJsMembers(node.right);
     }
     if (node.type === 'ExportDefaultDeclaration') exports.push('default');
     if (node.type === 'ExportAllDeclaration') exports.push(node.exported
@@ -99,7 +121,7 @@ export function javascriptInterface(source) {
   }
   visit(tree);
   return {exports: ordered(exports), operations: operations.sort((a, b) => a.name.localeCompare(b.name)),
-    imports: ordered(imports), compilerFields: ordered(compilerFields)};
+    imports: ordered(imports), compilerFields: ordered(compilerFields), unresolvedSyntax: ordered(unresolvedSyntax)};
 }
 
 export function javascriptClosure(root, entries) {
@@ -166,6 +188,7 @@ export function assertInterfaceCoverage({root, modules, declarations, generated 
   }
   for (const module of modules) {
     const declaration = byModule.get(module.module);
+    assert(!module.unresolvedSyntax?.length, `Unresolved interface syntax: ${module.module}`);
     assert(declaration, `Unregistered distributed interface: ${module.module}`);
     assert.equal(declaration.sha256, module.sha256,
       `Unreviewed interface implementation: ${module.module}`);

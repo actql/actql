@@ -7,6 +7,15 @@ import {join, relative, resolve} from 'node:path';
 import {productionDependencyClosure} from './source-dependency-closure.mjs';
 import {tokens} from './portable-core.mjs';
 
+export function moonApiInterface(source) {
+  const exports = source.split('\n').filter(line => line.startsWith('pub '));
+  const operations = exports.flatMap(declaration => {
+    const match = /^pub fn(?:\[[^\]]*\])? ([^(]+)\(/u.exec(declaration);
+    return match ? [{name: match[1], declaration}] : [];
+  });
+  return {exports, operations};
+}
+
 export function moonOperations(source) {
   const input = tokens(source, true), operations = [];
   let braces = 0;
@@ -47,7 +56,7 @@ export function moonInterfaceClosure(root, entrances) {
     }
     const module = `src/${name}/pkg.generated.mbti`, bytes = readFileSync(join(root, module));
     modules.push({module, sha256: createHash('sha256').update(bytes).digest('hex'),
-      operations: [], exports: bytes.toString('utf8').split('\n').filter(line => line.startsWith('pub ')),
+      ...moonApiInterface(bytes.toString('utf8')),
       package: name});
   }
   return {packages, modules: modules.sort((a, b) => a.module.localeCompare(b.module))};
