@@ -86,8 +86,17 @@ async function readConfiguration(path, maxBytes, openFile, project) {
       };
       const cleanupHandle = Object.freeze({status, retry,
         primaryFailure: readFailed ? failure : cause});
-      const primary = !readFailed ? cause : new AggregateError(
-        [failure, cause], failure.message, {cause: failure});
+      let primary = cause;
+      if (readFailed) {
+        // Diagnostic presentation must not hide the original FD. Thrown values
+        // need not be Errors, and reading/coercing their message can itself fail.
+        let message;
+        try {
+          const observed = failure?.message;
+          if (typeof observed === 'string') message = observed;
+        } catch { /* Keep both original failures without a diagnostic message. */ }
+        primary = new AggregateError([failure, cause], message, {cause: failure});
+      }
       const descriptors = {
         cleanupHandle: {value: cleanupHandle, configurable: true},
         cleanupPending: {get: () => status().pending, configurable: true},

@@ -66,6 +66,11 @@ failure is retained as a cause, not mutated into a substitute cleanup owner.
 Snapshots retain first/latest close diagnostics and their original error
 graphs; bounded reference count is not a byte bound.
 
+A thrown read failure may be any JavaScript value, including `undefined`.
+The cleanup facade retains that exact primary separately from the close
+failure. Diagnostic message access is best-effort, never coerces non-String
+values, and cannot prevent exporting the original FD's cleanup responsibility.
+
 Namespace observation may remain unresolved when metadata cannot be read.
 Pending original cleanup is not namespace uncertainty: installation must stop
 and hand that same handle to initialization custody. If an adapter was already
@@ -76,7 +81,9 @@ boundary rather than leaving it only on a nested cause.
 The existing read buffers, chunk array/views, joined bytes, decoded String and
 JSON tree overlap during projection. On failed close, original FD, retry/status
 closures, single-flight Promise, exported carrier/cause, first/latest errors
-and frozen status arrays remain owned until actual close. An acquired adapter
+and frozen status arrays remain owned until actual close. The explicit read-failed
+flag, original primary reference and any diagnostic message alias also remain
+within that same responsibility. An acquired adapter
 and the outer initialization carrier can overlap them. These are explicit
 holding components, not zero-priced allocations or a normal Model profile.
 The same cleanup facet also retains the exact primary failure reference for
