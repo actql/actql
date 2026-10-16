@@ -59,16 +59,20 @@ fn selected_infer_original_fixture() -> (
   )
   let component = match component {
     Ok(value) => value
-    Err(UnsupportedProgram) => fail("selected Model original component: UnsupportedProgram")
-    Err(ForeignExecution) => fail("selected Model original component: ForeignExecution")
-    Err(InvalidDependency) => fail("selected Model original component: InvalidDependency")
+    Err(UnsupportedProgram) =>
+      fail("selected Model original component: UnsupportedProgram")
+    Err(ForeignExecution) =>
+      fail("selected Model original component: ForeignExecution")
+    Err(InvalidDependency) =>
+      fail("selected Model original component: InvalidDependency")
     Err(Execution(_)) => fail("selected Model original component: Execution")
     Err(Input(_)) => fail("selected Model original component: Input")
     Err(Mapping(_)) => fail("selected Model original component: Mapping")
     Err(Result(_)) => fail("selected Model original component: Result")
     Err(Encoding) => fail("selected Model original component: Encoding")
     Err(ItemLimit(_)) => fail("selected Model original component: ItemLimit")
-    Err(Serialization(_)) => fail("selected Model original component: Serialization")
+    Err(Serialization(_)) =>
+      fail("selected Model original component: Serialization")
   }
   let compilation = issue_prepared_client_effect_compilation(
     prepared,
