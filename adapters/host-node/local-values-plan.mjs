@@ -1,5 +1,6 @@
 // Bind the installed source-free compiler to the common Run and publication
 // owner. Physical Local policy CIDs are stable identities of this Host profile.
+import {runtimeField, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 import {valuesHostPolicyOriginal, valuesExecutionContextCid} from './local-values-capacity.mjs';
@@ -170,9 +171,9 @@ export function sourceFreeEffectPublicationPlan(options) {
     compilation, dataPolicyCid, limits.maxWireBytes, limits.maxNodes,
     limits.maxDepth));
   const observation = control.admitRunEvidence('observation_set',
-    moon.strategyRunEvidenceJson(sourceFree._0), limits);
+    moon.strategyRunEvidenceJson(runtimeField(sourceFree, 0)), limits);
   const invocation = control.admit('run_invocation',
-    moon.strategyPublicationContractJson(sourceFree._1), limits);
+    moon.strategyPublicationContractJson(runtimeField(sourceFree, 1)), limits);
   const run = JSON.parse(runDefinition.wire);
   const resultCount = moon.clientProgramEffectCompilationResultNames(
     compilation).length;
@@ -183,7 +184,7 @@ export function sourceFreeEffectPublicationPlan(options) {
     storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
     resultCount, retainUntil: run.valid_until,
     moon, effectCompilation: compilation, preparedEffect: prepared});
-  return Object.freeze({...plan, effectInputRetention: retention, invocationOwner: sourceFree._1,
+  return Object.freeze({...plan, effectInputRetention: retention, invocationOwner: runtimeField(sourceFree, 1),
     localEvidenceContext: Object.freeze({admission, runDefinition,
       runInvocation: invocation, observation})});
 }
@@ -294,17 +295,17 @@ export function acquiredEffectPublicationPlan({acquired, captured,
     authorityScopeCid, source.sourceDataPolicyCid, sourceRetention, limits, 0, retention);
   const inputBodies = moon.clientProgramCapturedSourceDependencyBodies(
     captured.identity, captured.capture.source());
-  if (typeof inputBodies?._0 !== 'string' ||
-      typeof inputBodies?._1 !== 'string') {
+  if (typeof runtimeOptionalField(inputBodies, 0) !== 'string' ||
+      typeof runtimeOptionalField(inputBodies, 1) !== 'string') {
     throw new Error('MissingCapturedEffectSourceBodies');
   }
   const acquisitionDependencies = Object.freeze([
     Object.freeze({kind: 'relation_value',
       cid: moon.clientProgramCapturedSourceLogicalCid(captured.identity),
-      wire: inputBodies._0}),
+      wire: runtimeField(inputBodies, 0)}),
     Object.freeze({kind: 'relation_schema',
       cid: moon.clientProgramCapturedSourceSchemaCid(captured.identity),
-      wire: inputBodies._1}),
+      wire: runtimeField(inputBodies, 1)}),
   ]);
   const contentGenerations = content === undefined ? undefined : Object.freeze([content.generation]);
   return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
@@ -317,7 +318,7 @@ export function acquiredEffectPublicationPlan({acquired, captured,
         ...acquiredEvidence.catalogBodies,
         ...checked(moon.clientProgramEffectPublicationPolicyBodies(prepared,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth)).map(body =>
-          Object.freeze({kind: body._0, cid: body._1, wire: body._2})),
+          Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)})),
       ])}),
       sourceLocalInvocation: acquiredEvidence.invocation,
       runInvocation: invocation, observation})});
@@ -373,16 +374,16 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
       sourceRetention, limits, unit, retention);
     const bodies = moon.clientProgramCapturedSourceDependencyBodies(
       captured.identity, captured.capture.source());
-    if (typeof bodies?._0 !== 'string' || typeof bodies?._1 !== 'string') {
+    if (typeof runtimeOptionalField(bodies, 0) !== 'string' || typeof runtimeOptionalField(bodies, 1) !== 'string') {
       throw new Error('MissingCapturedEffectSourceBodies');
     }
     acquisitionDependencies.push(
       Object.freeze({kind: 'relation_value',
         cid: moon.clientProgramCapturedSourceLogicalCid(captured.identity),
-        wire: bodies._0}),
+        wire: runtimeField(bodies, 0)}),
       Object.freeze({kind: 'relation_schema',
         cid: moon.clientProgramCapturedSourceSchemaCid(captured.identity),
-        wire: bodies._1}));
+        wire: runtimeField(bodies, 1)}));
     return evidence;
   });
   return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
@@ -393,7 +394,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
         ...acquiredEvidenceByUnit.flatMap(value => value.catalogBodies),
         ...checked(moon.clientProgramEffectPublicationPolicyBodies(prepared,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth)).map(body =>
-          Object.freeze({kind: body._0, cid: body._1, wire: body._2})),
+          Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)})),
       ]),
       retentionDependencies,
       acquisitionDependencies: Object.freeze(acquisitionDependencies),
@@ -502,7 +503,7 @@ export function selectInstalledSerializationGraph(options, component = false) {
     throw new TypeError('InstalledContentComponentUnsupported');
   }
   const occurrence = occurrences[0];
-  const selected = {task: occurrence._0, step: occurrence._1,
+  const selected = {task: runtimeField(occurrence, 0), step: runtimeField(occurrence, 1),
       maxRows: localOutputLimits.maxRows, maxBytes: localOutputLimits.maxWireBytes,
       resultDataPolicy: options.resultDataPolicy ?? inferResultPolicy};
   const serializationGraph = moon.clientProgramAcquisitionCount(preparedProgram) === 0
@@ -738,8 +739,8 @@ export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
   // Read the wires from the same live opaque observation passed to issuance.
   // Callers cannot swap one completed lookup's text onto another lookup owner.
   const wires = moon.clientProgramKeyedLookupObservationWires(keyedObservation.observation);
-  if (wires === undefined || wires._0 !== keyedObservation.inputLogicalWire ||
-      wires._1 !== keyedObservation.sourceEvidenceWire) {
+  if (wires === undefined || runtimeField(wires, 0) !== keyedObservation.inputLogicalWire ||
+      runtimeField(wires, 1) !== keyedObservation.sourceEvidenceWire) {
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
   const {observation, invocation} = control.issueCheckedClientCompiledKeyedInvocation(
@@ -750,7 +751,7 @@ export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
   // Both logical inputs have been validated by the portable issuer above.
   // Acquired Source relations are logical dependencies, not captured input
   // Artifacts. Do not omit the right Source's empty logical Relation.
-  const keyedInput = JSON.parse(wires._0);
+  const keyedInput = JSON.parse(runtimeField(wires, 0));
   return localPublicationPlan({control, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
@@ -759,7 +760,7 @@ export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
       moon.clientProgramCapturedSourceLogicalCid(captured.identity),
       keyedInput.logical_relation_cid,
     ])],
-    sourceEvidence: [sourceEvidenceWire, wires._1].map(wire =>
+    sourceEvidence: [sourceEvidenceWire, runtimeField(wires, 1)].map(wire =>
       control.admitRunEvidence('source_evidence', wire, limits)),
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,

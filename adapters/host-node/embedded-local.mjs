@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 import {installClientRunPlan} from './client-run-plan.mjs';
 import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
@@ -979,7 +980,7 @@ async function openInstalledHost(originalInstallation) {
     if (retain && occurrence !== undefined && inferSelections.has(preparedProgram)) return;
     const selectedStep = occurrence === undefined
       ? moon.clientProgramSelectedInferStep(preparedProgram)
-      : moon.clientProgramInferOccurrenceCoordinates(occurrence)._2;
+      : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
     if (selectedStep !== undefined) {
       let execution;
       try {
@@ -1066,7 +1067,7 @@ async function openInstalledHost(originalInstallation) {
             occurrence, registry, values, fragment, ordered))
           : occurrence === undefined
           ? checked(moon.clientProgramPrepareInferComputeSuffix(preparedProgram,
-            step, registry, values, fragment, ordered)) : segments._1;
+            step, registry, values, fragment, ordered)) : runtimeField(segments, 1);
         admissionBoundary = 'egress';
         let egressAdmission;
         let egressFailure;
@@ -1108,7 +1109,7 @@ async function openInstalledHost(originalInstallation) {
         const providerBinding = durableModel
           ? admitInstalledModelProviderBinding(moon, providerId, physical) : undefined;
         const selection = Object.freeze({step, graph, computeSuffix, serializationGraph,
-          occurrence, computePrefix: segments?._0,
+          occurrence, computePrefix: runtimeOptionalField(segments, 0),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
@@ -1253,7 +1254,7 @@ async function openInstalledHost(originalInstallation) {
           const coordinates = keyedAcquisition === undefined ? undefined
             : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
           const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-            preparedProgram, coordinates?._0 ?? task, coordinates?._1 ?? 0,
+            preparedProgram, runtimeOptionalField(coordinates, 0) ?? task, runtimeOptionalField(coordinates, 1) ?? 0,
             registry, values, fragment, ordered));
           const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
           const adapter = installedSourceFor(sourceProfile, sourceRef);
@@ -1265,8 +1266,8 @@ async function openInstalledHost(originalInstallation) {
           // Report only the boundary and typed discriminants: acquisition
           // bodies and authenticated source materials are not diagnostics.
           diagnostic('acquisition_preparation_rejected', {boundary: 'query_requirement',
-            task, code: cause.code, issueTag: cause.cause?.$tag,
-            requirementTag: cause.cause?._0?.$tag});
+            task, code: cause.code, issueTag: runtimeTag(cause.cause),
+            requirementTag: runtimeTag(runtimeOptionalField(cause.cause, 0))});
           throw clientOperationError('ClientProgramUnsupported', cause);
         }
       }
@@ -1281,7 +1282,7 @@ async function openInstalledHost(originalInstallation) {
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.
     const inventory = moon.clientProgramComposedInferOccurrences(preparedProgram);
-    const occurrences = inventory.$tag === 1 ? inventory._0 : [];
+    const occurrences = runtimeIsOkRequired(inventory) ? runtimeField(inventory, 0) : [];
     if (occurrences.length > 1) {
       const components = Object.freeze(occurrences.map(occurrence =>
         prepareInferSelection(preparedProgram, occurrence, false)));
@@ -1363,7 +1364,7 @@ async function openInstalledHost(originalInstallation) {
   const prepareKeyedSources = async (preparedProgram, keyedAcquisition, requestIdentity) => {
     const coordinates = moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
     if (coordinates === undefined) throw clientOperationError('ClientProgramUnsupported');
-    const directOccurrence = Object.freeze({stage: coordinates._0, input: coordinates._1, task: coordinates._2});
+    const directOccurrence = Object.freeze({stage: runtimeField(coordinates, 0), input: runtimeField(coordinates, 1), task: runtimeField(coordinates, 2)});
     const preparedSource = await prepareAcquisition(preparedProgram, undefined, directOccurrence);
     const directAdapter = installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef);
     const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
@@ -1605,16 +1606,16 @@ async function openInstalledHost(originalInstallation) {
             observeRun: ({ref}) => observeRun({ref, principalId}),
             openComputation: async ({retainComputationOwner} = {}) => {
               if (inferSelections.has(facts.prepared) ||
-                  moon.clientProgramEffectPrepareQueryAcquisition(
-                facts.prepared, 0, 0)?.$tag === 1) {
+                  runtimeIsOk(moon.clientProgramEffectPrepareQueryAcquisition(
+                facts.prepared, 0, 0))) {
                 let ownedModelToken;
                 try {
                   let retainedModel = modelResume;
                   if (retainedModel === undefined && targetResume !== undefined &&
                       inferSelections.has(facts.prepared) && modelController !== undefined) {
                     activeResume.assertCurrent();
-                    const taskIndex = moon.clientProgramInferPlanBoundary(
-                      inferSelections.get(facts.prepared).graph)._0;
+                    const taskIndex = runtimeField(moon.clientProgramInferPlanBoundary(
+                      inferSelections.get(facts.prepared).graph), 0);
                     const records = modelController.discover(
                       control.runDefinitionRunId(facts.runDefinition))
                       .filter(record => record.inventory.taskIndex === taskIndex);
@@ -1741,8 +1742,8 @@ async function openInstalledHost(originalInstallation) {
           compilation, allowed, definition, authorityScopeCid, namespaceId,
           storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy};
         return inferSelections.has(prepared) ||
-          moon.clientProgramEffectPrepareQueryAcquisition(prepared,
-          0, 0)?.$tag === 1
+          runtimeIsOk(moon.clientProgramEffectPrepareQueryAcquisition(prepared,
+          0, 0))
           ? acquiredEffectPublicationAdmission(options)
           : sourceFreeEffectPublicationPlan(options);
       },

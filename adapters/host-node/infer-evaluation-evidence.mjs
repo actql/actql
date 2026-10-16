@@ -1,5 +1,6 @@
 // Optional projection of existing, Store-confirmed INFER originals. This
 // adapter never dispatches, restores, authorizes a call or changes Run state.
+import {runtimeField, runtimeIsOkRequired} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
 
@@ -74,7 +75,7 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
   const release = () => {
     if (copy === undefined) return true;
     if (copying) return false;
-    if (moon.clientProgramReleaseInferEvidenceCopy(copy._0, copy._1).$tag !== 1) return false;
+    if (!runtimeIsOkRequired(moon.clientProgramReleaseInferEvidenceCopy(runtimeField(copy, 0), runtimeField(copy, 1)))) return false;
     copy = undefined; configured.pending = false; return true;
   };
   try {
@@ -86,8 +87,8 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
     // Recheck the existing single-copy flight before acquiring reservation.
     if (configured.pending) return consume(undefined);
     const reserved = moon.clientProgramReserveInferEvidenceCopy(configured.maxBytes);
-    if (reserved.$tag !== 1) return consume(undefined);
-    copy = reserved._0; configured.pending = true;
+    if (!runtimeIsOkRequired(reserved)) return consume(undefined);
+    copy = runtimeField(reserved, 0); configured.pending = true;
     retainCopy({cleanupPending: () => copy !== undefined, close: async () => release(), cleanup: async () => release()});
     const count = moon.clientProgramInferPreparedCallCount(preparedCallSet);
     if (!Number.isSafeInteger(count) || count < 0 || count > 128) throw new Error('RequiredEvidenceUnavailable');
@@ -99,12 +100,12 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
       if (physical === undefined || call === undefined) continue;
       const callWire = moon.strategyRunEvidenceJson(call);
       const remaining = configured.maxBytes - bytes;
-      if (Buffer.byteLength(callWire) + Buffer.byteLength(physical._1) +
-          Buffer.byteLength(physical._2) > remaining) throw new Error('EvaluationBudgetExceeded');
-      const typedInputWire = moon.clientProgramModelRequestInputFrameBounded(physical._0, Math.min(65536, remaining));
+      if (Buffer.byteLength(callWire) + Buffer.byteLength(runtimeField(physical, 1)) +
+          Buffer.byteLength(runtimeField(physical, 2)) > remaining) throw new Error('EvaluationBudgetExceeded');
+      const typedInputWire = moon.clientProgramModelRequestInputFrameBounded(runtimeField(physical, 0), Math.min(65536, remaining));
       if (typedInputWire === undefined) throw new Error('EvaluationBudgetExceeded');
       const item = {callWire, typedInputWire,
-        renderedInput: physical._1, contextManifest: physical._2};
+        renderedInput: runtimeField(physical, 1), contextManifest: runtimeField(physical, 2)};
       const amount = preparedEvidenceBytes(item, configured.maxBytes - bytes - (saved.length > 0 ? 1 : 0));
       if (amount === undefined) throw new Error('EvaluationBudgetExceeded');
       bytes += amount + (saved.length > 0 ? 1 : 0);
@@ -126,8 +127,8 @@ export async function projectInferEvidence({configuration, moon, control, prepar
   const releaseCopy = () => {
     if (copy === undefined) return true;
     if (copying) return false;
-    const released = moon.clientProgramReleaseInferEvidenceCopy(copy._0, copy._1);
-    if (released.$tag !== 1) return false;
+    const released = moon.clientProgramReleaseInferEvidenceCopy(runtimeField(copy, 0), runtimeField(copy, 1));
+    if (!runtimeIsOkRequired(released)) return false;
     copy = undefined; configured.pending = false; return true;
   };
   try {
@@ -144,8 +145,8 @@ export async function projectInferEvidence({configuration, moon, control, prepar
       if (configured.pending || bundle !== undefined && (bundle.wire.length > configured.maxBytes ||
           Buffer.byteLength(bundle.wire) > configured.maxBytes)) throw Object.assign(new Error('EvaluationBudgetExceeded'), {code: 'EvaluationBudgetExceeded'});
       const reserved = moon.clientProgramReserveInferEvidenceCopy(configured.maxBytes);
-      if (reserved.$tag !== 1) throw Object.assign(new Error('EvaluationBudgetExceeded'), {code: 'EvaluationBudgetExceeded'});
-      copy = reserved._0; configured.pending = true;
+      if (!runtimeIsOkRequired(reserved)) throw Object.assign(new Error('EvaluationBudgetExceeded'), {code: 'EvaluationBudgetExceeded'});
+      copy = runtimeField(reserved, 0); configured.pending = true;
       retainCopy({cleanupPending: () => copy !== undefined,
         close: async () => releaseCopy(), cleanup: async () => releaseCopy()});
       const records = bundle === undefined ? [] : JSON.parse(bundle.wire).captures;
@@ -212,7 +213,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
             items.push(Object.freeze({...identity, ...missing('RequiredEvidenceUnavailable')}));
             continue;
           }
-          const typedInput = moon.clientProgramModelRequestInputFrame(physical._0);
+          const typedInput = moon.clientProgramModelRequestInputFrame(runtimeField(physical, 0));
           const original = Object.freeze({captureBundleCid: originalBundle.cid,
             modelCallSlotCid: record.model_call_slot_cid,
             semanticRequestCid: record.semantic_request_cid,
@@ -222,7 +223,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
           const wires = {typedInput,
             typedOutput: canonicalJson({outcome: 'ok', value: record.structured_response,
               validatedOutputCid: record.evidence.validated_structured_output_cid}),
-            renderedInput: physical._1, contextManifest: physical._2,
+            renderedInput: runtimeField(physical, 1), contextManifest: runtimeField(physical, 2),
             validation: canonicalJson({outcome: 'accepted', evidence: record.evidence,
               callWire: call.callWire, captureBundleWire: originalBundle.wire})};
           const bytes = Object.values(wires).reduce((sum, wire) => sum +

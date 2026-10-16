@@ -1,3 +1,4 @@
+import {runtimeIsError} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 
 const refusals = new WeakSet();
@@ -12,7 +13,7 @@ export function checkedEffectPreparation(result) {
   try {
     return checked(result);
   } catch (error) {
-    if (result?.$tag === 0) refusals.add(error);
+    if (runtimeIsError(result)) refusals.add(error);
     throw error;
   }
 }

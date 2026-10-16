@@ -1,3 +1,4 @@
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -399,14 +400,14 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
           contractLimits.maxNodes, contractLimits.maxDepth),
       ).map(pair => {
         staticEntriesRemaining--;
-        const wire = moon.clientProgramEffectLocalDependencyBodyJson(pair._1);
+        const wire = moon.clientProgramEffectLocalDependencyBodyJson(runtimeField(pair, 1));
         const bytes = Buffer.byteLength(wire, 'utf8');
         if (bytes > dependencyText.remaining) {
           throw new RangeError('EffectDependencyBodyByteLimit');
         }
         dependencyText.remaining -= bytes;
-        return Object.freeze({kind: pair._0,
-          cid: moon.clientProgramEffectLocalDependencyBodyCid(pair._1), wire});
+        return Object.freeze({kind: runtimeField(pair, 0),
+          cid: moon.clientProgramEffectLocalDependencyBodyCid(runtimeField(pair, 1)), wire});
       }));
       const imports = moon.clientProgramEffectResultImportCount(
         checkedOwner, unitIndex);
@@ -618,8 +619,8 @@ async function exportPinnedResult({
       const progress = checked(table
         ? moon.clientProgramEffectTableInputExportAdvance(preparation, advanceQuantum)
         : moon.clientProgramEffectInputExportAdvance(preparation, advanceQuantum));
-      if (progress._0) break;
-      if (progress._1 <= 0) {
+      if (runtimeField(progress, 0)) break;
+      if (runtimeField(progress, 1) <= 0) {
         throw new Error('EffectInputExportDidNotAdvance');
       }
       await yieldEventLoop(undefined, {signal});
@@ -637,14 +638,14 @@ async function exportPinnedResult({
           stream, rowLimits.maxNodes, rowLimits.maxDepth,
           rowLimits.maxUtf16Units));
         if (row === undefined) break;
-        await onCanonicalRow(row._0, row._2);
-        await onChunk(row._1);
+        await onCanonicalRow(runtimeField(row, 0), runtimeField(row, 2));
+        await onChunk(runtimeField(row, 1));
       }
     }
     signal?.throwIfAborted();
     const finished = checked(moon.clientProgramEffectInputExportFinish(stream));
-    receipt = finished._0;
-    await onChunk(finished._1);
+    receipt = runtimeField(finished, 0);
+    await onChunk(runtimeField(finished, 1));
     if (local && moon.clientProgramEffectLocalResultExportMatchesReceipt(
       inputs, exportOwner, receipt) !== true) {
       throw new TypeError('ForeignEffectLocalResultReceipt');
@@ -850,8 +851,8 @@ async function preparePinnedEffectSourcePayloadOwned({
               proposalBounds.maxBytes, proposalBounds.maxNodes,
               proposalBounds.maxDepth));
             await onProposalRow(proposalMemberIndex, index,
-              Object.freeze({selectorWire: projected._0,
-                changesWire: projected._1}));
+              Object.freeze({selectorWire: runtimeField(projected, 0),
+                changesWire: runtimeField(projected, 1)}));
           }
         },
       }),

@@ -1,6 +1,7 @@
 // Shared private custody for the existing installed Model component. Local
 // and Effect-free Runs keep their own execution/publication owners; accepted
 // captures, attempt proofs and Store writes follow this same persistence path.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {preparePrivatePublicationHolding} from
@@ -318,8 +319,8 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       current.settlement, maximumStoredCaptureWire(), 1000000));
     while (!current.complete) {
       const progress = checked(moon.clientProgramAdvanceInferCaptureExport(current.exporter, 256));
-      current.wire += progress._1;
-      current.complete = progress._0;
+      current.wire += runtimeField(progress, 1);
+      current.complete = runtimeField(progress, 0);
       if (!current.complete) await yieldEventLoop();
     }
     await hold('model_capture_bundle', slot, current.wire,
@@ -390,8 +391,8 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     while (!exportComplete) {
       const progress = checked(moon.clientProgramAdvanceInferCaptureExport(
         exporter, 256));
-      wire += progress._1;
-      if (progress._0) { exportComplete = true; break; }
+      wire += runtimeField(progress, 1);
+      if (runtimeField(progress, 0)) { exportComplete = true; break; }
       await yieldEventLoop();
     }
     if (captureOnly) {
@@ -411,8 +412,8 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
           maxWireBytes: 16384, maxWork: count + 2});
       }
       while (!issuanceComplete) {
-        issuanceComplete = checked(
-          moon.clientProgramAdvanceInferObservationIssuance(issuance, 1))._0;
+        issuanceComplete = runtimeField(checked(
+          moon.clientProgramAdvanceInferObservationIssuance(issuance, 1)), 0);
         await faultInjection?.('infer_observation_advanced', {
           complete: issuanceComplete,
         });
