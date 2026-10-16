@@ -7,6 +7,11 @@ const fixturePath='src/connectors/gcs/contract_acceptance/fixtures/command-envir
 const fixture=JSON.parse(readFileSync(fixturePath,'utf8'));
 assert.equal(createHash('sha256').update(fixture.wire).digest('hex'),fixture.wireSha256);
 assert.equal(Buffer.byteLength(fixture.wire),6894);
+assert.equal(fixture.exportSuffix,'\n');
+assert.ok(fixture.wire.endsWith(fixture.exportSuffix));
+const runtimeWire=fixture.wire.slice(0,-fixture.exportSuffix.length);
+assert.equal(Buffer.byteLength(runtimeWire),fixture.runtimeWireBytes);
+assert.equal(createHash('sha256').update(runtimeWire).digest('hex'),fixture.runtimeWireSha256);
 assert.equal(fixture.receiverSource,'723c00dbf0df0a59b9da9d06462358e704f0edca');
 assert.equal(fixture.independentCommandCid,'sha256:01b4437a23e585b15309e958d28d7069d58f3f9002ec6fffe8458dc24b58fa39');
 assert.equal(fixture.independentInputCid,'sha256:d15b2d1c7b0555836d28a967fa895f56ced810a056e4045c500e760181fa5fac');
@@ -14,7 +19,8 @@ const output=[
   '// Generated from the frozen real B receiver input; do not regenerate identities from product output.',
   `// Receiver ${fixture.receiverSource}; provider ${fixture.providerSource}.`,
   '', '///|', 'test "actual B GCS Command environment receiver output enters original Common" {',
-  `  let wire = ${JSON.stringify(fixture.wire)}`,
+  `  let wire = ${JSON.stringify(runtimeWire)}`,
+  `  assert_true(@environment.read(@utf8.encode(wire + "\\n"),${JSON.stringify(fixture.evidenceCid)},caps()) is Err(@environment.NonCanonicalBytes))`,
   `  let original = match @environment.read(@utf8.encode(wire), ${JSON.stringify(fixture.evidenceCid)}, caps()) { Ok(value) => value; Err(issue) => { debug_inspect(issue, content="valid original receiver environment"); abort("original receiver rejected") } }`,
   '  let contents = catalogs(original)',
   '  let refs = references(contents)',
@@ -40,4 +46,4 @@ const output=[
 const target='src/connectors/gcs/contract_acceptance/command_environment_receiver.generated_test.mbt';
 if(process.argv.includes('--write'))writeFileSync(target,output);
 assert.equal(readFileSync(target,'utf8'),output);
-console.log(JSON.stringify({fixtureBytes:Buffer.byteLength(fixture.wire),wireSha256:fixture.wireSha256,receiverSource:fixture.receiverSource,expectedIdentities:'independent C preimages; environment is actual B input',writes:process.argv.includes('--write')}));
+console.log(JSON.stringify({exportedArtifactBytes:Buffer.byteLength(fixture.wire),exportedArtifactSha256:fixture.wireSha256,runtimeWireBytes:fixture.runtimeWireBytes,runtimeWireSha256:fixture.runtimeWireSha256,receiverSource:fixture.receiverSource,expectedIdentities:'independent C preimages; original export LF retained as strict negative, exact runtime prefix positive',writes:process.argv.includes('--write')}));
