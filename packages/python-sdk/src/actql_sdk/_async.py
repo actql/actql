@@ -11,6 +11,7 @@ import weakref
 import httpx
 from . import _wire as wire
 from ._errors import ClientError
+from ._run_state import RunState
 from ._values import Observation, content_cid, decode_json, freeze, snapshot, thaw, wire_bytes
 from ._diagnostics import bind_check, retain_submission_check
 from ._checkpoints import capture_signer, signed_answer, review_bytes_match_cid
@@ -510,7 +511,9 @@ class AsyncExecution:
 
     async def _observe(self, operation, **body):
         value = await self._client._request(operation, {'ref': thaw(self.ref)} | body)
-        if not wire.valid(value, 'run_state'):
+        accepted = (wire.valid_run_wait(value, body['since']) if operation == 'wait'
+                    else wire.valid(value, 'run_state'))
+        if not accepted:
             raise ClientError('InvalidHostRunState')
         control = value.get('control')
         if control is not None:
@@ -519,13 +522,13 @@ class AsyncExecution:
                     control['revision'] == previous['revision'] and control != previous):
                 raise ClientError('StaleHostRunObservation')
             self._latest_control = snapshot(control)
-        return Observation(value)
+        return RunState(value)
 
     async def status(self):
         return await self._observe('status')
 
-    async def wait(self, *, until=None):
-        return await self._observe('wait', until=until)
+    async def wait(self, *, until=None, since=None):
+        return await self._observe('wait', until=until, since=since)
 
     async def reconcile(self):
         return await self._observe('reconcile')

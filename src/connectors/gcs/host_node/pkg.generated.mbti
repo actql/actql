@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/gcs/host_node"
+
+import {
+  "actql/actql/connectors/gcs/catalog",
+}
+
+// Values
+pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]
+
+pub fn gcs_collection_check_binding(@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionBinding, String, String) -> Result[Unit, @catalog.ObjectCollectionIssue]
+
+pub fn gcs_collection_failure_code(@catalog.ObjectCollectionIssue) -> String
+
+pub fn gcs_collection_identity_cid(@catalog.ObjectCollectionBinding) -> String
+
+pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String
+
+pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String
+
+pub fn gcs_object_failure_code(GcsFailure) -> String
+
+pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]
+
+pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]
+
+pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]
+
+pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]
+
+pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]
+
+pub fn gcs_object_recheck(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Result[Unit, GcsFailure]
+
+pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]
+
+pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]
+
+pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]
+
+// Errors
+
+// Types and methods
+pub enum GcsFailure {
+  Metadata(@catalog.ObjectMetadataIssue)
+  Request(@catalog.ObjectRequestIssue)
+}
+
+// Type aliases
+
+// Traits

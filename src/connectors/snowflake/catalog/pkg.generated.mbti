@@ -1,0 +1,93 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/snowflake/catalog"
+
+import {
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn partition_cell(Partition, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn partition_matches_original(Partition, ResultSet) -> Bool
+
+pub fn partition_ordinal(Partition) -> Int
+
+pub fn partition_response_sha256(Partition) -> String
+
+pub fn partition_row_count(Partition) -> Int
+
+pub fn project_partition(Bytes, ResultSet, Int, ResponseLimits) -> Result[Partition, ResponseIssue]
+
+pub fn project_result_set(Bytes, ResponseLimits) -> Result[ResultSet, ResponseIssue]
+
+pub fn project_result_set_with_contracts(Bytes, ResponseLimits, Array[(String, @value_contract.Contract)], Int) -> Result[ResultSet, ResponseIssue]
+
+pub fn result_set_cell(ResultSet, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn result_set_column_contract(ResultSet, Int) -> @value_contract.Contract?
+
+pub fn result_set_column_count(ResultSet) -> Int
+
+pub fn result_set_column_name(ResultSet, Int) -> String?
+
+pub fn result_set_handle(ResultSet) -> String
+
+pub fn result_set_partition_count(ResultSet) -> Int
+
+pub fn result_set_partition_rows(ResultSet, Int) -> Int64?
+
+pub fn result_set_response_sha256(ResultSet) -> String
+
+pub fn result_set_row_count(ResultSet) -> Int
+
+pub fn result_set_total_rows(ResultSet) -> Int64
+
+// Errors
+
+// Types and methods
+pub struct Column {
+  // private fields
+}
+
+pub struct Partition {
+  // private fields
+}
+
+pub(all) enum ResponseIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidHandle
+  DuplicateColumn(String)
+  InvalidColumn(String)
+  ContractMismatch(String)
+  UnsupportedColumn(String, String)
+  InvalidPartition
+  WrongRowWidth
+  InvalidCell(String)
+  ValueOutOfRange(String)
+  ValueBeyondScale(String)
+  ValueAdmission(String, @value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ResponseLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_columns : Int
+  max_name_units : Int
+  max_handle_units : Int
+  max_partitions : Int
+  max_rows : Int
+  max_total_rows : Int64
+}
+
+pub struct ResultSet {
+  // private fields
+}
+
+// Type aliases
+
+// Traits

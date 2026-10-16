@@ -827,6 +827,8 @@ pub fn client_program_prepare_published_effect_computation_with_parameters(Strin
 
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
+pub fn client_program_prepare_run_state_observation(String, String, Int64) -> @run_publication.RunStateObservation raise ClientProgramRunObservationIssue
+
 pub fn client_program_prepare_salesforce_declared_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_prepare_salesforce_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[(@catalog.ReadProjection, @client_row_source_host.RowAcquisition), @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
@@ -990,6 +992,14 @@ pub fn client_program_row_source_start_listing_accounted(@client_row_source_host
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 
 pub fn client_program_run_observation_key(String, Int64, Bool, Bool, Bool, Bool) -> String?
+
+pub fn client_program_run_state_observation_key(@run_publication.RunStateObservation) -> String
+
+pub fn client_program_run_state_observation_revision(@run_publication.RunStateObservation, Bool, String, Int64) -> Int64 raise ClientProgramRunObservationIssue
+
+pub fn client_program_run_state_observation_wire(@run_publication.RunStateObservation, Int64) -> String raise ClientProgramRunObservationIssue
+
+pub fn client_program_run_wait_decision(String, Bool, Int64) -> String
 
 pub fn client_program_salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@catalog.QueryRead, @catalog.QueryReadIssue]
 
@@ -2614,6 +2624,10 @@ pub fn strategy_superseded_publication_finalization_action(@run_publication.Publ
 pub fn strategy_trusted_clock_not_before(String?, String) -> Bool
 
 // Errors
+pub(all) suberror ClientProgramRunObservationIssue {
+  Observation(@run_publication.RunStateObservationIssue)
+}
+
 pub(all) suberror ClientProgramRunStateIssue {
   InvalidTerminalOutcome
   Projection(@run_publication.RunStateIssue)

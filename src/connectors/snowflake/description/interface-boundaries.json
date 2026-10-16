@@ -1,0 +1,512 @@
+{
+  "qualification": "source-reference coverage; not physical execution, Source authorization or installed product acceptance",
+  "declarations": [
+    {
+      "module": "src/connectors/snowflake/description/description.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "b81ae75f7d23909b69ed0a295a0b67edcb7ced56725c1bfc5b29be5ce112985e",
+      "role": "connector-semantics",
+      "owner": "Snowflake original metadata projection; Common owns contracts, encoding and relation declaration issuance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "description_column",
+          "declaration": "description_column ( cells : Array [ @ admitted . CheckedValue ] , target : TableTarget , remaining_names : Int , ) - > Result [ ( DescriptionColumn , Int ) , DescriptionIssue ]"
+        },
+        {
+          "name": "description_column_contract",
+          "declaration": "description_column_contract ( description : TableDescription , ordinal : Int , ) - > @ contract . Contract ?"
+        },
+        {
+          "name": "description_column_count",
+          "declaration": "description_column_count ( description : TableDescription ) - > Int"
+        },
+        {
+          "name": "description_column_max_characters",
+          "declaration": "description_column_max_characters ( description : TableDescription , index : Int , ) - > Int64 ?"
+        },
+        {
+          "name": "description_column_name",
+          "declaration": "description_column_name ( description : TableDescription , ordinal : Int , ) - > String ?"
+        },
+        {
+          "name": "description_column_nullable",
+          "declaration": "description_column_nullable ( description : TableDescription , index : Int , ) - > Bool ?"
+        },
+        {
+          "name": "description_column_numeric_properties",
+          "declaration": "description_column_numeric_properties ( description : TableDescription , index : Int , ) - > ( Int64 ? , Int64 ? ) ?"
+        },
+        {
+          "name": "description_column_type",
+          "declaration": "description_column_type ( description : TableDescription , ordinal : Int , ) - > String ?"
+        },
+        {
+          "name": "description_contract",
+          "declaration": "description_contract ( native_type : String , nullable : Bool , precision : Int64 ? , scale : Int64 ? , ) - > @ contract . Contract ?"
+        },
+        {
+          "name": "description_matches_response",
+          "declaration": "description_matches_response ( description : TableDescription , original : @ response . ResultSet , ) - > Bool"
+        },
+        {
+          "name": "description_matches_target",
+          "declaration": "description_matches_target ( description : TableDescription , target : TableTarget , ) - > Bool"
+        },
+        {
+          "name": "description_response_count",
+          "declaration": "description_response_count ( description : TableDescription ) - > Int"
+        },
+        {
+          "name": "integer_cell",
+          "declaration": "integer_cell ( value : @ admitted . CheckedValue ) - > Int64 ?"
+        },
+        {
+          "name": "optional_integer_cell",
+          "declaration": "optional_integer_cell ( value : @ admitted . CheckedValue , ) - > Result [ Int64 ? , DescriptionIssue ]"
+        },
+        {
+          "name": "project_table_description",
+          "declaration": "project_table_description ( target : TableTarget , original : @ response . ResultSet , partitions : Array [ @ response . Partition ] , limits : DescriptionLimits , ) - > Result [ TableDescription , DescriptionIssue ]"
+        },
+        {
+          "name": "table_target",
+          "declaration": "table_target ( database : String , schema : String , table : String , max_name_bytes : Int , ) - > Result [ TableTarget , DescriptionIssue ]"
+        },
+        {
+          "name": "text_cell",
+          "declaration": "text_cell ( value : @ admitted . CheckedValue ) - > String ?"
+        },
+        {
+          "name": "valid_description_limits",
+          "declaration": "valid_description_limits ( limits : DescriptionLimits ) - > Bool"
+        },
+        {
+          "name": "valid_target_name",
+          "declaration": "valid_target_name ( value : String , maximum : Int ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "description_column",
+            "description_column_contract",
+            "description_column_count",
+            "description_column_max_characters",
+            "description_column_name",
+            "description_column_nullable",
+            "description_column_numeric_properties",
+            "description_column_type",
+            "description_contract",
+            "description_matches_response",
+            "description_matches_target",
+            "description_response_count",
+            "integer_cell",
+            "optional_integer_cell",
+            "project_table_description",
+            "table_target",
+            "text_cell",
+            "valid_description_limits",
+            "valid_target_name"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure synchronous material projection starts no I/O or attempt; the Host retains cancellation and cleanup responsibility."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/description/description_wbtest.mbt",
+                "anchor": "test \"existing Common owner issues the complete decimal relation declaration\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/snowflake/description/projection.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "c5c230a5ca06773c94f116657ad09fa7b8b9883157d8f77d9eccb6ef5a368550",
+      "role": "connector-semantics",
+      "owner": "Snowflake original metadata projection; Common owns contracts, encoding and relation declaration issuance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "generate_read_declaration",
+          "declaration": "generate_read_declaration ( projection : ReadProjection , resource : String , connector_id : String , connector_revision : String , limits : @ rows . RowDeclarationLimits , ) - > Result [ @ rows . RowDeclaration , @ rows . RowHostIssue ]"
+        },
+        {
+          "name": "prepare_read_projection",
+          "declaration": "prepare_read_projection ( description : TableDescription , selected : Array [ String ] , limits : DescriptionLimits , ) - > Result [ ReadProjection , DescriptionIssue ]"
+        },
+        {
+          "name": "quote_identifier",
+          "declaration": "quote_identifier ( value : String ) - > String"
+        },
+        {
+          "name": "read_projection_fields",
+          "declaration": "read_projection_fields ( projection : ReadProjection ) - > Array [ String ]"
+        },
+        {
+          "name": "read_projection_matches_description",
+          "declaration": "read_projection_matches_description ( projection : ReadProjection , description : TableDescription , ) - > Bool"
+        },
+        {
+          "name": "read_projection_relation_view",
+          "declaration": "read_projection_relation_view ( projection : ReadProjection , resource : String , ) - > @ rows . RowRelationViewSpec"
+        },
+        {
+          "name": "read_projection_schema",
+          "declaration": "read_projection_schema ( projection : ReadProjection ) - > ( String , String )"
+        },
+        {
+          "name": "read_projection_statement",
+          "declaration": "read_projection_statement ( projection : ReadProjection ) - > String"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "generate_read_declaration",
+            "prepare_read_projection",
+            "quote_identifier",
+            "read_projection_fields",
+            "read_projection_matches_description",
+            "read_projection_relation_view",
+            "read_projection_schema",
+            "read_projection_statement"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure synchronous material projection starts no I/O or attempt; the Host retains cancellation and cleanup responsibility."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/description/description_wbtest.mbt",
+                "anchor": "test \"existing Common owner issues the complete decimal relation declaration\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/snowflake/description/pkg.generated.mbti",
+      "responsibilityFacet": "primary",
+      "sha256": "0a358255101c7fa70e52a0051cf21b940bdc3ede9fbdc28e16c1c302026ee41a",
+      "role": "connector-semantics",
+      "owner": "Snowflake original metadata projection; Common owns contracts, encoding and relation declaration issuance",
+      "exports": [
+        "pub fn description_column_contract(TableDescription, Int) -> @value_contract.Contract?",
+        "pub fn description_column_count(TableDescription) -> Int",
+        "pub fn description_column_max_characters(TableDescription, Int) -> Int64?",
+        "pub fn description_column_name(TableDescription, Int) -> String?",
+        "pub fn description_column_nullable(TableDescription, Int) -> Bool?",
+        "pub fn description_column_numeric_properties(TableDescription, Int) -> (Int64?, Int64?)?",
+        "pub fn description_column_type(TableDescription, Int) -> String?",
+        "pub fn description_matches_response(TableDescription, @catalog.ResultSet) -> Bool",
+        "pub fn description_matches_target(TableDescription, TableTarget) -> Bool",
+        "pub fn description_response_count(TableDescription) -> Int",
+        "pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]",
+        "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]",
+        "pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]",
+        "pub fn read_projection_fields(ReadProjection) -> Array[String]",
+        "pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool",
+        "pub fn read_projection_relation_view(ReadProjection, String) -> @client_row_source_host.RowRelationViewSpec",
+        "pub fn read_projection_schema(ReadProjection) -> (String, String)",
+        "pub fn read_projection_statement(ReadProjection) -> String",
+        "pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]",
+        "pub struct ReadProjection {",
+        "pub struct TableDescription {",
+        "pub struct TableTarget {"
+      ],
+      "operations": [
+        {
+          "name": "description_column_contract",
+          "declaration": "pub fn description_column_contract(TableDescription, Int) -> @value_contract.Contract?"
+        },
+        {
+          "name": "description_column_count",
+          "declaration": "pub fn description_column_count(TableDescription) -> Int"
+        },
+        {
+          "name": "description_column_max_characters",
+          "declaration": "pub fn description_column_max_characters(TableDescription, Int) -> Int64?"
+        },
+        {
+          "name": "description_column_name",
+          "declaration": "pub fn description_column_name(TableDescription, Int) -> String?"
+        },
+        {
+          "name": "description_column_nullable",
+          "declaration": "pub fn description_column_nullable(TableDescription, Int) -> Bool?"
+        },
+        {
+          "name": "description_column_numeric_properties",
+          "declaration": "pub fn description_column_numeric_properties(TableDescription, Int) -> (Int64?, Int64?)?"
+        },
+        {
+          "name": "description_column_type",
+          "declaration": "pub fn description_column_type(TableDescription, Int) -> String?"
+        },
+        {
+          "name": "description_matches_response",
+          "declaration": "pub fn description_matches_response(TableDescription, @catalog.ResultSet) -> Bool"
+        },
+        {
+          "name": "description_matches_target",
+          "declaration": "pub fn description_matches_target(TableDescription, TableTarget) -> Bool"
+        },
+        {
+          "name": "description_response_count",
+          "declaration": "pub fn description_response_count(TableDescription) -> Int"
+        },
+        {
+          "name": "generate_read_declaration",
+          "declaration": "pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]"
+        },
+        {
+          "name": "prepare_read_projection",
+          "declaration": "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]"
+        },
+        {
+          "name": "project_table_description",
+          "declaration": "pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]"
+        },
+        {
+          "name": "read_projection_fields",
+          "declaration": "pub fn read_projection_fields(ReadProjection) -> Array[String]"
+        },
+        {
+          "name": "read_projection_matches_description",
+          "declaration": "pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool"
+        },
+        {
+          "name": "read_projection_relation_view",
+          "declaration": "pub fn read_projection_relation_view(ReadProjection, String) -> @client_row_source_host.RowRelationViewSpec"
+        },
+        {
+          "name": "read_projection_schema",
+          "declaration": "pub fn read_projection_schema(ReadProjection) -> (String, String)"
+        },
+        {
+          "name": "read_projection_statement",
+          "declaration": "pub fn read_projection_statement(ReadProjection) -> String"
+        },
+        {
+          "name": "table_target",
+          "declaration": "pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "description_column_contract",
+            "description_column_count",
+            "description_column_max_characters",
+            "description_column_name",
+            "description_column_nullable",
+            "description_column_numeric_properties",
+            "description_column_type",
+            "description_matches_response",
+            "description_matches_target",
+            "description_response_count",
+            "generate_read_declaration",
+            "prepare_read_projection",
+            "project_table_description",
+            "read_projection_fields",
+            "read_projection_matches_description",
+            "read_projection_relation_view",
+            "read_projection_schema",
+            "read_projection_statement",
+            "table_target"
+          ],
+          "exports": [
+            "pub fn description_column_contract(TableDescription, Int) -> @value_contract.Contract?",
+            "pub fn description_column_count(TableDescription) -> Int",
+            "pub fn description_column_max_characters(TableDescription, Int) -> Int64?",
+            "pub fn description_column_name(TableDescription, Int) -> String?",
+            "pub fn description_column_nullable(TableDescription, Int) -> Bool?",
+            "pub fn description_column_numeric_properties(TableDescription, Int) -> (Int64?, Int64?)?",
+            "pub fn description_column_type(TableDescription, Int) -> String?",
+            "pub fn description_matches_response(TableDescription, @catalog.ResultSet) -> Bool",
+            "pub fn description_matches_target(TableDescription, TableTarget) -> Bool",
+            "pub fn description_response_count(TableDescription) -> Int",
+            "pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]",
+            "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]",
+            "pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]",
+            "pub fn read_projection_fields(ReadProjection) -> Array[String]",
+            "pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool",
+            "pub fn read_projection_relation_view(ReadProjection, String) -> @client_row_source_host.RowRelationViewSpec",
+            "pub fn read_projection_schema(ReadProjection) -> (String, String)",
+            "pub fn read_projection_statement(ReadProjection) -> String",
+            "pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]",
+            "pub struct ReadProjection {",
+            "pub struct TableDescription {",
+            "pub struct TableTarget {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure synchronous material projection starts no I/O or attempt; the Host retains cancellation and cleanup responsibility."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/description/description_wbtest.mbt",
+                "anchor": "test \"existing Common owner issues the complete decimal relation declaration\""
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

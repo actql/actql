@@ -21,6 +21,7 @@ This document owns catalog, sourceview, mapping, command, model-task, check-envi
 - [Check Environment and source evidence](#check-environment)
 - [Connector Catalog and lock](#catalog-and-lock)
 - [Connector manifest and authorization boundary](#connector-manifest)
+- [GCS private request metadata](#gcs-private-request-metadata)
 - [Deterministic Catalog generation](#mapping-generation)
 - [Capture classification inheritance](#classification-inheritance)
 - [Command item and recovery contract](#command-item-contract)
@@ -1015,6 +1016,24 @@ result field or literal and one null behavior (`reject`, `write_null`, or
 `omit`). Contract integrity and these static facts do not establish current
 provider authority, schema freshness, uniqueness, or apply permission.
 
+<!-- requirement-block: store-command.exact-original-catalog-member store-command.invalid-present-relationship store-command.retained-installed-selection -->
+An object/file/stage write Mapping may additionally publish the closed
+`store_command` relationship: `catalog_cid`, `command_ref`, and
+`command_contract_cid`. These exact references are part of the Mapping's canonical
+self preimage. The existing Catalog/selection Owner MUST resolve them to the
+original Command member in the same original Check Environment and the same
+connection and revision identified by the Mapping's connector-manifest entry.
+Absence does not select a Command; null, incomplete, foreign or ambiguous evidence
+MUST fail admission. For an explicitly collection-only Mapping, this relationship
+retains its existing `create`/`none` write operation. Object STORE normalization
+does not admit canonical relation `store`, a record selector, or a row identity
+for that Mapping. This relationship neither issues a ResourceRef nor supplies
+installation authority. The installed Owner MUST bind its original target and
+installation to the checked pair and retain the full selection through original
+Run materials, Preview, apply and restore, with current installation and grants
+independently checked. See the authored-vs-canonical
+[STORE distinction](artifacts.md#reference-admission).
+
 <!-- requirement-block: mapping-contracts.the-resolved-mapping-contract-must-derive-exactly-one-non-empty-permission mapping-contracts.preview-and-apply-must-reject-a-mapping-unless-exactly-one mapping-generation.product-c4d159e6b70f mapping-generation.product-9c63aad3384b classification-inheritance.product-340f5cf73a23 -->
 The resolved mapping contract MUST derive exactly one non-empty permission set
 for the effect kind, selector class, and exact write-field set. A resource-wide permission list is evidence
@@ -1088,6 +1107,50 @@ its own egress is admitted. ModelTask/Host still check destination, account,
 region, training/retention, scope and media limits; known classification is not
 permission. Reference Local mail capture proposes confidential only as an
 explicit connection preset, not a language-wide constant or live-provider claim.
+
+<a id="gcs-private-request-metadata"></a>
+
+#### GCS private request metadata
+
+<!-- requirement-block: gcs-private-request-metadata.exact-reservation gcs-private-request-metadata.authored-collision gcs-private-request-metadata.opaque-user-data -->
+The GCS Connector MUST reserve exactly the JSON custom metadata key
+`actql-request` (the physical `x-goog-meta-actql-request` marker) for its
+existing original request owner. Authored assignments to that exact key MUST
+be rejected before I/O, even if the supplied value matches an existing or
+proposed marker. No prefix is reserved. Other keys and values remain opaque
+user data: the Connector MUST NOT normalize them, silently discard authored
+assignments, or reinterpret their values as protocol evidence. This is a new
+minimal Connector reservation, not an additional permission.
+
+<!-- requirement-block: gcs-private-request-metadata.logical-projection gcs-private-request-metadata.declared-protocol-behavior gcs-private-request-metadata.physical-evidence gcs-private-request-metadata.original-preservation -->
+Logical reads and before/after Preview MUST exclude only that private field
+from the user metadata map while preserving every meaningful user-field
+change. The same approved operation MUST declare assignment of its private
+marker as Connector behavior; a human projection may omit the token value.
+The sealed original physical request and retained response, receipt and
+reconciliation evidence MUST preserve the exact marker and original generation
+and metageneration conditions under their existing disclosure policy. Logical
+projection MUST NOT rewrite or replace that original material.
+
+<!-- requirement-block: gcs-private-request-metadata.replacement gcs-private-request-metadata.fresh-marker gcs-private-request-metadata.presence gcs-private-request-metadata.unsupported-representation -->
+A whole user-metadata replacement MUST remove old user keys omitted from the
+new map and assign the current original operation's marker. It MUST NOT erase
+that marker or preserve a preexisting marker as evidence for the new request.
+Omission, an empty map and NULL MUST follow the selected Mapping's explicit
+presence and null behavior without an absent-to-empty or NULL-to-empty fallback.
+Unsupported physical representations MUST be refused before mutation, not
+silently converted. Provider PATCH's nested merge is not itself whole-map
+replacement; omitted old user keys require explicit physical removal.
+
+<!-- requirement-block: gcs-private-request-metadata.correlation-not-proof gcs-private-request-metadata.original-reconciliation gcs-private-request-metadata.nonresend -->
+Marker data is correlation only, never permission or a replacement for retained
+original evidence. Missing, foreign or copied markers, or equal user payload,
+MUST NOT independently prove that the original request applied. Reconciliation
+MUST retain the original request and its conditions and use the existing
+Effect owner's receipt, external-mutation guards and custody. A lost response
+or changed metageneration MUST NOT authorize automatic resend, adoption of a
+new head or a new operation. Unknown and unresolved cleanup remain owned by
+the original operation.
 
 <a id="file-sources"></a>
 
@@ -2301,7 +2364,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:b72f0e9566ffcb5495e801b342c9c578c90206a63e84761d367e5bd04bc0a13f
+../../../spec/contracts/actql-check-environment.json# sha256:26eef3a8e865b3ab2146de992cb4c70c9aa44c4766bdf11d0d0c453116297aeb
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9

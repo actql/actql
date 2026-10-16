@@ -892,3 +892,128 @@ test('known changed binding refuses before a subsequent Host current callback', 
   assert.deepEqual(setup.journal.recover().map(use => use.outcome), ['succeeded', 'failed']);
   assert.equal(closeHttpsCredentialBinding(binding), 'closed');
 });
+
+test('bounded binary invocation sends exact non-UTF8 bytes after the original current credential fence',
+  async t => {
+    const received = [];
+    const setup = await fixture(t, {retain: true, onRequest(request, response) {
+      const chunks = [];
+      request.on('data', chunk => chunks.push(chunk));
+      request.once('end', () => {
+        received.push({bytes: Buffer.concat(chunks), type: request.headers['content-type'],
+          length: request.headers['content-length'], path: request.url});
+        response.writeHead(201).end('{}');
+      });
+      return true;
+    }});
+    const original = scope(setup.origin, 'content:upload');
+    const grant = control.prepare(original);
+    setup.journal.acceptGrant(setup.sign(grant), control);
+    const entered = deferred(), release = deferred();
+    const resolveSecret = async () => { entered.resolve(); await release.promise; return 'provider-secret'; };
+    const binding = openHttpsCredentialBinding({scope: original, control,
+      journal: setup.journal, resolveSecret, maxSecretBytes: 64});
+    const backing = Buffer.from([99, 0, 255, 192, 128, 13, 10, 98]);
+    const invoke = () => invokeScopedCredentialOperation({
+      authorization: {grant, scope: original, useId: 'original-binary-use'},
+      credential: {binding, control, journal: setup.journal, resolveSecret,
+        ca: setup.ca, now: () => 1_999_999_999_999},
+      callResource: callHttpsCredentialResource, operation: original.operation,
+      method: 'POST', path: '/upload', query: [['name', 'é%2F.bin']],
+      bodyBytes: backing.subarray(1, 7), bodyMediaType: 'multipart/related; boundary="original"',
+      maxRequestBytes: 6, maxResponseBytes: 128,
+    });
+    const pending = invoke();
+    await entered.promise;
+    backing.fill(77);
+    assert.equal(setup.requests(), 0);
+    release.resolve();
+    const result = await pending;
+    assert.equal(result.accepted, true);
+    assert.equal(received.length, 1);
+    assert.deepEqual([...received[0].bytes], [0, 255, 192, 128, 13, 10]);
+    assert.equal(received[0].type, 'multipart/related; boundary="original"');
+    assert.equal(received[0].length, '6');
+    assert.equal(received[0].path, '/upload?name=e%CC%81%252F.bin');
+    assert.equal(setup.journal.inspect(result.useCid).outcome, 'succeeded');
+    await assert.rejects(invoke(), {code: 'RemoteCredentialUseAlreadyClaimed'});
+    assert.equal(setup.requests(), 1);
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+  });
+
+test('invalid binary limits and framing refuse before the real journal claim or secret resolution',
+  async t => {
+    const setup = await fixture(t, {retain: true});
+    const original = scope(setup.origin, 'content:upload');
+    let resolutions = 0;
+    const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+    const {binding, invoke} = boundFixture(setup, original, resolveSecret);
+    const request = {method: 'PUT', path: '/upload', bodyBytes: Buffer.from([0, 255]),
+      bodyMediaType: 'application/octet-stream', maxBodyBytes: 2};
+    for (const [index, change] of [
+      {maxBodyBytes: undefined}, {maxBodyBytes: 1}, {maxBodyBytes: -1},
+      {maxBodyBytes: 3}, {body: '{}'}, {bodyMediaType: 'text/plain\r\nx-secret: value'},
+      {bodyBytes: new Uint8Array(new SharedArrayBuffer(2))}, {method: 'DELETE'},
+      {headers: [['content-type', 'text/plain']]},
+    ].entries()) {
+      await assert.rejects(invoke(original, `invalid-binary-${index}`, {
+        maxRequestBytes: 2,
+        operations: new Map([[original.operation, {...request, ...change}]]),
+      }));
+    }
+    assert.equal(resolutions, 0);
+    assert.equal(setup.requests(), 0);
+    assert.equal(setup.journal.recover().length, 0);
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+  });
+
+test('binary response loss retains the original unknown use and never resends it',
+  async t => {
+    const received = [];
+    const setup = await fixture(t, {retain: true, onRequest(request, response) {
+      const chunks = [];
+      request.on('data', chunk => chunks.push(chunk));
+      request.once('end', () => {
+        received.push(Buffer.concat(chunks));
+        response.destroy();
+      });
+      return true;
+    }});
+    const original = scope(setup.origin, 'content:upload');
+    const {binding, invoke} = boundFixture(setup, original, async () => 'provider-secret');
+    const request = {method: 'PUT', path: '/upload', bodyBytes: Buffer.from([0, 255, 13, 10]),
+      bodyMediaType: 'application/octet-stream', maxBodyBytes: 4};
+    const options = {maxRequestBytes: 4,
+      operations: new Map([[original.operation, request]])};
+    await assert.rejects(invoke(original, 'binary-lost-reply', options));
+    assert.equal(received.length, 1);
+    assert.deepEqual([...received[0]], [0, 255, 13, 10]);
+    const unknown = setup.journal.recover();
+    assert.equal(unknown.length, 1);
+    assert.equal(unknown[0].outcome, 'unknown');
+    await assert.rejects(invoke(original, 'binary-lost-reply', options),
+      {code: 'RemoteCredentialUseAlreadyClaimed'});
+    assert.equal(setup.requests(), 1);
+    assert.equal(setup.journal.recover()[0].useCid, unknown[0].useCid);
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+  });
+
+test('retiring a binary request during secret resolution keeps pending custody and sends nothing',
+  async t => {
+    const setup = await fixture(t, {retain: true});
+    const original = scope(setup.origin, 'content:upload');
+    const entered = deferred(), released = deferred();
+    const resolveSecret = async () => { entered.resolve(); await released.promise; return 'provider-secret'; };
+    const {binding, invoke} = boundFixture(setup, original, resolveSecret);
+    const pending = invoke(original, 'retiring-binary', {maxRequestBytes: 2,
+      operations: new Map([[original.operation, {method: 'POST', path: '/upload',
+        bodyBytes: Buffer.from([0, 255]), bodyMediaType: 'application/octet-stream', maxBodyBytes: 2}]])});
+    await entered.promise;
+    assert.equal(closeHttpsCredentialBinding(binding), 'pending');
+    assert.equal(setup.requests(), 0);
+    released.resolve();
+    await assert.rejects(pending, {code: 'RemoteCredentialBindingRetiring'});
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+    assert.equal(setup.requests(), 0);
+    assert.equal(setup.journal.recover()[0].outcome, 'failed');
+  });

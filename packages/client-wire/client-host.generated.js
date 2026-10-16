@@ -17701,7 +17701,8 @@ const operationKeys = {
   "wait": [
     "connection",
     "ref",
-    "until"
+    "until",
+    "since"
   ],
   "cancel": [
     "connection",
@@ -17900,6 +17901,11 @@ export const validProfileContract = (value, selected) =>
 export const validAdmissionContract = (value, selected) =>
   validConnectionShape(selected) && validAdmissionShape(value) &&
   !(selected.durability === "durable" && value.durability !== "durable");
+export const validRunWaitContract = (value, since) =>
+  valid(value, schemas.run_state) &&
+  (since === null || valid(since, schemas.run_state.properties.revision)) &&
+  ["waiting_checkpoint","needs_reconciliation","succeeded","failed","cancelled"].includes(value.status) &&
+  (since === null || value.revision > since);
 export const validHeldContract = (value, expected) =>
   valid(expected, schemas.held.properties.requestId) &&
   ((valid(value, schemas.held) && value.requestId === expected));

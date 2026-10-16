@@ -1,6 +1,6 @@
 {
   "source": "a6cabd33cd55bdd9f59850877ef2a88412d648a7",
-  "qualification": "Existing Host/Common/Core functional references, separate from the prior compiler-representation facet. No product edits, new execution, parser or semantic rules. Original functional Owners retain authority.",
+  "qualification": "Existing Host/Common/Core functional references, separate from the prior compiler-representation facet. The initial reference-only supply made no product edits or runtime claims. Original functional Owners retain authority. The original source/syntax-input metadata records the initial reference supply, not a new runtime qualification. Explicit bounded HTTP byte-body extensions retain the same existing owners; their source-qualified tests and simultaneous holding inventory are separate from reference coverage and normal funding.",
   "syntaxInput": {
     "path": "i6-a-host-uncovered-projection.json",
     "sha256": "2cb84537d4ec8744a9a7d057a8202bef4d0bc45fb7f5b57770aa85d56a43f852",
@@ -4506,7 +4506,7 @@
     {
       "module": "adapters/host-common/http-exchange.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a38bb519027bced1c8845c416bec066f2e8ec4b837aa3bfef233381bb38d1792",
+      "sha256": "93242239546c1a9e4af45b86eaccc9376f48324e3b9418f67ed433d19643be27",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [
@@ -4514,6 +4514,7 @@
         "exchangeLimits",
         "exchangeMethods",
         "observeResponseHeaders",
+        "ownHttpByteRequest",
         "ownHttpRequest",
         "ownRequestHeaders",
         "ownResponseHeaderNames",
@@ -4572,6 +4573,20 @@
           "parameters": [
             "received",
             "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownHttpByteRequest",
+          "parameters": [
+            "method",
+            "path",
+            "query",
+            "headers",
+            "body",
+            "bodyBytes",
+            "bodyMediaType",
+            "maxBodyBytes"
           ],
           "async": false
         },
@@ -4648,6 +4663,7 @@
             "encodeComponent/encodeComponent/encodeComponent",
             "fail/fail",
             "observeResponseHeaders",
+            "ownHttpByteRequest",
             "ownHttpRequest",
             "ownRequestHeaders",
             "ownRequestHeaders/ownRequestHeaders",
@@ -4662,6 +4678,7 @@
             "exchangeLimits",
             "exchangeMethods",
             "observeResponseHeaders",
+            "ownHttpByteRequest",
             "ownHttpRequest",
             "ownRequestHeaders",
             "ownResponseHeaderNames",
@@ -4681,6 +4698,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "# Scoped HTTP body ownership"
               }
             ],
             "inputsOutputs": [
@@ -4695,6 +4716,10 @@
               {
                 "path": "docs/spec/protocols/http.md",
                 "anchor": "### HTTP Connector transport"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Two explicit shapes"
               }
             ],
             "identity": [
@@ -4709,6 +4734,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Original use and currentness"
               }
             ],
             "ownership": [
@@ -4723,6 +4752,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Simultaneous inventory"
               }
             ],
             "synchronization": [
@@ -4737,6 +4770,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "secret-resolution await."
               }
             ],
             "failure": [
@@ -4751,6 +4788,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Lost responses retain the same nominal Unknown use."
               }
             ],
             "cancellation": [
@@ -4765,6 +4806,10 @@
               {
                 "path": "docs/spec/protocols/http.md",
                 "anchor": "### HTTP Connector transport"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "Bound\ncleanup retains its existing pending state"
               }
             ],
             "resources": [
@@ -4779,6 +4824,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "two distinct dedicated N-byte backings"
               }
             ],
             "extension": [
@@ -4793,6 +4842,10 @@
               {
                 "path": "docs/spec/protocols/http.md",
                 "anchor": "### HTTP Connector transport"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "not public JSON wire"
               }
             ],
             "verification": [
@@ -4803,12 +4856,27 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Verification boundary"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
+              },
+              {
+                "path": "adapters/host-common/http-exchange.test.mjs",
+                "anchor": "byte length/backing properties cannot disguise"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/installed-connector-declaration.mjs",
@@ -5896,7 +5964,7 @@
     {
       "module": "adapters/host-common/private-publication-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c9abcb4ae01486855163dfff75ffecc64a0e4523ec37987166a2e082426d9808",
+      "sha256": "49d39bcf3f0a3531b75d67d372ac5cdc6711e809ded14ed9231c144e700bd9ff",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -6010,6 +6078,13 @@
             "handle"
           ],
           "async": false
+        },
+        {
+          "name": "writableFailure/writableFailure",
+          "parameters": [
+            "error"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -6033,7 +6108,8 @@
             "preparePrivatePublicationHolding/owner/init:retry/init:retry",
             "preparePrivatePublicationHolding/releaseUnused/releaseUnused",
             "preparePrivatePublicationHolding/status/status",
-            "preparePrivatePublicationHolding/status/status/status"
+            "preparePrivatePublicationHolding/status/status/status",
+            "writableFailure/writableFailure"
           ],
           "exports": [
             "preparePrivatePublicationHolding"
@@ -8282,15 +8358,26 @@
     {
       "module": "adapters/host-common/run-state-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b9a0d290ab4cdd6f21af1184783bbde305fc7bbd9cd33f4c46782b66ca828c21",
+      "sha256": "3c5c8589d30df908ab180eb9280b33f31b15fce3c7f50ada218c5a401cbbf60e",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
       "exports": [
+        "installedRunWaitDecision",
         "issueInstalledRunControlObservation",
         "issueInstalledRunObservationKey",
-        "issueInstalledUnpublishedRunState"
+        "issueInstalledUnpublishedRunState",
+        "prepareInstalledRunStateObservation"
       ],
       "operations": [
+        {
+          "name": "installedRunWaitDecision",
+          "parameters": [
+            "moon",
+            "state",
+            "since"
+          ],
+          "async": false
+        },
         {
           "name": "issueInstalledRunControlObservation",
           "parameters": [
@@ -8328,6 +8415,17 @@
             "executionUnknown"
           ],
           "async": false
+        },
+        {
+          "name": "prepareInstalledRunStateObservation",
+          "parameters": [
+            "moon",
+            "state",
+            "runId",
+            "revision",
+            "priorKey"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -8336,12 +8434,16 @@
             "<module>",
             "issueInstalledRunControlObservation",
             "issueInstalledRunObservationKey",
-            "issueInstalledUnpublishedRunState"
+            "issueInstalledUnpublishedRunState",
+            "prepareInstalledRunStateObservation",
+            "installedRunWaitDecision"
           ],
           "exports": [
             "issueInstalledRunControlObservation",
             "issueInstalledRunObservationKey",
-            "issueInstalledUnpublishedRunState"
+            "issueInstalledUnpublishedRunState",
+            "prepareInstalledRunStateObservation",
+            "installedRunWaitDecision"
           ],
           "attributes": {
             "responsibility": [
@@ -8356,6 +8458,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn prepare_run_state_observation("
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
               }
             ],
             "inputsOutputs": [
@@ -8370,6 +8480,14 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Client cancellation observations"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn RunStateObservation::wire("
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
               }
             ],
             "identity": [
@@ -8384,6 +8502,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -8398,6 +8524,14 @@
               {
                 "path": "docs/design/owner-observations.md",
                 "anchor": "# Scoped Owner observations"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
               }
             ],
             "synchronization": [
@@ -8412,6 +8546,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
               }
             ],
             "failure": [
@@ -8426,6 +8568,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
               }
             ],
             "cancellation": [
@@ -8440,6 +8590,14 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Client cancellation observations"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "cancellationRequested: current.cancellationRequested,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
             "resources": [
@@ -8454,6 +8612,22 @@
               {
                 "path": "docs/design/owner-observations.md",
                 "anchor": "# Scoped Owner observations"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "max_bytes : Int"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               }
             ],
             "extension": [
@@ -8468,6 +8642,14 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Client cancellation observations"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "fail('UnknownClientRequestJournalFormat');"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
               }
             ],
             "verification": [
@@ -8478,6 +8660,22 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision persists independently of control and unchanged rereads across reopen'"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision-public.test.mjs",
+                "anchor": "test('actual Local Run state revision survives Host release and attach without another computation'"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               }
             ]
           }
@@ -13670,7 +13868,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "13357232e46fdd127967477ece7f6184075ae7286bfdbe84ff034bbcda9f7235",
+      "sha256": "c945497c7972e4b269c179edab28e8d0ebe85c327837ffcaebc364baeb65e55d",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -13959,6 +14157,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
               }
             ],
             "inputsOutputs": [
@@ -13973,6 +14175,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
               }
             ],
             "identity": [
@@ -13987,6 +14193,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -14001,6 +14211,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
               }
             ],
             "synchronization": [
@@ -14015,6 +14229,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
               }
             ],
             "failure": [
@@ -14029,6 +14247,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
               }
             ],
             "cancellation": [
@@ -14043,6 +14265,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
             "resources": [
@@ -14057,6 +14283,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               }
             ],
             "extension": [
@@ -14071,6 +14305,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
               }
             ],
             "verification": [
@@ -14081,6 +14319,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               }
             ]
           }
@@ -15606,7 +15852,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "571bd936d395aac295ded87de238cbbee4266baea449d6530f7e41e4325269a4",
+      "sha256": "0310bba73100e9e8617dc661d52f8770b20e14212f1a4ad4f4ef16baa8883e57",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -16327,6 +16573,35 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
+          "parameters": [
+            "frame",
+            "state",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState/init:publishRunState",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:recordCancellationAttempt/init:recordCancellationAttempt",
           "parameters": [
             "ref",
@@ -16950,6 +17225,10 @@
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState/init:publishRunState",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
             "openClientRequestJournal/journal/init:recordCancellationAttempt/init:recordCancellationAttempt",
             "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation",
             "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/init:recordCancellationOperation",
@@ -17040,6 +17319,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original UPDATE selection boundary"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn prepare_run_state_observation("
               }
             ],
             "inputsOutputs": [
@@ -17058,6 +17341,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original UPDATE selection boundary"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn RunStateObservation::wire("
               }
             ],
             "identity": [
@@ -17080,6 +17367,10 @@
               {
                 "path": "src/run_publication_host/client_effect_target_original_data.mbt",
                 "anchor": "pub fn client_effect_target_selection_current("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
               }
             ],
             "ownership": [
@@ -17102,6 +17393,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original UPDATE selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
               }
             ],
             "synchronization": [
@@ -17124,6 +17419,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original UPDATE selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               }
             ],
             "failure": [
@@ -17146,6 +17445,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original UPDATE selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
               }
             ],
             "cancellation": [
@@ -17168,6 +17471,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original UPDATE selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "cancellationRequested: current.cancellationRequested,"
               }
             ],
             "resources": [
@@ -17190,6 +17497,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original UPDATE selection boundary"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "max_bytes : Int"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
               }
             ],
             "extension": [
@@ -17212,6 +17527,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original UPDATE selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "fail('UnknownClientRequestJournalFormat');"
               }
             ],
             "verification": [
@@ -17230,6 +17549,14 @@
               {
                 "path": "src/run_publication_host/client_effect_target_selections.mbt",
                 "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision persists independently of control and unchanged rereads across reopen'"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision-public.test.mjs",
+                "anchor": "test('actual Local Run state revision survives Host release and attach without another computation'"
               }
             ]
           }

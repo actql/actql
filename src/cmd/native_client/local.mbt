@@ -87,6 +87,10 @@ fn local_input_cursor(text : String) -> @decode.Cursor raise ClientStop {
 /// Preparation is not a public verified report or a dispatch permit. Run,
 /// publication and Checkpoint operations require their durable Owner bindings.
 fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop {
+  if optional(matches, "state-dir") is Some(_) &&
+    matches.sources.get("config-file") is Some(@argparse.Argv) {
+    stop("ConflictingLocalInstallationSelection")
+  }
   for
     name in [
       "endpoint", "connection-root", "connection-file", "token-root", "token-file",
