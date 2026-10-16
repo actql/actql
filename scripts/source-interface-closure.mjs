@@ -11,6 +11,7 @@ import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {javascriptInterface} from './interface-inventory.mjs';
 import {moonInterfaceClosure} from './moon-interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
+import {typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
 
 export function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = []} = {}) {
   root = realpathSync(root);
@@ -32,7 +33,8 @@ export function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRo
     artifacts.set(path, input);
   }
   const entrances = [...new Set([...roots.flatMap(value => value.entrances)
-    .filter(path => /\.[cm]?js$/u.test(path)), ...local.adapterEntries])];
+    .filter(path => /\.[cm]?js$/u.test(path)),
+    ...(roots.some(value => value.name === '@actql/local-node') ? local.adapterEntries : [])])];
   const sourceEntrances = [], artifactReferences = new Set();
   for (const entrance of entrances) {
     if (artifacts.has(resolve(root, entrance))) artifactReferences.add(resolve(root, entrance));
@@ -65,6 +67,8 @@ export function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRo
   });
   const moon = moonInterfaceClosure(root, [...new Set([...artifactReferences]
     .flatMap(path => artifacts.get(path).sourcePackages))]);
-  return {qualification: 'source-input-coverage-only', roots, modules, moon,
+  const types = typescriptInterfaceClosure(root, roots.flatMap(value => value.entrances)
+    .filter(path => /\.d\.[cm]?ts$/u.test(path)));
+  return {qualification: 'source-input-coverage-only', roots, modules, types, moon,
     artifacts: [...artifactReferences].sort().map(path => artifacts.get(path))};
 }

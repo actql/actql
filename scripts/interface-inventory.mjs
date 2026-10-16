@@ -38,7 +38,7 @@ function names(pattern) {
 export function javascriptInterface(source) {
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module',
     allowHashBang: true, locations: true});
-  const operations = [], exports = [], imports = [], compilerFields = [];
+  const operations = [], exports = [], imports = [], compilerFields = [], occurrences = new Map();
   function visit(node, scope = []) {
     if (!node || typeof node !== 'object') return;
     let childScope = scope;
@@ -51,13 +51,31 @@ export function javascriptInterface(source) {
     }
     if (/^(?:FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/u.test(node.type)) {
       const name = node.id?.name ?? scope.at(-1) ?? '<anonymous>';
-      const path = [...scope, name].join('/');
+      const base = [...scope, name].join('/'), occurrence = (occurrences.get(base) ?? 0) + 1;
+      occurrences.set(base, occurrence);
+      const path = occurrence === 1 ? base : `${base}#${occurrence}`;
       operations.push({name: path, parameters: node.params.flatMap(names), async: node.async});
       childScope = [...scope, name];
     }
     if (node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration' ||
         node.type === 'ExportNamedDeclaration' && node.source) imports.push(node.source.value);
     if (node.type === 'ImportExpression' && node.source.type === 'Literal') imports.push(node.source.value);
+    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require' &&
+        node.arguments[0]?.type === 'Literal') imports.push(node.arguments[0].value);
+    if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression') {
+      const target = node.left;
+      if (target.object.type === 'Identifier' && target.object.name === 'exports') {
+        exports.push(`commonjs:${target.property.name ?? target.property.value ?? '<computed>'}`);
+      }
+      if (target.object.type === 'Identifier' && target.object.name === 'module' && target.property.name === 'exports') {
+        const value = node.right.type === 'CallExpression' && node.right.callee.type === 'MemberExpression' &&
+          node.right.callee.object.name === 'Object' && node.right.callee.property.name === 'freeze'
+          ? node.right.arguments[0] : node.right;
+        exports.push(...value.type === 'ObjectExpression'
+          ? value.properties.map(property => `commonjs:${property.key?.name ?? property.key?.value ?? '<spread>'}`)
+          : ['<dynamic-commonjs>']);
+      }
+    }
     if (node.type === 'ExportDefaultDeclaration') exports.push('default');
     if (node.type === 'ExportAllDeclaration') exports.push(node.exported
       ? `${node.exported.name ?? node.exported.value}=*:${node.source.value}` : `*:${node.source.value}`);

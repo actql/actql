@@ -5,6 +5,9 @@ import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {moonOperations, moonInterfaceClosure} from './moon-interface-inventory.mjs';
 import {productionPackageImports} from './source-dependency-closure.mjs';
+import {sourceInterfaceClosure} from './source-interface-closure.mjs';
+import {typescriptInterface, typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
+import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 
 test('ordinary runtime builder consumes the same side-effect-free input reader', () => {
   const root = process.cwd(), inputs = runtimePackageInputs(root);
@@ -36,4 +39,23 @@ test('actual ordinary coordinator boundary includes its production MoonBit depen
   assert(result.packages.includes('execution_site'));
   assert(result.modules.some(value => value.module === 'src/remote_coordinator_abi/pkg.generated.mbti' && value.exports.length));
   assert(result.modules.every(value => !/_(?:test|wbtest|bbtest)\.mbt$/u.test(value.module)));
+});
+
+test('actual coordinator source graph records its generated artifact without pretending it was built', () => {
+  const result = sourceInterfaceClosure(process.cwd(), {distributionRoots:
+    npmInterfaceRoots(process.cwd()).filter(value => value.name === '@actql/coordinator-core')});
+  assert.equal(result.qualification, 'source-input-coverage-only');
+  assert(result.modules.some(value => value.module === 'packages/coordinator-core/index.mjs'));
+  assert(result.artifacts.some(value => value.module === 'packages/coordinator-core/dist/remote_coordinator_abi.js'));
+  assert(result.moon.packages.includes('remote_coordinator_abi'));
+  assert(result.types.some(value => value.module === 'packages/coordinator-core/index.d.ts'));
+});
+
+test('pinned TypeScript parser inventories named declaration roles and relative public type closure', () => {
+  const result = typescriptInterface('export interface Host {read(run: string, task: string): Promise<void>;}');
+  assert.deepEqual(result.exports, ['Host']);
+  assert.deepEqual(result.operations[0], {name: 'Host/read',
+    parameters: ['run: string', 'task: string'], result: 'Promise<void>'});
+  assert(typescriptInterfaceClosure(process.cwd(), ['packages/sdk/index.d.ts'])
+    .some(value => value.module === 'packages/sdk/standard-schema.d.ts'));
 });
