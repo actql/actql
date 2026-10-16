@@ -1,6 +1,7 @@
 [
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
+    "responsibilityFacet": "primary",
     "sha256": "c5e8f7e23359b83ca821f954e93ecb16da6aa26c338262b9e3fb956ca4ced712",
     "exports": [
       "SHEETS_EFFECT_VERSION",
@@ -693,6 +694,7 @@
   },
   {
     "module": "adapters/connectors/sheets/host/sheets-range-command.mjs",
+    "responsibilityFacet": "primary",
     "sha256": "ca144ab4d0c084c900daca939d62c07f7a0d770f618131126f099fea6577954b",
     "exports": [
       "createSheetsRangeDriver",
@@ -1131,6 +1133,7 @@
   },
   {
     "module": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+    "responsibilityFacet": "primary",
     "sha256": "c5516ee987469c20377015a4a7604391265a1eab9614036235a4fb8760b411e7",
     "exports": [
       "SHEETS_APPEND_OPERATION",
@@ -1601,6 +1604,7 @@
   },
   {
     "module": "adapters/connectors/sheets/site/sheets-owned-request.mjs",
+    "responsibilityFacet": "primary",
     "sha256": "7bfaa5a2de2fc92999b22e8077a8f9755dd36d19985b166ccd49e3d4184f532e",
     "exports": [
       "ownedSheetsRequestCid",
@@ -1811,6 +1815,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/cells.mbt",
+    "responsibilityFacet": "primary",
     "sha256": "ab9ac3ee44543e678f725ac3398ef077d3a6b637053cec52180ea5c843b728a7",
     "operations": [
       {
@@ -2013,6 +2018,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/pkg.generated.mbti",
+    "responsibilityFacet": "primary",
     "sha256": "9feda8ee944754ffc345cb73bd3a9e17cc8df1a3d6677221438720cb16848bc2",
     "exports": [
       "pub fn admit_range_binding(String, String, String, String, Limits) -> Result[RangeBinding, RangeFailure]",
@@ -2431,6 +2437,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/range_declaration.mbt",
+    "responsibilityFacet": "primary",
     "sha256": "e4b803cabd84ba56f2c2a8b705f9ddbc204c66c45d062de78955fdb6b745f06d",
     "operations": [
       {
@@ -2570,6 +2577,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/range_identity.mbt",
+    "responsibilityFacet": "primary",
     "sha256": "497e0716039f1cf9132f62fb203b93d39e79d26e85360a88c507364104bdc0d9",
     "operations": [
       {
@@ -2757,6 +2765,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/range_request.mbt",
+    "responsibilityFacet": "primary",
     "sha256": "b75988d0490649f8c87b9f8fe5039385de2e5adda7271ee8bddcba9221d539f1",
     "operations": [
       {
@@ -2946,6 +2955,7 @@
   },
   {
     "module": "src/connectors/sheets/host_node/bridge.mbt",
+    "responsibilityFacet": "primary",
     "sha256": "969da9053d5f269d7718a0a39f0b8ab9be2ed1f5b99c910462cac2f6d69f0512",
     "operations": [
       {
@@ -3113,6 +3123,7 @@
   },
   {
     "module": "src/connectors/sheets/host_node/pkg.generated.mbti",
+    "responsibilityFacet": "primary",
     "sha256": "ef226d071ea230dc742da6c5a0daab82d74573b94c29a3bd0a0ac3b3d2b0167c",
     "exports": [
       "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
@@ -3488,6 +3499,7 @@
   },
   {
     "module": "src/connectors/sheets/host_node/range.mbt",
+    "responsibilityFacet": "primary",
     "sha256": "8007d0e234c362faaf2d982730bf6c98b54b145f1fb87493e8602cc084467bf5",
     "operations": [
       {

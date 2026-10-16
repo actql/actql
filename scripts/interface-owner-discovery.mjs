@@ -18,7 +18,6 @@ export function interfaceOwnerDeclarations(root, files = repositoryFiles(root)) 
       const declarations = Array.isArray(value) ? value : value.declarations;
       assert(Array.isArray(declarations) && declarations.length, `Missing interface declarations: ${path}`);
       return {id: path, sha256: createHash('sha256').update(bytes).digest('hex'), declarations,
-        generated: Array.isArray(value) ? [] : value.generated ?? [],
         qualification: Array.isArray(value) ? 'existing-owner-reference-index' : value.qualification};
     });
 }

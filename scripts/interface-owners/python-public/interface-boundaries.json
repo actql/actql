@@ -21,6 +21,7 @@
         "wasmtime"
       ],
       "module": "experiments/python-local-wasm/package/src/actql_local_probe/__init__.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -271,6 +272,7 @@
         "actql_sdk"
       ],
       "module": "packages/python-product/src/actql/__init__.py",
+      "responsibilityFacet": "primary",
       "operations": [],
       "sha256": "4ba1c96cd64963d73da1b7b103017d243699ee05ed59489acc60f0995f424ead",
       "role": "physical-io",
@@ -431,6 +433,7 @@
         "actql_sdk"
       ],
       "module": "packages/python-product/src/actql/__init__.pyi",
+      "responsibilityFacet": "primary",
       "operations": [],
       "sha256": "cbc80a84e28d8ce201c4d43a968f96129650e82cc904ef91a9a1739311cf7598",
       "role": "physical-io",
@@ -598,6 +601,7 @@
         "._values"
       ],
       "module": "packages/python-sdk/src/actql_sdk/__init__.py",
+      "responsibilityFacet": "primary",
       "operations": [],
       "sha256": "419cc0af6fc1650687735b7e66b6dacf6e75ad0258cb9e6e65ddfb25294a7d2b",
       "role": "physical-io",
@@ -781,6 +785,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/__init__.pyi",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -1894,6 +1899,7 @@
         "weakref"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_async.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -2580,6 +2586,7 @@
         "re"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -2781,6 +2788,7 @@
         "weakref"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_diagnostics.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -3007,6 +3015,7 @@
       ],
       "imports": [],
       "module": "packages/python-sdk/src/actql_sdk/_errors.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -3151,6 +3160,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_public_types.py",
+      "responsibilityFacet": "primary",
       "operations": [],
       "sha256": "99ef27d758f1c64132fd7ce03dfe449cad04c2dff92f28cba7dde619a0c14d4d",
       "role": "public-wire-codec",
@@ -3293,6 +3303,7 @@
         "uuid"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_reader.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -3611,6 +3622,7 @@
         "asyncio"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_sync.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,
@@ -4566,6 +4578,7 @@
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
+      "responsibilityFacet": "primary",
       "operations": [],
       "sha256": "b6bbcb05ac4c7d481381b006360330a2ba58c95ea2d03d17583612083ece9a85",
       "role": "public-wire-codec",
@@ -5156,6 +5169,7 @@
         "unicodedata"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_values.py",
+      "responsibilityFacet": "primary",
       "operations": [
         {
           "async": false,

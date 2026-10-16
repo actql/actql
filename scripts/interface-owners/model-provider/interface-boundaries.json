@@ -4,6 +4,7 @@
   "declarations": [
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "bb36bd5f6ca4a29c855809a835d91e0f3f122d45401aa85d8198383d4432fa8d",
       "exports": [
         "createInstalledOpenAIChatRegistration",
@@ -330,6 +331,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/installed-typesafe-decision.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "4afd8b02a05002b22f4bebbb2c239f9712d7195163572187771f4dc2870e719a",
       "exports": [
         "createInstalledTypeSafeDecisionRegistration"
@@ -611,6 +613,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "6e8522c11f1527975afbb53494ade5f50617c72724e1f36f140bd80f64873321",
       "exports": [
         "createSdkModelPreflight",
@@ -951,6 +954,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/native-decision-preflight.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "d2408bae69efbe154e6cc8b2330be3113f7c302fd9f8df5ca3f9706822085df1",
       "exports": [
         "createAdmittedTypeSafeDecisionPreflight"
@@ -1134,6 +1138,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/original-materials.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "d41122a739f8915dc575d06e408f4f09f8bd0a02975f816e22ecd6e3f94af902",
       "exports": [
         "admitOpenAIOriginalMaterials",
@@ -1520,6 +1525,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "af362d739dbd630a487643f90c80976aced1f8667a3bab68ee269eeeb3fe5c63",
       "exports": [
         "createAdmittedOpenAIChatPreflight",
@@ -1766,6 +1772,7 @@
     },
     {
       "module": "packages/provider-ai-sdk/_internal/typesafe-decision.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "7393be4221d7d60f510298c8476d2ae584722eeef5998cc7b6dcd29b90cf285b",
       "exports": [
         "createProjectedTypeSafeDecisionPreflight",
@@ -2055,6 +2062,7 @@
     },
     {
       "module": "packages/provider-http/_internal/installed-http-chat.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "1c738aecb43613466a89dbba571bb152e955b8a574d8ab738102d65e61675ede",
       "exports": [
         "createInstalledHttpChatRegistration"
@@ -2402,6 +2410,7 @@
     },
     {
       "module": "packages/provider-http/_internal/model-port.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "897aac213bf3df784883ccbab51a4a462741317f85dc8d9902cd53e5813df784",
       "exports": [
         "createHttpChatPreflight"
@@ -2801,6 +2810,7 @@
     },
     {
       "module": "packages/provider-http/_internal/original-chat-request.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "ec997a25657266a34994f92e8800177624bfb5e93b7efccd08a8283bce289e22",
       "exports": [
         "prepareOriginalHttpChatRequest"
@@ -2958,6 +2968,7 @@
     },
     {
       "module": "packages/provider-http/_internal/original-materials.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "7b69f030557e3db7d9c82aa85dc4acbd72092237979bad491b7c8d3220c3be23",
       "exports": [
         "admitHTTPOriginalMaterials",
@@ -3352,6 +3363,7 @@
     },
     {
       "module": "scripts/generate-model-original-materials.mjs",
+      "responsibilityFacet": "primary",
       "sha256": "3eebe8affcb154899104f1a6cf179ca5e6b6ffa38ab59a8403900e8c4e9b8ef8",
       "exports": [],
       "operations": [],
