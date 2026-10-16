@@ -71,27 +71,37 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     compilations.set(prepared, compilation);
     return Object.freeze({prepared, compilation, ...bound});
   };
-  const restoreRun = (original, runDefinition, identity) => {
-    if (!updateTargetRunOriginalShape(original, undefined, moon)) fail();
-    const expectedSelectionCid = runUpdateSelectionCid(runDefinition, moon);
-    if (expectedSelectionCid === undefined) fail();
-    const restored = checked(moon.clientProgramAdmitEffectRunMaterials(original.materialsWire,
+  const restoreEffectMaterials = (wire, runDefinition, identity) => {
+    const restored = checked(moon.clientProgramAdmitEffectRunMaterials(wire,
       runDefinition.identity, ...features, identity ?? null));
     const prepared = moon.clientProgramEffectRunMaterialsPrepared(restored);
     const compilation = moon.clientProgramEffectRunMaterialsCompilation(restored);
     const allowed = moon.clientProgramEffectRunMaterialsAllowed(restored);
     const definition = moon.clientProgramEffectRunMaterialsDefinition(restored);
+    return Object.freeze({materials: restored, prepared, compilation, allowed, definition});
+  };
+  const restoreRun = (original, runDefinition, identity) => {
+    if (!updateTargetRunOriginalShape(original, undefined, moon)) fail();
+    const expectedSelectionCid = runUpdateSelectionCid(runDefinition, moon);
+    if (expectedSelectionCid === undefined) fail();
+    const restored = restoreEffectMaterials(original.materialsWire, runDefinition, identity);
+    const {prepared, compilation, definition} = restored;
     // Retain the existing whole Run/material binding admission as well as the
     // nominal selection/preparation projection. No replacement Run is issued.
-    checked(moon.clientProgramEffectRunMaterialsTargetSelections(restored));
+    checked(moon.clientProgramEffectRunMaterialsTargetSelections(restored.materials));
     const selections = selectionsOf(prepared);
     if (selections === undefined || updateTargetSelectionsCid(selections, moon) !== expectedSelectionCid ||
         !updateTargetSelectionMatchesRun(selections, prepared, definition)) fail();
     const bound = bind(selections, original.installations);
     compilations.set(prepared, compilation);
-    return Object.freeze({prepared, compilation, allowed, definition, ...bound});
+    return Object.freeze({...restored, ...bound});
   };
   return Object.freeze({selectionsOf, capturePrepared, restorePrepared, restoreRun,
+    restoreEffectMaterials,
+    captureEffectMaterials({allowed, definition, identity}) {
+      return checked(moon.clientProgramIssuePreparedEffectRunMaterials(
+        allowed, definition, identity ?? null));
+    },
     compilationFor: prepared => compilations.get(prepared),
     validatePrepared(prepared) {
       const selections = selectionsOf(prepared);

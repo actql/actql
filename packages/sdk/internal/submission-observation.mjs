@@ -183,9 +183,12 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
   const submitIntent = (kind, input, options) => {
     let body;
     try {
+      const stopBefore = options.stopBefore;
+      if (stopBefore !== undefined && stopBefore !== 'commit') fail('InvalidClientPayload');
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
         attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
         kind, input, parameters: options.parameters ?? null,
+        ...(stopBefore === undefined ? {} : {stopBefore}),
         ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
     } catch {fail('InvalidClientPayload');}
     if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
@@ -202,7 +205,8 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     const pending = (async () => {
       let intentCid;
       try {intentCid = await bytesCid(new TextEncoder().encode(canonicalJson({
-        intent: {kind, input: body.input, parameters: body.parameters},
+        intent: {kind, input: body.input, parameters: body.parameters,
+          ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {})},
         version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));}
       catch (cause) {throw submissionNotSent(context, cause);}
       let outcome;
