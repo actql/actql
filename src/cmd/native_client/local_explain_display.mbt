@@ -112,20 +112,20 @@ fn local_explain_effects(
     local_explain_literal(local_explain_field(effects, "unit_id")) +
     "\n",
   )
-  for member in local_explain_items(local_explain_field(effects, "members")) {
+  for entry in local_explain_items(local_explain_field(effects, "members")) {
     output.append(
       "\nEffect " +
-      local_explain_literal(local_explain_field(member, "effect_id")) +
+      local_explain_literal(local_explain_field(entry, "effect_id")) +
       " " +
-      local_explain_literal(local_explain_field(member, "effect_kind")) +
+      local_explain_literal(local_explain_field(entry, "effect_kind")) +
       "\n  Contract: " +
-      local_explain_literal(local_explain_field(member, "contract")) +
+      local_explain_literal(local_explain_field(entry, "contract")) +
       "\n  Input: " +
-      local_explain_literal(local_explain_field(member, "input")) +
+      local_explain_literal(local_explain_field(entry, "input")) +
       "\n  Minimum approval: " +
-      local_explain_literal(local_explain_field(member, "minimum_approval")) +
+      local_explain_literal(local_explain_field(entry, "minimum_approval")) +
       "\n  Failure policy: " +
-      local_explain_literal(local_explain_field(member, "failure_policy")) +
+      local_explain_literal(local_explain_field(entry, "failure_policy")) +
       "\n",
     )
   }
