@@ -280,6 +280,32 @@ test('expiry during secret resolution consumes use without external I/O',
     assert.equal(setup.journal.recover()[0].outcome, 'failed');
   });
 
+test('revocation during secret resolution fences the final request and retains the original use',
+  async t => {
+    const setup = await fixture(t);
+    const grantScope = scope(setup.origin);
+    const grant = control.prepare(grantScope);
+    setup.journal.acceptGrant(setup.sign(grant), control);
+    let original;
+    await assert.rejects(call(setup, grant, grantScope, 'revoked-after-await', {
+      resolveSecret: async () => {
+        original = setup.journal.recover()[0];
+        assert.equal(original.outcome, 'claimed');
+        setup.journal.revoke(control.identity(grant));
+        await Promise.resolve();
+        return 'provider-secret';
+      },
+    }));
+    assert.equal(setup.requests(), 0);
+    const retained = setup.journal.recover();
+    assert.equal(retained.length, 1);
+    assert.equal(retained[0].useCid, original.useCid);
+    assert.equal(retained[0].outcome, 'failed');
+    await assert.rejects(call(setup, grant, grantScope, 'revoked-after-await'));
+    assert.equal(setup.requests(), 0);
+    assert.equal(setup.journal.recover().length, 1);
+  });
+
 test('redirect is rejected without forwarding the provider credential',
   async t => {
     const setup = await fixture(t);
