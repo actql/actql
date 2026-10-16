@@ -88,6 +88,13 @@ export function updateTargetSelectionsCid(selections, moon) {
   return checked(moon.clientProgramEffectTargetSelectionDataCid(encodeUpdateTargetData(selections)));
 }
 
+// Original-custody callers require the retained opaque borrow. The separate
+// compatibility DATA digest above never authenticates a copied selection.
+export function originalUpdateTargetSelectionsCid(selections, moon) {
+  if (!selectionOriginals.has(selections)) invalid();
+  return updateTargetSelectionsCid(selections, moon);
+}
+
 // Private trusted installation for the existing request journal. It exposes
 // only the same Owner's bounded DATA check, never a restoration/send issuer.
 export function createUpdateTargetOriginalShapeControl(moon) {

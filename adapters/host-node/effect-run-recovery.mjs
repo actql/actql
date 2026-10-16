@@ -2,7 +2,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {recoverCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
 import {PublicationStoreError} from '../store-local/publication-store.mjs';
-import {runUpdateSelectionCid, updateTargetSelectionsCid} from './update-target-original-shape.mjs';
+import {runUpdateSelectionCid, originalUpdateTargetSelectionsCid} from './update-target-original-shape.mjs';
 
 const captureRefusals = new WeakSet();
 export const isEffectCaptureRecoveryRefusal = error =>
@@ -74,10 +74,14 @@ export async function recoverAdmittedEffectRun({
     fail('EffectRecoveryOriginalSelectionUnavailable');
   }
   const selectionCid = runUpdateSelectionCid(retained.runDefinition, moon);
-  if (selectionCid === undefined ? original.updateTargetSelections !== undefined :
-      !Array.isArray(original.updateTargetSelections) ||
-      typeof original.assertUpdateSelectionCurrent !== 'function' ||
-      updateTargetSelectionsCid(original.updateTargetSelections, moon) !== selectionCid) {
+  let originalMatches = false;
+  try {
+    originalMatches = selectionCid === undefined ? original.updateTargetSelections === undefined :
+      Array.isArray(original.updateTargetSelections) &&
+      typeof original.assertUpdateSelectionCurrent === 'function' &&
+      originalUpdateTargetSelectionsCid(original.updateTargetSelections, moon) === selectionCid;
+  } catch { /* An unowned DATA copy cannot become original custody. */ }
+  if (!originalMatches) {
     fail('EffectRecoveryOriginalSelectionUnavailable');
   }
   const assertOriginalCurrent = () => {

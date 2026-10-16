@@ -8,7 +8,7 @@ import {installedRowEffectOwnerBinding, installedRowEffectUpdateObservations} fr
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 
 import {installationsShape, updateTargetPreparedOriginalShape, updateTargetRunOriginalShape,
-  runUpdateSelectionCid, updateTargetSelectionsCid, retainUpdateTargetSelection,
+  runUpdateSelectionCid, originalUpdateTargetSelectionsCid as updateTargetSelectionsCid, retainUpdateTargetSelection,
   assertUpdateTargetSelectionCurrent, updateTargetSelectionMatchesRun,
   updateTargetOriginalDataEqual}
   from './update-target-original-shape.mjs';

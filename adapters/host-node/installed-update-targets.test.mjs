@@ -19,7 +19,8 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {assertUpdateTargetSelectionCurrent, assertUpdateTargetSelectionMembersCurrent,
-  createUpdateTargetOriginalShapeControl, updateTargetSelectionsCid} from './update-target-original-shape.mjs';
+  createUpdateTargetOriginalShapeControl, updateTargetSelectionsCid,
+  originalUpdateTargetSelectionsCid} from './update-target-original-shape.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -241,6 +242,8 @@ test('actual UPDATE original refuses copied selection foreign prepared installat
     assert.throws(() => assertUpdateTargetSelectionMembersCurrent(selections.map(value => ({...value})), members, owner.prepared));
     const copiedDescriptors = Object.defineProperties([], Object.getOwnPropertyDescriptors(selections));
     assert.throws(() => assertUpdateTargetSelectionMembersCurrent(copiedDescriptors, members, owner.prepared));
+    assert.equal(originalUpdateTargetSelectionsCid(selections, moon), updateTargetSelectionsCid(selections));
+    assert.throws(() => originalUpdateTargetSelectionsCid(copiedDescriptors, moon));
     assert.throws(() => assertUpdateTargetSelectionCurrent(selections, [], owner.prepared));
     const saved = owner.originals.capturePrepared(owner.prepared, owner.compilation);
     assert.throws(() => originalOwnerFixture(stale).originals.restorePrepared(saved));
