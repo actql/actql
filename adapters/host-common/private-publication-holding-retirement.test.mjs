@@ -18,17 +18,17 @@ function fixture({releaseFailure, beforeCommitFailure, raw = false} = {}) {
   const objects = cleanupPending.map((_, index) => Object.freeze({
     physicalCid: cid(index === 0 ? 'c' : 'e'), bytes: 31,
     prepared: Object.freeze({
-    status() {
-      counts.status++;
-      assert.equal(retired, false, 'retired prepared handle must not be consulted');
-      return Object.freeze({pending: cleanupPending[index]});
-    },
-    async release() {
-      counts.release++;
-      if (failRelease !== undefined) throw failRelease;
-      cleanupPending[index] = false;
-      return true;
-    },
+      status() {
+        counts.status++;
+        assert.equal(retired, false, 'retired prepared handle must not be consulted');
+        return Object.freeze({pending: cleanupPending[index]});
+      },
+      async release() {
+        counts.release++;
+        if (failRelease !== undefined) throw failRelease;
+        cleanupPending[index] = false;
+        return true;
+      },
     }),
   }));
   const confirm = async () => { counts.confirm++; return visible ? record : undefined; };

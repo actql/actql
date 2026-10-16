@@ -85,6 +85,9 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
           await releaseUnused();
           record = existing;
           committed = true;
+          // The same Store confirmation and prepared cleanup both succeeded.
+          // Retire only this owner's aliases, not escaped handles or backing.
+          prepared = undefined;
           originalBytes = undefined;
           return existing;
         }
@@ -129,6 +132,7 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
         await releaseUnused();
         record = verified;
         committed = true;
+        prepared = undefined;
         originalBytes = undefined;
         return verified;
       })().catch(error => {
@@ -158,11 +162,13 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
           await releaseUnused();
           record = existing;
           committed = true;
+          prepared = undefined;
           originalBytes = undefined;
           return false;
         }
         await releaseUnused();
         abandoned = true;
+        prepared = undefined;
         originalBytes = undefined;
         return true;
       })().finally(() => {
