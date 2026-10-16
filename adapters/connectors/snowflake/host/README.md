@@ -105,3 +105,33 @@ sync/async reads, application-owned typed rows without Pydantic, reader close,
 separate Python processes and a fresh Host process reopening the same new Store.
 These fixture results do not establish live Snowflake service, Python Local
 startup, an automatically acquired metadata snapshot or a new release cohort.
+
+## Provider key-pair authentication
+
+A `KEYPAIR_JWT` Site may select RSA key material instead of an already issued
+JWT in `tokenEnvironment`. Remove `tokenEnvironment` and add the closed field:
+
+```json
+"keyPair": {
+  "accountIdentifier": "myorg-myaccount",
+  "user": "ACTQL",
+  "privateKeyEnvironment": "SNOWFLAKE_PRIVATE_KEY",
+  "passphraseEnvironment": "SNOWFLAKE_PRIVATE_KEY_PASSPHRASE"
+}
+```
+
+Omit `passphraseEnvironment` for an unencrypted PEM. The account identifier is
+explicit provider issuer data, without region/domain suffixes, not an inferred
+request origin. Neither key nor passphrase is stored in the profile. The
+existing `resolveSourceSecret` callback, when supplied, receives the same
+original credential-use context plus `materialEnvironment` naming the selected
+material; otherwise only those selected environment variables are read.
+
+The Site's `credentialPrivateKeyPath` still identifies its independent Ed25519
+grant-signing original. It is not a provider key. OAuth and pre-issued JWT
+profiles keep their existing token path; invalid/mixed selections refuse rather
+than falling back. The same existing `maxSecretBytes` bounds each private input
+and the output token; a too-small profile is a refusal, not permission to grow.
+The existing current/credential-use checks and original response binding remain
+in force. [Material responsibilities](../site/README.md) distinguish the local
+cache, Provider expiration and actual transport/Run cleanup.

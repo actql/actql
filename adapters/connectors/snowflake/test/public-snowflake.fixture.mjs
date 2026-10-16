@@ -35,8 +35,8 @@ export async function publicSnowflakeInstallation(t) {
   return {...f, installation, observations};
 }
 
-export async function publicSnowflakeFixture(t, entrance) {
-  const f = await publicSnowflakeInstallation(t);
+export async function publicSnowflakeFixture(t, entrance, installationFixture = publicSnowflakeInstallation) {
+  const f = await installationFixture(t);
   const {installation, observations} = f;
   const principal = userInfo().username;
   let client, host, server, priorCa, endpoint;
