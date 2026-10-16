@@ -4106,7 +4106,7 @@
     {
       "module": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "41fb4bae06574bfea8f0307febe414895bdf466467492b42abb033afd5950248",
+      "sha256": "fd3db0ec5923f84cccbab83232f812070500189b3cb34907b96763352dcd5710",
       "role": "connector-semantics",
       "owner": "GCS profile and declaration inputs; Common RowSource declaration seals catalogs/schema/capabilities",
       "exports": [
@@ -4270,6 +4270,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact content companion columns"
               }
             ],
             "inputsOutputs": [
@@ -4361,6 +4365,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact content companion columns"
               }
             ],
             "extension": [
@@ -4397,6 +4405,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-source-declaration.test.mjs",
+                "anchor": "ordinary contents declares five public fields and retains its original lookup identity"
               }
             ]
           }
@@ -5124,7 +5136,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "74cfe82c8dfee49c70f5f6ec0a80fed2ca273799f77d7598e8f29fb6730eea36",
+      "sha256": "b1bdace431076d1134fd1c739c3ed64ca9d4140420ac7673a4ae203e35fe0ad2",
       "role": "physical-io",
       "owner": "Version-keyed metadata/media sequencing through the original RowRun charge and capture owner",
       "exports": [
@@ -5143,6 +5155,7 @@
           "parameters": [
             "moon",
             "requestWire",
+            "columns",
             "resolveResource",
             "beginRequest",
             "chargePage",
@@ -5191,6 +5204,13 @@
             "callback"
           ],
           "async": false
+        },
+        {
+          "name": "readGcsKeyedContent/readGcsKeyedContent#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -5203,7 +5223,8 @@
             "readGcsKeyedContent/captured/captured#2",
             "readGcsKeyedContent/captured/captured#3",
             "readGcsKeyedContent/captured/captured#4",
-            "readGcsKeyedContent/readGcsKeyedContent"
+            "readGcsKeyedContent/readGcsKeyedContent",
+            "readGcsKeyedContent/readGcsKeyedContent#2"
           ],
           "exports": [
             "readGcsKeyedContent"
@@ -5217,6 +5238,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Selected Content metadata admission"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact content companion columns"
               }
             ],
             "inputsOutputs": [
@@ -5267,6 +5292,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Selected Content metadata admission"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Exact content companion columns"
               }
             ],
             "extension": [
@@ -5279,6 +5308,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-keyed-content.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-keyed-content.test.mjs",
+                "anchor": "the public name and media type borrow original metadata across the asynchronous capture"
               }
             ]
           }

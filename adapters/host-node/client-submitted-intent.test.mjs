@@ -94,6 +94,26 @@ test('durable NotAccepted consumes the original identity and cannot become accep
   assert.equal(first.revision, f.lookup().revision);
 });
 
+test('original read-only intent survives reopening and conflicts with another choice', async t => {
+  const f = await fixture(t);
+  const original = intent('SELECT 1 AS value');
+  const wire = {...JSON.parse(moon.clientSubmittedIntentWire(original)), readOnly: true};
+  const readOnly = moon.clientSubmittedIntent(JSON.stringify(wire), 1048576, 65536, 64);
+  assert.ok(readOnly);
+  const first = f.journal.recordSubmittedIntent(f.ref, readOnly, fields, moon);
+  assert.throws(() => f.journal.recordSubmittedIntent(f.ref, original, fields, moon),
+    {code: 'ClientSubmittedIntentConflict'});
+  f.restart();
+  const saved = f.lookup();
+  assert.equal(saved.intentWire, first.intentWire);
+  assert.equal(saved.intentCid, first.intentCid);
+  const restored = moon.clientSubmittedIntent(saved.intentWire, 1048576, 65536, 64);
+  assert.equal(moon.clientSubmittedIntentRequestsReadOnly(restored), true);
+  assert.equal(moon.clientSubmittedIntentRequestsCommitStop(restored), false);
+  assert.throws(() => f.journal.recordSubmittedIntent(f.ref, original, fields, moon),
+    {code: 'ClientSubmittedIntentConflict'});
+});
+
 test('accepted preparation failure never turns into a pre-acceptance rejection', async t => {
   const f = await fixture(t);
   const input = intent();

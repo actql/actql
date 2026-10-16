@@ -10,13 +10,16 @@
       }
     },
     "submit": {
-      "stopBefore": {"const": "commit"}
+      "stopBefore": {"const": "commit"},
+      "readOnly": {"const": true}
     },
     "submit-intent": {
-      "stopBefore": {"const": "commit"}
+      "stopBefore": {"const": "commit"},
+      "readOnly": {"const": true}
     },
     "restart-intent": {
-      "stopBefore": {"const": "commit"}
+      "stopBefore": {"const": "commit"},
+      "readOnly": {"const": true}
     }
   },
   "operations": {
@@ -199,7 +202,8 @@
         "parameters": {"oneOf": [
           {"const": null}, {"type": "object", "additionalProperties": true}
         ]},
-        "stopBefore": {"const": "commit"}
+        "stopBefore": {"const": "commit"},
+        "readOnly": {"const": true}
       }
     },
     "installed_effect_continuation": {

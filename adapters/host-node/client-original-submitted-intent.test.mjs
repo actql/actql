@@ -18,14 +18,15 @@ const publication = runtimeCore(moon).publicationControl;
 const limits = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64};
 const evidence = Object.freeze({prepared: 'original-prepared-wire', authorization: 'original-authorization-wire'});
 
-async function fixture(t, {selected = true, link = true} = {}) {
+async function fixture(t, {selected = true, readOnly = false, link = true} = {}) {
   const path = await mkdtemp(join(tmpdir(), 'actql-original-submitted-intent-'));
   let journal = openClientRequestJournal(path);
   t.after(async () => {journal.close(); await rm(path, {recursive: true, force: true});});
   const epoch = journal.issueSubmissionEpoch(fields, moon);
   const reference = {epoch, nonce: 'same-original-content'};
   const intent = moon.clientSubmittedIntent(JSON.stringify({kind: 'program', input: {},
-    parameters: null, ...(selected ? {stopBefore: 'commit'} : {})}), 4096, 128, 16);
+    parameters: null, ...(selected ? {stopBefore: 'commit'} : {}),
+    ...(readOnly ? {readOnly: true} : {})}), 4096, 128, 16);
   assert.ok(intent);
   const recorded = journal.recordSubmittedIntent(reference, intent, fields, moon);
   const requestId = recorded.requestId;
@@ -126,4 +127,22 @@ test('original submitted content refuses another namespace or logical request', 
   assert.throws(() => f.journal.originalSubmittedIntent(other, fields, moon, publication),
     {code: 'ClientRequestSubmittedIntentMismatch'});
   assert.deepEqual(f.readRow(), before);
+});
+
+test('same-Run original read-only restriction survives material/journal reopen without a dispatch grant', async t => {
+  const f = await fixture(t, {selected: false, readOnly: true});
+  const before = f.readRow();
+  const original = f.read();
+  assert.equal(moon.clientSubmittedIntentRequestsReadOnly(original.intent), true);
+  assert.equal(moon.clientSubmittedIntentRequestsCommitStop(original.intent), false);
+  original.assertCurrent();
+  f.reopen();
+  assert.throws(() => original.assertCurrent(), {code: 'ClientRequestJournalClosed'});
+  const restored = f.read();
+  assert.equal(moon.clientSubmittedIntentRequestsReadOnly(restored.intent), true);
+  restored.assertCurrent();
+  assert.deepEqual(f.readRow(), before);
+  f.mutate(value => {delete value.submittedIntentCid;});
+  assert.throws(() => restored.assertCurrent(), {code: 'ClientRequestSubmittedIntentBindingMissing'});
+  assert.throws(() => f.read(), {code: 'ClientRequestSubmittedIntentBindingMissing'});
 });

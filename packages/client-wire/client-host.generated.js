@@ -17810,16 +17810,25 @@ const optionalRequestFields = {
   "submit": {
     "stopBefore": {
       "const": "commit"
+    },
+    "readOnly": {
+      "const": true
     }
   },
   "submit-intent": {
     "stopBefore": {
       "const": "commit"
+    },
+    "readOnly": {
+      "const": true
     }
   },
   "restart-intent": {
     "stopBefore": {
       "const": "commit"
+    },
+    "readOnly": {
+      "const": true
     }
   }
 };

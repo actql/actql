@@ -69,13 +69,31 @@ async function fixture() {
       changed.program_definition_cid = `sha256:${'f'.repeat(64)}`;
       return JSON.stringify(changed);
     }}});
-  return {plan, mappingCid, environmentCid, starts: () => starts, currentCalls: () => currentCalls,
+  return {plan, prepare, moon, mappingCid, environmentCid, starts: () => starts, currentCalls: () => currentCalls,
     revoke: () => {allowed = false;}, corrupt: () => {corrupt = true;}};
 }
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'volatile', scopeRef: 'effectful-static-test', capabilities: [],
   limits: {maxReadWireBytes: 65536, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 65536, maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
+
+test('read-only admission uses the same complete Common preparation and refuses copied or foreign owners', async () => {
+  const f = await fixture();
+  const g = await fixture();
+  const read = rawMoon.clientSubmittedIntent(JSON.stringify({kind: 'program', input: program,
+    parameters: null, readOnly: true}), 1048576, 65536, 64);
+  const ordinary = rawMoon.clientSubmittedIntent(JSON.stringify({kind: 'program', input: program,
+    parameters: null}), 1048576, 65536, 64);
+  assert.ok(read); assert.ok(ordinary);
+  const prepared = await f.prepare({kind: 'program', input: program, parameters: null});
+  assert.equal(f.prepare.kindOf(prepared), 'effectful');
+  assert.throws(() => f.prepare.assertSubmittedIntent(prepared, read), {code: 'ClientProgramRejected'});
+  f.prepare.assertSubmittedIntent(prepared, ordinary);
+  assert.throws(() => f.prepare.assertSubmittedIntent({...prepared}, read), /Foreign/);
+  assert.throws(() => g.prepare.assertSubmittedIntent(prepared, read), /Foreign/);
+  assert.equal(f.starts(), 0);
+  assert.equal(g.starts(), 0);
+});
 
 for (const entrance of ['local', 'https']) {
   test(`${entrance}: actual checked Effectful static projection reaches SDK and Explorer with execution zero`, async t => {

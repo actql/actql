@@ -7,7 +7,7 @@ import {readGcsVersionedContent, gcsMetadataRequestWire} from './gcs-versioned-c
 import {ownInvocationLimits} from '../../../host-common/owned-invocation-context.mjs';
 
 const fail = code => { throw Object.assign(new Error(code), {code}); };
-export async function readGcsKeyedContent({moon, requestWire, resolveResource,
+export async function readGcsKeyedContent({moon, requestWire, columns, resolveResource,
   beginRequest, chargePage, consumePage, captureContent, chargeVerification, verifyRead,
   credential, limits, signal, callResource}) {
   if (typeof requestWire !== 'string' ||
@@ -15,6 +15,16 @@ export async function readGcsKeyedContent({moon, requestWire, resolveResource,
         chargeVerification, verifyRead].some(callback => typeof callback !== 'function')) {
     fail('InvalidGcsKeyedContentRead');
   }
+  if (columns !== undefined && (!Array.isArray(columns) || columns.length > 5 ||
+      new Set(columns).size !== columns.length || columns.some(name =>
+        !['resource', 'version', 'name', 'media_type', 'content'].includes(name)))) {
+    fail('InvalidGcsKeyedContentRead');
+  }
+  // Select once before the first await from the existing checked response
+  // port. A legacy three-field declaration must not receive undeclared keys.
+  // Column selection is DATA, not read authority or a reservation.
+  const nameSelected = moon !== undefined && (columns === undefined || columns.includes('name'));
+  const mediaSelected = moon !== undefined && (columns === undefined || columns.includes('media_type'));
   let request;
   try { request = JSON.parse(requestWire); } catch { fail('InvalidGcsKeyedContentRead'); }
   if (request === null || typeof request !== 'object' || Array.isArray(request) ||
@@ -67,6 +77,11 @@ export async function readGcsKeyedContent({moon, requestWire, resolveResource,
   });
   signal?.throwIfAborted();
   await consumePage([{resource: request.resource, version: request.version,
+    // Borrow the same checked original metadata. The explicit source-only
+    // legacy declaration keeps its three-column carrier; no profile value or
+    // normalized/re-resolved name substitutes for provider metadata.
+    ...(nameSelected ? {name: captured.metadata.objectName} : {}),
+    ...(mediaSelected ? {media_type: captured.metadata.mediaType} : {}),
     content: captured.receipt}], {charge: mediaCharge});
   signal?.throwIfAborted();
 }

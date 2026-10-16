@@ -1937,7 +1937,8 @@ export function openClientRequestJournal(directory, {
           fail('ClientRequestSubmittedIntentMismatch');
         }
         if (expectedCid === undefined) {
-          if (requestControl.clientSubmittedIntentRequestsCommitStop(intent)) {
+          if (requestControl.clientSubmittedIntentRequestsCommitStop(intent) ||
+              requestControl.clientSubmittedIntentRequestsReadOnly(intent)) {
             fail('ClientRequestSubmittedIntentBindingMissing');
           }
           return undefined;
