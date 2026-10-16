@@ -18,9 +18,12 @@ PARAMETERS = {
 
 def bind(library):
     """Reject another compiled declaration before any Owner operation."""
-    version = library.actql_packaged_runtime_binding_version
+    try:
+        version = library.actql_packaged_runtime_binding_version
+        byte = library.actql_packaged_runtime_binding_byte
+    except AttributeError:
+        raise ValueError("Unsupported original Native Runtime binding") from None
     version.argtypes, version.restype = [], c_int32
-    byte = library.actql_packaged_runtime_binding_byte
     byte.argtypes, byte.restype = [c_int32], c_int32
     if (version() != BINDING_VERSION or
             bytes(byte(i) for i in range(64)) != BINDING_SHA256.encode("ascii")):
