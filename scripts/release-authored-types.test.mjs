@@ -85,7 +85,9 @@ test('member-derived declarations do not exempt a genuine dynamic runtime value 
   const text = "const target = new URL('./index.d.ts', import.meta.url); export const load = () => import(target.href);";
   f.put('packages/client-wire/index.mjs', text);
   const declaration = f.declarations.find(value => value.module === 'packages/client-wire/index.mjs');
-  Object.assign(declaration, javascriptInterface(text), {sha256: hash(text)}); f.save();
+  Object.assign(declaration, javascriptInterface(text), {sha256: hash(text)});
+  declaration.contracts[0].operations = ['<module>', ...declaration.operations.map(value => value.name)];
+  declaration.contracts[0].exports = declaration.exports; f.save();
   await assert.rejects(checkInterfaceOwners(f.repository, {manifests: ['packages/client-wire/package.json'],
     authoredEntrances: ['packages/client-wire/index.d.ts']}),
   failure => failure.errors?.some(value => /must be initialized/u.test(value.text)));
