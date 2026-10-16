@@ -40,7 +40,7 @@ def inputs(root=ROOT):
     enums = set(re.findall(r'typedef enum\b[^{}]*{[^{}]*}\s*(\w+)\s*;', text, re.S))
     if not re.search(r'typedef\s+uint64_t\s+idx_t\s*;', text):
         raise ValueError('DuckDB index width changed')
-    def kind(value, *, string=False, field=False):
+    def kind(value, *, string=False):
         value = ' '.join(value.replace('const ', '').split())
         depth = value.count('*');base = value.replace('*', '').strip()
         if depth and base == 'char':
@@ -88,7 +88,7 @@ def render(root=ROOT):
                 scalar = re.fullmatch(r'(.+?)(\w+)(?:\[(\d+)\])?', field, re.S)
                 if scalar is None:raise ValueError('Unsupported DuckDB field')
                 native_type, role, count = scalar.groups()
-                value = kind(native_type, field=True)
+                value = kind(native_type)
                 if count:value += ' * ' + count
                 fields.append((role, value));paths.append(role)
         lines.extend(['class ' + name + '(C.' + ('Union' if union else 'Structure') + '):',

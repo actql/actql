@@ -2091,7 +2091,7 @@ remain distinct. The existing inner Runtime close ACK clears only its data;
 outer original Root/Reader/Host retirement still requires its original Owner's
 separate stop/cleanup acknowledgment. No pointer is a public integer identity,
 serialized wire, authority, or permission to recreate a missing original.
-# Private Native transport declarations
+## Private Native transport declarations
 
 The installed Native control component's named C shim definitions are the
 authority for the private scalar transport signatures. The existing headers
@@ -2115,7 +2115,7 @@ per-operation bounds and refusal classifications stay in the existing shims
 and owners rather than in a second generated policy table.
 
 The generated C header is compiled against the original shim headers and
-definitions. The independent pre-generation signature fixture preserves all
-139 caller-selected declarations. Actual component probes remain necessary:
+definitions. The independent signature fixture preserves the existing
+caller-selected declarations. Actual component probes remain necessary:
 declaration freshness and C syntax alone do not establish physical custody,
 runtime compatibility, ordinary funding or installed product acceptance.
