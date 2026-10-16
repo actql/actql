@@ -2,7 +2,7 @@ from actql_sdk import (
     AsyncClient as AsyncClient, AsyncExecution as AsyncExecution,
     AsyncResult as AsyncResult, AsyncReader as AsyncReader,
     Client as Client, Execution as Execution, Result as Result, Reader as Reader,
-    ClientError as ClientError, Observation as Observation, Signer as Signer,
+    ClientError as ClientError, Observation as Observation, RunState as RunState, Signer as Signer,
     get_submission_input as get_submission_input, get_check_input as get_check_input,
     get_submission_check_observation as get_submission_check_observation,
     resolve_check_location as resolve_check_location,
