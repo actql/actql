@@ -41,7 +41,7 @@ fn range_contract(
 pub fn range_command_json(
   connector_id : String,
   columns_wire : String,
-  row_count : Int,
+  range_wire : String,
   limits : Limits,
 ) -> Result[String, RangeFailure] {
   guard range_parse(columns_wire, limits, "InvalidSheetsRangeInput")
@@ -49,6 +49,11 @@ pub fn range_command_json(
     range_columns(columns) is Some(columns) else {
     return Err(range_contract_failure(InvalidSchema))
   }
+  guard range_parse(range_wire, limits, "InvalidSheetsRangeInput") is Ok(range) &&
+    range_of_json(range) is Some(range) else {
+    return Err(range_contract_failure(InvalidRange))
+  }
+  let row_count = range.end_row - range.start_row
   let fields : Map[String, Json] = Map([])
   for column in columns {
     fields[column.name] = {

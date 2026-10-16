@@ -144,6 +144,17 @@ test('Sheets nominal request owner refuses same bytes under another permission o
     {code: 'SheetsRangeReferenceUnavailable'});
 });
 
+test('Sheets body projection does not serialize a legal request into a second request-sized JSON envelope', () => {
+  const {driver, target} = fixture();
+  const large = {rows: [{text: '"'.repeat(49_900), flag: false}, {text: 'second', flag: true}]};
+  assert(Buffer.byteLength(JSON.stringify(large)) < 100_000, 'existing common Effect value bound');
+  const request = driver.prepareRequest({member, value: large, selector: target}).request;
+  assert(Buffer.byteLength(request.body) < 300_000, 'original physical request clamp');
+  assert.equal(JSON.parse(request.body).requests[0].updateCells.rows[0].values[0]
+    .userEnteredValue.stringValue, large.rows[0].text);
+  assert.equal(driver.requestCid(request), request.requestCid);
+});
+
 test('Sheets range refuses foreign current target installation and partial input before send', () => {
   const {driver, target, revoke, request} = fixture();
   for (const field of ['provider_namespace', 'resource_kind', 'provider_identity_cid',

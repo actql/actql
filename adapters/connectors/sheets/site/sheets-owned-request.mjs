@@ -24,8 +24,12 @@ const freeze = value => {
 };
 
 export function projectOwnedSheetsRequest(moon, binding, handle) {
-  const request = freeze(JSON.parse(sheetsOwnedResult(moon,
-    moon.sheetsRangeRequestJson(binding, handle))));
+  const facts = JSON.parse(sheetsOwnedResult(moon,
+    moon.sheetsRangeRequestJson(binding, handle)));
+  // Borrow the exact body separately: wrapping it in another JSON string would
+  // duplicate/escape a request-sized payload and narrow the original limit.
+  const body = sheetsOwnedResult(moon, moon.sheetsRangeRequestBody(binding, handle));
+  const request = freeze({...facts, body});
   originals.set(request, Object.freeze({moon, binding, handle}));
   return request;
 }

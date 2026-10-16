@@ -17,13 +17,13 @@ pub fn sheets_range_failure_json(issue : @catalog.RangeFailure) -> String {
 pub fn sheets_range_command_json(
   connector_id : String,
   columns : String,
-  rows : Int,
+  range_wire : String,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
   max_cells : Int,
 ) -> Result[String, @catalog.RangeFailure] {
-  @catalog.range_command_json(connector_id, columns, rows, {
+  @catalog.range_command_json(connector_id, columns, range_wire, {
     max_bytes,
     max_nodes,
     max_depth,
@@ -134,6 +134,15 @@ pub fn sheets_range_request_cid(
   @catalog.admit_range_request(binding, request).map(_ => {
     @catalog.range_request_identity(request)
   })
+}
+
+///|
+#export_name("sheetsRangeRequestBody")
+pub fn sheets_range_request_body(
+  binding : @catalog.RangeBinding,
+  request : @catalog.RangeRequest,
+) -> Result[String, @catalog.RangeFailure] {
+  @catalog.range_request_body_for(binding, request)
 }
 
 ///|

@@ -267,7 +267,6 @@ pub fn range_request_json(
     {
       "origin": binding.origin.to_json(),
       "path": request.path.to_json(),
-      "body": request.body.to_json(),
       "spreadsheetId": binding.spreadsheet_id.to_json(),
       "sheetId": binding.range.sheet_id.to_json(),
       "acknowledgedRows": (binding.range.end_row - binding.range.start_row).to_json(),
@@ -287,6 +286,14 @@ pub fn range_request_identity(request : RangeRequest) -> String {
 ///|
 pub fn range_request_body(request : RangeRequest) -> String {
   request.body
+}
+
+///|
+pub fn range_request_body_for(
+  binding : RangeBinding,
+  request : RangeRequest,
+) -> Result[String, RangeFailure] {
+  admit_range_request(binding, request).map(_ => request.body)
 }
 
 ///|

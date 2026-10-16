@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "actql/actql/connectors/sheets/host_node"
 
+import {
+  "actql/actql/connectors/sheets/catalog",
+}
+
 // Values
 pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String
 
@@ -9,6 +13,28 @@ pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> St
 pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
 
 pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
+
+pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]
+
+pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
+
+pub fn sheets_range_command_json(String, String, Int, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
+
+pub fn sheets_range_failure_json(@catalog.RangeFailure) -> String
+
+pub fn sheets_range_prepare(@catalog.RangeBinding, String, String) -> Result[@catalog.RangeRequest, @catalog.RangeFailure]
+
+pub fn sheets_range_recover(@catalog.RangeBinding, String, String, Int, Int, Int, Int) -> Result[Array[Array[@catalog.RangeRequest]], @catalog.RangeFailure]
+
+pub fn sheets_range_recovery_entry_json(@catalog.RangeBinding, String) -> Result[String, @catalog.RangeFailure]
+
+pub fn sheets_range_reference_json(String, String, Int, Int, Int, Int, Int, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
+
+pub fn sheets_range_request_cid(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]
+
+pub fn sheets_range_request_json(@catalog.RangeBinding, @catalog.RangeRequest) -> Result[String, @catalog.RangeFailure]
+
+pub fn sheets_range_target_matches(@catalog.RangeBinding, String) -> Bool
 
 pub fn sheets_target_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
 

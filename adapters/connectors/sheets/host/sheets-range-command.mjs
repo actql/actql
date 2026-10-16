@@ -13,7 +13,7 @@ const fail = code => { throw Object.assign(new Error(code), {code}); };
 export function sheetsRangeCommand(connectorId, site, moon) {
   return Object.freeze(JSON.parse(sheetsOwnedResult(moon,
     moon.sheetsRangeCommandJson(connectorId, JSON.stringify(site.columns),
-      site.gridRange.endRow - site.gridRange.startRow, ...limits(SHEETS_LIMITS.maxResponseBytes)))));
+      JSON.stringify(site.gridRange), ...limits(SHEETS_LIMITS.maxResponseBytes)))));
 }
 
 export function withSheetsRangeCommand(declared, rangeCommand, moon) {
