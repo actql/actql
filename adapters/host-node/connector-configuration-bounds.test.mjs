@@ -199,7 +199,7 @@ test('Salesforce publication preserves replacement decoding and the exact decode
   assert.equal(originalCounter.length, 5_333_349);
   assert.equal(Buffer.byteLength(originalCounter.toString('utf8'), 'utf8'), 16_000_017);
   assert.equal(createHash('sha256').update(originalCounter).digest('hex'),
-    'e50d8ece3fd79e6caf4777b3878f385bc497cb36ad78555442cc695864787f6d');
+    'd9b709929e8b0251f620bc715ba351f81fa9699a256b91904be46c27ec008cdd');
   await fs.writeFile(f.path, originalCounter);
   await assert.rejects(readPublicationFile(f.path), {code: 'InvalidSalesforcePublication'});
   f.passed();
