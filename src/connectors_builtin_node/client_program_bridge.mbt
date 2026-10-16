@@ -7481,6 +7481,15 @@ pub fn client_program_row_source_charge_page(
 }
 
 ///|
+#export_name("clientProgramRowSourceConsumeObservationCharge")
+pub fn client_program_row_source_consume_observation_charge(
+  run : @client_row_source_host.RowRun,
+  charge : @client_row_source_host.RowPageCharge,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.consume_row_run_observation_charge(run, charge)
+}
+
+///|
 #export_name("clientProgramRowSourceAcceptChargedPage")
 pub fn client_program_row_source_accept_charged_page(
   run : @client_row_source_host.RowRun,

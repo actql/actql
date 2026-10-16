@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "7f8dfd1d59a4bf202522c7fb9e0da69bb834595eae6ed9093495a3bb0836d7f5",
+      "sha256": "c269d683f57fc7039d2c55f0207f688b3fa1285fb99c83308688a3bb1a8d6884",
       "role": "common-semantics",
       "owner": "Existing Common checked row acquisition/input/capture and resource lifetime Owner",
       "exports": [
@@ -207,6 +207,7 @@
         "pub fn close_restored_row_original_input(RowRestoredOriginalInput, Int) -> Bool",
         "pub fn close_row_run(RowRun) -> Unit",
         "pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]",
+        "pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
         "pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
         "pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView",
         "pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
@@ -387,6 +388,10 @@
         {
           "name": "complete_keyed_row_read",
           "declaration": "pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]"
+        },
+        {
+          "name": "consume_row_run_observation_charge",
+          "declaration": "pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "consume_row_run_response_charge",
@@ -654,6 +659,7 @@
             "close_restored_row_original_input",
             "close_row_run",
             "complete_keyed_row_read",
+            "consume_row_run_observation_charge",
             "consume_row_run_response_charge",
             "declared_row_view",
             "export_row_original_read",
@@ -743,6 +749,7 @@
             "pub fn close_restored_row_original_input(RowRestoredOriginalInput, Int) -> Bool",
             "pub fn close_row_run(RowRun) -> Unit",
             "pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]",
+            "pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
             "pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
             "pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView",
             "pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",

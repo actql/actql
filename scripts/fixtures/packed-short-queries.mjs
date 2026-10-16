@@ -33,7 +33,50 @@ try {
   assert.deepEqual(await defaults.sql('SELECT 0 AS id').all(), [{id: 0}]);
 } finally {await defaults.close();}
 
+// Required fields must come from the installed Owner, never fixture defaults.
+function observedRevision(state, label) {
+  assert.equal(Number.isSafeInteger(state.revision), true, `${label}: state revision`);
+  assert.ok(state.revision >= 0, `${label}: nonnegative state revision`);
+  return state.revision;
+}
+
+async function checkRunnable(db, counter, label) {
+  const before = counter.count();
+  const check = (text, options) => db.check(text, {kind: 'text', format: 'sql', ...options});
+  const plain = await check('SELECT 1 AS id', {scope: 'bound_input'});
+  assert.equal(plain.outcome, 'completed');
+  assert.equal(plain.report.verdict, 'verified');
+  assert.deepEqual(plain.report.runnable, {verdict: 'yes', reasons: []});
+  const parameterDeclarations = {id: {type: 'number'}};
+  const template = await check('SELECT @id AS id', {scope: 'template_only', parameterDeclarations});
+  assert.equal(template.outcome, 'completed');
+  assert.equal(template.report.verdict, 'verified');
+  assert.equal(template.report.runnable.verdict, 'no');
+  assert.ok(template.report.runnable.reasons.some(reason => reason.code === 'parameter_value_required'));
+  const bound = await check('SELECT @id AS id', {scope: 'bound_input',
+    parameterDeclarations, parameters: {id: 1}});
+  assert.equal(bound.outcome, 'completed');
+  assert.equal(bound.report.verdict, 'verified');
+  assert.deepEqual(bound.report.runnable, {verdict: 'yes', reasons: []});
+  const invalid = await check('SELECT @id AS id', {scope: 'bound_input',
+    parameterDeclarations, parameters: {id: 'not-a-number'}});
+  assert.equal(invalid.outcome, 'completed');
+  assert.equal(invalid.report.verdict, 'invalid');
+  assert.equal(invalid.report.runnable.verdict, 'no');
+  assert.ok(invalid.report.runnable.reasons.length > 0);
+  const program = JSON.parse(await readFile('values.json', 'utf8'));
+  const structured = await db.check(program, {kind: 'program', scope: 'bound_input'});
+  assert.equal(structured.outcome, 'completed');
+  assert.equal(structured.report.verdict, 'verified');
+  assert.deepEqual(structured.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(counter.count(), before, `${label}: check must not execute the Program`);
+  console.log(JSON.stringify({kind: 'current-wire-check', transport: label,
+    runnable: {plain: 'yes', templateWithoutValue: 'no', bound: 'yes', invalid: 'no', structured: 'yes'},
+    additionalCompute: counter.count() - before}));
+}
+
 async function exercise(db, counter, label) {
+  await checkRunnable(db, counter, label);
   const query = db.sql('SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id', undefined,
     {submissionRef: db.newSubmission({nonce: `${label}-original`})});
   const savedId = query.requestId;
@@ -101,11 +144,35 @@ async function exercise(db, counter, label) {
   assert.equal(named.ref.resultName, 'named');
   const low = await db.startSource('SELECT 4 AS id',
     {format: 'sql', submissionRef: db.newSubmission({nonce: `${label}-low`})});
-  assert.equal((await low.wait()).status, 'succeeded');
+  const completed = await low.wait();
+  assert.equal(completed.status, 'succeeded');
+  const completedRevision = observedRevision(completed, label);
+  assert.equal(observedRevision(await low.status(), label), completedRevision,
+    `${label}: status alone must not advance the state revision`);
+  assert.ok(completedRevision > 0 && completedRevision < Number.MAX_SAFE_INTEGER);
+  const newer = await low.wait({since: completedRevision - 1, signal: AbortSignal.timeout(5000)});
+  assert.equal(newer.run_id, completed.run_id);
+  assert.equal(observedRevision(newer, label), completedRevision);
+  await assert.rejects(low.wait({since: completedRevision, signal: AbortSignal.timeout(250)}),
+    {code: 'WaitTimeout'});
+  await assert.rejects(low.wait({since: completedRevision + 1, signal: AbortSignal.timeout(5000)}),
+    {code: 'InvalidWaitRevision'});
+  const abort = new AbortController();
+  const waiting = low.wait({since: completedRevision, signal: abort.signal});
+  const aborted = assert.rejects(waiting, {code: 'WaitAborted'});
+  await setImmediate();
+  abort.abort();
+  await aborted;
+  assert.equal(observedRevision(await low.status(), label), completedRevision);
+  console.log(JSON.stringify({kind: 'current-wire-wait', transport: label,
+    stateRevision: completedRevision, newerRevision: newer.revision,
+    equalSince: 'WaitTimeout', futureSince: 'InvalidWaitRevision', aborted: 'WaitAborted'}));
   assert.deepEqual(await low.result('answer').all(), [{id: 4}]);
   await setImmediate();
   assert.equal(counter.count(), 3);
-  return {ref: first.ref, target: recovery.target};
+  const state = await first.execution.status();
+  return {ref: first.ref, target: recovery.target,
+    runId: state.run_id, stateRevision: observedRevision(state, label)};
 }
 
 const localAuthorization = authorization();
@@ -123,7 +190,17 @@ try {
   assert.deepEqual((await recovery.attach(observed)).ref, saved.ref.run);
   assert.deepEqual(await (await local.attach(saved.ref.run)).result(saved.ref.resultName).all(),
     [{id: 1}, {id: 2}]);
-  assert.equal(localAuthorization.count(), 3, 'reopen/attach must not repeat Compute');
+  const attached = await local.attach(saved.ref.run);
+  const restored = await attached.status();
+  assert.equal(restored.run_id, saved.runId);
+  assert.equal(restored.status, 'succeeded');
+  assert.ok(observedRevision(restored, 'local restart') >= saved.stateRevision);
+  const reread = await attached.status();
+  assert.equal(observedRevision(reread, 'local reread'), restored.revision,
+    'A stable original Run read must not advance its revision');
+  await assert.rejects(attached.wait({since: restored.revision, signal: AbortSignal.timeout(250)}),
+    {code: 'WaitTimeout'});
+  assert.equal(localAuthorization.count(), 3, 'reopen/attach/wait must not repeat Compute');
 } finally {await local.close();}
 
 const remoteAuthorization = authorization();

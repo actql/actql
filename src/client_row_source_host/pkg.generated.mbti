@@ -79,6 +79,8 @@ pub fn close_row_run(RowRun) -> Unit
 
 pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]
 
+pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]
+
 pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]
 
 pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView
