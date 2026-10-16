@@ -3814,7 +3814,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "18c18b55f4f3f05c64ecd4ca82b20c49565d9db6f5a858eb2291ed36d094eca0",
+      "sha256": "41d71c3302babd6277a194f737f161d83e8651eafe0341a80c5fee1d92e2ae36",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -4279,7 +4279,7 @@
         {
           "name": "Execution/wait",
           "parameters": [
-            "options?: {until?: string; signal?: AbortSignal}"
+            "options?: {until?: string; since?: number | null; signal?: AbortSignal}"
           ],
           "result": "Promise<RunState>"
         },
@@ -4947,12 +4947,20 @@
               {
                 "path": "packages/sdk/index.d.ts",
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/index.d.ts",
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
               }
             ],
             "identity": [
@@ -4963,6 +4971,10 @@
               {
                 "path": "packages/sdk/index.d.ts",
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -4973,6 +4985,10 @@
               {
                 "path": "packages/sdk/index.d.ts",
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
               }
             ],
             "synchronization": [
@@ -4983,6 +4999,10 @@
               {
                 "path": "packages/sdk/index.d.ts",
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
               }
             ],
             "failure": [
@@ -4993,6 +5013,10 @@
               {
                 "path": "packages/sdk/index.d.ts",
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
               }
             ],
             "cancellation": [
@@ -5003,6 +5027,10 @@
               {
                 "path": "packages/sdk/index.d.ts",
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
             "resources": [
@@ -5013,6 +5041,14 @@
               {
                 "path": "packages/sdk/index.d.ts",
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               }
             ],
             "extension": [
@@ -5023,12 +5059,24 @@
               {
                 "path": "packages/sdk/index.d.ts",
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/index.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               }
             ]
           }
@@ -7826,7 +7874,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c8e8aa848d35994ca5ce1ff3e1da5e4da065e045e6ed3dd9c5143ce3c593b890",
+      "sha256": "3e15bf2d22033a883f49bbfc1050c3a60ffaa68d3749403ae304ca5e5a8e35c0",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -7917,6 +7965,7 @@
           "name": "createExecutionFactory/createExecutionFactory/handle/handle#5",
           "parameters": [
             "until",
+            "since",
             "signal"
           ],
           "async": true
@@ -8134,12 +8183,20 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "// Run observation admission and this handle's control revision observation."
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "// Run observation admission and this handle's control revision observation."
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
               }
             ],
             "identity": [
@@ -8150,6 +8207,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "// Run observation admission and this handle's control revision observation."
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -8160,6 +8221,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "// Run observation admission and this handle's control revision observation."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
               }
             ],
             "synchronization": [
@@ -8170,6 +8235,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "// Run observation admission and this handle's control revision observation."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
               }
             ],
             "failure": [
@@ -8180,6 +8249,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "// Run observation admission and this handle's control revision observation."
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
               }
             ],
             "cancellation": [
@@ -8190,6 +8263,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "// Run observation admission and this handle's control revision observation."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
             "resources": [
@@ -8200,6 +8277,14 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "// Run observation admission and this handle's control revision observation."
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               }
             ],
             "extension": [
@@ -8210,12 +8295,24 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "// Run observation admission and this handle's control revision observation."
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/run-control-revisions.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               }
             ]
           }

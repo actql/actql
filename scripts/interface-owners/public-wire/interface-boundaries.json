@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "059374b518d854b136528761d89697e5d184769afb440bae4131d00faaad30b9",
+      "sha256": "aa1506669abbc30773747c761b700beeba78986dbd6bc25c3079f7aa4cb5e3b4",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -47,6 +47,7 @@
         "validResultDescriptionShape",
         "validRunRefShape",
         "validRunStateShape",
+        "validRunWaitContract",
         "validSubmissionAttemptShape",
         "validSubmissionEpochShape",
         "validSubmissionLookupShape",
@@ -382,6 +383,14 @@
           "name": "validRunStateShape/validRunStateShape",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validRunWaitContract/validRunWaitContract",
+          "parameters": [
+            "value",
+            "since"
           ],
           "async": false
         },
@@ -1272,6 +1281,10 @@
               {
                 "path": "spec/contracts/actql-protocol-schemas.json",
                 "anchor": "\"artifact_schema_cids\""
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
               }
             ],
             "inputsOutputs": [
@@ -1282,18 +1295,30 @@
               {
                 "path": "packages/client-wire/client-host.generated.js",
                 "anchor": "const schemas ="
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| ownership |"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
               }
             ],
             "synchronization": [
@@ -1304,12 +1329,20 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation is synchronous."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| failure |"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
               }
             ],
             "cancellation": [
@@ -1320,18 +1353,34 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation performs no cancellation or I/O."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| resources |"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| extension |"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
               }
             ],
             "verification": [
@@ -1350,6 +1399,92 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validRunWaitContract/validRunWaitContract"
+          ],
+          "exports": [
+            "validRunWaitContract"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               }
             ]
           }
