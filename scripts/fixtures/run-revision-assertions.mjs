@@ -39,7 +39,9 @@ function retainObservationPair(error, before, after, label) {
   } catch {
     evidence = JSON.stringify({available: false, reason: 'observation_pair_serialization_failed'});
   }
-  const diagnostic = `RUN_STATE_OBSERVATIONS ${evidence}`;
+  // A terminal newline keeps Node's uncaught-error property brace off this
+  // complete JSON line; the ordinary runner captures stderr without a parser.
+  const diagnostic = `RUN_STATE_OBSERVATIONS ${evidence}\n`;
   // Keep the original code, operator, actual/expected values and stack frames.
   // Node assertions may already have materialized their stack before this catch.
   const stack = error.stack;
