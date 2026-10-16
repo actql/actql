@@ -7483,7 +7483,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [

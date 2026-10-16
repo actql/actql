@@ -5239,7 +5239,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "2d4923f2f239fb8153a875b5a59f01640c55531a30e8950f1c81f85a604d6cdf",
+      "sha256": "9fd3f472b7799e3d29bf1108b16c6453f0782687f2f20693f210b006f2c4711d",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -5717,6 +5717,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -5735,6 +5739,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"installed_effect_continuation\""
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -5749,6 +5757,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "<!-- requirement-block: run-observation.state-revision -->"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -5759,6 +5771,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -5769,6 +5785,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -5779,6 +5799,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -5789,6 +5813,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -5799,6 +5827,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -5813,6 +5845,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"installed_effect_continuation\""
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -5831,6 +5867,14 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"installed_effect_continuation\""
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
