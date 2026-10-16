@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {publicationAction} from './publication-action.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
@@ -12,7 +13,7 @@ const usageKeys = ['planningWork', 'attempts', 'holdings', 'transferredBytes',
 const tuplePair = value => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
-    ? [value._0, value._1]
+    ? [runtimeField(value, 0), runtimeField(value, 1)]
     : undefined;
 const siteControls = new WeakMap();
 const remoteSiteControls = new WeakMap();
@@ -407,14 +408,14 @@ function remoteSiteControl(moon) {
     pollOutputIntent: moon.strategyRemotePollOutputIntent,
     outputIntentProjection(intent) {
       const projected = moon.strategyRemoteOutputIntentProjection(intent);
-      const value = projected._0;
+      const value = runtimeField(projected, 0);
       return Object.freeze({storeAuthorityCid: value.store_authority_cid,
         publicationAttemptCid: value.publication_attempt_cid,
         resultDefinitionCid: value.result_definition_cid,
         orderingEvidenceCid: value.ordering_evidence_cid,
         coordinatorAuthority: value.coordinator_authority,
         transferAttemptId: value.transfer_attempt,
-        transferRoute: projected._1,
+        transferRoute: runtimeField(projected, 1),
         destinationSite: value.destination_site_key,
         destinationSiteGeneration: value.destination_site_generation,
         transferMaxBytes: value.transfer_max_bytes,
@@ -1845,7 +1846,7 @@ function publicationControl(moon) {
     if (value === undefined) throw new TypeError('Foreign Client compiled Run');
     const original = moon.clientProgramCompiledRunSourceFreeResultPolicy(value);
     return original === undefined ? undefined : Object.freeze({
-      kind: original._0, cid: original._1, wire: original._2,
+      kind: runtimeField(original, 0), cid: runtimeField(original, 1), wire: runtimeField(original, 2),
     });
   };
   const inferInvocationTokens = new WeakMap();
@@ -2408,8 +2409,8 @@ function publicationControl(moon) {
       const original = checked(moon.clientProgramAdmitSourceFreeResultPolicyBody(
         resultPolicy.cid, resultPolicy.wire,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      return Object.freeze({kind: original._0, cid: original._1,
-        wire: original._2});
+      return Object.freeze({kind: runtimeField(original, 0), cid: runtimeField(original, 1),
+        wire: runtimeField(original, 2)});
     },
     adoptCheckedClientEffectInferRun(allowed, definition, resultPolicy, limits) {
       if (resultPolicy !== undefined &&
@@ -2461,7 +2462,7 @@ function publicationControl(moon) {
       const graph = moon.clientProgramCompiledRunSerializationGraph(value);
       if (graph === undefined) throw new TypeError('Content compilation graph unavailable');
       const coordinates = moon.clientProgramSerializationPlanGraphCoordinates(graph);
-      const selected = Object.freeze({task: coordinates._0, step: coordinates._1,
+      const selected = Object.freeze({task: runtimeField(coordinates, 0), step: runtimeField(coordinates, 1),
         wire: moon.clientProgramSerializationPlanGraphWire(graph)});
       serializationPlanTokens.set(selected, graph);
       return selected;
@@ -2470,7 +2471,7 @@ function publicationControl(moon) {
       const graph = moon.clientProgramInferPlanSerializationGraph(inferGraph);
       if (graph === undefined) return undefined;
       const coordinates = moon.clientProgramSerializationPlanGraphCoordinates(graph);
-      const selected = Object.freeze({task: coordinates._0, step: coordinates._1,
+      const selected = Object.freeze({task: runtimeField(coordinates, 0), step: runtimeField(coordinates, 1),
         wire: moon.clientProgramSerializationPlanGraphWire(graph)});
       serializationPlanTokens.set(selected, graph);
       return selected;
@@ -2478,7 +2479,7 @@ function publicationControl(moon) {
     compiledSerializationPolicy(compiled) {
       const value = compiledContent(compiled);
       const body = moon.clientProgramSerializationPolicyBody(value);
-      return body === undefined ? undefined : Object.freeze({kind: body._0, cid: body._1, wire: body._2});
+      return body === undefined ? undefined : Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)});
     },
     bindCheckedClientSerializationCapture(checkedProgram, graph, captured, observation) {
       const selection = serializationPlanTokens.get(graph);
@@ -2568,10 +2569,10 @@ function publicationControl(moon) {
       const value = compiledRunResult(moon.clientCapturedContentGenerationStorage(
         token(captured), token(definition), storeAuthorityCid, index),
       'Captured Content storage binding unavailable');
-      return Object.freeze({holdingCid: value._0, manifestCid: value._1,
-        contentCid: value._2, byteCount: value._3,
-        bindings: Object.freeze(value._4.map(binding => Object.freeze({
-          name: binding._0, semanticCid: binding._1, wire: binding._2, holdingCid: binding._3,
+      return Object.freeze({holdingCid: runtimeField(value, 0), manifestCid: runtimeField(value, 1),
+        contentCid: runtimeField(value, 2), byteCount: runtimeField(value, 3),
+        bindings: Object.freeze(runtimeField(value, 4).map(binding => Object.freeze({
+          name: runtimeField(binding, 0), semanticCid: runtimeField(binding, 1), wire: runtimeField(binding, 2), holdingCid: runtimeField(binding, 3),
         })))});
     },
     checkedClientSerializationRecoveryBindings(compiled, generation, storeAuthorityCid) {
@@ -2583,7 +2584,7 @@ function publicationControl(moon) {
       const bindings = compiledRunResult(moon.clientProgramSerializationRecoveryBindings(completion,
         value, storeAuthorityCid), 'Client Content recovery binding unavailable');
       return Object.freeze(bindings.map(binding => Object.freeze({
-        name: binding._0, semanticCid: binding._1, wire: binding._2, holdingCid: binding._3,
+        name: runtimeField(binding, 0), semanticCid: runtimeField(binding, 1), wire: runtimeField(binding, 2), holdingCid: runtimeField(binding, 3),
       })));
     },
     checkedClientSerializationGenerationOutput(compiled, generation) {
@@ -2605,8 +2606,8 @@ function publicationControl(moon) {
       const exported = compiledRunResult(moon.clientProgramExportContentGenerationOutput(
         completion, value, token(definition), storeAuthorityCid),
       'Client Content completion export unavailable');
-      return Object.freeze({binding: exported._0, descriptorWire: exported._1,
-        rows: Object.freeze(exported._2.slice())});
+      return Object.freeze({binding: runtimeField(exported, 0), descriptorWire: runtimeField(exported, 1),
+        rows: Object.freeze(runtimeField(exported, 2).slice())});
     },
     checkedClientSerializationGenerationEvidence(compiled, generation) {
       const value = compiledRunTokens.get(compiled);
@@ -2657,8 +2658,8 @@ function publicationControl(moon) {
       const issued = compiledRunResult(moon.clientProgramIssueSerializationInvocation(
         value, token(definition), completion,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostContentInvocationRejected');
-      return Object.freeze({observation: inspectEvidence(issued._0),
-        invocation: inspect(issued._1), owner: issued._1});
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
     },
     compiledInferSourceFreeResultPolicy: compiledSourceFreeResultPolicy,
     compiledInferEvaluationPolicy(compiled) {
@@ -2666,7 +2667,7 @@ function publicationControl(moon) {
       if (value === undefined) throw new TypeError('Foreign Client compiled Run');
       const original = moon.clientProgramCompiledRunEvaluationPolicy(value);
       return original === undefined ? undefined : Object.freeze({
-        kind: original._0, cid: original._1, wire: original._2,
+        kind: runtimeField(original, 0), cid: runtimeField(original, 1), wire: runtimeField(original, 2),
       });
     },
     checkClientCompiledRunOwner(compiled, checkedProgram) {
@@ -2744,8 +2745,8 @@ function publicationControl(moon) {
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       source === undefined ? 'RunHostInvocationRejected'
         : 'RunHostTaskInvocationRejected');
-      return Object.freeze({observation: inspectEvidence(issued._0),
-        invocation: inspect(issued._1), owner: issued._1});
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
     },
     issueCheckedClientCompiledMultiInvocation(compiled, definition,
       {sources, authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt}, limits) {
@@ -2763,8 +2764,8 @@ function publicationControl(moon) {
         sources.map(source => source.inputLogicalWire),
         authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
-      return Object.freeze({observation: inspectEvidence(issued._0),
-        invocation: inspect(issued._1), owner: issued._1});
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
     },
     issueCheckedClientCompiledKeyedInvocation(compiled, definition,
       {captured, sourceEvidenceWire, inputLogicalWire, keyedObservation,
@@ -2784,8 +2785,8 @@ function publicationControl(moon) {
         captured.requirement, sourceEvidenceWire, inputLogicalWire, keyedObservation,
         authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
-      return Object.freeze({observation: inspectEvidence(issued._0),
-        invocation: inspect(issued._1), owner: issued._1});
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
     },
     // Reuse the compiled owner retained at Run admission. The physical
     // adapter supplies its opaque execution and bounded verification owner;
@@ -3017,7 +3018,7 @@ function publicationControl(moon) {
       }
       const poll = moon.clientProgramInferNodeReadStatePoll(
         moon.clientProgramAdvanceInferNodeReadState(writer, value, token(definition), graph, quantum));
-      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
+      return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2)});
     },
     finishCheckedClientInferNodeReadState(compiled, definition, graph, writer) {
       const value = compiledRunTokens.get(compiled);
@@ -3138,8 +3139,8 @@ function publicationControl(moon) {
       // Existing Common bodies remain the authority for exact kind/CID/wire.
       // This projection cannot issue policy adoption, raw custody or sending.
       return moon.clientProgramModelRawSelectionOriginals(retention, metadata,
-        clock, data).map(value => Object.freeze({kind: value._0,
-          cid: value._1, wire: value._2}));
+        clock, data).map(value => Object.freeze({kind: runtimeField(value, 0),
+          cid: runtimeField(value, 1), wire: runtimeField(value, 2)}));
     },
     issueCheckedClientInferRawCapturePolicy(compiled, definition, dispatch, scope,
       {profile, installation, probability, storeAuthorityCid, retention, metadata,
@@ -3248,8 +3249,8 @@ function publicationControl(moon) {
         source.authorityScopeCid, source.dataPolicyCid,
         source.captureStartedAt, source.captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      return Object.freeze({observation: inspectEvidence(issued._0),
-        invocation: inspect(issued._1), owner: issued._1});
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
     },
     issueCheckedClientEffectMultiCapturedInvocation(checkedEffect, compilation,
       admission, definition, sources, context, limits) {
@@ -3267,8 +3268,8 @@ function publicationControl(moon) {
         context.authorityScopeCid, context.dataPolicyCid,
         context.captureStartedAt, context.captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      return Object.freeze({observation: inspectEvidence(issued._0),
-        invocation: inspect(issued._1), owner: issued._1});
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
     },
     issueCheckedAcquiredLocalEffectInvocation(checkedEffect, capturedSource,
       identity, requirement, input, observation, authorityScopeCid,
@@ -3300,8 +3301,8 @@ function publicationControl(moon) {
         invocation: moon.clientProgramAcquiredEffectInvocation(issued),
         bodies: Object.freeze([
           ...moon.clientProgramAcquiredEffectDependencyBodies(issued)
-            .map(pair => Object.freeze({kind: pair._0, wire: pair._1,
-              ...(pair._0 === 'request_values' ? {
+            .map(pair => Object.freeze({kind: runtimeField(pair, 0), wire: runtimeField(pair, 1),
+              ...(runtimeField(pair, 0) === 'request_values' ? {
                 cid: moon.clientProgramAcquiredEffectRequestCid(issued),
               } : {})})),
           Object.freeze({kind: 'result_retention_policy',
@@ -3310,8 +3311,8 @@ function publicationControl(moon) {
         catalogBodies: Object.freeze(checked(
           moon.clientProgramAcquiredEffectCatalogBodies(issued,
             limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
-          .map(body => Object.freeze({kind: body._0, cid: body._1,
-            wire: body._2}))),
+          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1),
+            wire: runtimeField(body, 2)}))),
       });
       localEffectDependencyTokens.set(value, {kind: 'acquired', issued});
       return value;
@@ -4146,7 +4147,7 @@ function publicationControl(moon) {
       const binding = checked(moon.clientProgramLocalEffectResultPayloadBinding(
         owned, token(runDefinition)));
       return Object.freeze({artifactCid: artifact.identity,
-        physicalCid: binding._0, byteCount: binding._1});
+        physicalCid: runtimeField(binding, 0), byteCount: runtimeField(binding, 1)});
     },
     // Schema material from the authenticated capture, not current configuration.
     capturedEffectDependencySchemas(capturedRun) {
@@ -5361,8 +5362,8 @@ function outputExportControl(moon, publications) {
         throw new TypeError('Invalid output export quantum');
       }
       const progress = moon.strategyHostOutputExportAdvance(value, quantum);
-      return Object.freeze({batch: progress._0, complete: progress._1,
-        work: progress._2, issue: progress._3});
+      return Object.freeze({batch: runtimeField(progress, 0), complete: runtimeField(progress, 1),
+        work: runtimeField(progress, 2), issue: runtimeField(progress, 3)});
     },
     finish: value => checked(moon.strategyHostOutputExportFinish(value)),
     measurement(value) {
@@ -5523,7 +5524,7 @@ export function contentGenerationControl(moon, publications) {
     },
     familyPendingPiece(step) {
       const value = moon.clientProgramContentStepPendingPiece(owned(familySteps, step, 'Content step'));
-      return value === undefined ? undefined : Object.freeze({revision: value._0, piece: value._1});
+      return value === undefined ? undefined : Object.freeze({revision: runtimeField(value, 0), piece: runtimeField(value, 1)});
     },
     familyAcknowledgePiece(step, revision) {
       if (!quantity(revision, 1)) throw new TypeError('Invalid Content piece revision');
@@ -5533,9 +5534,9 @@ export function contentGenerationControl(moon, publications) {
     familyInput(step) {
       const value = moon.clientProgramContentStepGenerationInput(owned(familySteps, step, 'Content step'));
       if (value === undefined) throw new TypeError('Content step input unavailable');
-      inputs.set(value._0, value._2);
-      encoders.add(value._2);
-      return Object.freeze({input: value._0, receipt: value._1, encoder: value._2});
+      inputs.set(runtimeField(value, 0), runtimeField(value, 2));
+      encoders.add(runtimeField(value, 2));
+      return Object.freeze({input: runtimeField(value, 0), receipt: runtimeField(value, 1), encoder: runtimeField(value, 2)});
     },
     familyByteCompletion(step) {
       const value = moon.clientProgramContentStepByteCompletion(owned(familySteps, step, 'Content step'));
@@ -5569,7 +5570,7 @@ export function contentGenerationControl(moon, publications) {
         : moon.clientProgramSerializationWorkspaceCapacity(...fields, exported);
       if (token === undefined) throw new TypeError('Content workspace unavailable');
       const bytes = moon.clientProgramSerializationCapacityBytes(token);
-      const workspace = Object.freeze({retainedBytes: bytes._0, executionBytes: bytes._1});
+      const workspace = Object.freeze({retainedBytes: runtimeField(bytes, 0), executionBytes: runtimeField(bytes, 1)});
       workspaces.set(workspace, token);
       return workspace;
     },
@@ -5589,8 +5590,8 @@ export function contentGenerationControl(moon, publications) {
       if (workspace !== undefined && !workspaces.has(workspace)) {
         throw new TypeError('Foreign Content workspace capacity');
       }
-      const retainedBytes = capacity._0 + (workspace?.retainedBytes ?? 0n);
-      const executionBytes = capacity._1 + (workspace?.executionBytes ?? 0n);
+      const retainedBytes = runtimeField(capacity, 0) + (workspace?.retainedBytes ?? 0n);
+      const executionBytes = runtimeField(capacity, 1) + (workspace?.executionBytes ?? 0n);
       if (retainedBytes > 9223372036854775807n || executionBytes > 9223372036854775807n) {
         throw new TypeError('Content capacity overflow');
       }
@@ -5612,8 +5613,8 @@ export function contentGenerationControl(moon, publications) {
     prefixAdvance(prefix, quantum) {
       const value = checked(moon.clientProgramSerializationPrefixAdvance(
         owned(prefixes, prefix, 'Content prefix'), quantum));
-      return Object.freeze({output: value._0, progress: value._1, work: value._2,
-        stopped: value._3, issue: value._4});
+      return Object.freeze({output: runtimeField(value, 0), progress: runtimeField(value, 1), work: runtimeField(value, 2),
+        stopped: runtimeField(value, 3), issue: runtimeField(value, 4)});
     },
     prefixWork(prefix) {
       return checked(moon.clientProgramSerializationPrefixWork(
@@ -5681,7 +5682,7 @@ export function contentGenerationControl(moon, publications) {
         throw new TypeError('Foreign or invalid Content input identity scan');
       }
       const next = moon.clientProgramSerializationInputIdentityAdvance(scan, quantum);
-      return Object.freeze({ready: next._0, work: next._1, issue: next._2});
+      return Object.freeze({ready: runtimeField(next, 0), work: runtimeField(next, 1), issue: runtimeField(next, 2)});
     },
     inputIdentityFinish(compiled, scan, limits, captured) {
       const input = identityScans.get(scan);
@@ -5723,10 +5724,10 @@ export function contentGenerationControl(moon, publications) {
         owned(issued, content, 'issued Content'), available,
         limits.maxNodes, limits.maxTextBytes, limits.maxDepth,
         limits.maxWork, limits.maxNameBytes);
-      if (result?.$tag === 0) {
-        const causeCode = moon.clientProgramSerializationOutputIssueCode(result._0);
+      if (runtimeIsError(result)) {
+        const causeCode = moon.clientProgramSerializationOutputIssueCode(runtimeField(result, 0));
         throw Object.assign(new Error(`Content output rejected: ${causeCode}`,
-          {cause: result._0}), {code: 'MoonBitHostFailure', causeCode});
+          {cause: runtimeField(result, 0)}), {code: 'MoonBitHostFailure', causeCode});
       }
       const output = checked(result);
       outputs.add(output);
@@ -5772,8 +5773,8 @@ export function contentGenerationControl(moon, publications) {
       const occurrence = checked(moon.clientProgramSerializationResultOccurrence(
         program, result, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       const definitionContract = publications.admit('result_definition',
-        moon.strategyPublicationContractJson(occurrence._2), limits);
-      return Object.freeze({name: occurrence._0, task: occurrence._1, definitionContract});
+        moon.strategyPublicationContractJson(runtimeField(occurrence, 2)), limits);
+      return Object.freeze({name: runtimeField(occurrence, 0), task: runtimeField(occurrence, 1), definitionContract});
     },
     resultStart(program, result, output, limits) {
       if (!quantity(result) || !validResultOutputLimits(limits) ||
@@ -5794,7 +5795,7 @@ export function contentGenerationControl(moon, publications) {
       if (!quantity(quantum, 1)) throw new TypeError('Invalid Content Result quantum');
       const result = moon.clientProgramSerializationResultProgress(
         owned(resultPreparations, preparation, 'Content Result preparation'), quantum);
-      return Object.freeze({ready: result._0, work: result._1, issue: result._2});
+      return Object.freeze({ready: runtimeField(result, 0), work: runtimeField(result, 1), issue: runtimeField(result, 2)});
     },
     resultFinish(preparation) {
       return checked(moon.clientProgramSerializationResultFinish(
@@ -5809,14 +5810,14 @@ export function contentGenerationControl(moon, publications) {
         owned(encoders, encoder, 'Content encoder'), quantum);
       // Charge the reported delta before handling failure. Converting a failed
       // poll directly to an exception would discard its already consumed work.
-      return Object.freeze({ready: value._0, piece: value._1, work: value._2,
-        issue: value._3});
+      return Object.freeze({ready: runtimeField(value, 0), piece: runtimeField(value, 1), work: runtimeField(value, 2),
+        issue: runtimeField(value, 3)});
     },
     finish(encoder) {
       const value = checked(moon.clientProgramSerializationFinish(
         owned(encoders, encoder, 'Content encoder')));
-      return Object.freeze({name: value._0, mediaType: value._1,
-        contentCid: value._2, sizeBytes: value._3, rowCount: value._4});
+      return Object.freeze({name: runtimeField(value, 0), mediaType: runtimeField(value, 1),
+        contentCid: runtimeField(value, 2), sizeBytes: runtimeField(value, 3), rowCount: runtimeField(value, 4)});
     },
     candidate(encoder, binding, limits) {
       const value = checked(moon.clientProgramGeneratedContentCandidate(
@@ -5836,9 +5837,9 @@ export function contentGenerationControl(moon, publications) {
         const value = moon.clientProgramStoredGeneratedContentStorage(candidate);
         const wire = moon.clientProgramStoredGeneratedContentCandidateWire(candidate);
         const body = JSON.parse(wire);
-        return Object.freeze({wire, identity: value._0,
-          storeCid: value._1, workspaceScopeCid: value._2,
-          contentCid: value._3, sizeBytes: value._4, mediaType: body.media_type,
+        return Object.freeze({wire, identity: runtimeField(value, 0),
+          storeCid: runtimeField(value, 1), workspaceScopeCid: runtimeField(value, 2),
+          contentCid: runtimeField(value, 3), sizeBytes: runtimeField(value, 4), mediaType: body.media_type,
           effectiveDataPolicyCid: body.metadata.effective_data_policy_cid});
       }
       owned(candidates, candidate, 'Content candidate');
@@ -5849,8 +5850,8 @@ export function contentGenerationControl(moon, publications) {
       const body = JSON.parse(wire);
       return Object.freeze({wire,
         identity: moon.clientProgramGeneratedContentCandidateCid(candidate),
-        storeCid: value._0, workspaceScopeCid: value._1,
-        contentCid: value._2, sizeBytes: value._3,
+        storeCid: runtimeField(value, 0), workspaceScopeCid: runtimeField(value, 1),
+        contentCid: runtimeField(value, 2), sizeBytes: runtimeField(value, 3),
         mediaType: body.media_type,
         effectiveDataPolicyCid: body.metadata.effective_data_policy_cid});
     },
@@ -5941,8 +5942,8 @@ export function contentCaptureControl(moon, publications) {
       const body = JSON.parse(wire);
       return Object.freeze({wire,
         identity: moon.clientProgramCapturedContentCid(candidate),
-        storeCid: storage._0, workspaceScopeCid: storage._1,
-        contentCid: storage._2, sizeBytes: storage._3,
+        storeCid: runtimeField(storage, 0), workspaceScopeCid: runtimeField(storage, 1),
+        contentCid: runtimeField(storage, 2), sizeBytes: runtimeField(storage, 3),
         mediaType: body.media_type,
         effectiveDataPolicyCid: body.metadata.effective_data_policy_cid});
     },

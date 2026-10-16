@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createTypeSafeAi} from '@ai-sdk/typesafe-ai';
 import {interceptSdkRequest} from './intercepted-request.mjs';
 import {isDeepStrictEqual} from 'node:util';
@@ -69,12 +70,12 @@ export function prepareProjectedTypeSafeDecisionRequest({moon,projected,
   const binding=moon.clientProgramNativeDecisionRequestBinding(projected);
   const wires=moon.clientProgramNativeDecisionRequestWires(projected);
   if (binding===undefined || wires===undefined ||
-      binding._0!==taskCid || binding._1!==promptCid ||
-      binding._2!==outputSchemaCid || binding._3!==modelSelector ||
-      typeof wires._0!=='string' || typeof wires._1!=='string') {
+      runtimeField(binding, 0)!==taskCid || runtimeField(binding, 1)!==promptCid ||
+      runtimeField(binding, 2)!==outputSchemaCid || runtimeField(binding, 3)!==modelSelector ||
+      typeof runtimeField(wires, 0)!=='string' || typeof runtimeField(wires, 1)!=='string') {
     throw new TypeError('TypeSafeOriginalProjectionBindingMismatch');
   }
-  const stateWire=wires._0,questionsWire=wires._1;
+  const stateWire=runtimeField(wires, 0),questionsWire=runtimeField(wires, 1);
   let state,questions;
   try {state=JSON.parse(stateWire);questions=JSON.parse(questionsWire);}
   catch {throw new TypeError('TypeSafeOriginalProjectionWireUnavailable');}
@@ -159,6 +160,6 @@ export function projectProjectedTypeSafeDecisionAnswers({moon,projected,
   // or Proxy property after checking a different finite amount.
   const result=moon.clientProgramProjectNativeDecisionAnswers(projected,
     admittedProvider,request,admittedResponse,amounts[0],amounts[2],amounts[1],amounts[3]);
-  if (result?.$tag!==1) throw new TypeError('TypeSafeOriginalAnswerProjectionRefused');
-  return result._0;
+  if (!runtimeIsOk(result)) throw new TypeError('TypeSafeOriginalAnswerProjectionRefused');
+  return runtimeField(result, 0);
 }

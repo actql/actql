@@ -1,6 +1,7 @@
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 
 // Membership of a private physical port in the existing operation, not a new
@@ -27,7 +28,7 @@ export function originalModelRawTransportPersistenceMatches(port, operation, reg
 
 const tuple = (value, length) => {
   const fields = Array.isArray(value) ? value
-    : Array.from({length}, (_, index) => value?.[`_${index}`]);
+    : Array.from({length}, (_, index) => runtimeOptionalField(value, index));
   if (fields.length !== length || fields.some(field => field === undefined)) {
     throw Object.assign(new Error('InvalidModelRawCaptureProjection'),
       {code: 'InvalidModelRawCaptureProjection'});

@@ -1,0 +1,4 @@
+// Compiler-boundary verification fixture; not a distributed runtime entry.
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")

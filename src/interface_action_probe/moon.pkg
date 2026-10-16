@@ -1,0 +1,10 @@
+// Real Owner verification fixture, not a distributed runtime entry.
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/run_publication" @publication,
+  "actql/actql/execution_site" @site,
+  "actql/actql/physical_strategy" @strategy,
+}

@@ -96,6 +96,32 @@ test('private raw port confirms same original Store bytes before acknowledging i
   await f.store.retirePhysicalHolding(f.binding.holdingCid);
 });
 
+test('raw tuple projection preserves field roles and refuses missing compiler fields before a write', async t => {
+  const f = await fixture(t);
+  const originalBinding = f.moon.clientProgramInferRawCaptureSaveBinding;
+  const originalMaterials = f.moon.clientProgramInferRawCaptureSaveOriginals;
+  // Independent compiler-layout doubles; the Store remains the actual fixture.
+  const record = values => Object.fromEntries(values.map((value, index) => [`_${index}`, value]));
+  const binding = record(originalBinding(f.view));
+  f.moon.clientProgramInferRawCaptureSaveBinding = () => binding;
+  f.moon.clientProgramInferRawCaptureSaveOriginals = () =>
+    originalMaterials(f.view).map(record);
+  for (const value of [undefined, null, {...binding, _4: undefined}]) {
+    f.moon.clientProgramInferRawCaptureSaveBinding = () => value;
+    assert.throws(() => createModelRawCaptureStorePort(f.physical, f.moon, f.view, f.bytes),
+      {code: 'InvalidModelRawCaptureProjection'});
+    assert.equal(f.state.writes, 0);
+  }
+  f.moon.clientProgramInferRawCaptureSaveBinding = () => binding;
+  const port = createModelRawCaptureStorePort(f.physical, f.moon, f.view, f.bytes);
+  const saved = await port.persist();
+  assert.equal(saved.receipt, f.receipt);
+  assert.deepEqual(saved.bytes, Buffer.from(f.bytes));
+  assert.equal(f.state.writes, 1);
+  assert.equal(f.state.acknowledgements, 1);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
 async function rawFixtureCleanup(persist, call, wake) {
   for (let i = 0; i < 40; i++) {
     const prior = wake.count;

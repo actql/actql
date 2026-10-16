@@ -1,37 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {strategyAction} from './strategy-actions.mjs';
+import {actionBoundaries} from '../../scripts/js-action-boundaries.mjs';
+import {readActionBoundary} from '../../scripts/generate-js-action-bindings.mjs';
 
-// Independent vectors for the existing Common numeric ABI, including invalid
-// decisions. These are names for returned facts, not transition expectations.
-const vectors = {
-  holding: ['RetainedSiteStartClose', 'RetainedSiteAwaitClose',
-    'RetainedSiteAwaitCleanup', 'RetainedSiteReleaseHolding',
-    'RetainedSiteHoldingFinished', 'RetainedSiteHoldingInvalid'],
-  close: ['RetainedSiteCloseStart', 'RetainedSiteCloseAwaitPhysical',
-    'RetainedSiteCloseAwaitCleanup', 'RetainedSiteCloseFinished',
-    'RetainedSiteCloseInvalid'],
-  failure: ['FailedSiteAwaitStop', 'FailedSiteSettle', 'FailedSiteFinished'],
-  taskSuccess: ['HostTaskCheckSiteCompletion', 'HostTaskRejectSiteCompletion',
-    'HostTaskCheckCommonCompletion', 'HostTaskRejectCommonCompletion',
-    'HostTaskRetainConnectorOutput', 'HostTaskRetainCoreOutput',
-    'HostTaskSettleSiteOperation', 'HostTaskValidateManagedBinding',
-    'HostTaskRejectManagedBinding', 'HostTaskSuccessFinished', 'HostTaskSuccessInvalid'],
-  cleanup: ['HostCleanupRetryKnown', 'HostCleanupAwaitCloses', 'HostCleanupPending',
-    'HostCleanupFailed', 'HostCleanupFinished'],
-  outcome: ['HostTasksCompleted', 'HostTasksFailed', 'HostTaskRunInvalid'],
-  managedFallback: ['ManagedCandidateLegacyAllowed', 'ManagedCandidateEstimateUnavailable',
-    'ManagedCandidateTransferUnavailable', 'ManagedCandidateNoCompatibleStrategy'],
-};
-
-for (const [family, names] of Object.entries(vectors)) {
-  test(`Common ${family} action names preserve the closed numeric ABI`, () => {
-    assert.deepEqual(names.map((_, code) => strategyAction[family](code)), names);
-    for (const unknown of [-1, names.length, 999, 0.5, NaN, Infinity,
-      undefined, null, '0', 0n, true, {}, []]) {
-      assert.throws(() => strategyAction[family](unknown));
+const root = new URL('../../',import.meta.url);
+for (const boundary of actionBoundaries.filter(value => value.family === 'strategy')) {
+  test(`Common ${boundary.kind} names follow the existing Owner declaration`, () => {
+    const rows = readActionBoundary(root,boundary);
+    for (const {code,name} of rows) assert.equal(strategyAction[boundary.kind](code),name);
+    for (const code of [-1,rows.length,999,0.5,NaN,Infinity,undefined,null,'0',0n,true,{},[]]) {
+      assert.throws(() => strategyAction[boundary.kind](code));
     }
-    // No invocation history: interpreting another result cannot change a name.
-    assert.equal(strategyAction[family](0), names[0]);
+    assert.equal(strategyAction[boundary.kind](rows[0].code),rows[0].name);
   });
 }

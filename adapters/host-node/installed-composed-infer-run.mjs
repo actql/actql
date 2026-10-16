@@ -1,5 +1,6 @@
 // Assemble checked Model components into the existing Local task driver.
 // Local owns scheduling; the original Model journal owns each physical send.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedStrategy} from './entry.mjs';
@@ -107,7 +108,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     (_, index) => moon.clientProgramResultName(preparedProgram, index));
   const matched = new Set();
   for (const child of children) {
-    const task = moon.clientProgramInferPlanBoundary(child.selection.graph)._0;
+    const task = runtimeField(moon.clientProgramInferPlanBoundary(child.selection.graph), 0);
     const candidates = records.filter(record => record.inventory.taskIndex === task);
     if (candidates.length > 1) throw new Error('ModelResumeScopeAmbiguous');
     if (candidates.length === 0) continue;
@@ -183,7 +184,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   // The existing single-Source dispatch owner retains this capture until
   // all Compute custody has settled. It is not a multi-capture ledger lease.
   const local = withLocalExecutionPauseHandler(computeConfigurations.local, async boundary => {
-    const child = children.find(value => moon.clientProgramInferPlanBoundary(value.selection.graph)._0 === boundary.task);
+    const child = children.find(value => runtimeField(moon.clientProgramInferPlanBoundary(value.selection.graph), 0) === boundary.task);
     if (child?.operation === undefined || child.capture === undefined) throw new Error('ModelPauseOwnerMissing');
     if (boundary.status === 'settling') {
       const settlement = child.operation.pendingSettlement();
@@ -249,7 +250,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     ledger: checked(moon.clientProgramInferPublicationLedger(262144n + BigInt(calls * 128 + (children.length - 1) * 256), calls + 2)),
     maxSlots: calls, maxWireBytes: 16384, maxWork: calls + 2});
   while (!issuanceComplete) {
-    issuanceComplete = checked(moon.clientProgramAdvanceInferObservationIssuance(issuance, 1))._0;
+    issuanceComplete = runtimeField(checked(moon.clientProgramAdvanceInferObservationIssuance(issuance, 1)), 0);
     if (!issuanceComplete) await yieldEventLoop();
   }
   publication = inferTaskPublicationPlan({moon, control, preparedProgram, admitted: plan,

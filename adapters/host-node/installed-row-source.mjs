@@ -5,6 +5,7 @@
 // Source Evidence are the common runtime's and this module's; the connector
 // supplies only its view specification, its physical target and its page
 // driver. No provider name or type appears here.
+import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
 import {createHash, createPrivateKey, createPublicKey, randomUUID} from
   'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -412,7 +413,7 @@ export async function createInstalledRowSource({moon, declaration,
       fail('InstalledSourceEvidenceFactsUnavailable');
     }
     const selectedCoordinates = moon.clientProgramKeyedAcquisitionInputCoordinates(keyedAcquisition);
-    const coordinates = selectedCoordinates?.$tag === 1 ? selectedCoordinates._0 : undefined;
+    const coordinates = runtimeIsOk(selectedCoordinates) ? runtimeField(selectedCoordinates, 0) : undefined;
     if (coordinates === undefined || coordinates.length !== 4 ||
         !coordinates.every(value => Number.isSafeInteger(value) && value >= 0)) {
       fail('InvalidAcquisitionOccurrence');
@@ -857,7 +858,9 @@ export async function createInstalledRowSource({moon, declaration,
         while (request === undefined) {
           signal?.throwIfAborted();
           for (let poll = 0; poll < quantum; poll++) {
-            const {_0: status, _2: value, _3: issue} = moon.clientProgramKeyedLookupRequestAdvance(lookup, preparation);
+            let compilerTuple1 = moon.clientProgramKeyedLookupRequestAdvance(lookup, preparation);
+            const status = runtimeField(compilerTuple1, 0), value = runtimeField(compilerTuple1, 2), issue = runtimeField(compilerTuple1, 3);
+            compilerTuple1 = undefined;
             if (status === 2) fail('InstalledKeyedRequestFailed', issue);
             if (status === 1) { request = value; break; }
           }
@@ -946,7 +949,7 @@ export async function createInstalledRowSource({moon, declaration,
           const wires = moon.clientProgramKeyedLookupObservationWires(observation);
           if (wires === undefined) fail('InstalledSourceClosed');
           return Object.freeze({observation,
-            inputLogicalWire: wires._0, sourceEvidenceWire: wires._1});
+            inputLogicalWire: runtimeField(wires, 0), sourceEvidenceWire: runtimeField(wires, 1)});
         },
         async openDag() {
           if (closed) fail('InstalledSourceClosed');

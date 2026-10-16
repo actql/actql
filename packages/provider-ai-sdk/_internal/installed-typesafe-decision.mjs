@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createAdmittedTypeSafeDecisionPreflight} from './native-decision-preflight.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {requireTypeSafeOriginalTransportLimits} from './typesafe-decision.mjs';
@@ -89,7 +90,7 @@ export function createInstalledTypeSafeDecisionRegistration(config) {
           quantities: quantities.perAttempt, responseLimits,
           maxRequestBytes: requestLimits.maxBytes, maxHeaderBytes: requestLimits.maxHeaderBytes,
           maxHeaders: requestLimits.maxHeaders,
-          checked(value) {if (value?.$tag !== 1) issue('TypeSafeOriginalCommonRefused'); return value._0;},
+          checked(value) {if (!runtimeIsOk(value)) issue('TypeSafeOriginalCommonRefused'); return runtimeField(value, 0);},
         }).preflight;
       },
     })];

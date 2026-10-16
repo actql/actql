@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import * as owner from './dist/client_values_host_abi.js';
 
 const retainedInputEdges = new WeakMap();
@@ -35,9 +36,9 @@ const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',
   'calendar', 'textRank']);
 
 function checked(result, code) {
-  if (result?.$tag === 1) return result._0;
-  if (result?.$tag === 0) {
-    throw Object.assign(new Error(code, {cause: result._0}), {code});
+  if (runtimeIsOk(result)) return runtimeField(result, 0);
+  if (runtimeIsError(result)) {
+    throw Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
   }
   throw Object.assign(new Error('InvalidRunHostOwnerResult'),
     {code: 'InvalidRunHostOwnerResult'});
@@ -275,9 +276,9 @@ export function effectSourceEvidenceFacts(prepared, compilation, stage, sourceIn
     throw new TypeError('InvalidRunHostSourceSelection');
   }
   const option = owner.clientValuesHostEffectSourceEvidenceFacts(value, stage, sourceIndex);
-  if (option?.$tag === 0) return undefined;
-  if (option?.$tag !== 1) throw new Error('InvalidRunHostSourceEvidenceProjection');
-  const facts = option._0;
+  if (runtimeIsBoxedNone(option)) return undefined;
+  if (!runtimeIsBoxedSome(option)) throw new Error('InvalidRunHostSourceEvidenceProjection');
+  const facts = runtimeField(option, 0);
   if (!Array.isArray(facts) || facts.length !== 6 ||
       facts.some(field => typeof field !== 'string')) {
     throw new Error('InvalidRunHostSourceEvidenceProjection');
@@ -683,9 +684,9 @@ export function sourceEvidenceFacts(prepared, stage, sourceIndex) {
   }
   const option = owner.clientValuesHostSourceEvidenceFacts(
     requireHandle(preparations, prepared), stage, sourceIndex);
-  if (option?.$tag === 0) return undefined;
-  if (option?.$tag !== 1) throw new Error('InvalidRunHostSourceEvidenceProjection');
-  const facts = option._0;
+  if (runtimeIsBoxedNone(option)) return undefined;
+  if (!runtimeIsBoxedSome(option)) throw new Error('InvalidRunHostSourceEvidenceProjection');
+  const facts = runtimeField(option, 0);
   if (!Array.isArray(facts) || facts.length !== 6 ||
       facts.some(value => typeof value !== 'string')) {
     throw new Error('InvalidRunHostSourceEvidenceProjection');
@@ -2763,10 +2764,10 @@ export function prepareRunCancellationOperation(definition, requested, facts) {
       undefined : requireHandle(cancellationIdentities, retained),
     requireHandle(definitions, definition), currentRevision,
     currentAuthorization, terminalObserved, cancellationRequested);
-  if (result?.$tag === 0 && ['ClientCancellationIntentConflict',
+  if (runtimeIsError(result) && ['ClientCancellationIntentConflict',
     'ClientCancellationOperationMismatch', 'ClientCancellationRevisionConflict',
-    'ClientCancellationDenied', 'ClientCancellationRunMismatch'].includes(result._0)) {
-    throw Object.assign(new Error(result._0), {code: result._0});
+    'ClientCancellationDenied', 'ClientCancellationRunMismatch'].includes(runtimeField(result, 0))) {
+    throw Object.assign(new Error(runtimeField(result, 0)), {code: runtimeField(result, 0)});
   }
   const action = checked(result, 'RunHostCancellationOperationRejected');
   if (!['accepted', 'already_requested', 'already_terminal', 'replay_original'].includes(action)) {

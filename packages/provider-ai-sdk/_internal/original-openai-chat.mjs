@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {prepareOpenAIChatRequest} from './openai-chat.mjs';
 import {isDeepStrictEqual} from 'node:util';
 import {createSdkModelPreflight} from './model-port.mjs';
@@ -10,7 +11,7 @@ export function prepareOriginalOpenAIChatRequest({moon, request, modelSelector,
   maxHeaderBytes, maxHeaders, signal, notify, verifyRequest}) {
   const generation = moon.clientProgramModelRequestGeneration(request);
   if (generation === undefined || typeof modelSelector !== 'string' ||
-      generation._0 !== modelSelector) {
+      runtimeField(generation, 0) !== modelSelector) {
     throw new TypeError('OpenAIOriginalGenerationUnavailable');
   }
   const exactInteger = (value, minimum) => typeof value === 'bigint' &&
@@ -18,19 +19,19 @@ export function prepareOriginalOpenAIChatRequest({moon, request, modelSelector,
   // The pinned MoonBit JS Int64 ABI may expose negative values as their
   // unsigned 64-bit backing. Interpret that typed backing as signed before
   // the SDK Number check, without wrapping an out-of-domain carrier.
-  const rawSeed = generation._4;
+  const rawSeed = runtimeField(generation, 4);
   const seed = typeof rawSeed === 'bigint' &&
       rawSeed >= -9_223_372_036_854_775_808n && rawSeed <= 18_446_744_073_709_551_615n
     ? BigInt.asIntN(64, rawSeed) : rawSeed;
-  if (!Number.isFinite(generation._1) || !Number.isFinite(generation._2) ||
-      !exactInteger(generation._3, 1n) ||
+  if (!Number.isFinite(runtimeField(generation, 1)) || !Number.isFinite(runtimeField(generation, 2)) ||
+      !exactInteger(runtimeField(generation, 3), 1n) ||
       seed !== undefined && !exactInteger(seed, -BigInt(Number.MAX_SAFE_INTEGER))) {
     // The selected SDK accepts Number, not arbitrary Int64. Do not round an
     // authored seed/token count or redefine the common Task's integer domain.
     throw new TypeError('OpenAIOriginalGenerationUnsupported');
   }
-  const temperature = generation._1, topP = generation._2;
-  const maxOutputTokens = Number(generation._3);
+  const temperature = runtimeField(generation, 1), topP = runtimeField(generation, 2);
+  const maxOutputTokens = Number(runtimeField(generation, 3));
   return prepareOpenAIChatRequest({modelId, baseURL, apiKey,
     options: {prompt, responseFormat, temperature,
       topP, maxOutputTokens,
@@ -53,22 +54,22 @@ export function prepareAdmittedOpenAIChatRequest({moon, admittedProvider,
   const projected = moon.clientProgramProjectOpenAIChatRequest(admittedProvider,
     request, projectionLimits.maxBytes, projectionLimits.maxNodes,
     projectionLimits.maxDepth, projectionLimits.maxFrames, projectionLimits.maxWork);
-  if (projected?.$tag === 0) {
+  if (runtimeIsError(projected)) {
     throw new TypeError('OpenAIProjection:' +
-      moon.clientProgramOpenAIChatProjectionIssueKind(projected._0));
+      moon.clientProgramOpenAIChatProjectionIssueKind(runtimeField(projected, 0)));
   }
-  if (projected?.$tag !== 1) throw new TypeError('OpenAIProjectionUnavailable');
+  if (!runtimeIsOk(projected)) throw new TypeError('OpenAIProjectionUnavailable');
   return prepareProjectedOriginal({...installation,moon,request,taskCid,
-    promptCid,outputSchemaCid,modelSelector},projected._0);
+    promptCid,outputSchemaCid,modelSelector},runtimeField(projected, 0));
 }
 
 function prepareProjectedOriginal({moon,request,taskCid,promptCid,
   outputSchemaCid,modelSelector,...installation},value) {
-  if (value._3 !== taskCid || value._4 !== promptCid ||
-      value._5 !== outputSchemaCid || value._6 !== modelSelector) {
+  if (runtimeField(value, 3) !== taskCid || runtimeField(value, 4) !== promptCid ||
+      runtimeField(value, 5) !== outputSchemaCid || runtimeField(value, 6) !== modelSelector) {
     throw new TypeError('OpenAIOriginalSchemaBindingMismatch');
   }
-  const instructions = value._0, inputWire = value._1, schemaWire = value._2;
+  const instructions = runtimeField(value, 0), inputWire = runtimeField(value, 1), schemaWire = runtimeField(value, 2);
   const schema = JSON.parse(schemaWire);
   const prompt = [{role: 'system', content: instructions},
     {role: 'user', content: [{type: 'text', text: inputWire}]}];
