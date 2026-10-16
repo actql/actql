@@ -39,6 +39,15 @@ test('append retains original pre-request refusal and literal value rules', () =
   }
 });
 
+test('the original vector detects a same-typed path/body role swap at the real provider boundary', () => {
+  const mutant = {...moon, sheetsAppendRequestIdentity: (origin, path, body) =>
+    moon.sheetsAppendRequestIdentity(origin, body, path)};
+  const request = prepareSheetsAppend({...original, moon: mutant});
+  assert.equal(request.body, original.body, 'fixture and real body codec remain valid');
+  assert.throws(() => assert.equal(request.requestCid, original.requestCid),
+    {code: 'ERR_ASSERTION'}, 'the unchanged identity oracle catches the role mutation, not setup');
+});
+
 test('range identity rejects negative zero before scalar ABI erasure, like the original identity preimage', () => {
   const token = `sha256:${'a'.repeat(64)}`;
   const range = {sheetId: 7, startRow: 0, endRow: 2, startColumn: 0, endColumn: 3};
