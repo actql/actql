@@ -110,6 +110,47 @@ not execute.
 
 ## Submitted intent and outcome projection
 
+### Scoped durable request names
+
+The public Python `request_id` convenience denotes a scoped durable name for
+one original submitted operation, not a nonce to reuse under each connection's
+new epoch. The existing request Journal resolves or binds the authenticated
+workspace/actor/name key before preparation or I/O. Its authority scope and
+original submitted intent are immutable. A changed scope, input, readOnly or
+stopBefore choice conflicts instead of issuing another Run. Names are not
+lookup, cancellation or execution authority; the Host rechecks current scope.
+
+The physical index belongs to this same Journal and transaction owner. First
+binding records the original epoch-bound preparing intent and its name together
+under `BEGIN IMMEDIATE` and confirmed COMMIT. An existing binding returns that
+original reference and outcome; a newly supplied connection epoch is not its
+replacement. Only the first confirmed insertion can enter preparation. Merely
+observing a preparing record, including after response loss or reopening, does
+not establish permission to repeat its work.
+
+The private index is authenticated with the existing Journal's epoch custody
+key, covering namespace, actor, exact name, authority scope, submission identity
+and intent identity. This authentication is neither a canonical public CID nor
+a bearer permit. The key and original Common-admitted epoch/intent remain
+necessary. Equal-looking data from a different Journal cannot issue a reference.
+Old explicit epoch nonces are not searched, inferred, or retroactively named.
+
+Names have finite admission capacity under the existing Journal limit. There
+is no automatic eviction: formal pre-Run intent retirement leaves its named
+binding unresolved and occupied rather than making the name unused. Missing
+or corrupt custody refuses new binding. A transaction-maintained retained count
+and monotonic issued count fence deleted names; physical startup checks the
+index/cardinality and trigger definitions without retaining an all-history JS
+array. Normal resolution uses the exact indexed key and singleton control, not
+a scan of historical Programs or a process-local name cache. These controls are
+not a claim of whole Host heap funding or unlimited permanent name capacity.
+
+The separate closed transport correlation must identify the requested name,
+original intent and returned original reference. The old explicit-epoch
+submission response still requires its original exact reference match; it is
+not weakened to accommodate named resolution. The private Journal primitive
+alone does not establish that this public producer/consumer path is connected.
+
 `actql-submitted-intent/0.1` identifies the original JSON submission before a
 checked Program or Run definition exists. Its canonical preimage contains
 `intent` and `version`. The intent has exactly `input`, `kind` (`program` or
