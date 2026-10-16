@@ -35,7 +35,7 @@ function literalValue(node, depth = 0) {
 }
 function compilerField(node) {
   const value = literalValue(node);
-  if (typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value)) return value;
+  if (value !== undefined) return typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value) ? value : undefined;
   if (node && ts.isTemplateExpression(node) && node.head.text === '_' &&
       node.templateSpans.at(-1).literal.text === '') return '_<dynamic>';
   if (node && ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
@@ -96,9 +96,9 @@ export function typescriptInterface(source, filename = 'interface.ts') {
           ['Reflect', 'Object'].includes(node.expression.expression.getText(tree)) &&
           ['get', 'set', 'getOwnPropertyDescriptor', 'defineProperty'].includes(node.expression.name.text)
           ? compilerField(node.arguments[1])
-          : ts.isBindingElement(node) && node.propertyName
-            ? ts.isComputedPropertyName(node.propertyName) ? compilerField(node.propertyName.expression)
-              : node.propertyName.text
+          : ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)
+            ? ts.isComputedPropertyName(node.propertyName ?? node.name)
+              ? compilerField((node.propertyName ?? node.name).expression) : (node.propertyName ?? node.name).text
             : ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)
               ? compilerField(key) ?? (key && ts.isIdentifier(key) ? key.text : undefined) : undefined;
     if (field && /^(?:\$tag|_\d+|_<dynamic>)$/u.test(field)) compilerFields.push(field);
