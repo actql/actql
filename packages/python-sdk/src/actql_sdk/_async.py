@@ -11,6 +11,7 @@ import weakref
 import httpx
 from . import _wire as wire
 from ._errors import ClientError
+from ._run_state import RunState
 from ._values import Observation, content_cid, decode_json, freeze, snapshot, thaw, wire_bytes
 from ._diagnostics import bind_check, retain_submission_check
 from ._checkpoints import capture_signer, signed_answer, review_bytes_match_cid
@@ -519,7 +520,7 @@ class AsyncExecution:
                     control['revision'] == previous['revision'] and control != previous):
                 raise ClientError('StaleHostRunObservation')
             self._latest_control = snapshot(control)
-        return Observation(value)
+        return RunState(value)
 
     async def status(self):
         return await self._observe('status')
