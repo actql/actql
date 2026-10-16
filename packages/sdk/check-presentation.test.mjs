@@ -63,7 +63,8 @@ test('packed SDK public exports and browser bundle include their presentation mo
   // Consume unchanged behavioral cases through the normally installed SDK.
   // Only public import specifiers change; fixture assertions and replies do not.
   const consumers = ['check-locations', 'run-control-revisions', 'client-close',
-    'read-progress', 'submission-identity', 'cancel-identity', 'connection-string-client'];
+    'read-progress', 'submission-identity', 'cancel-identity', 'connection-string-client',
+    'connection-start-order'];
   writeFileSync(join(cache, 'submission-fixture.mjs'),
     readFileSync(new URL('./submission-fixture.mjs', import.meta.url)));
   for (const name of consumers) {

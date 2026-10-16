@@ -7,13 +7,10 @@ import {ClientError, fail, ownedClientFailure, readRefusalCodes} from './errors.
 import {retainCancellationExplanation} from './run-observation.mjs';
 import {submissionNotSent, submissionUnknown} from './submission-observation.mjs';
 
-export async function createTransport(selected, port, isClosed) {
-  let directLoopback;
-  if (selected.directLoopbackHttp) {
-    try { ({requestLoopbackClient: directLoopback} = await import('#loopback-http')); }
-    catch { fail('LoopbackHttpUnavailable'); }
-    if (typeof directLoopback !== 'function') fail('LoopbackHttpUnavailable');
-  }
+// Return the import promise itself so only the existing loopback branch yields.
+export const loadLoopbackTransport = () => import('#loopback-http');
+
+export function createTransport(selected, port, isClosed, directLoopback) {
   const dispatchedCancellations = new WeakSet();
   const dispatchedSubmissions = new WeakSet();
   const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
