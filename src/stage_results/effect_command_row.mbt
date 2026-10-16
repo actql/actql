@@ -4,6 +4,7 @@ pub(all) enum EffectCommandRowIssue {
   InvalidRow
   WorkLimit
   MissingTarget
+  InvalidTargetOriginal
   MissingSourceField(String)
   OutputLimit
 } derive(Eq, Debug)
@@ -56,6 +57,7 @@ pub fn project_effect_command_row(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  published_target? : EffectPublishedStoreTarget? = None,
 ) -> Result[(String, String), EffectCommandRowIssue] {
   if max_fields < 0 ||
     max_work < 0 ||
@@ -69,6 +71,10 @@ pub fn project_effect_command_row(
   }
   let fields = binding.fields
   let source_fields = binding.target.effect.fields
+  if published_target is Some(original) &&
+    !effect_published_store_target_current(original, binding) {
+    return Err(InvalidTargetOriginal)
+  }
   // One target lookup plus at most one source lookup for every input field.
   if fields.length() > max_fields || source_fields.length() > max_work {
     return Err(WorkLimit)
@@ -94,8 +100,7 @@ pub fn project_effect_command_row(
       )
     }
   }
-  guard target is Some(target) else { return Err(MissingTarget) }
-  if target is @json.Null {
+  if published_target is None && (target is None || target is Some(@json.Null)) {
     return Err(MissingTarget)
   }
   let values : Array[(String, CommandRowValue)] = []
@@ -114,9 +119,15 @@ pub fn project_effect_command_row(
   }
   values.sort_by((left, right) => @canonical.compare_utf16(left.0, right.0))
   try {
-    let target_wire = @json.stringify_value(
-      target, max_bytes, max_nodes, max_depth,
-    )
+    let target_wire = match published_target {
+      Some(original) => {
+        let selector = @encode.writer(max_bytes, max_nodes, max_depth)
+        @value.emit_checked_wire_value(original.checked, selector)
+        @encode.finish(selector)
+      }
+      None =>
+        @json.stringify_value(target.unwrap(), max_bytes, max_nodes, max_depth)
+    }
     let out = @encode.writer(max_bytes, max_nodes, max_depth)
     @encode.begin_object(out)
     @encode.key(out, "state")
