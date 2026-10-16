@@ -31,6 +31,7 @@ fn QueryParser::from_pivot_source(
     final_operations: [],
     effect: None,
     table_effect: None,
+    store_effect: None,
     commands: [],
     work: self.work,
   })

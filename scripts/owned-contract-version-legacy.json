@@ -1779,6 +1779,14 @@
       "line": 70,
       "count": 1,
       "reason": "Reviewed existing cross-language refusal vector only: this exact old-version context must remain rejected. No product version, parser, validator, writer, current wire or historical bytes are changed; another file/context/occurrence is not admitted."
+    },
+    {
+      "path": "src/run_publication_host/client_project_configuration_wbtest.mbt",
+      "token": "actql-config/0.2",
+      "contextSha256": "ae0d04e072dc346f3d1974b15946e780ee1685cc618d0b49ab4ef9321be86051",
+      "line": 112,
+      "count": 1,
+      "reason": "Reviewed malformed-version refusal fixture from #2474. Exact negative occurrence only: the current project metadata reader rejects this body as InvalidConfiguration; no writer or adopted version."
     }
   ]
 }

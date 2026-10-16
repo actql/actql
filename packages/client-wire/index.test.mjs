@@ -393,7 +393,7 @@ test('request lookup retains found, absent and observation-unknown replies',
   });
 
 test('Run reconciliation is distinct from the unchanged Effect action', () => {
-  const state = {version: 'actql-run-state/0.1', run_id: 'run-a',
+  const state = {version: 'actql-run-state/0.1', run_id: 'run-a', revision: 4,
     status: 'needs_reconciliation', updated_at: '2026-09-27T00:00:00.000Z',
     result_available: false, result_availability: {answer: {
       state: 'unavailable', reason: 'not_published',
@@ -414,7 +414,7 @@ test('Run reconciliation is distinct from the unchanged Effect action', () => {
 });
 
 test('Effect-only Run state wire keeps approval and reconciliation without public Results', () => {
-  const state = {version: 'actql-run-state/0.1', run_id: 'run-effect',
+  const state = {version: 'actql-run-state/0.1', run_id: 'run-effect', revision: 9,
     status: 'succeeded', updated_at: '2026-09-24T00:30:00.000Z',
     next_action: {kind: 'none'}, result_available: false, result_availability: {}};
   assert.equal(validRunState(state), true);
@@ -434,14 +434,19 @@ test('Effect-only Run state wire keeps approval and reconciliation without publi
 test('registered Run state guard checks nested availability and action wire',
   () => {
     const at = '2026-09-24T00:30:00.000Z';
-    const state = {version: 'actql-run-state/0.1', run_id: 'run-a',
+    const state = {version: 'actql-run-state/0.1', run_id: 'run-a', revision: 12,
       status: 'succeeded', updated_at: at,
       next_action: {kind: 'read_result', results: ['answer']},
       result_available: true,
       result_availability: {answer: {state: 'available',
         reason: 'confirmed_present', observed_at: at}}};
     assert.equal(validRunState(state), true);
+    assert.equal(validRunState({...state, revision: 0}), true);
+    assert.equal(validRunState({...state, revision: Number.MAX_SAFE_INTEGER}), true);
+    const missingRevision = {...state};
+    delete missingRevision.revision;
     for (const changed of [
+      missingRevision,
       {...state, status: 'other'},
       {...state, result_available: 'true'},
       {...state, next_action: {kind: 'read_result', results: []}},
@@ -452,7 +457,7 @@ test('registered Run state guard checks nested availability and action wire',
       {...state, checkpoint: {checkpoint_id: 'paused',
         checkpoint_cid: `sha256:${'c'.repeat(64)}`, kind: 'run_scope'}},
       {...state, result_availability: {'': state.result_availability.answer}},
-      {...state, revision: 1},
+      ...[undefined, null, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, '12'].map(revision => ({...state, revision})),
     ]) assert.equal(validRunState(changed), false);
   });
 
@@ -745,6 +750,8 @@ test('independent known reasons retain their original input domains', () => {
     const report = {context_ref: 'ctx:independent-location-domain',
       scope: {kind: 'bound_input'}, inputs: fixture.inputs,
       verdict: requirement ? 'undetermined' : 'invalid',
+      runnable: {verdict: 'no', reasons: requirement
+        ? [{code: 'bound_values_missing'}, {code: 'parameter_value_required'}] : [{code: reason.code}]},
       reasons: requirement ? [] : [reason], requirements: requirement ? [reason] : [],
       coverage: {limits: requirement ? [{code: 'bound_values_missing'}] : [], unresolved: []}};
     const outcome = report => ({version: 'actql-check-outcome/0.1',
@@ -772,7 +779,8 @@ test('independent known reasons retain their original input domains', () => {
 test('independent frame reasons reject malformed facts and foreign locations', () => {
   const reason = JSON.parse(readFileSync(new URL('./fixtures/check-frame-reason.json', import.meta.url), 'utf8'));
   const original = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
-  const outcome = value => ({...original, report: {...original.report, verdict: 'invalid', reasons: [value]}});
+  const outcome = value => ({...original, report: {...original.report, verdict: 'invalid',
+    runnable: {verdict: 'no', reasons: [{code: value.code}]}, reasons: [value]}});
   assert.equal(validCheckOutcome(outcome(reason)), true);
   for (const invalid of [
     {code: reason.code}, {...reason, facts: {}},
@@ -815,7 +823,8 @@ test('independent check envelopes require outcome identity and safe Problem corr
 test('independent operation parameter reasons retain closed domains and input locations', () => {
   const reasons = JSON.parse(readFileSync(new URL('./fixtures/check-operation-parameter-reasons.json', import.meta.url), 'utf8'));
   const original = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
-  const outcome = reason => ({...original, report: {...original.report, verdict: 'invalid', reasons: [reason]}});
+  const outcome = reason => ({...original, report: {...original.report, verdict: 'invalid',
+    runnable: {verdict: 'no', reasons: [{code: reason.code}]}, reasons: [reason]}});
   for (const reason of reasons) {
     assert.equal(validCheckOutcome(outcome(reason)), true);
     for (const invalid of [{code: reason.code}, {...reason, facts: {}},
@@ -839,7 +848,8 @@ test('independent operation parameter reasons retain closed domains and input lo
 test('independent expression type reasons reject values and foreign fact families', () => {
   const reasons = JSON.parse(readFileSync(new URL('./fixtures/check-expression-types.json', import.meta.url), 'utf8'));
   const original = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
-  const outcome = reason => ({...original, report: {...original.report, verdict: 'invalid', reasons: [reason]}});
+  const outcome = reason => ({...original, report: {...original.report, verdict: 'invalid',
+    runnable: {verdict: 'no', reasons: [{code: reason.code}]}, reasons: [reason]}});
   for (const reason of reasons) {
     assert.equal(validCheckOutcome(outcome(reason)), true);
     for (const facts of [undefined, {}, {expected_type: 'private_field'},
@@ -895,6 +905,7 @@ test('independent binding JSON reasons require owned documents and closed parser
     reason_schema_cid: fixture.reason_schema_cid, outcome_schema_cid: fixture.outcome_schema_cid,
     outcome: 'completed', report: {context_ref: 'ctx:independent-json-reasons',
       scope: {kind: 'bound_input'}, verdict: 'invalid',
+      runnable: {verdict: 'no', reasons: [{code: reason.code}]},
       inputs: [source, ...fixture.documents.map(document_id =>
         ({document_id, kind: 'structured', revision, byte_length: 2}))],
       reasons: [reason], requirements: [], coverage: {limits: [], unresolved: []}}});
@@ -938,6 +949,8 @@ test('known Requirement admission conditions reject malformed numeric and disclo
     .find(facts => facts.properties.admission).properties.admission.properties.contract_schema_cid.const;
   const fixture = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
   fixture.report.verdict = 'undetermined';
+  fixture.report.runnable = {verdict: 'no',
+    reasons: [{code: 'bound_values_missing'}, {code: 'parameter_value_required'}]};
   fixture.report.coverage.limits = [{code: 'bound_values_missing'}];
   const admission = {kind: 'parameter_declaration', contract_schema_cid: parameterContractSchemaCid,
     contract: {type: 'number', nullable: false}, constraints: [
@@ -967,6 +980,7 @@ test('located implementation limits bind source revisions and reject malformed m
   const outcome = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
   const source = outcome.report.inputs[0];
   outcome.report.verdict = 'undetermined';
+  outcome.report.runnable = {verdict: 'no', reasons: [{code: 'implementation_limit'}]};
   outcome.report.coverage.limits = [{code: 'implementation_limit',
     facts: {issue: 'function_lowering_unresolved'}, location: {kind: 'text', document_id: 'source',
       revision: source.revision, precision: 'exact', start_byte: 0, end_byte: source.byte_length}}];

@@ -42,6 +42,20 @@ export const sequenceSourceSuccesses=variants.flatMap(v=>{
  ...['sql','aql-text'].map(format=>({name:'sequence-'+format+'-'+v.name,format,text:source(v),...shared,...(v.parameters?{parameterDeclarations:declarations}:{})}))];
 });
 const valid=source(variants[0]);
+// The v0.1 authored contract defaults grouping/overlap/contiguity. Retain the
+// formerly refused missing-overlap input itself, now with independent results.
+const defaultResults={results:{answer:{rows:[first(2)],columns}},
+ sourceReadCount:0,sourceReadSessionCount:0};
+sequenceSourceSuccesses.push({name:'sequence-implicit-overlap',format:'aql-text',
+ text:valid.replace(", overlap: 'disallow'",''),...defaultResults});
+const omittedProgram=program(variants[0]);
+const omittedBody=omittedProgram.stages[0].steps.find(step=>step.sequence).sequence;
+for(const key of ['by','overlap','contiguity']) delete omittedBody[key];
+sequenceSourceSuccesses.push({name:'sequence-json-omitted-defaults',format:'json',
+ text:JSON.stringify(omittedProgram),...defaultResults},
+ ...['sql','aql-text'].map(format=>({name:'sequence-'+format+'-omitted-defaults',format,
+ text:valid.replace('by: [], ','').replace(", overlap: 'disallow'",'')
+  .replace(", contiguity: 'adjacent'",''),...defaultResults})));
 export const sequenceSourceRefusals=[
  ['string-predicate',valid.replace('e.kind = 1',"'e.kind = 1'")],
  ['prior-label-input',valid.replace('e.kind = 2','first_id = 1')],
@@ -50,6 +64,6 @@ export const sequenceSourceRefusals=[
  ['nonboolean-predicate',valid.replace('e.kind = 1','1')],
  ['zero-within',valid.replace('within: 20','within: 0')],
  ['zero-output-guard',valid.replace('max_output_rows: 2','max_output_rows: 0')],
- ['implicit-overlap',valid.replace(", overlap: 'disallow'",'')],
+ ['invalid-overlap',valid.replace("overlap: 'disallow'","overlap: 'invented'")],
  ['json-predicate-adapter',valid.replace('e.kind = 1','{literal: true}')],
 ].map(([name,text])=>({name:'sequence-'+name,format:'aql-text',text,expectedCode:'ClientProgramInvalidInput'}));
