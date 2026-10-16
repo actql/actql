@@ -1,12 +1,13 @@
 {
   "version": "actql-check-outcome/0.1",
   "reason_schema_cid": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742",
-  "outcome_schema_cid": "sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a",
+  "outcome_schema_cid": "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce",
   "outcome": "completed",
   "report": {
     "context_ref": "ctx:independent-template",
     "scope": {"kind": "template_only"},
     "verdict": "verified",
+    "runnable": {"verdict": "no", "reasons": [{"code": "parameter_value_required"}]},
     "inputs": [{
       "document_id": "program",
       "revision": "rev:1111111111111111111111111111111111111111111111111111111111111111",

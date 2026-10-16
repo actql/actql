@@ -19,9 +19,9 @@ def check_report(*, kind='text', byte_length=10, pointer='', start=0, end=4):
                 if kind == 'text' else {'kind': 'structured', 'document_id': 'program', 'revision': REVISION, 'pointer': pointer})
     return {'version': 'actql-check-outcome/0.1',
             'reason_schema_cid': 'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742',
-            'outcome_schema_cid': 'sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a',
+            'outcome_schema_cid': 'sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce',
             'outcome': 'completed', 'report': {'context_ref': 'ctx:independent-python', 'scope': {'kind': 'bound_input'},
-                'verdict': 'invalid', 'inputs': [{'document_id': location['document_id'], 'revision': REVISION,
+                'verdict': 'invalid', 'runnable': {'verdict': 'no', 'reasons': [{'code': 'query_lexical_invalid' if kind == 'text' else 'program_structure_invalid'}]}, 'inputs': [{'document_id': location['document_id'], 'revision': REVISION,
                     'kind': location['kind'], 'byte_length': byte_length}],
                 'reasons': [{'code': 'query_lexical_invalid' if kind == 'text' else 'program_structure_invalid',
                              'facts': {'issue': 'unexpected_token' if kind == 'text' else 'wrong_type'}, 'location': location}],

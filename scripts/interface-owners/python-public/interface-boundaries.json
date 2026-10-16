@@ -764,6 +764,7 @@
         "Mapping",
         "Observation",
         "Profile",
+        "Protocol",
         "Reader",
         "Result",
         "RunState",
@@ -1034,7 +1035,8 @@
           "name": "AsyncExecution/wait",
           "parameters": [
             "self",
-            "until"
+            "until",
+            "since"
           ],
           "async": true
         },
@@ -1109,6 +1111,20 @@
           "name": "AsyncResult/all",
           "parameters": [
             "self",
+            "schema",
+            "max_rows",
+            "max_retained_value_bytes",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncResult/all#2",
+          "parameters": [
+            "self",
+            "schema",
             "max_rows",
             "max_retained_value_bytes",
             "max_wire_bytes",
@@ -1129,6 +1145,18 @@
           "name": "AsyncResult/rows",
           "parameters": [
             "self",
+            "schema",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncResult/rows#2",
+          "parameters": [
+            "self",
+            "schema",
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
@@ -1388,7 +1416,8 @@
           "name": "Execution/wait",
           "parameters": [
             "self",
-            "until"
+            "until",
+            "since"
           ],
           "async": false
         },
@@ -1505,6 +1534,20 @@
           "name": "Result/all",
           "parameters": [
             "self",
+            "schema",
+            "max_rows",
+            "max_retained_value_bytes",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "Result/all#2",
+          "parameters": [
+            "self",
+            "schema",
             "max_rows",
             "max_retained_value_bytes",
             "max_wire_bytes",
@@ -1525,6 +1568,18 @@
           "name": "Result/rows",
           "parameters": [
             "self",
+            "schema",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "Result/rows#2",
+          "parameters": [
+            "self",
+            "schema",
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
@@ -1544,6 +1599,34 @@
             "reviewer_id",
             "sign",
             "authority_scope_cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "_RowModel",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_RowModel/model_validate",
+          "parameters": [
+            "self",
+            "value",
+            "strict"
+          ],
+          "async": false
+        },
+        {
+          "name": "_RowValidator",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_RowValidator/validate_python",
+          "parameters": [
+            "self",
+            "value",
+            "strict"
           ],
           "async": false
         },
@@ -1603,7 +1686,7 @@
           "async": false
         }
       ],
-      "sha256": "197e065c8d28cd76b9fd0487c821bebff9eb927a19b47dc4aa746893012cf8ce",
+      "sha256": "9b010db0bc10809909af330f4d4407f89e979dea88c26adb7c3850c7c880beb9",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -1650,8 +1733,10 @@
             "AsyncReader/rows_yielded",
             "AsyncResult",
             "AsyncResult/all",
+            "AsyncResult/all#2",
             "AsyncResult/delivery_attempt",
             "AsyncResult/rows",
+            "AsyncResult/rows#2",
             "Client",
             "Client/__enter__",
             "Client/__exit__",
@@ -1699,10 +1784,16 @@
             "Reader/rows_yielded",
             "Result",
             "Result/all",
+            "Result/all#2",
             "Result/delivery_attempt",
             "Result/rows",
+            "Result/rows#2",
             "Signer",
             "Signer/__init__",
+            "_RowModel",
+            "_RowModel/model_validate",
+            "_RowValidator",
+            "_RowValidator/validate_python",
             "explain_check_reason",
             "get_check_fixes",
             "get_check_input",
@@ -1734,6 +1825,7 @@
             "Mapping",
             "Observation",
             "Profile",
+            "Protocol",
             "Reader",
             "Result",
             "RunState",
@@ -2326,7 +2418,8 @@
           "name": "AsyncExecution/wait",
           "parameters": [
             "self",
-            "until"
+            "until",
+            "since"
           ],
           "async": true
         },
@@ -2372,7 +2465,7 @@
           "async": false
         }
       ],
-      "sha256": "f12dfeea44b19e8a6775782c694a4ab71eae333ab6a267b7e61bad94febcff49",
+      "sha256": "6b708e60604fa5cac5c90e6b9cb47c64c3a0e9a9fa8419ecf49201aec2a35292",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3029,21 +3122,21 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "ClientError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "ClientError/__init__",
           "parameters": [
             "self",
             "code",
             "**facts"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "4b579ee7792ff77cd5f8bf8ea3ffaa386c43ff183126b243e4f99e8738acf425",
+      "sha256": "a79c965d063da1cc2b3066a014584d4be72348d4338d2524a27533570c3b5fc6",
       "role": "observation-presentation",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3298,6 +3391,7 @@
         "Observation",
         "asyncio",
         "decode_json",
+        "inspect",
         "retained_value_bytes",
         "snapshot",
         "thaw",
@@ -3311,171 +3405,181 @@
         "._errors",
         "._values",
         "asyncio",
+        "inspect",
         "uuid"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_reader.py",
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "AsyncReader",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncReader/__aenter__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "AsyncReader/__aexit__",
           "parameters": [
             "self",
             "*exc"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncReader/__aiter__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncReader/__anext__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncReader/__init__",
           "parameters": [
             "self",
             "result",
-            "limits"
-          ]
+            "limits",
+            "validate"
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncReader/_iterate",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "AsyncReader/_release",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "AsyncReader/aclose",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncReader/attempt_id",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncReader/delivery_attempt",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncReader/rows_yielded",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "AsyncResult",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "AsyncResult/__init__",
           "parameters": [
             "self",
             "run",
             "name"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "AsyncResult/_valid_delivery",
           "parameters": [
             "self",
             "value",
             "attempt_id"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncResult/all",
           "parameters": [
             "self",
             "max_rows",
             "max_retained_value_bytes",
             "**read_options"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "AsyncResult/delivery_attempt",
           "parameters": [
             "self",
             "attempt_id"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncResult/rows",
           "parameters": [
             "self",
+            "schema",
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
+          "name": "_row_validator",
+          "parameters": [
+            "schema"
+          ],
+          "async": false
+        },
+        {
           "name": "retained_value_bytes",
           "parameters": [
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "retained_value_bytes/visit",
           "parameters": [
             "item"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "tighter",
           "parameters": [
             "value",
             "maximum"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "6df8420cb82fb275ecf3dc08eff80f338c84df3feeb22bfd331d035c013ff375",
+      "sha256": "cb524f8ea1b0a695fbb23afb7f678e7f2b102d4808a65f870ab1310b55ed64ec",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3501,6 +3605,7 @@
             "AsyncResult/all",
             "AsyncResult/delivery_attempt",
             "AsyncResult/rows",
+            "_row_validator",
             "retained_value_bytes",
             "retained_value_bytes/visit",
             "tighter"
@@ -3512,6 +3617,7 @@
             "Observation",
             "asyncio",
             "decode_json",
+            "inspect",
             "retained_value_bytes",
             "snapshot",
             "thaw",
@@ -3535,6 +3641,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_reader.py",
                 "anchor": "\"\"\"Bounded rows with one retained delivery attempt and explicit local cleanup.\"\"\""
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Application row schemas"
               }
             ],
             "identity": [
@@ -3575,6 +3685,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_reader.py",
                 "anchor": "\"\"\"Bounded rows with one retained delivery attempt and explicit local cleanup.\"\"\""
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Application row schemas"
               }
             ],
             "cancellation": [
@@ -3595,6 +3709,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_reader.py",
                 "anchor": "\"\"\"Bounded rows with one retained delivery attempt and explicit local cleanup.\"\"\""
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Application row schemas"
               }
             ],
             "extension": [
@@ -3611,6 +3729,10 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "AsyncBoundaryTests"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Application row schemas"
               }
             ]
           }

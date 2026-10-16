@@ -10,6 +10,53 @@ priv struct LocalPackagedRuntime {
 }
 
 ///|
+// A location is operator-selected metadata, never configuration custody or
+// authority. The existing installation Owner still creates/restores its exact
+// original child and refuses an existing child without its original witness.
+priv struct LocalProductLocation {
+  parent_path : String
+  directory_name : String
+}
+
+///|
+fn local_product_selected_location(
+  state_directory : String?,
+  home : String?,
+) -> LocalProductLocation raise ClientStop {
+  match state_directory {
+    None => {
+      let home = home.unwrap_or_else(() => stop("LocalProductHomeUnavailable"))
+      if !local_product_path(home) {
+        stop("LocalProductHomeUnavailable")
+      }
+      { parent_path: home, directory_name: ".actql-local", }
+    }
+    Some(path) => {
+      // The project loader resolves paths relative to the selected config.
+      // Keep this physical boundary explicit rather than interpreting a path
+      // relative to HOME or repairing an existing installation elsewhere.
+      if !local_product_path(path) || path.contains("\\") {
+        stop("InvalidLocalStateDirectory")
+      }
+      let parts = path.split("/").to_array()
+      let directory_name = parts[parts.length() - 1].to_owned()
+      if directory_name.length() > 128 {
+        stop("InvalidLocalStateDirectory")
+      }
+      let mut parent_path = ""
+      let parent_end = parts.length() - 1
+      for index in 1..<parent_end {
+        parent_path += "/" + parts[index].to_owned()
+      }
+      if parent_path.is_empty() {
+        parent_path = "/"
+      }
+      { parent_path, directory_name, }
+    }
+  }
+}
+
+///|
 fn local_product_operation(operation : String) -> Bool {
   [
     "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "explain",
@@ -139,18 +186,17 @@ fn execute_native_local_packaged_operation(
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
     stop("ExplicitLocalRootRequiresConfiguration")
   }
-  let home = @env.get_env_var("HOME").unwrap_or_else(() => {
-    stop("LocalProductHomeUnavailable")
-  })
-  if !local_product_path(home) {
-    stop("LocalProductHomeUnavailable")
-  }
-  let parent = @local_filesystem.open_root(home).unwrap_or_else(() => {
-    stop("LocalProductHomeUnavailable")
-  })
+  let location = local_product_selected_location(
+    optional(matches, "state-dir"),
+    @env.get_env_var("HOME"),
+  )
+  let parent = @local_filesystem.open_root(location.parent_path).unwrap_or_else(() => {
+      stop("LocalProductHomeUnavailable")
+    },
+  )
   local_product_with_owned_parent(parent, () => {
     execute_native_local_packaged_with_parent(
-      matches, operation, runtime, home, parent,
+      matches, operation, runtime, location, parent,
     )
   })
 }
@@ -160,7 +206,7 @@ fn execute_native_local_packaged_with_parent(
   matches : @argparse.Matches,
   operation : String,
   runtime : LocalPackagedRuntime,
-  home : String,
+  location : LocalProductLocation,
   parent : @local_filesystem.Root,
 ) -> String raise ClientStop {
   ignore(
@@ -180,13 +226,19 @@ fn execute_native_local_packaged_with_parent(
   if !local_product_runtime_current(runtime) {
     stop("PackagedLocalRuntimeChanged")
   }
-  let configuration_root = home + "/.actql-local"
+  let configuration_root = if location.parent_path == "/" {
+    "/" + location.directory_name
+  } else {
+    location.parent_path + "/" + location.directory_name
+  }
   let session = if intent is Some(_) {
     // Even repeated adopt restores the original clock and selection. Missing
     // witness/body/intent never triggers factory regeneration or new custody.
     local_host_result(
       @local_host.restore_native_local_product_configuration(
-        home, ".actql-local", crypto,
+        location.parent_path,
+        location.directory_name,
+        crypto,
       ),
     )
   } else {
@@ -196,7 +248,7 @@ fn execute_native_local_packaged_with_parent(
     // An existing child without its original intent is lost custody, not a
     // fresh initialization. Refuse before even assembling replacement bodies.
     if parent
-      .inspect_directory(".actql-local")
+      .inspect_directory(location.directory_name)
       .unwrap_or_else(() => stop("LocalProductCustodyUnavailable"))
       is Some(_) {
       stop("LocalProductCustodyLost")
@@ -211,7 +263,10 @@ fn execute_native_local_packaged_with_parent(
     ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
     local_host_result(
       @local_host.begin_native_local_product_configuration(
-        home, ".actql-local", originals, crypto,
+        location.parent_path,
+        location.directory_name,
+        originals,
+        crypto,
       ),
     )
   }
@@ -287,7 +342,7 @@ fn execute_native_local_packaged_with_parent(
 }
 
 ///|
-// The HOME descriptor was opened by this CLI operation, independently of the
+// The selected parent descriptor was opened by this operation independently of the
 // adoption session's Roots. Its own ACK is required after the original work
 // and session cleanup, including early refusal. This does not settle a read
 // claim, a WorkspaceLoan, child descriptor or another same-path Root.
