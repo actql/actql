@@ -15,7 +15,7 @@ const output=[
   `// Receiver ${fixture.receiverSource}; provider ${fixture.providerSource}.`,
   '', '///|', 'test "actual B GCS Command environment receiver output enters original Common" {',
   `  let wire = ${JSON.stringify(fixture.wire)}`,
-  `  let original = @environment.read(@utf8.encode(wire), ${JSON.stringify(fixture.evidenceCid)}, caps()).unwrap()`,
+  `  let original = match @environment.read(@utf8.encode(wire), ${JSON.stringify(fixture.evidenceCid)}, caps()) { Ok(value) => value; Err(issue) => { debug_inspect(issue, content="valid original receiver environment"); abort("original receiver rejected") } }`,
   '  let contents = catalogs(original)',
   '  let refs = references(contents)',
   '  let target = @environment.select_command_target(contents, "command:exports.gcs.upload.v1", 100000).unwrap()',
