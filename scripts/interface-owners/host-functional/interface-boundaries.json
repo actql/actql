@@ -32071,7 +32071,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1fc5d88a504dfbe9c237a1659efd845128ea1a30c71113908c09fb8e58c4043c",
+      "sha256": "9130a723051b79a5d83c941a9945b85030e657f54367f29c61b1e50004c59614",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -38842,13 +38842,65 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9be651d1b6b3240d927e0f47b36cebba620224ada6a8387f996d6486b5aa14af",
+      "sha256": "4da8bfd7117783fc14b5dc45a4dd575a1b39abc4125d39774cfc3df24f8fd41d",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
+        "readBoundedConfigurationText",
         "readSourceProfileJson"
       ],
       "operations": [
+        {
+          "name": "readBoundedConfigurationText",
+          "parameters": [
+            "path",
+            "maxBytes",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "readBoundedConfigurationText/readBoundedConfigurationText",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "readConfiguration",
+          "parameters": [
+            "path",
+            "maxBytes",
+            "openFile",
+            "project"
+          ],
+          "async": true
+        },
+        {
+          "name": "readConfiguration/descriptors/descriptors",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/retry/retry/retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "readConfiguration/retry/retry/retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/status/status",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "readSourceProfileJson",
           "parameters": [
@@ -38857,15 +38909,32 @@
             "openFile"
           ],
           "async": true
+        },
+        {
+          "name": "readSourceProfileJson/readSourceProfileJson",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "readSourceProfileJson"
+            "readBoundedConfigurationText",
+            "readBoundedConfigurationText/readBoundedConfigurationText",
+            "readConfiguration",
+            "readConfiguration/descriptors/descriptors",
+            "readConfiguration/retry/retry",
+            "readConfiguration/retry/retry/retry",
+            "readConfiguration/retry/retry/retry#2",
+            "readConfiguration/status/status",
+            "readSourceProfileJson",
+            "readSourceProfileJson/readSourceProfileJson"
           ],
           "exports": [
+            "readBoundedConfigurationText",
             "readSourceProfileJson"
           ],
           "attributes": {
@@ -38914,7 +38983,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "try { await file.close(); }"
+                "anchor": "if (await original.close() === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -38956,7 +39025,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "try { await file.close(); }"
+                "anchor": "if (await original.close() === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
