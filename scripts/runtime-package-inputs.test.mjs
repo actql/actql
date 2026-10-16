@@ -9,6 +9,7 @@ import {productionPackageImports} from './source-dependency-closure.mjs';
 import {sourceInterfaceClosure} from './source-interface-closure.mjs';
 import {typescriptInterface, typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
+import {assertInterfaceCoverage} from './interface-inventory.mjs';
 
 test('ordinary runtime builder consumes the same side-effect-free input reader', () => {
   const root = process.cwd(), inputs = runtimePackageInputs(root);
@@ -78,6 +79,25 @@ test('source graph retains imported contract data without parsing it as executab
   assert.equal(result.assets[0].module, `${name}/schema.json`);
   assert.equal(result.assets[0].qualification, 'resolved-distribution-data');
   assert.deepEqual(result.modules[0].compilerFields, []);
+});
+
+test('new extensionless executable source entrances cannot disappear before operation coverage', async t => {
+  const root = process.cwd(), directory = mkdtempSync(join(root, '_build/interface-command-source-'));
+  t.after(() => rmSync(directory, {recursive: true}));
+  const name = relative(root, directory);
+  writeFileSync(join(directory, 'policy'), '#!/usr/bin/env node\nexport function decideUnknown(value) {return value;}\n');
+  writeFileSync(join(directory, 'probe'), '#!/usr/bin/env python3\ndef decide_unknown(value):\n    return value\n');
+  const commands = [`${name}/policy`, `${name}/probe`];
+  const distributionRoots = [{name: 'outside-cli', entrances: commands, commands}];
+  const result = await sourceInterfaceClosure(root, {distributionRoots});
+  assert.deepEqual(result.modules.map(value => value.module), commands);
+  assert.throws(() => assertInterfaceCoverage({root, modules: result.modules, declarations: []}),
+    /Unregistered distributed interface/u);
+  const pythonOnly = await sourceInterfaceClosure(root, {distributionRoots: [
+    {name: 'outside-python-cli', entrances: [commands[1]], commands: [commands[1]]}]});
+  assert.equal(pythonOnly.modules.length, 1);
+  writeFileSync(join(directory, 'policy'), Buffer.from([0x7f, 69, 76, 70]));
+  await assert.rejects(sourceInterfaceClosure(root, {distributionRoots}), /Unregistered executable source interface/u);
 });
 
 test('pinned TypeScript parser inventories named declaration roles and relative public type closure', () => {

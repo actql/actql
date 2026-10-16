@@ -92,7 +92,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       sourceEntrances.push(...plan.embeddedSources ?? []);
     }
   }
-  const graph = await build({entryPoints: sourceEntrances, bundle: true,
+  const graph = sourceEntrances.length ? await build({entryPoints: sourceEntrances, bundle: true,
     packages: 'external', platform: 'node', format: 'esm', target: 'node22',
     metafile: true, write: false, absWorkingDir: root,
     outdir: resolve(root, '_build/unused-interface-discovery'),
@@ -109,7 +109,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
         const source = copiedSource(path);
         if (source) return {path: source};
       });
-    }}]});
+    }}]}) : {metafile: {inputs: {}}};
   const assets = [], modules = Object.keys(graph.metafile.inputs).sort().flatMap(path => {
     const module = relative(root, realpathSync(resolve(root, path)));
     assert(!module.startsWith('..'), `Escaped source interface: ${module}`);
