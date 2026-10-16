@@ -1,0 +1,73 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/snowflake/read"
+
+import {
+  "actql/actql/client_row_source_host",
+  "actql/actql/connectors/snowflake/catalog",
+  "actql/actql/connectors/snowflake/description",
+  "actql/actql/physical_resources",
+  "actql/actql/query_planning",
+}
+
+// Values
+pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]
+
+pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]
+
+pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]
+
+pub fn close_result_read(Read) -> Result[Unit, ReadIssue]
+
+pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]
+
+pub fn interrupt_result_read(Read) -> Unit
+
+pub fn prepare_declared_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]
+
+pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition
+
+pub fn prepared_read_projection(PreparedRead) -> @description.ReadProjection
+
+pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?
+
+pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue
+
+pub fn result_read_original(Read) -> @catalog.ResultSet?
+
+pub fn result_read_statement_handle(Read) -> String?
+
+pub fn result_read_usage(Read) -> (Int, Int64)
+
+pub fn start_accounted_read(PreparedRead, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.ResponseLimits, Int) -> Result[Read, ReadStartFailure]
+
+// Errors
+
+// Types and methods
+pub struct PreparedRead {
+  // private fields
+}
+
+pub struct Read {
+  // private fields
+}
+
+pub(all) enum ReadIssue {
+  InvalidLimits
+  ForeignDeclaration
+  Description(@description.DescriptionIssue)
+  Host(@client_row_source_host.RowHostIssue)
+  Response(@catalog.ResponseIssue)
+  SchemaMismatch(String)
+  WrongPartition
+  Incomplete
+  Closed
+  TransportUnsettled
+}
+
+pub struct ReadStartFailure {
+  // private fields
+}
+
+// Type aliases
+
+// Traits

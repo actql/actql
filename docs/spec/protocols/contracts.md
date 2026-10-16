@@ -1024,7 +1024,10 @@ self preimage. The existing Catalog/selection Owner MUST resolve them to the
 original Command member in the same original Check Environment and the same
 connection and revision identified by the Mapping's connector-manifest entry.
 Absence does not select a Command; null, incomplete, foreign or ambiguous evidence
-MUST fail admission. This relationship neither issues a ResourceRef nor supplies
+MUST fail admission. For an explicitly collection-only Mapping, this relationship
+retains its existing `create`/`none` write operation. Object STORE normalization
+does not admit canonical relation `store`, a record selector, or a row identity
+for that Mapping. This relationship neither issues a ResourceRef nor supplies
 installation authority. The installed Owner MUST bind its original target and
 installation to the checked pair and retain the full selection through original
 Run materials, Preview, apply and restore, with current installation and grants
