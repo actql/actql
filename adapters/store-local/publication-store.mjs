@@ -470,11 +470,15 @@ async function acquireStoreOwnership(root, bootstrap) {
       return Object.freeze({
         async release() {
           if (released) return false;
-          const currentRoot = await lstat(root, {bigint: true});
+          let currentRoot;
+          try { currentRoot = await lstat(root, {bigint: true}); }
+          catch (error) { if (error?.code === 'ENOENT') return false; throw error; }
           if (!currentRoot.isDirectory() || currentRoot.dev !== rootDevice ||
               currentRoot.ino !== rootInode) fail('PublicationStoreOwnershipLost');
           if (!directoryRemoved) {
-            const directory = await lstat(ownershipDirectory, {bigint: true});
+            let directory;
+            try { directory = await lstat(ownershipDirectory, {bigint: true}); }
+            catch (error) { if (error?.code === 'ENOENT') return false; throw error; }
             if (!directory.isDirectory() || directory.isSymbolicLink()) {
               fail('PublicationStoreOwnershipLost');
             }

@@ -154,3 +154,18 @@ test('pending old root durability cannot retire against a replacement Store dire
   assert.equal(await f.store.close(), true);
   f.scratch.passed();
 });
+
+for (const target of ['owner', 'directory']) {
+  test(`initially absent ${target} cannot acknowledge original ownership retirement`, async t => {
+    const f = await fixture(t, 'none');
+    const path = f[target], saved = join(f.scratch.path, 'same-original-directory');
+    await fs.rename(path, saved);
+    try {
+      await assert.rejects(f.store.close(), {code: 'PublicationStoreOwnershipLost'});
+      assert.equal(f.store.status().closed, false);
+      assert.deepEqual(f.ownedKey, Buffer.alloc(32, 7));
+    } finally { await fs.rename(saved, path); }
+    assert.equal(await f.store.close(), true);
+    f.scratch.passed();
+  });
+}
