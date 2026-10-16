@@ -2471,12 +2471,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
         // Inspect uses this same Journal's exact ID/CID index and refuses
         // ambiguous IDs. A CID fallback is not an ID match or a new grant.
         const view = journal.inspect(checkpointId);
-        if (view === undefined || view.checkpointId !== checkpointId || view.closure !== 'pending') {
+        if (view === undefined || view.checkpointId !== checkpointId || view.closure !== 'open') {
           return Object.freeze({items: []});
         }
         const summary = await summaryOf(view);
         const current = journal.inspect(view.checkpointCid);
-        if (current?.checkpointId !== checkpointId || current.closure !== 'pending') {
+        if (current?.checkpointId !== checkpointId || current.closure !== 'open') {
           return Object.freeze({items: []});
         }
         return Object.freeze({items: [summary]});
