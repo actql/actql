@@ -46,7 +46,7 @@ import {installNodeClientCheck} from './client-check.mjs';
 import {snapshotInstalledCalendar, installedCalendarIdentityCid,
   installedCalendarSelection, admitInstalledCalendar} from './installed-calendar.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
+import {issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
   '../host-common/run-state-observation.mjs';
 import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
@@ -865,16 +865,15 @@ async function openInstalledHost(originalInstallation) {
           retained.physicalStartReserved === true) {
         continue;
       }
-      const observation = issueInstalledRunControlObservation(moon, {
-        revision: retained.revision,
-        cancellationRequested: retained.cancellationRequested,
-        physicallyUnstarted: retained.physicalStartReserved === false,
-        preDispatchFailureConfirmed: retained.preDispatchFailureConfirmed,
-        physicalCloseConfirmed: retained.physicalCloseConfirmed,
-      });
       // Only this revision-stable common Owner projection supplies status.
       projectRunObservation(ref, state, retained);
-      return {...state, control: observation};
+      try {
+        return JSON.parse(journal.publishRunState(retained, state,
+          moon, control));
+      } catch (cause) {
+        if (cause?.code === 'RunStateObservationChanged') continue;
+        throw cause;
+      }
     }
     throw new Error('RunStateObservationUnstable');
   };
