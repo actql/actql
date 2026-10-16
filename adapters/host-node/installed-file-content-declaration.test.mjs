@@ -2533,7 +2533,8 @@ test('per-Run keyed capture refuses invalid or ambiguous custody before reservat
 });
 
 for (const runCaptureContent of [false, true]) {
-test(`GCS physical keyed read uses the original RowRun and real Store-backed Content custody (${runCaptureContent ? 'per-Run capture' : 'installed fixture capture'})`, async t => {
+for (const storedEncoding of ['identity', 'gzip']) {
+test(`GCS physical keyed read uses the original RowRun and real Store-backed Content custody (${runCaptureContent ? 'per-Run capture' : 'installed fixture capture'}, stored ${storedEncoding})`, async t => {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'gcs-rowrun-', label: 'GCS keyed RowRun and Store fixture'});
   const control = runtimeCore(moon).contentCaptureControl;
@@ -2542,11 +2543,16 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
     storeAuthorityCid: token('1'), capacityBytes: 65536, maxObjectBytes: 4096,
     maxObjects: 8, maxContractNodes: 1000, maxContractDepth: 32}, runtimeCore(moon).publicationControl);
   const writers = [], preparations = [], holdings = [], issued = new Set();
-  const payload = Buffer.from('123456789');
-  const contentCid = 'sha256:15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225';
+  const payload = storedEncoding === 'identity' ? Buffer.from('123456789')
+    : Buffer.from('1f8b080000000000001333343236313533b7b004002639f4cb09000000', 'hex');
+  const contentCid = storedEncoding === 'identity'
+    ? 'sha256:15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225'
+    : 'sha256:50362a01a8d29d0eaceb7640872bab3f6d7f980e33804a57e21c79a18fe25cb8';
   const generation = '9007199254740993';
   const meta = {bucket: 'actql-fixture', name: 'test/invoice.pdf', generation,
-    metageneration: '9007199254740995', size: '9', contentType: 'application/pdf', crc32c: '4waSgw=='};
+    metageneration: '9007199254740995', size: String(payload.length), contentType: 'application/pdf',
+    crc32c: storedEncoding === 'identity' ? '4waSgw==' : 'zCyQIQ==',
+    ...(storedEncoding === 'gzip' ? {contentEncoding: 'gzip'} : {})};
   const metadataBody = Buffer.from(JSON.stringify(meta));
   const scope = {operation: 'gcs:file:read', resourceOrigin: 'https://storage.googleapis.com',
     siteGeneration: 1, connectorRegistration: 'gcs', connectorRevision: 'gcs/0.1'};
@@ -2598,7 +2604,7 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
         availability_evidence_cid: token('3'), effective_data_policy_cid: facts[3],
         data_classification: facts[4], issuer_contract_cid: token('5'), capture_authority_cid: readSubjectCid};
       const candidate = control.candidate(keyedAcquisition, request, binding,
-        {mediaType, contentCid, sizeBytes: 9}, contentLimits);
+        {mediaType, contentCid, sizeBytes: payload.length}, contentLimits);
       const description = control.inspect(candidate);
       const issuerBody = {version: 'actql-content-issuer-evidence/0.1', issuer_kind: 'connector_capture',
         issuer_contract_cid: token('5'), content_store_cid: token('1'), workspace_scope_cid: token('2'),
@@ -2608,7 +2614,7 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
         metadata: {content_store_id: 'fixture', content_cid: contentCid, media_type: mediaType,
           storage_scope: 'workspace', retention_class: 'fixture', availability_evidence_cid: token('3'),
           capture_authority: 'read_content', data_classification: facts[4], effective_data_policy_cid: facts[3],
-          size_bytes: 9, truncated: false, issuer_evidence: {...issuerBody, evidence_cid: cid(issuerBody)}}};
+          size_bytes: payload.length, truncated: false, issuer_evidence: {...issuerBody, evidence_cid: cid(issuerBody)}}};
       expectedRef = {...refBody, content_ref_cid: cid(refBody)};
       assert.equal(description.wire, canonical(expectedRef));
       const retained = await retainCapturedContent({store, control, candidate, bytes,
@@ -2633,11 +2639,17 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
           assert.equal(objectName, 'test/invoice.pdf');
           return {bucket: meta.bucket, objectName, prefix: 'test/'};
         },
-        limits: {maxMetadataBytes: 4096, maxContentBytes: 9, maxRequestBytes: 4096,
+        limits: {maxMetadataBytes: 4096, maxContentBytes: payload.length, maxRequestBytes: 4096,
           maxAttempts: 2, maxTimeMs: 5000},
         chargeVerification: async bytes => { await charge(bytes); verifiedBytes += bytes; },
-        callResource: async () => ({accepted: true, statusCode: 200, headers: [],
-          body: ++calls === 1 ? metadataBody : payload})});
+        callResource: async call => {
+          const media = ++calls === 2;
+          assert.deepEqual(call.operations.get('gcs:file:read').headers,
+            [['accept-encoding', media ? storedEncoding : 'identity']]);
+          return {accepted: true, statusCode: 200,
+            headers: media && storedEncoding === 'gzip' ? [['content-encoding', 'gzip']] : [],
+            body: media ? payload : metadataBody};
+        }});
     }});
   readOperations.contents = 'gcs:file:list';
   const requestIdentity = moon.clientProgramRequestIdentity(value.preparedProgram,
@@ -2650,15 +2662,20 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
   lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
     keyedAcquisition: value.acquisition, left: value.left, ledger, originalCapture: value.captured.capture,
     keyedContent: selectedCapture, preparedKeyed: selectedRead.prepared});
-  assert.equal(calls, 2); assert.equal(captured, 1); assert.equal(verifiedBytes, 9);
+  assert.equal(calls, 2); assert.equal(captured, 1); assert.equal(verifiedBytes, payload.length);
   assert.deepEqual(operations, [['files', 'gcs:file:list'], ['contents', 'gcs:file:read']],
     'metadata and content use separate immutable registered credential operations');
   assert.equal(lookup.capture.identity(), cid([{resource: resource('d'), version: generation,
     content: expectedRef}]));
-  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(ledger)[3], BigInt(metadataBody.length + 9));
+  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(ledger)[3], BigInt(metadataBody.length + payload.length));
   assert.deepEqual(moon.clientProgramKeyedLookupUsage(value.left).slice(0, 2), [1n, 2n]);
-  assert.equal(moon.clientProgramKeyedLookupUsage(value.left)[3], BigInt(metadataBody.length + 9));
+  assert.equal(moon.clientProgramKeyedLookupUsage(value.left)[3], BigInt(metadataBody.length + payload.length));
   assert.ok(await store.inspectPhysicalHolding(holdings[0].holding_cid));
+  const storedChunks = [];
+  await store.consumePhysicalHolding(holdings[0].holding_cid, 0,
+    bytes => storedChunks.push(Buffer.from(bytes)));
+  assert.deepEqual(Buffer.concat(storedChunks), payload,
+    'the encrypted Store retains exact compressed or identity bytes, not a transparently decoded payload');
   await lookup.close();
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 1,
     'closing the right lookup never closes its borrowed original listing');
@@ -2666,6 +2683,7 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
   await dispose();
   scratch.passed();
 });
+}
 }
 
 for (const missingKeyedPreparation of [false, true]) {

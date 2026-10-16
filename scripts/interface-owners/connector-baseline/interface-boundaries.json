@@ -5263,7 +5263,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "11484d7d399fc6e7f7d1cfed1800c5c013b9129d93379ea932d9a84301f91290",
+      "sha256": "c1e815ac8d9a54e4f67bc7abbc2da6aec561e96d164831492ee4ea5e266dad3f",
       "role": "physical-io",
       "owner": "Exact GCS generation/metageneration bytes and checksums; original capture owns ContentRef issuance",
       "exports": [
@@ -5370,7 +5370,8 @@
           "parameters": [
             "target",
             "phase",
-            "metageneration"
+            "metageneration",
+            "contentEncoding"
           ],
           "async": false
         },
@@ -5386,14 +5387,16 @@
           "parameters": [
             "phase",
             "maxBytes",
-            "metageneration"
+            "metageneration",
+            "contentEncoding"
           ],
           "async": true
         },
         {
           "name": "responseHeaders",
           "parameters": [
-            "response"
+            "response",
+            "expectedEncoding"
           ],
           "async": false
         },
@@ -5460,6 +5463,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
                 "anchor": "issues a ContentRef"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Exact stored gzip Content"
               }
             ],
             "inputsOutputs": [
@@ -5502,6 +5509,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
                 "anchor": "chargeVerification(chunk.length"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "existing envelope"
               }
             ],
             "extension": [
@@ -5518,11 +5529,24 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-versioned-content.test.mjs",
                 "anchor": "handoff failure preserves both existing-owner charge tickets"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-gzip-content.test.mjs",
+                "anchor": "stored gzip bytes retain exact version CRC byte CID"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "node:crypto",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
