@@ -23,6 +23,8 @@ pub(all) enum RecordRequestIssue {
   DuplicateTarget
   InvalidTrace
   DuplicateTrace
+  InvalidMarker
+  MarkerConflict
 } derive(Eq, Debug)
 
 ///|
@@ -58,6 +60,7 @@ pub struct RecordBatchRequest {
   operation : RecordWriteOperation
   priv inputs : Array[RecordWriteInput]
   priv document : @encode.EncodedDocument
+  priv marker : RecordRequestMarker?
 }
 
 ///|
@@ -179,6 +182,34 @@ pub fn prepare_record_batch_request(
   inputs : Array[RecordWriteInput],
   limits : RecordRequestLimits,
 ) -> Result[RecordBatchRequest, RecordRequestIssue] {
+  prepare_record_batch_original(catalog, operation, inputs, None, limits)
+}
+
+///|
+pub fn prepare_marked_record_batch_request(
+  catalog : PropertyCatalog,
+  operation : RecordWriteOperation,
+  inputs : Array[RecordWriteInput],
+  marker : RecordRequestMarker,
+  limits : RecordRequestLimits,
+) -> Result[RecordBatchRequest, RecordRequestIssue] {
+  prepare_record_batch_original(
+    catalog,
+    operation,
+    inputs,
+    Some(marker),
+    limits,
+  )
+}
+
+///|
+fn prepare_record_batch_original(
+  catalog : PropertyCatalog,
+  operation : RecordWriteOperation,
+  inputs : Array[RecordWriteInput],
+  marker : RecordRequestMarker?,
+  limits : RecordRequestLimits,
+) -> Result[RecordBatchRequest, RecordRequestIssue] {
   if limits.max_rows <= 0 ||
     limits.max_rows > 100 ||
     limits.max_properties <= 0 ||
@@ -190,6 +221,13 @@ pub fn prepare_record_batch_request(
   }
   if inputs.is_empty() || inputs.length() > limits.max_rows {
     return Err(BudgetExceeded)
+  }
+  if marker is Some(original) {
+    match
+      recheck_property_catalog(original.catalog, catalog, limits.max_properties) {
+      Ok(_) => ()
+      Err(_) => return Err(ForeignCatalog)
+    }
   }
   match operation {
     Upsert(key) => {
@@ -206,6 +244,13 @@ pub fn prepare_record_batch_request(
   let targets : Map[String, Bool] = Map([])
   let traces : Map[String, Bool] = Map([])
   for input in inputs {
+    if marker is Some(original) &&
+      (
+        input.body.names.contains(original.property) ||
+        (input.target is Some(target) && target.key == original.property)
+      ) {
+      return Err(MarkerConflict)
+    }
     match recheck_write_body(input.body, catalog, limits.max_properties) {
       Ok(_) => ()
       Err(_) => return Err(ForeignCatalog)
@@ -278,7 +323,11 @@ pub fn prepare_record_batch_request(
       @encode.key(writer, "objectWriteTraceId")
       @encode.string_value(writer, input.trace_id)
       @encode.key(writer, "properties")
-      @encode.emit_document(writer, input.body.properties_document)
+      match marker {
+        None => @encode.emit_document(writer, input.body.properties_document)
+        Some(original) =>
+          emit_marked_record_properties(writer, input.body, original, limits)
+      }
       @encode.end_object(writer)
     }
     @encode.end_array(writer)
@@ -288,6 +337,7 @@ pub fn prepare_record_batch_request(
       operation,
       inputs: inputs.copy(),
       document: @encode.finish_document(writer),
+      marker,
     })
   } catch {
     _ => {

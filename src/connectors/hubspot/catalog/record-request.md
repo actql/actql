@@ -51,3 +51,9 @@ Archive, association and workflow operations remain part of the approved full
 Connector target and need their own protocol connections. This unit does not
 represent an archive as an update or claim that record request preparation
 finishes those operations, public acceptance or the complete Cloud Effect path.
+
+
+The [original request marker](record-request-marker.md) extends this same
+Request Owner with explicit persisted physical metadata. It keeps the prior
+unmarked API and bytes, and does not turn trace correlation into idempotency
+or a matching marker into reconciliation success.
