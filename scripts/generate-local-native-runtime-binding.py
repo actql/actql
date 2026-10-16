@@ -50,6 +50,7 @@ def outputs(root: Path = ROOT) -> dict[Path, str]:
               'int32_t actql_packaged_runtime_binding_byte(int32_t index);']
     python = ['"""Generated private same-library declarations; do not edit."""',
               'from ctypes import POINTER, c_int, c_int32, c_uint16, c_void_p', '',
+              'from typing import Any', '',
               'BINDING_VERSION = 1', 'BINDING_SHA256 = ' + repr(digest), '',
               'PARAMETERS = {']
     shim = (root / ENTRY.relative_to(ROOT) / 'packaged_runtime_shim.c').read_text()
@@ -69,7 +70,7 @@ def outputs(root: Path = ROOT) -> dict[Path, str]:
     if actual != set(names) | {'actql_packaged_runtime_binding_version', 'actql_packaged_runtime_binding_byte'}:
         raise ValueError('Unknown or missing Native Runtime boundary symbol')
     header.extend(['#endif', ''])
-    python += ['}', '', 'def bind(library):',
+    python += ['}', '', 'def bind(library: Any) -> dict[str, Any]:',
                '    """Reject another compiled declaration before any Owner operation."""',
                '    try:',
                '        version = library.actql_packaged_runtime_binding_version',

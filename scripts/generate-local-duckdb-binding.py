@@ -71,7 +71,7 @@ def inputs(root=ROOT):
 
 def render(root=ROOT):
     selected, text, kind, records = inputs(root)
-    lines = ['"""Generated selected DuckDB C declarations; do not edit."""', 'import ctypes as C', '']
+    lines = ['"""Generated selected DuckDB C declarations; do not edit."""', 'import ctypes as C', 'from typing import Any', '']
     layouts = {}
     def record(body, name, union=False, prefix=''):
         fields, paths = [], []
@@ -107,13 +107,13 @@ def render(root=ROOT):
             native_type, role = parameter.groups()
             parameters.append((role, ' '.join(native_type.split()), kind(native_type, string=True)))
         functions.append((name, parameters, kind(result, string=name in selected['automatic_string_result'])))
-    lines.append('SIGNATURES = {')
+    lines.append('SIGNATURES: dict[str, tuple[list[Any], Any]] = {')
     for name, parameters, result in functions:
         lines.append('    ' + repr(name) + ': ([' + ', '.join(p[2] for p in parameters) + '], ' + result + '),')
     lines.extend(['}', '', 'PARAMETERS = {'])
     for name, parameters, _ in functions:
         lines.append('    ' + repr(name) + ': ' + repr(tuple((p[0], p[1]) for p in parameters)) + ',')
-    lines.extend(['}', '', 'LAYOUT_PATHS = ' + repr(layouts), '', 'def bind(library):',
+    lines.extend(['}', '', 'LAYOUT_PATHS = ' + repr(layouts), '', 'def bind(library: Any) -> None:',
                   '    """Already digest-selected library only; no database or query operation."""',
                   '    for name, (arguments, result) in SIGNATURES.items():',
                   '        try:', '            call = getattr(library, "duckdb_" + name)',

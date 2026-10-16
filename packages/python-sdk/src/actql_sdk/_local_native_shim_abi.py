@@ -1,7 +1,8 @@
 """Generated from named existing C shim definitions; do not edit."""
 from ctypes import POINTER, c_int, c_int32, c_int64, c_uint64, c_size_t, c_uint16, c_ubyte, c_void_p
+from typing import Any
 
-SIGNATURES = {
+SIGNATURES: dict[str, tuple[list[Any], Any]] = {
     'actql_backing_borrow_into': ([c_void_p, POINTER(c_void_p)], c_int),
     'actql_backing_current_into': ([c_void_p, c_void_p, POINTER(c_void_p)], c_int),
     'actql_backing_drop_reply': ([POINTER(c_void_p), c_void_p, c_void_p], c_int),
@@ -433,12 +434,12 @@ ORIGINS = {
     'actql_worker_selection_originals_into': ('src/platform_native/installed_arena_entry/worker_selection_shim.c', 39),
 }
 
-def bind(library, symbol):
+def bind(library: Any, symbol: str) -> Any:
     """Bind only a declared operation on the already selected library."""
     arguments, result = SIGNATURES[symbol]
     call = getattr(library, symbol)
     call.argtypes, call.restype = list(arguments), result
     return call
 
-def bind_group(library, prefix, names):
+def bind_group(library: Any, prefix: str, names: tuple[str, ...]) -> dict[str, Any]:
     return {name: bind(library, prefix + name) for name in names}

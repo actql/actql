@@ -90,7 +90,8 @@ def declarations(root: Path = ROOT):
 def render(root: Path = ROOT) -> str:
     lines = ['"""Generated from named existing C shim definitions; do not edit."""',
              'from ctypes import POINTER, c_int, c_int32, c_int64, c_uint64, c_size_t, c_uint16, c_ubyte, c_void_p',
-             '', 'SIGNATURES = {']
+             'from typing import Any',
+             '', 'SIGNATURES: dict[str, tuple[list[Any], Any]] = {']
     entries = declarations(root)
     for symbol, (result, parameters, _, _) in sorted(entries.items()):
         lines.append('    ' + repr(symbol) + ': ([' + ', '.join(p[2] for p in parameters) + '], ' + ctype(result) + '),')
@@ -100,13 +101,13 @@ def render(root: Path = ROOT) -> str:
     lines += ['}', '', 'ORIGINS = {']
     for symbol, (_, _, path, line) in sorted(entries.items()):
         lines.append('    ' + repr(symbol) + ': ' + repr((path, line)) + ',')
-    lines += ['}', '', 'def bind(library, symbol):',
+    lines += ['}', '', 'def bind(library: Any, symbol: str) -> Any:',
               '    """Bind only a declared operation on the already selected library."""',
               '    arguments, result = SIGNATURES[symbol]',
               '    call = getattr(library, symbol)',
               '    call.argtypes, call.restype = list(arguments), result',
               '    return call', '',
-              'def bind_group(library, prefix, names):',
+              'def bind_group(library: Any, prefix: str, names: tuple[str, ...]) -> dict[str, Any]:',
               '    return {name: bind(library, prefix + name) for name in names}', '']
     return '\n'.join(lines)
 

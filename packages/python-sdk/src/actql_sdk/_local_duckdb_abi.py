@@ -1,5 +1,6 @@
 """Generated selected DuckDB C declarations; do not edit."""
 import ctypes as C
+from typing import Any
 
 class _Result(C.Structure):
     _fields_ = [('deprecated_column_count', C.c_uint64), ('deprecated_row_count', C.c_uint64), ('deprecated_rows_changed', C.c_uint64), ('deprecated_columns', C.c_void_p), ('deprecated_error_message', C.c_void_p), ('internal_data', C.c_void_p)]
@@ -22,7 +23,7 @@ class _HugeInt(C.Structure):
 class _UHugeInt(C.Structure):
     _fields_ = [('lower', C.c_uint64), ('upper', C.c_uint64)]
 
-SIGNATURES = {
+SIGNATURES: dict[str, tuple[list[Any], Any]] = {
     'library_version': ([], C.c_char_p),
     'create_config': ([C.POINTER(C.c_void_p)], C.c_int),
     'set_config': ([C.c_void_p, C.c_char_p, C.c_char_p], C.c_int),
@@ -108,7 +109,7 @@ PARAMETERS = {
 
 LAYOUT_PATHS = {'duckdb_result': ['deprecated_column_count', 'deprecated_row_count', 'deprecated_rows_changed', 'deprecated_columns', 'deprecated_error_message', 'internal_data'], 'duckdb_string_t': ['value.pointer.length', 'value.pointer.prefix', 'value.pointer.ptr', 'value.inlined.length', 'value.inlined.inlined'], 'duckdb_hugeint': ['lower', 'upper'], 'duckdb_uhugeint': ['lower', 'upper']}
 
-def bind(library):
+def bind(library: Any) -> None:
     """Already digest-selected library only; no database or query operation."""
     for name, (arguments, result) in SIGNATURES.items():
         try:
