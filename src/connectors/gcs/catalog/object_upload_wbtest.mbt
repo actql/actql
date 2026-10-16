@@ -75,6 +75,40 @@ fn upload_absent(binding : ObjectUploadBinding) -> ObjectUploadObservation {
 }
 
 ///|
+test "GCS upload metadata path is exact scoped DATA before any target I/O" {
+  let binding = upload_request_binding()
+  assert_eq(
+    object_upload_metadata_path(binding, "in/é%2F.bin").unwrap(),
+    "/storage/v1/b/bucket/o/in%2Fe%CC%81%252F.bin",
+  )
+  assert_eq(
+    object_upload_metadata_path(binding, "in/a\t?#").unwrap(),
+    "/storage/v1/b/bucket/o/in%2Fa%09%3F%23",
+  )
+  assert_eq(
+    object_upload_metadata_max_bytes(binding),
+    metadata_limits().max_bytes,
+  )
+  for name in ["outside", "in/a\nb", "in/a\rb", ""] {
+    assert_true(object_upload_metadata_path(binding, name) is Err(InvalidInput))
+  }
+  let path = object_upload_metadata_path(binding, "in/a").unwrap()
+  let limits = upload_request_limits()
+  let exact = upload_request_binding(limits={
+    ..limits,
+    max_path_bytes: path.length(),
+  })
+  assert_eq(object_upload_metadata_path(exact, "in/a").unwrap(), path)
+  let short = upload_request_binding(limits={
+    ..limits,
+    max_path_bytes: path.length() - 1,
+  })
+  assert_true(
+    object_upload_metadata_path(short, "in/a") is Err(CapacityExceeded),
+  )
+}
+
+///|
 fn upload_existing(
   binding : ObjectUploadBinding,
   generation? : String = "9007199254740993",

@@ -46,6 +46,23 @@ pub fn gcs_upload_binding(
 }
 
 ///|
+#export_name("gcsUploadMetadataPath")
+pub fn gcs_upload_metadata_path(
+  binding : @catalog.ObjectUploadBinding,
+  name : String,
+) -> Result[String, @catalog.ObjectUploadIssue] {
+  @catalog.object_upload_metadata_path(binding, name)
+}
+
+///|
+#export_name("gcsUploadMetadataMaxBytes")
+pub fn gcs_upload_metadata_max_bytes(
+  binding : @catalog.ObjectUploadBinding,
+) -> Int {
+  @catalog.object_upload_metadata_max_bytes(binding)
+}
+
+///|
 #export_name("gcsUploadObservation")
 pub fn gcs_upload_observation(
   binding : @catalog.ObjectUploadBinding,
