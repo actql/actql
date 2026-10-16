@@ -70,6 +70,8 @@ pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
+pub fn[P, C] check_backed_execution_delegation_current(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[Unit, BackedExecutionIssue]
+
 pub fn check_original_current_state_document_configuration(OriginalCurrentStateDocument, LedgerLimits, QuantityAmounts?) -> Result[Unit, OriginalStateDocumentIssue]
 
 pub fn check_original_resources_mutable(Ledger) -> Result[Unit, LedgerIssue]
@@ -220,6 +222,8 @@ pub fn[T] park_original_resource_consumer(FundedReadConsumer[T], T) -> Result[Or
 
 pub fn[T] park_original_resource_consumer_for_state_write(FundedReadConsumer[T], T) -> Result[OriginalResourcePark[T], OriginalReadIssue]
 
+pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjection[P, C, R], R) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
+
 pub fn prepare_imported_child_ledger(Int64) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
 pub fn[T] prepare_original_state_write(OriginalLedgerIdentity, T, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[(FundedReadClaim[T], OriginalStateWrite[T]), OriginalStateWriteIssue]
@@ -341,6 +345,8 @@ pub fn[T] stop_funded_read_consumer(FundedReadConsumer[T]) -> Result[Unit, Origi
 pub fn stop_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn take_imported_child_ledger(ImportedChildLedger) -> Result[(Ledger, SharedCapacity, SharedCapacity), ImportedChildLedgerIssue]
+
+pub fn take_imported_original_child_ledger(ImportedChildLedger) -> Result[Ledger, ImportedChildLedgerIssue]
 
 pub fn unresolved_backed_execution_data(UnresolvedBackedExecutionOriginal) -> BackedExecutionOriginalData
 

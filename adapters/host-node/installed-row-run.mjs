@@ -1,6 +1,7 @@
 // Private plumbing shared by installed row adapters. The adapter keeps its
 // provider protocol, page admission and current authority; the existing
 // RowRun remains the sole acquisition, capture and release owner.
+import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 
@@ -62,8 +63,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       await currentRead();
       signal?.throwIfAborted();
       if (closed) fail('InstalledSourceClosed');
-      const {_0: complete} = checked(
+      let compilerTuple1 = checked(
         moon.clientProgramRowSourceCaptureAdvance(run, 64));
+      const complete = runtimeField(compilerTuple1, 0);
+      compilerTuple1 = undefined;
       if (complete) break;
       await yieldEventLoop();
     }
@@ -108,7 +111,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       moon.clientProgramSelectedInferStep(checkedOwner);
     const inferInventory = effectful || ledger !== undefined ? undefined :
       moon.clientProgramComposedInferOccurrences(checkedOwner);
-    const composedInfer = inferInventory?.$tag === 1 && inferInventory._0.length > 1;
+    const composedInfer = runtimeIsOk(inferInventory) && runtimeField(inferInventory, 0).length > 1;
     // Accounted and Effect computation is opened later by the common Host.
     const openHost = retainedRelationOutput
       ? moon.clientProgramOpenCapturedLocalRetainedHost

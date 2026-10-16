@@ -1,5 +1,6 @@
 // Local connector's Node driver. The kernel and reservation authority stay in
 // MoonBit; this wrapper never evaluates an expression or synthesizes a result.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {readLocalRetainedInput} from './retained-input.mjs';
 import {localComputeFaultInjection, localRetainedStore,
   localSnapshotStore, localExecutionPauseHandler} from './retained-store.mjs';
@@ -39,7 +40,7 @@ const validateManagedAdvance = (observation, quantum, errorName, allowPause = fa
 const managedSiteCapacity = value => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
-    ? [value._0, value._1]
+    ? [runtimeField(value, 0), runtimeField(value, 1)]
     : undefined;
 
 const stopBoundedExecution = (operations, checked) => {

@@ -9,22 +9,29 @@ import {createRequire} from 'node:module';
 import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
+import {createServer} from 'node:https';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 import {tableTestModule} from './fixtures/table-test-modules.mjs';
-import {realCrossConnectorControl as control} from '../../scripts/fixtures/real-cross-connector-control.mjs';
+import {selectRealCrossConnectorControl} from '../../scripts/fixtures/real-cross-connector-control.mjs';
 import {checkRealRoutePreview} from '../../scripts/fixtures/real-cross-connector-preview.mjs';
+import {connectRealRouteTransport, closeRealRouteTransport} from '../../scripts/fixtures/real-cross-connector-transport.mjs';
 import {observeInstalledGcsMetadata, observeInstalledDuckDbReads}
   from '../../scripts/fixtures/real-cross-connector-observation.mjs';
 import {checkGcsMetadataAcceptanceEnvironment, createGcsMetadataAcceptanceCredential}
   from '../../scripts/gcs-files-content-credential.mjs';
 
 const application = process.env.ACTQL_TEST_TABLE_PACKED_APPLICATION;
+const control = selectRealCrossConnectorControl(process.env.ACTQL_REAL_CONNECTOR_FORMAT);
 assert(application, 'Normal installed application is required');
 const require = createRequire(join(application, 'package.json'));
 const {connect} = await import(require.resolve('@actql/node'));
+const {openInstalledRemoteHttpHost} = await import(require.resolve('@actql/local-node/http-host'));
+const transport = process.env.ACTQL_REAL_CONNECTOR_TRANSPORT ?? 'local';
+assert(['local', 'https'].includes(transport));
+const https = transport === 'https' ? JSON.parse(await readFile(process.env.ACTQL_REAL_CONNECTOR_HTTPS, 'utf8')) : undefined;
 const moon = await import(require.resolve('@actql/local-node/runtime'));
 const {canonicalJson, contentCid} = await tableTestModule(null, 'adapters/host-node/local-account-config.mjs');
 const {rowSourceCheckEnvironment} = await tableTestModule(null, 'adapters/host-node/installed-row-source.mjs');
@@ -78,7 +85,7 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     process.env.ACTQL_REAL_CONNECTOR_SCOPE, 'utf8')));
   const f = await tablePhysicalFixture(t, undefined, {preserve: true});
   const recordPath = join(f.root, 'real-cross-connector-observation.json');
-  const record = {name: control.name, pid: process.pid, root: f.root, completed: false,
+  const record = {name: control.name, format: control.format, transport, pid: process.pid, root: f.root, completed: false,
     externalAuthInternalHttp: 'Unmeasured trusted auth; separate from actual GCS metadata transport',
     submissionCalls: 0, acceptedRunsObserved: 0, independentExpected: control.expected};
   const save = () => writeFile(recordPath, JSON.stringify(record, null, 2)+'\n', {mode: 0o600});
@@ -166,10 +173,11 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
   const network = observeInstalledGcsMetadata(manifest, {signal});
   const reads = observeInstalledDuckDbReads(duckdb);
   let client;
+  const held = {};
   try {
     record.phase = 'connect';
-    client = await connect({...options, installation: {...options.installation,
-      resolveSourceSecret: credential.resolveSecret}});
+    client = await connectRealRouteTransport(held, {connect, openInstalledRemoteHttpHost, createServer,
+      options, transport, https, principalId, resolveSourceSecret: credential.resolveSecret});
     signal.throwIfAborted(); const submissionRef = client.newSubmission({nonce: control.name});
     record.phase = 'submission';
     record.submissionRef = submissionRef; record.submissionCalls++; await save();
@@ -193,10 +201,10 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     assert.equal(capturedCounts.duckdb.sourceReadSessions, 1);
     assert(capturedCounts.gcs.requests >= 1); network.assertBounds();
     record.phase = 'initial_host_close';
-    await client.close(); client = undefined;
+    record.initialTransportClose = await closeRealRouteTransport(held); client = undefined;
     network.assertClosed(); credential.close();
     const restartInput = join(f.root, 'restart-approve-input.json');
-    await writeFile(restartInput, JSON.stringify({phase: 'approve', application, options, ref: run.ref,
+    await writeFile(restartInput, JSON.stringify({phase: 'approve', format: control.format, transport, https, application, options, ref: run.ref,
       principalId, manifest, approval: {checkpointCid: checkpoints[0].checkpointCid,
         previewExpected, originalPreview: record.originalPreview.identity,
         keyId: 'reviewer', reviewerId: 'reviewer', privateKey}}), {flag: 'wx', mode: 0o600});
@@ -206,13 +214,15 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     {timeout: 60000, maxBuffer: 1048576, env: {...process.env}});
     const restart = JSON.parse(await readFile(join(f.root, 'restart-observation.approve.json'), 'utf8'));
     assert.notEqual(restart.pid, process.pid); assert.deepEqual(restart.ref, run.ref);
+    assert.equal(restart.format, control.format);
+    assert.equal(restart.transport, transport);
     assert.deepEqual(restart.observedResult, control.expected);
     assert.deepEqual(restart.reviewedPreview, record.originalPreview);
     const committedBeforeTerminalChild = commits(f.catalog);
     assert.equal(committedBeforeTerminalChild.length, 1);
     assert.equal(committedBeforeTerminalChild[0].receipt.row_count, 1);
     const terminalInput = join(f.root, 'restart-terminal-input.json');
-    await writeFile(terminalInput, JSON.stringify({phase: 'terminal', application, options,
+    await writeFile(terminalInput, JSON.stringify({phase: 'terminal', format: control.format, transport, https, application, options,
       ref: run.ref, principalId, manifest}), {flag: 'wx', mode: 0o600});
     record.phase = 'post_commit_terminal_child'; await save();
     await promisify(execFile)(process.execPath, [join(application,
@@ -221,6 +231,8 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     const terminalRestart = JSON.parse(await readFile(join(f.root, 'restart-observation.terminal.json'), 'utf8'));
     assert.notEqual(terminalRestart.pid, process.pid); assert.notEqual(terminalRestart.pid, restart.pid);
     assert.deepEqual(terminalRestart.ref, run.ref);
+    assert.equal(terminalRestart.format, control.format);
+    assert.equal(terminalRestart.transport, transport);
     assert.deepEqual(terminalRestart.observedResult, control.expected);
     assert.deepEqual(terminalRestart.physicalTable, {workerStarts: 0});
     record.phase = 'committed_table_read';
@@ -234,8 +246,9 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     assert.equal(rows.ok, true); assert.deepEqual(JSON.parse(JSON.stringify(rows.result)), control.expected.rows);
     // Reopen the same original Host and attach. This is not a new submission.
     record.phase = 'original_pid_control';
-    client = await connect({...options, installation: {...options.installation,
-      resolveSourceSecret() { assert.fail('A terminal original Run must not reacquire GCS'); }}});
+    client = await connectRealRouteTransport(held, {connect, openInstalledRemoteHttpHost, createServer,
+      options, transport, https, principalId,
+      resolveSourceSecret() { assert.fail('A terminal original Run must not reacquire GCS'); }});
     const attached = await client.attach(run.ref);
     assert.equal((await attached.status()).status, 'succeeded');
     assert.deepEqual(await attached.result('joined').all(), control.expected.rows);
@@ -255,8 +268,8 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
   } finally {
     let cleanupError;
     try {
-      if (client) await client.close();
-      record.clientCloseResolved = true;
+      record.finalTransportClose = await closeRealRouteTransport(held);
+      record.clientCloseResolved = record.finalTransportClose.clientCloseResolved;
     } catch {
       record.clientCloseResolved = false;
       cleanupError = new Error('RealCrossConnectorClientCleanupPending');

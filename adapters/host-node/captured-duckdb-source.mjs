@@ -1,6 +1,7 @@
 // Physical acquisition for a Host-authorized DuckDB source. The checked
 // Program and MoonBit acquisition planner own the source request and query;
 // this adapter supplies only the approved database grant and bounded I/O.
+import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
 import {readFile} from 'node:fs/promises';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {validateLimits} from '../connectors/duckdb/node/configuration.mjs';
@@ -276,7 +277,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       moon.clientProgramSelectedInferStep(owner.checkedOwner);
     const inferInventory = owner.effectful || ledger !== undefined ? undefined :
       moon.clientProgramComposedInferOccurrences(owner.checkedOwner);
-    const composedInfer = inferInventory?.$tag === 1 && inferInventory._0.length > 1;
+    const composedInfer = runtimeIsOk(inferInventory) && runtimeField(inferInventory, 0).length > 1;
     const open = retainedRelationOutput
       ? moon.clientProgramOpenCapturedLocalRetainedHost
       : moon.clientProgramOpenCapturedLocalHost;

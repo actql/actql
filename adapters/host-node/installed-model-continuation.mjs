@@ -1,6 +1,7 @@
 // Installed composition of the actual Model owner, immutable input custody,
 // existing Checkpoint journal and Store. This is neither a slot scheduler nor
 // a source of dispatch permission from historical bytes.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
@@ -406,8 +407,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       const coordinates = moon.clientProgramInferPlanBoundary(selected.graph);
       const provider = JSON.parse(binding.wire);
       const context = cp.modelContext;
-      const expectedBoundary = {unit_id: facts.unitId, task_index: coordinates._0,
-        strategy_revision: coordinates._2, inference_barrier_cid: coordinates._3,
+      const expectedBoundary = {unit_id: facts.unitId, task_index: runtimeField(coordinates, 0),
+        strategy_revision: runtimeField(coordinates, 2), inference_barrier_cid: runtimeField(coordinates, 3),
         account_id: context.accountId, configuration_cid: context.configurationCid,
         entry_id: evaluated.entry_id, principal: principalId, connection: facts.providerId,
         resource: facts.modelTaskCid, context_cid: context.contextCid,
@@ -417,8 +418,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       const input = control.admitRunEvidence('model_input_artifact', facts.inputArtifactWire, limits);
       scope = control.sealRunEvidence('model_invocation_scope', canonicalJson({
         version: 'actql-model-invocation-scope/0.1', run_definition_cid: plan.runDefinition.identity,
-        task_index: coordinates._0, strategy_revision: coordinates._2,
-        inference_barrier_cid: coordinates._3, input_artifact_cid: input.identity,
+        task_index: runtimeField(coordinates, 0), strategy_revision: runtimeField(coordinates, 2),
+        inference_barrier_cid: runtimeField(coordinates, 3), input_artifact_cid: input.identity,
         model_call_slot_cids: facts.slotWires.map(wire => control.admitRunEvidence('model_call_slot', wire, limits).identity),
         provider_binding_cid: binding.identity,
         authorization_context: {account_id: context.accountId, configuration_cid: context.configurationCid,
@@ -427,7 +428,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       }), limits);
       const fixedBinding = canonicalJson({version: 'actql-model-fixed-input-binding/0.1',
         run_definition_cid: plan.runDefinition.identity, scope_cid: scope.identity,
-        input_artifact_cid: input.identity, task_index: coordinates._0, strategy_revision: coordinates._2});
+        input_artifact_cid: input.identity, task_index: runtimeField(coordinates, 0), strategy_revision: runtimeField(coordinates, 2)});
       const exported = operation.exportPreparedInput(preparedCallSet, fixedBinding);
       originals = {originalRunWire: originalModelRunWire(plan.compiled, plan.runDefinition),
         preparedInvocationWire: plan.compiled.preparedEvidence.wire, scopeWire: scope.wire,
@@ -511,13 +512,21 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     }
     async function confirmOriginalResourceStateSaved(park, storageBinding, receipt) {
       const originalScope = originalResourceReadCurrent(park);
-      if (typeof cp.confirmOriginalModelStateSavedSelected !== 'function') {
+      if (typeof cp.confirmOriginalModelStateSavedSelected !== 'function' ||
+          typeof cp.retireOriginalModelStateSavedObservation !== 'function') {
         fail('InferOriginalMetadataAcquisitionUnavailable');
       }
       const acquisition = operation.originalMetadataAcquisition(park);
+      const original = originalCut;
       const saved = await cp.confirmOriginalModelStateSavedSelected({
         runDefinition: plan.runDefinition, storageBinding, receipt,
         identity: select(inventory, scopeKeys)}, acquisition);
+      // Retain the actual issuer's observation before any fallible current or
+      // origin recheck. Its original READ duty survives a late failure/stop.
+      if (original !== undefined && original.park === park &&
+          original.storageBinding === storageBinding && original.receipt === receipt) {
+        original.saved = saved;
+      }
       originalResourceReadCurrent(park, acquisition);
       const savedFacts = cp.originalModelStateSavedFacts(saved);
       const document = control.readModelOriginalResourceDocument(savedFacts.documentWire,
@@ -671,6 +680,16 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         gateReleased = result !== false && gate.cleanupPending() === false;
       }
       if (gate !== undefined && !gateReleased || operation.cleanupPending()) return false;
+      if (originalCut?.saved !== undefined) {
+        // Child cleanup alone cannot retire unresolved cut users. Successful
+        // original invalidation already retires these two Common borrows.
+        if (originalInvalidation !== undefined || originalCut.matched !== undefined ||
+            originalCut.document !== undefined) return false;
+        // installed-infer-run awaits THIS cleanup before settling the original
+        // READ. Failure keeps the same observation/token for cleanup retry.
+        cp.retireOriginalModelStateSavedObservation(originalCut.saved);
+        originalCut.saved = undefined;
+      }
       if (live.get(preparedCallSet) === owner) live.delete(preparedCallSet);
       if (originalCut !== undefined) {
         originalResourceCuts.delete(originalCut.park);
@@ -844,7 +863,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // journal state machine. Fund this record, Promise/frames and BOTH
         // Common trees through the original installation before using it.
         const limits = originalCurrentCodecLimits(codec);
-        const original = originalCut = {park, storageBinding, receipt, codec: new WeakRef(codec),
+        const original = originalCut = {park, storageBinding, receipt, saved: undefined, codec: new WeakRef(codec),
           promise: undefined, document: undefined, matched: undefined, facts: undefined,
           current() {
             return original.matched !== undefined && original.document !== undefined &&

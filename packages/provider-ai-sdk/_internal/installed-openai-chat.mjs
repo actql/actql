@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits} from './original-undici-transport.mjs';
@@ -95,6 +96,9 @@ function installedChatRegistration(config, originalUndici) {
         'maxBytes,maxHeaderBytes,maxHeaders','InvalidInstalledOpenAIChatRequestLimits'),
       responseLimits:fixedInferResponseLimits(source.responseLimits),
     });
+    // The opaque branch below also captures config in this function's scope.
+    // Retain only the closed snapshot here, not the caller's original graph.
+    config=undefined;
     let entered = false;
     // One registration callback belongs to one actual Host installation. The
     // actual runtime is received here, never imported or reconstructed by a
@@ -105,15 +109,18 @@ function installedChatRegistration(config, originalUndici) {
       // A failed admission is not a reason to move this original callback to
       // another Host or allocate another set of reader results from it.
       entered=true;
-      const originals=admitOpenAIOriginalMaterials(moon,materials);
-      const register=installedChatRegistration({...retained,...originals},originalUndici);
-      const entries=register(moon);
-      // Admission/assembler overlap remains funded until it ends here. The
-      // Host retains the actual entries; this spent loader need not retain a
-      // second snapshot of their original material wires or selector config.
-      materials=undefined;
-      retained=undefined;
-      return entries;
+      try {
+        const originals=admitOpenAIOriginalMaterials(moon,materials);
+        const register=installedChatRegistration({...retained,...originals},originalUndici);
+        return register(moon);
+      } finally {
+        // Successful entries retain their original duties. A refused reader
+        // has issued no physical Call/custody to this loader. In either case
+        // the spent callback no longer borrows its admission-only snapshots;
+        // dropping aliases is not GC, physical cleanup, ACK or budget release.
+        materials=undefined;
+        retained=undefined;
+      }
     };
   }
   const {providerId,modelSelector,modelId,baseURL,taskCid,promptCid,outputSchemaCid,
@@ -210,7 +217,7 @@ function installedChatRegistration(config, originalUndici) {
           maxRequestBytes:requestLimits.maxBytes,
           maxHeaderBytes:requestLimits.maxHeaderBytes,maxHeaders:requestLimits.maxHeaders,
           checked(value) {
-            if (value?.$tag===1) return value._0;
+            if (runtimeIsOk(value)) return runtimeField(value, 0);
             issue('OpenAIOriginalCommonRefused');
           }}).preflight;
       },

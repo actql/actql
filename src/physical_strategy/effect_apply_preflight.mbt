@@ -56,7 +56,7 @@ pub fn check_captured_effect_apply_preflight(
     return Err(CapturedEffectApplyPreflightIssue::Binding(NotReady))
   }
   check_effect_preview_apply_semantics(
-    @checked.effect_program_run_preview_identity(
+    @effect_binding.effect_program_run_preview_identity(
       captured_effect_preview_owner(preview),
     ),
     source_binding_cids,

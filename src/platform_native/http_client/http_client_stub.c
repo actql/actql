@@ -318,6 +318,7 @@ static bool actql_option(
   CURLcode code,
   const char *operation
 ) {
+  (void)curl;
   if (code == ACTQL_CURLE_OK) return true;
   const char *detail = client->library->easy_strerror(code);
   actql_set_client_error(client, detail == NULL ? operation : detail);

@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/effect_program_binding" @effect_binding,
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/effect_application" @effect,
@@ -31,7 +32,6 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,
   "actql/actql/query_planning" @planning,
-  "actql/actql/program_check" @checked,
   "actql/actql/platform_native/publication_store",
   "actql/actql/platform_native/run_publication" @native_publication,
   "actql/actql/platform_native/remote_standard_host" @output,

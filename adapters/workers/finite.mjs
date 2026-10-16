@@ -1,3 +1,4 @@
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {withScopedStrategy} from '../host-common/scoped-strategy.mjs';
@@ -98,8 +99,8 @@ export function bindWorkersFiniteHost(runtime, configuration) {
         expectedRunDefinitionCid, selected.environment.expressions,
         selected.environment.operations, manifests, selected.sequence,
         selected.max_work, selected.max_entries));
-      return Object.freeze({preparation: retainPreparation(value._0, value._1),
-        admission: value._2, definition: value._3});
+      return Object.freeze({preparation: retainPreparation(runtimeField(value, 0), runtimeField(value, 1)),
+        admission: runtimeField(value, 2), definition: runtimeField(value, 3)});
     },
     prepare(document) {
       if (typeof document !== 'string') throw new TypeError('InvalidWorkersFiniteDocument');

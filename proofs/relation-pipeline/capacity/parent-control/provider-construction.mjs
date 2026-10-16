@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { hash } from '../../inventory.mjs';
 import { fieldLayout } from '../backing/native-extent.mjs';
-import { checkConstructionSourceReview } from './provider-construction-source-review.mjs';
-const profile = JSON.parse(readFileSync(new URL('./provider-construction.json', import.meta.url)));
+import { checkCurrentConstructionSourceReview } from './provider-construction-current-review.mjs';
+const profile = JSON.parse(readFileSync(new URL('./provider-construction-current.json', import.meta.url)));
 export function providerConstructionBound(read) {
   assert.equal(profile.version, 'actql-native-provider-construction/0.1');
-  const sourceReview = checkConstructionSourceReview(profile, read);
+  const sourceReview = checkCurrentConstructionSourceReview(profile, read);
   for (const p of profile.providers) {
     const source = read(p.path).toString();
     assert.equal(hash(source), p.sourceDigest, `Unreviewed provider constructor ${p.name}`);

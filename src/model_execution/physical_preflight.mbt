@@ -301,10 +301,10 @@ let physical_preflight_metadata_bytes : Int64 = 256L
 
 ///|
 fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
-  if !cleanup_model_physical_call(state) {
+  if !cleanup_model_window_calls(state) {
     return false
   }
-  if state.entering is Some(entry) {
+  if state.progress.entry is Some(entry) {
     if entry.persistence is Some(operation) && operation.terminal is None {
       return false
     }
@@ -320,7 +320,8 @@ fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
     }
     state.physical_cleanup_index += 1
   }
-  state.physical_cleanup_index == state.physical_cursors.length()
+  state.physical_cleanup_index == state.physical_cursors.length() &&
+  cleanup_model_window_unentered(state)
 }
 
 ///|
@@ -334,7 +335,7 @@ fn advance_model_physical_preflight(
   }
   let index = state.physical_next_slot
   if index == state.requests.length() {
-    state.phase = DispatchSlot
+    state.progress.phase = DispatchSlot
     return @bounded.Continue(1, 1)
   }
   if !model_slot_send_eligible(state, index) {

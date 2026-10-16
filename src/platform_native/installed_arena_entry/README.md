@@ -199,8 +199,8 @@ SQLite autocommit observation: a connection's visible uncommitted rows must not
 be offered as durable lookup. Autocommit alone proves no particular COMMIT,
 original content chain, authority, or permission to send again.
 
-`sqlite_database_shim` uses the actual regular C from Source105b181b (digest
-recorded in its header). Managed callback inputs are borrowed and getters own
+`sqlite_database_shim` uses the 52 callback prototypes observed in regular C
+from Source1c4d0dc7 (digest recorded in its header). Managed callback inputs are borrowed and getters own
 their returned references. Permanent Database acquisition runs outside the
 child managed scope; row marshalling runs inside the same original funded
 scope, after Core validates current and the original Database. A refused
@@ -211,6 +211,16 @@ Reply drop and Database/Library cleanup are separate; no row copy retires the
 adapter's existing result buffer. Close-data drops require the same original
 Database's successful Close(10)/stage3. Slots clear before decref.
 
+The fenced snapshot transport retains the original Core read child and reply
+in separate persistent out-slots, both filled by one C start call. Its closed
+read port supports bounded rows, headers, ordered scans, reservations and
+totals. Row copying revalidates that exact child rather than the ordinary
+Database read path. Python registers custody before start and retains it after
+response loss; cleanup drains the same reply and never repeats start or finish.
+Only the original Core stop/current observation permits successful completion.
+An absent out-slot or a lost alias-drop response is not a cleanup ACK. The old
+write Unknown and Database fence remain unchanged after read retirement.
+
 The private diagnostic fixture covers fresh owned initialization, committed
 restore, failed-open cleanup, original transaction fencing and child-first
 retirement. It uses only fresh fixture files and the same provider/component;
@@ -219,3 +229,67 @@ wire, Python acceptance FSM or arbitrary SQL entry is introduced. Generic Core
 callers remain responsible for their existing
 operation/Unknown semantics. Normal funding/profile, installed assembly,
 Wasm/worker/wheel and public Python acceptance remain separate and unaccepted.
+
+### Original packaged Runtime transport
+
+The regular entry also retains the existing scoped `NativeLocalPackagedRuntime`
+constructor, current and close through eight typed callbacks. The immutable
+reply preserves the original Host/read/Runtime and existing issue. Missing
+supply never selects the legacy unscoped constructor. Inner Root/Reader cleanup
+and dropping Runtime data are separate from the original outer read retirement.
+The Python driver keeps persistent output slots and registers custody before
+FFI, preserves partial Runtime cleanup and sticky Unknown, and blocks outer
+read retirement until the inner data ACK. It does not reconstruct authority,
+accounting, Run state or a cleanup ACK after response loss.
+
+`packaged_runtime_shim.h` records the inspected regular C prototype and RC
+source. Input strings are bounded exact UTF-16; the existing Native Owner
+validates the original selection. Controller metadata and temporary input
+copies remain in the existing trusted control domain, not the child read grant.
+The selected ordinary entry closure now includes 161 packages and nine existing
+foreign stubs. Its original Moon package registry is preserved, with only exact
+check-to-build artifact relocation; transitive trait lookup cannot be replaced
+by omitting the registry. One bootstrap provider supplies the same allocator/TLS.
+
+The private `python-original-packaged-runtime.py` fixture exercises scoped
+capture/current/close, changed members, invalid input and partial construction.
+Its three-byte package members are capture/cleanup fixtures, never executable
+libraries or an installed product. Numerical profile, Engine, worker, ordinary
+wheel and public Python acceptance remain separate and unaccepted here.
+
+The Runtime fixture uses the complete already-executed D private diagnostic
+profile from Source `0df87e9d6ff6ba9b9500fe1468363b631f6ff867`,
+`installed_product_observation_conformance/main_native.mbt`: Host8192 pages,
+domain7168, child retained32/execution6144, bootstrap retained16/execution16,
+workspace4096, read retained16/execution1024. Host Ledger work20/attempts8/
+holdings4/transfer30/retained0/execution8192pages, child work2/attempts2/holdings1/
+transfer3 and maximum holding65536 remain exact. Runtime diagnostics are128.
+This is a distinct finite diagnostic, not an enlarged version of the older
+64/48-page parent-read fixture. That fixture's 24-byte scoped allocation
+exhaustion/SIGABRT remains a failed capture, never a same-capacity pass. These
+physical limits do not adopt a normal profile or alter fuel100M/12MiB/16MiB.
+Malformed manifest capture also tests the existing constructor's automatic
+cleanup: an ACK returns Refused with no Runtime; only failed cleanup would
+retain Pending. Lost physical responses and cleanup failure are separately
+covered by Python slot counters, not asserted as injected DLL successes here.
+
+### Same Runtime product metadata transport
+
+Nine typed roots retain the existing whole-product observation and six-field
+identity projection on that same Runtime. Operations4/5 preserve the original
+Host/read/Runtime and all existing issue tags. The C shim requires the same
+provider's raw control-frame clear observation before allocating input copies
+or invoking either operation. It checks nominal originals before Python reads
+metadata, and drops only reply data after matching those originals again.
+Metadata is bounded to4096 exact UTF-16 units; it is not a current release,
+adoption, permission, provisioning, capacity or cleanup witness.
+
+The Python driver uses a separate persistent reply slot on the existing
+Runtime, not another cleanup Owner. A lost call/drop response or invalid reply
+keeps the same sticky Unknown and original loan. Ordinary Runtime calls cannot
+retire a pending product reply. Known pre-FFI busy/thread/process refusals do not
+poison the original, and known Native issues preserve the original Runtime for
+its existing cleanup. The private physical fixture observes synthetic package
+members under the complete D diagnostic profile above; those files are never
+loaded or adopted as an installed release. Actual C, DLL and Python source
+qualifications must be retained separately from source-stage tests.

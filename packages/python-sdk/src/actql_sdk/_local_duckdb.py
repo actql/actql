@@ -17,6 +17,7 @@ from threading import Lock
 from typing import Any
 
 from ._duckdb_environment import SETTINGS
+from ._local_duckdb_abi import _Result, _String, _HugeInt, _UHugeInt, bind as bind_duckdb
 
 
 class DuckDBPhysicalError(RuntimeError):
@@ -36,38 +37,6 @@ def _bounded_utf8(value: str, maximum: int) -> bytes:
         if size > maximum:
             raise ValueError('DuckDB text transfer capacity exceeded')
     return value.encode('utf8')
-
-
-# Layouts match vendor/duckdb/1.4.3/duckdb.h and the existing native adapter.
-class _Result(C.Structure):
-    _fields_ = [('columns', C.c_uint64), ('rows', C.c_uint64),
-                ('changed', C.c_uint64), ('column_data', C.c_void_p),
-                ('error', C.c_void_p), ('internal', C.c_void_p)]
-
-
-class _StringPointer(C.Structure):
-    _fields_ = [('length', C.c_uint32), ('prefix', C.c_char * 4),
-                ('pointer', C.c_void_p)]
-
-
-class _StringInline(C.Structure):
-    _fields_ = [('length', C.c_uint32), ('bytes', C.c_char * 12)]
-
-
-class _StringValue(C.Union):
-    _fields_ = [('pointer', _StringPointer), ('inline', _StringInline)]
-
-
-class _String(C.Structure):
-    _fields_ = [('value', _StringValue)]
-
-
-class _HugeInt(C.Structure):
-    _fields_ = [('lower', C.c_uint64), ('upper', C.c_int64)]
-
-
-class _UHugeInt(C.Structure):
-    _fields_ = [('lower', C.c_uint64), ('upper', C.c_uint64)]
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,57 +105,7 @@ class DuckDBLibrary:
         if actual.hexdigest() != digest:
             raise ValueError('Invalid installed DuckDB component digest')
         self.api = C.CDLL(str(path))
-        p = C.c_void_p
-        pp = C.POINTER(p)
-        rp = C.POINTER(_Result)
-        signatures: dict[str, tuple[list[Any], Any]] = {
-            'library_version': ([], C.c_char_p),
-            'create_config': ([pp], C.c_int),
-            'set_config': ([p, C.c_char_p, C.c_char_p], C.c_int),
-            'destroy_config': ([pp], None),
-            'open_ext': ([C.c_char_p, pp, p, pp], C.c_int),
-            'free': ([p], None),
-            'connect': ([p, pp], C.c_int),
-            'disconnect': ([pp], None),
-            'close': ([pp], None),
-            'interrupt': ([p], None),
-            'query': ([p, C.c_char_p, rp], C.c_int),
-            'prepare': ([p, C.c_char_p, pp], C.c_int),
-            'nparams': ([p], C.c_uint64),
-            'bind_null': ([p, C.c_uint64], C.c_int),
-            'bind_boolean': ([p, C.c_uint64, C.c_bool], C.c_int),
-            'bind_double': ([p, C.c_uint64, C.c_double], C.c_int),
-            'bind_varchar_length': ([p, C.c_uint64, C.c_char_p, C.c_uint64], C.c_int),
-            'destroy_prepare': ([pp], None),
-            'execute_prepared_streaming': ([p, rp], C.c_int),
-            'destroy_result': ([rp], None),
-            'result_error': ([rp], p),
-            'column_count': ([rp], C.c_uint64),
-            'column_type': ([rp, C.c_uint64], C.c_int),
-            'column_name': ([rp, C.c_uint64], p),
-            'column_logical_type': ([rp, C.c_uint64], p),
-            'decimal_width': ([p], C.c_uint8),
-            'decimal_scale': ([p], C.c_uint8),
-            'decimal_internal_type': ([p], C.c_int),
-            'destroy_logical_type': ([pp], None),
-            'fetch_chunk': ([_Result], p),
-            'destroy_data_chunk': ([pp], None),
-            'data_chunk_get_size': ([p], C.c_uint64),
-            'data_chunk_get_column_count': ([p], C.c_uint64),
-            'data_chunk_get_vector': ([p, C.c_uint64], p),
-            'vector_get_validity': ([p], C.POINTER(C.c_uint64)),
-            'validity_row_is_valid': ([C.POINTER(C.c_uint64), C.c_uint64], C.c_bool),
-            'vector_get_data': ([p], p),
-            'string_t_length': ([_String], C.c_uint32),
-            'string_t_data': ([C.POINTER(_String)], p),
-        }
-        for name, (arguments, result) in signatures.items():
-            try:
-                function = getattr(self.api, 'duckdb_' + name)
-            except AttributeError as error:
-                raise ValueError('Installed DuckDB lacks the bounded C API') from error
-            function.argtypes = arguments
-            function.restype = result
+        bind_duckdb(self.api)
         if self.api.duckdb_library_version() != version.encode('ascii'):
             raise ValueError('Unexpected installed DuckDB component version')
 

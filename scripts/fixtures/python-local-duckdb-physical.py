@@ -285,13 +285,13 @@ class StandaloneDuckDBTests(unittest.TestCase):
 
     def test_connection_cleanup_keeps_live_result_and_retries_same_handle(self):
         stream = self.query('SELECT 7 AS n')
-        retained = stream._result.internal
+        retained = stream._result.internal_data
         self.assertFalse(self.connection.close())
         actual = library.api.duckdb_destroy_result
         with patch.object(library.api, 'duckdb_destroy_result', side_effect=OSError('cleanup failure')):
             with self.assertRaises(OSError):
                 stream.close()
-        self.assertEqual(stream._result.internal, retained)
+        self.assertEqual(stream._result.internal_data, retained)
         self.assertIn(stream, self.connection._streams)
         with patch.object(library.api, 'duckdb_destroy_result', wraps=actual) as destroy:
             self.assertTrue(stream.close())

@@ -44,17 +44,17 @@ pub fn read_client_captured_effect_subject(
   }
   let owner = allowed.compilation.owner
   let checked_preview = @strategy.captured_effect_preview_owner(preview)
-  let run = @checked.effect_program_run_preview_owner(checked_preview)
+  let run = @effect_binding.effect_program_run_preview_owner(checked_preview)
   if !physical_equal(
-      @checked.effect_program_run_static_candidate(run),
+      @effect_binding.effect_program_run_static_candidate(run),
       owner.candidate,
     ) ||
     !physical_equal(
-      @checked.effect_program_run_admission(run),
+      @effect_binding.effect_program_run_admission(run),
       allowed.admission,
     ) ||
     @publication.publication_contract_json(
-      @checked.effect_program_run_definition(run),
+      @effect_binding.effect_program_run_definition(run),
     ) !=
     @publication.publication_contract_json(definition) {
     return Err(ForeignSubject)
@@ -62,7 +62,7 @@ pub fn read_client_captured_effect_subject(
   guard checkpoint.checkpoint.subject is @checkpoint.RunUnit(unit_id~, ..) else {
     return Err(ForeignSubject)
   }
-  let stage = @checked.effect_program_run_preview_stage(checked_preview)
+  let stage = @effect_binding.effect_program_run_preview_stage(checked_preview)
   let stages = @syntax.stages(owner.source)
   if stage < 0 || stage >= stages.length() || stages[stage].id != unit_id {
     return Err(ForeignSubject)
@@ -76,7 +76,7 @@ pub fn read_client_captured_effect_subject(
   let read : ClientCapturedEffectSubjectRead = {
     preview,
     invocation_cid: @publication.publication_contract_identity(
-      @checked.effect_program_run_preview_invocation(checked_preview),
+      @effect_binding.effect_program_run_preview_invocation(checked_preview),
     ),
     unit_definition_cid: unit,
   }

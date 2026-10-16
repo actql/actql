@@ -63,13 +63,13 @@ test "original Model holds all eligible preflight plans until every cleanup succ
     ).unwrap()
     assert_true(physical_equal(active.state.ledger, grant.ledger))
     for _ in 0..<1000 {
-      if active.state.phase is DispatchSlot {
+      if active.state.progress.phase is DispatchSlot {
         break
       }
       assert_true(advance_model_execution(active, 1).unwrap() is Continue(_, _))
       assert_true(@resources.capacity_reservation_open(grant.capacity))
     }
-    assert_true(active.state.phase is DispatchSlot)
+    assert_true(active.state.progress.phase is DispatchSlot)
     assert_eq(active.state.requests.length(), 2)
     assert_eq(starts.val, eligible)
     assert_eq(active.state.physical_cursors.length(), eligible)

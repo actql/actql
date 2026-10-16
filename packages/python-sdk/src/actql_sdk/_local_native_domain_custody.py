@@ -1,6 +1,8 @@
 """Original Native domain reply custody; no Python funding or Run decisions."""
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind as bind_native
+
 from collections.abc import Iterator
 from contextlib import contextmanager
 from ctypes import POINTER, byref, c_int, c_int32, c_int64, c_void_p, c_ubyte
@@ -24,13 +26,8 @@ class _OriginalDomainMaterialFunctions:
     """Mandatory matching private exports, not a loader or compatibility path."""
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.project = library.actql_domain_project_into
-        self.project.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
-        self.project.restype = c_int
-        self.read = library.actql_domain_copy_material
-        self.read.argtypes = [c_void_p, c_void_p, c_void_p,
-                              POINTER(c_ubyte), POINTER(c_ubyte), POINTER(c_int64)]
-        self.read.restype = c_int
+        self.project = bind_native(library, 'actql_domain_project_into')
+        self.read = bind_native(library, 'actql_domain_copy_material')
 
 
 
@@ -38,15 +35,12 @@ class _OriginalDomainReadFunctions:
     """Matching selected code only; no loader, context pointer or permission."""
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.prepare = library.actql_domain_read_prepare_into
-        self.current = library.actql_domain_read_current_into
-        self.enter = library.actql_domain_read_enter_into
-        self.leave = library.actql_domain_read_leave_into
-        self.cleanup = library.actql_domain_read_cleanup_into
-        self.close = library.actql_domain_read_close_into
-        for call in (self.prepare, self.current, self.enter, self.leave, self.cleanup, self.close):
-            call.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
-            call.restype = c_int
+        self.prepare = bind_native(library, 'actql_domain_read_prepare_into')
+        self.current = bind_native(library, 'actql_domain_read_current_into')
+        self.enter = bind_native(library, 'actql_domain_read_enter_into')
+        self.leave = bind_native(library, 'actql_domain_read_leave_into')
+        self.cleanup = bind_native(library, 'actql_domain_read_cleanup_into')
+        self.close = bind_native(library, 'actql_domain_read_close_into')
 
 def _new_domain_slots() -> tuple[c_void_p, c_void_p, c_void_p]:
     return c_void_p(), c_void_p(), c_void_p()
@@ -64,36 +58,18 @@ class _OriginalDomainFunctions:
     """Bind the same already-selected component; no load/adoption or fallback."""
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.prepare = library.actql_domain_prepare_into
-        self.prepare.argtypes = [c_void_p, c_void_p, c_int32, c_int64,
-                                 c_int32, c_int32, c_int32, c_int64, c_int64, c_int64,
-                                 POINTER(c_void_p)]
-        self.prepare.restype = c_int
-        self.current = library.actql_domain_current_into
-        self.transfer = library.actql_domain_transfer_into
-        self.enter = library.actql_domain_enter_into
-        self.leave = library.actql_domain_leave_into
-        self.close = library.actql_domain_close_into
-        for call in (self.current, self.transfer, self.enter, self.leave, self.close):
-            call.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
-            call.restype = c_int
-        self.originals = library.actql_domain_originals_into
-        self.originals.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p)]
-        self.originals.restype = c_int
-        self.drop = library.actql_domain_drop_reply
-        self.drop.argtypes = [POINTER(c_void_p), c_void_p, c_void_p]
-        self.drop.restype = c_int
-        self.finish = library.actql_domain_finish_closed_data
-        self.finish.argtypes = [POINTER(c_void_p), POINTER(c_void_p), POINTER(c_void_p)]
-        self.finish.restype = c_int
-        self.refused = library.actql_domain_finish_refused_prepare
-        self.refused.argtypes = [POINTER(c_void_p), POINTER(c_void_p)]
-        self.refused.restype = c_int
-        self.operation = library.actql_domain_operation
-        self.issue = library.actql_domain_issue_family
-        for call in (self.operation, self.issue):
-            call.argtypes = [c_void_p]
-            call.restype = c_int32
+        self.prepare = bind_native(library, 'actql_domain_prepare_into')
+        self.current = bind_native(library, 'actql_domain_current_into')
+        self.transfer = bind_native(library, 'actql_domain_transfer_into')
+        self.enter = bind_native(library, 'actql_domain_enter_into')
+        self.leave = bind_native(library, 'actql_domain_leave_into')
+        self.close = bind_native(library, 'actql_domain_close_into')
+        self.originals = bind_native(library, 'actql_domain_originals_into')
+        self.drop = bind_native(library, 'actql_domain_drop_reply')
+        self.finish = bind_native(library, 'actql_domain_finish_closed_data')
+        self.refused = bind_native(library, 'actql_domain_finish_refused_prepare')
+        self.operation = bind_native(library, 'actql_domain_operation')
+        self.issue = bind_native(library, 'actql_domain_issue_family')
 
 
 class _OriginalDomainCustody:
@@ -104,7 +80,7 @@ class _OriginalDomainCustody:
     scope remain separately caller-owned; closing this data never retires them.
     """
     __slots__ = ('_owner', '_scope', '_descriptor', '_functions', '_host', '_domain',
-                 '_reply', '_unknown', '_unknown_carrier', '_closed', '_live_channel_original', '_worker_process_original', '_sqlite_library_original')
+                 '_reply', '_unknown', '_unknown_carrier', '_closed', '_live_channel_original', '_worker_process_original', '_sqlite_library_original', '_parent_read_original')
     _owner: _OriginalControlCustody
     _scope: _OriginalBackingCustody
     _descriptor: _OriginalDescriptor
@@ -118,6 +94,7 @@ class _OriginalDomainCustody:
     _live_channel_original: object | None
     _worker_process_original: object | None
     _sqlite_library_original: object | None
+    _parent_read_original: object | None
 
     @classmethod
     def _prepare_original(cls, owner: _OriginalControlCustody,
@@ -146,6 +123,7 @@ class _OriginalDomainCustody:
         domain._live_channel_original = None
         domain._worker_process_original = None
         domain._sqlite_library_original = None
+        domain._parent_read_original = None
         domain._unknown_carrier = _OriginalDomainError(domain, unknown=True)
         owner._enter()
         if owner._closed or owner._original.value is None:
@@ -325,6 +303,10 @@ class _OriginalDomainCustody:
         """Trusted caller after same scoped stop/borrower retirement; no stop here."""
         if self._unknown is not None:
             raise self._unknown
+        if self._parent_read_original is not None:
+            from ._local_native_original_read import _RETIRED_PARENT_READ_DATA
+            if self._parent_read_original is not _RETIRED_PARENT_READ_DATA:
+                raise ValueError('Original parent read still has cleanup or reply custody')
         if self._sqlite_library_original is not None:
             from ._local_native_sqlite import _RETIRED_SQLITE_DATA
             if self._sqlite_library_original is not _RETIRED_SQLITE_DATA:
@@ -344,6 +326,7 @@ class _OriginalDomainCustody:
         self._call(6)
         self._worker_process_original = None
         self._sqlite_library_original = None
+        self._parent_read_original = None
 
 
     def _prepare_read_context(self, functions: _OriginalDomainReadFunctions) -> None:

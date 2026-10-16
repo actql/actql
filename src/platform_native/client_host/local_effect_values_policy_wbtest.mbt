@@ -99,6 +99,10 @@ fn effect_values_policy_test_host(
 fn effect_values_policy_test_prepared(
   host : NativeLocalHostConnection,
   nonce : String,
+  principal? : String = "operator",
+  connection? : String = "cli",
+  created_at? : String = "2026-10-10T00:00:00.000Z",
+  valid_until? : String = "2026-10-11T00:00:00.000Z",
 ) -> (
   NativeClientSubmissionReference,
   NativeClientSubmittedPreparation,
@@ -108,7 +112,7 @@ fn effect_values_policy_test_prepared(
   @host.ClientEffectIssuedNormalizationMaterials,
 ) raise {
   let scope = effect_values_policy_test_ok(
-    host.authority_scope_cid("operator", "cli", epoch_test_crypto()),
+    host.authority_scope_cid(principal, connection, epoch_test_crypto()),
     "scope",
   )
   let epoch = effect_values_policy_test_ok(
@@ -161,13 +165,13 @@ fn effect_values_policy_test_prepared(
       compilation,
       scope,
       configuration.configuration_cid(),
-      "2026-10-11T00:00:00.000Z",
+      valid_until,
     ),
     "allowed",
   )
   let definition = effect_values_policy_test_ok(
     @host.issue_client_effect_run_definition(
-      allowed, "local-test", nonce, "2026-10-10T00:00:00.000Z", "2026-10-11T00:00:00.000Z",
+      allowed, "local-test", nonce, created_at, valid_until,
     ),
     "definition",
   )

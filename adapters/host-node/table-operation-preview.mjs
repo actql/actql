@@ -1,6 +1,7 @@
 // The installed Table adapter's pure authoring connection. It consumes the
 // checked Program and actual captured input owners; it neither fabricates
 // Relation rows nor grants approval, availability, staging or send authority.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
@@ -44,10 +45,10 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
     const descriptor = checked(moon.clientProgramEffectMemberDescriptor(prepared,
       member.stageIndex, member.effectId, limits.planWork));
     const target = member.target;
-    if (descriptor._0 !== index || descriptor._2 !== 'store' ||
-        (descriptor._6 === undefined) === (descriptor._8 === undefined) ||
-        target?.targetRef !== descriptor._3 ||
-        target.mappingRef !== descriptor._4 || target.mappingCid !== descriptor._5 ||
+    if (runtimeField(descriptor, 0) !== index || runtimeField(descriptor, 2) !== 'store' ||
+        (runtimeField(descriptor, 6) === undefined) === (runtimeField(descriptor, 8) === undefined) ||
+        target?.targetRef !== runtimeField(descriptor, 3) ||
+        target.mappingRef !== runtimeField(descriptor, 4) || target.mappingCid !== runtimeField(descriptor, 5) ||
         !Array.isArray(target.permissions) || target.permissions.length === 0 ||
         target.permissions.some(value => typeof value !== 'string' || value.length === 0) ||
         new Set(target.permissions).size !== target.permissions.length ||
@@ -84,27 +85,27 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
     identities.push(identity);
     tableInputs.push(tableInput);
     operations.push(Object.freeze(admittedOperation));
-    const privateInput = descriptor._8 !== undefined;
+    const privateInput = runtimeField(descriptor, 8) !== undefined;
     const binding = (privateInput ? control.effectTableSourceArtifactPreviewBinding
       : control.effectSourceArtifactPreviewBinding)(
-      member.payload.summary.artifact, invocationCid, descriptor._8 ?? descriptor._6,
+      member.payload.summary.artifact, invocationCid, runtimeField(descriptor, 8) ?? runtimeField(descriptor, 6),
       context.storeAuthorityCid);
     const planCid = checked(moon.clientProgramEffectPlanCid(prepared, index,
       limits.maxFields, limits.planWork, preview.maxWireBytes,
       preview.maxNodes, preview.maxDepth));
     return {
-      effect_id: descriptor._1, effect_kind: 'store', target: descriptor._3,
-      mapping: descriptor._4, resolved_mapping_contract_cid: descriptor._5,
+      effect_id: runtimeField(descriptor, 1), effect_kind: 'store', target: runtimeField(descriptor, 3),
+      mapping: runtimeField(descriptor, 4), resolved_mapping_contract_cid: runtimeField(descriptor, 5),
       effect_identity_cid: identity.identity,
-      ...(privateInput ? {source_table_input: descriptor._8} : {source_result: descriptor._6}),
+      ...(privateInput ? {source_table_input: runtimeField(descriptor, 8)} : {source_result: runtimeField(descriptor, 6)}),
       ...(planCid === undefined ? {} : {effect_plan_logical_cid: planCid}),
       // A Table names the semantic completed Result Artifact. The separate
       // source binding still comes from the actual Run-bound physical owner.
-      result_artifact_cid: artifact.identity, source_binding_cid: binding._1,
+      result_artifact_cid: artifact.identity, source_binding_cid: runtimeField(binding, 1),
       preview_strength: 'full_diff', capability_evidence_cid: target.capabilityCid,
       authority_scope_cid: requestAuthority, write_footprint: target.footprint,
       count: 1, max_items: 1, required_permissions: target.permissions,
-      approval: 'required', on_item_failure: descriptor._7,
+      approval: 'required', on_item_failure: runtimeField(descriptor, 7),
       changes: [{target_row_identity: admittedOperation.request_cid,
         target_guard: admittedOperation.action === 'replace'
           ? {state: 'version', version_cid: admittedOperation.expected_table.generation_cid}
@@ -136,9 +137,9 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
     preview.maxNodes, preview.maxDepth, members.length, members.length,
     key.maxBytes, key.maxNodes, key.maxDepth));
   control.checkSourceFreeLocalEffectPreviewIdentities(prepared, inputs,
-    authored._0, runCid, authoringBody.authoring_context_cid, identities, preview);
+    runtimeField(authored, 0), runCid, authoringBody.authoring_context_cid, identities, preview);
   const capturedInputs = checked(moon.clientProgramBindEffectPreviewInputs(checkedHost,
-    inputs, context.runInvocation, stageIndex, authored._0,
+    inputs, context.runInvocation, stageIndex, runtimeField(authored, 0),
     authoringBody.authoring_context_cid,
     moon.clientProgramEffectPreviewInputLimits(preview.maxWireBytes,
       preview.maxNodes, preview.maxDepth, limits.planWork, limits.maxFields,
@@ -146,7 +147,7 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
       members.length, members.length, limits.planWork, limits.planWork)));
   const tablePreviews = tableInputs.map((input,index) =>
     control.bindTablePreview(input, capturedInputs, index));
-  return Object.freeze({wire: authored._0, keys: authored._1,
+  return Object.freeze({wire: runtimeField(authored, 0), keys: runtimeField(authored, 1),
     authoringCid: authoringBody.authoring_context_cid, capturedInputs,
     tableInputs: Object.freeze(tableInputs), tablePreviews: Object.freeze(tablePreviews),
     identities: Object.freeze(identities), operations: Object.freeze(operations)});

@@ -6,9 +6,15 @@ fn original_preparation_test_read(
   ledger_limits? : @resources.LedgerLimits = active.limits.model.ledger,
   reservation_slots? : Int = 4,
   spent_planning? : Bool = false,
+  quantities? : @resources.QuantityAmounts? = None,
+  holding_slots? : Int = 2,
+  run_id? : String = "infer-run",
 ) -> (@resources.Ledger, @publication_host.ClientModelReadPreparation) {
-  let (compiled, definition) = invocation_fixture_compiled(active)
+  let (compiled, definition) = invocation_fixture_compiled(active, run_id~)
   let ledger = @resources.create_ledger(ledger_limits).unwrap()
+  if quantities is Some(amounts) {
+    @resources.configure_quantities(ledger, amounts).unwrap()
+  }
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
   let scope = @publication_host.begin_client_model_read_scope(
     compiled,
@@ -17,7 +23,7 @@ fn original_preparation_test_read(
     ledger,
     bootstrap,
     reservation_slots,
-    2,
+    holding_slots,
     0,
   ).unwrap()
   // Admit the original cumulative spend in its descriptor, not by mutating
@@ -45,7 +51,10 @@ fn original_preparation_test_release(
 test "original preparation actual Identity keeps same Ledger and Model owns used seal cleanup" {
   let calls = Ref(0)
   let active = contract_capacity_start(calls, 2, 133072L)
-  let (ledger, read) = original_preparation_test_read(active, spent_planning=true)
+  let (ledger, read) = original_preparation_test_read(
+    active,
+    spent_planning=true,
+  )
   let quantities = @resources.quantity_usage(ledger)
   bind_original_model_preparation(active, read, 100L, 5L).unwrap()
   while active.model is None {
@@ -69,7 +78,10 @@ test "original preparation actual Identity keeps same Ledger and Model owns used
   }
   assert_true(terminal is Complete(_, ..))
   assert_eq(calls.val, 2)
-  assert_eq(@resources.ledger_usage(ledger).planning_work, active.limits.model.ledger.planning_work)
+  assert_eq(
+    @resources.ledger_usage(ledger).planning_work,
+    active.limits.model.ledger.planning_work,
+  )
   let output_use = acquire_output(active).unwrap()
   assert_false(cleanup(active).unwrap())
   // Original 3+7+100 plus two independent 1000+65536 attempt envelopes.
@@ -189,7 +201,10 @@ test "original preparation exhausted token inventory refuses before send and ret
   let active = contract_capacity_start(calls, 2, 133072L)
   // Two records hold read and seal, leaving no record for a physical attempt.
   // Keep this independent refusal: spare bytes do not create inventory slots.
-  let (ledger, read) = original_preparation_test_read(active, reservation_slots=2)
+  let (ledger, read) = original_preparation_test_read(
+    active,
+    reservation_slots=2,
+  )
   bind_original_model_preparation(active, read, 100L, 5L).unwrap()
   assert_true(
     fixture_finish(active)

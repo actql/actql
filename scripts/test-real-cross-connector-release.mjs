@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import {spawnSync, execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {createHash} from 'node:crypto';
-import {copyFile, mkdir, readFile, writeFile, lstat} from 'node:fs/promises';
+import {createHash, randomBytes} from 'node:crypto';
+import {copyFile, mkdir, readFile, writeFile, lstat, chmod} from 'node:fs/promises';
 import {dirname, isAbsolute, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
@@ -13,12 +13,14 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 import {checkGcsMetadataAcceptanceEnvironment} from './gcs-files-content-credential.mjs';
-import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment} from './real-cross-connector-fixtures.mjs';
+import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment, realCrossConnectorSelection} from './real-cross-connector-fixtures.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 const [source, directory, python, scopeFile, ...extra] = process.argv.slice(2);
-assert.equal(extra.length, 0); assert.equal(process.version, 'v22.22.0');
+const {format, transport} = realCrossConnectorSelection(extra);
+assert.equal(process.version, 'v22.22.0');
 assert([directory, python, scopeFile].every(isAbsolute));
 assert(!process.env.NODE_OPTIONS && !process.env.NODE_PATH, 'Unreviewed loader/runtime path');
+assert.equal(process.env.NODE_TLS_REJECT_UNAUTHORIZED, undefined, 'Unreviewed TLS override');
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const before = checkoutState(repository);
 assert.equal(before.revision, source); assert(before.clean);
@@ -70,7 +72,22 @@ for (const path of realCrossConnectorFixturePaths) {
 }
 const copiedScope = join(scratch.path, 'metadata-scope.json');
 await writeFile(copiedScope, scopeWire, {flag: 'wx', mode: 0o600});
+if (transport === 'https') {
+  const keyPath = join(scratch.path, 'https.key'), certPath = join(scratch.path, 'https.crt');
+  await promisify(execFile)('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+    '-keyout', keyPath, '-out', certPath, '-days', '1', '-subj', '/CN=localhost',
+    '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+  {env: environment, timeout: 10000, maxBuffer: 65536});
+  await chmod(keyPath, 0o600);
+  const httpsPath = join(scratch.path, 'https-transport.json');
+  await writeFile(httpsPath, JSON.stringify({keyPath, certPath, token: randomBytes(32).toString('base64url')}),
+    {flag: 'wx', mode: 0o600});
+  environment.NODE_EXTRA_CA_CERTS = certPath;
+  environment.ACTQL_REAL_CONNECTOR_HTTPS = httpsPath;
+}
 Object.assign(environment, {ACTQL_TEST_TABLE_PACKED_APPLICATION: application,
+  ACTQL_REAL_CONNECTOR_FORMAT: format,
+  ACTQL_REAL_CONNECTOR_TRANSPORT: transport,
   ACTQL_REAL_CONNECTOR_SCOPE: copiedScope, ACTQL_TABLE_PYTHON: python,
   ACTQL_TEST_PRESERVE_SCRATCH: '1'});
 const args = nodeTestArguments(['--test-concurrency=1',
@@ -84,7 +101,7 @@ process.stdout.write(result.stdout ?? ''); process.stderr.write(result.stderr ??
 const checked = assertTestExecution('node', process.execPath, args, result);
 assert.equal(checked.counts.passed, 1);
 await release.verifyUnchanged(); assert.deepEqual(checkoutState(repository), before);
-const receipt = {source, manifestSHA256: release.manifestSha256,
+const receipt = {source, format, transport, manifestSHA256: release.manifestSha256,
   archives: release.manifest.packages, copied, actualTests: checked.counts,
   scopeSHA256: createHash('sha256').update(scopeWire).digest('hex'),
   application, complete: true, releaseGeneration: release.manifest.generation,

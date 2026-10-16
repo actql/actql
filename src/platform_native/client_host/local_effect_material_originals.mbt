@@ -157,6 +157,47 @@ pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
   NativeClientSubmittedIntentRecord,
   NativeClientSubmittedEffectMaterialsIssue,
 ] {
+  self.accept_submitted_effect_material_with_policy(
+    crypto,
+    principal,
+    connection,
+    reference,
+    preparation,
+    request,
+    allowed,
+    definition,
+    issued,
+    now,
+    source_free_run_file,
+    None,
+  )
+}
+
+///|
+// Both public entry points retain the same existing acceptance transaction.
+// The optional finite original can only enter with its current selected Host
+// binding; Common metadata by itself never supplies that physical authority.
+fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  issued : @host.ClientEffectIssuedNormalizationMaterials,
+  now : Double,
+  source_free_run_file : String?,
+  local_policy : (
+    NativeLocalRunPolicyBinding,
+    @host.ClientLocalRunPolicyOriginal,
+  )?,
+) -> Result[
+  NativeClientSubmittedIntentRecord,
+  NativeClientSubmittedEffectMaterialsIssue,
+] {
   let authority = match
     native_local_policy_authority_for(
       self,
@@ -240,11 +281,45 @@ pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
       }
     }
   }
+  let local_run_policy_original = match local_policy {
+    None => None
+    Some((binding, original)) => {
+      if !physical_equal(binding.host, self) ||
+        binding.principal != principal ||
+        binding.connection != connection ||
+        binding.scope != authority.scope {
+        return Err(Journal(AuthorizationDenied))
+      }
+      let ref_record = match
+        @host.admit_client_submission_reference_record(reference.wire) {
+        Ok(value) => value
+        Err(_) => return Err(Journal(InvalidSubmission))
+      }
+      if @host.admit_client_local_run_policy_original(
+          @host.client_local_run_policy_original_body(original),
+          binding.profile,
+          ref_record,
+          request,
+          definition,
+          self.adoption_cid(),
+          binding.read_selection_cid,
+        )
+        is Err(_) {
+        return Err(Journal(CustodyLost))
+      }
+      Some(original)
+    }
+  }
   let current = () => {
     authority.current_for(self.journal, request) &&
     (match policy_selection {
       None => true
       Some(selection) => selection.current()
+    }) &&
+    (match local_policy {
+      None => true
+      Some((binding, _)) =>
+        binding.current_for(self.journal, Some(request), true)
     })
   }
   self.journal
@@ -258,6 +333,7 @@ pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
     authority.current_for(self.journal, request),
     effect_material_originals=Some(wire),
     publication_policy_originals=policy_wire,
+    local_run_policy_original~,
     current_fence=Some(current),
   )
   .map_err(issue => Journal(issue))

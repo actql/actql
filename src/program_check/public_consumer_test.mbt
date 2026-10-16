@@ -554,6 +554,7 @@ test "Effect computation candidate retains owners without admitting execution" {
 ///|
 fn public_effect_mapping_closure(
   generated : Bool,
+  static_only? : Bool = false,
   split_source? : Bool = false,
   split_intermediate? : Bool = false,
   split_before? : Bool = false,
@@ -706,6 +707,31 @@ fn public_effect_mapping_closure(
   let computation = @program_check.effect_program_static_checked_computation(
     static_candidate,
   )
+  if static_only {
+    // No Run, Invocation, Preview, physical DAG or execution owner is created.
+    assert_true(
+      physical_equal(
+        @program_check.effect_program_static_headers(static_candidate),
+        @program_check.effect_computation_headers(candidate),
+      ),
+    )
+    assert_true(
+      physical_equal(
+        @program_check.effect_program_static_environment(static_candidate),
+        wire,
+      ),
+    )
+    assert_eq(
+      @results.effect_mapping_rule_count(
+        @results.effect_static_candidate_mapping_rules(
+          @program_check.effect_program_static_effects(static_candidate),
+        ),
+      ),
+      2,
+    )
+    assert_true(@program_check.checked_program_has_effects(computation))
+    return
+  }
   assert_true(@program_check.checked_program_has_effects(computation))
   let source_identity = @program_check.source_identity(computation)
   let selected_profiles = @program_check.selected_expression_profiles(
@@ -865,7 +891,7 @@ fn public_effect_mapping_closure(
     is Err(TaskLimit),
   )
   let preview = public_effect_preview_for_static(static_candidate, mapping_cid)
-  let bound = @program_check.bind_effect_program_static_preview(
+  let bound = @effect_binding.bind_effect_program_static_preview(
     static_candidate,
     1,
     preview,
@@ -874,17 +900,17 @@ fn public_effect_mapping_closure(
   ).unwrap()
   assert_true(
     physical_equal(
-      @program_check.effect_program_static_preview_identity(bound),
+      @effect_binding.effect_program_static_preview_identity(bound),
       preview,
     ),
   )
-  assert_eq(@program_check.effect_program_static_preview_stage(bound), 1)
+  assert_eq(@effect_binding.effect_program_static_preview_stage(bound), 1)
   assert_eq(
     @run_publication.effect_preview_member_max_items(preview, 0),
     Some(1L),
   )
   assert_true(
-    @program_check.bind_effect_program_static_preview(
+    @effect_binding.bind_effect_program_static_preview(
       static_candidate,
       1,
       public_effect_preview_for_static(
@@ -898,7 +924,7 @@ fn public_effect_mapping_closure(
     is Err(ForeignResolvedLimit("first")),
   )
   assert_true(
-    @program_check.bind_effect_program_static_preview(
+    @effect_binding.bind_effect_program_static_preview(
       static_candidate,
       1,
       public_effect_preview_for_static(
@@ -950,7 +976,7 @@ fn public_effect_mapping_closure(
     first_max_items=2,
   )
   assert_true(
-    @program_check.bind_effect_program_static_preview(
+    @effect_binding.bind_effect_program_static_preview(
       rebound_static,
       1,
       rebound_preview,
@@ -960,7 +986,7 @@ fn public_effect_mapping_closure(
     is Ok(_),
   )
   assert_true(
-    @program_check.bind_effect_program_static_preview(
+    @effect_binding.bind_effect_program_static_preview(
       rebound_static,
       1,
       public_effect_preview_for_static(
@@ -976,24 +1002,24 @@ fn public_effect_mapping_closure(
   let (run_admission, run_definition, invocation) = public_effect_run_fixture(
     static_candidate,
   )
-  let run_owner = @program_check.bind_effect_program_static_run(
+  let run_owner = @effect_binding.bind_effect_program_static_run(
     static_candidate, run_admission, run_definition,
   ).unwrap()
   assert_true(
     physical_equal(
-      @program_check.effect_program_run_static_candidate(run_owner),
+      @effect_binding.effect_program_run_static_candidate(run_owner),
       static_candidate,
     ),
   )
   assert_true(
     physical_equal(
-      @program_check.effect_program_run_admission(run_owner),
+      @effect_binding.effect_program_run_admission(run_owner),
       run_admission,
     ),
   )
   assert_true(
     physical_equal(
-      @program_check.effect_program_run_definition(run_owner),
+      @effect_binding.effect_program_run_definition(run_owner),
       run_definition,
     ),
   )
@@ -1065,7 +1091,7 @@ fn public_effect_mapping_closure(
   let (rebound_admission, rebound_definition, _) = public_effect_run_fixture(
     rebound_static,
   )
-  let foreign_run = @program_check.bind_effect_program_static_run(
+  let foreign_run = @effect_binding.bind_effect_program_static_run(
     rebound_static, rebound_admission, rebound_definition,
   ).unwrap()
   assert_true(
@@ -1077,7 +1103,7 @@ fn public_effect_mapping_closure(
     semantics_cid=Some("sha256:" + "f".repeat(64)),
   )
   assert_true(
-    @program_check.bind_effect_program_static_run(
+    @effect_binding.bind_effect_program_static_run(
       static_candidate, foreign_plan_admission, foreign_plan_run,
     )
     is Err(Binding(@run_publication.RunProgramForeignPlan)),
@@ -1087,7 +1113,7 @@ fn public_effect_mapping_closure(
     environment_cid=Some("sha256:" + "f".repeat(64)),
   )
   assert_true(
-    @program_check.bind_effect_program_static_run(
+    @effect_binding.bind_effect_program_static_run(
       static_candidate, foreign_env_admission, foreign_env_run,
     )
     is Err(Binding(@run_publication.RunProgramForeignTemplate)),
@@ -1108,7 +1134,7 @@ fn public_effect_mapping_closure(
     plan_cid=Some(plan_identity),
     invocation_cid=Some(invocation_identity),
   )
-  let bound_run_preview = @program_check.bind_effect_program_run_preview(
+  let bound_run_preview = @effect_binding.bind_effect_program_run_preview(
     run_owner,
     invocation,
     1,
@@ -1130,7 +1156,7 @@ fn public_effect_mapping_closure(
     invocation_cid=Some(invocation_identity),
     reverse_members=true,
   )
-  let reordered_owner = @program_check.bind_effect_program_run_preview(
+  let reordered_owner = @effect_binding.bind_effect_program_run_preview(
     run_owner,
     invocation,
     1,
@@ -1150,10 +1176,10 @@ fn public_effect_mapping_closure(
     )
     is Err(PreviewWorkLimit),
   )
-  let duplicate_run = @program_check.bind_effect_program_static_run(
+  let duplicate_run = @effect_binding.bind_effect_program_static_run(
     static_candidate, run_admission, run_definition,
   ).unwrap()
-  let duplicate_preview = @program_check.bind_effect_program_run_preview(
+  let duplicate_preview = @effect_binding.bind_effect_program_run_preview(
     duplicate_run,
     invocation,
     1,
@@ -1168,13 +1194,13 @@ fn public_effect_mapping_closure(
     is Err(ForeignCandidate),
   )
   assert_true(
-    @program_check.check_effect_program_run_preview_footprints(
+    @effect_binding.check_effect_program_run_preview_footprints(
       bound_run_preview, 2, 2, 100,
     )
     is Ok(_),
   )
   assert_true(
-    @program_check.check_effect_program_run_preview_footprints(
+    @effect_binding.check_effect_program_run_preview_footprints(
       bound_run_preview, 2, 2, 2,
     )
     is Err(@effect.CapacityExceeded),
@@ -1189,7 +1215,7 @@ fn public_effect_mapping_closure(
     first_target_cid=Some(same_target),
     second_target_cid=Some(same_target),
   )
-  let overlapping_owner = @program_check.bind_effect_program_run_preview(
+  let overlapping_owner = @effect_binding.bind_effect_program_run_preview(
     run_owner,
     invocation,
     1,
@@ -1198,32 +1224,32 @@ fn public_effect_mapping_closure(
     public_effect_plan_limits(),
   ).unwrap()
   assert_true(
-    @program_check.check_effect_program_run_preview_footprints(
+    @effect_binding.check_effect_program_run_preview_footprints(
       overlapping_owner, 2, 2, 100,
     )
     is Err(@effect.OverlappingTarget),
   )
   assert_true(
-    @program_check.check_effect_program_run_preview_footprints(
+    @effect_binding.check_effect_program_run_preview_footprints(
       overlapping_owner, 2, 1, 100,
     )
     is Err(@effect.CapacityExceeded),
   )
   assert_true(
     physical_equal(
-      @program_check.effect_program_run_preview_identity(bound_run_preview),
+      @effect_binding.effect_program_run_preview_identity(bound_run_preview),
       run_preview,
     ),
   )
   assert_true(
     physical_equal(
-      @program_check.effect_program_run_preview_invocation(bound_run_preview),
+      @effect_binding.effect_program_run_preview_invocation(bound_run_preview),
       invocation,
     ),
   )
   assert_true(
     physical_equal(
-      @program_check.effect_program_run_preview_owner(bound_run_preview),
+      @effect_binding.effect_program_run_preview_owner(bound_run_preview),
       run_owner,
     ),
   )
@@ -1259,7 +1285,7 @@ fn public_effect_mapping_closure(
       ),
     )
     match
-      @program_check.bind_effect_program_run_preview(
+      @effect_binding.bind_effect_program_run_preview(
         run_owner,
         invocation,
         1,
@@ -1284,7 +1310,7 @@ fn public_effect_mapping_closure(
     8,
   ).unwrap()
   assert_true(
-    @program_check.bind_effect_program_run_preview(
+    @effect_binding.bind_effect_program_run_preview(
       run_owner,
       foreign_invocation,
       1,
@@ -1296,12 +1322,12 @@ fn public_effect_mapping_closure(
   )
   assert_true(
     physical_equal(
-      @program_check.effect_program_static_preview_candidate(bound),
+      @effect_binding.effect_program_static_preview_candidate(bound),
       static_candidate,
     ),
   )
   assert_true(
-    @program_check.bind_effect_program_static_preview(
+    @effect_binding.bind_effect_program_static_preview(
       static_candidate,
       1,
       public_effect_preview_for_static(
@@ -1315,7 +1341,7 @@ fn public_effect_mapping_closure(
     is Err(ForeignProgramDefinition),
   )
   assert_true(
-    @program_check.bind_effect_program_static_preview(
+    @effect_binding.bind_effect_program_static_preview(
       static_candidate,
       1,
       public_effect_preview_for_static(
@@ -1329,7 +1355,7 @@ fn public_effect_mapping_closure(
     is Err(ForeignProgramSemantics),
   )
   assert_true(
-    @program_check.bind_effect_program_static_preview(
+    @effect_binding.bind_effect_program_static_preview(
       static_candidate,
       1,
       public_effect_preview_for_static(
@@ -1343,7 +1369,7 @@ fn public_effect_mapping_closure(
     is Err(ForeignCheckEnvironment),
   )
   assert_true(
-    @program_check.bind_effect_program_static_preview(
+    @effect_binding.bind_effect_program_static_preview(
       static_candidate,
       1,
       public_effect_preview_for_static(
@@ -1356,7 +1382,7 @@ fn public_effect_mapping_closure(
     is Err(Inventory(@results.ForeignResolvedContract("first"))),
   )
   assert_true(
-    @program_check.bind_effect_program_static_preview(
+    @effect_binding.bind_effect_program_static_preview(
       static_candidate,
       0,
       preview,
@@ -1449,6 +1475,11 @@ fn public_effect_mapping_closure(
 ///|
 test "Effect computation candidate closes the exact Mapping environment" {
   public_effect_mapping_closure(false)
+}
+
+///|
+test "static Effect inventory closes without Run Invocation or Preview" {
+  public_effect_mapping_closure(false, static_only=true)
 }
 
 ///|

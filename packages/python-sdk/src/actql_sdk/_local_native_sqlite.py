@@ -5,6 +5,8 @@ Native owns one-shot acquisition, current and cleanup; Python retains slots.
 """
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind as bind_native
+
 from ctypes import POINTER, byref, c_int, c_int32, c_int64, c_uint16, c_void_p
 from typing import Any, NoReturn
 
@@ -26,29 +28,15 @@ class _OriginalSqliteFunctions:
     """Bind mandatory exports in the already selected same-provider component."""
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.prepare = library.actql_sqlite_prepare_utf16_into
-        self.prepare.argtypes = [c_void_p, c_void_p, POINTER(c_uint16), c_int32,
-                                 c_int64, c_int32, POINTER(c_void_p)]
-        self.current = library.actql_sqlite_current_into
-        self.close = library.actql_sqlite_close_into
-        for call in (self.current, self.close):
-            call.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
-        self.originals = library.actql_sqlite_originals_into
-        self.originals.argtypes = [c_void_p] + [POINTER(c_void_p)] * 3
-        self.drop = library.actql_sqlite_drop_reply
-        self.drop.argtypes = [POINTER(c_void_p), c_void_p, c_void_p, c_void_p]
-        self.finish = library.actql_sqlite_finish_closed_data
-        self.finish.argtypes = [POINTER(c_void_p)] * 4
-        self.refused = library.actql_sqlite_finish_refused_prepare
-        self.refused.argtypes = [POINTER(c_void_p)] * 3
-        for call in (self.prepare, self.current, self.close, self.originals,
-                     self.drop, self.finish, self.refused):
-            call.restype = c_int
-        self.operation = library.actql_sqlite_operation
-        self.issue = library.actql_sqlite_issue_family
-        for call in (self.operation, self.issue):
-            call.argtypes = [c_void_p]
-            call.restype = c_int32
+        self.prepare = bind_native(library, 'actql_sqlite_prepare_utf16_into')
+        self.current = bind_native(library, 'actql_sqlite_current_into')
+        self.close = bind_native(library, 'actql_sqlite_close_into')
+        self.originals = bind_native(library, 'actql_sqlite_originals_into')
+        self.drop = bind_native(library, 'actql_sqlite_drop_reply')
+        self.finish = bind_native(library, 'actql_sqlite_finish_closed_data')
+        self.refused = bind_native(library, 'actql_sqlite_finish_refused_prepare')
+        self.operation = bind_native(library, 'actql_sqlite_operation')
+        self.issue = bind_native(library, 'actql_sqlite_issue_family')
 
 
 class _OriginalSqliteCustody:
@@ -80,6 +68,7 @@ class _OriginalSqliteCustody:
                 or functions.library is not domain._functions.library
                 or domain._closed or domain._unknown is not None
                 or domain._sqlite_library_original is not None
+                or domain._parent_read_original is not None
                 or type(path) is not str or not 0 < len(path) <= 4096
                 or not path.startswith('/') or '\0' in path
                 or type(heap_bytes) is not int or not -(2**63) <= heap_bytes <= 2**63 - 1
@@ -108,7 +97,8 @@ class _OriginalSqliteCustody:
         domain._owner._enter()
         try:
             if (domain._closed or domain._unknown is not None
-                    or domain._sqlite_library_original is not None):
+                    or domain._sqlite_library_original is not None
+                    or domain._parent_read_original is not None):
                 raise ValueError('Original Native SQLite domain is unavailable')
             # Register only after entry, but before an actual foreign call can
             # publish a partial Library/reply. Keep it on every later failure.

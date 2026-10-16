@@ -113,7 +113,7 @@ export function buildClientHostWire(registry, protocol) {
     `export const validCheckOutcomeShape = value => ` +
     `valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;\n`;
   const requestRules = requestResponseRules(registry, schemas);
-  const {native, nativeTests} = nativeClientWire(schemas, rules, requestRules, {reason: protocol.artifact_schema_cids.check_reason,
+  const {native, nativeTests, nativeCheckOutcome} = nativeClientWire(schemas, rules, requestRules, {reason: protocol.artifact_schema_cids.check_reason,
     outcome: protocol.artifact_schema_cids.check_outcome}, reportRules);
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export declare const checkOutcomeProtocol: Readonly<{version: ${JSON.stringify(checkVersion)}; ` +
@@ -132,7 +132,7 @@ export function buildClientHostWire(registry, protocol) {
     `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n` +
     `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.fixes.items))};\n`;
   return {module: module + jsResponseRules(rules) +
-    jsRequestResponseRules(schemas, requestRules) + jsCheckReportRules(reportRules), types, native, nativeTests};
+    jsRequestResponseRules(schemas, requestRules) + jsCheckReportRules(reportRules), types, native, nativeTests, nativeCheckOutcome};
 }
 
 async function main() {

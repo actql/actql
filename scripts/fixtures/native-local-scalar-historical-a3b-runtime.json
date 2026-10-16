@@ -1,0 +1,83 @@
+{
+  "sourceSha": "a3b1643fbedc5180db38b6e08459a188f05b1135",
+  "platform": "darwin-arm64",
+  "libraries": [
+    {
+      "role": "sqlite",
+      "path": "lib/libsqlite3.dylib",
+      "bytes": 1268496,
+      "sha256": "c7406a3ef688914647c2bf05b6ac86282981c3484e18745b97e92e3c08939f1d",
+      "license": "licenses/sqlite3.h",
+      "dependencies": [
+        "/usr/lib/libz.1.dylib",
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "abi": {
+        "minimumMacOS": "26.0"
+      }
+    },
+    {
+      "role": "crypto",
+      "path": "lib/libcrypto.3.dylib",
+      "bytes": 4843248,
+      "sha256": "125a8de6bf7ab462a0f2f8f53358a9560555e94cd3331d4a6d41a95f1536b0a1",
+      "license": "licenses/openssl-LICENSE.txt",
+      "dependencies": [
+        "/usr/lib/libSystem.B.dylib"
+      ],
+      "abi": {
+        "minimumMacOS": "26.0"
+      }
+    }
+  ],
+  "assets": [
+    {
+      "role": "environment",
+      "path": "data/environment.json",
+      "bytes": 919,
+      "sha256": "e79109d982ad96e84d19d3d91b71cbec6f38511f94e80e62b5ad4573b5d7173c"
+    },
+    {
+      "role": "registry",
+      "path": "data/registry.json",
+      "bytes": 5585,
+      "sha256": "6ae574874934fcda0f8b0d7bf5f26b085a6c25fad25f5be319f4430ba9e66633"
+    },
+    {
+      "role": "values",
+      "path": "data/values.json",
+      "bytes": 9241,
+      "sha256": "8ff4a4f20578297eff9f7c40df8d32f4dd1e6d5ccbc9a24156b6ab533c292b53"
+    },
+    {
+      "role": "fragment",
+      "path": "data/fragment.json",
+      "bytes": 1621,
+      "sha256": "3da36b6da829dce7db05c15bbe00baa8abe3884a8b33e348c31d6ff55a1abacd"
+    },
+    {
+      "role": "ordered",
+      "path": "data/ordered.json",
+      "bytes": 21853,
+      "sha256": "dd5c69871006b36152fa87ffc5cbb21fb045d4ad29ef85e3a28e2b6508944343"
+    },
+    {
+      "role": "result-policy",
+      "path": "data/result-policy.json",
+      "bytes": 160,
+      "sha256": "470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
+    }
+  ],
+  "licenses": [
+    {
+      "path": "licenses/sqlite3.h",
+      "bytes": 671786,
+      "sha256": "6c8b9f648f36c84b0eeb3239b1e6f32b459d2c859d905ba5d59153c3569e6562"
+    },
+    {
+      "path": "licenses/openssl-LICENSE.txt",
+      "bytes": 10175,
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
+    }
+  ]
+}

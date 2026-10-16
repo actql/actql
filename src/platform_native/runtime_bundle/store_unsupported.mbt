@@ -2,6 +2,22 @@
 type NativeRuntimeBundleStore
 
 ///|
+pub fn NativeRuntimeBundleStore::current_sqlite_component_matches_heap(
+  _self : NativeRuntimeBundleStore,
+  _expected_heap_bytes : Int64,
+) -> Bool {
+  false
+}
+
+///|
+pub fn NativeRuntimeBundleStore::diagnostics_bounded_by(
+  _self : NativeRuntimeBundleStore,
+  _ceiling : Int,
+) -> Bool {
+  false
+}
+
+///|
 type NativeRuntimeBundleStoreOpenFailure
 
 ///|
@@ -227,7 +243,9 @@ pub fn NativeRuntimeBundleStore::verify_active_component_binding_with_body_limit
   _self : NativeRuntimeBundleStore,
   _binding : NativeActiveRuntimeBinding,
   _max_body_bytes : Int64,
+  json_limits? : @decode.Limits? = None,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  ignore(json_limits)
   Err(UnsupportedTarget)
 }
 

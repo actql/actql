@@ -36,6 +36,7 @@ const hostAdapters = [
   'adapters/host-node/installed-host-cleanup.mjs',
   'adapters/host-common/runtime-result.mjs',
   'adapters/host-common/owned-invocation-context.mjs',
+  'adapters/host-common/credential-scope-fields.generated.mjs',
 ];
 const hostContracts = [
   'spec/dependencies/aoa-pipeline-registry.json',

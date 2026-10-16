@@ -39,13 +39,8 @@ static int original_live_channel_current(actql_bootstrap_live_channel *record) {
         record->domain->view->view.mapping == NULL ||
         record->lease != (void *)((unsigned char *)record->domain->view->view.mapping +
             record->domain->view->view.payload_offset) ||
-        !record->lease->extent_domain || !record->lease->fd_backed ||
-        record->lease->domain_origin_pid != record->process ||
-        record->lease->generation != record->domain->view->view.extent.generation ||
-        record->lease->backing_device != record->domain->view->view.extent.device ||
-        record->lease->backing_inode != record->domain->view->view.extent.inode ||
-        record->lease->length != record->domain->view->view.payload_length ||
-        memcmp(record->lease->recipe, record->domain->view->view.extent.recipe, 32) != 0) {
+        actql_native_owned_domain_matches_view(record->lease,
+            &record->domain->view->view, (int64_t)record->process) != ACTQL_OWNED_OK) {
         record->status = ACTQL_OWNED_INVALID;
         return ACTQL_OWNED_INVALID;
     }
@@ -108,10 +103,8 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_bind_live_span(
         (uint64_t)offset > SIZE_MAX || (uint64_t)bytes > SIZE_MAX ||
         (uint64_t)offset > record->domain->view->view.payload_length ||
         (uint64_t)bytes > record->domain->view->view.payload_length - (size_t)offset ||
-        !record->lease->extent_domain || !record->lease->transferred ||
-        record->lease->domain_origin_pid != record->process ||
-        atomic_load_explicit(&record->lease->domain_borrower_pid, memory_order_acquire)
-            != (int)record->child)
+        actql_native_owned_domain_has_child(record->lease,
+            (int64_t)record->process, (int64_t)record->child) != ACTQL_OWNED_OK)
         return ACTQL_OWNED_INVALID;
     record->span_offset = (size_t)offset;
     record->span_bytes = (size_t)bytes;
@@ -123,10 +116,8 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_live_vm_current(
     actql_bootstrap_live_channel *record) {
     int status = original_live_channel_current(record);
     if (status != ACTQL_OWNED_OK) return status;
-    if (!record->bound || !record->lease->extent_domain || !record->lease->transferred ||
-        record->lease->domain_origin_pid != record->process ||
-        atomic_load_explicit(&record->lease->domain_borrower_pid, memory_order_acquire)
-            != (int)record->child)
+    if (!record->bound || actql_native_owned_domain_has_child(record->lease,
+            (int64_t)record->process, (int64_t)record->child) != ACTQL_OWNED_OK)
         return ACTQL_OWNED_BUSY;
     return ACTQL_OWNED_OK;
 }
@@ -138,11 +129,11 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_live_vm_current(
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_live_baseline_bytes(
     actql_bootstrap_live_channel *record, int32_t ordinal) {
     if (actql_bootstrap_live_vm_current(record) != ACTQL_OWNED_OK ||
-        record->span_bytes > INT64_MAX || record->lease->length > INT64_MAX ||
-        record->span_bytes == 0 || record->span_bytes >= record->lease->length)
+        record->span_bytes > INT64_MAX || record->domain->view->view.payload_length > INT64_MAX ||
+        record->span_bytes == 0 || record->span_bytes >= record->domain->view->view.payload_length)
         return -1;
     if (ordinal == 0) return (int64_t)record->span_bytes;
-    if (ordinal == 1) return (int64_t)(record->lease->length - record->span_bytes);
+    if (ordinal == 1) return (int64_t)(record->domain->view->view.payload_length - record->span_bytes);
     return -1;
 }
 

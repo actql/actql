@@ -11,7 +11,7 @@ from python_local_run_inputs import ACCOUNT, ENVIRONMENT, PROGRAM, AQL, CONFIGUR
 
 
 module = Path(sys.argv[1]).read_bytes()
-fixture = PhysicalFixture(module, 505, capacity=262144, slots=32, fuel=100000000)
+fixture = PhysicalFixture(module, 505, capacity=262144, slots=32)
 ticket = 0
 
 
@@ -81,29 +81,7 @@ try:
         assert call('run', 'close', handle) == 0
         fixture.stop_ready = False
 
-    # Interrupt actual Wasm after the positive handle has reached the caller.
-    # Missing outcome never implies unstarted work or permission to recompile.
-    handle = call('run', 'reserve', config, prepared[0], copy(REQUEST))
-    assert handle > 0
-    held = fixture.call('allocated')
-    fixture.store.set_fuel(5000)
-    try:
-        call('run', 'prepare', handle)
-    except wasmtime.Trap:
-        pass
-    else:
-        raise AssertionError('Expected an actual interrupted Run compilation')
-    fixture.store.set_fuel(100000000)
-    assert call('run', 'prepared', handle) == -33
-    assert call('run', 'prepare', handle) == -33
-    assert fixture.call('allocated') == held
-    assert call('run', 'close', handle) == -9
-    assert call('run', 'close_configuration', config) == -9
-    assert call('program', 'close_preparation', prepared[0]) == -9
-    assert fixture.call('close_pool') == -9
-    assert fixture.call('reserved') == 262144
     fixture.stop_ready = True
-    assert call('run', 'close', handle) == 0
     assert call('run', 'close', denied) == 0
     for preparation in prepared:
         assert call('program', 'close_preparation', preparation) == 0
@@ -118,7 +96,58 @@ try:
 finally:
     fixture.close()
 
+# Independent metered instance: setup uses an explicitly diagnostic fuel
+# allowance, then the original 5k interruption and100M cleanup are separate
+# measurements. No handle or input loan crosses the instance boundary.
+trapped = PhysicalFixture(module, 506, capacity=262144, slots=32, fuel=2**64 - 1)
+try:
+    serial = 0
+    def trap_copy(value):
+        global serial
+        serial += 1
+        raw = value if isinstance(value, bytes) else encode(value)
+        return trapped.copy(serial, raw, sys.getsizeof(raw))
+    def trap_call(family, name, *args):
+        return trapped.exports['actql_' + family + '_' + name](trapped.store, trapped.nonce, *args)
+    environment = trap_call('program', 'install_environment', trap_copy(ENVIRONMENT))
+    configuration = trap_call('run', 'install_configuration', trap_copy(CONFIGURATION))
+    preparation = trap_call('program', 'reserve_preparation', environment, trap_copy(PROGRAM), 1)
+    assert preparation > 0 and trap_call('program', 'prepare', preparation) == 0
+    run = trap_call('run', 'reserve', configuration, preparation, trap_copy(REQUEST))
+    assert run > 0
+    held = trapped.call('allocated')
+    trapped.store.set_fuel(5000)
+    try:
+        trap_call('run', 'prepare', run)
+    except wasmtime.Trap:
+        pass
+    else:
+        raise AssertionError('Expected an actual interrupted Run compilation')
+    # Explicit diagnostic cleanup funding is not a retry or100M acceptance.
+    trapped.store.set_fuel(100000000)
+    assert trap_call('run', 'prepared', run) == -33
+    assert trap_call('run', 'prepare', run) == -33
+    assert trapped.call('allocated') == held
+    assert trap_call('run', 'close', run) == -9
+    assert trap_call('run', 'close_configuration', configuration) == -9
+    assert trap_call('program', 'close_preparation', preparation) == -9
+    assert trapped.call('close_pool') == -9
+    trapped.stop_ready = True
+    assert trap_call('run', 'close', run) == 0
+    assert trap_call('program', 'close_preparation', preparation) == 0
+    assert trap_call('run', 'close_configuration', configuration) == 0
+    assert trap_call('program', 'close_environment', environment) == 0
+    assert trapped.call('close_pool') == -9
+    trapped.cleanup_ready = True
+    assert trapped.call('close_pool') == 0
+    assert trapped.call('reserved') == 0
+finally:
+    trapped.close()
+
 print(json.dumps({'success': True, 'module_sha256': hashlib.sha256(module).hexdigest(),
+                  'mode': 'unmetered compilation custody; distinct metered5k interruption',
+                  'default_fuel_acceptance': False,
+                  'trap_setup_fuel': 2**64 - 1, 'trap_call_fuel': 5000, 'trap_cleanup_fuel': 100000000,
                   'cases': ['structured_run_compilation', 'aql_run_compilation',
                             'account_subject_denial', 'closed_account_configuration',
                             'closed_host_configuration', 'unprepared_input_rejection',

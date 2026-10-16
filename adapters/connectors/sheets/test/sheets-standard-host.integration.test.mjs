@@ -5,6 +5,10 @@ import {connectEmbeddedLocal, openInstalledRemoteHttpHost,
 import {fixtureCertificates, openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
 import {registerSheetsAcceptance} from './sheets-public-acceptance.fixture.mjs';
 import {fileURLToPath} from 'node:url';
+// The existing Sheets gate owns the pure declaration/recovery regressions too.
+// Packed acceptance continues to import only its portable public fixtures.
+import './sheets-range-command.test.mjs';
+import '../../../host-common/captured-effect-dependency-schemas.test.mjs';
 
 await registerSheetsAcceptance({connect, connectEmbeddedLocal,
   openInstalledRemoteHttpHost, publishInstalledSource, publishInstalledEffect,

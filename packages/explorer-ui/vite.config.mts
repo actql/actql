@@ -11,7 +11,9 @@ export default defineConfig({root: fileURLToPath(new URL('.', import.meta.url)),
     name: 'actql-layout-worker-sources', generateBundle() {
       for (const fileName of ['flow-layout.mjs', 'flow-layout-engine.mjs',
         'flow-layout-worker.mjs', 'presentation-limits.mjs']) {
-        this.emitFile({type: 'asset', fileName, source: readFileSync(new URL(fileName, import.meta.url))});
+        this.emitFile({type: 'asset', fileName,
+          originalFileName: fileURLToPath(new URL(fileName, import.meta.url)),
+          source: readFileSync(new URL(fileName, import.meta.url))});
       }
     },
   }],

@@ -61,7 +61,7 @@ pub fn verified_model_capture_call_at(
     prepared.call is Some(call) &&
     prepared.request.slot == slot &&
     prepared.request.slot_cid == @publication.run_evidence_value_identity(call) &&
-    state.outcomes.get(slot) is Some(_) else {
+    model_outcome_at(state, slot) is Some(_) else {
     return None
   }
   Some(call)
@@ -77,7 +77,7 @@ pub fn bind_verified_model_slot_capture(
   record : @publication.RunEvidenceValue,
 ) -> Result[@publication.BoundModelSlotCapture, ModelExecutionIssue] {
   guard verified_model_capture_call_at(capture, slot) is Some(call) &&
-    capture.owner.state.outcomes.get(slot) is Some(outcome) else {
+    model_outcome_at(capture.owner.state, slot) is Some(outcome) else {
     return Err(OutputIdentity)
   }
   let binding = match @publication.bind_model_slot_capture(call, record) {
@@ -269,8 +269,8 @@ fn advance_model_capture_replay(
   let request = prepared.request
   guard !prior.reclaimed &&
     prior.accepted &&
-    prior.requests.get(state.next_slot) is Some(prior_request) &&
-    prior.outcomes.get(state.next_slot) is Some(outcome) else {
+    prior.requests.get(state.progress.slot) is Some(prior_request) &&
+    model_outcome_at(prior, state.progress.slot) is Some(outcome) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   if prior_request.request.slot_cid != request.slot_cid ||
@@ -294,11 +294,11 @@ fn advance_model_capture_replay(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   state.captures.push(saved)
-  state.outcomes.push(Success(state.responses.length()))
+  adopt_model_outcome(state, Success(state.responses.length()))
   state.responses.push(response)
   state.invocation_evidence.push(evidence)
-  state.next_slot += 1
-  if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
+  state.progress.slot += 1
+  if state.progress.slot == @relation.prepared_infer_rows_count(state.rows) {
     @bounded.Complete(
       {
         task_cid: @environment.model_task_identity(state.task).2,

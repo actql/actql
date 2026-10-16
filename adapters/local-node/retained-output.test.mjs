@@ -246,8 +246,14 @@ test('physical Local output recovery releases Site holdings and permits full cap
       stop() {}, closeOutputs() {}, output: () => undefined,
       usage: () => ({}), explain: () => ({}),
     };
-    const report = await runInstalledStrategy({}, core, [f.entry], undefined,
-      undefined, prepareExecutionSitePolicy({sites: [site]}));
+    const report = await runInstalledStrategy({
+      setup: {},
+      runtime: {
+        core,
+        contributions: [f.entry],
+        sitePolicy: prepareExecutionSitePolicy({sites: [site]}),
+      },
+    });
     assert.equal(report.status, 'host-tasks-completed', report.failure?.stack);
     assert.equal(executionSiteStatus(site).holdings, 1);
     assert.equal(executionSiteStatus(site).heldBytes, 100n);

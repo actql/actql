@@ -6,6 +6,8 @@ This is not yet connected to ordinary Local factory or Wasmtime image use.
 """
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind as bind_native
+
 from ctypes import POINTER, byref, c_int, c_int32, c_void_p
 from dataclasses import dataclass
 from os import getpid
@@ -41,26 +43,13 @@ class _OriginalControlFunctions:
 
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.originals = library.actql_control_originals_into
-        self.originals.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p)]
-        self.originals.restype = c_int
-        self.current = library.actql_control_current_into
-        self.current.argtypes = [c_void_p, POINTER(c_void_p)]
-        self.current.restype = c_int
-        self.acquire_fd = library.actql_control_acquire_fd_into
-        self.acquire_fd.argtypes = [c_void_p, c_int32, POINTER(c_void_p)]
-        self.acquire_fd.restype = c_int
-        self.close = library.actql_control_try_close_and_drop
-        self.close.argtypes = [POINTER(c_void_p), POINTER(c_void_p)]
-        self.close.restype = c_int
-        self.drop = library.actql_control_drop_reply
-        self.drop.argtypes = [POINTER(c_void_p), c_void_p]
-        self.drop.restype = c_int
-        self.operation = library.actql_control_operation
-        self.issue = library.actql_control_issue_family
-        for function in (self.operation, self.issue):
-            function.argtypes = [c_void_p]
-            function.restype = c_int32
+        self.originals = bind_native(library, 'actql_control_originals_into')
+        self.current = bind_native(library, 'actql_control_current_into')
+        self.acquire_fd = bind_native(library, 'actql_control_acquire_fd_into')
+        self.close = bind_native(library, 'actql_control_try_close_and_drop')
+        self.drop = bind_native(library, 'actql_control_drop_reply')
+        self.operation = bind_native(library, 'actql_control_operation')
+        self.issue = bind_native(library, 'actql_control_issue_family')
 
 
 class _OriginalControlCustody:

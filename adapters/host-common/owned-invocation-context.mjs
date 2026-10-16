@@ -1,3 +1,4 @@
+import {credentialInvocationBindingKeys as bindingKeys} from './credential-scope-fields.generated.mjs';
 import {ownHttpRequest, ownResponseHeaderNames} from './http-exchange.mjs';
 
 const fail = () => {
@@ -5,13 +6,6 @@ const fail = () => {
     code: 'InvalidOwnedInvocationContext',
   });
 };
-
-const bindingKeys = Object.freeze([
-  'issuerAuthority', 'principal', 'namespaceId', 'environment',
-  'siteKey', 'siteGeneration', 'runtimeBundleCid',
-  'connectorRegistration', 'connectorRevision', 'resourceOrigin',
-  'runInvocationCid', 'taskAttempt', 'dispatchRequestCid',
-]);
 
 const primitive = value => value === null || value === undefined ||
   ['string', 'number', 'boolean', 'bigint'].includes(typeof value);

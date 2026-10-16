@@ -40,22 +40,22 @@ pub fn prepare_client_effect_captured_run(
     return Err(Encoding)
   }
   let checked_preview = @strategy.captured_effect_preview_owner(preview)
-  let run = @checked.effect_program_run_preview_owner(checked_preview)
+  let run = @effect_binding.effect_program_run_preview_owner(checked_preview)
   if !@strategy.captured_effect_preview_inputs_available(preview) ||
     !@strategy.captured_effect_inputs_match_computation(
       inputs,
       materials.prepared.graph,
     ) ||
     !physical_equal(
-      @checked.effect_program_run_static_candidate(run),
+      @effect_binding.effect_program_run_static_candidate(run),
       materials.prepared.candidate,
     ) ||
     @publication.publication_contract_identity(
-      @checked.effect_program_run_definition(run),
+      @effect_binding.effect_program_run_definition(run),
     ) !=
     @publication.publication_contract_identity(materials.run_definition) ||
     @publication.publication_contract_identity(
-      @checked.effect_program_run_preview_invocation(checked_preview),
+      @effect_binding.effect_program_run_preview_invocation(checked_preview),
     ) !=
     @publication.publication_contract_identity(invocation) ||
     @strategy.captured_effect_inputs_run_definition_cid(inputs) !=

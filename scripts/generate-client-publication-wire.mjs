@@ -1,3 +1,4 @@
+import {finiteWireNumberSource} from './client-wire-scalar-rules.mjs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join, resolve} from 'node:path';
@@ -94,7 +95,9 @@ export function typeOf(schema) {
 }
 
 export function structuralValidatorSource({extended = false} = {}) {
-  return `function valid(value, schema) {\n` +
+  return finiteWireNumberSource('js') + `function valid(value, schema) {\n` +
+`  if (typeof value === 'number' && !finiteWireNumber(value)) return false;\n` +
+`  if (typeof value === 'string' && !value.isWellFormed()) return false;\n` +
     (extended ?
 `  if (schema.anyOf && !schema.anyOf.some(rule => valid(value, rule))) return false;\n` +
 `  if (schema.if && !valid(value, schema.if) && schema.else && !valid(value, schema.else)) return false;\n` +
@@ -117,7 +120,7 @@ export function structuralValidatorSource({extended = false} = {}) {
 `        (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))\n` +
 `    return false;\n` +
 `  if (schema.type === 'string') return typeof value === 'string';\n` +
-`  if (schema.type === 'number') return typeof value === 'number' && Number.isFinite(value) && !Object.is(value, -0);\n` +
+`  if (schema.type === 'number') return typeof value === 'number';\n` +
 `  if (schema.type === 'integer') return Number.isSafeInteger(value) &&\n` +
 `    (schema.minimum === undefined || value >= schema.minimum) &&\n` +
 `    (schema.maximum === undefined || value <= schema.maximum);\n` +

@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/interface_action_probe"
+
+// Values
+pub fn action_codes() -> Array[Array[String]]
+
+pub fn holding_confirmed_close() -> Int
+
+pub fn holding_pending_close() -> Int
+
+pub fn publication_commit_unknown() -> Int
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

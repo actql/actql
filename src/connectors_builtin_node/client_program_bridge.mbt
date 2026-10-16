@@ -4906,7 +4906,7 @@ pub fn client_program_effect_preview_input_limits(
 ///|
 pub(all) enum ClientEffectPreviewInputIssue {
   Identity(@publication.EffectPreviewIdentityIssue)
-  Binding(@program_check.EffectProgramRunPreviewIssue)
+  Binding(@effect_binding.EffectProgramRunPreviewIssue)
   Footprint(@effect.EffectFootprintIssue)
   Captured(@strategy.RunIssue)
 }
@@ -4929,7 +4929,7 @@ pub fn client_program_bind_effect_preview_inputs(
 ] {
   let owner = @strategy.captured_effect_run_owner(host.run)
   let run_cid = @publication.publication_contract_identity(
-    @program_check.effect_program_run_definition(owner),
+    @effect_binding.effect_program_run_definition(owner),
   )
   let preview = match
     @publication.admit_effect_preview_identity(
@@ -4944,7 +4944,7 @@ pub fn client_program_bind_effect_preview_inputs(
     Err(issue) => return Err(Identity(issue))
   }
   let bound = match
-    @program_check.bind_effect_program_run_preview(
+    @effect_binding.bind_effect_program_run_preview(
       owner,
       invocation,
       stage_index,
@@ -4962,7 +4962,7 @@ pub fn client_program_bind_effect_preview_inputs(
     Err(issue) => return Err(Binding(issue))
   }
   match
-    @program_check.check_effect_program_run_preview_footprints(
+    @effect_binding.check_effect_program_run_preview_footprints(
       bound,
       limits.max_footprint_members,
       limits.max_footprint_targets,

@@ -154,3 +154,7 @@ export const finiteConformanceModules = [...conformanceModules,
 // fixture, reference Connector or test-only original Run issuer.
 export const finiteRuntimeModules = [...hostModules,
   'adapters/workers/finite-runtime.mjs'];
+
+// The ordinary builder and source inventory share the authored entry. This
+// does not replace the reviewed module policy or emitted-artifact checks.
+export const finiteRuntimeEntry = 'adapters/workers/finite-runtime.mjs';

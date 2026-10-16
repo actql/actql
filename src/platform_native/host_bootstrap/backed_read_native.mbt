@@ -281,3 +281,24 @@ pub fn[T, C] NativeHostBootstrap::close_backed_read_context(
   }
   Ok(())
 }
+
+///|
+/// Identity-only cleanup observation on this original parent context. A
+/// logical stop, missing context, or child-process exit supplies no such ACK.
+/// Physical close may already be confirmed while Common use return is pending.
+pub fn[T, C] NativeHostBootstrap::require_backed_read_context_retired(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_domain_carrier(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if domain.read_attempted && domain.read_retired {
+    Ok(())
+  } else {
+    Err(Bootstrap(ReadersPending))
+  }
+}

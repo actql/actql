@@ -132,6 +132,7 @@ void *actql_native_sqlite_load_current_component(
     return library; /* Another original binding/entry cannot be cleaned up here. */
   library->component_owned = true; /* Includes our SAME failed initialization. */
   if (status != ACTQL_SQLITE_COMPONENT_OK) return library;
+  library->selected_heap_bytes = heap_bytes;
   library->selected_api = borrow_api();
   if (!actql_component_api_original(library->selected_api, origin.dli_fbase)) return library;
   const actql_sqlite_component_api *api = library->selected_api;

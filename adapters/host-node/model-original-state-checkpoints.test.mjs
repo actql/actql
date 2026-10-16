@@ -81,6 +81,91 @@ function wireFor(definition, binding, changes = {}) {
     ...changes.origin}});
 }
 
+async function savedObservationFixture(t) {
+  const f = await fixture(t), port = await f.open();
+  const binding = await port.observeModelOriginalStorageBinding();
+  const prepared = preparedOriginals.get(f.definition);
+  const identity = {runId: 'original', runDefinitionCid: f.definition.identity,
+    preparedInvocationCid: prepared, scopeCid: cid('8'), inputArtifactCid: cid('7'),
+    providerBindingCid: cid('6'), taskIndex: 0, strategyRevision: 0};
+  const save = async runVersion => {
+    const state = structuredClone(resource.resource_state); state[7][6] = 'parked';
+    const cut = {scope_cid: identity.scopeCid, input_artifact_cid: identity.inputArtifactCid,
+      fixed_input_receipt_cid: cid('5'), run_version: runVersion, continuation: null, slots: []};
+    const bodyWire = wireFor(f.definition, binding, {resource_state: state,
+      resource_state_cid: digest(canonicalText(state)), resource_phase: 'parked', cut,
+      origin: {prepared_invocation_cid: prepared}});
+    const receipt = await port.retainOriginalModelState({runDefinition: f.definition,
+      storageBinding: binding, bodyWire});
+    const args = {runDefinition: f.definition, storageBinding: binding, receipt, identity};
+    const observation = await port.confirmOriginalModelStateSaved(args);
+    return {observation, bodyWire, args};
+  };
+  return {...f, port, binding, save};
+}
+
+test('original saved observation retirement cuts nominal facts without deleting saved bytes', async t => {
+  const f = await savedObservationFixture(t), saved = await f.save(1);
+  const facts = f.port.originalModelStateSavedFacts(saved.observation);
+  assert.equal(facts.documentWire, saved.bodyWire);
+  assert.strictEqual(await f.port.confirmOriginalModelStateSaved(saved.args), saved.observation);
+  assert.equal(f.port.retireOriginalModelStateSavedObservation(saved.observation), undefined);
+  assert.equal(f.port.retireOriginalModelStateSavedObservation(saved.observation), undefined);
+  for (const read of ['originalModelStateSavedFacts', 'originalModelStateSavedObservationCurrent']) {
+    assert.throws(() => f.port[read](saved.observation), {code: 'OriginalModelStateSavedObservationRetired'});
+  }
+  // Actual encrypted custody is independent of retiring this in-memory view.
+  assert.equal((await f.port.readOriginalModelState(saved.args)).wire, saved.bodyWire);
+  const fresh = await f.port.confirmOriginalModelStateSaved(saved.args);
+  assert.notStrictEqual(fresh, saved.observation);
+  assert.deepEqual(f.port.originalModelStateSavedFacts(fresh), facts);
+  assert.strictEqual(await f.port.confirmOriginalModelStateSaved(saved.args), fresh);
+  assert.throws(() => f.port.originalModelStateSavedFacts(saved.observation),
+    {code: 'OriginalModelStateSavedObservationRetired'});
+  f.port.retireOriginalModelStateSavedObservation(fresh);
+});
+
+test('original saved observation retirement refuses foreign handles and preserves another holding', async t => {
+  const f = await savedObservationFixture(t), first = await f.save(1), second = await f.save(2);
+  const other = await f.open();
+  assert.notStrictEqual(first.observation, second.observation);
+  for (const foreign of [undefined, true, first.args.receipt.cid, {...first.observation},
+    f.port.originalModelStateSavedFacts(first.observation)]) {
+    assert.throws(() => f.port.retireOriginalModelStateSavedObservation(foreign),
+      {code: 'ForeignOriginalModelStateSavedObservation'});
+  }
+  assert.throws(() => other.retireOriginalModelStateSavedObservation(first.observation),
+    {code: 'ForeignOriginalModelStateSavedObservation'});
+  f.port.retireOriginalModelStateSavedObservation(first.observation);
+  assert.strictEqual(f.port.originalModelStateSavedObservationCurrent(second.observation), second.observation);
+  assert.strictEqual(await f.port.confirmOriginalModelStateSaved(second.args), second.observation);
+  // Repeating old retirement cannot erase a later observation for that CID.
+  const freshFirst = await f.port.confirmOriginalModelStateSaved(first.args);
+  f.port.retireOriginalModelStateSavedObservation(first.observation);
+  assert.strictEqual(f.port.originalModelStateSavedObservationCurrent(freshFirst), freshFirst);
+  assert.equal(f.port.originalModelStateSavedFacts(second.observation).cut.run_version, 2);
+  f.port.retireOriginalModelStateSavedObservation(second.observation);
+  f.port.retireOriginalModelStateSavedObservation(freshFirst);
+});
+
+test('original saved observation retirement remains cleanup-only after stop and close', async t => {
+  const f = await savedObservationFixture(t), saved = await f.save(1);
+  await f.port.stop();
+  assert.throws(() => f.port.originalModelStateSavedFacts(saved.observation),
+    {code: 'OriginalModelStateHostStopped'});
+  assert.equal(f.port.retireOriginalModelStateSavedObservation(saved.observation), undefined);
+  await f.close(f.port);
+  assert.equal(f.port.retireOriginalModelStateSavedObservation(saved.observation), undefined);
+  const reopened = await f.open(), binding = await reopened.observeModelOriginalStorageBinding();
+  assert.notStrictEqual(binding, f.binding);
+  assert.throws(() => reopened.retireOriginalModelStateSavedObservation(saved.observation),
+    {code: 'ForeignOriginalModelStateSavedObservation'});
+  const args = {...saved.args, storageBinding: binding};
+  const fresh = await reopened.confirmOriginalModelStateSaved(args);
+  assert.equal(reopened.originalModelStateSavedFacts(fresh).documentWire, saved.bodyWire);
+  reopened.retireOriginalModelStateSavedObservation(fresh);
+});
+
 test('original origin bridge uses compiled and Store evidence token domains and refuses missing layout', async t => {
   const f = await fixture(t), port = await f.open();
   const {compiled, graph} = checkedOriginals.get(f.definition);
