@@ -76,13 +76,13 @@ export function prepareOwnedGcsMultipartUpload({moon, binding, before, contentBy
     overwrite === undefined ? 'absent' : overwrite ? 'true' : 'false', marker));
   const request = Object.freeze(JSON.parse(gcsUploadResult(moon,
     moon.gcsUploadProjection(binding, handle, maxProjectionBytes))));
-  originals.set(request, Object.freeze({kind: 'request', moon, binding, handle}));
+  originals.set(request, Object.freeze({moon, binding, handle}));
   return request;
 }
 
 function original(request, binding) {
   const owner = originals.get(request);
-  if (owner?.kind !== 'request') fail('ForeignGcsUploadRequest');
+  if (owner === undefined) fail('ForeignGcsUploadRequest');
   if (binding !== undefined && binding !== owner.binding) fail('GcsForeignUploadBinding');
   return owner;
 }
@@ -108,7 +108,7 @@ export function ownedGcsUploadResponseMatches(request, metadata, binding) {
 // A lost response throws the same failure; there is no catch/retry or re-read.
 export async function sendOwnedGcsUpload({request, authorization, credential,
   callResource, maxRequestBytes, maxResponseBytes, signal}) {
-  const owner = original(request);
+  original(request);
   if (!integer(maxRequestBytes) || !integer(maxResponseBytes) ||
       request.body_byte_length > maxRequestBytes) fail('GcsInvalidUploadTransportLimits');
   if (authorization?.scope?.resourceOrigin !== request.origin ||
@@ -120,29 +120,23 @@ export async function sendOwnedGcsUpload({request, authorization, credential,
     headers: [['accept', 'application/json']],
     responseHeaders: ['x-goog-generation', 'x-goog-metageneration'],
     maxRequestBytes, maxResponseBytes, signal});
-  const physical = Object.freeze({observation: Object.freeze({useCid: response.useCid,
+  return Object.freeze({observation: Object.freeze({useCid: response.useCid,
     accepted: response.accepted, statusCode: response.statusCode, body: response.body}),
     headers: response.headers});
-  // Retain the actual physical response, not a same-DATA replacement or a
-  // metadata GET. This alias does not acknowledge its cleanup or settle a claim.
-  originals.set(physical, Object.freeze({kind: 'response', owner, request, response}));
-  return physical;
 }
 
-// Called by the existing Effect capture/claim Owner for this exact direct
-// response. A later metadata read cannot be relabelled as a failed dispatch.
-export function projectOwnedGcsUploadResponse(request, physical, maxProjectionBytes) {
-  const owner = original(request), response = originals.get(physical);
-  if (response?.kind !== 'response' || response.owner !== owner || response.request !== request) {
-    fail('ForeignGcsUploadResponse');
-  }
+// The existing Effect Ledger authenticates the exact original direct response
+// before this projection, including saved-response recovery. Observation DATA
+// alone is not that proof. A later metadata GET uses responseMatches instead;
+// its failure cannot be relabelled as a failed dispatch.
+export function projectOwnedGcsUploadResponse(request, observation, maxProjectionBytes) {
+  const owner = original(request);
   if (!integer(maxProjectionBytes)) fail('GcsInvalidUploadTransportLimits');
-  const status = physical.observation.statusCode;
-  if (!Number.isInteger(status) || status < 100 || status > 599 ||
-      physical.observation.accepted !== (status >= 200 && status < 300)) {
+  const status = observation?.statusCode;
+  if (!Number.isInteger(status) || status < 100 || status > 599) {
     fail('GcsInvalidUploadResponse');
   }
   return Object.freeze(JSON.parse(gcsUploadResult(owner.moon,
     owner.moon.gcsUploadResponseProjection(owner.binding, owner.handle,
-      status, bytes(physical.observation.body), maxProjectionBytes))));
+      status, bytes(observation.body), maxProjectionBytes))));
 }
