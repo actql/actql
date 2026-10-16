@@ -131,6 +131,42 @@ test('bounded original healthy close retains existing bytes and single acknowled
   healthy.scratch.passed();
 });
 
+for (const field of ['cleanupHandle', 'cleanupPending']) {
+  test(`bounded original inherited ${field} setter cannot discard same-FD custody`, async t => {
+    let intercepted = 0;
+    class OriginalReadFailure extends Error {}
+    Object.defineProperty(OriginalReadFailure.prototype, field, {
+      get() { return field === 'cleanupPending' ? false : undefined; },
+      set(_value) { intercepted++; },
+    });
+    const primary = new OriginalReadFailure('original metadata read');
+    const f = await fixture(t, {primary, outcomes: ['reject', 'false']});
+    let failure;
+    await assert.rejects(f.read(), error => {
+      failure = error;
+      assert.equal(error, primary, 'safe extensible Error retains identity');
+      assert.equal(error.cleanupPending, true);
+      assert.equal(typeof error.cleanupHandle?.retry, 'function');
+      return true;
+    });
+    assert.equal(intercepted, 0, 'diagnostic transfer does not call an inherited setter');
+    assert(Object.hasOwn(primary, 'cleanupHandle'));
+    assert(Object.hasOwn(primary, 'cleanupPending'));
+    const cleanup = failure.cleanupHandle;
+    const first = cleanup.retry();
+    assert.equal(cleanup.retry(), first);
+    await assert.rejects(first, {code: 'PublicationMetadataReaderCleanupPending'});
+    assert.equal(cleanup.status().pending, true);
+    assert(f.fd() >= 0);
+    await cleanup.retry();
+    assert.equal(f.fd(), -1);
+    assert.deepEqual(f.counts(), {opens: 1, reads: 1, closes: 3, retired: 1, returned: 0});
+    await cleanup.retry();
+    assert.equal(f.counts().closes, 3);
+    f.scratch.passed();
+  });
+}
+
 test('bounded original pre-acquisition failure keeps its identity and has no FD duty', async t => {
   const primary = Object.freeze(new Error('original open refusal'));
   const unopened = await fixture(t, {openFailure: primary});
