@@ -8,6 +8,8 @@ import {
 // Values
 pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String
 
+pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]
+
 pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> String
 
 pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String

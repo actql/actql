@@ -1,6 +1,7 @@
 // Provider handles own request/catalog/recovery meaning. These callbacks only
 // transport values between the installed common Effect and Sheets authorities.
 import {canonicalJson as valueJson} from '../../../../packages/sdk/host-port.mjs';
+import {canonicalJson as configurationJson} from '../../../host-node/local-account-config.mjs';
 import {prepareSheetsUpdate, projectSheetsUpdate, sendSheetsUpdate, SHEETS_UPDATE_OPERATION,
   SHEETS_LIMITS} from '../site/sheets-exchange.mjs';
 import {sheetsOwnedResult, projectOwnedSheetsRequest,
@@ -23,9 +24,9 @@ export function withSheetsRangeCommand(declared, rangeCommand, moon) {
 }
 
 export function sheetsRangeReference({site, catalogCid, bindingCid, moon}) {
-  // Preserve the existing value codec's representability refusal before the
+  // Preserve the original configuration codec's refusal before the
   // scalar Int ABI can erase negative zero or another invalid JS number.
-  const range = JSON.parse(wire(site.gridRange));
+  const range = JSON.parse(configurationJson(site.gridRange));
   return Object.freeze(JSON.parse(sheetsOwnedResult(moon,
     moon.sheetsRangeReferenceJson(site.apiOrigin, site.spreadsheetId,
       range.sheetId, range.startRow, range.endRow, range.startColumn, range.endColumn,
