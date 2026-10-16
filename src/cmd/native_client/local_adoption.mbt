@@ -388,6 +388,8 @@ fn execute_native_local_adoption(
       )
     } else if operation == "lookup-submission" {
       local_submission_lookup(host, settings, crypto, input_root, child)
+    } else if operation == "lookup-request" {
+      local_request_lookup(host, settings, crypto, child)
     } else if operation == "checkpoint-state" {
       local_checkpoint_metadata_lookup(
         host, settings, crypto, input_root, child,
@@ -515,6 +517,50 @@ fn local_submission_lookup(
   input_root : String,
   child : @argparse.Matches,
 ) -> String raise ClientStop {
+  local_submission_lookup_selected(host, settings, crypto, () => {
+    @local_host.admit_native_client_submission_reference(
+      text_file(input_root, required(child, "submission-ref-file"), 4096L),
+    ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
+  })
+}
+
+///|
+fn local_request_lookup(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let scope = local_host_result(
+    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+  )
+  let reply = local_submission_lookup_selected(host, settings, crypto, () => {
+    let reference = host
+      .lookup_submission_reference_by_request_id(
+        crypto,
+        settings.principal,
+        settings.connection,
+        required(child, "request-id"),
+        @env.now().to_double(),
+      )
+      .unwrap_or_else(() => stop("LocalRequestLookupUnavailable"))
+    reference.unwrap_or_else(() => stop("LocalRequestHistoryUnavailable"))
+  })
+  // The shared lookup advances the clock and reads the journal again. Preserve
+  // the selector's current RunRead requirement through that final read as well.
+  if !local_run_operation_allowed(host, settings, crypto, scope, "read") {
+    stop("LocalRequestReadAuthorizationDenied")
+  }
+  reply
+}
+
+///|
+fn local_submission_lookup_selected(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  select_reference : () -> @local_host.NativeClientSubmissionReference raise ClientStop,
+) -> String raise ClientStop {
   guard host.authorize({
       principal: settings.principal,
       connection: settings.connection,
@@ -524,9 +570,7 @@ fn local_submission_lookup(
     is Ok(Allow(_)) else {
     stop("LocalSubmissionAuthorizationDenied")
   }
-  let reference = @local_host.admit_native_client_submission_reference(
-    text_file(input_root, required(child, "submission-ref-file"), 4096L),
-  ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
+  let reference = select_reference()
   let scope = local_host_result(
     host.authority_scope_cid(settings.principal, settings.connection, crypto),
   )
