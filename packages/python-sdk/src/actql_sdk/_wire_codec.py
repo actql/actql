@@ -13,6 +13,20 @@ def utf16_length(text):
     return len(text.encode('utf-16-le', 'strict')) // 2
 
 
+def _finite_number(value):
+    try:
+        return math.isfinite(value) and not (value == 0 and math.copysign(1, value) < 0)
+    except OverflowError:
+        return False
+
+
+def _pattern_matches(pattern, value):
+    if pattern == "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$":
+        return (value != '' and value != '__cid' and not value.startswith('__actql_') and '.' not in value
+                and any(ord(character) not in (9,10,11,12,13,32,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288,65279,) for character in value))
+    return re.search(pattern, value, re.ASCII) is not None
+
+
 def _equal(left, right):
     # Python bool is an int subclass; JSON constants never conflate them.
     if type(left) is bool or type(right) is bool:
@@ -38,7 +52,7 @@ def valid(value, schema):
     if 'enum' in schema and not any(_equal(value, item) for item in schema['enum']):
         return False
     if type(value) in (int, float):
-        if not math.isfinite(value) or value == 0 and math.copysign(1, value) < 0:
+        if not _finite_number(value):
             return False
         if value < schema.get('minimum', -math.inf) or value > schema.get('maximum', math.inf):
             return False
@@ -49,7 +63,7 @@ def valid(value, schema):
             return False
         if len(value) < schema.get('minLength', 0) or length > schema.get('maxLength', math.inf):
             return False
-        if 'pattern' in schema and re.search(schema['pattern'], value, re.ASCII) is None:
+        if 'pattern' in schema and not _pattern_matches(schema['pattern'], value):
             return False
     kind = schema.get('type')
     if kind == 'string':
@@ -96,8 +110,11 @@ def negotiated(value, schema, selected):
 
 def correlated(value, schema, request_id):
     rules = CONTRACT['request_response_rules'][schema]
-    return (any(valid(value, name) for name in rules['schemas'])
-            and value.get(rules['matchRequest']) == request_id)
+    field = rules['matchRequest']
+    if not valid(request_id, SCHEMAS[rules['expectedSchema']]['properties'][field]):
+        return False
+    return any(valid(value, name) and (field not in SCHEMAS[name]['properties'] or value[field] == request_id)
+               for name in rules['schemas'])
 
 
 def check_outcome(value):
