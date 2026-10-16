@@ -44,7 +44,10 @@ export async function observeHubSpotAccount({moon, originalPortalId,
   signal?.throwIfAborted();
   const response = await invokeScopedCredentialOperation({
     authorization: context.authorization, credential: context.credential,
-    callResource: context.callbacks.callResource,
+    callResource: function accountResource(options) {
+      return context.callbacks.callResource({...options,
+        currentBeforeSend: context.callbacks.current});
+    },
     operation: HUBSPOT_ACCOUNT_DETAILS_OPERATION, method: 'GET',
     path: '/account-info/v3/details', query: [], headers: [['accept', 'application/json']],
     responseHeaders: [], maxResponseBytes: context.limits.maxResponseBytes, signal,

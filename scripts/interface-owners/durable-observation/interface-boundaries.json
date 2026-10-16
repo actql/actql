@@ -4364,6 +4364,7 @@
             "maxRequestBytes",
             "maxResponseBytes",
             "returnRejectedResponse",
+            "currentBeforeSend",
             "signal",
             "binding"
           ],
@@ -4702,7 +4703,7 @@
           }
         }
       ],
-      "sha256": "beac9ad12c52fa446929a751794372ab9b5cc8c8c72e5f634a60083383a7caaf",
+      "sha256": "47897fc4c1bcafa72ef0d2bee6afe446df1ff51be3e6546046609224dee82bc1",
       "imports": [
         "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/http-exchange.mjs",
