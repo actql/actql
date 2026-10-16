@@ -136,9 +136,12 @@ test "short COMMAND and explicit long postludes keep separate declared occurrenc
 
 ///|
 test "short COMMAND preserves a completed set and the existing syntax work limit" {
-  let text = "FROM left_rows UNION ALL FROM right_rows |> EFFECT COMMAND gmail.send ID id;"
+  let text = "FROM left_rows |> UNION ALL (FROM right_rows) |> EFFECT COMMAND gmail.send ID id;"
   let query = parse_query(text, query_limits()).unwrap()
-  assert_eq(set_part_count(query), 1)
+  assert_eq(query_binding_count(query), 1)
+  let completed = query_binding_at(query, 0).unwrap()
+  assert_eq(set_part_count(completed.query), 1)
+  assert_true(terminal_short_command_effect(completed.query) is None)
   assert_eq(
     terminal_short_command_effect(query).unwrap().operation.map(part => {
       part.value
