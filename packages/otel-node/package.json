@@ -3,6 +3,7 @@
   "version": "0.0.0-development",
   "private": true,
   "type": "module",
+  "scripts": {"prepack": "node ../../scripts/check-interface-owners.mjs --manifest packages/otel-node/package.json"},
   "engines": {"node": ">=22"},
   "exports": {".": {"types": "./index.d.ts", "default": "./index.mjs"}},
   "files": ["index.mjs", "index.d.ts", "configuration.mjs", "environment.mjs", "transport.mjs", "README.md"],

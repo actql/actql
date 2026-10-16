@@ -1,3 +1,4 @@
+import {checkInterfaceOwners} from './check-interface-owners.mjs';
 // Frozen OS binary packages use the same inventory/registry/publisher as SDK.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -63,6 +64,7 @@ async function pack(directory, output, productMembers) {
 
 export async function prepareNativeCliRelease(destination, artifacts) {
   const source = checkoutState(repository); assert(source.clean, 'CLI release requires clean source HEAD');
+  await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
   const records = await Promise.all(artifacts.map(path => admitNativeArtifact(resolve(path), source.revision)));
   assert(records.length > 0 && records.length <= 2); assert.equal(new Set(records.map(v => v.platform)).size, records.length);
   const pinDigest = hash(await readFile(join(repository, 'toolchain.json')));

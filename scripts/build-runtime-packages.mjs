@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {occurrences, repositoryOccurrences, violations} from './check-owned-contract-versions.mjs';
 import {assertGeneratedOwnedContracts} from './generated-owned-contracts.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
+import {checkInterfaceOwners} from './check-interface-owners.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const packages = runtimePackageInputs(root);
@@ -41,7 +42,7 @@ export async function buildExternalLocalNodeRuntime({inputs, destination, compil
   if (rejected.length) throw new Error('Generated external runtime contract versions must remain at 0.1');
 }
 
-function main(requested) {
+async function main(requested) {
 const inventory = JSON.parse(readFileSync(join(root,
   'scripts/owned-contract-version-legacy.json'), 'utf8'));
 const source = repositoryOccurrences(root);
@@ -51,6 +52,7 @@ for (const name of requested) {
 }
 const selected = new Set(requested.length ? requested : Object.keys(packages));
 const entries = [...selected].map(name => packages[name]);
+await checkInterfaceOwners(root, {manifests: [...selected].map(name => `packages/${name}/package.json`)});
 execFileSync('moon', ['build', '--target', 'js', '--release',
   ...new Set(entries.flatMap(item => item.sources.map(path => `src/${path}`)))],
 {cwd: root, stdio: 'inherit'});
@@ -68,5 +70,5 @@ assertGeneratedOwnedContracts({source, generated, inventory});
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main(process.argv.slice(2));
+  await main(process.argv.slice(2));
 }

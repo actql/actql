@@ -60,6 +60,6 @@
   ],
   "scripts": {
     "build": "vite build --config vite.config.mts",
-    "prepack": "npm run build"
+    "prepack": "npm run build && node ../../scripts/check-interface-owners.mjs --manifest packages/explorer-ui/package.json"
   }
 }
