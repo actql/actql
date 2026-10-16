@@ -10,6 +10,127 @@ priv struct CompletedExportReferences {
 }
 
 ///|
+/// Borrow one original Content occurrence from the exact successful export.
+/// Coordinates select the admitted export view, not a caller's envelope/CID.
+/// The caller must keep its original Result pin and physical Store custody;
+/// this read neither reissues a Reference nor admits byte acquisition.
+pub fn completed_relation_export_content_reference(
+  value : CompletedRelationExportReceipt,
+  row : Int,
+  column : Int,
+) -> @admitted.ReferenceValue? {
+  guard value.rows.source is Some(source) &&
+    completed_output_available(source) &&
+    @schema.field_at(value.rows.content.schema, column) is Some(field) &&
+    field.contract.shape is @contract.ContentRef(..) &&
+    value.rows.references is Some(references) &&
+    original_export_content_reference(references, row, column)
+    is Some(reference) else {
+    return None
+  }
+  guard value.rows.source is Some(current_source) &&
+    physical_equal(current_source, source) &&
+    value.rows.references is Some(current_references) &&
+    physical_equal(current_references, references) else {
+    return None
+  }
+  Some(reference)
+}
+
+///|
+/// Both the transient export and its explicit retained successor use this
+/// same per-cell inventory. Reading it never creates another Reference.
+fn original_export_content_reference(
+  references : CompletedExportReferences,
+  row : Int,
+  column : Int,
+) -> @admitted.ReferenceValue? {
+  guard references.complete &&
+    !references.revoked &&
+    references.rows.get(row) is Some(cells) &&
+    cells.get(column) is Some(cell) &&
+    cell.length() == 1 &&
+    cell[0] is Some(reference) &&
+    @admitted.reference_content_metadata(reference) is Some(_) &&
+    @admitted.reference_available(reference) else {
+    return None
+  }
+  // Availability calls the original Host. A callback may retire this export
+  // while still returning true; do not cache its pre-callback custody check.
+  guard references.complete &&
+    !references.revoked &&
+    references.rows.get(row) is Some(current_cells) &&
+    current_cells.get(column) is Some(current_cell) &&
+    current_cell.length() == 1 &&
+    current_cell[0] is Some(current_reference) &&
+    physical_equal(current_reference, reference) else {
+    return None
+  }
+  Some(reference)
+}
+
+///|
+/// Resolve the checked source field in the exact export view. The bounded
+/// scan borrows the existing names; it neither copies their inventory nor
+/// interprets a caller's row/Reference envelope.
+pub fn completed_relation_export_content_field(
+  value : CompletedRelationExportReceipt,
+  row : Int,
+  field : @schema.Field,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[@admitted.ReferenceValue, CompletedExportIssue] {
+  original_export_content_field(
+    value.fields,
+    row,
+    field,
+    max_fields,
+    max_work,
+    column => completed_relation_export_content_reference(value, row, column),
+  )
+}
+
+///|
+fn original_export_content_field(
+  names : Array[String],
+  row : Int,
+  field : @schema.Field,
+  max_fields : Int,
+  max_work : Int,
+  read : (Int) -> @admitted.ReferenceValue?,
+) -> Result[@admitted.ReferenceValue, CompletedExportIssue] {
+  if row < 0 || max_fields < 0 || max_work < 0 {
+    return Err(Admission(InvalidCaptureLimits))
+  }
+  guard field.contract.shape is @contract.ContentRef(..) else {
+    return Err(InvalidTarget)
+  }
+  if names.length() > max_fields || names.length() > max_work {
+    return Err(Admission(CaptureLimit))
+  }
+  let expected = @schema.field_reference_name(field)
+  let mut remaining = max_work - names.length()
+  for column, name in names {
+    if name.length() > remaining {
+      return Err(Admission(CaptureLimit))
+    }
+    remaining -= name.length()
+    if expected.length() > remaining {
+      return Err(Admission(CaptureLimit))
+    }
+    remaining -= expected.length()
+    if name == expected {
+      guard read(column) is Some(reference) else { return Err(Unavailable) }
+      if !@admitted.reference_compatible(reference, field.contract) {
+        return Err(ForeignMaterial)
+      }
+      return Ok(reference)
+    }
+  }
+  Err(InvalidTarget)
+}
+
+///|
 /// Row and column entries are bounded by admitted row/key nodes, and authority
 /// entries by admitted value nodes. Logical value work is not charged twice.
 fn prepare_completed_export_references(
