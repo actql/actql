@@ -148,6 +148,7 @@ test('actual Store original binding keeps its read count through false close and
   // double. These storage observations are DATA, never Core/Run admission.
   const store = await openLocalPublicationStore({directory,
     storeAuthorityCid: `sha256:${createHash('sha256').update('original metadata FD').digest('hex')}`,
+    privateEvidenceKey: Buffer.alloc(32, 7),
     capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
     maxContractNodes: 256, maxContractDepth: 32}, createPublicationContractControlFixture());
   const originalOpen = fs.open;
