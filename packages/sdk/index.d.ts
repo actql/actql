@@ -543,7 +543,7 @@ export interface Execution {
   /** Independent Owner-local views; cursors are not authority or control revisions. */
   observeOwners(options?: {signal?:AbortSignal;cursors?:readonly OwnerCursor[];
     maxEntries?:number;maxWireBytes?:number}): Promise<OwnerObservations>;
-  wait(options?: {until?: string; signal?: AbortSignal}): Promise<RunState>;
+  wait(options?: {until?: string; since?: number | null; signal?: AbortSignal}): Promise<RunState>;
   /** A new operation observes the current control revision when omitted.
    * A lost response retains cancelRef; lookup never resends the cancellation. */
   cancel(options?: {signal?: AbortSignal; cancelId?: string;
