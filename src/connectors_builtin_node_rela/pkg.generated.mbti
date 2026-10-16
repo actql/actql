@@ -114,6 +114,8 @@ pub fn client_program_author_effect_preview(String, String, String, @logical_req
 
 pub fn client_program_bind_compiled_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientEffectCompiledRunIssue]
 
+pub fn client_program_bind_effect_command_target(@physical_strategy.CapturedEffectInputs, Int, @check_environment.StoreCommandBinding, @value_admission.CheckedValue, Int) -> Result[@physical_strategy.CapturedEffectCommandTarget, @physical_strategy.CapturedEffectProposalIssue]
+
 pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physical_strategy.CapturedEffectInputs, @run_publication.PublicationContract, Int, String, String, ClientEffectPreviewInputLimits) -> Result[@physical_strategy.CapturedEffectPreviewInputs, ClientEffectPreviewInputIssue]
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
@@ -400,6 +402,8 @@ pub fn client_program_effect_plan_import_append(ClientEffectPlanImport, String) 
 
 pub fn client_program_effect_plan_import_begin(@physical_strategy.CapturedEffectPreviewInputs, Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits, Int, Int) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue]
 
+pub fn client_program_effect_plan_import_begin_with_target(@physical_strategy.CapturedEffectPreviewInputs, Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits, Int, Int, @physical_strategy.CapturedEffectCommandTarget) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue]
+
 pub fn client_program_effect_plan_import_finish(ClientEffectPlanImport) -> Result[ClientEffectPlanPreparation, ClientEffectPlanStreamIssue]
 
 pub fn client_program_effect_plan_next(ClientEffectPlanCursor, Int, Int, Int, Int, Int, Int) -> Result[String?, ClientEffectPlanStreamIssue]
@@ -436,6 +440,8 @@ pub fn client_program_effect_preview_plan_terminal(@physical_strategy.CapturedEf
 
 pub fn client_program_effect_proposal_begin(@physical_strategy.CapturedEffectInputs, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectProposalPlan, @physical_strategy.CapturedEffectProposalIssue]
 
+pub fn client_program_effect_proposal_begin_with_target(@physical_strategy.CapturedEffectInputs, Int, Int, Int, @physical_strategy.CapturedEffectCommandTarget) -> Result[@physical_strategy.CapturedEffectProposalPlan, @physical_strategy.CapturedEffectProposalIssue]
+
 pub fn client_program_effect_proposal_cancel(@physical_strategy.CapturedEffectProposalPlan) -> Unit
 
 pub fn client_program_effect_proposal_finish(@physical_strategy.CapturedEffectProposalPlan, Int) -> Result[Unit, @physical_strategy.CapturedEffectProposalIssue]
@@ -445,6 +451,8 @@ pub fn client_program_effect_proposal_row(@physical_strategy.CapturedEffectPropo
 pub fn client_program_effect_publication_data_policy_cid(@run_publication_host.PreparedClientEffectComputation) -> String?
 
 pub fn client_program_effect_publication_policy_bodies(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
+
+pub fn client_program_effect_published_store_binding(@physical_strategy.CapturedEffectInputs, Int, Int) -> Result[@check_environment.StoreCommandBinding?, @physical_strategy.CapturedEffectProposalIssue]
 
 pub fn client_program_effect_request_authority(@logical_request_scope.LogicalRequestScope) -> String
 

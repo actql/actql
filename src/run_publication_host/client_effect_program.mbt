@@ -61,6 +61,7 @@ pub fn prepare_client_effect_computation(
   evidence : Array[@context.StageCapacityInput],
   limits : ClientEffectComputationLimits,
   update_targets? : @update_targets.UpdateTargetPublication? = None,
+  store_targets? : @update_targets.StoreTargetPublication? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let parsed = match
     @syntax.parse(document, limits.program.checking.input, format~) {
@@ -74,6 +75,7 @@ pub fn prepare_client_effect_computation(
     evidence,
     limits,
     update_targets~,
+    store_targets~,
   )
 }
 
@@ -88,6 +90,7 @@ pub fn prepare_parsed_client_effect_computation(
   evidence : Array[@context.StageCapacityInput],
   limits : ClientEffectComputationLimits,
   update_targets? : @update_targets.UpdateTargetPublication? = None,
+  store_targets? : @update_targets.StoreTargetPublication? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let computation = match
     @checked.prepare_effect_computation_candidate(
@@ -125,6 +128,7 @@ pub fn prepare_parsed_client_effect_computation(
       candidate,
       update_targets,
       limits.max_mapping_work,
+      store_targets~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(TargetSelection(issue))

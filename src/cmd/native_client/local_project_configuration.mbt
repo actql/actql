@@ -3,6 +3,8 @@
 // originals. It cannot issue an Account decision, capture, grant or Run.
 priv struct LocalProjectConfiguration {
   metadata : @run_host.ClientProjectConfiguration
+  directory : String
+  source_free_bindings : @run_host.ClientSourceFreeProjectBindings?
   state_directory : String
   profile : String?
 }
@@ -66,6 +68,8 @@ fn local_project_select_loaded(
   ignore(local_product_selected_location(Some(state_directory), None))
   {
     metadata,
+    directory,
+    source_free_bindings: None,
     state_directory,
     profile: match optional(matches, "profile") {
       Some(value) => Some(value)
@@ -75,11 +79,38 @@ fn local_project_select_loaded(
 }
 
 ///|
+// This chooses a frontend route only. A project cannot create adoption,
+// authority or a saved Run. Explicit Remote and legacy roots stay explicit.
+fn local_project_default_local_candidate(
+  matches : @argparse.Matches,
+) -> Bool raise ClientStop {
+  if !(matches.sources.get("mode") is Some(@argparse.Default)) ||
+    required(matches, "mode") != "remote" ||
+    matches.sources.get("config-file") is Some(@argparse.Argv) ||
+    matches.sources.get("config-root") is Some(@argparse.Argv) {
+    return false
+  }
+  for
+    name in [
+      "endpoint", "connection-root", "connection-file", "token-root", "token-file",
+      "http-library", "ca", "cert", "key",
+    ] {
+    if optional(matches, name) is Some(_) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 fn local_project_discovery_selected(
   matches : @argparse.Matches,
 ) -> Bool raise ClientStop {
   optional(matches, "config") is None &&
-  required(matches, "mode") == "local" &&
+  (
+    required(matches, "mode") == "local" ||
+    local_project_default_local_candidate(matches)
+  ) &&
   !(matches.sources.get("config-file") is Some(@argparse.Argv)) &&
   !(matches.sources.get("config-root") is Some(@argparse.Argv))
 }
@@ -104,7 +135,8 @@ fn local_project_requires_read(
   if explicit is None && !discover && optional(matches, "profile") is None {
     return false
   }
-  if required(matches, "mode") != "local" {
+  if required(matches, "mode") != "local" &&
+    !local_project_default_local_candidate(matches) {
     stop("Local project configuration is unavailable in Remote mode")
   }
   if explicit is Some(_) &&
@@ -176,8 +208,8 @@ fn local_project_read_from(
 fn local_project_read(
   matches : @argparse.Matches,
 ) -> Result[LocalProjectConfiguration?, @files.NativeBoundedTextFailure] raise ClientStop {
-  // Explicit Remote and legacy installation selections do not probe project
-  // files or silently switch their Host/mode. Discovery selects metadata only.
+  // Explicit Remote/legacy choices never probe project files. A default-mode
+  // candidate remains unchanged until a complete metadata read has succeeded.
   if !local_project_requires_read(matches) {
     return Ok(None)
   }
@@ -188,27 +220,120 @@ fn local_project_read(
 }
 
 ///|
+fn local_project_execution_operation(operation : String) -> Bool {
+  ["check", "explain", "run", "aql", "start", "new-submission"].contains(
+    operation,
+  )
+}
+
+///|
+fn local_project_require_supported_profile(
+  selected : LocalProjectConfiguration,
+  operation : String,
+) -> Unit raise ClientStop {
+  if !local_project_execution_operation(operation) {
+    return
+  }
+  let metadata = selected.metadata
+  if metadata.lock_file() is Some(_) ||
+    selected.profile is Some(_) ||
+    metadata.mock_data_file() is Some(_) ||
+    metadata.mock_answer_count() != 0 {
+    stop("LocalProjectBindingsUnavailable")
+  }
+}
+
+///|
 fn local_project_require_execution_bindings(
   selected : LocalProjectConfiguration,
   operation : String,
 ) -> Unit raise ClientStop {
-  // Saved Run operations use their retained installation/materials, never
-  // fresh project declarations to repair or recompile an original Run.
-  if ![
-      "adopt", "connect", "check", "explain", "run", "aql", "start", "new-submission",
-    ].contains(operation) {
+  // Connection and saved operations retain their original installation. No
+  // current project file can repair/recompile a saved Run or refresh policy.
+  local_project_require_supported_profile(selected, operation)
+  if !local_project_execution_operation(operation) {
     return
   }
   let metadata = selected.metadata
   if metadata.connectors_file() is Some(_) ||
-    metadata.model_tasks_file() is Some(_) ||
-    metadata.lock_file() is Some(_) ||
-    selected.profile is Some(_) ||
-    metadata.mock_data_file() is Some(_) ||
-    metadata.mock_answer_count() != 0 {
-    // The Native connector/model/mock assembler is not installed yet. Never
-    // interpret the project profile as permission or silently run live IO.
-    stop("LocalProjectBindingsUnavailable")
+    metadata.model_tasks_file() is Some(_) {
+    guard selected.source_free_bindings is Some(bindings) &&
+      bindings.has_connectors_file() == (metadata.connectors_file() is Some(_)) &&
+      bindings.has_model_tasks_file() ==
+      (metadata.model_tasks_file() is Some(_)) else {
+      stop("LocalProjectBindingsUnavailable")
+    }
+  }
+}
+
+///|
+fn local_project_read_declaration(
+  selected : LocalProjectConfiguration,
+  name : String?,
+) -> Result[String?, @files.NativeBoundedTextFailure] raise ClientStop {
+  guard name is Some(name) else { return Ok(None) }
+  if name.has_suffix("/") {
+    stop("InvalidProjectConfigurationPath")
+  }
+  let absolute = local_project_absolute_path(selected.directory, name)
+  let location = local_product_selected_location(Some(absolute), None)
+  // The same bounded Reader owns constructor/next/close custody. Missing,
+  // malformed or physically refused declarations never become empty defaults.
+  @files.read_bounded_text_file_with_custody(
+    location.parent_path,
+    location.directory_name,
+    65536L,
+  ).map(wire => Some(wire))
+}
+
+///|
+fn local_project_read_execution_bindings(
+  selected : LocalProjectConfiguration?,
+  operation : String,
+) -> Result[LocalProjectConfiguration?, @files.NativeBoundedTextFailure] raise ClientStop {
+  guard selected is Some(project) &&
+    local_project_execution_operation(operation) else {
+    return Ok(selected)
+  }
+  // Unsupported mock/profile/lock installation refuses before other input IO.
+  local_project_require_supported_profile(project, operation)
+  let connectors = match
+    local_project_read_declaration(project, project.metadata.connectors_file()) {
+    Ok(value) => value
+    Err(original) => return Err(original)
+  }
+  let model_tasks = match
+    local_project_read_declaration(project, project.metadata.model_tasks_file()) {
+    Ok(value) => value
+    Err(original) => return Err(original)
+  }
+  let bindings = match
+    @run_host.admit_client_source_free_project_bindings(connectors, model_tasks) {
+    Ok(value) => value
+    Err(@run_host.BindingsUnavailable) =>
+      stop("LocalProjectBindingsUnavailable")
+    Err(@run_host.InvalidBindings) => stop("InvalidProjectBindings")
+  }
+  // These facts only rule out uninstalled declarations. Actual check/run still
+  // restores the selected Host's saved environment through its original Owner;
+  // it never assembles replacement environment/policy from project metadata.
+  Ok(Some({ ..project, source_free_bindings: Some(bindings), }))
+}
+
+///|
+fn local_project_apply_selection(
+  matches : @argparse.Matches,
+  selected : LocalProjectConfiguration?,
+) -> Unit raise ClientStop {
+  if selected is Some(project) {
+    let (operation, _) = matches.subcommand.unwrap_or_else(() => {
+      stop("LocalOperationUnavailable")
+    })
+    local_project_require_execution_bindings(project, operation)
+    if local_project_default_local_candidate(matches) {
+      matches.values["mode"] = ["local"]
+    }
+    matches.values["state-dir"] = [project.state_directory]
   }
 }
 
@@ -216,16 +341,19 @@ fn local_project_require_execution_bindings(
 fn execute_native_project_selection(
   matches : @argparse.Matches,
 ) -> Result[String, @files.NativeBoundedTextFailure] raise ClientStop {
+  normalize_native_program_arguments(matches)
   let selected = match local_project_read(matches) {
     Ok(value) => value
     Err(original) => return Err(original)
   }
-  if selected is Some(project) {
-    let (operation, _) = matches.subcommand.unwrap_or_else(() => {
-      stop("LocalOperationUnavailable")
-    })
-    local_project_require_execution_bindings(project, operation)
-    matches.values["state-dir"] = [project.state_directory]
+  let (operation, _) = matches.subcommand.unwrap_or_else(() => {
+    stop("LocalOperationUnavailable")
+  })
+  let selected = match
+    local_project_read_execution_bindings(selected, operation) {
+    Ok(value) => value
+    Err(original) => return Err(original)
   }
+  local_project_apply_selection(matches, selected)
   Ok(execute(matches))
 }

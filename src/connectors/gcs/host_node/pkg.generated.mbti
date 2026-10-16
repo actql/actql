@@ -2,7 +2,10 @@
 package "actql/actql/connectors/gcs/host_node"
 
 import {
+  "actql/actql/check_environment",
   "actql/actql/connectors/gcs/catalog",
+  "actql/actql/connectors/gcs/original_reference",
+  "actql/actql/value_admission",
 }
 
 // Values
@@ -16,13 +19,27 @@ pub fn gcs_collection_identity_cid(@catalog.ObjectCollectionBinding) -> String
 
 pub fn gcs_collection_identity_json(@catalog.ObjectCollectionBinding) -> String
 
+pub fn gcs_collection_issue_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @original_reference.CollectionReferenceIssue]
+
+pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String
+
 pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String
 
 pub fn gcs_object_failure_code(GcsFailure) -> String
 
+pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]
+
 pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]
 
 pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]
+
+pub fn gcs_object_metadata_page(Bytes, String, String, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadataPage, GcsFailure]
+
+pub fn gcs_object_metadata_page_count(@catalog.ObjectMetadataPage) -> Int
+
+pub fn gcs_object_metadata_page_next_token(@catalog.ObjectMetadataPage) -> String?
+
+pub fn gcs_object_metadata_page_row_json(@catalog.ObjectMetadataPage, Int, Int, Int, Int) -> Result[String, GcsFailure]
 
 pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]
 
@@ -37,6 +54,36 @@ pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMu
 pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]
 
 pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]
+
+pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]
+
+pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]
+
+pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]
+
+pub fn gcs_upload_command_json(String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]
+
+pub fn gcs_upload_declaration_failure_code(@catalog.ObjectUploadDeclarationIssue) -> String
+
+pub fn gcs_upload_failure_code(@catalog.ObjectUploadIssue) -> String
+
+pub fn gcs_upload_mapping_json(@catalog.ObjectCollectionBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]
+
+pub fn gcs_upload_metadata_max_bytes(@catalog.ObjectUploadBinding) -> Int
+
+pub fn gcs_upload_metadata_path(@catalog.ObjectUploadBinding, String) -> Result[String, @catalog.ObjectUploadIssue]
+
+pub fn gcs_upload_observation(@catalog.ObjectUploadBinding, String, Int, Bytes) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]
+
+pub fn gcs_upload_prepare_multipart(@catalog.ObjectUploadBinding, @catalog.ObjectUploadObservation, Bytes, String, String, String, String, String) -> Result[@catalog.ObjectUploadRequest, @catalog.ObjectUploadIssue]
+
+pub fn gcs_upload_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]
+
+pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]
+
+pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool
+
+pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]
 
 // Errors
 

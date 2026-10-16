@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {dirname, relative} from 'node:path';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
@@ -341,4 +342,47 @@ test('inference barrier binds the existing model Plan and adjacent fragment', ()
   const barrier = expectedCompilationManifests().barrier;
   assert.deepEqual(barrier.contracts.find(entry => entry.name === 'inference_barrier'),
     {name: 'inference_barrier', contract_cid: cid});
+});
+
+test('published STORE keeps the original Program schema and advances only current grammar pins', () => {
+  const vector = read('scripts/fixtures/published-store-grammar/manifest-identities.json');
+  const prior = read(vector.prior_program_schema_file);
+  const current = read('spec/contracts/actql-protocol-schemas.json').artifact_schemas
+    .executable_plan.properties.execution_material.properties.program;
+  assert.equal(machineCid(prior), vector.prior_program_schema_cid);
+  assert.equal(machineCid(current), vector.current_program_schema_cid);
+  assert.deepEqual(prior, JSON.parse(execFileSync('git', ['show',
+    `${vector.prior_schema_source}:spec/contracts/actql-protocol-schemas.json`],
+  {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024})).artifact_schemas
+    .executable_plan.properties.execution_material.properties.program);
+  assert.deepEqual(vector.before, JSON.parse(execFileSync('git', ['show',
+    `${vector.before_source}:spec/manifests/actql-grammar-0.1.json`],
+  {encoding: 'utf8'})));
+  for (const manifest of [vector.before, vector.after]) {
+    const {grammar_manifest_cid, ...body} = manifest;
+    assert.equal(sha(canonicalText(body)), grammar_manifest_cid);
+  }
+  const {grammar_manifest_cid: _before, source_grammar_cid: oldSource, ...oldBody} = vector.before;
+  const {grammar_manifest_cid: _after, source_grammar_cid: newSource, ...newBody} = vector.after;
+  assert.deepEqual(oldBody, newBody);
+  assert.equal(oldSource, vector.prior_program_schema_cid);
+  assert.equal(newSource, vector.current_program_schema_cid);
+  assert.notEqual(oldSource, newSource);
+  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), vector.after);
+
+  // The approved selector is the sole schema delta. The old field branch is
+  // retained exactly, rather than reconstructed from an old CID or a new name.
+  assert.deepEqual(vector.program_schema_change_pointers,
+    ['/properties/effects/additionalProperties/oneOf/4/properties/command/properties/target']);
+  const restored = structuredClone(current);
+  const target = restored.properties.effects.additionalProperties.oneOf[4]
+    .properties.command.properties;
+  assert.equal(target.target.oneOf.length, 2);
+  const published = target.target.oneOf[1];
+  assert.deepEqual(published.required, ['published_store']);
+  assert.equal(published.additionalProperties, false);
+  assert.deepEqual(published.properties.published_store.required, ['target_ref', 'mapping_ref']);
+  assert.equal(published.properties.published_store.additionalProperties, false);
+  target.target = target.target.oneOf[0];
+  assert.deepEqual(restored, prior);
 });

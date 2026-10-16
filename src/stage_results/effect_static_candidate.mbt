@@ -153,7 +153,12 @@ pub fn prepare_effect_static_candidate(
   )
   remaining -= literal_work
   let command_targets = match
-    bind_effect_command_targets(results, references, remaining) {
+    bind_effect_command_targets(
+      results,
+      references,
+      remaining,
+      mappings=Some(mappings),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(CommandTargets(issue))
   }

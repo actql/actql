@@ -7,12 +7,17 @@ export const installedConnectors = Object.freeze([
     name: "gcs", registration: "gcs",
     revision: "gcs/0.1",
     implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/gcs/host/gcs-collection-target.mjs", href: new URL("../connectors/gcs/host/gcs-collection-target.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/host/gcs-source-declaration.mjs", href: new URL("../connectors/gcs/host/gcs-source-declaration.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gcs/host/gcs-upload-declaration.mjs", href: new URL("../connectors/gcs/host/gcs-upload-declaration.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/host/installed-gcs-source.mjs", href: new URL("../connectors/gcs/host/installed-gcs-source.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-file-listing.mjs", href: new URL("../connectors/gcs/site/gcs-file-listing.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-keyed-content.mjs", href: new URL("../connectors/gcs/site/gcs-keyed-content.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gcs/site/gcs-object-listing.mjs", href: new URL("../connectors/gcs/site/gcs-object-listing.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs", href: new URL("../connectors/gcs/site/gcs-owned-upload-request.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-versioned-content.mjs", href: new URL("../connectors/gcs/site/gcs-versioned-content.mjs", import.meta.url).href}),
     ]),
+    providerBundle: "connectors/gcs/host_node",
     responseHeaders: Object.freeze(["content-encoding","content-range","x-goog-generation","x-goog-metageneration"]),
     source: Object.freeze({
       profileVersion: "actql-installed-gcs-source/0.1",
@@ -43,6 +48,22 @@ export const installedConnectors = Object.freeze([
       profileVersion: "actql-installed-github-effect/0.1",
       load: () => import("../connectors/github/host/installed-github-effect.mjs")
         .then(module => Object.freeze({check: module.checkInstalledGitHubEffectProfile, identityParts: module.installedGitHubEffectIdentityParts, publish: module.publishInstalledGitHubEffect, load: module.loadInstalledGitHubEffect})),
+    }),
+  }),
+  Object.freeze({
+    name: "hubspot", registration: "hubspot",
+    revision: "hubspot/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/hubspot/host/installed-hubspot-source.mjs", href: new URL("../connectors/hubspot/host/installed-hubspot-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-account-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-account-read.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-object-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-object-read.mjs", import.meta.url).href}),
+    ]),
+    providerBundle: "connectors/hubspot/host_node",
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-hubspot-source/0.1",
+      load: () => import("../connectors/hubspot/host/installed-hubspot-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledHubSpotSourceProfile, identityParts: module.installedHubSpotSourceIdentityParts, load: module.loadInstalledHubSpotSource})),
     }),
   }),
   Object.freeze({

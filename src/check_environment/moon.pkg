@@ -11,6 +11,7 @@ import {
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
   "actql/actql/contract_reference" @contract_ref,
   "actql/actql/canonical_value" @unicode,
   "actql/actql/encode_core" @encode,
@@ -27,6 +28,7 @@ import {
 formatter(
   ignore: [
     "source_evidence_members.generated_test.mbt",
+    "command_target_bindings.generated_test.mbt",
     "inherited_text_time.generated.mbt",
     "compilation_manifests.generated.mbt",
     "catalog_grammar.generated.mbt",

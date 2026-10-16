@@ -1,0 +1,147 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/tableau/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_catalog_page(CatalogPageRequest, Int, Bytes, CatalogResponseLimits) -> Result[CatalogPage, CatalogIssue]
+
+pub fn admit_job_lookup_observation(StartedJob, Int, Bytes, JobResponseLimits) -> Result[JobLookupObservation, JobIssue]
+
+pub fn admit_started_job(JobStartRequest, Int, Bytes, JobResponseLimits) -> Result[StartedJob, JobIssue]
+
+pub fn catalog_page_method(CatalogPageRequest) -> String
+
+pub fn catalog_page_path(CatalogPageRequest) -> String
+
+pub fn catalog_page_response_sha256(CatalogPage) -> String
+
+pub fn catalog_page_rows(CatalogPage) -> Array[CatalogRow]
+
+pub fn catalog_page_total_available(CatalogPage) -> Int64
+
+pub fn job_lookup_observation_id(JobLookupObservation) -> String
+
+pub fn job_lookup_path(StartedJob, Int) -> Result[String, JobIssue]
+
+pub fn job_lookup_response_sha256(JobLookupObservation) -> String
+
+pub fn job_start_body(JobStartRequest) -> String
+
+pub fn job_start_method(JobStartRequest) -> String
+
+pub fn job_start_path(JobStartRequest) -> String
+
+pub fn next_catalog_page(CatalogPage, Int) -> Result[CatalogPageRequest?, CatalogIssue]
+
+pub fn prepare_catalog_page_request(CatalogKind, String, String, Int, Int) -> Result[CatalogPageRequest, CatalogIssue]
+
+pub fn prepare_job_start_request(JobKind, String, String, String, Int) -> Result[JobStartRequest, JobIssue]
+
+pub fn started_job_id(StartedJob) -> String
+
+pub fn started_job_response_sha256(StartedJob) -> String
+
+// Errors
+
+// Types and methods
+pub(all) enum CatalogIssue {
+  InvalidLimits
+  InvalidSelection
+  CapacityExceeded
+  UnexpectedStatus
+  InvalidResponse
+  ForeignPage
+  DuplicateIdentity
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CatalogKind {
+  Workbooks
+  DataSources
+  Views
+  Flows
+} derive(Eq, @debug.Debug)
+
+pub struct CatalogPage {
+  request : CatalogPageRequest
+  total_available : Int64
+  provider_items : Int
+  rows : Array[CatalogRow]
+  response_sha256 : String
+}
+
+pub struct CatalogPageRequest {
+  kind : CatalogKind
+  api_version : String
+  site_id : String
+  page_number : Int
+  path : String
+}
+
+pub(all) struct CatalogResponseLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+}
+
+pub(all) struct CatalogRow {
+  id : String
+  name : String
+  project_id : String?
+  project_name : String?
+  owner_id : String?
+  workbook_id : String?
+  created_at : String?
+  updated_at : String?
+  tags : Array[String]?
+  content_url : String?
+  datasource_type : String?
+  has_extract : Bool?
+  view_count : Int64?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum JobIssue {
+  InvalidLimits
+  InvalidSelection
+  CapacityExceeded
+  UnexpectedStatus
+  InvalidResponse
+  ForeignJob
+} derive(Eq, @debug.Debug)
+
+pub(all) enum JobKind {
+  RefreshDataSource
+  RunFlow
+} derive(Eq, @debug.Debug)
+
+pub struct JobLookupObservation {
+  job : StartedJob
+  response_sha256 : String
+}
+
+pub(all) struct JobResponseLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub struct JobStartRequest {
+  kind : JobKind
+  api_version : String
+  site_id : String
+  target_id : String
+  path : String
+}
+
+pub struct StartedJob {
+  request : JobStartRequest
+  job_id : String
+  response_sha256 : String
+}
+
+// Type aliases
+
+// Traits

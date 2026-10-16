@@ -104,8 +104,9 @@
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",
-      "sha256": "ee59a54a40a70a12195e381b8ae2b607ca5bdf17119697ca2107910d502e4c28",
+      "sha256": "272d8c3466237be90d69b892f92913282d8124d7a4b5a747c7807666d9647225",
       "exports": [
+        "projectInitArguments",
         "scaffoldProject"
       ],
       "operations": [
@@ -121,6 +122,13 @@
           "parameters": [
             "code",
             "message"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectInitArguments",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -162,11 +170,13 @@
             "<module>",
             "emptyDirectory/emptyDirectory",
             "fail/fail",
+            "projectInitArguments",
             "same/same",
             "scaffoldProject",
             "scaffoldProject/checkRoot/checkRoot"
           ],
           "exports": [
+            "projectInitArguments",
             "scaffoldProject"
           ],
           "attributes": {
@@ -184,6 +194,10 @@
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
                 "anchor": "export function scaffoldProject("
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "export function projectInitArguments(args)"
               }
             ],
             "identity": [

@@ -2,7 +2,7 @@
 // Header/member checks are not execution or a new compiler provenance issuer.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {lstatSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {checkInterfaceOwners, checkedOriginalInterface} from './check-interface-owners.mjs';
 import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
@@ -10,6 +10,7 @@ import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
 import {admitInstalledNativeArtifact} from './native-cli-artifact-reader.mjs';
 import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
+import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 
 export async function checkStagedNativeCliInterfaces({repository, directory, source, checkedSource, artifact}) {
   assert.match(source, /^[a-f0-9]{40}$/u);
@@ -32,8 +33,33 @@ export async function checkStagedNativeCliInterfaces({repository, directory, sou
       build: 'scripts/native-cli-artifact.mjs', generatedCSha256: original.generatedCSha256,
       toolchainPinSha256: original.toolchainPinSha256}};
     artifacts.push({...proof, module: 'bin/actql-native-client', sha256: original.binarySha256});
-    for (const library of original.localRuntime?.libraries ?? []) {
-      artifacts.push({...proof, module: library.path, sha256: library.sha256});
+    if (original.localRuntime !== undefined) {
+      // The artifact contains a bounded manifest reference, not inline library
+      // records. Reuse the original reader before selecting any runtime member.
+      const local = admitInstalledLocalRuntime({root: directory,
+        expected: {sourceSha: source, platform: original.platform,
+          localRuntimeSha256: original.localRuntime.sha256}, metadata: original.localRuntime});
+      const runtimeVerification = {reader: 'packages/native-cli/lib/local-runtime.mjs#admitInstalledLocalRuntime',
+        manifest: original.localRuntime,
+        qualification: 'Original selected runtime material; not compiled by the MoonBit CLI build or runtime ABI acceptance'};
+      for (const library of local.libraries) {
+        artifacts.push({sourceSha: source, target: 'native-runtime-library',
+          module: library.path, sha256: library.sha256,
+          verification: {...runtimeVerification, role: library.role,
+            dependencies: library.dependencies, abi: library.abi}});
+      }
+      for (const license of local.licenses.filter(item => item.path.endsWith('.h'))) {
+        // SQLite's original blessing is its public header. This is one exact
+        // manifest-selected, hash-verified source original, never a directory
+        // exemption for headers, scripts or other authored package members.
+        assert.equal(lstatSync(join(directory, license.path)).mode & 0o111, 0,
+          'Executable runtime license header');
+        artifacts.push({sourceSha: source, target: 'native-runtime-original-header',
+          module: license.path, sha256: license.sha256,
+          verification: {...runtimeVerification, role: 'original-license-header',
+            libraryRoles: local.libraries.filter(library => library.license === license.path)
+              .map(library => library.role)}});
+      }
     }
     bindings = [];
   }

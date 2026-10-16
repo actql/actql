@@ -7,6 +7,7 @@ struct CapturedEffectPlanVerifier {
   preview_index : Int
   terminal : @results.EffectPlanTerminal?
   command : @results.EffectCommandInputBinding?
+  published_target : CapturedEffectCommandTarget?
   literals : @results.EffectMappingLiterals
   mut next_row : Int
   mut live : Bool
@@ -19,6 +20,7 @@ struct CapturedEffectPlanProof {
   preview : CapturedEffectPreviewInputs
   preview_index : Int
   input : CapturedEffectInput
+  published_target : CapturedEffectCommandTarget?
 }
 
 ///|
@@ -32,6 +34,7 @@ struct CapturedEffectProposalPlan {
   terminal : @results.EffectPlanTerminal?
   create_terminal : @results.EffectCreateRowTerminal?
   command : @results.EffectCommandInputBinding?
+  published_target : CapturedEffectCommandTarget?
   literals : @results.EffectMappingLiterals
   mut next_row : Int
   mut live : Bool
@@ -62,6 +65,7 @@ pub fn prepare_captured_effect_proposal_plan(
   member_index : Int,
   max_fields : Int,
   max_work : Int,
+  published_target? : CapturedEffectCommandTarget? = None,
 ) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue] {
   if max_fields < 0 || max_work < 0 {
     return Err(Plan(@results.EffectPlanBindingIssue::InvalidLimits))
@@ -89,6 +93,14 @@ pub fn prepare_captured_effect_proposal_plan(
   if command is Some(command) &&
     @results.effect_command_input_field_count(command) > max_fields {
     return Err(Plan(@results.Terminal(@results.FieldLimit)))
+  }
+  if published_target is Some(original) {
+    guard command is Some(command) &&
+      captured_effect_command_target_current(
+        original, inputs, member_index, command,
+      ) else {
+      return Err(ForeignBinding)
+    }
   }
   let terminal = if command is Some(_) {
     None
@@ -144,6 +156,7 @@ pub fn prepare_captured_effect_proposal_plan(
     terminal,
     create_terminal,
     command,
+    published_target,
     literals: @results.effect_static_candidate_mapping_literals(effects),
     next_row: 0,
     live: true,
@@ -164,6 +177,12 @@ pub fn project_captured_effect_proposal_row(
   max_depth : Int,
 ) -> Result[(String, String), CapturedEffectProposalIssue] {
   if !value.live ||
+    !captured_effect_optional_command_target_current(
+      value.published_target,
+      value.inputs,
+      value.member_index,
+      value.command,
+    ) ||
     captured_effect_input_at(value.inputs, value.member_index).map(input => {
       physical_equal(input, value.input)
     }) !=
@@ -178,7 +197,14 @@ pub fn project_captured_effect_proposal_row(
   let (selector, changes) = if value.command is Some(command) {
     match
       @results.project_effect_command_row(
-        command, source_row, max_fields, max_work, max_bytes, max_nodes, max_depth,
+        command,
+        source_row,
+        max_fields,
+        max_work,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        published_target=value.published_target.map(original => original.target),
       ) {
       Ok(projected) => projected
       Err(issue) => {
@@ -260,6 +286,12 @@ pub fn finish_captured_effect_proposal_plan(
   row_count : Int,
 ) -> Result[Unit, CapturedEffectProposalIssue] {
   if !value.live ||
+    !captured_effect_optional_command_target_current(
+      value.published_target,
+      value.inputs,
+      value.member_index,
+      value.command,
+    ) ||
     captured_effect_input_at(value.inputs, value.member_index).map(input => {
       physical_equal(input, value.input)
     }) !=
@@ -309,6 +341,7 @@ pub fn prepare_captured_effect_plan_verifier(
   preview_index : Int,
   max_fields : Int,
   max_work : Int,
+  published_target? : CapturedEffectCommandTarget? = None,
 ) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue] {
   guard captured_effect_preview_input_at(preview, preview_index) is Some(input) else {
     return Err(InvalidMember)
@@ -367,12 +400,24 @@ pub fn prepare_captured_effect_plan_verifier(
   } else if terminal is None {
     return Err(MissingPlan)
   }
+  if published_target is Some(original) {
+    guard command is Some(command) &&
+      captured_effect_command_target_current(
+        original,
+        preview.inputs,
+        input.source.member_index,
+        command,
+      ) else {
+      return Err(Plan(ForeignBinding))
+    }
+  }
   let literals = @results.effect_static_candidate_mapping_literals(effects)
   Ok({
     preview,
     preview_index,
     terminal,
     command,
+    published_target,
     literals,
     next_row: 0,
     live: true,
@@ -394,6 +439,14 @@ pub fn check_captured_effect_plan_row(
   max_depth : Int,
 ) -> Result[Unit, CapturedEffectPlanVerifyIssue] {
   if !value.live ||
+    !captured_effect_optional_command_target_current(
+      value.published_target,
+      value.preview.inputs,
+      value.published_target
+      .map(original => original.member_index)
+      .unwrap_or(-1),
+      value.command,
+    ) ||
     captured_effect_preview_input_at(value.preview, value.preview_index) is None {
     value.live = false
     return Err(NotReady)
@@ -405,7 +458,14 @@ pub fn check_captured_effect_plan_row(
   let (selector, changes) = if value.command is Some(command) {
     match
       @results.project_effect_command_row(
-        command, source_row, max_fields, max_work, max_bytes, max_nodes, max_depth,
+        command,
+        source_row,
+        max_fields,
+        max_work,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        published_target=value.published_target.map(original => original.target),
       ) {
       Ok(value) => value
       Err(issue) => {
@@ -484,6 +544,14 @@ pub fn finish_captured_effect_plan_verifier(
   value : CapturedEffectPlanVerifier,
 ) -> Result[CapturedEffectPlanProof, CapturedEffectPlanVerifyIssue] {
   if !value.live ||
+    !captured_effect_optional_command_target_current(
+      value.published_target,
+      value.preview.inputs,
+      value.published_target
+      .map(original => original.member_index)
+      .unwrap_or(-1),
+      value.command,
+    ) ||
     captured_effect_preview_input_at(value.preview, value.preview_index) is None {
     value.live = false
     return Err(NotReady)
@@ -500,7 +568,12 @@ pub fn finish_captured_effect_plan_verifier(
     is Some(input) else {
     return Err(NotReady)
   }
-  Ok({ preview: value.preview, preview_index: value.preview_index, input, })
+  Ok({
+    preview: value.preview,
+    preview_index: value.preview_index,
+    input,
+    published_target: value.published_target,
+  })
 }
 
 ///|
@@ -512,6 +585,16 @@ pub fn captured_effect_plan_proof_matches(
   if !physical_equal(proof.preview, preview) ||
     proof.preview_index != preview_index {
     return false
+  }
+  if proof.published_target is Some(original) {
+    guard physical_equal(original.inputs, preview.inputs) &&
+      original.member_index == proof.input.source.member_index &&
+      @results.effect_published_store_target_current(
+        original.target,
+        original.target.binding,
+      ) else {
+      return false
+    }
   }
   match captured_effect_preview_input_at(preview, preview_index) {
     Some(input) => physical_equal(input, proof.input)

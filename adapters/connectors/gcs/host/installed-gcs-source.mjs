@@ -13,7 +13,11 @@ import {retainInstalledHostInitializationFailure} from
 import {checkInstalledGcsSourceProfile as checkProfile, restoreGcsSourceDeclaration,
   GCS_REGISTRATION, GCS_REVISION} from './gcs-source-declaration.mjs';
 import {readGcsFileListing, GCS_FILE_LIST_OPERATION} from '../site/gcs-file-listing.mjs';
+import {readGcsObjects} from '../site/gcs-object-listing.mjs';
 import {readGcsKeyedContent} from '../site/gcs-keyed-content.mjs';
+import {gcsUploadCatalogDeclaration} from './gcs-upload-declaration.mjs';
+import {prepareGcsCollectionTarget, gcsCollectionUploadMapping,
+  issueGcsCollectionReference} from './gcs-collection-target.mjs';
 
 export function checkInstalledGcsSourceProfile(profile) {
   return checkProfile(profile);
@@ -21,6 +25,9 @@ export function checkInstalledGcsSourceProfile(profile) {
 export const INSTALLED_GCS_SITE_VERSION = 'actql-installed-gcs-site/0.1';
 const origin = 'https://storage.googleapis.com';
 const targetVersion = 'actql-installed-gcs-target/0.1';
+// The existing RowDeclaration Host's static representation clamps. These are
+// not retained/workspace reservations or a numerical Model profile.
+const declarationLimits = Object.freeze({maxBytes: 4000000, maxNodes: 400000, maxDepth: 64});
 const siteKeys = ['version', 'credentialAuthorityId', 'credentialKeyId',
   'credentialPrivateKeyPath', 'environment', 'journalRoot', 'namespaceId',
   'siteGeneration', 'siteKey', 'tokenEnvironment'];
@@ -67,15 +74,39 @@ export async function installedGcsSourceIdentityParts(profile, providerProfile, 
 }
 
 export async function loadInstalledGcsSource(profile, {root, principalId, moon,
-  baseEnvironmentWire, runtimeBundleCid, resolveSecret, installation}) {
+  providerMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret, installation}) {
   const installed = checkInstalledGcsSourceProfile(profile);
+  if (installation?.providerBundle !== undefined && providerMoon === undefined) {
+    fail('GcsCollectionProviderUnavailable');
+  }
   const siteProfile = await readSite(installed.siteProfilePath);
-  const {declaration, declared, scopeCid} = restoreGcsSourceDeclaration(moon, installed);
-  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
+  const original = restoreGcsSourceDeclaration(moon, installed, undefined,
+    {includeObjects: providerMoon !== undefined});
+  const {declaration, scopeCid} = original;
+  // A legacy explicitly supplied source-only installation has no collection
+  // supplier. The ordinary declared provider selects the complete Command
+  // extension; neither branch invents a Source/Values field for its target.
+  const declaredWire = providerMoon === undefined ? undefined
+    : gcsUploadCatalogDeclaration(providerMoon, JSON.stringify(original.declared),
+      installed.connectorId, declarationLimits);
+  const declared = declaredWire === undefined ? original.declared : JSON.parse(declaredWire);
   const connection = `gcs:${installed.project}/${installed.bucket}`;
   const authorization = await installRowSourceAuthorization({root, principalId,
     connectorRegistration: GCS_REGISTRATION,
     accountConfiguration: installed.accountConfigurationWire});
+  const bindingCid = cid({version: 'actql-installed-gcs-binding/0.1', scopeCid,
+    contextCid: authorization.context.contextCid, runtimeBundleCid,
+    catalogCid: declared.catalog_cid, site: siteProfile});
+  const targetRef = `connector://${installed.connectorId}/objects`;
+  const collection = declaredWire === undefined ? undefined
+    : prepareGcsCollectionTarget(providerMoon, {project: installed.project,
+      bucket: installed.bucket, prefix: installed.prefix, targetRef,
+      resourceKind: 'file_collection', catalogCid: declared.catalog_cid,
+      installationCid: bindingCid, ...declarationLimits});
+  const mapping = collection === undefined ? undefined : gcsCollectionUploadMapping(
+    collection, declaredWire, installed.connectorId, declarationLimits);
+  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared,
+    mapping === undefined ? [] : [mapping]);
   const target = (resource, fields) => Object.freeze({version: targetVersion,
     project: installed.project, bucket: installed.bucket, prefix: installed.prefix,
     scope_cid: scopeCid, catalog_cid: declared.catalog_cid, resource,
@@ -109,7 +140,8 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
     provider_identity_cid: providerIdentityCid, authority_scope_cid: scopeCid,
     boundary_cid: declared.catalog_cid});
   const resourceFor = ({bucket, objectName}) => {
-    if (closed || bucket !== installed.bucket || !text(objectName) ||
+    if (closed || bucket !== installed.bucket || typeof objectName !== 'string' ||
+        !objectName.isWellFormed() || objectName.length === 0 || /[\r\n]/u.test(objectName) ||
         Buffer.byteLength(objectName) > installed.limits.maxPathBytes ||
         !objectName.startsWith(installed.prefix)) fail('GcsKeyedResourceUnavailable');
     return Object.freeze({...resourceBase, identity_cid: cid({
@@ -126,18 +158,32 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
   };
   const {limits} = installed;
   try {
+    const referenceIssuer = moon.clientProgramResourceReferenceIssuer(resourceValid, () => !closed);
+    // The escaped reference keeps this actual Site (and its original journal,
+    // context, credential generation and selected runtime) until its last
+    // borrower retires. A failed close invalidates currentness but not custody.
+    // Constructors can also fail: the acquired Site remains under this same
+    // initialization catch until the completed adapter is returned.
+    const collectionIssuer = collection === undefined ? undefined
+      : moon.clientProgramResourceReferenceIssuer(
+        (kind, wire) => kind === 'file_collection' && wire === collection.resourceWire,
+        wire => !closed && site.referenceCurrent() && wire === collection.resourceWire);
     const adapter = await createInstalledRowSource({moon, declaration, declared,
       environmentWire: environment.wire, connectorId: installed.connectorId,
       connectorRegistration: GCS_REGISTRATION, connectorRevision: GCS_REVISION,
       authorization, site, physicalTarget: target,
-      readOperation: {files: GCS_FILE_LIST_OPERATION, contents: 'gcs:file:read'},
-      referenceIssuer: moon.clientProgramResourceReferenceIssuer(resourceValid, () => !closed),
-      bindingCid: cid({version: 'actql-installed-gcs-binding/0.1', scopeCid,
-        contextCid: authorization.context.contextCid, runtimeBundleCid,
-        catalogCid: declared.catalog_cid, site: siteProfile}),
+      readOperation: {files: GCS_FILE_LIST_OPERATION, contents: 'gcs:file:read',
+        ...(providerMoon === undefined ? {} : {objects: GCS_FILE_LIST_OPERATION})},
+      referenceIssuer, bindingCid,
       limits: {maxPages: limits.maxPages, maxPageBytes: limits.maxPageBytes,
         maxPageRows: limits.maxPageItems, maxCaptureRows: limits.maxListingItems},
       readPages: async options => {
+        if (options.resource === 'objects') return readGcsObjects({...options,
+          moon: providerMoon, target: {bucket: installed.bucket, prefix: installed.prefix},
+          limits: {maxPageBytes: limits.maxPageBytes, maxPageItems: limits.maxPageItems,
+            maxRequestBytes: limits.maxRequestBytes, maxTimeMs: limits.maxDurationMs,
+            maxPages: limits.maxPages, maxRows: limits.maxListingItems},
+          credential: site.credential, callResource: site.callResource, resourceFor});
         if (options.resource === 'files') return readGcsFileListing({
           target: {bucket: installed.bucket, prefix: installed.prefix},
           limits: {maxPageBytes: limits.maxPageBytes, maxPageItems: limits.maxPageItems,
@@ -161,6 +207,19 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
           }});
       }});
     return Object.freeze({...adapter, requiresRunContentCapture: true,
+      ...(collection === undefined ? {} : {
+        publishedStoreTargets: Object.freeze([Object.freeze({targetRef,
+          mappingRef: `mapping:${installed.connectorId}.gcs.objects.upload.v1`,
+          commandRef: `command:${installed.connectorId}.gcs.upload.v1`})]),
+        // This synchronous hook borrows the actual Site/installation issuer.
+        // Its original checked value remains available only in this lifetime.
+        // Account approval and the final physical send gate remain separate.
+        issueOriginalCollectionReference(pair, maxWork) {
+          if (closed) fail('GcsCollectionReferenceUnavailable');
+          return issueGcsCollectionReference(collection, pair, declaredWire,
+            installed.connectorId, collectionIssuer, {...declarationLimits, maxWork});
+        },
+      }),
       close() { closed = true; adapter.close(); }});
   } catch (cause) {
     closed = true;

@@ -2658,7 +2658,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "inputsOutputs": [
@@ -2668,7 +2668,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "identity": [
@@ -2688,7 +2688,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "synchronization": [
@@ -2698,7 +2698,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "failure": [
@@ -2708,7 +2708,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "cancellation": [
@@ -2718,7 +2718,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "resources": [
@@ -2728,7 +2728,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "extension": [
@@ -2738,7 +2738,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "verification": [
@@ -5889,7 +5889,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "inputsOutputs": [
@@ -5899,7 +5899,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "identity": [
@@ -5919,7 +5919,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "synchronization": [
@@ -5929,7 +5929,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "failure": [
@@ -5939,7 +5939,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "cancellation": [
@@ -5949,7 +5949,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "resources": [
@@ -5959,7 +5959,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "extension": [
@@ -5969,7 +5969,7 @@
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "## Original UPDATE selection boundary"
+                "anchor": "## Original Effect selection boundary"
               }
             ],
             "verification": [
@@ -6237,7 +6237,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "d60d65d8169f78636d8b498ef1fd251407240c0d4077f789fd479f3456fe34ef",
+      "sha256": "84510b09c8a0bc58d43ab09c493fc710731630516837cd90130fbc8457c71240",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -6895,6 +6895,11 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite#3",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialSite/sign",
           "parameters": [
             "operation",
@@ -7026,6 +7031,7 @@
             "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
             "openRowSourceCredentialSite/openRowSourceCredentialSite",
             "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
+            "openRowSourceCredentialSite/openRowSourceCredentialSite#3",
             "openRowSourceCredentialSite/sign",
             "rowSourceCheckEnvironment",
             "rowSourceMapping",
@@ -7044,65 +7050,176 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "No provider name or type appears here"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Installed collection issuer"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "createInstalledRowSource"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_issue_reference"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "exact version/target text"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "installationCid: bindingCid"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_catalog != expected_catalog"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "site.referenceCurrent()"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "referenceCurrent: () => !closing"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "authorizationFor"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "closing = true"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "close() { closed = true; adapter.close(); }"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "Completion is never"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "GcsCollectionProviderUnavailable"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "the same credential Site invalidates reference currentness before failed close"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "signal"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Closing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "False means closing, not physical cleanup ACK"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "maxPageBytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "const declarationLimits"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "let declaration_limits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Additional declarations/trees/strings"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "rowSourceMapping"
+              },
+              {
+                "path": "src/connectors/gcs/host-bundle.json",
+                "anchor": "\"providerBundle\""
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "An explicitly supplied legacy"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-row-source.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/row-source-command-environment.test.mjs",
+                "anchor": "real GCS complete Command and original input role survive ordinary Check Environment assembly"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "ordinary installed GCS supplies its original checked collection"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "a different installed scope cannot substitute"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
+                "anchor": "LIST_FILES paths=[]"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/checkpoint-approval.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "../site-node/https-credential-resource.mjs",
+        "../site-node/remote-credential-signature.mjs",
+        "../site-node/sqlite-credential-journal.mjs",
+        "./installed-row-listing.mjs",
+        "./installed-row-run.mjs",
+        "./local-account-config.mjs",
+        "./ordinary-source-binding.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path",
+        "node:perf_hooks",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",

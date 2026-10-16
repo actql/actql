@@ -83,7 +83,12 @@ These constraints apply to future Connectors as well. Adding Salesforce,
 Neo4j, or another backend must extend the Connector-owned roots instead of
 creating new product-specific top-level platform packages.
 
-## Original UPDATE selection boundary
+## Original Effect selection boundary
+
+UPDATE and `command.target.published_store` use the same existing selection
+Owner. Field-target Commands and canonical relation STORE do not acquire this
+selection context. Valid mixed occurrences retain their separate original
+Stage/Effect/header bindings; equal target strings do not merge purposes.
 
 `run_publication_host/client_effect_target_selections.mbt` and its package-local
 original-data projection retain the checked selection, its original prepared

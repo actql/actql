@@ -23,6 +23,21 @@ const runtimeUrl = new URL('../../../../_build/js/release/build/' +
 const baseEnvironmentWire = await readFile(new URL('../../../../spec/local-check-environment.json',
   import.meta.url), 'utf8');
 
+function installationFailure(t, error) {
+  // Preserve the original failure and cleanup carrier. Emit only closed code
+  // names, never account/profile/key/credential values from nested errors.
+  const codes = [];
+  let current = error;
+  for (let index = 0; index < 8 && current !== undefined; index++) {
+    const code = current?.code ?? current?.message;
+    codes.push(typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(code)
+      ? code : '<non-code>');
+    current = current?.cause;
+  }
+  t.diagnostic(`Original installation failure codes: ${JSON.stringify(codes)}`);
+  throw error;
+}
+
 async function fixture(t) {
   const scratch = await createOwnedScratch({parent: new URL('../../../../_build/', import.meta.url).pathname,
     prefix: 'gcs-installed-', label: 'GCS standard Source installation fixture'});
@@ -47,7 +62,7 @@ async function fixture(t) {
       maxListingBytes: 32768, maxDurationMs: 10000, maxPathBytes: 1024,
       maxPageBytes: 8192, maxPageItems: 9, maxRequestBytes: 4096, maxContentBytes: 4096}};
   const profilePath = join(scratch.path, 'source.json');
-  const declared = restoreGcsSourceDeclaration(moon, profile).declared;
+  const declared = restoreGcsSourceDeclaration(moon, profile, undefined, {includeObjects: true}).declared;
   const queryAliases = declared.views.map(view => ({name: `docs.${view.resource}`,
     sourceRef: view.source_ref, sourceViewContractCid: view.view_cid,
     schemaContractCid: view.carrier_schema_cid}));
@@ -75,18 +90,18 @@ async function fixture(t) {
       baseEnvironmentWire, resolveSecret}};
 }
 
-test('standard GCS Connector loads both declared Resources without provider or credential I/O', async t => {
+test('standard GCS Connector loads its three declared read Resources without provider or credential I/O', async t => {
   const value = await fixture(t);
   const source = await loadInstalledSource(value.profilePath, value.options);
   value.loaded.push(source);
   assert.equal(source.connectorRegistration, 'gcs');
   assert.equal(source.connectorRevision, 'gcs/0.1');
-  assert.deepEqual(source.sourceReadAccesses.map(({resource}) => resource).sort(), ['contents', 'files']);
+  assert.deepEqual(source.sourceReadAccesses.map(({resource}) => resource).sort(), ['contents', 'files', 'objects']);
   assert.ok(source.admitsSource(value.declared.views.find(view => view.resource === 'files').source_ref));
   assert.ok(source.admitsSource(value.declared.views.find(view => view.resource === 'contents').source_ref));
   assert.equal(source.admitsSource('source:foreign'), false);
   const environment = JSON.parse(source.environmentWire);
-  assert.equal(environment.connector_catalogs[0].source_views.length, 2);
+  assert.equal(environment.connector_catalogs[0].source_views.length, 3);
   assert.equal(value.secretCalls(), 0);
 });
 
@@ -153,13 +168,15 @@ test(`public ${entrance} GCS acceptance keyed Programs check against the install
     if (previousCertificates !== undefined) setDefaultCACertificates(previousCertificates);
   });
   if (entrance === 'Local') {
-    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation});
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation})
+      .catch(error => installationFailure(t, error));
   } else {
     const {key, cert, ca} = await fixtureCertificates(value.scratch.path);
     previousCertificates = getCACertificates('default');
     setDefaultCACertificates([...previousCertificates, ca.toString('utf8')]);
     host = await openInstalledRemoteHttpHost({...installation,
-      authenticate: header => header === 'Bearer gcs-fixture' ? userInfo().username : undefined});
+      authenticate: header => header === 'Bearer gcs-fixture' ? userInfo().username : undefined})
+      .catch(error => installationFailure(t, error));
     server = createServer({key, cert}, host.handler);
     await new Promise((resolve, reject) => {
       server.once('error', reject);

@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "889ffe59286989427ad35148050a37252800732ae92abe247da3ee03b7270916",
+      "sha256": "46317feb80da6ba30698e7c23b3098249e9a9b9118b739bb2a30af83873e0ec5",
       "exports": [
         "installedConnectors"
       ],
@@ -24,6 +24,13 @@
         },
         {
           "name": "installedConnectors/installedConnectors/installedConnectors#10",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#11",
           "parameters": [
             "module"
           ],
@@ -87,6 +94,11 @@
         },
         {
           "name": "installedConnectors/installedConnectors#10",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#11",
           "parameters": [],
           "async": false
         },
@@ -168,7 +180,9 @@
             "installedConnectors/installedConnectors#6",
             "installedConnectors/installedConnectors#7",
             "installedConnectors/installedConnectors#8",
-            "installedConnectors/installedConnectors#9"
+            "installedConnectors/installedConnectors#9",
+            "installedConnectors/installedConnectors/installedConnectors#11",
+            "installedConnectors/installedConnectors#11"
           ],
           "exports": [
             "installedConnectors"
@@ -198,6 +212,10 @@
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
                 "anchor": "export const installedConnectors = Object.freeze(["
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Installed collection issuer"
               }
             ],
             "inputsOutputs": [
@@ -224,6 +242,14 @@
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
                 "anchor": "export const installedConnectors = Object.freeze(["
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_issue_reference"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
               }
             ],
             "identity": [
@@ -250,6 +276,14 @@
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
                 "anchor": "export const installedConnectors = Object.freeze(["
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "installationCid: bindingCid"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_catalog != expected_catalog"
               }
             ],
             "ownership": [
@@ -276,6 +310,14 @@
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
                 "anchor": "export const installedConnectors = Object.freeze(["
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "site.referenceCurrent()"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "referenceCurrent: () => !closing"
               }
             ],
             "synchronization": [
@@ -302,6 +344,14 @@
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
                 "anchor": "export const installedConnectors = Object.freeze(["
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "closing = true"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "close() { closed = true; adapter.close(); }"
               }
             ],
             "failure": [
@@ -328,6 +378,14 @@
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
                 "anchor": "export const installedConnectors = Object.freeze(["
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "GcsCollectionProviderUnavailable"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "the same credential Site invalidates reference currentness before failed close"
               }
             ],
             "cancellation": [
@@ -350,6 +408,14 @@
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
                 "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Closing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "False means closing, not physical cleanup ACK"
               }
             ],
             "resources": [
@@ -372,6 +438,18 @@
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
                 "anchor": "The kernel and reservation authority stay in"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "const declarationLimits"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "let declaration_limits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Additional declarations/trees/strings"
               }
             ],
             "extension": [
@@ -398,12 +476,32 @@
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
                 "anchor": "export const installedConnectors = Object.freeze(["
+              },
+              {
+                "path": "src/connectors/gcs/host-bundle.json",
+                "anchor": "\"providerBundle\""
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "An explicitly supplied legacy"
               }
             ],
             "verification": [
               {
                 "path": "scripts/connector-node-bundles.test.mjs",
                 "anchor": "Node installation touches only the configured module subset"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "ordinary installed GCS supplies its original checked collection"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "a different installed scope cannot substitute"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
+                "anchor": "LIST_FILES paths=[]"
               }
             ]
           }

@@ -52,6 +52,41 @@ test('registered Result Plan schema and nested root refs retain pins', () => {
 const selections = JSON.parse(readFileSync(
   'portability/corpus/effect-target-selection.json', 'utf8',
 ));
+const publishedStore = JSON.parse(readFileSync(
+  'portability/corpus/effect-target-selection-published-store.json', 'utf8',
+));
+
+test('independent published-STORE and mixed identities preserve the same eight-field schema', () => {
+  const corpus = JSON.parse(readFileSync(
+    'portability/corpus/effect-target-selection-published-store.json', 'utf8'));
+  assert.equal(corpus.version, selections.version);
+  for (const item of [...corpus.cases, ...corpus.installation_owners]) {
+    verifyIdentity(item.preimage, item.expected_cid, item.expected_canonical_bytes);
+  }
+  const keys = Object.keys(selections.cases[0].preimage[0]);
+  for (const item of corpus.cases) for (const entry of item.preimage) {
+    assert.deepEqual(Object.keys(entry), keys);
+  }
+  assert.deepEqual(corpus.cases.map(item => item.preimage.map(entry => entry.effect_id)),
+    [['save'], ['save', 'update']]);
+  assert.equal(new Set(corpus.cases.map(item => item.expected_cid)).size, 2);
+  // Structural schema instance bytes/pins stay unchanged; original purpose
+  // admission, mixed occurrences and saved bindings execute in Common tests.
+  checkResultPlanSchema(registry);
+});
+
+test('published selection fixture carries the actual explicit bounded policy, not undefined', () => {
+  const source = readFileSync(
+    'src/run_publication_host/client_published_store_selection_wbtest.mbt', 'utf8');
+  const wire = source.match(/^    #\|(.+)$/mu)[1];
+  const body = JSON.parse(wire);
+  const {evidence_bundle_cid: cid, ...preimage} = body;
+  verifyIdentity(preimage, cid, canonicalText(preimage));
+  const original = JSON.parse(readFileSync(
+    'scripts/fixtures/store-effect-lowering/environment.json', 'utf8'));
+  assert.deepEqual(body.host_policy_profile, original.environment.host_policy_profile);
+  assert.equal(body.host_policy_profile.capacity.max_artifact_bytes, 1000);
+});
 
 test('original UPDATE selection is optional in both closed Plan schemas', () => {
   const keys = ['check_environment_cid', 'effect_id',
@@ -75,14 +110,17 @@ test('original UPDATE selection is optional in both closed Plan schemas', () => 
       {type: 'integer', minimum: 0});
   }
   for (const [key, pins] of Object.entries(selections.schema_pins)) {
-    assert.equal(machineCid(registry.artifact_schemas[key]), pins.after);
-    assert.equal(registry.artifact_schema_cids[key], pins.after);
+    // Keep the earlier UPDATE corpus and its original whole-schema identities.
+    // The adopted published-store target alternative changed the containing
+    // Program schema before this scope-only selection extension.
+    const current = publishedStore.current_schema_pins[key];
+    assert.equal(machineCid(registry.artifact_schemas[key]), current);
+    assert.equal(registry.artifact_schema_cids[key], current);
     assert.notEqual(pins.before, pins.after);
+    assert.notEqual(pins.after, current);
   }
   assert.equal(registry.artifact_registry_cid,
-    JSON.parse(readFileSync(
-      'portability/corpus/effect-target-selection-projection.json', 'utf8',
-    )).artifact_registry_pins.after);
+    publishedStore.current_schema_pins.artifact_registry);
 });
 
 test('independent original UPDATE vectors bind every selection and owner field', () => {

@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "actql/actql/checkpoint_runtime_node"
 
+import {
+  "actql/actql/run_publication",
+}
+
 // Values
 pub fn checkpoint_admit(String) -> String
 
@@ -71,6 +75,16 @@ pub fn revalidation_failed_state(String, String, String, String) -> String
 pub fn run_outcome_terminal(String) -> Bool
 
 pub fn run_state_admit(String) -> String
+
+pub fn run_state_observation_key(@run_publication.RunStateObservation) -> String
+
+pub fn run_state_observation_next_revision(@run_publication.RunStateObservation, Bool, String, Int64) -> Result[Int64, String]
+
+pub fn run_state_observation_prepare(String, String, Int64, Int, Int, Int) -> Result[@run_publication.RunStateObservation, String]
+
+pub fn run_state_observation_wire(@run_publication.RunStateObservation, Int64) -> Result[String, String]
+
+pub fn run_state_wait_decision(String, Bool, Int64, Int, Int, Int) -> String
 
 pub fn run_transition_allowed(String, String) -> Bool
 

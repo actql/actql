@@ -2,7 +2,7 @@
 // and loopback TLS. No normal installed artifact, live service or numeric price.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {generateKeyPairSync, randomUUID} from 'node:crypto';
+import {createHash, generateKeyPairSync, randomUUID} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
@@ -27,11 +27,15 @@ const control = runtimeCore(common).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const read = name => readFile(join(repo, name), 'utf8');
 
-async function rowOwner() {
-  const declaration = checked(common.clientProgramRowSourceRestoreDeclaration(
+async function rowOwner(rowSchema, verifyOriginalTransport = () => false) {
+  const schemaWire = rowSchema === undefined ? undefined : canonicalJson(rowSchema);
+  const restore = rowSchema === undefined ? common.clientProgramRowSourceRestoreDeclaration
+    : common.clientProgramRowSourceRestoreRelationDeclaration;
+  const declaration = checked(restore(
     'fixture', 'fixture', 'fixture/0.1', JSON.stringify({views: [{
-      resource: 'records', resource_kind: 'record', fields: [{
-        name: 'id', type: 'string', nullable: false}]}]}), undefined));
+      resource: 'records', resource_kind: 'record', ...(schemaWire === undefined ? {fields: [{
+        name: 'id', type: 'string', nullable: false}]} : {schema_wire: schemaWire,
+        schema_cid: `sha256:${createHash('sha256').update(schemaWire).digest('hex')}`})}]}), undefined));
   const declared = JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
   const environment = rowSourceCheckEnvironment(
     (await read('spec/local-check-environment.json')).trimEnd(), declared);
@@ -59,12 +63,21 @@ async function rowOwner() {
     declaration, requirement, query, evidence));
   // Independent test units. This is not a normal Host retained/workspace price.
   const ledger = checked(common.clientProgramAcquisitionLedger(
-    1, 1, 8192n, 100000000n, 100000000n, 0));
+    1, 1, rowSchema === undefined ? 8192n : 24576n, 100000000n, 100000000n, 0));
   const run = checked(common.clientProgramRowSourceStartAccounted(
-    acquisition, randomUUID(), () => false, ledger, 8192n, 4096n));
+    acquisition, randomUUID(), verifyOriginalTransport, ledger, rowSchema === undefined ? 8192n : 24576n, rowSchema === undefined ? 4096n : 8192n));
   checked(common.clientProgramRowSourceBegin(run, 4096, 2, 2, undefined));
   return {
     charge: bytes => checked(common.clientProgramRowSourceChargePage(run, bytes)),
+    page: (rows, charge) => checked(common.clientProgramRowSourceAcceptChargedPage(
+      run, charge, Buffer.from(JSON.stringify(rows)))),
+    finish: () => checked(common.clientProgramRowSourceFinish(run)),
+    captureCount: () => {
+      const capture = checked(common.clientProgramRowSourceCapture(run));
+      const source = checked(common.clientProgramRowSourceCaptureSource(capture));
+      return common.clientProgramCapturedSourceRowCount(checked(
+        common.clientProgramIdentifyCapturedSourceRelation(source)));
+    },
     consume: charge => checked(common.clientProgramRowSourceConsumeObservationCharge(run, charge)),
     usage: () => common.clientProgramMultiCapturedLedgerUsage(ledger),
     assertNoCapture: () => assert.throws(() => checked(
@@ -73,7 +86,8 @@ async function rowOwner() {
   };
 }
 
-export async function accountFixture(t, {accounted = true, accountOutcome = 'allow'} = {}) {
+export async function accountFixture(t, {accounted = true, accountOutcome = 'allow',
+  rowSchema, resources = ['account']} = {}) {
   const parent = join(repo, '_build', 'hubspot-account-fixtures');
   await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent, 'identity-'));
@@ -98,6 +112,23 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
   await new Promise((resolve, reject) => {
     server.once('error', reject); server.listen(0, '127.0.0.1', resolve);
   });
+  let journal, binding, row;
+  // Register custody before later fallible fixture construction. A failed
+  // declaration must not leave its already listening test server alive.
+  t.after(async () => {
+    const failures = [];
+    try { if (binding) assert.equal(closeHttpsCredentialBinding(binding), 'closed'); }
+    catch (cause) { failures.push(cause); }
+    try {
+      row?.close();
+      if (row) assert.deepEqual(row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+    } catch (cause) { failures.push(cause); }
+    try { journal?.close(); } catch (cause) { failures.push(cause); }
+    try { await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+    catch (cause) { failures.push(cause); }
+    t.diagnostic(`Retained owned HubSpot fixture: ${root}`);
+    if (failures.length) throw new AggregateError(failures, 'HubSpotFixtureCleanupUnconfirmed');
+  });
   const authority = generateKeyPairSync('ed25519');
   await Promise.all([
     writeFile(join(root, 'credential-authority.key'), authority.privateKey.export({
@@ -105,7 +136,7 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
     writeFile(join(root, 'credential-authority.pub'), authority.publicKey.export({
       format: 'pem', type: 'spki'})),
   ]);
-  const journal = openSqliteCredentialJournal(join(root, 'credential-journal'), {
+  journal = openSqliteCredentialJournal(join(root, 'credential-journal'), {
     credentialAuthorities: new Map([['hubspot-fixture',
       new Map([['key', authority.publicKey]])]])});
   const scope = Object.freeze({issuerAuthority: 'hubspot-fixture', principal: 'operator',
@@ -123,15 +154,15 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
   const writeAccount = outcome => writeFile(accountPath, canonicalJson({
     version: 'actql-execution-account-config/0.1', account_id: 'fixture', entries: [{
       entry_id: 'identity-read', outcome, principal: {all: true},
-      connection: {any_of: ['hubspot:fixture']}, resource: {any_of: ['account']},
+      connection: {any_of: ['hubspot:fixture']}, resource: {any_of: resources},
       operation: {any_of: ['read']}, exclusions: []}]}));
   await writeAccount(accountOutcome);
   const gate = await createLocalAuthorizationGate({accountConfig: accountPath,
     principal: 'operator', context: {principal: 'operator', contextCid: cid('d')}});
-  const current = async () => {
+  const current = async (resource = 'account') => {
     state.currentCalls++;
     const decision = await gate.authorize('acquisition',
-      {connection: 'hubspot:fixture', resource: 'account', operation: 'read'},
+      {connection: 'hubspot:fixture', resource, operation: 'read'},
       {subjectCid: scope.runInvocationCid});
     if (decision.action !== 'dispatch') throw Object.assign(
       new Error('ExecutionAuthorizationDenied'), {code: 'ExecutionAuthorizationDenied', decision});
@@ -142,24 +173,17 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
     return state.secret;
   };
   const credential = {control, journal, resolveSecret, ca: cert};
-  const binding = openHttpsCredentialBinding({...credential, scope, maxSecretBytes: 128});
+  binding = openHttpsCredentialBinding({...credential, scope, maxSecretBytes: 128});
   const ownedCredential = Object.freeze({...credential, binding});
-  const row = accounted ? await rowOwner() : undefined;
+  row = accounted ? await rowOwner(rowSchema, rowSchema === undefined ? undefined
+    : () => closeHttpsCredentialBinding(binding) === 'closed') : undefined;
   const authorization = Object.freeze({grant, scope, useId: 'original-identity'});
   const options = {moon: provider, originalPortalId: '7', authorization,
     credential: ownedCredential,
     limits: {maxResponseBytes: 4096, maxNodes: 100, maxDepth: 10}, current,
     chargeResponse: body => { state.charges++; return row?.charge(body) ?? body.byteLength; },
     consumeObservation: charge => { state.consumed++; row?.consume(charge); }};
-  t.after(async () => {
-    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
-    row?.close();
-    if (row) assert.deepEqual(row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
-    journal.close();
-    await new Promise(resolve => server.close(resolve));
-    // Keep every original failed/successful use, certificate and namespace.
-    t.diagnostic(`Retained owned HubSpot fixture: ${root}`);
-  });
-  return {state, scope, grant, control, journal, binding, row, options,
+
+  return {root, state, scope, grant, control, journal, binding, row, options,
     current, sign, writeAccount, observe: overrides => observeHubSpotAccount({...options, ...overrides})};
 }
