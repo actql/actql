@@ -82,29 +82,7 @@ fn store_capture_issue_label(issue : Issue) -> String {
     BindingPreparationSource(LocalProgram(Pipeline(_, detail)), _) =>
       @debug.to_string(detail.kind)
     BindingPreparation(LocalProgram(Order(_, _))) => "LocalProgram.Order"
-    BindingPreparation(LocalProgram(cause)) =>
-      match cause {
-        InvalidLimits => "LocalProgram.InvalidLimits"
-        CheckOnlyPrefix => "LocalProgram.CheckOnlyPrefix"
-        BudgetExceeded => "LocalProgram.BudgetExceeded"
-        ForeignEnvironmentSource => "LocalProgram.ForeignEnvironmentSource"
-        ForeignModelEnvironment => "LocalProgram.ForeignModelEnvironment"
-        SourceViewStageCount => "LocalProgram.SourceViewStageCount"
-        MissingSourceViewRegistrations(_) =>
-          "LocalProgram.MissingSourceViewRegistrations"
-        InvalidSourceViewRegistration(_, _) =>
-          "LocalProgram.InvalidSourceViewRegistration"
-        UnsupportedReceipt(_, _) => "LocalProgram.UnsupportedReceipt"
-        LocalInput(_, _) => "LocalProgram.LocalInput"
-        Import(_, _) => "LocalProgram.Import"
-        Pipeline(_, _) => "LocalProgram.Pipeline"
-        Collection(_, _) => "LocalProgram.Collection"
-        Results(_, _) => "LocalProgram.Results"
-        Order(_, _) => "LocalProgram.Order"
-        Ports(_, _) => "LocalProgram.Ports"
-        TableInputs(_, _) => "LocalProgram.TableInputs"
-        Wiring(_) => "LocalProgram.Wiring"
-      }
+    BindingPreparation(LocalProgram(_)) => "LocalProgram.other"
     BindingPreparation(Demand(_)) => "Demand"
     BindingPreparation(SourceDeclarations(_)) => "SourceDeclarations"
     BindingPreparation(MissingSourceCatalog(_)) => "MissingSourceCatalog"
@@ -461,4 +439,108 @@ test "source Frontend preserves the original STORE publication and private outpu
   ).unwrap()
   assert_true(physical_equal(lowered.store_targets.unwrap(), publication))
   assert_eq(@program.export_count(lowered.program.unwrap()), 0)
+}
+
+///|
+fn store_serialized_program(
+  environment : @check.CheckEnvironment,
+  assignments : String,
+) -> @program.Program {
+  let publication = @source_publication.published_store_targets(
+      environment,
+      store_source_publication(environment),
+    )
+    .unwrap()
+    .unwrap()
+  let query = @query.parse_query(
+    "FROM pair |> SERIALIZE FORMAT JSONL PRESERVE ORDER OPTIONS (name = 'pair.jsonl', max_rows = 1, max_bytes = 128) |> EFFECT STORE storage.archive SET (" +
+    assignments +
+    ")",
+    syntax_limits(),
+  ).unwrap()
+  compile(
+    query,
+    pair_context(),
+    construction_limits(),
+    store_targets=Some(publication),
+  ).unwrap()
+}
+
+///|
+test "STORE does not synthesize capacity for the original static publication fixture" {
+  let environment = store_source_environment("collection")
+  let program = store_serialized_program(
+    environment, "path = name, content = content",
+  )
+  assert_true(
+    @check.prepare_effect_computation_candidate(
+      program,
+      environment,
+      None,
+      [],
+      check_limits(),
+      1,
+      1000,
+    )
+    is Err(Computation(Source(SourceView(Context(Policy(MissingCapacity)))))),
+  )
+}
+
+///|
+test "STORE content type remains the existing Command input Owner refusal" {
+  let environment = store_effect_check_environment()
+  let program = store_serialized_program(
+    environment, "path = name, content = 7",
+  )
+  let candidate = @check.prepare_effect_computation_candidate(
+    program,
+    environment,
+    None,
+    [],
+    check_limits(),
+    1,
+    1000,
+  ).unwrap()
+  let mappings = @environment.check_mapping_contract_shapes(
+    @check.checking_environment_wire(environment),
+    { max_bytes: 40000, max_nodes: 4000, max_depth: 100, max_members: 100, },
+    10000,
+  ).unwrap()
+  match
+    @check.close_effect_computation_static(candidate, mappings, {
+      max_members: 10,
+      max_work: 10000,
+      max_admission_nodes: 1000,
+      max_admission_depth: 100,
+      max_admission_text_bytes: 10000,
+    }) {
+    Err(CommandInputs(issue)) => {
+      assert_eq(
+        @stage_results.effect_command_input_issue_kind(issue),
+        IncompatibleField("content"),
+      )
+      assert_eq(
+        @stage_results.effect_command_input_issue_effect(issue),
+        "aql_store_effect",
+      )
+    }
+    _ => fail("numeric data must not become a typed ContentRef")
+  }
+}
+
+///|
+test "STORE SET siblings do not become expression bindings" {
+  let query = @query.parse_query(
+    "FROM files |> EFFECT STORE storage.archive SET (new_path = path, content = new_path)",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(
+      query,
+      store_capture_context(),
+      construction_limits(),
+      store_targets=Some(store_capture_publication()),
+    )
+    is Err(Expression(_) | UnknownColumn),
+  )
 }
