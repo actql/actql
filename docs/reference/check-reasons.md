@@ -360,7 +360,7 @@ Facts: [registered public Reason schema](../../spec/contracts/actql-check-reason
 
 Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.
 
-Default: The query syntax is invalid. Correct the syntax at the reported location; CALL, standalone WINDOW, TABLESAMPLE and general ASSERT Pipe steps are not accepted.
+Default: The query syntax is invalid. Correct the query syntax at the reported location when available.
 
 Independent acceptance: [authored syntax locations retain exact UTF-8 input revisions](../../adapters/host-node/client-check.test.mjs).
 

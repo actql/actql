@@ -1933,14 +1933,15 @@ Every preview declares one of:
 
 - `full_diff`: exact target identities, before/after, and target versions;
 - `targeted`: exact target identities and intended after/change with before
-  unavailable, guarded by the Connector's applicable target contract.
+  unavailable, guarded by a connector target version.
 
 <!-- requirement-block: preview-strength.only-full-diff-and-targeted-are-admissible -->
 `update`, `delete`, and update-side `upsert` are apply-admissible only as
 `full_diff` or version-guarded `targeted`. `create`, `command`, and `store` do
 not require before state; command admissibility also depends on its declared
-preview strength. An unresolved target scope MUST be refused before a
-Preview is sealed or approved; it is not a third Preview strength.
+preview strength. An Effect whose exact target scope cannot be resolved
+MUST be refused at check: it cannot be declared, and unresolved scope is not
+a third Preview strength.
 
 The resolved item limit counts created rows for create, unique target identities for
 update/delete, unique upsert keys for upsert, logical target-plus-payload items for command,
@@ -2055,8 +2056,10 @@ in its typed outcome, reflecting the provider-confirmed branch of the original
 operation; no branch is inferred from missing before-state.
 A failed apply-time condition is `failed` with error code `conflict`. It does
 not authorize redispatch, refreshing the approved version, or changing the
-fixed target set. Unknown outcomes still require Connector-recognized evidence
-and are never resolved by blindly resending the mutation.
+fixed target set; Host policy may offer a new Preview for a fresh approval,
+and nothing is resent automatically. Unknown outcomes still require
+Connector-recognized evidence and are never resolved by blindly resending the
+mutation.
 
 A typed command returns exactly one `EffectOutcome`:
 

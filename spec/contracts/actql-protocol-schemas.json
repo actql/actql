@@ -13672,7 +13672,7 @@
       ]
     }
   },
-  "artifact_registry_cid": "sha256:dd03b994c2ece7081c968b92724efd6f1d1e1fa83c8e4db7c7495ac3de0a0ef8",
+  "artifact_registry_cid": "sha256:7238a6d8bcdf2ef953fabd4495761e6f5f07f220efca03dcd8e9dd38dae6f8a4",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -13727,7 +13727,7 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:3a157209380fb4f53a3c7ed98b929e04e590ca03fdc036126ee920da6466d93f",
+    "check_outcome": "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce",
     "check_reason": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3",
@@ -13747,7 +13747,7 @@
     "model_journal_entry": "sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7",
     "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b",
     "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a",
-    "explanation": "sha256:97a6fb2d9269e78ee277223bff8a9f251140d76a6eee1b5025d7714b846d402b"
+    "explanation": "sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -82789,7 +82789,7 @@
                       "runnable": {
                         "properties": {
                           "verdict": {
-                            "const": "unknown"
+                            "const": "no"
                           }
                         }
                       }
@@ -82960,8 +82960,7 @@
                     "verdict": {
                       "enum": [
                         "yes",
-                        "no",
-                        "unknown"
+                        "no"
                       ]
                     },
                     "reasons": {
@@ -83002,10 +83001,7 @@
                       "if": {
                         "properties": {
                           "verdict": {
-                            "enum": [
-                              "no",
-                              "unknown"
-                            ]
+                            "const": "no"
                           }
                         }
                       },
@@ -87080,7 +87076,7 @@
                       "runnable": {
                         "properties": {
                           "verdict": {
-                            "const": "unknown"
+                            "const": "no"
                           }
                         }
                       }
@@ -87251,8 +87247,7 @@
                     "verdict": {
                       "enum": [
                         "yes",
-                        "no",
-                        "unknown"
+                        "no"
                       ]
                     },
                     "reasons": {
@@ -87293,10 +87288,7 @@
                       "if": {
                         "properties": {
                           "verdict": {
-                            "enum": [
-                              "no",
-                              "unknown"
-                            ]
+                            "const": "no"
                           }
                         }
                       },
@@ -97757,7 +97749,8 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/physical_placement"
-          }
+          },
+          "$comment": "One entry per step and alternative: the chosen or deferred placement plus candidate and excluded alternatives for the same step_id."
         },
         "pushdown": {
           "type": "array",
@@ -97903,7 +97896,8 @@
               "step_id",
               "before_evidence_cid",
               "after_evidence_cid",
-              "reason"
+              "reason",
+              "changed_at"
             ],
             "properties": {
               "step_id": {
@@ -97922,6 +97916,12 @@
               "reason": {
                 "type": "string",
                 "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "changed_at": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "$comment": "UTC milliseconds when the Host revised the strategy."
               }
             }
           }
@@ -98264,10 +98264,9 @@
             "decision": {
               "enum": [
                 "selected",
-                "eligible",
-                "not_eligible",
-                "deferred"
-              ]
+                "host"
+              ],
+              "$comment": "selected: built into the Source request; host: kept on the Host. Not eligible is host with no eligible_sites and a reason."
             },
             "reason": {
               "type": "string",
@@ -98314,7 +98313,8 @@
             "checkpoint",
             "preview_state",
             "outcomes",
-            "evidence_cids"
+            "evidence_cids",
+            "policy"
           ],
           "properties": {
             "step_id": {
@@ -98366,6 +98366,15 @@
                 "type": "string",
                 "pattern": "^sha256:[0-9a-f]{64}$"
               }
+            },
+            "policy": {
+              "enum": [
+                "allow",
+                "review",
+                "deny",
+                "runtime"
+              ],
+              "$comment": "A policy decision already made, or runtime when policy is evaluated at run time."
             }
           },
           "allOf": [

@@ -878,6 +878,8 @@ the same stable revision does not satisfy the wait. Status and wait use the
 same original Run projection and current read authorization; neither starts,
 resumes, reacquires or resends work to make progress visible.
 
+<a id="client-cancellation-observations"></a>
+
 ### Client cancellation observations
 
 <!-- requirement-block: client-cancellation-observation -->

@@ -2661,7 +2661,8 @@ const schemas = {
           "updated_at",
           "next_action",
           "result_available",
-          "result_availability"
+          "result_availability",
+          "revision"
         ],
         "properties": {
           "version": {
@@ -2990,6 +2991,11 @@ const schemas = {
                 ]
               }
             }
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "allOf": [
@@ -3825,7 +3831,8 @@ const schemas = {
               "updated_at",
               "next_action",
               "result_available",
-              "result_availability"
+              "result_availability",
+              "revision"
             ],
             "properties": {
               "version": {
@@ -4154,6 +4161,11 @@ const schemas = {
                     ]
                   }
                 }
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               }
             },
             "allOf": [
@@ -4904,7 +4916,8 @@ const schemas = {
                       "updated_at",
                       "next_action",
                       "result_available",
-                      "result_availability"
+                      "result_availability",
+                      "revision"
                     ],
                     "properties": {
                       "version": {
@@ -5233,6 +5246,11 @@ const schemas = {
                             ]
                           }
                         }
+                      },
+                      "revision": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
                       }
                     },
                     "allOf": [
@@ -9174,7 +9192,8 @@ const schemas = {
               "updated_at",
               "next_action",
               "result_available",
-              "result_availability"
+              "result_availability",
+              "revision"
             ],
             "properties": {
               "version": {
@@ -9503,6 +9522,11 @@ const schemas = {
                     ]
                   }
                 }
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               }
             },
             "allOf": [

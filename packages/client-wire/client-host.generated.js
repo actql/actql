@@ -7575,8 +7575,7 @@ const schemas = {
                   "verdict": {
                     "enum": [
                       "yes",
-                      "no",
-                      "unknown"
+                      "no"
                     ]
                   },
                   "reasons": {
@@ -7617,10 +7616,7 @@ const schemas = {
                     "if": {
                       "properties": {
                         "verdict": {
-                          "enum": [
-                            "no",
-                            "unknown"
-                          ]
+                          "const": "no"
                         }
                       }
                     },
@@ -11660,7 +11656,7 @@ const schemas = {
                     "runnable": {
                       "properties": {
                         "verdict": {
-                          "const": "unknown"
+                          "const": "no"
                         }
                       }
                     }
@@ -11860,8 +11856,7 @@ const schemas = {
                   "verdict": {
                     "enum": [
                       "yes",
-                      "no",
-                      "unknown"
+                      "no"
                     ]
                   },
                   "reasons": {
@@ -11902,10 +11897,7 @@ const schemas = {
                     "if": {
                       "properties": {
                         "verdict": {
-                          "enum": [
-                            "no",
-                            "unknown"
-                          ]
+                          "const": "no"
                         }
                       }
                     },
@@ -15944,7 +15936,7 @@ const schemas = {
                     "runnable": {
                       "properties": {
                         "verdict": {
-                          "const": "unknown"
+                          "const": "no"
                         }
                       }
                     }
@@ -17806,7 +17798,7 @@ const operationKeys = {
 };
 
 export const checkReasonSchemaCid = "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742";
-export const checkOutcomeSchemaCid = "sha256:3a157209380fb4f53a3c7ed98b929e04e590ca03fdc036126ee920da6466d93f";
+export const checkOutcomeSchemaCid = "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {

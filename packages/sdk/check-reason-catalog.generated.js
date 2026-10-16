@@ -1125,7 +1125,7 @@ const entries = freeze({
         "key": "reason.query_syntax_invalid",
         "english": [
           "The query syntax is invalid.",
-          "Correct the syntax at the reported location; CALL, standalone WINDOW, TABLESAMPLE and general ASSERT Pipe steps are not accepted."
+          "Correct the query syntax at the reported location when available."
         ]
       },
       "variants": []

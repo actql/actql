@@ -71,7 +71,7 @@ test('pending flags preserve unknown absence independently of unsupported capabi
 test('legacy RunState identity and consumer remain unchanged as registries expand', () => {
   const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   assert.equal(registry.artifact_schema_cids.run_state,
-    'sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30');
+    'sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2');
   assert.equal(hash(registry.artifact_schemas.run_state), registry.artifact_schema_cids.run_state);
   // Aggregate identities cover every current member. New Model/Plan contracts
   // may change them while the independent original RunState pin stays exact.

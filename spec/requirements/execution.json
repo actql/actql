@@ -1874,7 +1874,7 @@
     },
     {
       "requirement_id": "actql.execution/preview-strength.only-full-diff-and-targeted-are-admissible",
-      "statement_sha256": "f9543ff7d5268d47449f9ba2316457f923bdbe273ae747101a5581c8ec282ab6",
+      "statement_sha256": "90c7650d292000162954aec25b6abd8477ce411d8ae03c97294f6fc463696f05",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -8452,7 +8452,7 @@
     },
     {
       "requirement_id": "actql.language/effects.create-appends-and-must-not-address-existing-rows",
-      "statement_sha256": "df9d10ac89db0b9a8d4abba48247e243a4f05fa864635919445db5b9db1bd527",
+      "statement_sha256": "7bf3f9d840fa92f7500b777828a0e42d690ef3ddc9ddce5430b71c100c192bf0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8463,7 +8463,7 @@
     },
     {
       "requirement_id": "actql.language/effects.create-appends-and-must-not-address-existing-rows.second",
-      "statement_sha256": "43fdcb09431b6bf9de60aeb6c2dd40ddaa5639ca234794ae785a054565e76e16",
+      "statement_sha256": "1ffc5499b5f0d755cb5cc8ec44f6c89664cb23940baf22b04e41d854f8f41588",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -43,7 +43,7 @@ function report(verdicts, reasonSchema = checkReasonSchema) {
       {if: {properties: {verdict: {const: 'invalid'}}},
         then: {properties: {runnable: {properties: {verdict: {const: 'no'}}}}}},
       {if: {properties: {verdict: {const: 'undetermined'}}},
-        then: {properties: {runnable: {properties: {verdict: {const: 'unknown'}}}}}},
+        then: {properties: {runnable: {properties: {verdict: {const: 'no'}}}}}},
       {if: {properties: {verdict: {const: 'verified'}}},
         then: {not: {required: ['omissions']}, properties: {reasons: empty, coverage: emptyCoverage},
           allOf: [
@@ -64,11 +64,11 @@ function report(verdicts, reasonSchema = checkReasonSchema) {
     properties: {
       runnable: {type: 'object', additionalProperties: false,
         required: ['verdict', 'reasons'],
-        properties: {verdict: {enum: ['yes', 'no', 'unknown']},
+        properties: {verdict: {enum: ['yes', 'no']},
           reasons: {type: 'array', items: problem}},
         allOf: [{if: {properties: {verdict: {const: 'yes'}}},
           then: {properties: {reasons: {maxItems: 0}}}},
-        {if: {properties: {verdict: {enum: ['no', 'unknown']}}},
+        {if: {properties: {verdict: {const: 'no'}}},
           then: {properties: {reasons: {minItems: 1}}}}]},
       context_ref: opaqueRef,
       omissions: {type: 'object', additionalProperties: false, required: ['requirements'],

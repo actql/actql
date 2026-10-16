@@ -1360,7 +1360,7 @@ export type WireCheckOutcomeShape = Readonly<{
   outcome: "completed";
   report: Readonly<{
   runnable: Readonly<{
-  verdict: "yes" | "no" | "unknown";
+  verdict: "yes" | "no";
   reasons: readonly Readonly<{
   code: string;
 }>[];
@@ -1647,7 +1647,7 @@ export type WireCheckOutcomeShape = Readonly<{
   outcome: "failed";
   partial_report?: Readonly<{
   runnable: Readonly<{
-  verdict: "yes" | "no" | "unknown";
+  verdict: "yes" | "no";
   reasons: readonly Readonly<{
   code: string;
 }>[];

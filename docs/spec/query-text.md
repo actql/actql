@@ -1321,11 +1321,12 @@ listing can be used only where the selected contract admits partial results;
 it does not carry complete-listing evidence.
 
 The listing metadata includes `resource`, `version`, `path`, `media_type` and
-`size_bytes`, with types, presence and available version guarantees declared
+`size`, with types, presence and available version guarantees declared
 by the published Source contract. Listing does not download bytes.
 `connection.contents` is the corresponding keyed Source: JOIN binds both
-`resource` and `version` to fetch exactly that Resource version, returning a
-`content_ref` and its `media_type`. Joining on resource alone does not establish
+`resource` and `version` to fetch exactly that Resource version, returning the
+columns `resource`, `version`, `content` (a `content_ref`) and `media_type`.
+Joining on resource alone does not establish
 version-pinned acquisition. Failed acquisition or version mismatch is an
 acquisition failure, not an absent INNER JOIN row.
 
@@ -2426,7 +2427,6 @@ the short forms below resolve to the same existing owners.
 
 ### Short Effect forms and SQL statements
 
-<!-- requirement-block: effect-text.short-forms-resolve-the-published-contract -->
 The checker MUST resolve each short `conn.resource` or `conn.operation` form
 against the selected connection's published contracts, refusing unknown,
 ambiguous, type-incompatible or unauthorized bindings before acquisition.
@@ -2445,7 +2445,6 @@ The admitted terminal forms are:
 |> EFFECT [name] COMMAND conn.operation [TARGET expr] ID key [INPUT (field = expr, …)]
 ```
 
-<!-- requirement-block: effect-text.current-input-and-evaluated-expressions -->
 These forms MUST consume the current checked Relation through existing private
 Stage Result capture, evaluating pure expressions before Preview and preserving
 explicit public Results without inventing a public Named Result.
@@ -2455,7 +2454,6 @@ no SET fields. Omitted single-terminal names are completed deterministically
 by Effect kind, with UPDATE retaining `aql_update_effect`; explicit names remain
 identity-bearing and unique across terminal and postlude declarations.
 
-<!-- requirement-block: effect-text.store-content-and-table-inputs -->
 Object, file and stage STORE MUST require a typed `content_ref` for each output
 object, with destination and overwrite fields checked by the published write
 Mapping; rows without content are refused rather than implicitly serialized.
@@ -2464,7 +2462,6 @@ table resource instead accepts its typed rows. SET fields are evaluated inputs,
 not codec options: `format` does not turn rows into Content. The sealed Preview
 fixes the destination, exact content identity or row scope, and overwrite guard.
 
-<!-- requirement-block: effect-text.command-target-and-item-identity -->
 A short COMMAND MUST resolve to exactly one versioned Command contract, require
 TARGET when that contract needs a per-row ResourceRef, and refuse TARGET when
 the contract fixes the target.
@@ -2472,7 +2469,6 @@ ID identifies the input operation row in Preview, status and recovery; it is
 not a recipient or a substitute for the Command's target-plus-payload identity.
 Optional INPUT is checked against the contract, including an empty input.
 
-<!-- requirement-block: effect-text.sql-statements-fix-the-preview-target-set -->
 SQL UPDATE, INSERT INTO and DELETE FROM MUST lower to the same update, create
 and delete Effects as the terminal forms, with the same checks and approval.
 For UPDATE and DELETE, key equality addresses the key directly; any other

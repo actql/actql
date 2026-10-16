@@ -8078,8 +8078,9 @@ whole step when any row remains unsuccessful after its bounded retry policy,
 while retaining original call evidence and costs and preventing partial
 results from reaching later steps or Effects.
 `MAX ITEMS` guards distinct admitted item keys under the common resolved-limit
-rules. It grants neither permission nor additional retries. Both text clauses
-normalize into the existing inference barrier's guard and publication policy.
+rules. It grants neither permission nor additional retries. The text clauses
+normalize into the existing inference barrier: `ON FAILURE FAIL` is
+`on_non_success: fail`, and `MAX ITEMS n` is `max_items`.
 
 <a id="external-joins"></a>
 
@@ -8561,7 +8562,7 @@ use typed `command` Effects; neither kind serializes rows implicitly.
 
 `serialize` creates an Invocation-scoped immutable Content. Workspace
 persistence, retention, and later deletion are not serialization semantics;
-they require an explicit typed store/upload Effect or Run Graph policy. CSV
+they require an explicit typed store Effect or Run Graph policy. CSV
 serialization is byte-faithful and performs no implicit spreadsheet formula
 escaping. Authors apply any business transformation before serialization.
 
@@ -8803,11 +8804,13 @@ The kind determines its authority class:
 - `update` changes only addressed existing rows and MUST NOT create;
 - `upsert` may create or update against a declared mapping key;
 - `delete` removes only addressed rows and carries no field changes;
-- `command` invokes one Connector-owned typed provider operation against
-  named-result `resource_ref` values; it is not arbitrary HTTP or generic CRUD;
+- `command` invokes one Connector-owned typed provider operation against the
+  ResourceRef values of its input Result (a named Result or a private
+  capture); it is not arbitrary HTTP or generic CRUD;
 - `store` writes typed Content to a declared object, file or stage resource,
   or persists typed rows into a declared table resource through its Mapping.
-  Object/file/stage inputs without `content_ref` are refused; serialization
+  Object/file/stage inputs without a `content` field of type `content_ref`
+  are refused; serialization
   is an explicit preceding operation.
 
 <!-- requirement-block: effects.every-data-effect-must-explicitly-declare-target-and-a-typed-qualified effects.every-command-must-explicitly-declare-a-resourceref-result-field-and effects.preview-must-enforce-that-limit-on-the-complete-resolved-scope -->

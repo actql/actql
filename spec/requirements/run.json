@@ -790,7 +790,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "run-observation-revisions",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },
@@ -801,7 +801,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "run-observation-revisions",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },
@@ -812,7 +812,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "run-observation-revisions",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },
@@ -823,7 +823,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "run-observation-revisions",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },
@@ -834,7 +834,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "run-observation-revisions",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },

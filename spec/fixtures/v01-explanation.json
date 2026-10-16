@@ -565,7 +565,7 @@
               "infer_1"
             ],
             "eligible_sites": [],
-            "decision": "not_eligible",
+            "decision": "host",
             "reason": "depends_on_infer",
             "residual_condition_ids": [
               "condition_1"
@@ -625,7 +625,7 @@
               "infer_1"
             ],
             "eligible_sites": [],
-            "decision": "not_eligible",
+            "decision": "host",
             "reason": "depends_on_infer",
             "residual_condition_ids": [
               "condition_1"
@@ -688,7 +688,8 @@
             "checkpoint": "conditional",
             "preview_state": "unavailable",
             "outcomes": [],
-            "evidence_cids": []
+            "evidence_cids": [],
+            "policy": "runtime"
           }
         ],
         "inference": [],
@@ -744,7 +745,8 @@
             "preview_state": "retained",
             "outcomes": [],
             "evidence_cids": [],
-            "preview_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            "preview_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "policy": "runtime"
           }
         ],
         "inference": [],
@@ -801,7 +803,8 @@
             "outcomes": [
               "applied"
             ],
-            "evidence_cids": []
+            "evidence_cids": [],
+            "policy": "runtime"
           }
         ],
         "inference": [],
@@ -859,6 +862,90 @@
         "credentials": {
           "token": "not-a-real-secret"
         }
+      }
+    },
+    {
+      "id": "engine-candidates-and-excluded-alternatives",
+      "valid": true,
+      "value": {
+        "version": "actql-explanation/0.1",
+        "mode": "static",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "compiled_plan_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "steps": [
+          {
+            "step_id": "join_1",
+            "operation": "join",
+            "inputs": [],
+            "output_ports": [
+              "rows"
+            ]
+          }
+        ],
+        "placements": [
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "deferred"
+            },
+            "reason": "awaiting_input_scale",
+            "required_capabilities": []
+          },
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "candidate",
+              "id": "actql_rela"
+            },
+            "reason": "candidate",
+            "required_capabilities": []
+          },
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "fixed",
+              "id": "host:local"
+            },
+            "engine": {
+              "state": "candidate",
+              "id": "duckdb"
+            },
+            "reason": "candidate",
+            "required_capabilities": []
+          },
+          {
+            "step_id": "join_1",
+            "site": {
+              "state": "excluded",
+              "reason": "transfer_not_permitted"
+            },
+            "engine": {
+              "state": "excluded",
+              "reason": "transfer_not_permitted"
+            },
+            "reason": "transfer_not_permitted",
+            "required_capabilities": []
+          }
+        ],
+        "pushdown": [],
+        "quantities": [],
+        "transfers": [],
+        "effects": [],
+        "inference": [],
+        "search": {
+          "state": "bounded_frontier",
+          "reason": "catalog_only"
+        },
+        "strategy_changes": [],
+        "information": []
       }
     }
   ]
