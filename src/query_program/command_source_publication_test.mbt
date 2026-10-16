@@ -44,7 +44,7 @@ test "Host Command publication keeps exact fixed or identifier declaration and i
     ).unwrap()
     assert_eq(
       @environment.published_command_binding_mode(
-        resolved_command_target_binding(selected),
+        resolved_command_target_binding(selected).unwrap(),
       ),
       expected,
     )
@@ -149,7 +149,7 @@ test "Host Command section is closed required and refuses malformed unused entri
 }
 
 ///|
-test "Host Command publication refuses foreign environment and legacy declaration default" {
+test "Host Command publication refuses foreign environment and keeps legacy field meaning" {
   let environment = command_source_environment("installation")
   let wire = command_source_publication(environment)
   let changed = wire.replace(
@@ -166,12 +166,30 @@ test "Host Command publication refuses foreign environment and legacy declaratio
   )
   let legacy = command_source_environment("legacy-field")
   let legacy_wire = command_source_publication(legacy)
+  let original = @source_publication.published_command_targets(
+      legacy, legacy_wire,
+    )
+    .unwrap()
+    .unwrap()
+  let selected = resolve_command_target_binding(
+    original,
+    command_publication_alias().name,
+    100,
+  ).unwrap()
+  assert_true(resolved_command_target_binding(selected) is None)
+  let contract = resolved_command_target_contract(selected)
+  assert_eq(@environment.command_target_resource_kind(contract), "mailbox")
   assert_true(
-    @source_publication.published_command_targets(legacy, legacy_wire) is Err(_),
+    physical_equal(
+      @environment.member_environment(
+        @environment.command_target_member(contract),
+      ),
+      @check.checking_environment_wire(legacy),
+    ),
   )
   assert_true(
     @source_publication.bind_published_query_context(legacy, legacy_wire, None)
-    is Err(_),
+    is Ok(_),
   )
 }
 

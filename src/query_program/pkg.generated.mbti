@@ -63,7 +63,9 @@ pub fn resolve_update_target_binding(UpdateTargetPublication, Array[@query_synta
 
 pub fn resolved_command_target(ResolvedCommandTarget) -> (String, String)
 
-pub fn resolved_command_target_binding(ResolvedCommandTarget) -> @check_environment.PublishedCommandBinding
+pub fn resolved_command_target_binding(ResolvedCommandTarget) -> @check_environment.PublishedCommandBinding?
+
+pub fn resolved_command_target_contract(ResolvedCommandTarget) -> @check_environment.CommandTarget
 
 pub fn resolved_command_target_identity(ResolvedCommandTarget) -> (String, String, String, String)
 

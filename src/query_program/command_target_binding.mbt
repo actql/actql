@@ -21,7 +21,7 @@ pub(all) enum CommandTargetPublicationIssue {
 ///|
 priv struct CommandTargetCandidate {
   target_alias : CommandTargetAlias
-  binding : @environment.PublishedCommandBinding
+  binding : @environment.CommandTargetSelection
 }
 
 ///|
@@ -82,17 +82,22 @@ pub fn resolved_command_target(
 ///|
 pub fn resolved_command_target_binding(
   value : ResolvedCommandTarget,
-) -> @environment.PublishedCommandBinding {
-  value.candidate.binding
+) -> @environment.PublishedCommandBinding? {
+  @environment.command_target_selection_published(value.candidate.binding)
+}
+
+///|
+pub fn resolved_command_target_contract(
+  value : ResolvedCommandTarget,
+) -> @environment.CommandTarget {
+  @environment.command_target_selection_target(value.candidate.binding)
 }
 
 ///|
 pub fn resolved_command_target_identity(
   value : ResolvedCommandTarget,
 ) -> (String, String, String, String) {
-  let target = @environment.published_command_binding_target(
-    value.candidate.binding,
-  )
+  let target = resolved_command_target_contract(value)
   (
     @environment.cid(command_target_publication_environment(value.publication)),
     @environment.command_target_cid(target),
@@ -143,7 +148,7 @@ pub fn bind_command_target_publication(
     }
     remaining -= cost
     let binding = match
-      @environment.select_published_command_binding(
+      @environment.select_command_target_binding(
         catalogs,
         original.command_ref,
         {
@@ -158,8 +163,8 @@ pub fn bind_command_target_publication(
         return Err(WorkLimit)
       Err(_) => return Err(UnresolvedCommand)
     }
-    remaining -= @environment.published_command_binding_work(binding)
-    let (child_nodes, child_text) = @environment.published_command_binding_usage(
+    remaining -= @environment.command_target_selection_work(binding)
+    let (child_nodes, child_text) = @environment.command_target_selection_usage(
       binding,
     )
     nodes += child_nodes

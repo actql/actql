@@ -48,8 +48,11 @@ test "Command publication retains original declared modes Catalog and installati
       command_publication_alias().name,
       100,
     ).unwrap()
-    let binding = resolved_command_target_binding(selected)
+    let binding = resolved_command_target_binding(selected).unwrap()
     let target = @environment.published_command_binding_target(binding)
+    assert_true(
+      physical_equal(resolved_command_target_contract(selected), target),
+    )
     assert_eq(@environment.published_command_binding_mode(binding), expected)
     assert_eq(
       resolved_command_target(selected),
@@ -91,7 +94,10 @@ test "Command publication retains original declared modes Catalog and installati
       1000,
     ).unwrap()
     assert_true(
-      physical_equal(resolved_command_target_binding(concrete), binding),
+      physical_equal(
+        resolved_command_target_binding(concrete).unwrap(),
+        binding,
+      ),
     )
   }
 }
@@ -178,7 +184,7 @@ test "Command publication rejects logical ambiguity and conflicting concrete ins
 }
 
 ///|
-test "Command publication admits every alias and never defaults a missing original declaration" {
+test "Command publication admits every alias and retains legacy field selection without a default" {
   let catalogs = @environment.reference_contents(
     command_publication_references("installation"),
   )
@@ -200,14 +206,25 @@ test "Command publication admits every alias and never defaults a missing origin
   let legacy = @environment.reference_contents(
     command_publication_references("legacy-field"),
   )
-  assert_eq(
-    bind_command_target_publication(
-      legacy,
-      [first],
-      command_publication_limits(),
-      10000,
-    ).unwrap_err(),
-    UnresolvedCommand,
+  let legacy_publication = bind_command_target_publication(
+    legacy,
+    [first],
+    command_publication_limits(),
+    10000,
+  ).unwrap()
+  let legacy_selection = resolve_command_target_binding(
+    legacy_publication,
+    first.name,
+    100,
+  ).unwrap()
+  assert_true(resolved_command_target_binding(legacy_selection) is None)
+  let legacy_contract = resolved_command_target_contract(legacy_selection)
+  assert_eq(@environment.command_target_id(legacy_contract), first.command_ref)
+  assert_true(
+    physical_equal(
+      @environment.command_target_catalog(legacy_contract),
+      @environment.catalog_at(legacy, 0).unwrap(),
+    ),
   )
   for
     invalid in [
@@ -329,8 +346,65 @@ test "equal Command declaration identities do not merge separate original enviro
   )
   assert_true(
     !physical_equal(
-      resolved_command_target_binding(a),
-      resolved_command_target_binding(b),
+      resolved_command_target_binding(a).unwrap(),
+      resolved_command_target_binding(b).unwrap(),
+    ),
+  )
+}
+
+///|
+test "legacy Command publication budget and concrete lookup keep the original ResourceRef contract" {
+  let publication = command_publication_bind("legacy-field")
+  let alias = command_publication_alias()
+  let selected = resolve_command_target_binding(publication, alias.name, 100).unwrap()
+  let concrete = resolve_concrete_command_target_binding(
+    publication,
+    alias.target_ref,
+    alias.command_ref,
+    1000,
+  ).unwrap()
+  assert_true(resolved_command_target_binding(selected) is None)
+  assert_true(resolved_command_target_binding(concrete) is None)
+  assert_true(
+    physical_equal(
+      resolved_command_target_contract(selected),
+      resolved_command_target_contract(concrete),
+    ),
+  )
+  let (nodes, text) = command_target_publication_usage(publication)
+  assert_eq((nodes, text), (0, 0))
+  let catalogs = command_target_publication_catalogs(publication)
+  let exact = command_target_publication_work(publication)
+  let limits : @contract.Limits = {
+    max_nodes: 0,
+    max_depth: 0,
+    max_text_bytes: 0,
+  }
+  assert_true(
+    bind_command_target_publication(catalogs, [alias], limits, exact) is Ok(_),
+  )
+  assert_true(
+    bind_command_target_publication(catalogs, [alias], limits, exact - 1)
+    is Err(WorkLimit),
+  )
+  let copy = command_publication_bind("legacy-field")
+  let other = resolve_command_target_binding(copy, alias.name, 100).unwrap()
+  assert_eq(
+    resolved_command_target_identity(selected),
+    resolved_command_target_identity(other),
+  )
+  assert_true(
+    !physical_equal(
+      @environment.member_environment(
+        @environment.command_target_member(
+          resolved_command_target_contract(selected),
+        ),
+      ),
+      @environment.member_environment(
+        @environment.command_target_member(
+          resolved_command_target_contract(other),
+        ),
+      ),
     ),
   )
 }

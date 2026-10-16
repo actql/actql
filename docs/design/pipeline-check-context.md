@@ -1254,14 +1254,19 @@ Mapping-free Commands use a separate `CommandTargetPublication`, bound to the
 original checked Catalog contents. Each positive installed alias supplies its
 complete logical name, concrete target reference, exact Command reference and
 original installation binding/owner CIDs. The existing Common Command reader
-admits the original declared fixed-installation or identifier mode and its
-complete checked identifier domain. Neither a suffix match nor the shape of an
+retains the original ResourceRef-field mode or admits the explicitly declared
+fixed-installation or identifier mode and its complete checked identifier
+domain. The opaque selection keeps the exact Command contract in all modes;
+only the latter two modes expose a `PublishedCommandBinding`. Absence is not a
+fixed-installation default, and malformed explicit presence cannot fall back to
+the field mode. Neither a suffix match nor the shape of an
 input value selects a Command, a Mapping or an installation.
 
 The Host's private `commandTargets` publication section is closed and is admitted
 in full before a read context is exposed, including entries unused by that
-query. Missing Command references, legacy field-only declarations and malformed
-installation identities refuse. Logical-name ambiguity has no first-match
+query. Missing Command references and malformed installation identities refuse.
+A legacy field-only declaration retains its ResourceRef-field obligation; its
+presence in the publication does not supply a target field or issue a Ref. Logical-name ambiguity has no first-match
 preference. Reconnecting an already normalized target and Command rejects
 conflicting installation originals without reselecting a logical name. Alias
 paths are copied; checked Command/Catalog/environment originals are retained.

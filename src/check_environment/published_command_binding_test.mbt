@@ -301,3 +301,180 @@ test "equal Command self CIDs preserve distinct original environments and exact 
     is Err(Command(MissingCommand("command:mailbox.other.v1"))),
   )
 }
+
+///|
+test "Command target selection keeps legacy ResourceRef and published modes exclusive" {
+  let legacy = published_command_fixture(None)
+  let selected = select_command_target_binding(
+    legacy,
+    "command:mailbox.send.v1",
+    { max_nodes: 0, max_depth: 0, max_text_bytes: 0, },
+    2,
+  ).unwrap()
+  assert_true(command_target_selection_published(selected) is None)
+  assert_eq(command_target_selection_work(selected), 2)
+  assert_eq(command_target_selection_usage(selected), (0, 0))
+  let target = command_target_selection_target(selected)
+  let original = select_command_target(legacy, "command:mailbox.send.v1", 2).unwrap()
+  assert_eq(command_target_id(target), command_target_id(original))
+  assert_eq(command_target_cid(target), command_target_cid(original))
+  assert_eq(command_target_resource_kind(target), "mailbox")
+  assert_true(
+    physical_equal(
+      command_target_member(target),
+      command_target_member(original),
+    ),
+  )
+  assert_true(
+    physical_equal(
+      command_target_catalog(target),
+      command_target_catalog(original),
+    ),
+  )
+  // A published-only caller still cannot mistake a legacy declaration for a
+  // fixed installation. The complete selector does not change that API.
+  assert_true(
+    select_published_command_binding(
+      legacy,
+      "command:mailbox.send.v1",
+      published_command_limits(),
+      1000,
+    )
+    is Err(MissingBinding),
+  )
+  let bindings : Array[Json] = [
+    { "kind": "installation" },
+    published_identifier_fixture(),
+  ]
+  for binding in bindings {
+    let contents = published_command_fixture(Some(binding))
+    let selection = select_command_target_binding(
+      contents,
+      "command:mailbox.send.v1",
+      published_command_limits(),
+      1000,
+    ).unwrap()
+    let published = command_target_selection_published(selection).unwrap()
+    assert_true(
+      physical_equal(
+        command_target_selection_target(selection),
+        published_command_binding_target(published),
+      ),
+    )
+    assert_eq(
+      command_target_selection_work(selection),
+      published_command_binding_work(published),
+    )
+    assert_eq(
+      command_target_selection_usage(selection),
+      published_command_binding_usage(published),
+    )
+  }
+}
+
+///|
+test "Command target selection never falls back from malformed explicit published binding" {
+  let cases : Array[(Json, PublishedCommandBindingIssue)] = [
+    (Json::null(), InvalidBinding),
+    ({}, InvalidBinding),
+    ({ "kind": "installation", "extra": false }, InvalidBinding),
+    ({ "kind": "identifier" }, InvalidBinding),
+    (
+      {
+        "kind": "identifier",
+        "identity_contract": { "type": "string", "nullable": true },
+      },
+      UnsupportedIdentifierDomain,
+    ),
+  ]
+  for (binding, issue) in cases {
+    let contents = published_command_fixture(Some(binding))
+    assert_eq(
+      select_command_target_binding(
+        contents,
+        "command:mailbox.send.v1",
+        published_command_limits(),
+        1000,
+      ).unwrap_err(),
+      issue,
+    )
+  }
+  let invalid = published_command_fixture(
+    Some({ "kind": "identifier", "identity_contract": {} }),
+  )
+  assert_true(
+    select_command_target_binding(
+      invalid,
+      "command:mailbox.send.v1",
+      published_command_limits(),
+      1000,
+    )
+    is Err(InvalidIdentifierType(_)),
+  )
+}
+
+///|
+test "Command target selection charges one original walk and preserves all budget refusals" {
+  let legacy = published_command_fixture(None)
+  assert_true(
+    select_command_target_binding(
+      legacy,
+      "command:mailbox.send.v1",
+      published_command_limits(),
+      1,
+    )
+    is Err(WorkLimit),
+  )
+  let cases : Array[(Json?, Int, Int, Int)] = [
+    (None, 0, 0, 2),
+    (Some({ "kind": "installation" }), 2, 12, 16),
+    (Some(published_identifier_fixture()), 3, 16, 21),
+  ]
+  for (binding, nodes, text, work) in cases {
+    let contents = published_command_fixture(binding)
+    let limits : @value_contract.Limits = {
+      max_nodes: nodes,
+      max_depth: 1,
+      max_text_bytes: text,
+    }
+    let selected = select_command_target_binding(
+      contents, "command:mailbox.send.v1", limits, work,
+    ).unwrap()
+    assert_eq(command_target_selection_work(selected), work)
+    assert_eq(command_target_selection_usage(selected), (nodes, text))
+    assert_true(
+      select_command_target_binding(
+        contents,
+        "command:mailbox.send.v1",
+        limits,
+        work - 1,
+      )
+      is Err(WorkLimit),
+    )
+    for
+      invalid in [
+        { ..limits, max_nodes: -1, },
+        { ..limits, max_depth: -1, },
+        { ..limits, max_text_bytes: -1, },
+      ] {
+      assert_true(
+        select_command_target_binding(
+          contents, "command:mailbox.send.v1", invalid, work,
+        )
+        is Err(InvalidLimit),
+      )
+    }
+    assert_true(
+      select_command_target_binding(
+        contents, "command:mailbox.send.v1", limits, -1,
+      )
+      is Err(InvalidLimit),
+    )
+    assert_true(
+      select_command_target_binding(
+        contents, "command:mailbox.other.v1", limits, 1000,
+      )
+      is Err(Command(MissingCommand("command:mailbox.other.v1"))),
+    )
+  }
+}
