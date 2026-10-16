@@ -10,7 +10,6 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/sha256" @sha,
-  "actql/actql/decode_core" @decode,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
 } for "test"
