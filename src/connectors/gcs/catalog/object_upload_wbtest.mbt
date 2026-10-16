@@ -163,6 +163,15 @@ test "GCS multipart preserves original binding and permission identities" {
     object_upload_cid(request),
     "sha256:6c286b44b63592dd69d7ab707b710fdf6b5bd0199594589d70fe9e27a535a4de",
   )
+  let reordered = upload_request_binding(permissions=[
+    "storage.objects.get", "storage.objects.create", "storage.objects.delete",
+  ])
+  assert_eq(
+    object_upload_cid(
+      upload_request(reordered, upload_absent(reordered)).unwrap(),
+    ),
+    object_upload_cid(request),
+  )
   let copied = upload_request_binding()
   assert_true(
     upload_request(copied, upload_absent(binding)) is Err(ForeignBinding),

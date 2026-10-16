@@ -108,7 +108,9 @@ pub fn prepare_object_upload_binding(
     return Err(InvalidBinding)
   }
   let owned = permissions.copy()
-  owned.sort()
+  // Core String Compare is length-first; request-set identities use exact
+  // lexical text order, independently of the permission's length.
+  owned.sort_by((left, right) => left.lexical_compare(right))
   for index in 0..<owned.length() {
     if !upload_text(owned[index], 256) ||
       (index > 0 && owned[index] == owned[index - 1]) {
