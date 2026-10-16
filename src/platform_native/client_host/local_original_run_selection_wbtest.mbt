@@ -66,6 +66,7 @@ fn original_selection_fixture(
   host : NativeLocalHostConnection,
   nonce : String,
   run_id : String,
+  created_at? : String? = None,
 ) -> (
   NativeClientSubmissionReference,
   @host.ClientRequestIdentity,
@@ -94,7 +95,7 @@ fn original_selection_fixture(
     host,
     prepare_native_client_submission_reference(token, nonce),
     "submission_reference",
-    original_selection_epoch_kind,
+    original_selection_journal_kind,
   )
   let intent = original_selection_checked(
     host,
@@ -119,7 +120,7 @@ fn original_selection_fixture(
     is Computation(prepared) else {
     fail("original identity fixture: Computation required")
   }
-  let (request, _, compiled, definition) = original_selection_checked(
+  let (request, _, compiled, issued_definition) = original_selection_checked(
     host,
     journal_test_prepared_run_result(
       prepared,
@@ -130,6 +131,18 @@ fn original_selection_fixture(
     "first_compilation",
     issue => issue.phase + "." + issue.kind,
   )
+  let definition = match created_at {
+    None => issued_definition
+    Some(at) =>
+      original_selection_checked(
+        host,
+        @host.issue_client_compiled_run_definition(
+          compiled, "local-test", run_id, at, "2099-01-01T00:00:00.000Z",
+        ),
+        "distinct_definition",
+        _ => "CompiledRunRefusal",
+      )
+  }
   let journal = original_selection_checked(
     host,
     host.run_journal(),
@@ -281,7 +294,13 @@ test "original Run ID scans all original rows and refuses ambiguous same-ID admi
   let host = policy_host_fixture("original-id-ambiguous")
   let crypto = epoch_test_crypto()
   original_selection_fixture(host, "first-nonce", "same-run-id") |> ignore
-  original_selection_fixture(host, "second-nonce", "same-run-id") |> ignore
+  original_selection_fixture(
+    host,
+    "second-nonce",
+    "same-run-id",
+    created_at=Some("2026-10-10T00:00:00.001Z"),
+  )
+  |> ignore
   let ambiguous = host.lookup_submitted_run_original_by_id(
     crypto, "operator", "cli", "same-run-id",
   )
