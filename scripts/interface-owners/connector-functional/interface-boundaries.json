@@ -6237,7 +6237,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "84510b09c8a0bc58d43ab09c493fc710731630516837cd90130fbc8457c71240",
+      "sha256": "59d06e6972f37114cf36befafcde6a0c834be4d538db73ddb720c270960c77f5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -6827,12 +6827,20 @@
             "resolveSecret",
             "ca",
             "admitsApprovalTarget",
+            "admitsEffectTargetRead",
             "responseHeaders",
             "now",
             "grantLifetimeMs",
             "openCredentialJournal"
           ],
           "async": true
+        },
+        {
+          "name": "openRowSourceCredentialSite/bindingWire/bindingWire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         },
         {
           "name": "openRowSourceCredentialSite/callResource/callResource",
@@ -6842,8 +6850,45 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialSite/checkGrantRequest",
+          "parameters": [
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/currentEffectRead",
+          "parameters": [
+            "approved"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialSite/ensureOpen/ensureOpen",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+          "parameters": [
+            "decision",
+            "physicalBinding",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+          "parameters": [
+            "binding"
+          ],
           "async": false
         },
         {
@@ -6907,6 +6952,18 @@
             "dispatchRequestCid",
             "maxUses"
           ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/synchronous",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/synchronous/synchronous",
+          "parameters": [],
           "async": false
         },
         {
@@ -7023,8 +7080,14 @@
             "installRowSourceAuthorization/installRowSourceAuthorization#3",
             "installRowSourceAuthorization/own/own",
             "openRowSourceCredentialSite",
+            "openRowSourceCredentialSite/bindingWire/bindingWire",
             "openRowSourceCredentialSite/callResource/callResource",
+            "openRowSourceCredentialSite/checkGrantRequest",
+            "openRowSourceCredentialSite/currentEffectRead",
+            "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
             "openRowSourceCredentialSite/ensureOpen/ensureOpen",
+            "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+            "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
             "openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
             "openRowSourceCredentialSite/init:close/init:close",
             "openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
@@ -7033,6 +7096,8 @@
             "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
             "openRowSourceCredentialSite/openRowSourceCredentialSite#3",
             "openRowSourceCredentialSite/sign",
+            "openRowSourceCredentialSite/synchronous",
+            "openRowSourceCredentialSite/synchronous/synchronous",
             "rowSourceCheckEnvironment",
             "rowSourceMapping",
             "text/text",
@@ -7068,6 +7133,10 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
               }
             ],
             "identity": [
@@ -7096,6 +7165,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "referenceCurrent: () => !closing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "kind: 'effect_target'"
               }
             ],
             "synchronization": [
@@ -7110,6 +7183,10 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "close() { closed = true; adapter.close(); }"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "currentEffectRead(approved)"
               }
             ],
             "failure": [
@@ -7124,6 +7201,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
                 "anchor": "the same credential Site invalidates reference currentness before failed close"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
               }
             ],
             "cancellation": [
@@ -7156,6 +7237,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Additional declarations/trees/strings"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Each such approval adds a seven-field record"
               }
             ],
             "extension": [
@@ -7192,6 +7277,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
                 "anchor": "LIST_FILES paths=[]"
+              },
+              {
+                "path": "adapters/host-node/row-site-effect-target-read.test.mjs",
+                "anchor": "actual target continuation decision survives Site admission"
               }
             ]
           }
