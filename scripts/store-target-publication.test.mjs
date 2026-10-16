@@ -12,7 +12,8 @@ for(const [name,value] of Object.entries(fixture.cases)) {
     verifyIdentity(without(environment,'evidence_bundle_cid'),value.expected_environment_cid);
     assert.equal(environment.evidence_bundle_cid,value.expected_environment_cid);
     assert.ok(moon.includes(canonicalText(environment)),'Moon caller uses the identical authored preimage');
-    verifyIdentity(environment.connector_manifest,environment.mapping_contracts[0].connector_manifest_cid);
+    // The normative pin names one manifest entry, not its outer envelope.
+    verifyIdentity(environment.connector_manifest.connectors[0],environment.mapping_contracts[0].connector_manifest_cid);
     for(const mapping of environment.mapping_contracts) {
       verifyIdentity(without(mapping,'mapping_contract_cid'),mapping.mapping_contract_cid);
       verifyIdentity(mapping.target_schema,mapping.target_schema_identity);
