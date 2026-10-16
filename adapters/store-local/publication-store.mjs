@@ -970,8 +970,11 @@ export async function openLocalPublicationStore(
     `${cidHex(holdingCid)}.json`,
   );
 
-  const writePhysicalHoldingRecord = async (path, bytes) => {
-    if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+  const writePhysicalHoldingRecord = async (path, bytes, exclusive = true) => {
+    // Existing holding publication retains its exclusive preparation fence.
+    // Independent prepared-object custodies historically write concurrently;
+    // they share this same Store's FD duties without a new serialization owner.
+    if (exclusive && activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
     const temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
     let handle, flight;
     const writer = {cleanup: undefined};
@@ -1331,7 +1334,10 @@ export async function openLocalPublicationStore(
       inode: String(state.ino),
     });
     const path = custodyPath(token);
-    await writeExclusive(path, Buffer.from(JSON.stringify(record), 'utf8'));
+    // Publish a final recovery name only after the original record is complete,
+    // synced and closed. An abrupt process stop may leave staging bytes, never
+    // a partial final custody. Failed close stays in the same Store duty set.
+    await writePhysicalHoldingRecord(path, Buffer.from(JSON.stringify(record), 'utf8'), false);
     await syncDirectory(custodyDirectory);
     const custody = {
       token,

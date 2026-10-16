@@ -17,8 +17,8 @@ is interpreted as an unapplied operation, permission or cleanup success.
 ## Same-owner cleanup and inventory
 
 The existing Store retains each active metadata writer's record in its private
-writer set before opening its staging FD. A pending writer prevents another
-record write. A false or rejected close keeps that exact FD and forbids final
+writer set before opening its staging FD. Holding publication keeps its existing
+exclusive writer-admission fence. A false or rejected close keeps that exact FD and forbids final
 publication or staging unlink; retry only closes/unlinks/syncs the original
 staging alias, never rewrites bytes or creates a new holding. Cleanup is
 single-flight, and `Store.close` retains/drains the same duty even if the
@@ -36,6 +36,28 @@ overlap all of these. A successful unlink is not its directory sync, and a
 weak reference or GC opportunity is not a physical acknowledgement. This
 inventory is not a byte grant or a normal four-role Model profile; unknown
 layout/bootstrap costs remain unknown, and existing limits do not increase.
+
+## Prepared-object custody records
+
+Original prepared-object custody now uses this same Store-owned metadata
+writer: only a complete, file-synced and closed record receives its exclusive
+final `prepared-custody/<UUID>.json` name. The original custody directory still
+needs its separate durability acknowledgement before the object writer links
+its payload. Record bytes, recorded payload device/inode, custody/reclamation
+identity and recovery validation are unchanged. Empty or partial bytes from an
+interrupted write remain in the existing staging namespace, where original
+restart recovery already reclaims unpublished aliases. A corrupt final record
+from an older process remains refused, not repaired or treated as absence.
+
+Independent prepared writers retain their existing concurrent behavior; they
+do not acquire the holding-publication exclusive fence or a new queue. Their
+metadata FDs join the same Store duty set before acquisition. Failed/false close
+is retained there even if the object writer's error is discarded; shutdown or
+the same single-flight handle performs close-only cleanup. Completion never
+reseals or resends a request. The additional staging path, record/Buffer,
+writer-set entry, closure/Promise and original error/FD overlap with the payload
+writer and reservation until actual retirement. This is explicit inventory,
+not numerical funding or a physical-byte exemption.
 
 ## Verification boundary
 
