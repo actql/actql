@@ -215,7 +215,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b0d60260599fbcf63e668c7c509ea90d6c2670629d2b5a0a9ac53119379f9dfc",
+      "sha256": "8b20350f6da0fa3346648df2f29d552446d629252347cd72db2243e0876e0d69",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -284,6 +284,7 @@
         "validCancellationLookup",
         "validCancellationRef",
         "validCheckOutcome",
+        "validCheckpointLookup",
         "validCheckpointPage",
         "validCheckpointReview",
         "validClientAdmission",
@@ -402,6 +403,14 @@
             "value: unknown"
           ],
           "result": "value is WireCheckOutcome"
+        },
+        {
+          "name": "validCheckpointLookup",
+          "parameters": [
+            "value: unknown",
+            "checkpointId: string"
+          ],
+          "result": "value is WireCheckpointPage"
         },
         {
           "name": "validCheckpointPage",
@@ -5105,13 +5114,83 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "validCheckpointLookup"
+          ],
+          "exports": [
+            "validCheckpointLookup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| verification |"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "41939a5acb001185e7b9273a19d95ce432d721c669e4dbcbdaf89a6843233718",
+      "sha256": "9d548add999f0b4ffde908fda9ffd84db22f331d71e09c5bb1477555289c0a0e",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -5135,6 +5214,7 @@
         "validCancellationLookup",
         "validCancellationRef",
         "validCheckOutcome",
+        "validCheckpointLookup",
         "validCheckpointPage",
         "validCheckpointReview",
         "validClientAdmission",
@@ -5374,6 +5454,21 @@
           "name": "validCheckOutcome",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validCheckpointLookup",
+          "parameters": [
+            "value",
+            "checkpointId"
+          ],
+          "async": false
+        },
+        {
+          "name": "validCheckpointLookup/validCheckpointLookup",
+          "parameters": [
+            "item"
           ],
           "async": false
         },
@@ -11203,6 +11298,77 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validCheckpointLookup",
+            "validCheckpointLookup/validCheckpointLookup"
+          ],
+          "exports": [
+            "validCheckpointLookup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| ownership |"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| synchronization |"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| cancellation |"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| resources |"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| extension |"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "| verification |"
               }
             ]
           }

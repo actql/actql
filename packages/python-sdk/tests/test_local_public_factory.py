@@ -29,9 +29,9 @@ class LocalFactoryResourcesTests(unittest.TestCase):
             self.assertEqual(resolve.call_count, 1)
             self.assertEqual((capture.call_count, vm.call_count, state.call_count), (0, 0, 0))
 
-    def test_public_factories_accept_no_host_token_path_or_capacity_arguments(self):
-        self.assertEqual(tuple(inspect.signature(Client.open).parameters), ())
-        self.assertEqual(tuple(inspect.signature(AsyncClient.open).parameters), ())
+    def test_public_factories_allow_signer_without_host_token_path_or_capacity_arguments(self):
+        self.assertEqual(set(inspect.signature(Client.open).parameters), {'signer'})
+        self.assertEqual(set(inspect.signature(AsyncClient.open).parameters), {'signer'})
         with patch.object(InstalledLocalHost, 'installed', side_effect=AssertionError('No construction')) as build:
             for options in ({'resources': object()}, {'token': 'not-local'}, {'module': '/private/foreign'}):
                 with self.assertRaises(TypeError): Client.open(**options)

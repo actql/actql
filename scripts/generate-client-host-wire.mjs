@@ -40,6 +40,18 @@ export function projectClientHostOptionalFields(registry) {
           !/^[a-zA-Z][a-zA-Z]*$/u.test(key) || registry.operations[name].includes(key)))) {
     throw new Error('InvalidClientHostOptionalFields');
   }
+  // The exact-ID selection is the existing Checkpoint identity, not a new
+  // permissive identifier spelling maintained by a transport consumer.
+  const lookup = fieldsByOperation.checkpoints;
+  if (lookup !== undefined) {
+    const canonical = value => value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+    const expected = registry.schemas?.checkpoint_summary?.oneOf?.map(branch => branch.properties?.checkpointId);
+    if (Object.keys(lookup).join() !== 'checkpointId' || !expected?.length || expected.some(rule =>
+      JSON.stringify(canonical(rule)) !== JSON.stringify(canonical(lookup.checkpointId)))) {
+      throw new Error('InvalidCheckpointLookupIdentity');
+    }
+  }
   return Object.fromEntries(Object.entries(fieldsByOperation).map(([name, fields]) =>
     [name, Object.fromEntries(Object.entries(fields).map(([field, schema]) => [field, project(schema)]))]));
 }

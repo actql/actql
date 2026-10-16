@@ -92,6 +92,41 @@ call `run.cancel()` to request cancellation. Keep the original submission and
 cancellation references for lookup after response loss. A `not_found` lookup
 grants no permission to retry a write.
 
+### Configured Checkpoint signer and exact decisions
+
+Configure an application-owned `Signer` on `Client.connect(..., signer=signer)`
+or `AsyncClient.connect(..., signer=signer)` (and on the corresponding Local
+`open` factory). `Signer.sign` receives the original artifact CID's UTF-8
+bytes and returns an Ed25519 signature; async callbacks are supported. The
+SDK copies the signer selection, not its private key, and adds no crypto or
+Local-engine dependency to the lightweight Remote installation.
+
+```python
+from actql_sdk import Client, Signer
+
+signer = Signer("reviewer-key", "reviewer", application_sign,
+                authority_scope_cid=trusted_host_authority_scope_cid)
+with Client.connect(endpoint, token, signer=signer) as client:
+    client.approve(original_checkpoint_id)
+    # Or client.reject(original_checkpoint_id).
+```
+
+The convenience calls perform one exact pending-ID metadata lookup in the
+original Host/Journal and delegate to `resolve_checkpoints`. They do not cache
+Checkpoints, search pages, reconstruct a Preview, grant permission or replace
+the Host's current Account checks. Effect approval requires the signer's real
+authority scope; an ID or signer configuration alone supplies none. The same
+configured signer can serve explicit unsigned `resolve_checkpoints` items;
+an explicit method signer still overrides it. Already-signed items are not
+re-signed.
+
+An absent, fulfilled, cancelled or expired Checkpoint is not a new pending
+attempt. Invalid or mismatched lookup responses are refused before signing.
+Resolution reply loss remains `ResolutionUnknown` with the original signed
+wires retained; there is no automatic retry, new issuance or Effect send.
+Client close is not Run cancellation. Failed local cleanup retains the same
+signer/transport custody until the original cleanup succeeds.
+
 If connection negotiation fails and physical cleanup also fails, the
 `ClientConnectionCleanupFailed` error retains `original_error`, `cleanup_error`,
 and `cleanup_client`. Explicitly retry `cleanup_client.aclose()` for async or
@@ -158,3 +193,18 @@ retained-value limit continues to count the original decoded rows even when a
 schema returns smaller objects. Objects allocated by application validators
 remain application-owned; their size is not a new SDK memory guarantee. A
 schema cannot supply a missing protocol completion marker or Host receipt.
+
+### Checkpoint decision ownership
+
+| Attribute | Original boundary |
+| --- | --- |
+| responsibility | approve/reject obtain the original pending summary and delegate existing signed resolution; configured signer selection grants no authority. |
+| inputsOutputs | Exact Checkpoint ID and an application Signer produce the existing signed items and per-Checkpoint resolve response. |
+| identity | The lookup response must match the requested ID and original Checkpoint/Preview CIDs; no Client-created summary or substitute intent is accepted. |
+| ownership | Client custody retains the captured callback until original cleanup succeeds; signed Unknown evidence stays with the original error. |
+| synchronization | Capture precedes lookup/signing awaits, and sync methods use the same async owner. Host rechecks current authorization during resolution. |
+| failure | Malformed/foreign metadata, missing signer and unavailable lookup refuse before signing; resolve reply loss retains original signed bytes without automatic resend. |
+| cancellation | Cancellation during the application signer does not issue resolve, cancel the Run or claim an ACK. Client close prevents further requests. |
+| resources | Existing page/control/signature limits remain; the convenience makes one exact lookup, without independent polling, pagination or retained cache. |
+| extension | Optional application signer does not require a Host/token/path for Local open; missing original Local funding still refuses. Remote remains engine-free. |
+| verification | Public sync/async, exact-ID, interruption, close-retry, signature preimage and strict typing cases remain distinct from installed Local acceptance. |
