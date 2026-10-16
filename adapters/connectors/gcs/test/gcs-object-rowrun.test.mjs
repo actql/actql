@@ -111,7 +111,13 @@ async function fixture({pages = [{kind: 'storage#objects', nextPageToken: 'next'
 
 test('GCS ordinary metadata reaches actual accounted Source capture with exact typed rows and original raw charges', async t => {
   const value = await fixture();
-  const capture = await value.adapter.openCapture({...value.inputs, ledger: value.ledger});
+  const capture = await value.adapter.openCapture({...value.inputs, ledger: value.ledger})
+    .catch(error => {
+      // This fixture contains no credentials or service values. Preserve the
+      // original refusal while exposing its bounded portable cause for review.
+      t.diagnostic(inspect(error, {depth: 12, maxStringLength: 1000}).slice(0, 8000));
+      throw error;
+    });
   t.after(() => capture.close());
   assert.equal(moon.clientProgramCapturedSourceRowCount(capture.identity), 1);
   assert.equal(value.state.calls.length, 2);
