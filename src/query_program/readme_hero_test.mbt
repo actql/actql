@@ -69,9 +69,7 @@ fn readme_hero_inputs() -> Array[Input] {
       construction_limits().source.tree,
     ).unwrap()
     {
-      relation: entry.0
-      .split(".")
-      .map(value => { value: value.to_string(), quoted: false, }),
+      relation: @query.parse_relation_path(entry.0, syntax_limits().lexical).unwrap(),
       name: entry.0.replace(old=".", new="_"),
       source: Captured(declaration),
       visible_fields: match entry.0 {
