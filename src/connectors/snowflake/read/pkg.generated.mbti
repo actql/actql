@@ -112,6 +112,7 @@ pub(all) enum StatementIssue {
   RequestLimit
   InvalidResponse
   ForeignHandle
+  UnrepresentableHandle
   HttpRejected(Int)
   TransportUnknown
   Read(ReadIssue)

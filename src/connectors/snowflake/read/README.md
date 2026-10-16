@@ -39,7 +39,11 @@ and [response protocol](https://docs.snowflake.com/en/developer-guide/sql-api/ha
 `prepare_statement_read` binds one request UUID, the original quoted projection,
 selected warehouse/role and bounded request count to that same Read. It emits
 one nominal POST candidate and then only GET candidates for the original handle
-and ordered partition. The request body selects one statement. A provider status
+and ordered partition. Exact `.` and `..` handles remain valid opaque observations but return
+`UnrepresentableHandle` before issuing a GET candidate: standard URLs remove
+those path segments, even when their dots are percent-encoded. This does not
+reject complete observations that need no further request or other dot-like
+handle spelling. The request body selects one statement. A provider status
 URL is never followed; handle bytes are encoded as one bounded path segment.
 The existing Host still supplies current Source/credential authority for each
 actual request. Request material is not a grant, send receipt or durable journal.

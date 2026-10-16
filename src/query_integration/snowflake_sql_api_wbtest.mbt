@@ -517,3 +517,103 @@ test "Snowflake SQL API non-row status still consumes the original transfer ceil
   assert_true(@snowflake_read.capture_result_read(read) is Err(_))
   snowflake_assert_retired(read, ledger)
 }
+
+///|
+fn snowflake_path_control_refusal(handle : String) -> Unit raise {
+  let stopped = Ref(false)
+  let body = snowflake_pending(handle~)
+  let (read, ledger) = snowflake_started_read(
+    "sql-api-path-control-" + handle,
+    4096L,
+    stopped~,
+  )
+  let statement = snowflake_statement(read)
+  let post = snowflake_next(statement)
+  @snowflake_read.attempt_statement_request(statement, post).unwrap()
+  @snowflake_read.accept_statement_response(statement, post, 202, body, body).unwrap()
+  // The opaque observation is valid and already charged. The refusal belongs
+  // to representability of its next transport candidate, not Catalog parsing.
+  assert_eq(@snowflake_read.statement_read_handle(statement), Some(handle))
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    body.length().to_int64(),
+  )
+  assert_eq(@snowflake_read.result_read_usage(read), (0, 0L))
+  let candidate = @snowflake_read.next_statement_request(statement)
+  assert_true(@snowflake_read.capture_result_read(read) is Err(_))
+  assert_true(
+    @snowflake_read.close_result_read(read)
+    is Err(@snowflake_read.TransportUnsettled),
+  )
+  assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)
+  assert_eq(@snowflake_read.statement_read_handle(statement), Some(handle))
+  stopped.val = true
+  snowflake_assert_retired(read, ledger)
+  // Close original fixture custody even when the pre-fix candidate is wrong.
+  assert_true(candidate is Err(@snowflake_read.UnrepresentableHandle))
+  assert_true(
+    @snowflake_read.next_statement_request(statement)
+    is Err(@snowflake_read.Closed),
+  )
+}
+
+///|
+test "Snowflake SQL API dot handle is observed but refused before physical candidate" {
+  snowflake_path_control_refusal(".")
+}
+
+///|
+test "Snowflake SQL API dot-dot handle is observed but refused before physical candidate" {
+  snowflake_path_control_refusal("..")
+}
+
+///|
+test "Snowflake SQL API dot-like opaque handles retain ordinary one-segment spelling" {
+  for
+    index, (handle, path) in [
+      (".a", "/api/v2/statements/.a"),
+      ("a.", "/api/v2/statements/a."),
+      ("...", "/api/v2/statements/..."),
+      ("%2E", "/api/v2/statements/%252E"),
+      ("%2e%2e", "/api/v2/statements/%252e%252e"),
+    ] {
+    let (read, ledger) = snowflake_started_read(
+      "sql-api-dot-like-" + index.to_string(),
+      4096L,
+    )
+    let statement = snowflake_statement(read)
+    let post = snowflake_next(statement)
+    @snowflake_read.attempt_statement_request(statement, post).unwrap()
+    let body = snowflake_pending(handle~)
+    @snowflake_read.accept_statement_response(statement, post, 202, body, body).unwrap()
+    let request = snowflake_next(statement)
+    assert_eq(@snowflake_read.statement_request_path(request), path)
+    assert_eq(@snowflake_read.statement_request_sequence(request), 1)
+    snowflake_assert_retired(read, ledger)
+  }
+}
+
+///|
+test "Snowflake SQL API complete opaque dot handle observation needs no path candidate" {
+  for index, handle in [".", ".."] {
+    let (read, ledger) = snowflake_started_read(
+      "sql-api-dot-complete-" + index.to_string(),
+      4096L,
+    )
+    let statement = snowflake_statement(read)
+    let post = snowflake_next(statement)
+    @snowflake_read.attempt_statement_request(statement, post).unwrap()
+    let body = @utf8.encode(
+      @utf8.decode(snowflake_result_body(snowflake_two_rows())).replace(
+        old="query-original",
+        new=handle,
+      ),
+    )
+    @snowflake_read.accept_statement_response(statement, post, 200, body, body).unwrap()
+    assert_eq(@snowflake_read.statement_read_handle(statement), Some(handle))
+    assert_true(@snowflake_read.statement_read_complete(statement))
+    assert_true(@snowflake_read.next_statement_request(statement) is Ok(None))
+    assert_true(@snowflake_read.capture_result_read(read) is Ok(_))
+    snowflake_assert_retired(read, ledger)
+  }
+}

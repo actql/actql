@@ -179,7 +179,7 @@
     {
       "module": "src/connectors/snowflake/read/statement.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "cad778585a0924feddb0b95e177a68751913abe9812a410a834e06412dc9ea36",
+      "sha256": "0639aeca08bbf9c08bf93d001e8c8dcc43c8dea47fe726c98ebdfd04f8159a21",
       "role": "connector-semantics",
       "owner": "Snowflake one-shot SQL API request/response and original page adaptation into the existing Common accounted RowRun; no independent Run, authority or resource Owner",
       "exports": [],
@@ -364,7 +364,7 @@
     {
       "module": "src/connectors/snowflake/read/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "20683366a9935577ea3d2d528f94bf2e2da39de8aed027998c316c213dc74c05",
+      "sha256": "c4f80ffcacbfeeb6b2dbaa8fe8b77a2bd87438c21c3cfb375cc34537253e5cf0",
       "role": "connector-semantics",
       "owner": "Snowflake one-shot SQL API request/response and original page adaptation into the existing Common accounted RowRun; no independent Run, authority or resource Owner",
       "exports": [
