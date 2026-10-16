@@ -62,6 +62,9 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // Completed Local output custody imports only the already reviewed common
 // managed-failure progression. It retains the supplied cleanup owner without
 // filesystem access or starting another computation.
+// The canonical generated compiler binding has no imports or initialization
+// effects. Its Result/Option/tuple functions only project or construct local
+// ABI values; it adds no Owner, I/O or authority.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
   '_build/workers/modules/fixture.mjs',
@@ -92,6 +95,7 @@ export const conformanceModules = [
   'adapters/host-common/run-publication-preflight.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/compiler-binding.generated.mjs',
   'packages/client-wire/index.mjs',
   'packages/client-wire/client-host.generated.js',
   'packages/client-wire/interactive-control.generated.js',
@@ -134,6 +138,7 @@ export const hostModules = [
   'adapters/host-common/run-publication-preflight.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/compiler-binding.generated.mjs',
   'packages/client-wire/index.mjs',
   'packages/client-wire/client-host.generated.js',
   'packages/client-wire/interactive-control.generated.js',
