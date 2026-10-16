@@ -38,6 +38,11 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
     const path = resolve(root, input.module);
     assert(!artifacts.has(path), `Duplicate generated interface input: ${input.module}`);
     assert(existsSync(resolve(root, input.build)), `Missing generated interface recipe: ${input.build}`);
+    assert(Array.isArray(input.sourcePackages), `Missing generated interface source inputs: ${input.module}`);
+    if (input.sha256 !== undefined && existsSync(path)) {
+      assert.equal(createHash('sha256').update(readFileSync(path)).digest('hex'), input.sha256,
+        `Mixed configured interface output: ${input.module}`);
+    }
     artifacts.set(path, input);
   }
   const includesLocal = roots.some(value => value.name === '@actql/local-node');

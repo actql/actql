@@ -5,6 +5,7 @@ import {test} from 'node:test';
 import {build, resolveConfig} from 'vite';
 import {repositoryFiles} from '../../../scripts/distribution-interface-roots.mjs';
 import {viteInterfaceInventory} from '../../../scripts/vite-interface-inventory.mjs';
+import {sourceInterfaceClosure} from '../../../scripts/source-interface-closure.mjs';
 
 test('normal OSS Vite inputs include the library dependency, browser modules and Worker source assets', async () => {
   const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
@@ -27,9 +28,16 @@ test('normal OSS Vite inputs include the library dependency, browser modules and
   assert(result.consumedCompiled.some(value => value.module === 'packages/explorer-ui/dist/plan-explorer.js'));
   assert(!result.modules.some(value => value.module.includes('/dist/')));
   assert(result.sourceCopies.some(value => value.source === 'packages/explorer-ui/flow-layout-worker.mjs'));
+  const source = await sourceInterfaceClosure(process.cwd(), {generatedInputs: result.sourceArtifacts});
+  assert.equal(source.qualification, 'source-input-coverage-only');
+  assert.deepEqual(source.unresolvedEntrances, []);
+  assert(!source.modules.some(value => value.module === 'packages/explorer-ui/dist/plan-explorer.js'));
+  assert(source.artifacts.some(value => value.module === 'packages/explorer-ui/dist/plan-explorer.js'));
   const readerSource = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   writeFileSync('/Users/t14i/workspace/20260822/reviews/2026-10-16-interface-hardening/i6-actual-vite-source-coverage.json',
-    JSON.stringify({...result, readerSource}, null, 2) + '\n');
+    JSON.stringify({...result, readerSource, ordinarySource: {roots: source.roots.length,
+      modules: source.modules.length, types: source.types.length, moonInputs: source.moon.modules.length,
+      unresolved: source.unresolvedEntrances, qualification: source.qualification}}, null, 2) + '\n');
   console.log(JSON.stringify({modules: result.modules.length, assets: result.assets.length,
     configs: configs.length, generated: result.generated.length, qualification: result.qualification}));
 });

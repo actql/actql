@@ -19,17 +19,17 @@ export async function viteInterfaceInventory(root, configs) {
   };
   function source(path) {
     const original = realpathSync(path);
-    if (compiled.has(original)) {
-      assert.equal(createHash('sha256').update(readFileSync(original)).digest('hex'), compiled.get(original).sha256,
-        `Mixed configured Vite dependency: ${relative(root, original)}`);
-      consumed.add(original);
-      return;
-    }
     if (copied.has(original)) {
       const sourcePath = copied.get(original);
       assert(readFileSync(original).equals(readFileSync(sourcePath)),
         `Mixed configured Vite source asset: ${relative(root, original)}`);
       source(sourcePath);
+      return;
+    }
+    if (compiled.has(original)) {
+      assert.equal(createHash('sha256').update(readFileSync(original)).digest('hex'), compiled.get(original).sha256,
+        `Mixed configured Vite dependency: ${relative(root, original)}`);
+      consumed.add(original);
       return;
     }
     if (!inside(original)) {
@@ -70,10 +70,15 @@ export async function viteInterfaceInventory(root, configs) {
         compiled.set(resolve(outputDirectory, output.fileName), {config, file: output.fileName,
           sha256: createHash('sha256').update(output.code).digest('hex')});
         generated.push({config, file: output.fileName,
+          sha256: compiled.get(resolve(outputDirectory, output.fileName)).sha256,
           sourceModules: Object.keys(output.modules).filter(id => !id.includes('\0') && inside(id))
             .map(id => relative(root, id)).sort(),
           qualification: 'read-only-vite-output; not-installed-artifact'});
       } else {
+        const sha256 = createHash('sha256').update(output.source).digest('hex');
+        compiled.set(resolve(outputDirectory, output.fileName), {config, file: output.fileName, sha256});
+        generated.push({config, file: output.fileName, sha256,
+          qualification: 'configured-vite-asset; not-installed-artifact'});
         for (const path of output.originalFileNames ?? []) {
           const absolute = isAbsolute(path) ? path : resolve(root, path);
           if (existsSync(absolute)) {
@@ -93,6 +98,9 @@ export async function viteInterfaceInventory(root, configs) {
     modules: [...modules.values()].sort((a, b) => a.module.localeCompare(b.module)),
     assets: [...assets.values()].sort((a, b) => a.module.localeCompare(b.module)),
     externalModuleCount: external.size, generated,
+    sourceArtifacts: [...compiled].sort(([a], [b]) => a.localeCompare(b)).map(([path, value]) => ({
+      module: relative(root, path), sha256: value.sha256, build: value.config, sourcePackages: [],
+      qualification: 'configured-vite-output; requires-normal-artifact-admission'})),
     consumedCompiled: [...consumed].sort().map(path => ({module: relative(root, path), ...compiled.get(path),
       qualification: 'configured-output-digest-only; not-normal-release-admission'})),
     sourceCopies: [...copied].map(([output, source]) => ({output: relative(root, output), source: relative(root, source)}))};
