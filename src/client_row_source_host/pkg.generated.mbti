@@ -16,6 +16,7 @@ import {
   "actql/actql/run_publication",
   "actql/actql/sourceview_resolution",
   "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -135,6 +136,8 @@ pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relati
 pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]
 
 pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, RowHostIssue]
+
+pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.Contract?
 
 pub fn row_acquisition_columns(RowAcquisition) -> Array[String]
 

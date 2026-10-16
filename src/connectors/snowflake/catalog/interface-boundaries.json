@@ -1,0 +1,424 @@
+{
+  "qualification": "source-reference and original Owner coverage; not Source authorization, physical transport or installed acceptance",
+  "declarations": [
+    {
+      "module": "src/connectors/snowflake/catalog/response.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "f1a43a871cc60c12b5ed24730d343b317f7594d91984bc0df330850224b1ad14",
+      "role": "connector-semantics",
+      "owner": "Snowflake bounded original SQL API response spelling; Common retains scalar contract and value admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "nonnegative",
+          "declaration": "nonnegative ( object : @ decode . ObjectView , key : String ) - > Int64 ?"
+        },
+        {
+          "name": "partition_cell",
+          "declaration": "partition_cell ( partition : Partition , row : Int , column : Int , ) - > @ admitted . CheckedValue ?"
+        },
+        {
+          "name": "partition_matches_original",
+          "declaration": "partition_matches_original ( partition : Partition , original : ResultSet , ) - > Bool"
+        },
+        {
+          "name": "partition_ordinal",
+          "declaration": "partition_ordinal ( partition : Partition ) - > Int"
+        },
+        {
+          "name": "partition_response_sha256",
+          "declaration": "partition_response_sha256 ( partition : Partition ) - > String"
+        },
+        {
+          "name": "partition_row_count",
+          "declaration": "partition_row_count ( partition : Partition ) - > Int"
+        },
+        {
+          "name": "project_column",
+          "declaration": "project_column ( cursor : @ decode . Cursor , limits : ResponseLimits , ) - > Result [ Column , ResponseIssue ]"
+        },
+        {
+          "name": "project_partition",
+          "declaration": "project_partition ( bytes : Bytes , original : ResultSet , ordinal : Int , limits : ResponseLimits , ) - > Result [ Partition , ResponseIssue ]"
+        },
+        {
+          "name": "project_result_set",
+          "declaration": "project_result_set ( bytes : Bytes , limits : ResponseLimits , ) - > Result [ ResultSet , ResponseIssue ]"
+        },
+        {
+          "name": "project_result_set_original",
+          "declaration": "project_result_set_original ( bytes : Bytes , limits : ResponseLimits , expected : ( Array [ ( String , @ contract . Contract ) ] , Int ) ? , ) - > Result [ ResultSet , ResponseIssue ]"
+        },
+        {
+          "name": "project_result_set_with_contracts",
+          "declaration": "project_result_set_with_contracts ( bytes : Bytes , limits : ResponseLimits , contracts : Array [ ( String , @ contract . Contract ) ] , max_contract_pairs : Int , ) - > Result [ ResultSet , ResponseIssue ]"
+        },
+        {
+          "name": "required_text",
+          "declaration": "required_text ( object : @ decode . ObjectView , key : String ) - > String ?"
+        },
+        {
+          "name": "response_root",
+          "declaration": "response_root ( bytes : Bytes , limits : ResponseLimits , ) - > Result [ @ decode . Cursor , ResponseIssue ]"
+        },
+        {
+          "name": "result_set_cell",
+          "declaration": "result_set_cell ( result : ResultSet , row : Int , column : Int , ) - > @ admitted . CheckedValue ?"
+        },
+        {
+          "name": "result_set_column_contract",
+          "declaration": "result_set_column_contract ( result : ResultSet , index : Int , ) - > @ contract . Contract ?"
+        },
+        {
+          "name": "result_set_column_count",
+          "declaration": "result_set_column_count ( result : ResultSet ) - > Int"
+        },
+        {
+          "name": "result_set_column_name",
+          "declaration": "result_set_column_name ( result : ResultSet , index : Int ) - > String ?"
+        },
+        {
+          "name": "result_set_handle",
+          "declaration": "result_set_handle ( result : ResultSet ) - > String"
+        },
+        {
+          "name": "result_set_partition_count",
+          "declaration": "result_set_partition_count ( result : ResultSet ) - > Int"
+        },
+        {
+          "name": "result_set_partition_rows",
+          "declaration": "result_set_partition_rows ( result : ResultSet , ordinal : Int ) - > Int64 ?"
+        },
+        {
+          "name": "result_set_response_sha256",
+          "declaration": "result_set_response_sha256 ( result : ResultSet ) - > String"
+        },
+        {
+          "name": "result_set_row_count",
+          "declaration": "result_set_row_count ( result : ResultSet ) - > Int"
+        },
+        {
+          "name": "result_set_total_rows",
+          "declaration": "result_set_total_rows ( result : ResultSet ) - > Int64"
+        },
+        {
+          "name": "valid_handle",
+          "declaration": "valid_handle ( value : String , limits : ResponseLimits ) - > Bool"
+        },
+        {
+          "name": "valid_limits",
+          "declaration": "valid_limits ( limits : ResponseLimits ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "nonnegative",
+            "partition_cell",
+            "partition_matches_original",
+            "partition_ordinal",
+            "partition_response_sha256",
+            "partition_row_count",
+            "project_column",
+            "project_partition",
+            "project_result_set",
+            "project_result_set_original",
+            "project_result_set_with_contracts",
+            "required_text",
+            "response_root",
+            "result_set_cell",
+            "result_set_column_contract",
+            "result_set_column_count",
+            "result_set_column_name",
+            "result_set_handle",
+            "result_set_partition_count",
+            "result_set_partition_rows",
+            "result_set_response_sha256",
+            "result_set_row_count",
+            "result_set_total_rows",
+            "valid_handle",
+            "valid_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/snowflake/catalog/pkg.generated.mbti",
+      "responsibilityFacet": "primary",
+      "sha256": "bcaf69f9cb525c872daa37d8548a831bfd8d643f1f33e40a38b393c4e80bf320",
+      "role": "connector-semantics",
+      "owner": "Snowflake bounded original SQL API response spelling; Common retains scalar contract and value admission",
+      "exports": [
+        "pub fn partition_cell(Partition, Int, Int) -> @value_admission.CheckedValue?",
+        "pub fn partition_matches_original(Partition, ResultSet) -> Bool",
+        "pub fn partition_ordinal(Partition) -> Int",
+        "pub fn partition_response_sha256(Partition) -> String",
+        "pub fn partition_row_count(Partition) -> Int",
+        "pub fn project_partition(Bytes, ResultSet, Int, ResponseLimits) -> Result[Partition, ResponseIssue]",
+        "pub fn project_result_set(Bytes, ResponseLimits) -> Result[ResultSet, ResponseIssue]",
+        "pub fn project_result_set_with_contracts(Bytes, ResponseLimits, Array[(String, @value_contract.Contract)], Int) -> Result[ResultSet, ResponseIssue]",
+        "pub fn result_set_cell(ResultSet, Int, Int) -> @value_admission.CheckedValue?",
+        "pub fn result_set_column_contract(ResultSet, Int) -> @value_contract.Contract?",
+        "pub fn result_set_column_count(ResultSet) -> Int",
+        "pub fn result_set_column_name(ResultSet, Int) -> String?",
+        "pub fn result_set_handle(ResultSet) -> String",
+        "pub fn result_set_partition_count(ResultSet) -> Int",
+        "pub fn result_set_partition_rows(ResultSet, Int) -> Int64?",
+        "pub fn result_set_response_sha256(ResultSet) -> String",
+        "pub fn result_set_row_count(ResultSet) -> Int",
+        "pub fn result_set_total_rows(ResultSet) -> Int64",
+        "pub struct Column {",
+        "pub struct Partition {",
+        "pub struct ResultSet {"
+      ],
+      "operations": [
+        {
+          "name": "partition_cell",
+          "declaration": "pub fn partition_cell(Partition, Int, Int) -> @value_admission.CheckedValue?"
+        },
+        {
+          "name": "partition_matches_original",
+          "declaration": "pub fn partition_matches_original(Partition, ResultSet) -> Bool"
+        },
+        {
+          "name": "partition_ordinal",
+          "declaration": "pub fn partition_ordinal(Partition) -> Int"
+        },
+        {
+          "name": "partition_response_sha256",
+          "declaration": "pub fn partition_response_sha256(Partition) -> String"
+        },
+        {
+          "name": "partition_row_count",
+          "declaration": "pub fn partition_row_count(Partition) -> Int"
+        },
+        {
+          "name": "project_partition",
+          "declaration": "pub fn project_partition(Bytes, ResultSet, Int, ResponseLimits) -> Result[Partition, ResponseIssue]"
+        },
+        {
+          "name": "project_result_set",
+          "declaration": "pub fn project_result_set(Bytes, ResponseLimits) -> Result[ResultSet, ResponseIssue]"
+        },
+        {
+          "name": "project_result_set_with_contracts",
+          "declaration": "pub fn project_result_set_with_contracts(Bytes, ResponseLimits, Array[(String, @value_contract.Contract)], Int) -> Result[ResultSet, ResponseIssue]"
+        },
+        {
+          "name": "result_set_cell",
+          "declaration": "pub fn result_set_cell(ResultSet, Int, Int) -> @value_admission.CheckedValue?"
+        },
+        {
+          "name": "result_set_column_contract",
+          "declaration": "pub fn result_set_column_contract(ResultSet, Int) -> @value_contract.Contract?"
+        },
+        {
+          "name": "result_set_column_count",
+          "declaration": "pub fn result_set_column_count(ResultSet) -> Int"
+        },
+        {
+          "name": "result_set_column_name",
+          "declaration": "pub fn result_set_column_name(ResultSet, Int) -> String?"
+        },
+        {
+          "name": "result_set_handle",
+          "declaration": "pub fn result_set_handle(ResultSet) -> String"
+        },
+        {
+          "name": "result_set_partition_count",
+          "declaration": "pub fn result_set_partition_count(ResultSet) -> Int"
+        },
+        {
+          "name": "result_set_partition_rows",
+          "declaration": "pub fn result_set_partition_rows(ResultSet, Int) -> Int64?"
+        },
+        {
+          "name": "result_set_response_sha256",
+          "declaration": "pub fn result_set_response_sha256(ResultSet) -> String"
+        },
+        {
+          "name": "result_set_row_count",
+          "declaration": "pub fn result_set_row_count(ResultSet) -> Int"
+        },
+        {
+          "name": "result_set_total_rows",
+          "declaration": "pub fn result_set_total_rows(ResultSet) -> Int64"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "partition_cell",
+            "partition_matches_original",
+            "partition_ordinal",
+            "partition_response_sha256",
+            "partition_row_count",
+            "project_partition",
+            "project_result_set",
+            "project_result_set_with_contracts",
+            "result_set_cell",
+            "result_set_column_contract",
+            "result_set_column_count",
+            "result_set_column_name",
+            "result_set_handle",
+            "result_set_partition_count",
+            "result_set_partition_rows",
+            "result_set_response_sha256",
+            "result_set_row_count",
+            "result_set_total_rows"
+          ],
+          "exports": [
+            "pub fn partition_cell(Partition, Int, Int) -> @value_admission.CheckedValue?",
+            "pub fn partition_matches_original(Partition, ResultSet) -> Bool",
+            "pub fn partition_ordinal(Partition) -> Int",
+            "pub fn partition_response_sha256(Partition) -> String",
+            "pub fn partition_row_count(Partition) -> Int",
+            "pub fn project_partition(Bytes, ResultSet, Int, ResponseLimits) -> Result[Partition, ResponseIssue]",
+            "pub fn project_result_set(Bytes, ResponseLimits) -> Result[ResultSet, ResponseIssue]",
+            "pub fn project_result_set_with_contracts(Bytes, ResponseLimits, Array[(String, @value_contract.Contract)], Int) -> Result[ResultSet, ResponseIssue]",
+            "pub fn result_set_cell(ResultSet, Int, Int) -> @value_admission.CheckedValue?",
+            "pub fn result_set_column_contract(ResultSet, Int) -> @value_contract.Contract?",
+            "pub fn result_set_column_count(ResultSet) -> Int",
+            "pub fn result_set_column_name(ResultSet, Int) -> String?",
+            "pub fn result_set_handle(ResultSet) -> String",
+            "pub fn result_set_partition_count(ResultSet) -> Int",
+            "pub fn result_set_partition_rows(ResultSet, Int) -> Int64?",
+            "pub fn result_set_response_sha256(ResultSet) -> String",
+            "pub fn result_set_row_count(ResultSet) -> Int",
+            "pub fn result_set_total_rows(ResultSet) -> Int64",
+            "pub struct Column {",
+            "pub struct Partition {",
+            "pub struct ResultSet {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
