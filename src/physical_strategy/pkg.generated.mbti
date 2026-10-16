@@ -3,6 +3,7 @@ package "actql/actql/physical_strategy"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/check_environment",
   "actql/actql/connector_sdk",
   "actql/actql/effect_application",
   "actql/actql/effect_program_binding",
@@ -21,6 +22,7 @@ import {
   "actql/actql/program_check",
   "actql/actql/run_publication",
   "actql/actql/stage_results",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -50,6 +52,8 @@ pub fn begin_managed_transfer_progress(ManagedTransfer) -> ManagedTransferProgre
 pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnvironment, RunIssue]
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
+
+pub fn bind_captured_effect_command_target(CapturedEffectInputs, Int, @check_environment.StoreCommandBinding, @value_admission.CheckedValue, Int) -> Result[CapturedEffectCommandTarget, CapturedEffectProposalIssue]
 
 pub fn[T] bind_captured_effect_local_result_managed_export(CapturedEffectInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
 
@@ -198,6 +202,8 @@ pub fn captured_effect_preview_plan_terminal(CapturedEffectPreviewInputs, Int, I
 pub fn captured_effect_preview_subject_cid(CapturedEffectPreviewInputs) -> String?
 
 pub fn captured_effect_preview_table_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectTableInput?
+
+pub fn captured_effect_published_store_binding(CapturedEffectInputs, Int, Int) -> Result[@check_environment.StoreCommandBinding?, CapturedEffectProposalIssue]
 
 pub fn captured_effect_result_import_consumer(CapturedEffectResultImport) -> Int
 
@@ -603,9 +609,9 @@ pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connecto
 
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 
-pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, Int, Int) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue]
+pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue]
 
-pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
+pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[CheckedDAG, GraphIssue]
 
@@ -923,6 +929,12 @@ pub(all) enum CapturedEffectCapabilityIssue {
   NotReady
   Current(@effect_application.EffectApplyCapabilityIssue)
 } derive(@debug.Debug)
+
+pub struct CapturedEffectCommandTarget {
+  inputs : CapturedEffectInputs
+  member_index : Int
+  target : @stage_results.EffectPublishedStoreTarget
+}
 
 pub(all) enum CapturedEffectCurrentBindingIssue {
   InvalidLimits
