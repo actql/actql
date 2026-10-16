@@ -620,3 +620,66 @@ test "short COMMAND postlude empty identifier is rejected by the original lexer"
     is Err({ issue: Lexical(EmptyIdentifier), .. }),
   )
 }
+
+///|
+test "short COMMAND nested input ID uses one existing typed property projection" {
+  let values = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"operation":{"type":"object","nullable":false,"additional_properties":false,"fields":{"id":{"type":"string","nullable":false}}},"body":{"type":"string","nullable":false}},"rows":[{"operation":{"id":"original-id"},"body":"original body"}]},"as":"messages"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = {
+    ..short_command_context(),
+    inputs: [
+      {
+        relation: [{ value: "messages", quoted: false, }],
+        name: "messages",
+        source: GeneratedValues(values),
+        visible_fields: ["operation", "body"],
+        graph_bindings: [],
+      },
+    ],
+  }
+  let environment = short_command_checked_environment("installation")
+  let publication = @source_publication.published_command_targets(
+      environment,
+      command_source_publication(environment),
+    )
+    .unwrap()
+    .unwrap()
+  let lowered = @frontend.lower(
+    "FROM messages |> EFFECT COMMAND mail.send ID operation.id INPUT (body = body)",
+    @frontend.Text,
+    Some(context),
+    command_targets=Some(publication),
+  ).unwrap()
+  let candidate = @check.prepare_effect_computation_candidate(
+    lowered.program.unwrap(),
+    environment,
+    None,
+    [],
+    check_limits(),
+    10,
+    10000,
+  ).unwrap()
+  let inputs = @stage_results.bind_effect_command_inputs(
+    short_command_checked_targets(candidate),
+    { max_work: 10000, max_nodes: 1000, max_depth: 100, max_text_bytes: 10000, },
+  ).unwrap()
+  let input = @stage_results.effect_command_input_at(inputs, 0).unwrap()
+  let key = @stage_results.effect_command_input_key(input).unwrap()
+  assert_true(!@schema.field_contract(key).nullable)
+  assert_true(@schema.field_contract(key).shape is @contract.Text(_))
+  let derives = store_capture_steps(lowered.program.unwrap()).filter(step => {
+    @wire.lookup(@wire.open_object(step).unwrap(), "derive") is Some(_)
+  })
+  assert_eq(derives.length(), 1)
+  assert_eq(
+    @wire.object_length(store_capture_field(derives[0], "derive")),
+    Some(1),
+  )
+}

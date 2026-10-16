@@ -43,8 +43,7 @@ fn lower_short_command_capture(
   let resolve = path => {
     pipe_expression_slot(path, expression_visible, ranges, value_ranges~)
   }
-  guard resolve(clause.id) is Some(id) else { raise Abort(UnknownColumn) }
-  let fields = [id]
+  let fields : Array[String] = []
   let reserved = physical.copy()
   let derives : Array[(String, @builder.Node)] = []
   let capture_value = fn(expression : @query.Expression) -> String raise Abort {
@@ -85,6 +84,9 @@ fn lower_short_command_capture(
     }
     slot
   }
+  // Retain the parser's original field-path expression. A nested property
+  // uses the same checked Relation projection, not a reparsed/synthetic ID.
+  let id = capture_value(clause.id_expression)
   let target = match clause.target {
     Some(expression) => Some(capture_value(expression))
     None => None
