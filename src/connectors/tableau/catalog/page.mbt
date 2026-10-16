@@ -59,6 +59,7 @@ pub(all) struct CatalogRow {
 pub struct CatalogPage {
   request : CatalogPageRequest
   total_available : Int64
+  provider_items : Int
   rows : Array[CatalogRow]
   response_sha256 : String
 }
@@ -497,6 +498,7 @@ pub fn admit_catalog_page(
   Ok({
     request,
     total_available: total,
+    provider_items: values.length(),
     rows,
     response_sha256: @sha.hex(bytes),
   })
@@ -524,7 +526,7 @@ pub fn next_catalog_page(
   max_path_bytes : Int,
 ) -> Result[CatalogPageRequest?, CatalogIssue] {
   let consumed = (page.request.page_number.to_int64() - 1L) * 100L +
-    page.rows.length().to_int64()
+    page.provider_items.to_int64()
   if consumed >= page.total_available {
     return Ok(None)
   }

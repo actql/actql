@@ -542,3 +542,16 @@ test "non200 truncated UTF8 and unrelated collection cannot become a catalog pag
     is Err(InvalidResponse),
   )
 }
+
+///|
+test "caller row-array mutation cannot change the original pagination observation" {
+  let page = admit_catalog_page(
+    catalog_request(Workbooks),
+    200,
+    catalog_fixture(Workbooks, [catalog_fixture_row(1)]),
+    catalog_limits(),
+  ).unwrap()
+  let rows = catalog_page_rows(page)
+  rows.clear()
+  assert_true(next_catalog_page(page, 256) is Ok(None))
+}
