@@ -9,7 +9,10 @@ pub fn captured_effect_input_retained(
 ) -> Bool {
   inputs.live &&
   inputs.pins.live &&
-  inputs.entries.get(member_index).bind(value => value).map(value => {
+  inputs.entries
+  .get(member_index)
+  .bind(value => value)
+  .map(value => {
     physical_equal(value, input) &&
     captured_any_result_borrow_retained(value.borrow)
   }) ==

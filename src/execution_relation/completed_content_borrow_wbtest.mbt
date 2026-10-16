@@ -32,35 +32,77 @@ fn content_borrow_export(
 
 ///|
 test "Content export field selection preserves its original and enforces exact work bounds" {
-  let (receipt, originals) = content_borrow_export_fixture(false, Ref(true), Ref(true))
+  let (receipt, originals) = content_borrow_export_fixture(
+    false,
+    Ref(true),
+    Ref(true),
+  )
   let contract = select_checked_contract(
     "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
   )
   let schema = @schema.from_fields(
-    [(@schema.Unqualified("p"), contract)], max_fields=1, max_name_bytes=1,
+    [(@schema.Unqualified("p"), contract)],
+    max_fields=1,
+    max_name_bytes=1,
   ).unwrap()
   let field = @schema.field_at(schema, 0).unwrap()
-  let selected = completed_relation_export_content_field(receipt, 0, field, 2, 7).unwrap()
+  let selected = completed_relation_export_content_field(
+    receipt, 0, field, 2, 7,
+  ).unwrap()
   guard originals[0] is @admitted.Reference(original) else {
     fail("original Content fixture")
   }
   assert_true(physical_equal(selected, original))
-  assert_true(completed_relation_export_content_field(receipt, 0, field, 1, 7) is Err(Admission(CaptureLimit)))
-  assert_true(completed_relation_export_content_field(receipt, 0, field, 2, 6) is Err(Admission(CaptureLimit)))
-  assert_true(completed_relation_export_content_field(receipt, 1, field, 2, 7) is Err(Unavailable))
+  assert_true(
+    completed_relation_export_content_field(receipt, 0, field, 1, 7)
+    is Err(Admission(CaptureLimit)),
+  )
+  assert_true(
+    completed_relation_export_content_field(receipt, 0, field, 2, 6)
+    is Err(Admission(CaptureLimit)),
+  )
+  assert_true(
+    completed_relation_export_content_field(receipt, 1, field, 2, 7)
+    is Err(Unavailable),
+  )
   let missing = @schema.from_fields(
-    [(@schema.Unqualified("q"), contract)], max_fields=1, max_name_bytes=1,
+    [(@schema.Unqualified("q"), contract)],
+    max_fields=1,
+    max_name_bytes=1,
   ).unwrap()
-  assert_true(completed_relation_export_content_field(receipt, 0, @schema.field_at(missing, 0).unwrap(), 2, 7) is Err(InvalidTarget))
+  assert_true(
+    completed_relation_export_content_field(
+      receipt,
+      0,
+      @schema.field_at(missing, 0).unwrap(),
+      2,
+      7,
+    )
+    is Err(InvalidTarget),
+  )
   let foreign_media = select_checked_contract(
     "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
   )
   let foreign = @schema.from_fields(
-    [(@schema.Unqualified("p"), foreign_media)], max_fields=1, max_name_bytes=1,
+    [(@schema.Unqualified("p"), foreign_media)],
+    max_fields=1,
+    max_name_bytes=1,
   ).unwrap()
-  assert_true(completed_relation_export_content_field(receipt, 0, @schema.field_at(foreign, 0).unwrap(), 2, 7) is Err(ForeignMaterial))
+  assert_true(
+    completed_relation_export_content_field(
+      receipt,
+      0,
+      @schema.field_at(foreign, 0).unwrap(),
+      2,
+      7,
+    )
+    is Err(ForeignMaterial),
+  )
   cancel_completed_relation_export_receipt(receipt)
-  assert_true(completed_relation_export_content_field(receipt, 0, field, 2, 7) is Err(Unavailable))
+  assert_true(
+    completed_relation_export_content_field(receipt, 0, field, 2, 7)
+    is Err(Unavailable),
+  )
 }
 
 ///|
