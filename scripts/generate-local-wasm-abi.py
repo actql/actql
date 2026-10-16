@@ -42,7 +42,7 @@ def unit(symbol: str, name: str) -> str:
     if name in {'start', 'index', 'byte'}:
         return ('byte value0..255' if name == 'byte' else
                 'zero-based position in ' + symbol + '; original Owner bounds')
-    if name in {'kind', 'ordinal', 'field', 'stage', 'binding_index', 'eof'}:
+    if name in {'kind', 'ordinal', 'field', 'stage', 'binding_index', 'eof', 'mode'}:
         return 'closed selector/flag of ' + symbol + '; unknown refused by original Owner'
     if name in {'ticket', 'physical_ticket', 'physical_input'} or (
             symbol.startswith('actql_host.') and name == 'input'):
