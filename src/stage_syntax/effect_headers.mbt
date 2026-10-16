@@ -39,6 +39,7 @@ pub struct EffectHeader {
   failure_policy : String
   body : @wire.Cursor
   published_store : (String, String)?
+  published_command : (String, String?)?
 }
 
 ///|
@@ -89,6 +90,15 @@ pub fn effect_header_published_store_target(
   value : EffectHeader,
 ) -> (String, String)? {
   value.published_store
+}
+
+///|
+/// Fixed installation or declared identifier selection data. The original
+/// Command and installed issuer must still bind the same occurrence.
+pub fn effect_header_published_command_target(
+  value : EffectHeader,
+) -> (String, String?)? {
+  value.published_command
 }
 
 ///|
@@ -510,9 +520,12 @@ fn header_member(
   if !valid_ref {
     header_fail(contract_source, InvalidBody)
   }
+  let mut published_command : (String, String?)? = None
   let published_store = if selected == "command" {
     let target = header_required(body, "target", source)
-    let view = header_object(target, ["field", "published_store"])
+    let view = header_object(target, [
+      "field", "published_store", "published_command",
+    ])
     let publication = match @wire.lookup(view, "published_store") {
       Some(publication) => {
         ignore(header_object(target, ["published_store"]))
@@ -530,7 +543,29 @@ fn header_member(
         Some((target_ref, mapping_ref))
       }
       None => {
-        ignore(header_text(header_required(view, "field", target)))
+        match @wire.lookup(view, "published_command") {
+          Some(publication) => {
+            ignore(header_object(target, ["published_command"]))
+            let selector = header_object(publication, [
+              "target_ref", "identifier_field",
+            ])
+            let target_ref = header_text(
+              header_required(selector, "target_ref", publication),
+            )
+            if !target_ref.has_prefix("connector://") {
+              header_fail(publication, InvalidBody)
+            }
+            let identifier = match @wire.lookup(selector, "identifier_field") {
+              None => None
+              Some(value) => Some(header_text(value))
+            }
+            published_command = Some((target_ref, identifier))
+          }
+          None => {
+            ignore(header_object(target, ["field"]))
+            ignore(header_text(header_required(view, "field", target)))
+          }
+        }
         None
       }
     }
@@ -603,6 +638,7 @@ fn header_member(
     failure_policy,
     body: source,
     published_store,
+    published_command,
   }
 }
 
