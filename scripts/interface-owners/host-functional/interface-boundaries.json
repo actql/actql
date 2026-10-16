@@ -30005,7 +30005,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "68cc7356ec4b3c9af9375c27ea4947b72726160a8ce81f1b0a47612272d32eec",
+      "sha256": "b20b89f1ada7e0bbf69b3676caaee7d0a0392029ee19cfc79a91586a09e9fe32",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -30122,11 +30122,6 @@
           "async": true
         },
         {
-          "name": "readProfileJson/release/release",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "refuse/refuse",
           "parameters": [
             "code",
@@ -30179,7 +30174,6 @@
             "publishInstalledEffectProfile",
             "readProfile",
             "readProfileJson",
-            "readProfileJson/release/release",
             "refuse/refuse",
             "runtimeBundleCid/runtimeBundleCid",
             "selectInstallation",
@@ -38658,7 +38652,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4da8bfd7117783fc14b5dc45a4dd575a1b39abc4125d39774cfc3df24f8fd41d",
+      "sha256": "dbf6994b97c322c1703830fcf7516ab825fecde468a0043aba05e90a6f960a34",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
