@@ -6,10 +6,28 @@ from pathlib import Path
 import tempfile
 import unittest
 import zipfile
-from python_interface_inventory import python_interface, wheel_interfaces, source_projects
+import subprocess
+from python_interface_inventory import (python_interface, wheel_interfaces, source_projects,
+                                       wheel_source_correspondence)
 
 
 class InterfaceInventoryTests(unittest.TestCase):
+    def source(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        (root / 'outside/src/owner').mkdir(parents=True)
+        (root / 'outside/pyproject.toml').write_text(
+            '[project]\nname="owner"\n[tool.setuptools.packages.find]\nwhere=["src"]\n')
+        body = b'def read(value):\n    return value\n'
+        (root / 'outside/src/owner/__init__.py').write_bytes(body)
+        subprocess.run(['git', 'init', '-q'], cwd=root, check=True)
+        subprocess.run(['git', 'add', '.'], cwd=root, check=True)
+        subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                        'commit', '-qm', 'Original source'], cwd=root, check=True)
+        source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+        return root, source, body
+
     def wheel(self, files, corrupt=False):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -74,6 +92,71 @@ class Client:
     def test_old_or_modified_wheel_bytes_fail_record_verification(self):
         with self.assertRaisesRegex(ValueError, 'Wheel original digest mismatch'):
             wheel_interfaces(self.wheel({'owner/__init__.py': b''}, corrupt=True))
+
+    def test_normal_wheel_record_binds_actual_authored_members_to_git_original(self):
+        root, source, body = self.source()
+        # A retained Source is not reinterpreted with today's manifest/body.
+        (root / 'outside/pyproject.toml').write_text('[project]\nname="replacement"\n')
+        (root / 'outside/src/owner/__init__.py').write_text('changed = True\n')
+        result = wheel_source_correspondence(root, self.wheel({'owner/__init__.py': body}),
+                                              'outside/pyproject.toml', source)
+        self.assertEqual(result['authored_modules'], 1)
+        self.assertEqual(result['verified_component_modules'], 0)
+
+    def test_normal_wheel_unknown_helper_is_not_covered_by_a_component_prefix(self):
+        root, source, body = self.source()
+        external = b'def original(value): return value\n'
+        files = {'owner/__init__.py': body, 'private/original.py': external,
+                 'private/unregistered.py': b'def decide_unknown(): return True\n'}
+        with self.assertRaisesRegex(ValueError, 'Unbound authored wheel interface: private/unregistered.py'):
+            wheel_source_correspondence(root, self.wheel(files), 'outside/pyproject.toml', source,
+                                        {'private/original.py': hashlib.sha256(external).hexdigest()})
+
+    def test_normal_wheel_self_consistent_record_cannot_replace_original_or_drop_module(self):
+        root, source, body = self.source()
+        with self.assertRaisesRegex(ValueError, 'Changed authored wheel interface'):
+            wheel_source_correspondence(root, self.wheel({'owner/__init__.py': body + b'changed = True\n'}),
+                                        'outside/pyproject.toml', source)
+        with self.assertRaisesRegex(ValueError, 'Missing authored wheel interfaces'):
+            wheel_source_correspondence(root, self.wheel({}), 'outside/pyproject.toml', source)
+
+    def test_normal_wheel_verified_component_exact_members_keep_separate_qualification(self):
+        root, source, body = self.source()
+        external = b'def original(value): return value\n'
+        files = {'owner/__init__.py': body, 'private/original.py': external}
+        verified = {'private/original.py': hashlib.sha256(external).hexdigest()}
+        result = wheel_source_correspondence(root, self.wheel(files), 'outside/pyproject.toml', source, verified)
+        self.assertEqual(result['verified_component_modules'], 1)
+        files['private/original.py'] += b'changed = True\n'
+        with self.assertRaisesRegex(ValueError, 'Changed verified Python component'):
+            wheel_source_correspondence(root, self.wheel(files), 'outside/pyproject.toml', source, verified)
+
+    def test_wheel_bootstrap_cannot_hide_an_unregistered_executable_entrance(self):
+        root, source, body = self.source()
+        for member in ['owner.pth', 'owner-0.1.data/scripts/hidden']:
+            with self.subTest(member=member), self.assertRaisesRegex(
+                    ValueError, 'Unbound executable wheel entrance'):
+                wheel_source_correspondence(root, self.wheel({
+                    'owner/__init__.py': body, member: b'import owner\n'}),
+                    'outside/pyproject.toml', source)
+
+    def test_wheel_entry_points_keep_the_original_project_declaration(self):
+        root, source, body = self.source()
+        metadata = 'owner-0.1.dist-info/entry_points.txt'
+        files = {'owner/__init__.py': body, metadata: b'[console_scripts]\nowner = owner:read\n'}
+        with self.assertRaisesRegex(ValueError, 'Changed wheel entry-point inventory'):
+            wheel_source_correspondence(root, self.wheel(files), 'outside/pyproject.toml', source)
+        with (root / 'outside/pyproject.toml').open('a') as manifest:
+            manifest.write('[project.scripts]\nowner="owner:read"\n')
+        subprocess.run(['git', 'add', '.'], cwd=root, check=True)
+        subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                        'commit', '-qm', 'Declare original public command'], cwd=root, check=True)
+        source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+        self.assertEqual(wheel_source_correspondence(root, self.wheel(files),
+                         'outside/pyproject.toml', source)['authored_modules'], 1)
+        files[metadata] = b'[console_scripts]\nowner = owner:replace\n'
+        with self.assertRaisesRegex(ValueError, 'Changed wheel entry-point inventory'):
+            wheel_source_correspondence(root, self.wheel(files), 'outside/pyproject.toml', source)
 
     def test_unknown_dynamic_export_requires_owner_projection(self):
         with self.assertRaisesRegex(ValueError, 'requires owner projection'):
