@@ -33,7 +33,7 @@ pub fn attached_work(AttachedImports) -> Int
 
 pub fn bind_effect_command_inputs(EffectCommandTargets, EffectCommandInputLimits) -> Result[EffectCommandInputs, EffectCommandInputIssue]
 
-pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogReferences, Int) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
+pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogReferences, Int, mappings? : @check_environment.MappingContractShapes?) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
 
 pub fn bind_effect_mapping_rules(EffectMappingShapes, Int) -> Result[EffectMappingRules, EffectMappingRuleIssue]
 
@@ -98,6 +98,8 @@ pub fn effect_command_target_issue_effect(EffectCommandTargetIssue) -> String
 pub fn effect_command_target_issue_kind(EffectCommandTargetIssue) -> EffectCommandTargetIssueKind
 
 pub fn effect_command_target_issue_stage(EffectCommandTargetIssue) -> Int
+
+pub fn effect_command_target_store_binding(EffectCommandTargetBinding) -> @check_environment.StoreCommandBinding?
 
 pub fn effect_command_targets_catalogs(EffectCommandTargets) -> @check_environment.CatalogContents
 
@@ -469,6 +471,7 @@ pub(all) enum EffectCommandRowIssue {
 pub struct EffectCommandTargetBinding {
   effect : EffectResultBinding
   contract : @check_environment.CommandTarget
+  store_binding : @check_environment.StoreCommandBinding?
 }
 
 pub struct EffectCommandTargetIssue {
@@ -482,6 +485,12 @@ pub(all) enum EffectCommandTargetIssueKind {
   WorkLimit
   Contract(@check_environment.CommandTargetIssue)
   TargetKindMismatch
+  MissingStoreMappings
+  ForeignEnvironment
+  MissingStoreMapping(String)
+  StoreTargetMismatch
+  StoreContractMismatch
+  StoreBinding(@check_environment.StoreCommandIssue)
 } derive(Eq, @debug.Debug)
 
 pub struct EffectCommandTargets {
