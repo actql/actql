@@ -1,483 +1,434 @@
-# ActQL — Action Query Language
+# ActQL
 
-**A typed, declarative language for transforming data and taking action across systems.**
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-ActQL extends SQL's core idea—describe what you want, let the engine decide
-how to run it—from querying data to computation and action across systems.
+**The SQL-based data & workflow engine for AI agents.**
 
-Read from Salesforce, join it with your warehouse, run an LLM, and write the
-result back—all in one program. ActQL makes the program's types, requirements,
-and external effects explicit before execution, while the runtime decides
-where each operation should run.
+Read across SaaS and databases, join the data, decide with an LLM, and write
+back. What used to take a workflow SaaS and glue code, you write in SQL and
+run reliably as-is. Let a coding agent drive it from the CLI, or embed it in
+your TypeScript or Python app as a library.
 
-ActQL works across databases and APIs, with explicit models for relations,
-graphs, vectors, and event streams. Program meaning is independent of
-execution placement. It gives both humans and agents a constrained,
-inspectable way to express work, while the Host retains authority over which
-external operations may proceed.
+**In SQL, you describe what data you want, and the database works out how to
+get it—optimizing and executing it for you. ActQL extends that to computation
+and action across systems.**
 
-### Core Principles
+## 1. What can you do with ActQL?
 
-* **Declarative semantics for action:** Describe the work, not the execution
-  procedure. ActQL extends declarative algebra from querying and transforming
-  data to computation and external state changes.
+ActQL lets you work with the systems you connect—a CRM, a warehouse, files,
+SaaS APIs—as if they were one database. For example, join Salesforce accounts
+with product usage in Snowflake, let an LLM judge churn risk, and write the
+result back to Salesforce—in one SQL pipeline. It's plain SQL, plus `INFER` to
+call an LLM and `EFFECT` to write to an external system.
 
-* **Statically inspectable effects:** Data, computation, and external actions
-  have explicit semantics. The program's possible reads, computations, and
-  external effects are mechanically inspectable before execution.
-
-* **Placement-independent execution:** The same program can be planned across
-  connectors, local runtimes, browsers, or cloud execution without changing
-  its meaning.
-
-### What This Enables
-
-Because ActQL programs have analyzable semantics, they naturally enable:
-
-* **Contract-checked execution:** The compiler checks the program against its
-  contracts before execution. The runtime validates remaining requirements
-  as concrete inputs become available.
-
-* **Capability-driven pushdown:** Each Connector declares what it can compute.
-  The runtime can move filters, aggregations, and other supported operations
-  to the source while preserving the program's meaning.
-
-* **Programmable authorization:** A program cannot grant itself permissions.
-  The Host controls whether external operations may proceed, using durable
-  Checkpoints to pause and resume pending work safely.
-
-## Quickstart
-
-This checkout provides source-built `@actql/*` development packages
-(`0.0.0-development`). The commands below test those artifacts; they do not
-install an npm release or require an `actql` CLI. Use Node.js 22.22.0 (the CI
-version), Git, and the pinned MoonBit toolchain from
-[Development](docs/development.md#moonbit). Consumers of the packed artifacts
-need only Node.js; MoonBit is needed to build them.
-
-From a clean checkout, prepare one package set:
-
-```bash
-npm ci
-npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
-node scripts/packed-client-packages.mjs "$PWD/_build/client-packages"
-export ACTQL_PACKED_CLIENT_PACKAGES="$PWD/_build/client-packages"
+```sql
+SELECT a.id AS id, a.description AS notes,
+       u.active_users, u.trend
+FROM salesforce.accounts AS a
+JOIN snowflake.usage_30d AS u ON a.id = u.account_id
+|> INFER `model-task:churn-risk.v1`
+     INPUT (notes, active_users, trend) AS risk
+|> WHERE risk.outcome = 'ok' AND risk.value.level = 'high'
+|> RESULT updates
+|> EFFECT UPDATE salesforce.Account
+     ID id SET (
+       Churn_Risk__c = risk.value.level,
+       Risk_Reason__c = risk.value.reason
+     );
 ```
 
-Create a new empty directory outside the checkout, switch to it, and install
-the package set:
-
-```bash
-npm init -y >/dev/null
-npm install --ignore-scripts --no-save "$ACTQL_PACKED_CLIENT_PACKAGES"/*.tgz
+```text
+salesforce.accounts ─┐
+                     ├─► JOIN ─► INFER ─► WHERE ─► EFFECT ─► Salesforce
+snowflake.usage_30d ─┘             │                 │
+                                   │                 └─ paused at Checkpoint
+                                   │                    until approved
+                                   └─ typed result
 ```
 
-### Run a query
+- **One program across SaaS APIs, warehouses, and databases.** No separate
+  workflow to build for each integration.
+- **SaaS rows, warehouse rows, and LLM output share one type system.** Join
+  and filter them with plain SQL, and catch mismatches before anything runs.
+- **Writes are approved from what will actually be written, and you decide
+  how.** Route by record count or target: let low-impact writes run straight
+  through, approve some by rule, and send only high-risk ones to a person
+  ([see below](#ai-native)).
+- **If it crashes halfway, it resumes safely.** The Run (one execution) never
+  repeats completed work, and writes with an unknown outcome are never blindly
+  resent.
 
-Save this program as `query.aql`. Its three orders are explicit Values, so
-this example needs no Connector account or external input registration:
+## 2. Get started
 
-```yaml
-version: actql/0.1
-id: customer.open_orders
-stages:
-  - id: main
-    inputs: {}
-    steps:
-      - values:
-          schema:
-            id: { type: string, nullable: false }
-            customer_id: { type: string, nullable: false }
-            status: { type: string, nullable: false }
-            amount: { type: number, nullable: false }
-          rows:
-            - { id: o1, customer_id: c1, status: open, amount: 120 }
-            - { id: o2, customer_id: c1, status: closed, amount: 30 }
-            - { id: o3, customer_id: c2, status: open, amount: 80 }
-        as: orders
-      - filter: "status = 'open'"
-      - group:
-          by: [ customer_id ]
-          aggregates:
-            order_count: { fn: count }
-            total_amount: { fn: sum, field: amount }
-        as: customer_totals
-    results:
-      main:
-        from: customer_totals
-        fields: [ customer_id, order_count, total_amount ]
-        order_by: [ { total_amount: desc }, { customer_id: asc } ]
-results:
-  main:
-    from: { stage: main, result: main }
+### 2.1 Run the churn-risk example from the CLI
+
+Install the CLI, create the example project, and run it against mock
+Salesforce and Snowflake Connectors and a mock model—no credentials needed:
+
+```sh
+npm install -g actql
+actql init --template churn-risk-mock churn-risk && cd churn-risk
+actql run churn-risk.aql --stop-before commit
 ```
 
-Save this Client as `quickstart.mjs`:
+<a id="checkpoint-example"></a>
 
-```js
-import {readFile, writeFile} from 'node:fs/promises';
-import {resolve} from 'node:path';
+The Run pauses before writing to Salesforce and shows exactly what it is
+about to change:
+
+```text
+Run run_...
+  Status      waiting_checkpoint
+  Checkpoint  ckpt_...
+  Effect      update  (Salesforce Account)
+  Items       2
+  Changes
+    Acme Corp     Churn_Risk__c   low     → high
+                  Risk_Reason__c  (empty) → falling usage and a competitor evaluation
+    Globex Inc    Churn_Risk__c   medium  → high
+                  Risk_Reason__c  (empty) → support tickets about pricing
+```
+
+Approve it, then check the Run's status:
+
+```sh
+actql approve '<checkpoint-id>'
+actql status '<run-id>'
+```
+
+This is the same loop a coding agent uses. Before running, `check` validates
+the program and `explain` shows the plan (`--json` for structured output). To
+teach a coding agent how to write ActQL, give it the ActQL skills with
+`npx skills add actql/skills` and ask it to "Start ActQL setup", or point it
+at the [Writing Programs](docs/authoring.md) guide; for every command, see
+the [CLI reference](docs/cli.md). The
+[Quickstart](docs/getting-started/quickstart.md) walks through every file
+and step.
+
+### 2.2 Embed it in your app
+
+Run the same churn-risk example from inside your application, as a
+library—no workflow server required.
+
+**TypeScript**
+
+```sh
+npm install @actql/node
+```
+
+```ts
+import {readFile} from 'node:fs/promises';
 import {connect} from '@actql/node';
 
-const client = await connect({mode: 'local', owner: 'local',
-  durability: 'durable', installation: {directory: resolve('actql-state')}});
+const client = await connect({mode: 'local', installation: {directory: '.actql'}, profile: 'mock'});
 try {
-  const submissionRef = client.newSubmission({nonce: 'customer-open-orders'});
-  await writeFile('submission.json', JSON.stringify(submissionRef) + '\n');
-  const execution = await client.startSource(await readFile('query.aql', 'utf8'),
-    {format: 'yaml', submissionRef});
-  const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
-  if (state.status !== 'succeeded') throw new Error(JSON.stringify(state));
-  const rows = await execution.result('main').all();
-  await writeFile('answer.jsonl', rows.map(row => JSON.stringify(row)).join('\n') + '\n');
-  await writeFile('run.json', JSON.stringify(execution.ref) + '\n');
+  const source = await readFile('churn-risk.aql', 'utf8');
+  const execution = await client.startSource(source, {format: 'aql', stopBefore: 'commit'});
+  const state = await execution.wait();
+  console.log(state.status); // 'waiting_checkpoint'
 } finally {
   await client.close();
 }
 ```
 
-Run it:
+**Python**
 
-```bash
-node quickstart.mjs
-cat answer.jsonl
+```sh
+pip install actql
 ```
 
-`answer.jsonl` contains, in this order:
+```python
+import actql
 
-```jsonl
-{"customer_id":"c1","order_count":1,"total_amount":120}
-{"customer_id":"c2","order_count":1,"total_amount":80}
+with actql.connect(mode="local", installation=".actql", profile="mock") as client:
+    source = open("churn-risk.aql").read()
+    execution = client.start_source(source, format="aql", stop_before="commit")
+    state = execution.wait()
+    print(state.status)  # "waiting_checkpoint"
 ```
 
-Submission checks the Program; `wait()` follows it to termination and
-`result('main').all()` reads the named Result. `run.json` saves the Run
-reference for `client.attach()`. Reusing the same request ID and Program
-returns that Run rather than executing it again. Keep `actql-state` while
-using its retained Results. The consumer directory belongs to this
-example and can be removed when you no longer need its files or Results.
+Both stop at a Checkpoint just like the CLI example, and a Run started from
+code can be approved from the CLI by its Run ID. `.actql` holds the
+application's durable state; keep it out of version control. See
+[TypeScript and Node](docs/guides/node.md) and [Python](docs/guides/python.md).
 
-For two independently bound local databases, run the executable
-[two-source DuckDB JOIN example](examples/two-source-join/README.md).
-It uses one JSON Program and returns a Named Result through the same public Client.
+## 3. Why build another engine?
 
-## A real-world program
+ActQL started from four questions about how iPaaS, ETL, and workflow engines
+are used today.
 
-That was a local query. The following ecosystem example illustrates the same
-language across three systems; this combined integration is not supplied by
-the development packages above. Find
-the largest open Salesforce renewals, enrich them with current product usage
-from Snowflake, update the opportunities at risk, and notify Slack.
+### Q1. Why do different data sizes and use cases need different products?
 
-```yaml
-version: actql/0.1
-id: revenue.renewal_risk
-stages:
-  - id: main
-    inputs:
-      opportunities: { connector: salesforce/main, resource: Opportunity, view: open_renewals }
-      account_usage: { connector: snowflake/main, resource: account_usage, view: latest_by_account }
-    from: opportunities
-    steps:
-      - filter: amount >= 100000
-      - top_k:
-          k: 100
-          by: [ { amount: desc }, { id: asc } ]
-        as: renewal_candidates
-      - join:
-          with: account_usage
-          kind: left
-          on: [ account_id ]
-          null_key: fail
-          select:
-            opportunity_id: left.id
-            account_id: left.account_id
-            opportunity_name: left.name
-            amount: left.amount
-            close_date: left.close_date
-            active_users_30d: right.active_users_30d
-      - filter: active_users_30d < 5
-      - derive:
-          risk_status: "'At risk'"
-          slack_channel: "'C012RENEWALS'"
-          slack_message: "opportunity_name || ' is at risk: fewer than 5 active users in 30 days'"
-        as: renewal_actions
-    results:
-      response:
-        from: renewal_actions
-        fields: [ opportunity_id, opportunity_name, amount, close_date, active_users_30d ]
-        order_by: [ { amount: desc }, { opportunity_id: asc } ]
-      crm_updates:
-        from: renewal_actions
-        fields: [ opportunity_id, risk_status ]
-      slack_alerts:
-        from: renewal_actions
-        fields: [ slack_channel, slack_message, opportunity_id ]
-    effects:
-      mark_opportunities_at_risk:
-        update:
-          target: connector://salesforce/main/Opportunity
-          mapping: mapping:salesforce.opportunity-risk.v1
-          from: { result: crm_updates }
-          id: opportunity_id
-          set:
-            Renewal_Risk__c: { field: risk_status }
-  - id: notify
-    inputs:
-      alerts: { result: { stage: main, result: slack_alerts } }
-    from: alerts
-    steps: []
-    results:
-      slack_alerts:
-        from: alerts
-        fields: [ slack_channel, slack_message, opportunity_id ]
-        order_by: [ { opportunity_id: asc } ]
-    effects:
-      notify_revenue_team:
-        create:
-          target: connector://slack/main/Message
-          mapping: mapping:slack.message.v1
-          from: { result: slack_alerts }
-results:
-  response:
-    from: { stage: main, result: response }
+Syncing a few records between SaaS apps calls for an iPaaS. Moving terabytes
+calls for ETL. Pushing warehouse data back into SaaS calls for Reverse ETL.
+Running something that might fail halfway calls for a workflow engine. Yet
+underneath, they all do the same thing: read, compute, write—and keep it
+running reliably. One record and a few terabytes need different physical
+execution. But do they really need separate products?
+
+### Q2. When AI writes the workflow, why are we still wiring nodes by hand?
+
+Workflow UIs were built for people wiring nodes together in a GUI. When an
+agent writes the program, the canvas is no longer where the work happens. And
+nodes grow more complex the more you stack them. A handful is easy to follow;
+dozens of node settings, mixed with each API's authentication and paging
+quirks, make it impossible to see what the whole thing does.
+
+### Q3. Why is embedding a workflow such a big job?
+
+Want SQL in your app? Embed SQLite or DuckDB. Want your app to act on a few
+SaaS systems? Suddenly you are running a separate workflow server or SaaS—or
+hand-building authentication, state, retries, and recovery yourself.
+
+### Q4. When AI writes the workflow, who checks it?
+
+With AI, workflows and scripts take seconds to write. But no one can read
+every one of them to confirm what it will change—or, when something fails,
+what was committed and what is unknown.
+
+**Agents write fast, and people read slowly.** That gap does not close by
+reading faster. It closes by expressing work in a form machines can check,
+run, and authorize—so a person is asked only when a decision actually needs a
+person.
+
+## 4. ActQL's answer: five design choices
+
+ActQL answers the four questions above with the following design choices, in
+the same order. The fifth goes a step further.
+
+### 4.1 Any scale: the same program, whatever the data size
+
+A **Program** says only what you want done; the engine decides the
+**Plan**—where each part runs—just as a database chooses an execution plan
+for your SQL.
+
+There is one planning mechanism. A warehouse like Snowflake, a SaaS API like
+Salesforce's, and DuckDB all declare what they can compute as Capabilities,
+and the engine hands each part of the work to a place that can run it
+(**pushdown**). When an API is as flexible as Salesforce's, the engine uses
+its Capabilities to the fullest to build the best overall plan. Work no single
+source can do, like a JOIN across Salesforce and Snowflake, runs on your
+machine: in the built-in engine, or in DuckDB for larger inputs when you use
+the package that bundles it. Even mid-to-large data needs no separate
+warehouse.
+
+For the churn-risk example at the top, `actql explain` shows a plan like
+this. The join's engine is chosen during the Run, once the row counts are
+known:
+
+```text
+$ actql explain churn-risk.aql
+
+[1] READ  salesforce.accounts
+    Site: connector:salesforce
+    Pushdown: selected
+
+[2] READ  snowflake.usage_30d
+    Site: connector:snowflake
+    Pushdown: selected
+
+[3] JOIN  [1] + [2]
+    Site: host:local (fixed)
+    Engine: deferred
+      Candidates: ActQL RelA, DuckDB
+
+[4] INFER  churn-risk.v1
+    Site: model provider
+
+[5] WHERE  on risk
+    Site: host:local
+    Engine: deferred
+    Pushdown: not eligible
+      Reason: depends on INFER output
+
+[6] EFFECT UPDATE  salesforce.Account
+    Site: connector:salesforce
+    Checkpoint: conditional
 ```
 
-The author writes an ordinary join across systems. Because `top_k` proves the
-left side is at most 100 rows, the compiler can turn the Snowflake side into a
-bounded acquisition: deduplicate the keys, fetch them in batches or push the
-filter down, then join locally. Call counts, paging, and limits live in the
-Plan, not the source. If the bound cannot be proved, `check` fails before
-contacting either system.
+Wherever work moves, the program means the same thing and never slips past
+permission boundaries.
 
-## Built for programs that agents write
+With ActQL Cloud, the same program runs in a managed environment—no Host of
+your own to operate—and takes on work too large for your local machine.
 
-Agents write fast and people read slowly. That gap does not close by reading
-faster. It closes by writing the work in a form a machine can check, run,
-and authorize, so that a person is asked only when a decision actually needs
-a person. ActQL is that form.
+**The way it runs changes as the data grows. The program you write doesn't.**
 
-In ActQL, every read, every write, and every bound is a declaration. The
-compiler checks all stage templates before execution and materializes each
-stage's concrete Plan when its required inputs are available.
+### 4.2 Cross-system: a program you can read, instead of nodes
 
-What a person reads at a Checkpoint is what the Run is about to do: what will
-be read, sent, spent, or changed. For a record update, that is which records,
-how many, and from what to what. It comes from the actual Run, not from the
-agent's description of its code.
+You write data acquisition, transformation, model inference, and external
+writes as one program, top to bottom. To see what the whole thing does, you
+read the program.
 
-## Effects
+A text program is also the format agents handle best. You can review it as a
+diff, keep its history in Git, and check changes in a pull request—things
+that were hard to do with nodes on a canvas.
 
-An Effect is a declared change to an external system. ActQL supports checked
-`create`, `update`, `upsert`, `delete`, `command`, and `store`. A `command` is
-a typed operation the Connector owns, rather than a write to a record:
+Each API's authentication, paging, rate limits, and write semantics are
+handled inside its Connector. All the program sees are names like
+`salesforce.accounts` and `snowflake.usage_30d`, so API differences never
+leak through the whole program. See [Connectors](#5-connectors) for what is
+available.
 
-```yaml
-effects:
-  reply:
-    command:
-      from: {result: replies}
-      target: {field: thread_ref}
-      contract: command:gmail.reply.v1
-      input:
-        body: {literal: Thanks}
+### 4.3 Embeddable: in your app, no server needed
+
+Just open the engine as a library from TypeScript or Python; the same API
+also connects to a remote engine. The core runs on JavaScript, WebAssembly,
+and native code, so the same engine goes anywhere from a server to the edge.
+
+You don't build authentication, state, retries, or recovery yourself. Runs
+are persisted in your app's directory, so they resume where they left off
+even if the process dies. Credentials and policy belong to whatever runs the
+engine—the **Host**: your app, the CLI, or a server—never to the program.
+
+- **Product features:** run cross-system actions inside your own app, only
+  when a user triggers them. No dedicated workflow platform needed.
+- **Local development:** reproduce failures with test Connectors and local
+  state, instead of using a production SaaS as a debugger.
+- **CI:** check types and contracts on every pull request, and confirm with
+  test Connectors that results come out as expected.
+- **To production:** move the same program from your machine to a production
+  Host. Only the connections, credentials, and policies change.
+
+<a id="ai-native"></a>
+
+### 4.4 AI-native: AI writes, the engine checks, the Host decides
+
+**AI writes.** The syntax is GoogleSQL plus natural extensions to it, so
+agents already write it fluently. Supported GoogleSQL syntax works as-is.
+Whichever agent framework writes it, it goes through the same model.
+
+**The engine checks.** ActQL is not a DSL that merely looks like SQL. It is
+built on relational algebra, defines typed operations for graphs, vectors,
+and event sequences as well, and treats data acquisition and external writes
+as explicit operations. It is deliberately not Turing-complete, choosing
+guaranteed termination and ahead-of-time checkability instead. That is why
+types, required permissions, and possible changes can be checked before
+anything runs, while input-dependent conditions and actual authorization are
+confirmed at run time.
+
+**The Host decides.** Whether any write to an external system (an
+**Effect**) runs is always decided by Host policy: let it through, deny it,
+or hand it to a decision. For a decision, your code receives the preview and
+chooses, per use case, whether to approve it by rule or route it to a person
+or an approval application. It decides only whether the write goes ahead; it
+cannot change what is written. An agent can never grant itself permission.
+
+A write sent for approval stops at a **Checkpoint** (as in the
+[Get started](#checkpoint-example) example), and the reviewer approves the
+records and values that will actually be written—not the agent's
+description. **What gets written is derived from recorded results, so the
+approved writes cannot change before commit.** And a write with an unknown
+outcome is never blindly resent; it is confirmed through the Connector before
+moving on.
+
+Handing over trust step by step—a person checks everything at first, and
+stable programs move to unattended runs—works on this same model.
+
+### 4.5 Beyond tables: vector search and graphs in the same program
+
+Vector search, graph traversal, and event-sequence matching also produce
+typed rows, so they compose directly with ordinary joins, filters, `INFER`,
+and `EFFECT`. For example, find the three most similar knowledge-base
+articles for each urgent case and hand them to `INFER` to draft a reply:
+
+```sql
+SELECT c.id, c.description AS question, c.embedding AS query_vec
+FROM salesforce.cases AS c
+WHERE c.priority = 'urgent'
+|> NEAREST kb.articles USING (query_vec) K 3 AS hit
+|> AGGREGATE ARRAY_AGG(hit.body ORDER BY hit.rank) AS refs
+     GROUP BY id, question
+|> INFER `model-task:draft-reply.v1`
+     INPUT (question, refs) AS draft
 ```
 
-Effects are built from the Run's own results, not by reading the sources again,
-and review-required Effects wait until their Checkpoint is approved. The data behind the
-review view can contain production values, so production runtimes must store and
-transfer it encrypted.
+That is retrieval-augmented generation, with no separate search stack or glue
+code.
 
-Each logical item has a stable identity for recovery. Dispatch uses the recorded
-Preview and idempotency key, backed by a Connector's admitted idempotency or
-reconciliation guarantee. A durable ledger alone cannot make an ambiguous write
-safe to repeat. An intentional resend uses a new logical request identity.
+Just as tables follow GoogleSQL, graph traversal adopts graph-pattern syntax
+informed by the ISO standards GQL and SQL/PGQ, so relationship
+graphs—customers, accounts, products—and business ontologies modeled as
+graphs can be queried alongside ordinary SQL. (Under the hood, relations,
+graphs, vectors, and event sequences are handled as one system through four
+algebras: RelA, SGA, VecA, and TEA.)
 
-## Review a change
+## 5. Connectors
 
-Approval is available through the [public Client Checkpoint API](packages/sdk/README.md#historical-held-requests-and-run-checkpoints)
-on an installed Host with the required Effect and review capabilities. Listing
-Checkpoint metadata, reading the exact review body and answering it are separate
-current permissions. Use `checkpoints`, `reviewCheckpoint` and
-`resolveCheckpoints` with an application-managed signer trusted by that Host.
-A stored answer does not itself certify resumed execution; follow the same
-original Run. An unknown Effect is not permission to submit the work again.
+Every Connector below both reads and writes.
 
-The distributed Native CLI currently provides `aql`/`start`, `wait`, and bounded
-`read` through Remote transport. It has no Remote `run` or `approve` command.
-The [CLI guide](docs/cli.md) gives the actual required arguments and saved
-Submission/Run/read-attempt identities. A fixed Darwin arm64 Native Local
-cohort also passed external installation, explicit adoption, source-free SQL
-`check`/`explain`/`run`, saved `status` and original Result delivery/release.
-It needs no separate Host, token, mTLS, internal configuration or library path.
-See the guide for the exact private-integration Source and macOS 26.0 boundary;
-this does not claim latest-main, public npm availability or complete Local
-Source/Effect/approval/cancel/Debug acceptance. The
-[target CLI experience](docs/design/cli-target-experience.md) retains the
-broader adopted workflow without advertising unconnected commands.
+| | |
+| --- | --- |
+| Databases & warehouses | Snowflake · BigQuery · DuckDB |
+| SaaS | Salesforce · HubSpot · Slack · Notion · kintone · GitHub · Tableau |
+| Google | Google Sheets · Google Drive · Gmail · Google Calendar |
+| Storage & files | Amazon S3 · Google Cloud Storage · local files |
 
-## Beyond tables
+Each Connector's sources, Effects, operations and setup are on its page under
+[Connectors](docs/connectors/README.md). Need another system? With the Skills
+that reference the [Building a Connector](docs/connectors/authoring.md)
+guide, a coding agent can build the Connector for you.
 
-Event sequences, graph traversal, vector search, and model tasks return
-relations, so `filter`, `join`, and Effects work on their results like any other
-step. Examples:
+## 6. How ActQL relates to existing tools
 
-**Event sequences.** Detect an alert followed by a remediation, per incident,
-within two hours:
+ActQL's relationship to existing tools falls into three kinds: tools to
+choose between, tools to combine with, and tools to hand work to.
 
-```yaml
-  - sequence:
-      by: [incident_id]
-      time: occurred_at
-      id: event_id
-      pattern:
-        - as: opened
-          where: {eq: [{field: kind}, {literal: alert_opened}]}
-        - as: remediation
-          where: {eq: [{field: kind}, {literal: remediation_started}]}
-      within: 2h
-      contiguity: subsequence
-      overlap: disallow
-    as: detected_sequences
-```
+### Choose between
 
-**Graph.** Build definition-keyed nodes and edges, then select edge
-properties. Distinct edge keys preserve parallel edges with the same endpoints:
+| Tool | When it fits | When ActQL fits |
+| --- | --- | --- |
+| Custom scripts (Python, TypeScript) | Quickly writing a one-off, small integration | Running it over time, with retries, recovery, approval, and permissions handled |
+| iPaaS (n8n, Zapier) | Quickly connecting a few SaaS apps in a GUI | Keeping the whole picture clear as integrations grow, letting agents write it, embedding it in your own app, running writes with approval |
+| Reverse ETL (Census, Hightouch) | Regularly syncing modeled warehouse data to SaaS in a fixed shape | Joining with SaaS data or deciding with an LLM before writing back with approval |
 
-```yaml
-  - graph:
-      version: actql-graph-constructor/0.1
-      nodes:
-        - name: N
-          from: nodes
-          key: [tenant, id]
-          labels:
-            - {name: Node, properties: {mode: all_columns}}
-            - {name: Person, properties: {mode: no_properties}}
-      edges:
-        - name: E
-          from: edges
-          key: [tenant, key]
-          source: {definition: N, key: [tenant, src]}
-          target: {definition: N, key: [tenant, dst]}
-          labels:
-            - {name: R, properties: {mode: all_columns}}
-            - {name: Link, properties: {mode: no_properties}}
-    as: g
+### Combine with
 
-  - match_edges:
-      definition: E
-      label: R
-      where: key > 0
-      fields: [key]
-    as: matched
-```
+| Tool | How they work together |
+| --- | --- |
+| Workflow engines (Temporal) | Not a replacement for Temporal. Temporal manages long-running jobs that last days; ActQL handles the cross-system reads and writes as one step inside them |
+| dbt | Transformations inside the warehouse stay in dbt. Call ActQL from dbt to join the results with SaaS data, or to decide with an LLM and write back |
+| Agent frameworks (LangGraph, Mastra) | Build the agent itself with the framework; hand the checks, approvals, and execution of the work it writes to ActQL. ActQL programs can be called as tools from an agent |
 
-The [complete Program](scripts/fixtures/graph-parallel.program.json)
-declares the `nodes` and `edges` Relations. Submit it with the public Client
-above using `format: 'json'`; its `answer` Result contains `{key: 10}` and
-`{key: 11}`. The retired `graph` constructor is refused. Other Graph consumers
-without a current keyed implementation are also refused before Run acceptance;
-see the [current Graph contract](docs/design/graph-contract.md#definition-keyed-graph-profile).
+### Hand work to
 
-**Vector search.** Rank active runbooks against the original alert embedding:
-
-```yaml
-  - from: active_runbooks
-    nearest:
-      queries: incident_queries
-      query_id: alert_event_id
-      query_vector: embedding
-      candidate_id: runbook_id
-      candidate_vector: embedding
-      metric: cosine
-      k: 3
-    as: runbook_rankings
-```
-
-All three return relations, so they join together in one program: which
-incidents went from alert to remediation, what those services touch downstream,
-and which runbook fits the original alert.
-
-**LLM structuring.** Turn ticket text into typed rows under a versioned
-model-task contract:
-
-```yaml
-  - infer:
-      contract: model-task:ticket-triage.v1
-      input:
-        subject: {field: subject}
-        body: {field: body}
-    as: ticket_triage
-```
-
-The contract fixes the prompt, model selector, input and output schemas, and
-data-handling policy. Its result is a separate relation keyed by the input
-identity, so source fields return only through an explicit join.
-
-## One program, different execution plans
-
-ActQL describes the work without fixing where each step must run. The program
-states its meaning and each Connector declares what it can compute, so a runtime
-can tell which parts may be pushed down to the source: a filter or an aggregation
-can run where the data lives instead of after it has been copied into the
-application; what the source cannot compute runs in the runtime itself. You do
-not rewrite the integration to move work closer to the data.
-
-Which plan runs is the runtime's decision. Each runtime owns execution,
-authentication, and provider scheduling. Whatever plan it picks must preserve
-the program's semantics and cross every permission boundary the program would
-have crossed. Optimization can move the work; it cannot skip a decision.
-Checking and pushdown come from the same fact: the program says what it means,
-so it can be inspected before it runs and moved without changing what it does.
-
-The same runtime is designed to ship as the `actql` CLI and as TypeScript and
-Python bindings, so a program runs from the command line or inside an
-application. The core targets WebAssembly, JavaScript, and native code, so the
-design also reaches browser, edge, and managed runtimes.
+| Tool | How they work together |
+| --- | --- |
+| Data warehouses (Snowflake) | Not replaced—large-scale computation is pushed down to the warehouse |
+| Embedded databases (DuckDB, SQLite) | The same embedding model, extended to cross-system work. DuckDB is also a pushdown target for work no single source can do |
 
 ## Documentation
 
-- [Language specification](docs/spec/language.md) — normative syntax and semantics
-- [Agent authoring guide](docs/authoring.md) — canonical source patterns
-- [CLI reference](docs/cli.md) — commands, durable Runs, and Checkpoints
-- [Development](docs/development.md) — setup, document checks, and versioning
-- [Physical cost helper](docs/physical-cost-usage.md) — source-checkout MoonBit
-  estimate composition and selection; not a Connector execution or Plan API
-- [Local Compute attempts](docs/local-compute-usage.md) — source-checkout
-  `execution_relation` fixed-input computation using completed producer inputs;
-  the separate `execution_query` adapter binds shared-query residual execution
-  without claiming acquisition completion
-- [Query strategy experiment](docs/query-planning-usage.md) — pure two-candidate
-  comparison, guarded mock acquisition, process-local evidence/capture and
-  completed-input consumer binding; not real-provider or Program/Run admission
-- [Real DuckDB Host](adapters/connectors/duckdb/node/README.md) — source-checkout Node/Neo
-  acquisition with native SQL or Local residual, process-local capture, and
-  isolated fixed-input Compute; limited filter/select profile, not durable
-  Program/Run execution or remote replay
-- [Checked serial strategy example](adapters/connectors/duckdb/node/examples/README.md) —
-  user-supplied documents and a trusted local DB through shared capture,
-  Local/DuckDB placement, unstarted-task revision and bounded explanation;
-  internal task completion, not Program success publication
-- [Workers boundary verification](adapters/workers/README.md) — Local-only
-  composition, invocation-scoped Host and actual local workerd tests; not a
-  deployed service, Workers Wasm or cross-request persistence guarantee
+- [Install](docs/getting-started/install.md) and
+  [Quickstart](docs/getting-started/quickstart.md)
+- [Concepts](docs/concepts/overview.md): the ideas behind Programs, Runs,
+  Effects, and Hosts
+- [Writing Programs](docs/authoring.md) and the
+  [Syntax reference](docs/reference/syntax.md)
+- [CLI reference](docs/cli.md)
+- [Connectors](docs/connectors/README.md)
+- [Implementation status](docs/reference/status.md): what runs today, and
+  [Runtime limits](docs/reference/limits.md)
+- [Specification](docs/spec/README.md): the normative definition of ActQL 0.1
+- [Development](docs/contributing/README.md): the repository, its rules and
+  how it is implemented; [building from source](docs/development.md)
+
+The same documentation is published at [actql.com/docs](https://actql.com/docs).
 
 ## Status
 
-ActQL is in 0.1 stabilization. The specification routes protected execution
-through execution-account configuration (`allow`, `deny`, `delegate`) and
-Host-defined delegated decisions, as described in
-[docs/design/host-authorization.md](docs/design/host-authorization.md);
-Connector contracts no longer declare approval minimums. The CLI and Host
-implementation of this routing is not yet complete. Execution is governed by
-the currently pinned specifications and contracts.
+ActQL is in v0.1 stabilization (`v0.0-alpha`). The documentation describes the
+0.1 language; [Implementation status](docs/reference/status.md) records
+which parts run in each environment today.
 
 ## Contributing
 
-Issues and design proposals are welcome. During 0.1 stabilization, please open
-an issue before implementation so language and compatibility impact can be
-agreed before code is written.
+Issues are open: bug reports, passages of the specification that were hard to
+read, and facts about a Connector's system are the most useful contributions
+right now. Pull requests are not accepted during v0.1, while the maintainers
+concentrate on stabilising the Core; [Development](docs/contributing/README.md)
+has the details. The ecosystem around ActQL (Connectors, SDKs, templates,
+tools) is where contributions are welcome broadly.
 
 ## License
 

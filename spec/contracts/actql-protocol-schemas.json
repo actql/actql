@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:6a334eaf196d554671752bff02d2195c51bc76f0448aec51e63c2c5fd170a7c2",
+  "registry_cid": "sha256:7477b1ae9f61e36d7bfe8918aa93c7c0e1702a271c4e28a30f74d560120e3c87",
   "schema_cids": {
     "model_task": "sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -13,7 +13,7 @@
     "command_contract": "sha256:f46da6b7252b64412366acd65068b36367ef02bf563a7fd28e4788f13e9018bb",
     "connector_catalog": "sha256:b62f09f0356b4841b28f8b06dc37585967c3f7bbba311e65467c0885b50e25f7",
     "lock": "sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4",
-    "effect_outcome": "sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f",
+    "effect_outcome": "sha256:9b2a918f994cd00147d4acd038639534dd767ff7f4e119b5a5fb43b9463592b1",
     "author_value_contract": "sha256:7deb73a773cf91e861d73dfc7b7b5331d77ee19605934e0198eb608eac69144d",
     "canonical_value_contract": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947",
     "content_ref": "sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d",
@@ -8310,7 +8310,13 @@
             "state": {
               "const": "applied"
             },
-            "result": {}
+            "result": {},
+            "action": {
+              "enum": [
+                "created",
+                "updated"
+              ]
+            }
           }
         },
         {
@@ -13666,7 +13672,7 @@
       ]
     }
   },
-  "artifact_registry_cid": "sha256:91eae8fde531981454099a7cd60fafd59818c38af947791d3c20566adb4ff8f4",
+  "artifact_registry_cid": "sha256:b929f6488ab687598a041e55f483b2efb157a20f1d37994607d7996efda12186",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -13676,16 +13682,16 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:efe5ffe7024c7504fb51f3544dc17d3fa1f577f503d062cec9841ab3058c2dab",
+    "executable_plan": "sha256:a2d94242347e32342253a8c0e4a3a3be05d28540afa7228af4712a6603cd8d9e",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:821609c0cc04ef0ca1b0760a1864673e4fa70a3709af5d33e37e5177477d2f3a",
+    "effect_preview": "sha256:83add51a9d2c3aa700d512b226f2931e0075304afab4a08e9b32c4da3a31c772",
     "review_projection": "sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
     "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
-    "effect_reconciliation_receipt": "sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2",
+    "effect_reconciliation_receipt": "sha256:8a80246cc33e6c8b3997085e15a31deb8b975c5f060bfebd5fb250e40a22f57c",
     "run_receipt": "sha256:62f9011e9e702f3d620f70513eac6260a21b980687b7574c1bdce55984b1aba8",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
     "execution_context": "sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2",
@@ -13700,15 +13706,15 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:4439bfe5ec447de3ddb7563b65eb19260405392f58d8330e413808f1f82bffb9",
+    "plan_document": "sha256:3350ff1f48331314f935b5660eb159560f15fc741bb1cdee7fcf42967244639a",
     "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
-    "run_state": "sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30",
+    "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
     "source_input_logical": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea",
-    "effect_row_outcome_receipt": "sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27",
+    "effect_row_outcome_receipt": "sha256:e239b0d9b9229efdc67095bbea81ff8bccc0873a6bc277de7857c7955d8719fd",
     "effect_source_artifact": "sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc",
     "model_effective_inputs": "sha256:b44b64433d41470d143efa8deac6692201804a5714380694a84d66759819a727",
     "model_input_artifact": "sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c",
@@ -13721,7 +13727,7 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a",
+    "check_outcome": "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce",
     "check_reason": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3",
@@ -13740,7 +13746,8 @@
     "model_original_resource_state": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df",
     "model_journal_entry": "sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7",
     "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b",
-    "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a"
+    "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a",
+    "explanation": "sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -37613,7 +37620,24 @@
                         ],
                         "properties": {
                           "watermark_ms": {
-                            "type": "number"
+                            "oneOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "$param"
+                                ],
+                                "properties": {
+                                  "$param": {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                  }
+                                }
+                              }
+                            ]
                           },
                           "policy": {
                             "enum": [
@@ -38148,13 +38172,10 @@
                         "type": "object",
                         "additionalProperties": false,
                         "required": [
-                          "by",
                           "id",
                           "time",
                           "pattern",
-                          "within",
-                          "overlap",
-                          "contiguity"
+                          "within"
                         ],
                         "properties": {
                           "by": {
@@ -38162,7 +38183,8 @@
                             "items": {
                               "type": "string",
                               "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
-                            }
+                            },
+                            "default": []
                           },
                           "id": {
                             "type": "string",
@@ -38223,13 +38245,15 @@
                             "enum": [
                               "allow",
                               "disallow"
-                            ]
+                            ],
+                            "default": "disallow"
                           },
                           "contiguity": {
                             "enum": [
                               "adjacent",
                               "subsequence"
-                            ]
+                            ],
+                            "default": "adjacent"
                           },
                           "max_matches_per_key": {
                             "oneOf": [
@@ -42404,8 +42428,7 @@
               "preview_strength": {
                 "enum": [
                   "full_diff",
-                  "targeted",
-                  "blind"
+                  "targeted"
                 ]
               },
               "source_binding_cid": {
@@ -43629,7 +43652,13 @@
                 "state": {
                   "const": "applied"
                 },
-                "result": {}
+                "result": {},
+                "action": {
+                  "enum": [
+                    "created",
+                    "updated"
+                  ]
+                }
               }
             },
             {
@@ -68916,7 +68945,24 @@
                             ],
                             "properties": {
                               "watermark_ms": {
-                                "type": "number"
+                                "oneOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "$param"
+                                    ],
+                                    "properties": {
+                                      "$param": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                      }
+                                    }
+                                  }
+                                ]
                               },
                               "policy": {
                                 "enum": [
@@ -69451,13 +69497,10 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
-                              "by",
                               "id",
                               "time",
                               "pattern",
-                              "within",
-                              "overlap",
-                              "contiguity"
+                              "within"
                             ],
                             "properties": {
                               "by": {
@@ -69465,7 +69508,8 @@
                                 "items": {
                                   "type": "string",
                                   "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
-                                }
+                                },
+                                "default": []
                               },
                               "id": {
                                 "type": "string",
@@ -69526,13 +69570,15 @@
                                 "enum": [
                                   "allow",
                                   "disallow"
-                                ]
+                                ],
+                                "default": "disallow"
                               },
                               "contiguity": {
                                 "enum": [
                                   "adjacent",
                                   "subsequence"
-                                ]
+                                ],
+                                "default": "adjacent"
                               },
                               "max_matches_per_key": {
                                 "oneOf": [
@@ -78766,7 +78812,8 @@
         "updated_at",
         "next_action",
         "result_available",
-        "result_availability"
+        "result_availability",
+        "revision"
       ],
       "properties": {
         "version": {
@@ -79095,6 +79142,11 @@
               ]
             }
           }
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "allOf": [
@@ -81854,8 +81906,15 @@
                 "state": {
                   "const": "applied"
                 },
-                "result": {}
-              }
+                "result": {},
+                "action": {
+                  "enum": [
+                    "created",
+                    "updated"
+                  ]
+                }
+              },
+              "$comment": "action is required exactly for an applied upsert; admission checks the original dispatch operation. It is included in the typed outcome and receipt identities."
             },
             {
               "type": "object",
@@ -82811,6 +82870,46 @@
                   "if": {
                     "properties": {
                       "verdict": {
+                        "const": "invalid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "runnable": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "undetermined"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "runnable": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
                         "const": "verified"
                       }
                     }
@@ -82955,10 +83054,77 @@
                 "inputs",
                 "reasons",
                 "requirements",
+                "runnable",
                 "scope",
                 "verdict"
               ],
               "properties": {
+                "runnable": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "verdict",
+                    "reasons"
+                  ],
+                  "properties": {
+                    "verdict": {
+                      "enum": [
+                        "yes",
+                        "no"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "code"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "verdict": {
+                            "const": "yes"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "reasons": {
+                            "maxItems": 0
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "reasons": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
                 "context_ref": {
                   "type": "string",
                   "minLength": 1,
@@ -86991,6 +87157,46 @@
                   "if": {
                     "properties": {
                       "verdict": {
+                        "const": "invalid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "runnable": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "undetermined"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "runnable": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
                         "const": "verified"
                       }
                     }
@@ -87135,10 +87341,77 @@
                 "inputs",
                 "reasons",
                 "requirements",
+                "runnable",
                 "scope",
                 "verdict"
               ],
               "properties": {
+                "runnable": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "verdict",
+                    "reasons"
+                  ],
+                  "properties": {
+                    "verdict": {
+                      "enum": [
+                        "yes",
+                        "no"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "code"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "verdict": {
+                            "const": "yes"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "reasons": {
+                            "maxItems": 0
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "reasons": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
                 "context_ref": {
                   "type": "string",
                   "minLength": 1,
@@ -97527,6 +97800,873 @@
           "type": "string"
         }
       }
+    },
+    "explanation": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-explanation-0.1.json",
+      "title": "actql-explanation-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "mode",
+        "program_definition_cid",
+        "compiled_plan_cid",
+        "steps",
+        "placements",
+        "pushdown",
+        "quantities",
+        "transfers",
+        "effects",
+        "inference",
+        "search",
+        "strategy_changes",
+        "information"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-explanation/0.1"
+        },
+        "mode": {
+          "enum": [
+            "static",
+            "run"
+          ]
+        },
+        "program_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "compiled_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_map_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_identity_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/logical_step"
+          }
+        },
+        "placements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/physical_placement"
+          },
+          "$comment": "One entry per step and alternative: the chosen or deferred placement plus candidate and excluded alternatives for the same step_id."
+        },
+        "pushdown": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pushdown"
+          }
+        },
+        "quantities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step_id",
+              "quantity"
+            ],
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "quantity": {
+                "$ref": "#/$defs/quantity"
+              }
+            }
+          }
+        },
+        "transfers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "from_site",
+              "to_site",
+              "state",
+              "quantities"
+            ],
+            "properties": {
+              "from_site": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "to_site": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "state": {
+                "enum": [
+                  "fixed",
+                  "deferred",
+                  "proposed",
+                  "candidate",
+                  "excluded",
+                  "realized"
+                ]
+              },
+              "quantities": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/quantity"
+                }
+              }
+            }
+          }
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/effect"
+          }
+        },
+        "inference": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step_id",
+              "task_ref",
+              "input_columns",
+              "output_contract_cid",
+              "calls"
+            ],
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "task_ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "input_columns": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "output_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "calls": {
+                "$ref": "#/$defs/quantity"
+              }
+            }
+          }
+        },
+        "search": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "complete",
+                "bounded_frontier",
+                "unavailable"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            }
+          }
+        },
+        "strategy_changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step_id",
+              "before_evidence_cid",
+              "after_evidence_cid",
+              "reason",
+              "changed_at"
+            ],
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "before_evidence_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "after_evidence_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "reason": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "changed_at": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "$comment": "UTC milliseconds when the Host revised the strategy."
+              }
+            }
+          }
+        },
+        "information": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "section",
+              "state"
+            ],
+            "properties": {
+              "section": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "state": {
+                "enum": [
+                  "available",
+                  "redacted",
+                  "unavailable"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              }
+            }
+          }
+        }
+      },
+      "$defs": {
+        "placement_choice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "fixed",
+                "deferred",
+                "proposed",
+                "candidate",
+                "excluded",
+                "realized"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "fixed",
+                      "proposed",
+                      "candidate",
+                      "realized"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          ]
+        },
+        "quantity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "kind",
+            "state",
+            "unit"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            "kind": {
+              "enum": [
+                "estimate",
+                "bound",
+                "actual"
+              ]
+            },
+            "state": {
+              "enum": [
+                "known",
+                "unknown",
+                "unavailable"
+              ]
+            },
+            "value": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            "provenance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "owner_cid",
+                "scope_cid",
+                "observed_at"
+              ],
+              "properties": {
+                "owner_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "scope_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "observed_at": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "known"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "value",
+                  "provenance"
+                ]
+              },
+              "else": {
+                "properties": {
+                  "value": false,
+                  "provenance": false
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          ]
+        },
+        "logical_step": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "step_id",
+            "operation",
+            "inputs",
+            "output_ports"
+          ],
+          "properties": {
+            "step_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "operation": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "inputs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "step_id",
+                  "port"
+                ],
+                "properties": {
+                  "step_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "port": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                }
+              }
+            },
+            "output_ports": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "physical_placement": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "step_id",
+            "site",
+            "reason",
+            "required_capabilities"
+          ],
+          "properties": {
+            "step_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "site": {
+              "$ref": "#/$defs/placement_choice"
+            },
+            "engine": {
+              "$ref": "#/$defs/placement_choice"
+            },
+            "interface": {
+              "$ref": "#/$defs/placement_choice"
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            "required_capabilities": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "engine"
+              ],
+              "not": {
+                "required": [
+                  "interface"
+                ]
+              }
+            },
+            {
+              "required": [
+                "interface"
+              ],
+              "not": {
+                "required": [
+                  "engine"
+                ]
+              }
+            }
+          ]
+        },
+        "pushdown": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "step_id",
+            "condition_id",
+            "expression_state",
+            "dependencies",
+            "eligible_sites",
+            "decision",
+            "reason",
+            "residual_condition_ids"
+          ],
+          "properties": {
+            "step_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "condition_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "expression": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "expression_state": {
+              "enum": [
+                "available",
+                "redacted",
+                "unavailable"
+              ]
+            },
+            "dependencies": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "eligible_sites": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "decision": {
+              "enum": [
+                "selected",
+                "host"
+              ],
+              "$comment": "selected: built into the Source request; host: kept on the Host. Not eligible is host with no eligible_sites and a reason."
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            "residual_condition_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "expression_state": {
+                    "const": "available"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "expression"
+                ]
+              },
+              "else": {
+                "properties": {
+                  "expression": false
+                }
+              }
+            }
+          ]
+        },
+        "effect": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "step_id",
+            "target",
+            "contract_cid",
+            "checkpoint",
+            "preview_state",
+            "outcomes",
+            "evidence_cids",
+            "policy"
+          ],
+          "properties": {
+            "step_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "target": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "checkpoint": {
+              "enum": [
+                "none",
+                "conditional",
+                "required"
+              ]
+            },
+            "preview_state": {
+              "enum": [
+                "unavailable",
+                "retained",
+                "redacted"
+              ]
+            },
+            "preview_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "outcomes": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "applied",
+                  "accepted",
+                  "failed",
+                  "unknown"
+                ]
+              }
+            },
+            "evidence_cids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            },
+            "policy": {
+              "enum": [
+                "allow",
+                "review",
+                "deny",
+                "runtime"
+              ],
+              "$comment": "A policy decision already made, or runtime when policy is evaluated at run time."
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "preview_state": {
+                    "const": "retained"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "preview_cid"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "static"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "run_identity_cid": false,
+              "strategy_changes": {
+                "maxItems": 0
+              },
+              "placements": {
+                "items": {
+                  "properties": {
+                    "site": {
+                      "properties": {
+                        "state": {
+                          "enum": [
+                            "fixed",
+                            "deferred",
+                            "proposed",
+                            "candidate",
+                            "excluded"
+                          ]
+                        }
+                      }
+                    },
+                    "engine": {
+                      "properties": {
+                        "state": {
+                          "enum": [
+                            "fixed",
+                            "deferred",
+                            "proposed",
+                            "candidate",
+                            "excluded"
+                          ]
+                        }
+                      }
+                    },
+                    "interface": {
+                      "properties": {
+                        "state": {
+                          "enum": [
+                            "fixed",
+                            "deferred",
+                            "proposed",
+                            "candidate",
+                            "excluded"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "transfers": {
+                "items": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "fixed",
+                        "deferred",
+                        "proposed",
+                        "candidate",
+                        "excluded"
+                      ]
+                    },
+                    "quantities": {
+                      "items": {
+                        "not": {
+                          "properties": {
+                            "kind": {
+                              "const": "actual"
+                            },
+                            "state": {
+                              "const": "known"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "state"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "quantities": {
+                "items": {
+                  "properties": {
+                    "quantity": {
+                      "not": {
+                        "properties": {
+                          "kind": {
+                            "const": "actual"
+                          },
+                          "state": {
+                            "const": "known"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "state"
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "effects": {
+                "items": {
+                  "properties": {
+                    "preview_state": {
+                      "const": "unavailable"
+                    },
+                    "preview_cid": false,
+                    "outcomes": {
+                      "maxItems": 0
+                    },
+                    "evidence_cids": {
+                      "maxItems": 0
+                    }
+                  }
+                }
+              },
+              "inference": {
+                "items": {
+                  "properties": {
+                    "calls": {
+                      "not": {
+                        "properties": {
+                          "kind": {
+                            "const": "actual"
+                          },
+                          "state": {
+                            "const": "known"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "state"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "run_identity_cid"
+            ]
+          }
+        }
+      ]
     }
   }
 }

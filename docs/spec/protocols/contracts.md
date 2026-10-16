@@ -1089,6 +1089,33 @@ region, training/retention, scope and media limits; known classification is not
 permission. Reference Local mail capture proposes confidential only as an
 explicit connection preset, not a language-wide constant or live-provider claim.
 
+<a id="file-sources"></a>
+
+### File listing and versioned Content Sources
+
+<!-- requirement-block: file-sources.listing-resolution-and-metadata -->
+A published file-list Source MUST identify the selected connection and expose
+`resource`, `version`, `path`, `media_type` and `size` as typed metadata,
+with its presence and version guarantees explicit in the SourceView contract.
+The bare-connection LIST_FILES form is admitted only with exactly one such
+Source. Selection, pagination and matching use the existing SourceView and
+file-list contracts; a LIMIT or page boundary is not a complete-listing witness.
+No metadata observation implicitly grants content-read authority.
+
+<!-- requirement-block: file-sources.contents-versioned-correlation -->
+The `connection.contents` Source MUST declare `acquisition.kind: fetch`,
+`observation.kind: capture`, correlation on the ordered key `(resource, version)`
+and exactly one complete response row per requested key, with the columns
+`resource`, `version`, `content` (a typed `content_ref`) and the captured
+content's `media_type`.
+The declared Resource and version identify the exact requested bytes; a
+missing or nullable version cannot enter the strict version-pinned path. A
+version mismatch, inaccessible object or incomplete fetch fails acquisition
+instead of becoming a zero-row join result. Provider generation and metadata
+version constraints remain distinct and bind the emitted metadata to the
+captured bytes. Recovery uses the same captured Content and version without
+implicitly starting a new fetch.
+
 <a id="command-contracts"></a>
 
 #### Command contracts
@@ -1107,7 +1134,9 @@ reversibility, atomicity, outcome, reconciliation, cancellation, contract_cid
 The complete resolved contract, not only its authored reference, is bound as
 `resolved_command_contract_cid`. Permissions MUST be derived from this
 contract. They MUST NOT be authored or broadened by the Program.
-`preview: none|schema_only` produces a blind, non-applicable preview. A command
+`preview: none|schema_only` does not establish an applicable Preview; exact
+target scope and an admitted `full_diff` or `targeted` Preview are needed
+before approval or application. A command
 URL, HTTP method, raw provider payload, or command not owned by the selected
 Connector is invalid.
 
@@ -1390,7 +1419,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:2f79f1e654a95a135df38cda370143af371d712d585edde0f951a8d792b64fbb -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:7a44c89ae598d9d40115046a4864854446625473c88ea4b5d13f7727cc88b54a -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
 
 <a id="parameter-value-projection"></a>
@@ -1910,6 +1939,77 @@ schema-valid manifest or matching CID alone does not prove that every required
 fact was issued, that each witness is valid, or that each limit has one exact
 executable consumer. Those remain Plan-admission obligations.
 
+<a id="explanation"></a>
+
+### Public execution explanations
+
+<!-- requirement-block: explanation.projection-and-no-io -->
+`actql-explanation/0.1` MUST be a read-only projection of the existing checked
+logical Plan, physical strategy and, in Run mode, original retained execution
+evidence, using their original identities without creating a new Plan owner.
+Static explanation creates no Run, performs no external Provider query or
+business-data read, calls no model and sends no Effect. It may use already
+supplied Catalog, Capability, contract and scoped statistics. Pre-acquisition
+information remains a static ceiling or Catalog estimate, not measured rows
+or a selected JOIN engine.
+
+<!-- requirement-block: explanation.logical-physical-realized -->
+An explanation MUST distinguish logical operations and ports, physical
+candidates and realized execution, with Site and Engine or API Interface as
+independent attributes and placement states `fixed`, `deferred`, `proposed`,
+`candidate`, `excluded` or `realized`.
+A Local-only profile may fix the Site while leaving the Engine deferred.
+Only actually installed and admitted candidates are listed. An unselected
+candidate is not realized; bounded candidate exploration does not establish
+global optimality. One logical step may carry several placement entries, one
+per alternative: the chosen or deferred placement plus any `candidate` and
+`excluded` alternatives, each excluded one with its reason. A strategy change
+for unexecuted work preserves checked meaning, input/target obligations,
+permissions, bounds and approval scope, and records the time of the change
+with its reason and the evidence before and after it.
+
+<!-- requirement-block: explanation.pushdown-and-transfer -->
+Pushdown explanation MUST retain per-condition dependency, eligibility,
+selection reason and necessary residual evaluation, distinguishing a declared
+Capability from a condition actually built into the selected Source request.
+Each condition lists the Sites eligible to evaluate it and a decision of
+`selected` (built into the Source request) or `host` (kept on the Host) with
+its reason; a condition with no eligible Site is reported as not eligible.
+INFER-dependent conditions remain after INFER and are not pushable to its
+preceding Sources. NULL, numeric, comparison, failure and acquisition-scope
+semantics constrain eligibility. JOIN candidates also require authorized
+availability of both inputs and admissible transfers; having one input at a
+Site does not prove JOIN feasibility there.
+
+<!-- requirement-block: explanation.quantities-and-approval -->
+The projection MUST distinguish estimates, enforced bounds and actual values,
+with explicit unknown or unavailable states and retained provenance for known
+quantities, never substituting zero for missing rows, bytes, time or cost.
+Estimates retain their basis, observation time and applicable scope; costs
+include the selected strategy's acquisition, computation, transfer, conversion,
+holding and completion without double-counting. Effect explanations expose
+`Policy` (a decision already made: `allow`, `review` or `deny`; or `runtime`
+when policy is evaluated at run time) and `Checkpoint: none|conditional|required`
+separately from placement and do not invent a Preview or an approval. INFER exposes its task, admitted inputs/output
+contract and call bounds without disclosing protected prompts or values.
+
+<!-- requirement-block: explanation.run-evidence-and-disclosure -->
+Run-mode explanation MUST use retained original Plan, placement, pushdown,
+strategy-change and outcome evidence under current viewing authorization,
+without recompiling against current settings or resuming/replaying work.
+Missing evidence is unavailable, not an inferred historical fact. Only the
+Run's retained evidence supplies actual counts, measured quantities, original
+Checkpoints, applied/accepted/failed/unknown outcomes and their references.
+Human-readable vertical blocks, verbose details, CLI and SDK JSON derive from
+this same projection and disclosure policy, never separate planning logic.
+
+The closed machine schema is pinned below. All identifiers and evidence
+references retain their existing Owner domains; this schema grants no execution
+authority. CLI `--verbose`, `--json`, `--run`, output formatting and redaction
+options are informative bindings of this projection.
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/explanation sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c -->
+
 <a id="diagnostic-documents"></a>
 
 ### Diagnostic documents
@@ -2097,6 +2197,20 @@ An analysis budget or an implementation limit, including a budget of the declara
 `context_ref` MUST distinguish String values that differ in any scalar, so composed and decomposed spellings and CR, LF and CRLF are different bindings; only object member names are canonicalized.
 `context_ref` MUST NOT be a public hash of supplied values or grant any access.
 
+<!-- requirement-block: public-check.runnable-is-not-validity-or-authority -->
+Every completed public check report MUST carry `runnable: {verdict, reasons}`,
+where verdict is `yes` or `no`, independently of language validity.
+A yes verdict has no blocking reasons; no carries at least one public check
+Reason code in a closed `{code}` record (for example `parameter_value_required`
+for an unbound Parameter or `implementation_limit` for a Capability this Host
+lacks); no new private facts are attached here. Invalid and undetermined
+reports are no, and verified reports can still be no because Parameters,
+ModelTask bindings, Host Capabilities or admitted limits are unavailable;
+an undetermined check names the limit that stopped it as the reason. The verdict
+uses the same check environment and disclosure rules and does not grant run,
+read, model, Effect or recovery authority. Partial failed reports never confer
+runnable authority; unavailable outcomes have no invented report.
+
 ### Ranked candidate acquisition contract
 
 A SourceView admitted for `search_candidates` publishes a closed ranked-search
@@ -2228,14 +2342,15 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:efe5ffe7024c7504fb51f3544dc17d3fa1f577f503d062cec9841ab3058c2dab
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:a2d94242347e32342253a8c0e4a3a3be05d28540afa7228af4712a6603cd8d9e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:4439bfe5ec447de3ddb7563b65eb19260405392f58d8330e413808f1f82bffb9
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:3350ff1f48331314f935b5660eb159560f15fc741bb1cdee7fcf42967244639a
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/explanation sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:b518bf2533adce50cc86448a1cc63246c2cfc01f34fe1da5b8916152a4aa851f

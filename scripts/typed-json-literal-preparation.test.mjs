@@ -27,7 +27,7 @@ test('typed JSON roots and ordinary README use the same preparation and compilat
     machineCid(JSON.parse(readFileSync('spec/contracts/actql-numeric-reduction.json'))),
     machineCid(JSON.parse(readFileSync('spec/dependencies/actql-graph-laws.json'))));
   assert.ok(environment);
-  const cases = [{text: readmeQuickstart(readFileSync('README.md', 'utf8')).program,
+  const cases = [{text: readmeQuickstart(readFileSync('docs/development.md', 'utf8')).program,
     format: 'yaml'}, ...typedJsonLiteralSuccesses];
   for (const input of cases) {
     const outcome = moon.clientProgramPrepareEffectFreeWithParameters(

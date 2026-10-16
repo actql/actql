@@ -6994,7 +6994,8 @@ const schemas = {
       "updated_at",
       "next_action",
       "result_available",
-      "result_availability"
+      "result_availability",
+      "revision"
     ],
     "additionalProperties": false,
     "properties": {
@@ -7324,6 +7325,11 @@ const schemas = {
             ]
           }
         }
+      },
+      "revision": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
       }
     },
     "allOf": [
@@ -7552,11 +7558,78 @@ const schemas = {
               "inputs",
               "reasons",
               "requirements",
+              "runnable",
               "scope",
               "verdict"
             ],
             "additionalProperties": false,
             "properties": {
+              "runnable": {
+                "type": "object",
+                "required": [
+                  "verdict",
+                  "reasons"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "verdict": {
+                    "enum": [
+                      "yes",
+                      "no"
+                    ]
+                  },
+                  "reasons": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "code"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                        }
+                      }
+                    }
+                  }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "verdict": {
+                          "const": "yes"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "reasons": {
+                          "maxItems": 0
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "verdict": {
+                          "const": "no"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "reasons": {
+                          "minItems": 1
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
               "context_ref": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9:_-]+$",
@@ -11554,6 +11627,46 @@ const schemas = {
                 "if": {
                   "properties": {
                     "verdict": {
+                      "const": "invalid"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "runnable": {
+                      "properties": {
+                        "verdict": {
+                          "const": "no"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "undetermined"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "runnable": {
+                      "properties": {
+                        "verdict": {
+                          "const": "no"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
                       "const": "verified"
                     }
                   }
@@ -11726,11 +11839,78 @@ const schemas = {
               "inputs",
               "reasons",
               "requirements",
+              "runnable",
               "scope",
               "verdict"
             ],
             "additionalProperties": false,
             "properties": {
+              "runnable": {
+                "type": "object",
+                "required": [
+                  "verdict",
+                  "reasons"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "verdict": {
+                    "enum": [
+                      "yes",
+                      "no"
+                    ]
+                  },
+                  "reasons": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "code"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                        }
+                      }
+                    }
+                  }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "verdict": {
+                          "const": "yes"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "reasons": {
+                          "maxItems": 0
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "verdict": {
+                          "const": "no"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "reasons": {
+                          "minItems": 1
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
               "context_ref": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9:_-]+$",
@@ -15727,6 +15907,46 @@ const schemas = {
                 "if": {
                   "properties": {
                     "verdict": {
+                      "const": "invalid"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "runnable": {
+                      "properties": {
+                        "verdict": {
+                          "const": "no"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "undetermined"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "runnable": {
+                      "properties": {
+                        "verdict": {
+                          "const": "no"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
                       "const": "verified"
                     }
                   }
@@ -17578,7 +17798,7 @@ const operationKeys = {
 };
 
 export const checkReasonSchemaCid = "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742";
-export const checkOutcomeSchemaCid = "sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a";
+export const checkOutcomeSchemaCid = "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function finiteWireNumber(value) {

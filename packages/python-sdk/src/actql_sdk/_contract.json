@@ -7161,7 +7161,8 @@
         "updated_at",
         "next_action",
         "result_available",
-        "result_availability"
+        "result_availability",
+        "revision"
       ],
       "additionalProperties": false,
       "properties": {
@@ -7491,6 +7492,11 @@
               ]
             }
           }
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "allOf": [
@@ -7719,11 +7725,78 @@
                 "inputs",
                 "reasons",
                 "requirements",
+                "runnable",
                 "scope",
                 "verdict"
               ],
               "additionalProperties": false,
               "properties": {
+                "runnable": {
+                  "type": "object",
+                  "required": [
+                    "verdict",
+                    "reasons"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "verdict": {
+                      "enum": [
+                        "yes",
+                        "no"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "verdict": {
+                            "const": "yes"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "reasons": {
+                            "maxItems": 0
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "reasons": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
                 "context_ref": {
                   "type": "string",
                   "pattern": "^[A-Za-z0-9:_-]+$",
@@ -11721,6 +11794,46 @@
                   "if": {
                     "properties": {
                       "verdict": {
+                        "const": "invalid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "runnable": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "undetermined"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "runnable": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
                         "const": "verified"
                       }
                     }
@@ -11893,11 +12006,78 @@
                 "inputs",
                 "reasons",
                 "requirements",
+                "runnable",
                 "scope",
                 "verdict"
               ],
               "additionalProperties": false,
               "properties": {
+                "runnable": {
+                  "type": "object",
+                  "required": [
+                    "verdict",
+                    "reasons"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "verdict": {
+                      "enum": [
+                        "yes",
+                        "no"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "verdict": {
+                            "const": "yes"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "reasons": {
+                            "maxItems": 0
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "reasons": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
                 "context_ref": {
                   "type": "string",
                   "pattern": "^[A-Za-z0-9:_-]+$",
@@ -15894,6 +16074,46 @@
                   "if": {
                     "properties": {
                       "verdict": {
+                        "const": "invalid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "runnable": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "undetermined"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "runnable": {
+                        "properties": {
+                          "verdict": {
+                            "const": "no"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
                         "const": "verified"
                       }
                     }
@@ -17353,10 +17573,10 @@
     "fix_targets_match_exact_eof"
   ],
   "check_reason_schema_cid": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742",
-  "check_outcome_schema_cid": "sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a",
+  "check_outcome_schema_cid": "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce",
   "reasons": {
     "version": "actql-check-reason-catalog/0.1",
-    "revision": "2026-10-09.3",
+    "revision": "2026-10-16.1",
     "reason_schema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
@@ -20330,7 +20550,7 @@
       },
       {
         "code": "query_syntax_invalid",
-        "condition": "The query syntax is invalid.",
+        "condition": "The query syntax is invalid, including CALL, standalone WINDOW, TABLESAMPLE and general ASSERT Pipe steps refused by the v0.1 profile.",
         "facts_schema": "#/reason_schema",
         "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
         "locations": [

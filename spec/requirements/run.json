@@ -498,6 +498,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/effect-outcome-wire.upsert-action",
+      "statement_sha256": "2fbba83466d81927ba4dd5e294563f73f45f372e1648ac71a6ab33af11f8acb1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "review-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/review-artifacts.approval-attestation-must-bind-both-effect-preview-cid-and-the-exact-review-projection-cid",
       "statement_sha256": "d3e7d8bc3435f197b30ab3498101d743af3418d295e7cd080a7ef7c4fbc6738f",
       "status": "pending",
@@ -774,12 +785,34 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "c3d08978baf0b2a7771190763f8db392a71e644dea8d8aa24b43f85830e23704",
+      "statement_sha256": "9f44228139ad4d4a6766f5de22588d785959dabbcff8a53c1ab0e8eacddc6f03",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/run-observation.state-revision",
+      "statement_sha256": "3b6eeef2be47c1a09c87e74be67d847742169374235be1b26197d64d70faecb0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "run-observation-revisions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/run-observation.wait-since",
+      "statement_sha256": "dc39005ab8078b442a95eead82c504de18629ad697b451a8461a70c098c65f26",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "run-observation-revisions",
         "kind": "prose"
       }
     },
@@ -790,7 +823,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },
@@ -801,7 +834,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },
@@ -812,7 +845,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },
@@ -823,7 +856,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },
@@ -834,7 +867,7 @@
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "machine-contracts",
+        "anchor": "client-cancellation-observations",
         "kind": "prose"
       }
     },

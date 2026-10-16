@@ -3,7 +3,7 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-09.3",
+  "revision": "2026-10-16.1",
   "reasonSchemaCid": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
 });
 const entries = freeze({
@@ -1112,7 +1112,7 @@ const entries = freeze({
   },
   "query_syntax_invalid": {
     "code": "query_syntax_invalid",
-    "condition": "The query syntax is invalid.",
+    "condition": "The query syntax is invalid, including CALL, standalone WINDOW, TABLESAMPLE and general ASSERT Pipe steps refused by the v0.1 profile.",
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
     "locations": [
