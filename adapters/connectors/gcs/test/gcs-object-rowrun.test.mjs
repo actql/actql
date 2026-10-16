@@ -30,7 +30,7 @@ const expected = {resource, version: '9007199254740993', name: 'in/e\u0301%2F.cs
   metadata: {$json: {'$json': 'user', 'e\u0301': 'e\u0301\r\n%2F'}}};
 
 async function fixture({pages = [{kind: 'storage#objects', nextPageToken: 'next'},
-  {kind: 'storage#objects', items: [object]}], admitReference = true} = {}) {
+  {kind: 'storage#objects', items: [object]}], admitReference = true, attempts = 1} = {}) {
   const profile = {version: 'actql-installed-gcs-source/0.1', connectorId: 'storage',
     project: 'fixture-project', bucket: 'actql-fixture', prefix: 'in/',
     mediaType: 'text/csv', siteProfilePath: '/fixture/site.json', accountConfigurationWire: '{}',
@@ -104,13 +104,15 @@ async function fixture({pages = [{kind: 'storage#objects', nextPageToken: 'next'
     ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
   const preparedSource = await adapter.prepare(inputs);
   // Independent finite component capacity, not an adopted normal Host price.
-  const ledger = checked(moon.clientProgramAcquisitionLedger(1, 1,
+  const ledger = checked(moon.clientProgramAcquisitionLedger(attempts, 1,
     32768n, 100000000n, 100000000n, 0));
   return {adapter, state, issuer, ledger, inputs: {...inputs, preparedSource}};
 }
 
 test('GCS ordinary metadata reaches actual accounted Source capture with exact typed rows and original raw charges', async t => {
-  const value = await fixture();
+  // Three explicit same-Ledger lifecycle attempts: acquisition, refused
+  // unavailable restoration, then admitted restoration. No reset/refund.
+  const value = await fixture({attempts: 3});
   const capture = await value.adapter.openCapture({...value.inputs, ledger: value.ledger})
     .catch(error => {
       // This fixture contains no credentials or service values. Preserve the
@@ -138,9 +140,12 @@ test('GCS ordinary metadata reaches actual accounted Source capture with exact t
   capture.close();
   assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(value.ledger).slice(4, 8),
     [0n, 0n, 0n, 0n]);
+  let custodyChecks = 0;
   assert.throws(() => checked(moon.clientProgramRestoreSourceCapture(original.requirement,
-    ...saved, value.ledger, original.capacity, () => false, value.issuer, undefined)),
+    ...saved, value.ledger, original.capacity, () => { custodyChecks++; return false; },
+    value.issuer, undefined)),
   {code: 'MoonBitHostFailure'});
+  assert.ok(custodyChecks > 0, 'the rejection must reach original custody, not exhaust the test Ledger');
   const restored = checked(moon.clientProgramRestoreSourceCapture(original.requirement,
     ...saved, value.ledger, original.capacity, () => true, value.issuer, undefined));
   t.after(() => moon.clientProgramCloseSourceCapture(restored));
@@ -151,6 +156,7 @@ test('GCS ordinary metadata reaches actual accounted Source capture with exact t
   assert.equal(moon.clientProgramCloseSourceCapture(restored), true);
   assert.equal(moon.clientProgramSourceCaptureSource(restored), undefined);
   assert.deepEqual(moon.clientProgramSourceCaptureUsage(restored), [0n, 0n, 0n]);
+  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(value.ledger)[1], 3n);
 });
 
 test('GCS ordinary Source refuses insufficient original Ledger capacity before any grant or physical call', async () => {
