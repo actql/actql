@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
+import {spawnSync} from 'node:child_process';
 import {assertObservedTransition, createComputedBarrier, hasSettledResult, observeSettledResult,
   observedRevision, publishedFacts} from './fixtures/run-revision-assertions.mjs';
 
@@ -120,4 +121,80 @@ test('revision zero is a legal earlier observation, not an invented predecessor'
   assert.equal(observedRevision(before, 'zero'), 0);
   assertObservedTransition(before, after, 'real transition');
   assert.equal(after.revision > before.revision, true);
+});
+
+function observationEvidence(error) {
+  const line = error.message.split('\n').find(value => value.startsWith('RUN_STATE_OBSERVATIONS '));
+  assert.notEqual(line, undefined);
+  return JSON.parse(line.slice('RUN_STATE_OBSERVATIONS '.length));
+}
+
+test('failed revision assertion retains both complete public responses and compared facts', () => {
+  const before = state(), after = structuredClone(before);
+  after.revision = 3;
+  after.updated_at = '2026-10-17T00:00:02Z';
+  after.result_availability.answer.observed_at = after.updated_at;
+  const originals = structuredClone({before, after});
+  assert.throws(() => assertObservedTransition(before, after, 'https after wait'), error => {
+    assert.equal(error.code, 'ERR_ASSERTION');
+    assert.equal(error.actual, 3);
+    assert.equal(error.expected, 1);
+    assert.equal(error.operator, 'strictEqual');
+    const pair = observationEvidence(error);
+    assert.deepEqual(pair, {label: 'https after wait', ...originals,
+      beforeFacts: publishedFacts(before), afterFacts: publishedFacts(after)});
+    assert.match(error.stack, /assertObservedTransition/u);
+    assert.match(error.stack, /RUN_STATE_OBSERVATIONS/u);
+    return true;
+  });
+  assert.deepEqual({before, after}, originals);
+});
+
+test('changed facts and a foreign Run remain refusals with their original public pair', () => {
+  for (const [label, change, reason] of [
+    ['control', value => {value.control.physical_stop = 'confirmed';}, /must advance/u],
+    ['foreign', value => {value.run_id = 'foreign';}, /same original/u],
+  ]) {
+    const before = state(), after = structuredClone(before);
+    change(after);
+    assert.throws(() => assertObservedTransition(before, after, label), error => {
+      assert.match(error.message, reason);
+      const pair = observationEvidence(error);
+      assert.deepEqual(pair.before, before);
+      assert.deepEqual(pair.after, after);
+      return true;
+    });
+  }
+});
+
+test('oversized observation evidence stays bounded and never substitutes a partial pair', () => {
+  const before = {...state(), fixtureData: 'x'.repeat(80 * 1024)};
+  assert.throws(() => assertObservedTransition(before, {...before, revision: 2}, 'large'), error => {
+    assert.equal(error.actual, 2);
+    assert.equal(error.expected, 1);
+    const record = observationEvidence(error);
+    assert.equal(record.available, false);
+    assert.equal(record.reason, 'observation_pair_byte_limit');
+    assert(record.bytes > 64 * 1024);
+    assert.equal(Object.hasOwn(record, 'before'), false);
+    assert(Buffer.byteLength(error.message) < 1024);
+    return true;
+  });
+});
+
+test('uncaught child assertion exposes the exact public pair through the ordinary stderr path', () => {
+  const before = state(), after = {...before, revision: 2};
+  const fixture = new URL('./fixtures/run-revision-assertions.mjs', import.meta.url).href;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e',
+    `import {assertObservedTransition} from ${JSON.stringify(fixture)};
+     assertObservedTransition(${JSON.stringify(before)}, ${JSON.stringify(after)}, 'child');`],
+  {encoding: 'utf8', timeout: 10_000, maxBuffer: 128 * 1024});
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /AssertionError \[ERR_ASSERTION\]/u);
+  const line = result.stderr.split('\n').find(value => value.startsWith('RUN_STATE_OBSERVATIONS '));
+  assert.notEqual(line, undefined);
+  const pair = JSON.parse(line.slice('RUN_STATE_OBSERVATIONS '.length));
+  assert.deepEqual(pair.before, before);
+  assert.deepEqual(pair.after, after);
 });
