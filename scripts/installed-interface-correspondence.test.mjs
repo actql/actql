@@ -181,6 +181,8 @@ test('declaration-only TS members retain source/Owner coverage without becoming 
     const text = 'export type Format = "sql" | "json"; export const formats: readonly Format[];';
     put(options.repository, module, text);
     put(options.directory, member, text);
+    put(options.directory, 'package.json', JSON.stringify({name: '@actql/fixture',
+      exports: {'.': {types: `./${member}`, default: './entry.mjs'}}}));
     commit();
     const syntax = typescriptInterface(text, module);
     const owner = {...declaration, module, sha256: createHash('sha256').update(text).digest('hex'), ...syntax,
@@ -203,6 +205,8 @@ test('shipped client-wire declaration remains inventoried without an initialized
   const {options, put} = fixture(t);
   const text = readFileSync(new URL('../packages/client-wire/index.d.ts', import.meta.url), 'utf8');
   put(options.directory, 'index.d.ts', text);
+  put(options.directory, 'package.json', JSON.stringify({name: '@actql/fixture',
+    exports: {'.': {types: './index.d.ts', default: './entry.mjs'}}}));
   const installed = installedInterfaceInventory(options.directory);
   assert(installed.modules.find(value => value.module === 'index.d.ts').exports.includes('clientSourceFormats'));
   assert.equal((await assertInstalledDependencyClosure({directory: options.directory, modules: installed.modules})).modules, 1);
