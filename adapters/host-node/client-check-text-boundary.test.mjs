@@ -588,6 +588,71 @@ for (const entrance of ['local', 'http']) {
 
 // Independent authored inputs and expected classifications, not producer output.
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: runnable comes from the actual text Owner without granting execution`, async t => {
+    const {client, counts} = await publicCheck(t, entrance);
+    const options = {kind: 'text', scope: 'bound_input', format: 'sql'};
+    const literal = await client.check('SELECT 1 AS n', options);
+    assert.equal(validCheckOutcome(literal), true);
+    assert.deepEqual(literal.report.runnable, {verdict: 'yes', reasons: []});
+    const templateOptions = {...options, scope: 'template_only',
+      parameterDeclarations: {x: {type: 'number'}}};
+    const template = await client.check('SELECT @x AS n', templateOptions);
+    assert.equal(template.report.verdict, 'verified');
+    assert.deepEqual(template.report.runnable, {verdict: 'no',
+      reasons: [{code: 'parameter_value_required'}]});
+    const missing = await client.check('SELECT @x AS n', {...templateOptions, scope: 'bound_input'});
+    assert.equal(missing.report.verdict, 'undetermined');
+    assert.deepEqual(missing.report.runnable, {verdict: 'no',
+      reasons: [{code: 'bound_values_missing'}, {code: 'parameter_value_required'}]});
+    const bound = await client.check('SELECT @x AS n', {...templateOptions,
+      scope: 'bound_input', parameters: {x: 7}});
+    assert.deepEqual(bound.report.runnable, {verdict: 'yes', reasons: []});
+    // A declaration default is an actual binding, not a fabricated value.
+    const defaulted = await client.check('SELECT @x AS n', {...templateOptions,
+      parameterDeclarations: {x: {type: 'number', default: 7}}});
+    assert.deepEqual(defaulted.report.runnable, {verdict: 'yes', reasons: []});
+    const invalid = await client.check('SELECT @x AS n', {...templateOptions,
+      scope: 'bound_input', parameters: {x: 'private-invalid-value'}});
+    assert.equal(invalid.report.verdict, 'invalid');
+    assert.deepEqual(invalid.report.runnable, {verdict: 'no',
+      reasons: [{code: 'supplied_value_type_mismatch'}]});
+    assert.doesNotMatch(JSON.stringify(invalid.report.runnable), /private-invalid-value|facts|location/u);
+    assert.deepEqual(counts, {exchanges: 6, authorization: 6, analysis: 6});
+  });
+
+  test(`${entrance}: runnable uses the same structured Program Owner and original inputs`, async t => {
+    const {client, counts} = await publicCheck(t, entrance, {program: true});
+    const program = authoringProgram();
+    const template = await client.check(program, {kind: 'program', scope: 'template_only'});
+    assert.equal(template.report.verdict, 'verified');
+    assert.deepEqual(template.report.runnable, {verdict: 'no',
+      reasons: [{code: 'parameter_value_required'}]});
+    const bound = await client.check(program, {kind: 'program', scope: 'bound_input', parameters: {x: 7}});
+    assert.deepEqual(bound.report.runnable, {verdict: 'yes', reasons: []});
+    const missing = await client.check(program, {kind: 'program', scope: 'bound_input'});
+    assert.equal(missing.report.verdict, 'undetermined');
+    assert.deepEqual(missing.report.runnable, {verdict: 'no',
+      reasons: [{code: 'bound_values_missing'}, {code: 'parameter_value_required'}]});
+    assert.deepEqual(template.report.runnable, {verdict: 'no',
+      reasons: [{code: 'parameter_value_required'}]}, 'Supplementation cannot rewrite the older observation');
+    assert.deepEqual(counts, {exchanges: 3, authorization: 3, analysis: 3});
+  });
+
+  test(`${entrance}: runnable preserves protected Source indistinguishability`, async t => {
+    const outcomes = [];
+    for (const visibility of ['absent', 'denied', 'unpublished']) {
+      const {client} = await publicCheck(t, entrance, {visibility});
+      const outcome = await client.check('SELECT id FROM records',
+        {kind: 'text', scope: 'bound_input', format: 'sql'});
+      assert.equal(outcome.report.verdict, 'undetermined');
+      assert.deepEqual(outcome.report.runnable, {verdict: 'no',
+        reasons: [{code: 'unresolved_protected'}]});
+      outcomes.push(outcome.report.runnable);
+    }
+    assert.deepEqual(outcomes[0], outcomes[1]);
+    assert.deepEqual(outcomes[1], outcomes[2]);
+  });
+
   test(`${entrance}: scoped SQL and AQL templates close complete obligations and retain runtime Requirements`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {
@@ -854,6 +919,7 @@ for (const entrance of ['local', 'http']) {
     assert.equal(unsupported.report.verdict, 'undetermined');
     assert.equal(unsupported.report.coverage.limits[0].code, 'implementation_limit');
     assert.deepEqual(unsupported.report.scope, {kind: 'template_only'});
+    assert.deepEqual(unsupported.report.runnable, {verdict: 'no', reasons: [{code: 'implementation_limit'}]});
     let nested = 'leaf'; for (let i = 0; i < 40; i++) nested = [nested];
     const exhausted = await client.check('SELECT @payload AS n',
       {kind: 'text', scope: 'template_only', format: 'sql',
@@ -861,6 +927,7 @@ for (const entrance of ['local', 'http']) {
     assert.equal(exhausted.report.verdict, 'undetermined');
     assert.deepEqual(exhausted.report.reasons, []);
     assert.deepEqual(exhausted.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
+    assert.deepEqual(exhausted.report.runnable, {verdict: 'no', reasons: [{code: 'analysis_budget_exhausted'}]});
     const program = authoringProgram(); program.stages[0].steps.splice(2, 0, {take: 1});
     const incomplete = await client.check(program, {kind: 'program', scope: 'template_only'});
     assert.equal(incomplete.report.verdict, 'undetermined');
@@ -887,6 +954,10 @@ for (const entrance of ['local', 'http']) {
       assert.deepEqual(outcome.report.reasons, []);
       assert.equal(Object.hasOwn(expected, 'location'), false);
       assert.deepEqual(outcome.report.coverage.limits, [{code: 'checking_context_missing'}]);
+      assert.equal(outcome.report.runnable.verdict, 'no');
+      assert.ok(outcome.report.runnable.reasons.some(reason => reason.code === 'host_capacity_policy_required'));
+      assert.ok(outcome.report.runnable.reasons.some(reason => reason.code === 'checking_context_missing'));
+      for (const reason of outcome.report.runnable.reasons) assert.deepEqual(Object.keys(reason), ['code']);
       assert.equal(getCheckContextRequirements(structuredClone(outcome)), undefined);
     }
   });
@@ -905,5 +976,7 @@ for (const entrance of ['local', 'http']) {
     assert.equal(checked.report.coverage.limits.some(limit => limit.code === 'reporting_budget_exhausted'), true);
     assert.deepEqual(checked.report.requirements.map(reason => reason.facts.parameter), names.slice(0, 64));
     assert.equal(counts.analysis, 1, 'Encoding retries do not repeat analysis');
+    assert.deepEqual(checked.report.runnable, {verdict: 'no', reasons: [
+      {code: 'parameter_value_required'}, {code: 'reporting_budget_exhausted'}]});
   });
 }
