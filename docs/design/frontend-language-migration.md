@@ -111,6 +111,30 @@ from strings. `with: target` refers to a producer; `start: "A"` is an ID value;
 are explicit; none is synthesized merely by adding a WITH binding. Frontend placement
 independence remains separate from actual provider pushdown support.
 
+## Keyed record Effect normalization
+
+The terminal UPDATE, UPSERT and DELETE forms share the original Relation
+expression and private Result capture path. The parsed Effect kind stays
+explicit: UPSERT emits the existing canonical `upsert.key` selector, while
+UPDATE and DELETE emit `id`. DELETE has no SET object. Qualified ID references
+retain their original expression rather than being reparsed from a shortened
+field name; SET computation remains in the ordinary Relation pipeline before
+the sealed capture. Only authored public Results are exported.
+
+Static logical target selection uses the complete admitted Mapping inventory
+and the existing Common operation/selector classifier. The historical UPDATE
+path retains its candidate and work rules. UPSERT and DELETE use their own
+declared rules, without filtering candidates by current permission or payload
+compatibility to resolve ambiguity. The original installation publication is
+not a write grant, an issued ResourceRef or a proof that captured keys are valid.
+
+The Source preparation boundary must retain an original selection for the
+actual operation before it can be accepted for a Run. An UPDATE-only original
+selection cannot stand in for UPSERT or DELETE. Until the existing capture,
+current-installation and Run owners admit the new purpose, Source preparation
+reports that missing connection explicitly rather than dropping the Effect
+or treating its rows as a pure query.
+
 ## Evidence classification
 
 Historical `.aql` parsing/formatting is internal fixture evidence. Independent

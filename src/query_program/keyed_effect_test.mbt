@@ -33,6 +33,17 @@ fn keyed_record_static(
   program : @program.Program,
   mode : String,
 ) -> @check.EffectProgramStaticCandidate raise {
+  keyed_record_static_result(program, mode).unwrap()
+}
+
+///|
+fn keyed_record_static_result(
+  program : @program.Program,
+  mode : String,
+) -> Result[
+  @check.EffectProgramStaticCandidate,
+  @stage_results.EffectStaticCandidateIssue,
+] raise {
   let environment = keyed_record_environment(mode)
   let candidate = match
     @check.prepare_effect_computation_candidate(
@@ -58,7 +69,7 @@ fn keyed_record_static(
     max_admission_nodes: 100,
     max_admission_depth: 10,
     max_admission_text_bytes: 1000,
-  }).unwrap()
+  })
 }
 
 ///|
@@ -268,5 +279,31 @@ test "keyed static selection precedes expression lowering and never infers an in
       update_targets=Some(keyed_record_publication("all")),
     )
     is Err(DuplicateOutput),
+  )
+}
+
+///|
+test "actual keyed Common closure rejects incompatible values without inventing a conversion" {
+  let wrong_literal = keyed_record_program(
+    "FROM messages |> EFFECT UPSERT salesforce.Account ID id SET (Name = 1)",
+  )
+  guard keyed_record_static_result(wrong_literal, "all")
+    is Err(MappingLiterals(issue)) else {
+    fail("expected the actual Common literal type refusal")
+  }
+  assert_eq(
+    @stage_results.effect_mapping_literal_issue_kind(issue),
+    IncompatibleLiteral("Name"),
+  )
+  let wrong_field = keyed_record_program(
+    "FROM messages |> EFFECT UPSERT salesforce.Account ID id SET (Name = LENGTH(body))",
+  )
+  guard keyed_record_static_result(wrong_field, "all")
+    is Err(MappingRules(issue)) else {
+    fail("expected the actual Common source type refusal")
+  }
+  assert_eq(
+    @stage_results.effect_mapping_rule_issue_kind(issue),
+    IncompatibleSourceType("Name"),
   )
 }
