@@ -214,7 +214,13 @@ test "original Run ID reads exact retained identity without manufacturing absent
   assert_eq(run_record_body(after).unwrap(), run_record_body(before).unwrap())
   assert_eq(submission_after.revision, submission_before.revision)
   assert_true(submission_after.run_state_original is None)
-  assert_true(submission_after.run_state_observation is None)
+  // Fresh acceptance reserves the observation sequence without a state wire.
+  // Identity lookup must preserve that original seed rather than initialize it.
+  assert_eq(submission_before.run_state_observation, Some((0L, None)))
+  assert_eq(
+    submission_after.run_state_observation,
+    submission_before.run_state_observation,
+  )
   assert_false(after.dispatch_reserved)
   assert_false(after.physical_start_claimed)
   let reopened = policy_host_fixture(name, existing=true)
