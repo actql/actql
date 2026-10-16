@@ -167,6 +167,10 @@ test "exact README hero defaults retain the Common key and original UPDATE scope
       fail("independent expanded control: " + infer_defaults_issue_tag(issue))
   }
   assert_eq(semantic(actual), semantic(expanded))
+  assert_shorthand_checked_identity(
+    check_shorthand_identity_program(actual, environment),
+    check_shorthand_identity_program(expanded, environment),
+  )
   assert_eq(@program.exports(actual).map(value => value.0), ["updates"])
   let headers = @program.collect_effect_headers(actual, 10, 100000).unwrap()
   assert_eq(@program.effect_header_count(headers), 1)
