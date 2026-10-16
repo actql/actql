@@ -88,6 +88,18 @@ class Client:
     def start_source(self, text, **options):
         return Execution(self, self._call(self._client.start_source, text, **options))
 
+    def sql(self, text, parameters=None, **options):
+        _outside_loop()
+        if self._closed:
+            raise ClientError('ClientClosed')
+        return Query(self, self._client.sql(text, parameters, **options))
+
+    def aql(self, text, parameters=None, **options):
+        _outside_loop()
+        if self._closed:
+            raise ClientError('ClientClosed')
+        return Query(self, self._client.aql(text, parameters, **options))
+
     def check(self, input, **options):
         return self._call(self._client.check, input, **options)
 
@@ -111,6 +123,33 @@ class Client:
 
     def reject(self, checkpoint_id):
         return self._call(self._client.reject, checkpoint_id)
+
+
+class Query:
+    """A synchronous view of the same lazy submission and Result readers."""
+    def __init__(self, client, query):
+        self._client, self._query = client, query
+
+    def __copy__(self):
+        raise TypeError('OriginalQueryNotCopyable')
+
+    def __deepcopy__(self, memo):
+        raise TypeError('OriginalQueryNotCopyable')
+
+    def __reduce_ex__(self, protocol):
+        raise TypeError('OriginalQueryNotSerializable')
+
+    @property
+    def execution(self):
+        original = self._query.execution
+        return None if original is None else Execution(self._client, original)
+
+    def all(self, **options):
+        return self._client._call(self._query.all, **options)
+
+    def rows(self, **options):
+        _outside_loop()
+        return QueryReader(self._client, self._query.rows(**options))
 
 
 class Execution:
@@ -197,3 +236,11 @@ class Reader:
 
     def delivery_attempt(self):
         return self._client._call(self._reader.delivery_attempt)
+
+
+class QueryReader(Reader):
+    """Use the existing Runner for a deferred original Result reader."""
+    def close(self):
+        _outside_loop()
+        if not self._client._closed:
+            self._client._call(self._reader.aclose)
