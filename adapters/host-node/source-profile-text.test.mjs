@@ -13,7 +13,9 @@ function bytesSource(bytes, {virtualBytes = bytes.length, failClose = false} = {
         state.reads++;
         const count = Math.min(length, virtualBytes - position);
         buffer.fill(0x20, offset, offset + count);
-        bytes.copy(buffer, offset, position, Math.min(position + count, bytes.length));
+        if (position < bytes.length) {
+          bytes.copy(buffer, offset, position, Math.min(position + count, bytes.length));
+        }
         position += count;
         state.bytes += count;
         return {bytesRead: count};
@@ -25,8 +27,10 @@ function bytesSource(bytes, {virtualBytes = bytes.length, failClose = false} = {
 }
 
 test('bounded publication text preserves exact UTF-8, whitespace, order and identity above JSON ceiling', async () => {
-  const original = ' {"z":"e\u0301","a":1.00}  \n' + ' '.repeat(16_000_000 - 26);
+  const prefix = ' {"z":"e\u0301","a":1.00}  \n';
+  const original = prefix + ' '.repeat(16_000_000 - Buffer.byteLength(prefix));
   const bytes = Buffer.from(original);
+  assert.equal(bytes.length, 16_000_000);
   const source = bytesSource(bytes);
   const actual = await readBoundedConfigurationText('/publication',
     {maxBytes: 16_000_000, openFile: source.openFile});
