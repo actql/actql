@@ -15190,7 +15190,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ba7666510b4c9945aeac1bb383184d0e4fba3675789c2693c8d9588d93867e2c",
+      "sha256": "571bd936d395aac295ded87de238cbbee4266baea449d6530f7e41e4325269a4",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -15208,7 +15208,8 @@
         {
           "name": "admissionEvidenceShape",
           "parameters": [
-            "value"
+            "value",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -15288,7 +15289,8 @@
           "name": "evidenceJson",
           "parameters": [
             "value",
-            "maxBytes"
+            "maxBytes",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -15474,7 +15476,8 @@
             "maxRecords",
             "maxRunDefinitionWireBytes",
             "submissionEpochTtlMs",
-            "submissionEpochNow"
+            "submissionEpochNow",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -16311,7 +16314,8 @@
         {
           "name": "retainedEvidence",
           "parameters": [
-            "row"
+            "row",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -16351,7 +16355,8 @@
           "parameters": [
             "row",
             "publicationControl",
-            "maxWireBytes"
+            "maxWireBytes",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -16615,6 +16620,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "inputsOutputs": [
@@ -16629,6 +16638,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "identity": [
@@ -16643,6 +16656,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
               }
             ],
             "ownership": [
@@ -16657,6 +16678,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "synchronization": [
@@ -16671,6 +16700,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "failure": [
@@ -16685,6 +16722,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "cancellation": [
@@ -16699,6 +16744,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "resources": [
@@ -16713,6 +16766,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "extension": [
@@ -16727,6 +16788,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
               }
             ],
             "verification": [
@@ -16737,6 +16806,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
               }
             ]
           }
@@ -20323,7 +20400,7 @@
     {
       "module": "adapters/host-node/effect-run-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4616b887396faa1596668e073402e533810cf4d31f159f7eb248bdf736fc8937",
+      "sha256": "9b6c3657138a8971a3527131e9c7de7765f6f525eb521cc2be5b8ed73a47124f",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -20362,15 +20439,31 @@
             "authorizeEvidenceRead",
             "contractLimits",
             "signal",
+            "restoreOriginal",
             "loadRuntime"
           ],
           "async": true
+        },
+        {
+          "name": "recoverAdmittedEffectRun/assertOriginalCurrent/assertOriginalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "recoverAdmittedEffectRun/assertOriginalCurrent/assertOriginalCurrent/assertOriginalCurrent",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "recoverAdmittedEffectRun/recoverAdmittedEffectRun",
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "recoverAdmittedEffectRun/recoverAdmittedEffectRun#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -20531,6 +20624,116 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "recoverAdmittedEffectRun/assertOriginalCurrent/assertOriginalCurrent",
+            "recoverAdmittedEffectRun/assertOriginalCurrent/assertOriginalCurrent/assertOriginalCurrent",
+            "recoverAdmittedEffectRun/recoverAdmittedEffectRun#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "anchor": "export async function recoverAdmittedEffectRun({"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original UPDATE selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
               }
             ]
           }
