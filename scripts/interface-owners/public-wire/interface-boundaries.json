@@ -493,10 +493,6 @@
               {
                 "path": "docs/design/json-encoding.md",
                 "anchor": "ActQL rejects negative zero, infinities and NaN"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -507,30 +503,18 @@
               {
                 "path": "packages/client-wire/client-host.generated.js",
                 "anchor": "const schemas ="
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| ownership |"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -541,20 +525,12 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation is synchronous."
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| failure |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -565,30 +541,18 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation performs no cancellation or I/O."
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| resources |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| extension |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -607,14 +571,6 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -645,10 +601,6 @@
               {
                 "path": "docs/reviews/2026-10-04-native-wire-contract.md",
                 "anchor": "UTF-16 maximum lengths, scalar"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -659,30 +611,18 @@
               {
                 "path": "packages/client-wire/client-host.generated.js",
                 "anchor": "const schemas ="
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| ownership |"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -693,20 +633,12 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation is synchronous."
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| failure |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -717,30 +649,18 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation performs no cancellation or I/O."
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| resources |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| extension |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -759,14 +679,6 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -793,10 +705,6 @@
               {
                 "path": "scripts/generate-native-client-wire.mjs",
                 "anchor": "jsResponseRules"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -807,30 +715,18 @@
               {
                 "path": "packages/client-wire/client-host.generated.js",
                 "anchor": "const schemas ="
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| ownership |"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -841,20 +737,12 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation is synchronous."
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| failure |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -865,30 +753,18 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation performs no cancellation or I/O."
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| resources |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| extension |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -907,14 +783,6 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -941,10 +809,6 @@
               {
                 "path": "scripts/generate-native-client-wire.mjs",
                 "anchor": "jsRequestResponseRules"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -955,30 +819,18 @@
               {
                 "path": "packages/client-wire/client-host.generated.js",
                 "anchor": "const schemas ="
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| ownership |"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -989,20 +841,12 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation is synchronous."
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| failure |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -1013,30 +857,18 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation performs no cancellation or I/O."
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| resources |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| extension |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -1055,14 +887,6 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -1092,10 +916,6 @@
               {
                 "path": "scripts/client-check-report-rules.mjs",
                 "anchor": "jsCheckReportRules"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -1110,30 +930,18 @@
               {
                 "path": "docs/spec/protocols/contracts.md",
                 "anchor": "<!-- requirement-block: public-check.runnable-is-not-validity-or-authority -->"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| ownership |"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -1144,20 +952,12 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation is synchronous."
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| failure |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -1168,30 +968,18 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation performs no cancellation or I/O."
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| resources |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| extension |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -1214,14 +1002,6 @@
               {
                 "path": "spec/requirements/contracts.json",
                 "anchor": "\"requirement_id\": \"actql.protocol.contracts/public-check.runnable-is-not-validity-or-authority\""
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -1500,10 +1280,6 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"schemas\""
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -1518,10 +1294,6 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "<!-- requirement-block: run-observation.state-revision -->"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -1532,20 +1304,12 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "<!-- requirement-block: run-observation.state-revision -->"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| ownership |"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -1556,20 +1320,12 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation is synchronous."
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| failure |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -1580,30 +1336,18 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation performs no cancellation or I/O."
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| resources |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| extension |"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -1626,14 +1370,6 @@
               {
                 "path": "spec/requirements/run.json",
                 "anchor": "\"requirement_id\": \"actql.protocol.run/run-observation.state-revision\""
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -1666,10 +1402,6 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "pub fn run_wait_ready("
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -1684,10 +1416,6 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"run_wait\": {"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -1698,10 +1426,6 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "state.run_id !== latestState.runId"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -1712,10 +1436,6 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -1730,10 +1450,6 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const observeStep = async promise => {"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -1744,10 +1460,6 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "return Err(InvalidSince)"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -1762,10 +1474,6 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -1780,10 +1488,6 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "finally { signal?.removeEventListener('abort', abort); }"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -1794,10 +1498,6 @@
               {
                 "path": "scripts/generate-client-host-wire.mjs",
                 "anchor": "const wait = requestRules.run_wait;"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -1824,14 +1524,6 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -1848,70 +1540,42 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "pub fn run_wait_ready("
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"run_wait\": {"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "state.run_id !== latestState.runId"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const observeStep = async promise => {"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "return Err(InvalidSince)"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -1922,20 +1586,12 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "finally { signal?.removeEventListener('abort', abort); }"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
               {
                 "path": "scripts/generate-client-host-wire.mjs",
                 "anchor": "const wait = requestRules.run_wait;"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -1946,14 +1602,6 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }

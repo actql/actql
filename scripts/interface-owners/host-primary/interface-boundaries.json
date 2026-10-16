@@ -5299,10 +5299,6 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -5313,10 +5309,6 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -5327,10 +5319,6 @@
               {
                 "path": "src/run_publication_host/client_effect_target_original_data.mbt",
                 "anchor": "pub fn client_effect_target_selection_current("
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -5341,10 +5329,6 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -5355,10 +5339,6 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -5369,10 +5349,6 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -5383,10 +5359,6 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -5397,10 +5369,6 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -5411,10 +5379,6 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -5425,14 +5389,6 @@
               {
                 "path": "src/run_publication_host/client_effect_target_selections.mbt",
                 "anchor": "pub fn client_effect_target_selection_matches_prepared("
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
