@@ -1,5 +1,28 @@
 # Physical holding metadata publication
 
+## Original ownership retirement
+
+The existing Store ownership handle remembers successful owner-record unlink
+and ownership-directory removal separately from final root durability. An
+error after one acknowledged phase cannot force a retry to reconstruct that
+record or repeat its deletion. Once the original directory was removed, only
+root durability remains; a legitimate successor's owner record is not read or
+modified by the predecessor's retry. The original key stays held until the
+whole original release returns success.
+
+Root device/inode are observed before acquiring ownership. During original
+retirement the handle pins ownership-directory device/inode before removal;
+retries refuse a replacement directory or root. Initial absence and foreign
+token/pid remain refusal, not evidence of retirement. These path checks do not
+claim hostile-filesystem race isolation. Unknown syscall outcome is not an
+acknowledged phase, and this change is not the separate directory-FD
+failed-close carrier implementation.
+
+Two additional phase Booleans and four device/inode scalars remain in the
+existing handle, overlapping temporary Stats objects, read/parse state and
+the existing close Promise/error/key. They are explicit lifetime components,
+not a new Owner, lease, byte price or a normal numerical resource profile.
+
 ## Bounded metadata reader close acknowledgement
 
 The existing bounded metadata reader does not publish bytes or invoke its FD
