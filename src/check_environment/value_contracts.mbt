@@ -9,12 +9,19 @@ pub(all) enum ValueContractIssue {
   InvalidLimits
   EnvelopeLimit
   InvalidContract(Int, @value_contract.AdmissionError)
+  InvalidCommandInput(Int, CommandInputContractIssue)
 } derive(Eq, Debug)
+
+///|
+priv enum ProtocolValueBody {
+  Value(@value_contract.Contract)
+  CommandInput(CommandInputContract)
+}
 
 ///|
 struct ProtocolValueContract {
   envelope : ContractEnvelope
-  contract : @value_contract.Contract
+  body : ProtocolValueBody
 }
 
 ///|
@@ -27,8 +34,9 @@ struct ProtocolValueContracts {
 }
 
 ///|
-/// Admits all bodies governed by the checked value-contract grammar, including
-/// unused ones. Carrier schemas and behavioral contract bodies are separate.
+/// Admit every supplied value-role body, including unused ones. Only the
+/// explicit command_input presence form uses its additional closed grammar;
+/// legacy roles, Carrier schemas and behavioral contracts stay distinct.
 pub fn check_protocol_value_contracts(
   policies : SourceDataPolicies,
   limits : ValueContractLimits,
@@ -57,14 +65,27 @@ pub fn check_protocol_value_contracts(
       max_nodes: limits.contracts.max_nodes - nodes,
       max_text_bytes: limits.contracts.max_text_bytes - text,
     }
-    let (contract, n, t) = match
-      @value_contract.read_checked_usage(envelope.body, remaining) {
-      Ok(v) => v
-      Err(e) => return Err(InvalidContract(i, e))
+    let (body, n, t) = if envelope.kind == "command_input" &&
+      @decode.open_object(envelope.body) is Ok(object) &&
+      @decode.lookup(object, "required_fields") is Some(_) {
+      let admitted = match
+        read_command_input_contract(envelope.body, remaining) {
+        Ok(value) => value
+        Err(issue) => return Err(InvalidCommandInput(i, issue))
+      }
+      let (n, t) = command_input_contract_usage(admitted)
+      (CommandInput(admitted), n, t)
+    } else {
+      let (contract, n, t) = match
+        @value_contract.read_checked_usage(envelope.body, remaining) {
+        Ok(v) => v
+        Err(e) => return Err(InvalidContract(i, e))
+      }
+      (Value(contract), n, t)
     }
     nodes += n
     text += t
-    let entry = { envelope, contract, }
+    let entry = { envelope, body, }
     entries.push(entry)
     by_cid[envelope.cid] = entry
   }
@@ -97,10 +118,25 @@ pub fn protocol_value_envelope(v : ProtocolValueContract) -> ContractEnvelope {
 }
 
 ///|
+/// None identifies the Command-only presence record, not an unknown JSON type.
 pub fn protocol_value_type(
   v : ProtocolValueContract,
-) -> @value_contract.Contract {
-  v.contract
+) -> @value_contract.Contract? {
+  match v.body {
+    Value(contract) => Some(contract)
+    CommandInput(_) => None
+  }
+}
+
+///|
+/// This role's domain-specific record is not a general Object ValueContract.
+pub fn protocol_command_input_type(
+  v : ProtocolValueContract,
+) -> CommandInputContract? {
+  match v.body {
+    Value(_) => None
+    CommandInput(contract) => Some(contract)
+  }
 }
 
 ///|

@@ -281,13 +281,44 @@ cumulative limits, foreign environments and full-envelope identity.
 
 ## Protocol value-contract bodies
 
-`check_protocol_value_contracts` validates the eight value-contract Envelope
-roles through the canonical checked reader, including unused entries. The role
+`check_protocol_value_contracts` validates the eight legacy value-contract
+Envelope roles through the canonical checked reader, including unused entries.
+The Command-only additional form is described below. The role
 set matches Sketch `87dc7144:src/actql-protocol.ts`'s
 `ACTQL_VALUE_CONTRACT_KINDS` and its Catalog validation. Pinning this classification
 and the canonical checked schema makes that previously implicit routing explicit.
 The generator classifies all 17 Envelope kinds and fails when an added or removed
 kind has not been reviewed. Carrier schemas are deliberately not value contracts.
+
+### Command-only presence records
+
+The GCS target requires typed `name` and `content`, but allows `content_type`
+and `overwrite` to be absent. The former all-fields-required binder and the
+normative rule requiring every `command_input` body to be a ValueContract did
+not express that meaning. The adopted initial-0.1 extension adds only a closed
+Command record with `additional_properties: false`, a complete checked `fields`
+map and an explicit duplicate-free `required_fields` subset. Absence retains
+the legacy all-required inline and role grammars without rewriting saved bytes.
+An empty subset is legal. Presence is independent of nullable values; no default,
+NULL, false, placeholder or Ref is supplied for an omitted binding.
+
+This record is not a general optional Object type. The existing registry Owner
+admits its complete body only for `command_input`, including unused bodies;
+the other seven value roles retain their checked ValueContract reader. An
+opaque body variant keeps this distinction visible to consumers rather than
+fabricating an Object contract for the new role. Every declared child is read
+under the cumulative node/text allowance even when its input is omitted.
+
+The selected Command retains its original Catalog/reference proof. Common
+resolves that exact member's `input_schema` occurrence, checks the original
+Catalog/environment and `command_input` role, and compares the entire admitted
+record with the inline declaration under bounded work. An equal body hash,
+foreign arena, legacy role body or differently ordered required subset cannot
+replace this pair. Envelope, Command and Catalog preimages retain their existing
+rules; new records naturally have new CIDs. No permission, current authorization,
+provider behavior, Ref issuer, cleanup or recovery grant follows from admission.
+The governing Check Environment contract now explicitly contains this additional
+grammar and depends on the unchanged ValueContract grammar for child types.
 
 The opaque result retains SourceDataPolicies and therefore the same Catalog,
 registry and environment proof chain. Each admitted type retains its Envelope;

@@ -12456,7 +12456,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/check-environment.protocol-value-contract-bodies",
-      "statement_sha256": "b199223c54a37015cc18b9587cb14c90eb98f0215d9fec444f6470047fcbfc26",
+      "statement_sha256": "588af1de13affe015b8d75aac37d101a8a57694a43e637e411cb993ba63025e0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13694,6 +13694,28 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "file-sources",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/command-contracts.input-presence",
+      "statement_sha256": "2e8849e9c12c2e8758665215bd7a1889c93babcdde1526c4e6b036c50dda61ee",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Retain the focused Common declaration and Command binding evidence separately from installed Connector execution and recovery acceptance.",
+      "source": {
+        "anchor": "command-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/command-contracts.input-presence-correspondence",
+      "statement_sha256": "2205612ed04b9e2d930e78671f2fc8c87189b718d779863e95254abdce59cded",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original Command/Catalog/environment pair, full role body and independent identities at the installed caller boundary; portable admission is not execution authority.",
+      "source": {
+        "anchor": "command-contracts",
         "kind": "prose"
       }
     },
@@ -15261,7 +15283,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "a751a159ba8039bcc3e6bb838c42681a2f0309d012b4634f71dfabbd7aa82300",
+      "statement_sha256": "1017a4b43261d1139427622650bd35fba72a33c993d5651a1b39d61bb6f87915",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
