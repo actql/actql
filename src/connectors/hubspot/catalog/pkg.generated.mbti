@@ -29,9 +29,13 @@ pub fn prepare_execution_mapping(PropertyCatalog, String, String, String, Record
 
 pub fn prepare_execution_write_body(ExecutionMapping, PropertyCatalog, Bytes, Int, WriteBodyLimits) -> Result[WriteBody, MappingIssue]
 
+pub fn prepare_marked_record_batch_request(PropertyCatalog, RecordWriteOperation, Array[RecordWriteInput], RecordRequestMarker, RecordRequestLimits) -> Result[RecordBatchRequest, RecordRequestIssue]
+
 pub fn prepare_record_batch_request(PropertyCatalog, RecordWriteOperation, Array[RecordWriteInput], RecordRequestLimits) -> Result[RecordBatchRequest, RecordRequestIssue]
 
 pub fn prepare_record_read_request(PropertyCatalog, Array[RecordTarget], Array[String], RecordReadLimits) -> Result[RecordReadRequest, RecordReadIssue]
+
+pub fn prepare_record_request_marker(PropertyCatalog, String, String, WriteBodyLimits) -> Result[RecordRequestMarker, RecordRequestIssue]
 
 pub fn prepare_record_target(PropertyCatalog, String, Bytes, WriteBodyLimits) -> Result[RecordTarget, RecordRequestIssue]
 
@@ -74,6 +78,8 @@ pub fn record_batch_request_body(RecordBatchRequest) -> String
 pub fn record_batch_request_count(RecordBatchRequest) -> Int
 
 pub fn record_batch_request_input(RecordBatchRequest, Int) -> RecordWriteInput?
+
+pub fn record_batch_request_marker(RecordBatchRequest) -> RecordRequestMarker?
 
 pub fn record_batch_request_object_type(RecordBatchRequest) -> String
 
@@ -274,6 +280,8 @@ pub(all) enum RecordRequestIssue {
   DuplicateTarget
   InvalidTrace
   DuplicateTrace
+  InvalidMarker
+  MarkerConflict
 } derive(Eq, @debug.Debug)
 
 pub(all) struct RecordRequestLimits {
@@ -283,6 +291,12 @@ pub(all) struct RecordRequestLimits {
   max_body_bytes : Int
   max_body_nodes : Int
   max_body_depth : Int
+}
+
+pub struct RecordRequestMarker {
+  property : String
+  request_id : String
+  // private fields
 }
 
 pub struct RecordTarget {

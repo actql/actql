@@ -30,9 +30,13 @@ pub fn hubspot_prepare_execution_mapping(@catalog.PropertyCatalog, String, Strin
 
 pub fn hubspot_prepare_execution_write_body(@catalog.ExecutionMapping, @catalog.PropertyCatalog, Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.WriteBody, @catalog.MappingIssue]
 
+pub fn hubspot_prepare_marked_record_batch(@catalog.PropertyCatalog, Int, String, Array[@catalog.RecordWriteInput], @catalog.RecordRequestMarker, Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordBatchRequest, @catalog.RecordRequestIssue]
+
 pub fn hubspot_prepare_record_batch(@catalog.PropertyCatalog, Int, String, Array[@catalog.RecordWriteInput], Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordBatchRequest, @catalog.RecordRequestIssue]
 
 pub fn hubspot_prepare_record_read(@catalog.PropertyCatalog, Array[@catalog.RecordTarget], Array[String], Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordReadRequest, @catalog.RecordReadIssue]
+
+pub fn hubspot_prepare_record_request_marker(@catalog.PropertyCatalog, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordRequestMarker, @catalog.RecordRequestIssue]
 
 pub fn hubspot_prepare_record_target(@catalog.PropertyCatalog, String, Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordTarget, @catalog.RecordRequestIssue]
 
@@ -69,6 +73,12 @@ pub fn hubspot_record_batch_body(@catalog.RecordBatchRequest) -> String
 pub fn hubspot_record_batch_count(@catalog.RecordBatchRequest) -> Int
 
 pub fn hubspot_record_batch_endpoint(@catalog.RecordBatchRequest) -> String
+
+pub fn hubspot_record_batch_input_target_json(@catalog.RecordBatchRequest, Int) -> String?
+
+pub fn hubspot_record_batch_input_value_json(@catalog.RecordBatchRequest, Int) -> String?
+
+pub fn hubspot_record_batch_marker_fields(@catalog.RecordBatchRequest) -> Array[String]?
 
 pub fn hubspot_record_batch_object_type(@catalog.RecordBatchRequest) -> String
 
