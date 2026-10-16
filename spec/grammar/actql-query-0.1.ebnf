@@ -94,6 +94,8 @@ table_source  = path, [ source_alias ], [ pivot_operator | unpivot_operator ]
               | file_list_source
               | "(", relational_body, ")",
                 [ source_alias ], [ pivot_operator | unpivot_operator ] ;
+(* A bare connection resolves only with exactly one listing Source; a qualified
+   path selects the published listing Source. This is not a dynamic expression. *)
 file_list_source = "LIST_FILES", "(", path,
                    [ ",", file_list_selector ], ")", [ source_alias ] ;
 file_list_selector = ( "paths" | "glob" ), "=>", expression ;

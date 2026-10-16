@@ -1273,7 +1273,9 @@ contracts and are not moved into a CTE to make a JOIN parse.
 ## File listing Sources
 
 `LIST_FILES` is a table source in SQL and Pipe, including a JOIN input. Its
-first argument is a statically resolved installed Source name, not an expression,
+first argument is a statically resolved `connection.listing` Source name, or a
+bare connection with exactly one published listing Source; zero or multiple
+listing Sources are refused rather than guessed. It is not an expression,
 URI or WITH producer. The normal Source publication and Catalog determine
 its authority and file-list contract; a matching column shape alone is not a
 file-list capability.
@@ -1314,7 +1316,18 @@ A file-list profile supplies finite physical-limit candidates, not a proof of
 actual item count, snapshot isolation or successful acquisition. The installed
 acquisition must enforce its resolved limits and complete the declared selection
 protocol before exposing the Relation. LIMIT, a page boundary or a continuation
-token cannot turn an unfinished listing into a complete one.
+token cannot turn an unfinished listing into a complete one. A limited partial
+listing can be used only where the selected contract admits partial results;
+it does not carry complete-listing evidence.
+
+The listing metadata includes `resource`, `version`, `path`, `media_type` and
+`size_bytes`, with types, presence and available version guarantees declared
+by the published Source contract. Listing does not download bytes.
+`connection.contents` is the corresponding keyed Source: JOIN binds both
+`resource` and `version` to fetch exactly that Resource version, returning a
+`content_ref` and its `media_type`. Joining on resource alone does not establish
+version-pinned acquisition. Failed acquisition or version mismatch is an
+acquisition failure, not an absent INNER JOIN row.
 
 ## Source-free SELECT
 

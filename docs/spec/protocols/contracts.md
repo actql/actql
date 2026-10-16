@@ -1089,6 +1089,32 @@ region, training/retention, scope and media limits; known classification is not
 permission. Reference Local mail capture proposes confidential only as an
 explicit connection preset, not a language-wide constant or live-provider claim.
 
+<a id="file-sources"></a>
+
+### File listing and versioned Content Sources
+
+<!-- requirement-block: file-sources.listing-resolution-and-metadata -->
+A published file-list Source MUST identify the selected connection and expose
+`resource`, `version`, `path`, `media_type` and `size_bytes` as typed metadata,
+with its presence and version guarantees explicit in the SourceView contract.
+The bare-connection LIST_FILES form is admitted only with exactly one such
+Source. Selection, pagination and matching use the existing SourceView and
+file-list contracts; a LIMIT or page boundary is not a complete-listing witness.
+No metadata observation implicitly grants content-read authority.
+
+<!-- requirement-block: file-sources.contents-versioned-correlation -->
+The `connection.contents` Source MUST declare `acquisition.kind: fetch`,
+`observation.kind: capture`, correlation on the ordered key `(resource, version)`
+and exactly one complete response row per requested key, including a typed
+`content_ref` and the captured content's `media_type`.
+The declared Resource and version identify the exact requested bytes; a
+missing or nullable version cannot enter the strict version-pinned path. A
+version mismatch, inaccessible object or incomplete fetch fails acquisition
+instead of becoming a zero-row join result. Provider generation and metadata
+version constraints remain distinct and bind the emitted metadata to the
+captured bytes. Recovery uses the same captured Content and version without
+implicitly starting a new fetch.
+
 <a id="command-contracts"></a>
 
 #### Command contracts
@@ -1392,7 +1418,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:68f7e5458e9ee58dbdcf3dc490e2210dfd669f4b5b48c217a3c9dba2b094b527 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:8ca36859e1ee51b2539b56a237c70ac5fa507c2f248533a6dd62819c7e47e87f -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
 
 <a id="parameter-value-projection"></a>
