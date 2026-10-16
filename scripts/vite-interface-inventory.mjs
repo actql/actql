@@ -11,7 +11,7 @@ import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
 export async function viteInterfaceInventory(root, configs) {
   root = realpathSync(root);
-  const modules = new Map(), assets = new Map(), generated = [], external = new Map();
+  const modules = new Map(), assets = new Map(), generated = [], external = new Map(), buildInputs = [];
   const compiled = new Map(), copied = new Map(), consumed = new Set();
   // Vite remains the module resolver. These are installed roots from the
   // selected ordinary lock, not a second import resolver or a name-based
@@ -74,7 +74,8 @@ export async function viteInterfaceInventory(root, configs) {
   for (const config of configs) {
     const configPath = resolve(root, config);
     assert(inside(realpathSync(configPath)), `Escaped Vite config: ${config}`);
-    source(configPath);
+    buildInputs.push({module: config, sha256: createHash('sha256').update(readFileSync(configPath)).digest('hex'),
+      qualification: 'configured-build-input; not-distributed-authored-module'});
     const virtual = new Set();
     let outputDirectory;
     const result = await build({configFile: configPath, configLoader: 'native', logLevel: 'silent',
@@ -123,7 +124,7 @@ export async function viteInterfaceInventory(root, configs) {
   return {qualification: 'configured-vite-input-coverage-only',
     modules: [...modules.values()].sort((a, b) => a.module.localeCompare(b.module)),
     assets: [...assets.values()].sort((a, b) => a.module.localeCompare(b.module)),
-    externalModuleCount: external.size,
+    buildInputs, externalModuleCount: external.size,
     externalModules: [...external.values()].sort((a, b) =>
       `${a.installation}/${a.member}`.localeCompare(`${b.installation}/${b.member}`)),
     dependencyLockSha256: lockBytes && createHash('sha256').update(lockBytes).digest('hex'), generated,

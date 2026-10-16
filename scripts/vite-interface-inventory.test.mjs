@@ -26,6 +26,8 @@ function fixture(t) {
 test('configured Vite closure retains neutral outside-directory helpers and rejects missing registration', async t => {
   const {directory, put, declaration} = fixture(t);
   const before = await viteInterfaceInventory(directory, ['vite.config.mjs']);
+  assert.deepEqual(before.buildInputs.map(value => value.module), ['vite.config.mjs']);
+  assert(!before.modules.some(value => value.module === 'vite.config.mjs'));
   const declared = before.modules.map(declaration);
   put('sdk/entry.mjs', 'export {read} from "../outside/neutral.mjs";');
   put('outside/neutral.mjs', 'export function read(value) {return value;}');
