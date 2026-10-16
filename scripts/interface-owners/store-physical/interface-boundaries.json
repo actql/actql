@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "120b70a2b3163e47526ed4ac174a9136e00c3a623daf361c3b92ad4983c16ee3",
+      "sha256": "324561787e31e53d41cd8166b96256c85038775eb1e479d9e579683184c07087",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -6571,7 +6571,8 @@
           "name": "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord",
           "parameters": [
             "path",
-            "bytes"
+            "bytes",
+            "exclusive"
           ],
           "async": true
         },
