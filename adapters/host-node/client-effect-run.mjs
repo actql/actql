@@ -22,7 +22,7 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
-  inferPlanFor, resultPolicyOriginalFor, validateInstallation,
+  inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
@@ -32,6 +32,8 @@ export function installNodeClientEffectRun({moon,
       (resultPolicyOriginalFor !== undefined &&
         typeof resultPolicyOriginalFor !== 'function') ||
       (validateInstallation !== undefined && typeof validateInstallation !== 'function') ||
+      (updateTargetOriginals !== undefined &&
+        typeof moon?.clientProgramEffectTargetSelections !== 'function') ||
       typeof execute !== 'function' ||
       typeof journal?.reservePhysicalStart !== 'function' ||
       typeof now !== 'function' ||
@@ -44,8 +46,11 @@ export function installNodeClientEffectRun({moon,
   const compilations = new WeakMap();
   const compile = prepared => {
     if (prepared === null || typeof prepared !== 'object') throw denied();
-    let compilation = compilations.get(prepared);
-    if (compilation !== undefined) return compilation;
+    let compilation = compilations.get(prepared) ?? updateTargetOriginals?.compilationFor(prepared);
+    if (compilation !== undefined) {
+      validateInstallation?.({prepared, compilation});
+      return compilation;
+    }
     const infer = inferPlanFor?.(prepared);
     const outcome = infer === undefined
       ? moon.clientProgramCompileLocalEffects(prepared)
@@ -68,6 +73,9 @@ export function installNodeClientEffectRun({moon,
     // this installed Host cannot compile. The exact compiled owner is reused
     // by acceptance; this check neither issues a Run nor starts physical I/O.
     checkSupported(prepared) { compile(prepared); },
+    capturePreparedOriginal(prepared) {
+      return updateTargetOriginals?.capturePrepared(prepared, compile(prepared));
+    },
     // Record the public state of a started Run whose complete admitted Effect
     // Set has unknown outcomes. The owner names exactly those Effects; the
     // journal keeps the state for status and reconcile in any later process.
@@ -125,6 +133,8 @@ export function installNodeClientEffectRun({moon,
             definition, now())) throw expired();
           const runDefinition = control.admit('run_definition',
             moon.strategyPublicationContractJson(definition), limits);
+          const updateTargetRunOriginal = updateTargetOriginals?.captureRun({prepared,
+            allowed, definition, identity});
           const modelCompiled = inferPlanFor?.(prepared) === undefined ? undefined :
             control.adoptCheckedClientEffectInferRun(allowed, runDefinition,
               resultPolicyOriginal, limits);
@@ -137,6 +147,7 @@ export function installNodeClientEffectRun({moon,
                 moon.clientProgramAllowedEffectRunPrepared(allowed)),
               authorization: moon.strategyRunEvidenceJson(
                 moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+              ...(updateTargetRunOriginal === undefined ? {} : {updateTargetRunOriginal}),
               ...(resultPolicyOriginal === undefined ? {} :
                 {resultPolicyOriginal}),
               ...(modelCompiled === undefined ? {} : {
@@ -174,6 +185,8 @@ export function installNodeClientEffectRun({moon,
           {code: 'ClientEffectRunEvidenceMissing', ref: retained.ref});
       }
       const compilation = compile();
+      const original = updateTargetOriginals?.validateRun({prepared, compilation,
+        evidence, runDefinition: retained.runDefinition, identity}) ?? {};
       const allowed = checked(moon.clientProgramAdmitAllowedEffectRun(compilation,
         admitEvidence('prepared_invocation', evidence.prepared),
         admitEvidence('run_authorization', evidence.authorization)));
@@ -205,12 +218,14 @@ export function installNodeClientEffectRun({moon,
         throw expired(start.ref);
       }
       signal?.throwIfAborted();
+      original.assertUpdateSelectionCurrent?.();
       let preparedExecution;
       if (prepareExecution !== undefined && authorized === true) {
         try {
           preparedExecution = prepareExecution(Object.freeze({ref: start.ref,
             identity, owner, prepared, compilation, allowed, definition,
             runDefinition: retained.runDefinition,
+            ...original,
             resultPolicyOriginal: evidence.resultPolicyOriginal}));
           if (typeof preparedExecution?.then === 'function') {
             // A misinstalled asynchronous preparer is not a physical-start
@@ -238,6 +253,7 @@ export function installNodeClientEffectRun({moon,
       // durable physical-start reservation. The answer alone is not a send
       // permit; no asynchronous work separates these two admissions.
       beforePhysicalStart?.();
+      original.assertUpdateSelectionCurrent?.();
       if (!journal.reservePhysicalStart(identity, {namespaceId, ref: start.ref,
         currentAuthorization: authorized === true}, moon, control)) {
         return Object.freeze({kind: 'reconcile', ref: start.ref});
@@ -248,6 +264,7 @@ export function installNodeClientEffectRun({moon,
       // No catch path resets the durable physical-start claim.
       const value = await execute(Object.freeze({ref: start.ref, identity,
         owner, prepared, compilation, allowed, definition,
+        ...original,
         runDefinition: retained.runDefinition, preparedExecution, signal}));
       return Object.freeze({kind: 'started', ref: start.ref, value});
     },
@@ -267,6 +284,8 @@ export function installNodeClientEffectRun({moon,
       const evidence = retained.runAdmissionEvidence;
       if (evidence === undefined) throw denied();
       const compilation = compile();
+      const original = updateTargetOriginals?.validateRun({prepared, compilation,
+        evidence, runDefinition: retained.runDefinition, identity}) ?? {};
       const allowed = checked(moon.clientProgramAdmitAllowedEffectRun(compilation,
         admitEvidence('prepared_invocation', evidence.prepared),
         admitEvidence('run_authorization', evidence.authorization)));
@@ -275,10 +294,12 @@ export function installNodeClientEffectRun({moon,
       const current = await authorizeRunStart(Object.freeze({namespaceId,
         principalId, connection, ref: retained.ref, runDefinition: retained.runDefinition}));
       if (current !== true) throw denied();
+      original.assertUpdateSelectionCurrent?.();
       if (!moon.clientProgramEffectRunStartCurrent(allowed, definition, now())) {
         throw expired(retained.ref);
       }
       const facts = {ref: retained.ref, identity, owner, prepared, compilation,
+        ...original,
         allowed, definition, runDefinition: retained.runDefinition,
         resultPolicyOriginal: evidence.resultPolicyOriginal};
       const preparedExecution = prepareExecution?.(Object.freeze(facts));

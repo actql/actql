@@ -19,6 +19,7 @@ pub(all) enum ClientEffectRunMaterialsIssue {
   RunMismatch
   Request(ClientRequestIdentityIssue)
   Normalization(ClientEffectNormalizationIssue)
+  TargetSelection(ClientEffectUpdateTargetIssue)
 }
 
 ///|
@@ -69,6 +70,9 @@ pub fn issue_client_effect_run_materials(
     return Err(Normalization(MissingOriginalJournal))
   }
   let prepared = client_effect_compilation_owner(allowed.compilation)
+  if prepared.target_selections is Some(_) {
+    return Err(TargetSelection(OriginalOwnerRequired))
+  }
   match bind_client_effect_compiled_run(prepared, allowed, definition) {
     Ok(_) => ()
     Err(issue) => return Err(Binding(issue))
@@ -183,6 +187,22 @@ pub fn admit_client_effect_run_materials(
     Ok(value) => value
     Err(issue) => return Err(Program(issue))
   }
+  let prepared = match body.target_selections_wire {
+    None => prepared
+    Some(wire) => {
+      let selection = match
+        admit_client_effect_target_selections(prepared.candidate, wire) {
+        Ok(value) => value
+        Err(issue) => return Err(TargetSelection(issue))
+      }
+      { ..prepared, target_selections: Some(selection), }
+    }
+  }
+  let infer = match
+    restore_client_effect_original_infer(prepared, body.infer_input, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   // Profile selection is an audit of the restored checked owners, not a
   // catalog string or caller boolean. No custody escapes until saved
   // invocation/authorization and the independently selected Run/request bind it.
@@ -235,6 +255,7 @@ pub fn admit_client_effect_run_materials(
       limits.max_evidence_nodes,
       limits.max_evidence_depth,
       normalization_profile,
+      infer~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Compilation(issue))
@@ -304,12 +325,13 @@ pub fn admit_client_effect_run_materials(
   // request. Wire-only restoration also needs the original request selected
   // independently by the trusted durable Host/journal context. Do not derive
   // that expected identity from these candidate material bytes.
-  if normalization_profile is Some(_) &&
+  if (normalization_profile is Some(_) || prepared.target_selections is Some(_)) &&
     original_materials is None &&
     request != expected_request {
     return Err(Request(IdentityMismatch))
   }
-  if normalization_profile is Some(_) {
+  if normalization_profile is Some(_) || prepared.target_selections is Some(_) ||
+    infer is Some(_) {
     let canonical = match
       encode_prepared_client_effect_materials(
         allowed,
@@ -321,6 +343,9 @@ pub fn admit_client_effect_run_materials(
       Err(issue) => return Err(issue)
     }
     if canonical != materials {
+      if prepared.target_selections is Some(_) {
+        return Err(TargetSelection(InvalidMaterials))
+      }
       return Err(Normalization(UnverifiedOriginalMaterials))
     }
   }

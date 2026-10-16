@@ -15,6 +15,7 @@ import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
+import {updateTargetRunOriginalShape} from './update-target-original-shape.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 
 const cid = value => typeof value === 'string' &&
@@ -298,10 +299,12 @@ function admissionEvidenceShape(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   if (Object.keys(value).some(key => !['authorization', 'prepared',
     'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
-    'valuesHostPolicyOriginal', 'logicalPlanOriginal'].includes(key)) ||
+    'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal'].includes(key)) ||
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
+  if (value.updateTargetRunOriginal !== undefined &&
+      !updateTargetRunOriginalShape(value.updateTargetRunOriginal, value)) return false;
   if (value.logicalPlanOriginal !== undefined &&
       !logicalPlanOriginalShape(value.logicalPlanOriginal)) return false;
   if (value.valuesHostPolicyOriginal !== undefined) {
@@ -386,6 +389,11 @@ function retainedEvidence(row) {
 
 function freezeAdmissionEvidence(value) {
   if (value.logicalPlanOriginal !== undefined) Object.freeze(value.logicalPlanOriginal);
+  if (value.updateTargetRunOriginal !== undefined) {
+    value.updateTargetRunOriginal.installations.forEach(Object.freeze);
+    Object.freeze(value.updateTargetRunOriginal.installations);
+    Object.freeze(value.updateTargetRunOriginal);
+  }
   return Object.freeze(value);
 }
 

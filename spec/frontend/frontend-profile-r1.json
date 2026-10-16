@@ -1349,12 +1349,16 @@
       "surface_forms": [
         "|> EFFECT name ...",
         "EFFECT name ...",
-        "|> EFFECT [name] UPDATE TARGET string MAPPING identifier [FROM RESULT name] ID field SET (assignments)"
+        "|> EFFECT [name] UPDATE TARGET string MAPPING identifier [FROM RESULT name] ID field SET (assignments)",
+        "|> EFFECT [name] UPDATE qualified.path [MAPPING identifier] [FROM RESULT name] ID field SET (assignments)"
       ],
       "canonical_lowering": "stage effect map",
       "preconditions": [
         "explicit terminal Effect; ordinary checked owner",
-        "mapping and authority contracts unchanged"
+        "mapping and authority contracts unchanged",
+        "logical UPDATE targets require an owned installed Effect publication bound to the exact CheckEnvironment and installation",
+        "omitted Mapping requires one structurally valid UPDATE/ID-compatible candidate for the target, independently of grants and SET fields",
+        "retained/private input selection and pure SET preparation reuse existing UPDATE owners and preserve explicit direct-field/literal identity"
       ],
       "spec_section": "12.2",
       "execution_evidence_ids": [],
@@ -1371,7 +1375,10 @@
         "SYS-04"
       ],
       "additional_fixture_requirements": [
-        "Adopted target Effect surface lowering and public execution; retired EFFECT name = JSON is not a substitute"
+        "Adopted target Effect surface lowering and public execution; retired EFFECT name = JSON is not a substitute",
+        "Logical UPDATE and explicit TARGET forms normalize identically under the same environment and installation; quoted paths, exact Mapping overrides and incomplete/ambiguous candidates fail closed",
+        "Public installed Host authority, approval, write-only read refusal and restart retain the original target, Mapping and installation; source fixtures are not execution evidence",
+        "Normal Host source preparation must refuse logical UPDATE before Provider work until the existing Run owner pins the original installation binding; full TARGET/MAPPING behavior remains unchanged"
       ]
     },
     {

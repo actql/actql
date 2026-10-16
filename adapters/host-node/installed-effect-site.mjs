@@ -275,7 +275,7 @@ async function currentRunState(facts, result, stage) {
 // owners; neither hook may decide that an unknown send succeeded or restart
 // Compute. The recovered hook receives the exact durable capture only.
 export function createInstalledEffectSite({environmentWire,
-  prepareCaptured, prepareRecovered, privateEvidenceKey,
+  prepareCaptured, prepareRecovered, validateRecoveredInstallation, privateEvidenceKey,
   queryTableBindings,
   queryTableWriteAccesses,
   targetReadInventory, targetReadAuthorization,
@@ -283,6 +283,7 @@ export function createInstalledEffectSite({environmentWire,
   if (typeof environmentWire !== 'string' || !environmentWire ||
       typeof prepareCaptured !== 'function' ||
       typeof prepareRecovered !== 'function' ||
+      (validateRecoveredInstallation !== undefined && typeof validateRecoveredInstallation !== 'function') ||
       targetReadInventory !== undefined && typeof targetReadInventory !== 'function' ||
       (targetReadInventory === undefined) !== (targetReadAuthorization === undefined) ||
       privateEvidenceKey !== undefined &&
@@ -302,6 +303,7 @@ export function createInstalledEffectSite({environmentWire,
     async execute(facts) {
       const {moon, retainExecution, signal} = facts;
       signal?.throwIfAborted();
+      facts.assertUpdateSelectionCurrent?.();
       if (typeof facts.openComputation !== 'function') {
         fail('InvalidInstalledEffectComputationPort');
       }
@@ -313,11 +315,13 @@ export function createInstalledEffectSite({environmentWire,
         try { readiness = await facts.targetReads.prepare(); }
         catch (error) { facts.observePreEffectFailure?.(); throw error; }
         if (readiness.status === 'waiting_checkpoint') return readiness;
+        facts.assertUpdateSelectionCurrent?.();
       }
       custody.expectPhysical();
       facts.beginPhysicalWork?.();
       let opened;
       try {
+        facts.assertUpdateSelectionCurrent?.();
         facts.targetReads?.enterComputation();
         opened = await facts.openComputation(Object.freeze({
           retainComputationOwner: owner => custody.attachPhysical(owner),
@@ -355,6 +359,7 @@ export function createInstalledEffectSite({environmentWire,
       }
       let stage;
       try {
+        facts.assertUpdateSelectionCurrent?.();
         stage = await prepareCaptured(Object.freeze({...facts,
           execution, checkedHost}));
       } catch (error) {
@@ -397,7 +402,9 @@ export function createInstalledEffectSite({environmentWire,
       }
       let failed = false;
       try {
+        facts.assertUpdateSelectionCurrent?.();
         const gate = await authorization(facts, stage, async () => {
+          facts.assertUpdateSelectionCurrent?.();
           // The approved continuation must be able to reconstruct exact
           // claims after process loss. These are durable intents, not send
           // claims; the resumed path still repeats current admission.
@@ -408,8 +415,10 @@ export function createInstalledEffectSite({environmentWire,
             store: facts.store, storedResults: stage.storedResults,
             control: facts.control, computation: stage.computation,
             preview: stage.preview});
+          facts.assertUpdateSelectionCurrent?.();
         });
         custody.retainAuthorization(gate);
+        facts.assertUpdateSelectionCurrent?.();
         const options = completionOptions(stage, gate, signal, undefined,
           facts.assertContinuationCurrent);
         let result;
@@ -485,6 +494,10 @@ export function createInstalledEffectSite({environmentWire,
           computation: recovered.computation.computation,
           preview: recovered.computation.preview}));
       checkContinuationBinding(facts, recovered.computation);
+      // Installation fencing must precede resumed target-read preparation.
+      // prepareRecovered alone is too late: reads may already have occurred.
+      validateRecoveredInstallation?.(Object.freeze({...facts, recovered}));
+      recovered.assertUpdateSelectionCurrent?.();
       // Observing an unknown Effect is not a new approved continuation. Keep
       // the completed resume intent and physical start identity unchanged.
       const claimed = observing ? undefined : checkpointJournal.claimResume(view.runId, {
@@ -503,13 +516,27 @@ export function createInstalledEffectSite({environmentWire,
       }
       const settling = claimed?.action === 'settlement';
       if (!observing && claimed.action !== 'claimed' && !settling) return claimed;
+      if (recovered.updateTargetSelections !== undefined) {
+        const original = recovered.assertUpdateSelectionCurrent;
+        recovered = Object.freeze({...recovered, assertUpdateSelectionCurrent() {
+          original();
+          signal?.throwIfAborted();
+          if (!observing && !settling) {
+            facts.assertContinuationCurrent?.();
+            checkpointJournal.admitResume(claimed.claim, {checkpointCid: view.checkpointCid});
+          }
+        }});
+      }
       let stage;
       try {
+        recovered.assertUpdateSelectionCurrent?.();
         if (!observing && !settling && facts.prepareTargetReads !== undefined) {
           const targetReads = await facts.prepareTargetReads(claimed);
+          recovered.assertUpdateSelectionCurrent?.();
           if (targetReads !== undefined) {
             custody.retainAuthorization(targetReads);
             const readiness = await targetReads.prepare();
+            recovered.assertUpdateSelectionCurrent?.();
             if (readiness.status !== 'ready') fail('InstalledEffectRepeatDeferralUnsupported');
             facts = Object.freeze({...facts, targetReads});
           }
@@ -517,6 +544,7 @@ export function createInstalledEffectSite({environmentWire,
         stage = await prepareRecovered(Object.freeze({...facts,
           recovered,
           retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
+        recovered.assertUpdateSelectionCurrent?.();
       } catch (error) {
         if (!observing && !settling && (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||
             error instanceof ExecutionAuthorizationError &&
@@ -576,10 +604,12 @@ export function createInstalledEffectSite({environmentWire,
       }
       let failed = false;
       try {
+        recovered.assertUpdateSelectionCurrent?.();
         const gate = observing ? undefined : await authorization(facts, stage, () => {
           fail('InstalledEffectRepeatDeferralUnsupported');
         });
         if (gate !== undefined) custody.retainAuthorization(gate);
+        recovered.assertUpdateSelectionCurrent?.();
         const completion = completionOptions(stage, gate, signal,
           observing ? undefined : Object.freeze({claim: claimed}));
         const options = observing ? Object.freeze({...completion,

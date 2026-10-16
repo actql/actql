@@ -393,6 +393,7 @@ fn compile_query_script_with_source(
   context : Context,
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
+  update_targets? : UpdateTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
   if context.program_id.is_empty() ||
     context.stage_id.is_empty() ||
@@ -449,6 +450,19 @@ fn compile_query_script_with_source(
       carrier_work: limits.max_expression_work,
     }
     let root = @query.script_query(script)
+    // Complete authoritative target selection before the existing Relation
+    // lowerer resolves ID/SET or builds a private UPDATE capture.
+    let update_target = match @query.terminal_effect(root) {
+      Some(effect) =>
+        Some(
+          resolve_update_effect_target(
+            effect,
+            update_targets,
+            limits.max_expression_work,
+          ),
+        )
+      None => None
+    }
     let has_bindings = @query.query_binding_count(root) > 0
     let reserved = context.inputs.map(input => input.name)
     let (known, graphs) = lower_script_bindings(
@@ -711,6 +725,7 @@ fn compile_query_script_with_source(
             lower_update_effect(
               construction,
               effect,
+              update_target.unwrap(),
               stage_context.stage_result,
               retained,
               limits.max_expression_work,
@@ -889,8 +904,15 @@ pub fn compile_query_script(
   context : Context,
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
+  update_targets? : UpdateTargetPublication? = None,
 ) -> Result[@program.Program, Issue] {
-  compile_query_script_with_source(script, context, limits, table_writes~)
+  compile_query_script_with_source(
+    script,
+    context,
+    limits,
+    table_writes~,
+    update_targets~,
+  )
   .map(pair => pair.0)
   .map_err(issue_without_source)
 }

@@ -36,8 +36,7 @@ import {installNodeClientProgramPreparation} from
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {installedModelEnvironment, readInstalledModelExecution,
   readInstalledModelDependencies, installModelProviders,
-  admitInstalledModelProvider, admitInstalledModelProviderBinding,
-  observeInstalledModelAccount} from
+  admitInstalledModelProvider, admitInstalledModelProviderBinding} from
   './installed-model.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
@@ -52,8 +51,11 @@ import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
 import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
   publishInstalledEffectProfile} from
   './installed-effect.mjs';
-import {installedEffectFor} from './installed-effect-inventory.mjs';
-import {installedRowEffectDescriptors} from './installed-row-effect.mjs';
+import {installedEffectFor, installedUpdateTargets} from './installed-effect-inventory.mjs';
+import {installedRowEffectDescriptors, validateInstalledUpdateOwnerSelections}
+  from './installed-row-effect.mjs';
+import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
+import {runUpdateSelectionCid} from './update-target-original-shape.mjs';
 import {assertInstalledConnectorTable} from './installed-connectors.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
@@ -100,7 +102,8 @@ import {installClientEffectObservations} from './client-effect-observations.mjs'
 import {assertEffectTargetReadBinding, effectTargetReadContinuation} from
   './effect-target-read-continuation.mjs';
 import {EFFECT_TARGET_CONTINUATION} from './effect-target-read-inventory.mjs';
-import {canonicalJson, contentCid, createLocalAuthorizationGate} from './local-account-config.mjs';
+import {canonicalJson, contentCid, createLocalAuthorizationGate,
+  observeInstalledAccount} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
@@ -358,8 +361,13 @@ async function openInstalledHost(originalInstallation) {
   let sourceProfile;
   let installedEffect;
   let environmentWire, effectiveHostCapacityPolicyCid;
-  function selectedInstalledEffect({prepared, compilation}) {
-    if (installedEffect?.effects === undefined) return installedEffect;
+  let updateTargetOriginals;
+  function selectedInstalledEffect({prepared, compilation, updateTargetSelections}) {
+    const selections = updateTargetSelections ?? updateTargetOriginals?.selectionsOf(prepared);
+    if (installedEffect?.effects === undefined) {
+      validateInstalledUpdateOwnerSelections(installedEffect, selections);
+      return installedEffect;
+    }
     let selected = effectSelections.get(prepared);
     if (selected === undefined) {
       selected = installedEffectFor(installedEffect,
@@ -367,10 +375,29 @@ async function openInstalledHost(originalInstallation) {
       selected.assertPrepared?.({moon, prepared, compilation});
       effectSelections.set(prepared, selected);
     }
+    validateInstalledUpdateOwnerSelections(selected, selections);
     return selected;
   }
   function recoveredInstalledEffect(facts) {
-    if (installedEffect?.effects === undefined) return installedEffect;
+    const selections = facts.recovered.updateTargetSelections;
+    facts.recovered.assertUpdateSelectionCurrent?.();
+    const provider = facts.continuation?.provider ?? facts.continuation;
+    if (selections !== undefined || Object.hasOwn(provider ?? {}, 'stage_index')) {
+      const preview = JSON.parse(facts.control.effectComputationPreviewWire(
+        facts.recovered.computation.preview));
+      const updates = preview.effects.filter(member => member.effect_kind === 'update');
+      if (selections === undefined || updates.length !== selections.length ||
+          selections.some(selection => selection.stage_index !== provider?.stage_index ||
+            !updates.some(member => member.effect_id === selection.effect_id &&
+              member.target === selection.target_ref && member.mapping === selection.mapping_ref &&
+              member.resolved_mapping_contract_cid === selection.mapping_cid))) {
+        throw refusedEffectPreparation(clientOperationError('InstalledEffectOriginalSelectionChanged'));
+      }
+    }
+    if (installedEffect?.effects === undefined) {
+      validateInstalledUpdateOwnerSelections(installedEffect, selections);
+      return installedEffect;
+    }
     // The capture owner has already authenticated and admitted this Preview.
     // Select its original contract inventory; never infer a new Program or Run.
     const preview = facts.recovered.computation.preview;
@@ -382,7 +409,11 @@ async function openInstalledHost(originalInstallation) {
       kind: member.effect_kind, target: member.target, mappingRef: member.mapping,
       mappingCid: member.resolved_mapping_contract_cid,
       ...(member.source_table_input === undefined ? {} : {capabilityCid: member.capability_evidence_cid})}));
-    try { return installedEffectFor(installedEffect, descriptors); }
+    try {
+      const selected = installedEffectFor(installedEffect, descriptors);
+      validateInstalledUpdateOwnerSelections(selected, selections);
+      return selected;
+    }
     catch (cause) {
       // This observes only installation metadata before any new provider work.
       // The existing resume owner still preserves attempted unknown outcomes.
@@ -399,12 +430,15 @@ async function openInstalledHost(originalInstallation) {
       if (authorization === undefined) {
         throw new TypeError('InstalledEffectAuthorizationRequired');
       }
-      effectInstallation = createInstalledEffectSite(installedEffect.effects === undefined
-        ? installedEffect : {
-          environmentWire: installedEffect.environmentWire,
-          prepareCaptured: facts => selectedInstalledEffect(facts).prepareCaptured(facts),
-          prepareRecovered: facts => recoveredInstalledEffect(facts).prepareRecovered(facts),
-        });
+      effectInstallation = createInstalledEffectSite({
+        ...(installedEffect.effects === undefined ? installedEffect : {}),
+        environmentWire: installedEffect.environmentWire,
+        prepareCaptured: facts => selectedInstalledEffect(facts).prepareCaptured(facts),
+        validateRecoveredInstallation: facts => recoveredInstalledEffect(facts),
+        prepareRecovered: facts => recoveredInstalledEffect(facts).prepareRecovered({...facts,
+          updateTargetSelections: facts.recovered.updateTargetSelections,
+          assertUpdateSelectionCurrent: facts.recovered.assertUpdateSelectionCurrent}),
+      });
     }
     if (effectInstallation !== undefined &&
         (typeof effectInstallation.environmentWire !== 'string' ||
@@ -473,7 +507,9 @@ async function openInstalledHost(originalInstallation) {
       sourcePublication = sourceAliasPublication(moon, environment,
         sourceProfile?.queryAliases ?? [],
         installedEffect?.queryTableBindings ?? effectInstallation?.queryTableBindings ?? [],
-        {namespace: sourceNamespace === undefined ? undefined : {
+        {updateTargets: installedEffect === undefined ? [] :
+          installedUpdateTargets(installedEffect, installedEffect.queryUpdateTargets ?? [], environmentWire),
+          namespace: sourceNamespace === undefined ? undefined : {
           name: sourceNamespace, profilePaths: selectedSourcePaths},
           selectorNamespace: sourceSelectorNamespace === undefined ? undefined : {
             name: sourceSelectorNamespace, profilePaths: selectedSourcePaths},
@@ -680,10 +716,27 @@ async function openInstalledHost(originalInstallation) {
     return result;
   };
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
+  updateTargetOriginals = installUpdateTargetOriginals({moon, control, installedEffect,
+    limits: localContractLimits});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
-    verifyRequestValuePolicy,
+    verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
     allowEffects: effectInstallation !== undefined});
+  const prepareCapturedSubmission = async (submission, ref) => {
+    const retained = ref === undefined ? undefined : journal.lookupRunDefinition(ref, moon, control);
+    if (retained !== undefined &&
+        runUpdateSelectionCid(retained.runDefinition) !== undefined &&
+        submission.updateTargetPreparedOriginal === undefined) {
+      throw clientOperationError('InstalledEffectOriginalSelectionChanged');
+    }
+    return submission.updateTargetPreparedOriginal === undefined ? prepareSubmit(submission)
+      : prepareSubmit.restoreOriginal(submission.updateTargetPreparedOriginal);
+  };
+  const capturedUpdateOriginal = submission => {
+    if (prepareSubmit.kindOf(submission.preparedProgram) !== 'effectful') return {};
+    const original = effectRun.capturePreparedOriginal(submission.preparedProgram);
+    return original === undefined ? {} : {updateTargetPreparedOriginal: original};
+  };
   const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,
     authorize: hostConnection});
   Object.freeze(check);
@@ -977,14 +1030,40 @@ async function openInstalledHost(originalInstallation) {
     // The Effect compiler retains this exact graph for the saved admission.
     // Current account/egress callbacks are checked again by physical dispatch.
     if (retain && occurrence !== undefined && inferSelections.has(preparedProgram)) return;
+    const originalCompilation = updateTargetOriginals?.compilationFor(preparedProgram);
+    let originalInfer;
+    if (originalCompilation !== undefined) {
+      try {
+        originalInfer = typeof moon.clientProgramEffectCompilationInferOriginal === 'function'
+          ? moon.clientProgramEffectCompilationInferOriginal(originalCompilation) : undefined;
+        if (typeof originalInfer?.then === 'function') {
+          void Promise.resolve(originalInfer).catch(() => {});
+          throw new Error('InstalledInferOriginalCompilationUnavailable');
+        }
+        if (originalInfer === null || typeof originalInfer !== 'object' ||
+            [originalInfer._0, originalInfer._1, originalInfer._2]
+              .some(value => value === undefined || value === null)) {
+          throw new Error('InstalledInferOriginalCompilationUnavailable');
+        }
+        // The reconstructed compilation owns this exact graph, occurrence and
+        // execution. Current installation checks below cannot replace them.
+        occurrence = originalInfer._1;
+      } catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'original_model_compilation',
+          code: cause.code, cause});
+        throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+    }
     const selectedStep = occurrence === undefined
       ? moon.clientProgramSelectedInferStep(preparedProgram)
       : moon.clientProgramInferOccurrenceCoordinates(occurrence)._2;
     if (selectedStep !== undefined) {
       let execution;
       try {
-        ({execution} = readInstalledModelExecution(moon, preparedProgram,
-          modelInstallation, occurrence));
+        if (originalInfer === undefined) {
+          ({execution} = readInstalledModelExecution(moon, preparedProgram,
+            modelInstallation, occurrence));
+        } else execution = originalInfer._2;
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'model_execution',
           code: cause.code, cause: cause.cause ?? cause,
@@ -1049,9 +1128,11 @@ async function openInstalledHost(originalInstallation) {
         // before admission, without inventing public Result roots.
         const effectGraph = prepareSubmit.kindOf(preparedProgram) === 'effectful' &&
           moon.clientProgramEffectSerializationOccurrences(preparedProgram).length !== 0
-          ? checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution))
+          ? originalInfer?._0 ?? checked(
+            moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution))
           : undefined;
-        const serializationGraph = effectGraph !== undefined
+        const serializationGraph = originalInfer !== undefined
+          ? control.inferSerializationGraph(originalInfer._0) : effectGraph !== undefined
           ? control.inferSerializationGraph(effectGraph)
           : prepareSubmit.kindOf(preparedProgram) !== 'effectful' &&
           moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0
@@ -1083,7 +1164,7 @@ async function openInstalledHost(originalInstallation) {
           egressFailure = error;
         }
         admissionBoundary = 'account';
-        const observeAccount = () => observeInstalledModelAccount(moon, authorization);
+        const observeAccount = () => observeInstalledAccount(moon, authorization);
         const account = observeAccount();
         if (!durableModel) {
           const decision = moon.executionAuthorizationEvaluate(account, principalId,
@@ -1098,7 +1179,8 @@ async function openInstalledHost(originalInstallation) {
           }
         }
         admissionBoundary = 'plan_graph';
-        const graph = effectGraph !== undefined ? effectGraph : serializationGraph !== undefined
+        const graph = originalInfer !== undefined ? originalInfer._0
+          : effectGraph !== undefined ? effectGraph : serializationGraph !== undefined
           ? control.prepareCheckedClientSerializedInferGraph(occurrence, serializationGraph, execution)
           : checked(occurrence === undefined
           ? moon.clientProgramInstalledInferPlanGraph(preparedProgram, step, execution)
@@ -1392,6 +1474,7 @@ async function openInstalledHost(originalInstallation) {
     requestId: submission.requestId, principalId: submission.principalId,
     connection: submission.connection, kind: submission.kind, input: submission.input,
     parameters: submission.parameters, resultNames,
+    ...capturedUpdateOriginal(submission),
     ...(submission.submission === undefined ? {} : {submission: submission.submission}),
     ...(keyedSource !== undefined ? {acquisitions: keyedDescriptors(preparedSource, keyedSource)}
       : preparedSources?.length === 2 ? {acquisitions: sourceDescriptors(preparedSources)}
@@ -1533,6 +1616,11 @@ async function openInstalledHost(originalInstallation) {
       key: {namespaceId, authorityScopeCid, requestId,
         runDefinitionCid: ref.runDefinitionCid}, principalId,
       contractLimits: localContractLimits, signal,
+      restoreOriginal: (saved, requestIdentity) => {
+        const original = saved.runAdmissionEvidence?.updateTargetRunOriginal;
+        return original === undefined ? {} : updateTargetOriginals.restoreRun(
+          original, saved.runDefinition, requestIdentity);
+      },
       authorizeEvidenceRead: binding => hostConnection({principalId,
         connection: {mode, owner: mode}, ref}) &&
         binding.namespaceId === namespaceId &&
@@ -1544,8 +1632,16 @@ async function openInstalledHost(originalInstallation) {
   };
   const openEffectTargetReads = async (facts, {signal, resume, activeResume, journalPort,
     allowDefer = true} = {}) => {
-    const selected = installedEffect?.effects === undefined
-      ? effectInstallation : selectedInstalledEffect(facts);
+    const selected = installedEffect === undefined ? effectInstallation : selectedInstalledEffect(facts);
+    const assertCurrent = () => {
+      facts.assertUpdateSelectionCurrent?.();
+      if (journal.lookupRunDefinition(facts.ref, moon, control)?.cancellationRequested !== false) {
+        throw Object.assign(new Error('ClientRunCancellationRequested'),
+          {code: 'ClientRunCancellationRequested'});
+      }
+      activeResume?.assertCurrent();
+    };
+    if (facts.updateTargetSelections !== undefined) assertCurrent();
     if (typeof selected.targetReadInventory !== 'function') return undefined;
     return effectTargetReadContinuation({checkpoints,
       ...(installedEffect?.effects === undefined ? {} : {
@@ -1555,19 +1651,32 @@ async function openInstalledHost(originalInstallation) {
       unitId: moon.clientProgramEffectCompilationUnitId(facts.compilation),
       declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
       submission: effectSubmissions.get(facts.prepared),
-      inventory: selected.targetReadInventory({...facts, moon}), principalId,
+      inventory: selected.targetReadInventory({...facts, moon,
+        ...(facts.updateTargetSelections === undefined ? {} : {assertUpdateSelectionCurrent: assertCurrent})}), principalId,
       signal, resume, allowDefer, journalPort,
-      assertCurrent() {
-        if (journal.lookupRunDefinition(facts.ref, moon, control)?.cancellationRequested !== false) {
-          throw Object.assign(new Error('ClientRunCancellationRequested'),
-            {code: 'ClientRunCancellationRequested'});
-        }
-        activeResume?.assertCurrent();
-      },
+      ...(facts.updateTargetSelections === undefined ? {} : {
+        assertOriginalCurrent: assertCurrent,
+      }),
+      assertCurrent,
     });
   };
   const executeEffectComputation = (facts, sourceResume, targetResume, modelResume) => {
     const activeResume = sourceResume ?? targetResume ?? modelResume;
+    let assertOriginalUpdateSelectionCurrent;
+    if (facts.updateTargetSelections !== undefined) {
+      const original = facts.assertUpdateSelectionCurrent;
+      const ref = facts.ref;
+      assertOriginalUpdateSelectionCurrent = () => {
+        original();
+        if (journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested !== false) {
+          throw clientOperationError('ClientRunCancellationRequested');
+        }
+      };
+      facts = Object.freeze({...facts, assertUpdateSelectionCurrent() {
+        assertOriginalUpdateSelectionCurrent();
+        activeResume?.assertCurrent();
+      }});
+    }
     const readResume = sourceResume ?? targetResume;
     const parentResume = readResume?.active === true
       ? {claim: readResume.claim, checkpointCid: readResume.view.checkpointCid}
@@ -1604,6 +1713,7 @@ async function openInstalledHost(originalInstallation) {
             store, storeAuthorityCid, authorityScopeCid,
             observeRun: ({ref}) => observeRun({ref, principalId}),
             openComputation: async ({retainComputationOwner} = {}) => {
+              facts.assertUpdateSelectionCurrent?.();
               if (inferSelections.has(facts.prepared) ||
                   moon.clientProgramEffectPrepareQueryAcquisition(
                 facts.prepared, 0, 0)?.$tag === 1) {
@@ -1622,6 +1732,7 @@ async function openInstalledHost(originalInstallation) {
                     if (records.length === 1) {
                       const record = records[0];
                       const token = ownedModelToken = await modelController.prime(record);
+                      facts.assertUpdateSelectionCurrent?.();
                       modelController.state(record.inventory);
                       activeResume.assertCurrent();
                       retainedModel = {record, token, view: targetResume.view};
@@ -1640,6 +1751,8 @@ async function openInstalledHost(originalInstallation) {
                     declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
                     unitId: moon.clientProgramEffectCompilationUnitId(facts.compilation),
                     principalId, signal, resume: sourceResume,
+                    assertUpdateSelectionCurrent: assertOriginalUpdateSelectionCurrent,
+                    assertContinuationCurrent: activeResume?.assertCurrent,
                     ...(retainedModel?.token.snapshot.sourceContinuation === undefined ? {} : {
                       restore: {view: retainedModel.view,
                         continuation: retainedModel.token.snapshot.sourceContinuation},
@@ -1655,6 +1768,8 @@ async function openInstalledHost(originalInstallation) {
                     owner: facts.owner, acquired: facts.preparedExecution,
                     sourceProfile, registry, values, fragment, ordered,
                     sourceAccess: sourceProfile?.sourceAccess, signal, now,
+                    assertUpdateSelectionCurrent: assertOriginalUpdateSelectionCurrent,
+                    assertContinuationCurrent: activeResume?.assertCurrent,
                     retainComputationOwner, infer: inferSelections.get(facts.prepared),
                     computeConfigurations: {local: localSnapshotConfiguration},
                     withComputePauseHandler: (configurations, handlePause) => ({
@@ -1698,12 +1813,11 @@ async function openInstalledHost(originalInstallation) {
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
-      ...(installedEffect?.effects === undefined ? {} : {
-        validateInstallation(facts) {
-          try { selectedInstalledEffect(facts); }
-          catch (cause) { throw clientOperationError('ClientProgramUnsupported', cause); }
-        },
-      }),
+      updateTargetOriginals,
+      validateInstallation(facts) {
+        try { selectedInstalledEffect(facts); }
+        catch (cause) { throw clientOperationError('ClientProgramUnsupported', cause); }
+      },
       resultPolicyOriginalFor: prepared => {
         if (!inferSelections.has(prepared) ||
             moon.clientProgramEffectAcquisitionCount(prepared) !== 0) {
@@ -1756,6 +1870,7 @@ async function openInstalledHost(originalInstallation) {
     const {requestId, principalId, connection, kind, input, parameters} = submission;
     effectSubmissions.set(submission.preparedProgram, JSON.parse(canonicalValueJson({
       requestId, principalId, connection, kind, input, parameters,
+      ...capturedUpdateOriginal(submission),
       ...(submission.submission === undefined ? {} : {submission: submission.submission})}, {dataKeys: true})));
     return effectRun.accept({
     prepared: submission.preparedProgram, authorityScopeCid,
@@ -1791,6 +1906,7 @@ async function openInstalledHost(originalInstallation) {
       const captured = {version: 'actql-remote-captured-submission/0.1',
         requestId, principalId: actual, connection, kind, input,
         parameters, resultNames,
+        ...capturedUpdateOriginal(submission),
         ...(submission.submission === undefined ? {} : {submission: submission.submission})};
       const decided = await checkpoints.acceptRun({requested: requestedFacts,
         captured});
@@ -1992,8 +2108,10 @@ async function openInstalledHost(originalInstallation) {
       connection: captured.connection, requestId: captured.requestId,
       kind: captured.kind, input: captured.input,
       parameters: captured.parameters,
+      ...(captured.updateTargetPreparedOriginal === undefined ? {} :
+        {updateTargetPreparedOriginal: captured.updateTargetPreparedOriginal}),
       ...(captured.submission === undefined ? {} : {submission: captured.submission})};
-    submission.preparedProgram = await prepareSubmit(submission);
+    submission.preparedProgram = await prepareCapturedSubmission(submission);
     const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
@@ -2449,7 +2567,7 @@ async function openInstalledHost(originalInstallation) {
                 const continuation = await checkpoints.runUnitReadContinuation(view);
                 targetResumption = continuation.version === EFFECT_TARGET_CONTINUATION;
                 const submission = {...continuation.submission};
-                submission.preparedProgram = await prepareSubmit(submission);
+                submission.preparedProgram = await prepareCapturedSubmission(submission, ref);
                 const request = requestOf(submission);
                 if (!request.effectful || !targetResumption && inferSelections.has(submission.preparedProgram)) {
                   throw new Error('UnsupportedAcquiredEffectContinuation');
@@ -2524,6 +2642,11 @@ async function openInstalledHost(originalInstallation) {
             run: ({signal, retainExecution, beginPhysicalWork}) =>
               effectInstallation.resume(Object.freeze({ref, view, observation,
                 reconciliationOnly: observing,
+                assertContinuationCurrent() {
+                  if (journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested !== false) {
+                    throw clientOperationError('ClientRunCancellationRequested');
+                  }
+                },
                 continuation, retained, moon, control, store,
                 storeAuthorityCid, authorityScopeCid, signal,
                 retainExecution, beginPhysicalWork,
@@ -2540,7 +2663,7 @@ async function openInstalledHost(originalInstallation) {
                   if (records.length === 0 && capturedTarget === undefined) return undefined;
                   if (capturedTarget !== undefined) assertEffectTargetReadBinding(capturedTarget);
                   const submission = {...(capturedTarget?.submission ?? records[0].continuation.submission)};
-                  submission.preparedProgram = await prepareSubmit(submission);
+                  submission.preparedProgram = await prepareCapturedSubmission(submission, ref);
                   if (!requestOf(submission).effectful) throw new Error('EffectContinuationRunMismatch');
                   const accepted = await admitEffectDefinition(submission);
                   if (accepted.ref.runDefinitionCid !== ref.runDefinitionCid) {
@@ -2743,7 +2866,7 @@ async function openInstalledHost(originalInstallation) {
             const submission = JSON.parse(canonicalValueJson(token.snapshot.submission));
             if (submission.requestId !== current.requestId ||
                 !hostConnection(submission)) throw new Error('ModelResumeSubmissionMismatch');
-            submission.preparedProgram = await prepareSubmit(submission);
+            submission.preparedProgram = await prepareCapturedSubmission(submission, ref);
             const requested = requestOf(submission);
             const admitted = journal.resolveDefinition(requested.requested,
               {namespaceId}, moon, control);

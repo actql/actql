@@ -155,10 +155,16 @@ pub(all) struct PivotClause {
 }
 
 ///|
+pub(all) enum UpdateEffectTarget {
+  ConcreteTarget(String)
+  LogicalTarget(Array[NamePart])
+}
+
+///|
 pub(all) struct UpdateEffectClause {
   name : NamePart?
-  target : String
-  mapping : NamePart
+  target : UpdateEffectTarget
+  mapping : NamePart?
   result : NamePart?
   id : NamePart
   set : Array[(NamePart, Expression)]
@@ -3358,6 +3364,9 @@ fn QueryParser::pipe_tail(
       }
       if token_at(self.source, self.index + 2)
         .map(token => keyword(token, "CREATE"))
+        .unwrap_or(false) &&
+        !token_at(self.source, self.index + 3)
+        .map(token => token.value == Symbol(46))
         .unwrap_or(false) {
         self.keyword("EFFECT")
         let name = self.name()
@@ -3708,7 +3717,14 @@ pub fn parse_query(
 
 ///|
 pub fn terminal_effect(query : Query) -> UpdateEffectClause? {
-  query.effect.map(clause => { ..clause, set: clause.set.copy(), })
+  query.effect.map(clause => {
+    ..clause,
+    target: match clause.target {
+      ConcreteTarget(value) => ConcreteTarget(value)
+      LogicalTarget(path) => LogicalTarget(path.copy())
+    },
+    set: clause.set.copy(),
+  })
 }
 
 ///|
@@ -3800,27 +3816,52 @@ fn QueryParser::update_effect_clause(
   self.keyword("EFFECT")
   // UPDATE remains a valid explicit Effect name in EFFECT UPDATE UPDATE.
   let name = if self.has("UPDATE") &&
-    !token_at(self.source, self.index + 1)
-    .map(token => keyword(token, "UPDATE"))
-    .unwrap_or(false) {
+    (
+      !token_at(self.source, self.index + 1)
+      .map(token => keyword(token, "UPDATE"))
+      .unwrap_or(false) ||
+      token_at(self.source, self.index + 2)
+      .map(token => token.value == Symbol(46))
+      .unwrap_or(false)
+    ) {
     None
   } else {
     Some(self.name())
   }
   self.keyword("UPDATE")
-  self.keyword("TARGET")
-  let target = self.expression()
-  let target = match
-    expression_node(target, expression_root(target)).unwrap().kind {
-    StringLiteral(value) => value
-    _ =>
+  let (target, mapping) = if self.has("TARGET") &&
+    !token_at(self.source, self.index + 1)
+    .map(token => token.value == Symbol(46))
+    .unwrap_or(false) {
+    self.keyword("TARGET")
+    let expression = self.expression()
+    let target = match
+      expression_node(expression, expression_root(expression)).unwrap().kind {
+      StringLiteral(value) => value
+      _ =>
+        raise QueryAbort(
+          "Effect TARGET requires a string literal",
+          self.peek().start,
+        )
+    }
+    self.keyword("MAPPING")
+    (ConcreteTarget(target), Some(self.name()))
+  } else {
+    let path = self.path()
+    if path.length() < 2 {
       raise QueryAbort(
-        "Effect TARGET requires a string literal",
+        "Effect logical target requires a qualified name",
         self.peek().start,
       )
+    }
+    let mapping = if self.has("MAPPING") {
+      self.keyword("MAPPING")
+      Some(self.name())
+    } else {
+      None
+    }
+    (LogicalTarget(path), mapping)
   }
-  self.keyword("MAPPING")
-  let mapping = self.name()
   let result = if self.has("FROM") {
     self.keyword("FROM")
     self.keyword("RESULT")

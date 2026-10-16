@@ -1747,6 +1747,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       return Object.freeze({scopeCid, configurationCid: read.configurationCid,
         contextCid: read.contextCid,
+        assertCurrent: () => read.assertConfigurationCurrent(),
         authorize: options => read.authorize('acquisition', target.readTuple,
           {...options, subjectCid: scopeCid}),
         resume: options => read.resume('acquisition', target.readTuple,
@@ -1884,6 +1885,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
             ? targetReads.authorize(...args)
             : (boundary === 'effect_commit' ? commit : read).authorize(boundary, ...args),
           resume: (...args) => commit.resume(...args),
+          assertCurrent() {
+            read.assertConfigurationCurrent();
+            commit.assertConfigurationCurrent();
+          },
           close, cleanup: close, cleanupPending,
         });
       } catch (error) {
@@ -1968,6 +1973,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         fail('SourceCheckpointConfigurationChanged');
       }
       return Object.freeze({scopeCid,
+        assertCurrent: () => read.assertConfigurationCurrent(),
         authorize: options => read.authorize('acquisition', occurrence.readTuple,
           {...options, subjectCid: scopeCid}),
         resume: options => read.resume('acquisition', occurrence.readTuple,

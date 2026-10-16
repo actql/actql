@@ -21,7 +21,7 @@ import {syncSalesforceCatalog} from '../site/salesforce-catalog-sync.mjs';
 import {readSalesforceQuery} from '../site/salesforce-query-read.mjs';
 import {checkpointApprovalFacts} from
   '../../../host-common/checkpoint-approval.mjs';
-import {authorizationDispatchFacts} from
+import {assertAuthorizationAccountCurrent, authorizationDispatchFacts} from
   '../../../host-common/authorization-gate.mjs';
 import {describeSalesforceResources, recoverNamedSalesforceObservation} from
   '../site/salesforce-named-describe.mjs';
@@ -287,6 +287,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         metadataDecisions.has(decision)) {
       fail('SalesforceCredentialGrantNotAuthorized');
     }
+    // Revisit the exact issuing scope after all earlier awaits. Matching
+    // provenance survives closure and cannot by itself authorize a new grant.
+    assertAuthorizationAccountCurrent(decision);
     return sign({operation, runInvocationCid, taskAttempt,
       dispatchRequestCid, maxUses});
   }
@@ -333,6 +336,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     ensureOpen();
     const facts = checkpointApprovalFacts(decision);
     const binding = facts?.physicalBinding;
+    const assertCurrent = facts?.assertCurrent;
+    const enter = facts?.enter;
+    const scoped = assertCurrent !== undefined || enter !== undefined;
     if (facts === undefined || decision.action !== 'dispatch' ||
         decision.basis !== 'resumed_approval' ||
         decision.boundary !== 'acquisition' ||
@@ -349,12 +355,17 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         binding.site_generation !== profile.siteGeneration ||
         binding.connection_revision !== profile.connectionRevision ||
         binding.resource !== decision.tuple.resource ||
-        !Array.isArray(binding.fields) || !text(binding.catalog_cid)) {
+        !Array.isArray(binding.fields) || !text(binding.catalog_cid) ||
+        scoped && (typeof assertCurrent !== 'function' || typeof enter !== 'function')) {
       fail('SalesforceReadApprovalNotAdmitted');
     }
+    // The original Source continuation owns these fences. Preserve them on
+    // its physical read token rather than reducing it to historical facts.
+    assertCurrent?.();
     const approval = Object.freeze({resource: binding.resource,
       fields: Object.freeze([...binding.fields]),
-      catalogCid: binding.catalog_cid, checkpointCid: facts.checkpointCid});
+      catalogCid: binding.catalog_cid, checkpointCid: facts.checkpointCid,
+      ...(scoped ? {assertCurrent, enter} : {})});
     approvedReads.set(approval, approval);
     return approval;
   }
@@ -432,7 +443,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         (runCid === undefined) !== (dispatchCid === undefined)) {
       fail('InvalidSalesforceCredentialGrantRequest');
     }
-    const decided = new Set();
+    const decided = new Map();
     // An admitted read approval covers the describe of its own Resource in
     // its dispatch; every other describe needs its metadata decision.
     const covered = approval === undefined ? undefined
@@ -442,9 +453,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     }
     for (const resource of resources) {
       if (covered?.resource !== resource) {
-        await authorizeDescribe(resource, {occurrence, signal});
-      }
-      decided.add(resource);
+        decided.set(resource, await authorizeDescribe(resource, {occurrence, signal}));
+      } else decided.set(resource, undefined);
     }
     const runInvocationCid = runCid ?? cid({version:
       'actql-salesforce-catalog-sync/0.1', siteKey: profile.siteKey,
@@ -460,6 +470,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       describeLimits: limits.describe, retainEvidence, maxRetainedBytes,
       authorizationForDescribe: async name => {
         if (!decided.has(name)) fail('SalesforceCatalogDescribeNotAuthorized');
+        const original = decided.get(name);
+        if (original !== undefined) assertAuthorizationAccountCurrent(original);
         covered?.assertCurrent?.();
         covered?.enter?.();
         return {...sign({operation: 'salesforce:catalog:describe',
@@ -769,8 +781,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         binding.resource_origin, binding.run_invocation_cid,
         binding.dispatch_request_cid, binding.sync_occurrence, resource,
         fields, 4096)))), maxRows));
-    const query = sign({operation: 'salesforce:query:read', runInvocationCid,
-      taskAttempt: 1, dispatchRequestCid, maxUses: 1});
+    const query = issueGrant({operation: 'salesforce:query:read', decision,
+      resource, runInvocationCid, taskAttempt: 1, dispatchRequestCid, maxUses: 1});
     const rows = [];
     const result = await readSalesforceQuery({moon: salesforceMoon, plan,
       apiVersion: profile.apiVersion,
@@ -896,3 +908,4 @@ function handOverSiteRelease(site, primary, errors) {
   failure.cleanupHandle = handle;
   return failure;
 }
+

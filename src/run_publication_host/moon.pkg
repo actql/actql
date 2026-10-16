@@ -14,6 +14,7 @@ import {
   "moonbitlang/core/json",
   "actql/actql/run_publication" @publication,
   "actql/actql/program_check" @checked,
+  "actql/actql/query_program" @update_targets,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,

@@ -11,12 +11,14 @@ import {runCapturedEffectComputation} from './entry.mjs';
 import {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
+import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 
 export async function openAcquiredEffectComputation({moon, owner, acquired,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
   observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
-  submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun}) {
+  submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
+  assertUpdateSelectionCurrent, assertContinuationCurrent}) {
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
   const multiple = count === 2;
@@ -54,6 +56,25 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   let pending = true;
   let settled = false;
   let closed = false;
+  const originalCurrent = () => {
+    signal?.throwIfAborted();
+    if (closed) throw Object.assign(new Error('ClientRunCancellationRequested'),
+      {code: 'ClientRunCancellationRequested'});
+    if (assertUpdateSelectionCurrent === undefined) return;
+    const changed = () => { throw refusedEffectPreparation(Object.assign(
+      new Error('InstalledEffectOriginalSelectionChanged'),
+      {code: 'InstalledEffectOriginalSelectionChanged'})); };
+    if (typeof assertUpdateSelectionCurrent !== 'function') changed();
+    const result = assertUpdateSelectionCurrent();
+    if (typeof result?.then === 'function') {
+      void Promise.resolve(result).catch(() => {});
+      changed();
+    }
+  };
+  const current = () => {
+    originalCurrent();
+    assertContinuationCurrent?.();
+  };
   let inferCloseAttempted = false, inferReleased = false;
   let modelCloseAttempted = false, modelReleased = false;
   const inferCleanupPending = () => (inferCapture !== undefined || inferOperation !== undefined) && !inferReleased ||
@@ -142,7 +163,22 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   // the first asynchronous boundary or provider operation.
   retainComputationOwner(custody);
   try {
-    signal?.throwIfAborted();
+    current();
+    if (assertUpdateSelectionCurrent !== undefined && infer !== undefined) {
+      const originalInfer = infer;
+      if (typeof originalInfer.observeAccount !== 'function') {
+        throw new Error('InstalledInferAuthorityUnavailable');
+      }
+      // The same dispatch admission re-observes this actual account at its
+      // final send gate, including after Entry persistence. Preserve its
+      // original result; the installed selection assertion adds no permit.
+      infer = Object.freeze({...originalInfer, observeAccount() {
+        current();
+        const account = originalInfer.observeAccount();
+        current();
+        return account;
+      }});
+    }
     const selectedSources = selectAcquiredEffectSources({moon,
       preparedEffect: acquired.prepared, sourceProfile, registry, values, fragment, ordered});
     const singleSourceAccess = sourceAccess ?? selectedSources[0]?.adapter.sourceAccess;
@@ -152,7 +188,9 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       const taskIndex = moon.clientProgramInferPlanBoundary(infer.graph)._0;
       modelRecord ??= modelController.discover(runId).find(record => record.inventory.taskIndex === taskIndex);
       if (modelRecord !== undefined) {
+        current();
         modelToken = await modelController.prime(modelRecord);
+        current();
         if (!sourceFree && sourceContinuation?.restoringModel !== true) {
           throw new Error('ModelSourceCaptureRestoreRequired');
         }
@@ -160,15 +198,18 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     }
     const sources = [];
     for (const {adapter, occurrence} of selectedSources) {
+      current();
       const baseAccess = multiple ? adapter.sourceAccess : singleSourceAccess;
       const access = sourceContinuation?.accessFor(baseAccess, occurrence) ?? baseAccess;
+      current();
       const preparedSource = await adapter.prepare({
         preparedEffect: acquired.prepared, registry, values, fragment, ordered,
         sourceAccess: access, occurrence});
+      current();
       sources.push({adapter, access, preparedSource, occurrence});
-      signal?.throwIfAborted();
     }
     await sourceContinuation?.prepared(sources);
+    current();
     const serializations = moon.clientProgramEffectSerializationOccurrences(acquired.prepared);
     const captureStartedAt = sourceContinuation?.times().captureStartedAt ?? now();
     let captureCompletedAt;
@@ -199,14 +240,17 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
           sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
           savedScope: modelController.savedScope(modelPlan, acquired.prepared, infer, modelToken),
         };
+        current();
         restored = await contentRun.recover({preparedEffect: acquired.prepared,
           plan: contentPlan, store, principalId, signal, restoredInput: restoredModelInput,
           retainExecution(value) { contentRecovery = value; }});
+        current();
       }
       contentFamily = contentRun.effectFamily({prepared: acquired.prepared,
         plan: contentPlan, store, principalId, signal, restored});
     }
     const prepareInferComponent = () => {
+      current();
       if (infer === undefined) return undefined;
       if (!multiple && !sourceFree && contentFamily === undefined) {
         throw new TypeError('UnsupportedComposedInferSourceClosure');
@@ -271,16 +315,19 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
     }
     for (const source of sources) {
-      signal?.throwIfAborted();
+      current();
       diagnostic('acquisition_started', {task: source.occurrence.task,
         selection: source.preparedSource.selection});
       const acquisition = acquisitionEndHandoff();
       let captured;
+      current();
       const admission = await sourceContinuation?.beforeRead(source);
       if (admission?.waiting !== undefined) {
+        originalCurrent();
         return Object.freeze({status: 'waiting_checkpoint',
           checkpoint: admission.waiting, cleanupOwner: custody});
       }
+      current();
       if (admission?.retained !== undefined) {
         const restored = sourceContinuation.restore(source, admission.retained, ledger);
         captures.push(restored.captured);
@@ -290,6 +337,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       // A refused fence proves this attempt has not called the adapter.
       // Do not feed it into the adapter's unknown physical-outcome path.
       admission?.enter();
+      current();
       try {
         captured = await source.adapter.open({preparedEffect: acquired.prepared,
           registry, values, fragment, ordered, sourceAccess: source.access, signal,
@@ -302,14 +350,20 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         throw error;
       }
       captures.push(captured);
+      // Retain physical custody before a post-await refusal. It must still
+      // close this acquired source even if its installed owner changed.
+      current();
       diagnostic('acquisition_completed', {task: source.occurrence.task,
         acquisition: captured.acquisition});
+      current();
       const sourceEvidenceWire = await captured.issueSourceEvidence({
         authorityScopeCid: acquired.authorityScopeCid,
         effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
+      current();
       evidence.push({captured, sourceEvidenceWire});
       await sourceContinuation?.captured(source, captured, sourceEvidenceWire,
         captureStartedAt, now());
+      current();
     }
     captureCompletedAt = sourceContinuation?.times().captureCompletedAt ?? now();
     contentFamily?.bindCapture(captures[0], {...evidence[0],
@@ -324,7 +378,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       : acquiredEffectPublicationPlan({acquired, ...evidence[0],
         captureStartedAt, captureCompletedAt}) : undefined;
     if (component === undefined && infer !== undefined) component = prepareInferComponent();
-    signal?.throwIfAborted();
+    current();
     checkedHost = sourceFree
       ? moon.clientProgramOpenSourceFreeInferEffectHost(owner,
         registry, values, fragment, ordered, component.provider)
@@ -356,6 +410,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       throw new TypeError('PhysicalPauseConfigurationMissing');
     }
     const handleModelPause = async boundary => {
+        current();
         const operation = component.operation();
         if (operation === undefined || inferCapture === undefined) throw new Error('ModelPauseOwnerMissing');
         if (boundary.status === 'settling') {
@@ -363,24 +418,34 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
           const slot = operation.settlementSlot(settlement);
           const entry = modelContinuation?.entry(slot);
           if (entry === undefined || slot !== boundary.slot) throw new Error('ModelPauseSettlementMismatch');
+          current();
           await inferCapture.persistSettlement(settlement, entry);
+          current();
           return {action: 'resume'};
         }
         if (boundary.status !== 'waiting') throw new Error('InvalidModelPause');
         if (modelContinuation === undefined) {
           const preparedCallSet = operation.preparedCallSet();
           if (preparedCallSet === undefined) throw new Error('ModelPausePreparedOwnerMissing');
+          current();
           const sourceClosure = await sourceContinuation?.retainAll();
+          current();
           modelContinuation = await modelController.open({operation, preparedCallSet,
             plan: modelPlan, selected: infer, principalId,
             declaredResults: moon.clientProgramEffectCompilationResultNames(acquired.compilation),
             submission, signal, existing: modelRecord, inputToken: modelToken, claim: modelClaim, parentResume,
             journalPort: modelJournalPort, sourceContinuation: sourceClosure});
+          current();
           inferCapture.configureModelJournal({observe: modelContinuation.observe, entry: modelContinuation.entry});
           if (modelRecord !== undefined) return {action: 'resume'};
         }
+        current();
         const decision = await modelContinuation.authorize();
-        if (decision.status === 'dispatch') return {action: 'resume'};
+        if (decision.status === 'dispatch') {
+          current();
+          return {action: 'resume'};
+        }
+        originalCurrent();
         if (decision.status !== 'waiting_checkpoint') throw new Error('InvalidModelPauseDecision');
         // Stop/cleanup the retained Model owner before Local settles its
         // reservation. This handle never calls operation.run or a provider.
@@ -392,25 +457,33 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
           cleanupPending: true, cleanupHandle};
       };
     const configurations = component === undefined && contentFamily === undefined ? computeConfigurations
-      : withComputePauseHandler(computeConfigurations, boundary => {
+      : withComputePauseHandler(computeConfigurations, async boundary => {
+        current();
         // Slots are local to each child. A shared numerical slot must not
         // route a Model settlement into the already-completed Content owner.
         if (contentFamily !== undefined && contentFamily.generation() === undefined) {
-          return contentFamily.handlePause(boundary);
+          const decision = await contentFamily.handlePause(boundary);
+          current();
+          return decision;
         }
         if (component !== undefined) return handleModelPause(boundary);
         throw new Error('PhysicalPauseOwnerMissing');
       });
+    current();
     execution = await runCapturedEffectComputation(checkedHost,
       {...configurations,
         authorization: multiple ? undefined : singleSourceAccess?.authorization}, signal);
     unresolved = false;
     if (execution.status === 'host-tasks-waiting') {
+      originalCurrent();
       return Object.freeze({status: 'waiting_checkpoint', checkpoint: execution.checkpoint,
         execution, checkedHost, cleanupOwner: custody});
     }
+    current();
     if (execution.status !== 'host-tasks-completed' && component?.operation()?.physicalStopped()) {
+      current();
       await inferCapture.persistStoppedAttempts();
+      current();
     }
     if (execution.status !== 'host-tasks-completed' && component !== undefined &&
         modelController.unresolved(acquired.control.runDefinitionRunId(acquired.runDefinition))) {
@@ -430,8 +503,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     });
     if (component !== undefined) {
       if (inferCapture === undefined) throw component.failure() ?? new Error('InstalledInferCaptureUnavailable');
+      current();
       publicationPlan = (await inferCapture.persist()).plan;
+      current();
       await faultInjection?.('infer_capture_committed', {});
+      current();
     }
     if (contentFamily !== undefined && component === undefined) {
       const generation = contentFamily.generation();
@@ -442,6 +518,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     if (publicationPlan === undefined) {
       throw new Error('InstalledContentGenerationEvidenceUnavailable');
     }
+    current();
     return Object.freeze({execution, checkedHost, publicationPlan,
       cleanupOwner: custody});
   } finally {

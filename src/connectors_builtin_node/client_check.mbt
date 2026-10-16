@@ -334,6 +334,12 @@ fn check_source_findings(
           findings.push(check_source_alias_absence(source_namespace, reference))
         QueryLowering(UnknownRelation) =>
           findings.push(Unresolved("source_resolution"))
+        QueryLowering(UpdateTargetBinding(WorkLimit)) =>
+          findings.push(Limit("analysis_budget_exhausted"))
+        // A visible metadata subset cannot establish complete UPDATE target
+        // uniqueness or disclose hidden Mapping names, identities, or counts.
+        QueryLowering(UpdateTargetBinding(_)) =>
+          findings.push(Unresolved("source_resolution"))
         QueryLowering(TableWriteBinding(UnknownTable)) =>
           findings.push(Unresolved("source_resolution"))
         QueryLowering(TableWriteBinding(AmbiguousTable)) =>

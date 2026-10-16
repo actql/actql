@@ -14,6 +14,8 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {accountEntry} from '../../../host-node/authorization-fixture.mjs';
 import {createLocalAuthorizationGate} from
   '../../../host-node/local-account-config.mjs';
+import {openSqliteCredentialJournal} from
+  '../../../site-node/sqlite-credential-journal.mjs';
 import {retainSalesforceSiteCleanup} from
   '../host/installed-salesforce-site.mjs';
 import {INSTALLED_SALESFORCE_SOURCE_VERSION,
@@ -78,10 +80,10 @@ async function installed(t, {entries, profile = {}, secret,
   // `entries` replaces the account configuration for this load only, as a
   // Host restarted with changed permissions would.
   const load = async ({entries: loadEntries, path: loadPath = path,
-    ...options} = {}) => {
+    gateOptions, ...options} = {}) => {
     const authorization = await installSalesforceAuthorization({
       accountConfiguration: configuration(loadEntries ?? defaultEntries),
-      principalId: 'principal-a', root});
+      principalId: 'principal-a', root, gateOptions});
     const site = await loadInstalledSalesforceSite(loadPath, {
       commonMoon, salesforceMoon, authorization,
       runtimeBundleCid: cid('b'),
@@ -94,6 +96,104 @@ async function installed(t, {entries, profile = {}, secret,
   };
   return {org, root, path, document, scopes, load};
 }
+
+test('the final grant refuses a closed original immediate-permit issuer after an await', async t => {
+  const setup = await installed(t, {entries: [accountEntry('read', 'delegate', {
+    connection: 'salesforce:00D000000000001EAA', resource: 'Test_Record__c', operation: 'read'})]});
+  let answers = 0, grants = 0;
+  const site = await setup.load({gateOptions: {answeringAuthorities: ['host'],
+    decide: view => { answers++; return {decision: 'permit', subject: view.subject,
+      authority: 'host', claims: []}; }},
+  openCredentialJournal(root, options) {
+    const journal = openSqliteCredentialJournal(root, options);
+    return {...journal, acceptGrant(...args) { grants++; return journal.acceptGrant(...args); }};
+  }});
+  const original = await site.authorization.authorize('acquisition', {
+    connection: site.connection, resource: 'Test_Record__c', operation: 'read'}, {subjectCid: cid('5')});
+  assert.equal(original.basis, 'host_permit');
+  const grant = () => site.issueGrant({operation: 'salesforce:record:observe',
+    decision: original, resource: 'Test_Record__c', runInvocationCid: cid('3'),
+    dispatchRequestCid: cid('4')});
+  grant();
+  assert.equal(grants, 1);
+  await new Promise(resolve => setImmediate(resolve));
+  site.authorization.close();
+  assert.throws(grant, {code: 'AuthorizationDecisionScopeClosed'});
+  assert.equal(grants, 1);
+  assert.equal(answers, 1);
+});
+
+test('a Host commit grant checks its actual file-backed issuer rather than the Site snapshot', async t => {
+  const entries = [accountEntry('effect', 'allow', {
+    connection: 'salesforce:00D000000000001EAA', resource: 'Test_Record__c', operation: 'effect'})];
+  const setup = await installed(t, {entries});
+  let grants = 0;
+  const site = await setup.load({openCredentialJournal(root, options) {
+    const journal = openSqliteCredentialJournal(root, options);
+    return {...journal, acceptGrant(...args) { grants++; return journal.acceptGrant(...args); }};
+  }});
+  const path = join(setup.root, 'commit-account.json');
+  await writeFile(path, configuration(entries));
+  const commit = await createLocalAuthorizationGate({accountConfig: path, principal: 'principal-a'});
+  t.after(() => commit.close());
+  const original = await commit.authorize('effect_commit', {
+    connection: site.connection, resource: 'Test_Record__c', operation: 'effect'}, {subjectCid: cid('5')});
+  const grant = () => site.issueGrant({operation: 'salesforce:record:update',
+    decision: original, resource: 'Test_Record__c', subjectCid: cid('5'),
+    runInvocationCid: cid('3'), dispatchRequestCid: cid('4')});
+  grant();
+  assert.equal(grants, 1);
+  await writeFile(path, configuration([accountEntry('effect', 'deny', {
+    connection: site.connection, resource: 'Test_Record__c', operation: 'effect'})]));
+  assert.throws(grant, {code: 'AuthorizationCurrentAccountChanged'});
+  assert.equal(grants, 1);
+});
+
+test('metadata grants retain each original decision across the preceding Provider await', async t => {
+  let site;
+  let secrets = 0, grants = 0;
+  const setup = await installed(t, {extraObjects: ['Account'],
+    entries: [accountEntry('read', 'allow', {
+      connection: 'salesforce:00D000000000001EAA', operation: 'read'})],
+    async secret() {
+      await new Promise(resolve => setImmediate(resolve));
+      if (++secrets === 1) site.authorization.close();
+      return 'test-only-secret';
+    }});
+  site = await setup.load({openCredentialJournal(root, options) {
+    const journal = openSqliteCredentialJournal(root, options);
+    return {...journal, acceptGrant(...args) { grants++; return journal.acceptGrant(...args); }};
+  }});
+  const before = setup.org.seen.length;
+  await assert.rejects(site.describeEffectCatalog({resources: ['Test_Record__c', 'Account'],
+    occurrence: 'original-metadata-current', runInvocationCid: cid('3'),
+    dispatchRequestCid: cid('4')}), {code: 'SalesforceCatalogRefreshInterrupted'});
+  assert.equal(grants, 1);
+  assert.deepEqual(setup.org.seen.slice(before).map(item => item.path),
+    ['/services/data/v62.0/sobjects/Test_Record__c/describe']);
+});
+
+test('peek cannot sign a query grant after its original issuer closes during plan metadata', async t => {
+  let site;
+  let grants = 0;
+  const setup = await installed(t, {async secret() {
+    await new Promise(resolve => setImmediate(resolve));
+    site.authorization.close();
+    return 'test-only-secret';
+  }});
+  site = await setup.load({openCredentialJournal(root, options) {
+    const journal = openSqliteCredentialJournal(root, options);
+    return {...journal, acceptGrant(...args) { grants++; return journal.acceptGrant(...args); }};
+  }});
+  const decision = await site.authorization.authorize('acquisition', {
+    connection: site.connection, resource: 'Test_Record__c', operation: 'read'}, {subjectCid: cid('5')});
+  const before = setup.org.seen.length;
+  await assert.rejects(site.peek({decision, resource: 'Test_Record__c',
+    fields: ['Id', 'Name'], maxRows: 1}), {code: 'AuthorizationDecisionScopeClosed'});
+  assert.equal(grants, 1);
+  assert.deepEqual(setup.org.seen.slice(before).map(item => item.path),
+    ['/services/data/v62.0/sobjects/Test_Record__c/describe']);
+});
 
 test('installed Salesforce Site syncs its Catalog under Host-issued grants',
   async t => {
@@ -774,6 +874,49 @@ test('a Checkpoint read approval is admitted only for this installation',
     {code: 'SalesforceCredentialGrantNotAuthorized'});
   });
 
+test('a scoped Source approval preserves its original currency and entry fences', async t => {
+  const {recordCheckpointApproval} = await import('../../../host-common/checkpoint-approval.mjs');
+  const setup = await installed(t);
+  let grants = 0;
+  const site = await setup.load({openCredentialJournal(root, options) {
+    const journal = openSqliteCredentialJournal(root, options);
+    return {...journal, acceptGrant(...args) { grants++; return journal.acceptGrant(...args); }};
+  }});
+  const tuple = Object.freeze({connection: site.connection, resource: 'Test_Record__c', operation: 'read'});
+  const binding = {version: 'actql-installed-salesforce-target/0.1',
+    org_id: site.orgId, instance_origin: site.instanceOrigin,
+    site_key: site.siteKey, site_generation: site.siteGeneration,
+    connection_revision: site.connectionRevision, catalog_cid: cid('c'),
+    resource: 'Test_Record__c', fields: ['Id', 'Name']};
+  const approval = fences => recordCheckpointApproval(Object.freeze({boundary: 'acquisition',
+    action: 'dispatch', basis: 'resumed_approval', tuple, checkpointCid: cid('d')}),
+  {checkpointCid: cid('d'), readTuple: tuple, physicalBinding: binding,
+    principalId: 'principal-a', ...fences});
+  let live = true;
+  const calls = [];
+  const assertCurrent = () => { calls.push('current'); if (!live) throw new Error('OriginalSourceClosed'); };
+  const enter = () => { calls.push('enter'); assertCurrent(); };
+  for (const fences of [{assertCurrent}, {enter}, {assertCurrent: true, enter},
+    {assertCurrent, enter: true}]) {
+    assert.throws(() => site.admitCheckpointReadApproval(approval(fences)),
+      {code: 'SalesforceReadApprovalNotAdmitted'});
+  }
+  assert.deepEqual(calls, []);
+  const admitted = site.admitCheckpointReadApproval(approval({assertCurrent, enter}));
+  assert.deepEqual(calls, ['current']);
+  const grant = () => site.issueGrant({operation: 'salesforce:query:read', decision: admitted,
+    resource: tuple.resource, runInvocationCid: cid('3'), dispatchRequestCid: cid('4')});
+  grant();
+  assert.deepEqual(calls, ['current', 'current', 'enter', 'current']);
+  assert.equal(grants, 1);
+  await new Promise(resolve => setImmediate(resolve));
+  live = false;
+  assert.throws(grant, /OriginalSourceClosed/);
+  assert.equal(grants, 1);
+  assert.throws(() => site.admitCheckpointReadApproval(approval({assertCurrent, enter})),
+    /OriginalSourceClosed/);
+});
+
 test('a closing Site refuses new operations until its journal is released',
   async t => {
     const setup = await installed(t, {entries: [
@@ -933,3 +1076,4 @@ for (const closeFailures of [0, 1]) {
       }
     });
 }
+

@@ -6,7 +6,7 @@ import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings}
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
 import {contentCid} from './local-account-config.mjs';
-import {composeInstalledRowEffectOwners} from './installed-row-effect.mjs';
+import {composeInstalledRowEffectOwners, installedRowEffectOwnerBinding} from './installed-row-effect.mjs';
 
 const fail = code => { throw Object.assign(new TypeError(code), {code}); };
 const text = value => typeof value === 'string' && value.length > 0;
@@ -90,6 +90,87 @@ function ownedContracts(effect) {
   return owned;
 }
 
+// The existing installation inventory establishes ownership, not Mapping
+// eligibility or authority. Every Mapping for a published target must be in
+// this owner's registrations; the common owner still resolves over ALL bodies.
+// An admitted final Host environment may add Source/model facts. Revalidation
+// checks that full inventory against the original Effect registrations only.
+export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {
+  if (!Array.isArray(aliases) || aliases.length > 1024) fail('InvalidInstalledUpdateTargets');
+  if (aliases.length === 0) return Object.freeze([]);
+  const owned = ownedContracts(effect.effects === undefined ? effect : {
+    environmentWire: effect.environmentWire,
+    effectSelectors: Object.freeze(effect.effects.flatMap(owner => owner.effectSelectors)),
+  });
+  verifyInstalledConnectorBindings(undefined, effect);
+  const environment = JSON.parse(environmentWire);
+  const manifest = environment.connector_manifest?.connectors;
+  if (!Array.isArray(manifest)) fail('InvalidInstalledUpdateTargets');
+  const bindings = new Map((effect.connectorBindings ?? []).map(binding =>
+    [binding.connectorId, binding.bindingCid]));
+  const manifestEntries = new Map();
+  for (const entry of manifest) {
+    const identity = contentCid(entry);
+    if (manifestEntries.has(identity)) fail('InvalidInstalledUpdateTargets');
+    manifestEntries.set(identity, entry);
+  }
+  const targetMappings = new Map();
+  for (const mapping of environment.mapping_contracts) {
+    const members = targetMappings.get(mapping.target_ref) ?? [];
+    members.push(mapping);
+    targetMappings.set(mapping.target_ref, members);
+  }
+  const targetBindings = new Map();
+  const targetOwners = new Map();
+  const owners = effect.effects ?? [effect];
+  return Object.freeze(aliases.map(alias => {
+    if (!targetBindings.has(alias.targetRef)) {
+      const mappings = targetMappings.get(alias.targetRef);
+      if (mappings === undefined) fail('InvalidInstalledUpdateTargets');
+      let installationBindingCid;
+      let installationOwnerCid;
+      for (const mapping of mappings) {
+        if (owned.get(mapping.mapping_ref) !== mapping.mapping_contract_cid) {
+          fail('InvalidInstalledUpdateTargets');
+        }
+        const entry = manifestEntries.get(mapping.connector_manifest_cid);
+        if (entry === undefined ||
+            !alias.targetRef.startsWith(`connector://${entry.connector_id}/`)) {
+          fail('InvalidInstalledUpdateTargets');
+        }
+        const bindingCid = bindings.get(entry.connector_id);
+        if (!cid(bindingCid) || installationBindingCid !== undefined &&
+            installationBindingCid !== bindingCid) {
+          fail('InvalidInstalledUpdateTargets');
+        }
+        installationBindingCid = bindingCid;
+        // The existing private row owner fixes the runtime, registration and
+        // publication generation. A site binding alone does not fix them.
+        const matches = owners.filter(owner => owner.effectSelectors.some(selector =>
+          selector.mappingRef === mapping.mapping_ref &&
+          selector.mappingCid === mapping.mapping_contract_cid &&
+          selector.target === mapping.target_ref));
+        const original = matches.length === 1
+          ? installedRowEffectOwnerBinding(matches[0]) : undefined;
+        if (original === undefined || installationOwnerCid !== undefined &&
+            installationOwnerCid !== original.cid) fail('InvalidInstalledUpdateTargets');
+        installationOwnerCid = original.cid;
+      }
+      targetBindings.set(alias.targetRef, installationBindingCid);
+      targetOwners.set(alias.targetRef, installationOwnerCid);
+    }
+    const installationBindingCid = targetBindings.get(alias.targetRef);
+    const installationOwnerCid = targetOwners.get(alias.targetRef);
+    if (alias.installationBindingCid !== undefined &&
+        alias.installationBindingCid !== installationBindingCid ||
+        alias.installationOwnerCid !== undefined &&
+        alias.installationOwnerCid !== installationOwnerCid) {
+      fail('InvalidInstalledUpdateTargets');
+    }
+    return Object.freeze({...alias, installationBindingCid, installationOwnerCid});
+  }));
+}
+
 // The loader records each returned child before validating it. A module that
 // fails before returning may instead retain a cleanup handle on its failure.
 // Both kinds of owner are independent and are attempted on every drain; only
@@ -161,10 +242,17 @@ export async function composeInstalledEffects(paths, options, load) {
       }
       effects.push(effect);
     }
-    return Object.freeze({effects: Object.freeze(effects), environmentWire,
+    const connectorBindings = Object.freeze([...bindings.values()]);
+    // Recheck coverage in the full composed inventory: an unregistered body
+    // in another installation cannot disappear behind the alias owner's view.
+    // Keep conflicting names intact so the common resolver sees ambiguity.
+    const queryUpdateTargets = installedUpdateTargets({effects, environmentWire, connectorBindings,
+      effectSelectors: Object.freeze(effects.flatMap(effect => effect.effectSelectors))},
+    effects.flatMap(effect => effect.queryUpdateTargets ?? []));
+    return Object.freeze({effects: Object.freeze(effects), environmentWire, queryUpdateTargets,
       queryTableBindings: Object.freeze(effects.flatMap(effect => effect.queryTableBindings ?? [])),
       queryTableWriteAccesses: Object.freeze(effects.flatMap(effect => effect.queryTableWriteAccesses ?? [])),
-      connectorBindings: Object.freeze([...bindings.values()]), close: cleanup.close});
+      connectorBindings, close: cleanup.close});
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cleanup.retainFailure(cause),
       {installedEffect: {close: cleanup.close}});
