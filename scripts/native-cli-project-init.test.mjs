@@ -80,7 +80,12 @@ test('a real unavailable Native cohort refuses init before even template prepara
   const result = command(root, ['init', '--template', 'churn-risk-mock', 'project']);
   assert.equal(result.error, undefined);
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /Native package|Missing @actql|Unsupported platform/u);
+  if (['darwin', 'linux'].includes(process.platform)) {
+    const mapping = fileURLToPath(new URL('../packages/native-cli/platforms.json', import.meta.url));
+    assert.equal(result.stderr, `actql: ENOENT: no such file or directory, open '${mapping}'\n`);
+  } else {
+    assert.match(result.stderr, /Unsupported platform/u);
+  }
   assert.equal(result.stdout, '');
   assert.deepEqual(await readdir(root), []);
 });
