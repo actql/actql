@@ -39,8 +39,14 @@ def python_interface(source: str) -> dict:
                                'async': isinstance(node, ast.AsyncFunctionDef)})
         if isinstance(node, ast.Import):
             imports.extend(alias.name for alias in node.names)
+            if not scope:
+                exports.update(alias.asname or alias.name.split('.')[0] for alias in node.names
+                               if not (alias.asname or alias.name).startswith('_'))
         if isinstance(node, ast.ImportFrom):
             imports.append('.' * node.level + (node.module or ''))
+            if not scope:
+                exports.update(alias.asname or alias.name for alias in node.names
+                               if not (alias.asname or alias.name).startswith('_'))
         if not scope and isinstance(node, (ast.Assign, ast.AnnAssign)):
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             for target in targets:

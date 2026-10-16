@@ -42,6 +42,13 @@ export function javascriptInterface(source) {
   function visit(node, scope = []) {
     if (!node || typeof node !== 'object') return;
     let childScope = scope;
+    if (node.type === 'ClassDeclaration' || node.type === 'ClassExpression') {
+      childScope = [...scope, node.id?.name ?? '<class>'];
+    }
+    if (node.type === 'MethodDefinition' || node.type === 'Property' && node.method) {
+      const key = node.computed ? node.key.value : node.key.name ?? node.key.value;
+      childScope = [...scope, `${node.static ? 'static ' : ''}${node.kind ?? 'method'}:${key ?? '<computed>'}`];
+    }
     if (/^(?:FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/u.test(node.type)) {
       const name = node.id?.name ?? scope.at(-1) ?? '<anonymous>';
       const path = [...scope, name].join('/');
@@ -52,7 +59,8 @@ export function javascriptInterface(source) {
         node.type === 'ExportNamedDeclaration' && node.source) imports.push(node.source.value);
     if (node.type === 'ImportExpression' && node.source.type === 'Literal') imports.push(node.source.value);
     if (node.type === 'ExportDefaultDeclaration') exports.push('default');
-    if (node.type === 'ExportAllDeclaration') exports.push(`*:${node.source.value}`);
+    if (node.type === 'ExportAllDeclaration') exports.push(node.exported
+      ? `${node.exported.name ?? node.exported.value}=*:${node.source.value}` : `*:${node.source.value}`);
     if (node.type === 'ExportNamedDeclaration') {
       exports.push(...node.specifiers.map(value => value.exported.name ?? value.exported.value));
       if (node.declaration?.id) exports.push(node.declaration.id.name);
@@ -60,7 +68,8 @@ export function javascriptInterface(source) {
     }
     const key = node.type === 'MemberExpression'
       ? node.computed ? node.property.type === 'Literal' ? node.property.value : undefined : node.property.name
-      : node.type === 'Property' && !node.computed ? node.key.name ?? node.key.value : undefined;
+      : node.type === 'Property' ? node.computed
+        ? node.key.type === 'Literal' ? node.key.value : undefined : node.key.name ?? node.key.value : undefined;
     if (typeof key === 'string' && /^(?:\$tag|_\d+)$/u.test(key)) compilerFields.push(key);
     for (const [key, child] of Object.entries(node)) {
       if (['loc', 'start', 'end'].includes(key)) continue;
@@ -118,24 +127,37 @@ export function assertInterfaceCoverage({root, modules, declarations, generated 
     assert(!byModule.has(declaration.module), `Duplicate interface classification: ${declaration.module}`);
     assert(interfaceRoles.includes(declaration.role), `Unknown interface role: ${declaration.module}`);
     assert(typeof declaration.owner === 'string' && declaration.owner.length, 'Missing interface owner');
-    assert.deepEqual(Object.keys(declaration.attributes).sort(), [...interfaceAttributes].sort(),
-      `Incomplete interface attributes: ${declaration.module}`);
-    for (const [name, value] of Object.entries(declaration.attributes)) {
+    assert(Array.isArray(declaration.contracts) && declaration.contracts.length,
+      `Missing operation contracts: ${declaration.module}`);
+    for (const contract of declaration.contracts) {
+      assert(Array.isArray(contract.operations) && Array.isArray(contract.exports), 'Invalid operation contract');
+      assert.deepEqual(Object.keys(contract.attributes).sort(), [...interfaceAttributes].sort(),
+        `Incomplete interface attributes: ${declaration.module}`);
+      for (const [name, value] of Object.entries(contract.attributes)) {
       if (Array.isArray(value)) {
         assert(value.length, `Empty interface attribute: ${declaration.module}:${name}`);
         value.forEach(ref => reference(root, ref));
       } else assert(value && Object.keys(value).join() === 'notApplicable' &&
         typeof value.notApplicable === 'string' && value.notApplicable.trim().length > 0,
       `Unexplained interface attribute: ${declaration.module}:${name}`);
+      }
     }
     byModule.set(declaration.module, declaration);
   }
   for (const module of modules) {
     const declaration = byModule.get(module.module);
     assert(declaration, `Unregistered distributed interface: ${module.module}`);
+    assert.equal(declaration.sha256, module.sha256,
+      `Unreviewed interface implementation: ${module.module}`);
     assert.deepEqual(declaration.exports, module.exports, `Unregistered interface export: ${module.module}`);
     assert.deepEqual(declaration.operations, module.operations,
       `Unregistered interface operation: ${module.module}`);
+    for (const [field, actual] of [['operations', ['<module>', ...module.operations.map(value => value.name)]],
+      ['exports', module.exports]]) {
+      const covered = declaration.contracts.flatMap(value => value[field]);
+      assert.equal(new Set(covered).size, covered.length, `Duplicate operation contract: ${module.module}`);
+      assert.deepEqual(covered.sort(), [...actual].sort(), `Missing operation contract: ${module.module}:${field}`);
+    }
     if (module.compilerFields?.length) {
       assert.equal(declaration.role, 'generated-binding', `Compiler representation outside generated binding: ${module.module}`);
       const proof = generated.find(value => value.module === module.module);

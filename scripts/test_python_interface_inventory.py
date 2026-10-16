@@ -40,6 +40,12 @@ class InterfaceInventoryTests(unittest.TestCase):
         self.assertNotEqual(previous['operations'], changed['operations'])
         self.assertEqual(changed['operations'][0]['name'], '_decide_unknown')
 
+    def test_imported_public_binding_changes_are_exports(self):
+        before = python_interface('from ._owner import A\n')
+        after = python_interface('from ._owner import A, B\n')
+        self.assertEqual(before['exports'], ['A'])
+        self.assertEqual(after['exports'], ['A', 'B'])
+
     def test_old_or_modified_wheel_bytes_fail_record_verification(self):
         with self.assertRaisesRegex(ValueError, 'Wheel original digest mismatch'):
             wheel_interfaces(self.wheel({'owner/__init__.py': b''}, corrupt=True))
