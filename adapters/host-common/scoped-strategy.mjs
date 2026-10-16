@@ -10,8 +10,7 @@ import {runInstalledStrategy} from './strategy.mjs';
 export async function withScopedStrategy(setup, core, contributions, consume, signal,
   {authorization} = {}) {
   if (typeof consume !== 'function') throw new TypeError('A scoped consumer is required');
-  const report = await runInstalledStrategy(setup, core, contributions, signal,
-    undefined, undefined, undefined, authorization);
+  const report = await runInstalledStrategy({setup, runtime: {core, contributions, authorization}, control: {signal}});
   const errors = [];
   let value;
   try {
