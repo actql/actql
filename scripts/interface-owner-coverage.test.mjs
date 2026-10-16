@@ -62,3 +62,17 @@ test('explicit module replacement adds a new declaration and refuses duplicate o
   assert.equal(merged.find(value => value.module === original.module).sha256, child.sha256);
   assert.throws(() => replaceInterfaceDeclarations([original], [child, child]), /Duplicate overlay interface declaration/u);
 });
+
+test('an owner sidecar cannot self-approve a new raw compiler wrapper outside actual generator outputs', t => {
+  const {root, declaration} = fixture(t);
+  const source = 'export function read(value) {return value._0;}';
+  const module = {module: 'new-wrapper.mjs', sha256: createHash('sha256').update(source).digest('hex'),
+    ...javascriptInterface(source)};
+  const declared = {...declaration('generated-binding', 'original representation binding'), ...module};
+  const proof = {module: module.module, sha256: module.sha256,
+    generator: {path: 'owner.md', anchor: 'original representation binding'},
+    freshness: {path: 'owner.md', anchor: 'original representation binding'}};
+  const owners = [{id: 'unverified-wrapper', declarations: [declared], generated: [proof]}];
+  assert.throws(() => interfaceOwnerCoverage({root, modules: [module], owners, generated: []}),
+    /Unverified generated binding: new-wrapper.mjs/u);
+});
