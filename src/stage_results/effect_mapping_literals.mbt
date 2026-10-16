@@ -151,6 +151,7 @@ fn effect_mapping_literal_admit(
   work : Ref[Int],
   nodes : Ref[Int],
   text : Ref[Int],
+  parameter_values : Array[@references.BoundIndex],
 ) -> Result[EffectMappingLiteralBinding, EffectMappingLiteralIssue] {
   let header = effect_result_binding_header(
     effect_mapping_shape_effect(effect_mapping_rule_effect(rule)),
@@ -192,6 +193,50 @@ fn effect_mapping_literal_admit(
       return Ok({ rule, target_field: target, origin, value: Omitted, })
     }
   }
+  // Only the new explicit EffectValue location is a Parameter position.
+  // Raw create payloads and Mapping literals remain opaque business data.
+  if @syntax.effect_header_create_values(header) is Some(_) &&
+    @decode.object_length(cursor) == Some(1) &&
+    @decode.field_at(cursor, 0).unwrap().0 == "$param" {
+    let bound = match
+      parameter_values.get(@syntax.effect_header_stage(header)) {
+      Some(value) => value
+      None =>
+        return Err(
+          effect_mapping_literal_issue(IncompatibleLiteral(target), header),
+        )
+    }
+    let (selected, used) = match
+      @references.bound_value_for_cursor(bound, cursor, work.val) {
+      Ok(value) => value
+      Err(_) => return Err(effect_mapping_literal_issue(WorkLimit, header))
+    }
+    work.val -= used
+    guard selected is Some(selected) else {
+      return Err(
+        effect_mapping_literal_issue(IncompatibleLiteral(target), header),
+      )
+    }
+    let (checked, used_nodes, used_text) = match
+      @value.recheck_runtime_value_usage(
+        selected.value.value,
+        @schema.field_contract(field),
+        {
+          max_nodes: nodes.val,
+          max_depth: limits.max_value_depth,
+          max_text_bytes: text.val,
+        },
+      ) {
+      Some(value) => value
+      None =>
+        return Err(
+          effect_mapping_literal_issue(IncompatibleLiteral(target), header),
+        )
+    }
+    nodes.val -= used_nodes
+    text.val -= used_text
+    return Ok({ rule, target_field: target, origin, value: Written(checked), })
+  }
   let (checked, used_nodes, used_text) = match
     @value.admit_usage(
       @schema.field_contract(field),
@@ -223,6 +268,7 @@ fn effect_mapping_literal_admit(
 pub fn admit_effect_mapping_literals(
   rules : EffectMappingRules,
   limits : EffectMappingLiteralLimits,
+  parameter_values? : Array[@references.BoundIndex] = [],
 ) -> Result[EffectMappingLiterals, EffectMappingLiteralIssue] {
   if limits.max_work < 0 ||
     limits.max_value_nodes < 0 ||
@@ -231,6 +277,10 @@ pub fn admit_effect_mapping_literals(
     return Err({ kind: InvalidLimits, stage_index: -1, effect_id: "", })
   }
   let work = Ref(limits.max_work)
+  if parameter_values.length() > work.val {
+    return Err({ kind: WorkLimit, stage_index: -1, effect_id: "", })
+  }
+  work.val -= parameter_values.length()
   let nodes = Ref(limits.max_value_nodes)
   let text = Ref(limits.max_value_text_bytes)
   let entries : Array[EffectMappingLiteralBinding] = []
@@ -260,6 +310,7 @@ pub fn admit_effect_mapping_literals(
             work,
             nodes,
             text,
+            parameter_values,
           ) {
           Ok(value) => value
           Err(issue) => return Err(issue)
@@ -298,6 +349,7 @@ pub fn admit_effect_mapping_literals(
               work,
               nodes,
               text,
+              parameter_values,
             ) {
             Ok(value) => value
             Err(issue) => return Err(issue)
@@ -332,6 +384,7 @@ pub fn admit_effect_mapping_literals(
               work,
               nodes,
               text,
+              parameter_values,
             ) {
             Ok(value) => value
             Err(issue) => return Err(issue)

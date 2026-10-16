@@ -91,6 +91,7 @@ pub fn prepare_effect_static_candidate(
   mappings : @environment.MappingContractShapes,
   references : @environment.CatalogReferences,
   limits : EffectStaticCandidateLimits,
+  parameter_values? : Array[@references.BoundIndex] = [],
 ) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue] {
   if limits.max_members < 0 ||
     limits.max_work < 0 ||
@@ -139,12 +140,16 @@ pub fn prepare_effect_static_candidate(
   }
   remaining -= effect_mapping_rules_work(mapping_rules)
   let mapping_literals = match
-    admit_effect_mapping_literals(mapping_rules, {
-      max_work: remaining,
-      max_value_nodes: limits.max_admission_nodes,
-      max_value_depth: limits.max_admission_depth,
-      max_value_text_bytes: limits.max_admission_text_bytes,
-    }) {
+    admit_effect_mapping_literals(
+      mapping_rules,
+      {
+        max_work: remaining,
+        max_value_nodes: limits.max_admission_nodes,
+        max_value_depth: limits.max_admission_depth,
+        max_value_text_bytes: limits.max_admission_text_bytes,
+      },
+      parameter_values~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(MappingLiterals(issue))
   }
