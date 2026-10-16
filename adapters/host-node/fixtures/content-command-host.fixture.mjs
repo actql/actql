@@ -248,7 +248,25 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
     closed = true;
   };
   if (entrance === 'Local') {
-    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation});
+    try {
+      client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation});
+    } catch (error) {
+      // Report closed diagnostic tags only, never configuration, keys or rows.
+      const failures = [], seen = new Set();
+      const visit = error => {
+        if (!error || seen.has(error) || failures.length >= 8) return;
+        seen.add(error);
+        const tag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
+          ? value : undefined;
+        failures.push({code: tag(error.code), name: tag(error.name), tag: tag(error.message),
+          ...(error.code === 'ERR_MODULE_NOT_FOUND' && error.url?.startsWith('file:')
+            ? {module: error.url} : {})});
+        visit(error.primaryFailure); visit(error.cause);
+      };
+      visit(error);
+      console.error(JSON.stringify({fixture: 'independent-source-command', failures}));
+      throw error;
+    }
   } else {
     const {key, cert, ca} = await fixtureCertificates(scratch.path);
     previousCertificates = getCACertificates('default');
