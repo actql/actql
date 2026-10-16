@@ -27,6 +27,15 @@
         "source_views": [],
         "commands": [],
         "catalog_cid": "sha256:189e570b7553c768f55852ec2f1a36e1386c4c4118ca62efc8578d028e40c648"
+      },
+      {
+        "schema": "actql.connector_catalog/0.1",
+        "connector_id": "snowflake",
+        "connector_version": "fixture",
+        "contracts": [],
+        "source_views": [],
+        "commands": [],
+        "catalog_cid": "sha256:a64dba676c044a2a74a4eec6594a8213a8402212df96dd58c31755d0ff82863f"
       }
     ],
     "contract_registry": [],
@@ -38,7 +47,7 @@
         "schema": "actql.mapping_contract/0.1",
         "mapping_ref": "mapping:salesforce.churn.v1",
         "version": "fixture",
-        "connector_manifest_cid": "sha256:e28fe9527c3be5c38b3b2d6c412f3169b398bf5c7044361b6f03bebd3daf59ec",
+        "connector_manifest_cid": "sha256:9a6a8e56c272ccc2e238e67707085a0ba0eedadee6cbe701670c830ab704459a",
         "target_ref": "connector://salesforce/Account",
         "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "target_schema_identity": "sha256:62b1bb5af1125a1bd7c8ef823b817937173ea48b09378e78a55d0beb340e7fe8",
@@ -93,7 +102,7 @@
             ]
           }
         ],
-        "mapping_contract_cid": "sha256:084cd9221773adccf7378e9dae278c8e5d8b8db50ba1f70cd4fae64ddbdfcff7"
+        "mapping_contract_cid": "sha256:f244d72c15ceb372a039ae524526709902dd9eb64b2ca965f82aade4d82e1a38"
       }
     ],
     "model_task_contracts": [
@@ -192,9 +201,9 @@
         "version": "actql-capacity-host-policy/0.1"
       }
     },
-    "evidence_bundle_cid": "sha256:1a448dee07aa59b5199ecf17709e891d7f061c2ff0ae9109a750d17d9ead89c6"
+    "evidence_bundle_cid": "sha256:e58afc2f58b9c7c3bc9496fdfad593bb120a24ae0bdbc4cf41424be275bc5fcb"
   },
-  "expected_environment_cid": "sha256:1a448dee07aa59b5199ecf17709e891d7f061c2ff0ae9109a750d17d9ead89c6",
+  "expected_environment_cid": "sha256:e58afc2f58b9c7c3bc9496fdfad593bb120a24ae0bdbc4cf41424be275bc5fcb",
   "declarations": {
     "salesforce.accounts": {
       "carrier": "relation",
