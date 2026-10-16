@@ -1,6 +1,7 @@
 // One installed Host owner for an admitted Run's physical dispatch, stop
 // observation, and recoverable cleanup. The journal and MoonBit control keep
 // their existing authority; this owner does not decide whether to retry.
+import {runtimeField, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan,
@@ -496,7 +497,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         if (coordinates === undefined || installedSource === undefined) {
           throw new Error('InstalledKeyedSourcePreparationUnavailable');
         }
-        const directOccurrence = {stage: coordinates._0, input: coordinates._1, task: coordinates._2};
+        const directOccurrence = {stage: runtimeField(coordinates, 0), input: runtimeField(coordinates, 1), task: runtimeField(coordinates, 2)};
         const directAccess = checkpoints?.acquisitionAccess(submission.requestId,
           installedSource.sourceAccess, {...directOccurrence,
             checkedSource: held.preparedSource.checkedSource,
@@ -900,7 +901,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     }).catch(async cause => {
       diagnostic('dispatch_failed', {ref: accepted.ref,
         code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
-        issueTag: cause?.cause?.$tag, nestedIssueTag: cause?.cause?._0?.$tag});
+        issueTag: runtimeTag(cause?.cause), nestedIssueTag: runtimeTag(runtimeOptionalField(cause?.cause, 0))});
       entry.primaryFailure = cause;
       const failedExecution = cause instanceof CapturedRunPublicationError
         ? cause.execution : undefined;

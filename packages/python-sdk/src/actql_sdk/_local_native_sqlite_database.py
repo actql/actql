@@ -5,6 +5,8 @@ The installed Host binds its original Store/adoption/intent before acquisition.
 """
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind_group
+
 from ctypes import (POINTER, byref, c_char_p, c_int, c_int32, c_int64,
                     c_uint16, c_uint64, c_ubyte, c_void_p, cast)
 from dataclasses import dataclass
@@ -53,53 +55,7 @@ class _OriginalDatabaseFunctions:
     """Mandatory exports in the already selected same provider; no loader."""
     def __init__(self, library: Any) -> None:
         self.library = library
-        p, pp = c_void_p, POINTER(c_void_p)
-        text, blob = POINTER(c_uint16), POINTER(c_ubyte)
-        signatures: dict[str, tuple[list[Any], Any]] = {
-            'restore_utf16_into': ([p, p, text, c_int32, c_int64, pp], c_int),
-            'initialize_utf16_into': ([p, p, text, c_int32, c_int64, c_uint64, c_uint64, pp], c_int),
-            'observe_into': ([p, p, pp], c_int),
-            'fence_into': ([p, p, pp], c_int),
-            'close_into': ([p, p, pp], c_int),
-            'read_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, pp], c_int),
-            'scan_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, pp], c_int),
-            'insert_utf16_into': ([p, p, text, c_int32, text, c_int32, blob, c_int64, pp], c_int),
-            'compare_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, blob, c_int64, pp], c_int),
-            'transaction_into': ([p, p, c_int32, pp], c_int),
-            'capacity_reserve_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, c_int64, c_int64, c_int64, pp], c_int),
-            'capacity_usage_utf16_into': ([p, p, text, c_int32, pp], c_int),
-            'capacity_release_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, c_int64, pp], c_int),
-            'capacity_read_utf16_into': ([p, p, text, c_int32, text, c_int32, pp], c_int),
-            'database_usage_into': ([p, p, pp], c_int),
-            'transaction_state_into': ([p, p, pp], c_int),
-            'header_utf16_into': ([p, p, text, c_int32, text, c_int32, pp], c_int),
-            'has_header': ([p], c_int32),
-            'header_body_bytes': ([p], c_int64),
-            'begin_read_into': ([p, p, pp], c_int),
-            'capacity_reserve_bounded_utf16_into': ([p, p, text, c_int32, text, c_int32,
-                c_int64, c_int64, c_int64, c_int64, c_int64, pp], c_int),
-            'record_count': ([p], c_int64),
-            'record_body_bytes': ([p], c_int64),
-            'reservation_count': ([p], c_int64),
-            'transaction_active': ([p], c_int32),
-            'capacity_changed': ([p], c_int32),
-            'reserved_bytes': ([p], c_int64),
-            'reserved_objects': ([p], c_int64),
-            'originals_into': ([p, pp, pp, pp], c_int),
-            'drop_reply': ([pp, p, p, p], c_int),
-            'finish_closed_data': ([pp, pp, pp, pp], c_int),
-            'finish_refused_open': ([pp, pp, pp], c_int),
-            'copy_row': ([p, p, p, p, blob, c_int64, POINTER(c_int64)], c_int),
-            'copy_key': ([p, p, p, p, blob, c_int64, POINTER(c_int64)], c_int),
-            **{name: ([p], c_int32) for name in
-               ('operation', 'stage', 'issue_family', 'after_issue_family', 'has_row')},
-            'revision': ([p], c_int64), 'body_bound': ([p], c_int64),
-        }
-        self.calls: dict[str, Any] = {}
-        for name, (args, result) in signatures.items():
-            call = getattr(library, 'actql_sqlite_database_' + name)
-            call.argtypes, call.restype = args, result
-            self.calls[name] = call
+        self.calls = bind_group(library, 'actql_sqlite_database_', ('restore_utf16_into', 'initialize_utf16_into', 'observe_into', 'fence_into', 'close_into', 'read_utf16_into', 'scan_utf16_into', 'insert_utf16_into', 'compare_utf16_into', 'transaction_into', 'capacity_reserve_utf16_into', 'capacity_usage_utf16_into', 'capacity_release_utf16_into', 'capacity_read_utf16_into', 'database_usage_into', 'transaction_state_into', 'header_utf16_into', 'has_header', 'header_body_bytes', 'begin_read_into', 'capacity_reserve_bounded_utf16_into', 'record_count', 'record_body_bytes', 'reservation_count', 'transaction_active', 'capacity_changed', 'reserved_bytes', 'reserved_objects', 'originals_into', 'drop_reply', 'finish_closed_data', 'finish_refused_open', 'copy_row', 'copy_key', 'operation', 'stage', 'issue_family', 'after_issue_family', 'has_row', 'revision', 'body_bound'))
 
 
 class _OriginalReplyProjection(Protocol):

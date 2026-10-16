@@ -1,0 +1,38 @@
+// Read-only generation checks remain with their existing owners. The approved
+// compiler representation targets come from that generator, never from a new
+// handwritten list or a declaration's self-reported verification flag.
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {compilerBindingTargets, generateCompilerBindings} from './generate-js-compiler-bindings.mjs';
+import {generateActionBindings} from './generate-js-action-bindings.mjs';
+import {checkCredentialScopeBinding} from './generate-credential-scope-binding.mjs';
+
+export function interfaceGenerationFreshness(root) {
+  const url = pathToFileURL(join(root, '/'));
+  generateCompilerBindings(url, false);
+  generateActionBindings(url, false);
+  checkCredentialScopeBinding(root);
+  const generators = ['generate-client-host-wire.mjs', 'generate-client-publication-wire.mjs',
+    'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs'];
+  for (const name of generators) execFileSync(process.execPath, [join(root, 'scripts', name), '--check'], {
+    cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+  const localGenerators = ['generate-local-wasm-abi.py', 'generate-local-native-runtime-binding.py',
+    'generate-local-native-shim-bindings.py', 'generate-local-native-memory-binding.py',
+    'generate-local-duckdb-binding.py'];
+  for (const name of localGenerators) execFileSync('python3', ['-B', join(root, 'scripts', name), '--check'], {
+    cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+  const assemblies = ['check-duckdb-environment-contract.mjs', 'connector-node-bundles.mjs', 'workers-composition.mjs'];
+  for (const name of assemblies) execFileSync(process.execPath, [join(root, 'scripts', name)], {
+    cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+  const generated = compilerBindingTargets.map(module => ({module,
+    sha256: createHash('sha256').update(readFileSync(join(root, module))).digest('hex'),
+    generator: {path: 'scripts/generate-js-compiler-bindings.mjs', anchor: 'generateCompilerBindings'},
+    freshness: {path: 'scripts/generate-js-compiler-bindings.mjs', anchor: "['--check', '--write']"}}));
+  assert.equal(generated.length, new Set(generated.map(value => value.module)).size, 'Duplicate generated compiler binding');
+  return {qualification: 'read-only-generation-freshness; not-target-or-artifact-admission', generated,
+    checked: ['compiler-bindings', 'action-bindings', 'credential-fields', ...generators, ...localGenerators, ...assemblies]};
+}

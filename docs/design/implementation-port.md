@@ -35,6 +35,40 @@ semantics. Connectors do not depend on CLI. Shared encode/decode code implements
 one contract across consumers; reuse must preserve each boundary's scope,
 closed fields, type validation and demand rules.
 
+### Semantic responsibility across languages
+
+The boundary is defined by the decisions an implementation owns, rather than
+the number of branches or lines in a wrapper.
+
+| Implementation | Responsibility |
+| --- | --- |
+| Common MoonBit owners | Types and checked meaning, common identity, feasibility, authorization and approval rules, logical accounting, completion, Unknown and recovery decisions. |
+| Connector MoonBit owners | Provider capabilities, request construction and identity, response interpretation, continuation/completeness and provider-specific recovery matching. |
+| Foreign physical adapters | HTTP, database, filesystem, cryptographic and engine operations; physical limits, encoding and the language's memory, thread and callback lifetimes. |
+| Generated bindings and public codecs | Representations and validation projected from the existing declarations and contracts, without an independent execution or permission decision. |
+
+A physical adapter can enforce bounds or reject an invalid native representation.
+It does not infer logical completion from bytes, a resolved Promise or a matching
+CID. A cryptographic implementation can compute a digest while its existing
+semantic owner defines the preimage and what that identity establishes. Static
+Connector declarations need not be embedded in MoonBit; their interpretation
+still belongs to the declared owner. See the
+[Connector ownership boundary](connector-layout.md).
+
+DATA decoding and capability transport have different responsibilities. A
+decoded value cannot install a callback, Store or runtime. Opaque originals stay
+with their owning instance and lifetime; copying their fields or serializing
+their identity does not recreate them. In-process implementation code is part
+of the trusted runtime: opaque handles and structural inspection do not sandbox
+that code.
+
+Each foreign boundary must identify its existing owner and its named inputs,
+outputs, units, identity, custody, synchronization, failure, interruption,
+resources, extension and verification rules. The
+[distributed interface inventory](../development/interface-inventory.md)
+references those rules and detects missing source/export coverage. Classification
+or a matching reference is not evidence that an operation executed correctly.
+
 ### Deployment and Host adapters
 
 The Host connects the core to environment-specific I/O, storage, credentials

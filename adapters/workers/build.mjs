@@ -3,7 +3,7 @@ import {mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {gzipSync} from 'node:zlib';
 import {checkWorkersArtifact, conformanceModules, hostModules,
-  finiteConformanceModules, finiteRuntimeModules} from './artifact.mjs';
+  finiteConformanceModules, finiteRuntimeModules, finiteRuntimeEntry} from './artifact.mjs';
 
 async function buildProfile(entry, name, allowed) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -27,7 +27,7 @@ export const buildConformance = () => buildProfile('adapters/workers/conformance
 export const buildFiniteConformance = () => buildProfile('adapters/workers/finite-runtime-fixture.mjs',
   'finite-conformance', finiteConformanceModules);
 export const buildHost = () => buildProfile('adapters/workers/host.mjs','host',hostModules);
-export const buildFiniteRuntime = () => buildProfile('adapters/workers/finite-runtime.mjs',
+export const buildFiniteRuntime = () => buildProfile(finiteRuntimeEntry,
   'finite-runtime', finiteRuntimeModules);
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

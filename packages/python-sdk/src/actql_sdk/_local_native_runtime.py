@@ -6,8 +6,10 @@ must be dropped before the outer original read can seek physical retirement.
 """
 from __future__ import annotations
 
-from ctypes import POINTER, byref, c_int, c_int32, c_uint16, c_void_p
+from ctypes import byref, c_uint16, c_void_p
 from typing import Any, NoReturn
+
+from ._local_native_runtime_abi import bind
 
 from ._local_native_control_custody import _OriginalArenaFact
 from ._local_native_original_read import (
@@ -25,29 +27,15 @@ class _OriginalPackagedRuntimeError(RuntimeError):
 class _OriginalPackagedRuntimeFunctions:
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.capture = library.actql_packaged_runtime_capture_utf16_into
-        self.capture.argtypes = ([c_void_p, c_void_p]
-            + [POINTER(c_uint16), c_int32] * 4 + [c_int32, POINTER(c_void_p)])
-        self.current = library.actql_packaged_runtime_current_into
-        self.close = library.actql_packaged_runtime_close_into
-        for call in (self.current, self.close):
-            call.argtypes = [c_void_p, POINTER(c_void_p)]
-        self.originals = library.actql_packaged_runtime_originals_into
-        self.originals.argtypes = [c_void_p] + [POINTER(c_void_p)] * 3
-        self.drop = library.actql_packaged_runtime_drop_reply
-        self.drop.argtypes = [POINTER(c_void_p), c_void_p, c_void_p, c_void_p]
-        self.finish = library.actql_packaged_runtime_finish_closed_data
-        self.finish.argtypes = [POINTER(c_void_p)] * 4
-        self.refused = library.actql_packaged_runtime_finish_refused_capture
-        self.refused.argtypes = [POINTER(c_void_p)] * 3
-        for call in (self.capture, self.current, self.close, self.originals,
-                     self.drop, self.finish, self.refused):
-            call.restype = c_int
-        self.operation = library.actql_packaged_runtime_operation
-        self.issue = library.actql_packaged_runtime_issue_family
-        for call in (self.operation, self.issue):
-            call.argtypes = [c_void_p]
-            call.restype = c_int32
+        calls = bind(library)
+        self.capture = calls['capture_utf16_into']
+        self.current, self.close = calls['current_into'], calls['close_into']
+        self.originals = calls['originals_into']
+        self.drop = calls['drop_reply']
+        self.finish = calls['finish_closed_data']
+        self.refused = calls['finish_refused_capture']
+        self.operation, self.issue = calls['operation'], calls['issue_family']
+
 
 
 def _exact_utf16(value: str, maximum: int, *, exact: int | None = None) -> Any:

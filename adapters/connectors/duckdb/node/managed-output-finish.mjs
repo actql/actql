@@ -1,3 +1,4 @@
+import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldToHost} from 'node:timers/promises';
 
 // The common owner issues the receipt and keeps partial roots. This adapter
@@ -7,12 +8,12 @@ export async function finishManagedOutputReceipt(advance, signal) {
   for (;;) {
     signal?.throwIfAborted();
     const poll = advance(quantum);
-    if (typeof poll?._0 !== 'boolean' || !Number.isSafeInteger(poll?._1)
-        || poll._1 <= 0 || poll._1 > quantum) {
+    if (typeof runtimeOptionalField(poll, 0) !== 'boolean' || !Number.isSafeInteger(runtimeOptionalField(poll, 1))
+        || runtimeField(poll, 1) <= 0 || runtimeField(poll, 1) > quantum) {
       throw new TypeError('Invalid managed output finish progress');
     }
     signal?.throwIfAborted();
-    if (poll._0) return;
+    if (runtimeField(poll, 0)) return;
     await yieldToHost();
   }
 }

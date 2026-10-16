@@ -64,6 +64,7 @@
 // registered identity profile (`host-bundle.json`, generated into the
 // installed connector table), or the common default. No provider name or
 // type appears here.
+import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {checkedTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
@@ -315,13 +316,13 @@ export function installedRowEffectDescriptors(moon, prepared, compilation) {
       prepared, unit.stageIndex, effectId, defaultLimits.planWork));
     const tableBinding = checkedTableWriteBinding(moon, prepared,
       unit.stageIndex, effectId, defaultLimits.planWork);
-    if (descriptor._2 === 'command') {
-      return Object.freeze({effectId: descriptor._1, kind: 'command',
-        target: descriptor._3, commandRef: descriptor._4, commandCid: descriptor._5});
+    if (runtimeField(descriptor, 2) === 'command') {
+      return Object.freeze({effectId: runtimeField(descriptor, 1), kind: 'command',
+        target: runtimeField(descriptor, 3), commandRef: runtimeField(descriptor, 4), commandCid: runtimeField(descriptor, 5)});
     }
-    return Object.freeze({effectId: descriptor._1, kind: descriptor._2,
-      target: descriptor._3, mappingRef: descriptor._4, mappingCid: descriptor._5,
-      ...(tableBinding === undefined ? {} : {capabilityCid: tableBinding._4})});
+    return Object.freeze({effectId: runtimeField(descriptor, 1), kind: runtimeField(descriptor, 2),
+      target: runtimeField(descriptor, 3), mappingRef: runtimeField(descriptor, 4), mappingCid: runtimeField(descriptor, 5),
+      ...(tableBinding === undefined ? {} : {capabilityCid: runtimeField(tableBinding, 4)})});
   }));
 }
 
@@ -513,11 +514,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   };
   const selectOwner = descriptor => {
     if (singular !== undefined) return singular;
-    const route = routes.find(value => value.descriptor.effectId === descriptor._1);
+    const route = routes.find(value => value.descriptor.effectId === runtimeField(descriptor, 1));
     const expected = route?.descriptor;
-    if (expected === undefined || expected.kind !== descriptor._2 ||
-        expected.target !== descriptor._3 || expected.mappingRef !== descriptor._4 ||
-        expected.mappingCid !== descriptor._5) fail('InstalledEffectProgramMismatch');
+    if (expected === undefined || expected.kind !== runtimeField(descriptor, 2) ||
+        expected.target !== runtimeField(descriptor, 3) || expected.mappingRef !== runtimeField(descriptor, 4) ||
+        expected.mappingCid !== runtimeField(descriptor, 5)) fail('InstalledEffectProgramMismatch');
     return route.owner;
   };
   const effect = runtimeCore(moon).effectApplicationControl;
@@ -546,25 +547,25 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       prepared, stageIndex, effectId, limits.planWork));
     const owner = selectOwner(descriptor);
     const {installed, installedCommands, owned} = owner;
-    if (descriptor._2 === 'command') {
+    if (runtimeField(descriptor, 2) === 'command') {
       const command = installedCommands.find(candidate =>
-        candidate.commandCid === descriptor._5 &&
-        candidate.commandRef === descriptor._4 && candidate.target === descriptor._3);
+        candidate.commandCid === runtimeField(descriptor, 5) &&
+        candidate.commandRef === runtimeField(descriptor, 4) && candidate.target === runtimeField(descriptor, 3));
       if (command === undefined || !owned.kinds.includes('command') ||
-          descriptor._6 === undefined) fail('InstalledRowEffectCommandNotInstalled');
-      return retainMember(owner, {stageIndex, effectId: descriptor._1,
-        memberIndex: descriptor._0, kind: 'command', command,
+          runtimeField(descriptor, 6) === undefined) fail('InstalledRowEffectCommandNotInstalled');
+      return retainMember(owner, {stageIndex, effectId: runtimeField(descriptor, 1),
+        memberIndex: runtimeField(descriptor, 0), kind: 'command', command,
         resource: command.resource});
     }
     const mapping = installed.find(candidate =>
-      candidate.mappingCid === descriptor._5 &&
-      candidate.mappingRef === descriptor._4);
-    if (mapping === undefined || !owned.kinds.includes(descriptor._2) ||
-        descriptor._6 === undefined) {
+      candidate.mappingCid === runtimeField(descriptor, 5) &&
+      candidate.mappingRef === runtimeField(descriptor, 4));
+    if (mapping === undefined || !owned.kinds.includes(runtimeField(descriptor, 2)) ||
+        runtimeField(descriptor, 6) === undefined) {
       fail('InstalledRowEffectMappingNotInstalled');
     }
-    const member = retainMember(owner, {stageIndex, effectId: descriptor._1,
-      memberIndex: descriptor._0, kind: descriptor._2, mapping,
+    const member = retainMember(owner, {stageIndex, effectId: runtimeField(descriptor, 1),
+      memberIndex: runtimeField(descriptor, 0), kind: runtimeField(descriptor, 2), mapping,
       resource: mapping.resource});
     permissionsOf(member);
     return member;
@@ -1017,11 +1018,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         value: entry.value})), rows.length, maxWireBytes, maxNodes,
       maxDepth));
     if (inventory.length !== rows.length ||
-        new Set(inventory.map(item => item._0)).size !== rows.length) {
+        new Set(inventory.map(item => runtimeField(item, 0))).size !== rows.length) {
       fail('InvalidInstalledRowEffectInventory');
     }
     return Object.freeze(inventory.map(item => Object.freeze({
-      entry: rows[item._0], identity: parseExactJson(item._1)})));
+      entry: rows[runtimeField(item, 0)], identity: parseExactJson(runtimeField(item, 1))})));
   };
 
   // A member's write footprint: the provider's complete footprint, or the
@@ -1080,38 +1081,38 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const source = control.effectSourceArtifactPreviewBinding(
         payloads[index].summary.artifact,
         moon.strategyPublicationContractIdentity(context.runInvocation),
-        descriptor._6, context.storeAuthorityCid);
+        runtimeField(descriptor, 6), context.storeAuthorityCid);
       const identity = control.issueSourceFreeLocalEffectIdentity(
-        prepared, inputs, descriptor._0, payloads[index].localResultArtifact,
+        prepared, inputs, runtimeField(descriptor, 0), payloads[index].localResultArtifact,
         {maxWork: limits.planWork, maxWireBytes, maxNodes, maxDepth});
       identities.push(identity);
       const rows = rowsOf[index];
       rowCount += rows.length;
       if (rowCount > limits.maxRows) fail('InstalledRowEffectRowLimit');
       const planCid = checked(moon.clientProgramEffectPlanCid(prepared,
-        descriptor._0, limits.maxFields, limits.planWork, maxWireBytes,
+        runtimeField(descriptor, 0), limits.maxFields, limits.planWork, maxWireBytes,
         maxNodes, maxDepth));
       return {
-        effect_id: descriptor._1, effect_kind: descriptor._2,
-        target: descriptor._3,
+        effect_id: runtimeField(descriptor, 1), effect_kind: runtimeField(descriptor, 2),
+        target: runtimeField(descriptor, 3),
         ...(member.kind === 'command'
-          ? {contract: descriptor._4, resolved_command_contract_cid: descriptor._5}
-          : {mapping: descriptor._4, resolved_mapping_contract_cid: descriptor._5}),
+          ? {contract: runtimeField(descriptor, 4), resolved_command_contract_cid: runtimeField(descriptor, 5)}
+          : {mapping: runtimeField(descriptor, 4), resolved_mapping_contract_cid: runtimeField(descriptor, 5)}),
         effect_identity_cid: identity.identity,
-        source_result: descriptor._6,
+        source_result: runtimeField(descriptor, 6),
         ...(planCid === undefined ? {} : {effect_plan_logical_cid: planCid}),
         // The identity names the checked semantic Result. Its physical
         // export is bound separately by the existing captured-source owner.
         result_artifact_cid: payloads[index].localResultArtifact.identity,
         preview_strength: 'full_diff',
-        source_binding_cid: source._1,
+        source_binding_cid: runtimeField(source, 1),
         capability_evidence_cid: capabilities[index].identity,
         authority_scope_cid: requestAuthority,
         write_footprint: footprints[index],
         count: rows.length, max_items: rows.length,
         required_permissions: permissionsOf(member),
         approval: approvalOf(member),
-        on_item_failure: descriptor._7,
+        on_item_failure: runtimeField(descriptor, 7),
         changes: rows.map(row => member.kind === 'create' ? {
           target_row_identity: row.identity,
           target_guard: {state: 'not_applicable'},
@@ -1167,10 +1168,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       maxWireBytes, maxNodes, maxDepth, members.length, rowCount,
       limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth));
     control.checkSourceFreeLocalEffectPreviewIdentities(prepared, inputs,
-      authored._0, draft.run_identity_cid, authoringCid, identities,
+      runtimeField(authored, 0), draft.run_identity_cid, authoringCid, identities,
       {maxWireBytes, maxNodes, maxDepth});
-    return Object.freeze({wire: authored._0, authoringCid,
-      keys: authored._1});
+    return Object.freeze({wire: runtimeField(authored, 0), authoringCid,
+      keys: runtimeField(authored, 1)});
   }
 
   // The Ledger claims of every row of the admitted Preview.
@@ -1487,8 +1488,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     }
     return Object.freeze(body.effects.map((member, index) => {
       const saved = provider.members[index];
-      const owner = selectOwner({_1: member.effect_id, _2: member.effect_kind,
-        _3: member.target, _4: member.mapping, _5: member.resolved_mapping_contract_cid});
+      const owner = selectOwner(runtimeTupleFromFields({1: member.effect_id, 2: member.effect_kind, 3: member.target, 4: member.mapping, 5: member.resolved_mapping_contract_cid}));
       const {installed, installedCommands, owned} = owner;
       // Initial composed-profile restriction: recovery requires every retained
       // installation identity, not merely equivalent Mappings/capabilities. A

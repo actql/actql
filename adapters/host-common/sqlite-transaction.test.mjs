@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
+import {mkdtempSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {createSqliteTransaction} from './sqlite-transaction.mjs';
 
 test('SQLite automatic rollback is a known body failure', () => {
@@ -131,3 +134,47 @@ test('primary, rollback, and state-inspection failures remain separate',
         {code: 'TestJournalConnectionUnusable'});
     } finally { database.close(); }
   });
+
+// An actual physical COMMIT may complete before its caller loses the reply.
+// The retained row is the same original attempt, not permission to send again.
+test('lost physical COMMIT reply retains Unknown and the exact original row after reopen', t => {
+  const root = mkdtempSync(join(tmpdir(), 'credential-if-commit-'));
+  const path = join(root, 'original.sqlite');
+  let database = new DatabaseSync(path), complete = false;
+  try {
+    database.exec('PRAGMA synchronous = FULL');
+    database.exec('CREATE TABLE attempts (id TEXT PRIMARY KEY, request TEXT NOT NULL) STRICT');
+    const primary = new Error('OriginalCommitReplyLost');
+    let commits = 0;
+    const connection = {
+      exec(sql) {
+        database.exec(sql);
+        if (sql === 'COMMIT') { commits++; throw primary; }
+      },
+      get isTransaction() { return database.isTransaction; },
+    };
+    const transaction = createSqliteTransaction(connection, 'OriginalJournal');
+    assert.throws(() => transaction.run(() => {
+      database.prepare('INSERT INTO attempts VALUES (?, ?)').run('original-attempt', 'exact-original-request');
+    }), error => {
+      assert.equal(error.code, 'OriginalJournalCommitOutcomeUnknown');
+      assert.equal(error.outcome, 'unknown');
+      assert.equal(error.cause, primary);
+      assert.equal(error.connectionUsable, true);
+      return true;
+    });
+    assert.equal(commits, 1);
+    database.close();
+    database = new DatabaseSync(path);
+    const expected = [{id: 'original-attempt', request: 'exact-original-request'}];
+    for (let observation = 0; observation < 2; observation++) {
+      assert.deepEqual(database.prepare('SELECT id, request FROM attempts').all().map(row => ({...row})), expected);
+    }
+    assert.equal(commits, 1, 'same-attempt observation performs no new write');
+    complete = true;
+  } finally {
+    database.close();
+    if (complete) rmSync(root, {recursive: true, force: true});
+    else t.diagnostic(`Unconfirmed original physical fixture retained: ${root}`);
+  }
+});

@@ -1,5 +1,6 @@
 // In-process independent Compute implementation. No DB, transport settings or
 // attempt settlement in application code; the connector-owned entry completes it.
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {managedInputCodecContractCid, managedInputSupportsRows,
   registerManagedMemoryInput,
   withManagedInputRows} from '../store-local/managed-memory-representations.mjs';
@@ -10,7 +11,7 @@ import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
 const managedSiteCapacity = value => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
-    ? [value._0, value._1]
+    ? [runtimeField(value, 0), runtimeField(value, 1)]
     : undefined;
 
 export function numericStrategyContribution(moon, setup, checked) {

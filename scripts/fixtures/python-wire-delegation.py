@@ -23,6 +23,7 @@ assert Path(_wire.__file__).resolve() == root / 'packages/python-sdk/src/actql_s
 assert Path(_wire_codec.__file__).resolve() == root / 'packages/python-sdk/src/actql_sdk/_wire_codec.py'
 assert _wire.valid(0, {'type': 'integer'})
 assert not _wire.valid(False, {'type': 'integer'})
+assert not _wire.valid(10 ** 400, {'type': 'integer'})
 assert Client is not None and AsyncClient is not None
 assert not {'wasmtime', 'duckdb', 'actql_local_runtime'} & sys.modules.keys()
 print('Python codec delegation and Remote-only import: passed')

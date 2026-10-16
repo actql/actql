@@ -1,5 +1,6 @@
 // Host connection of Source acquisition to the existing Run-unit Checkpoint
 // and encrypted continuation custody. This owns no scheduler or retry loop.
+import {runtimeField, runtimeTriple} from '../host-common/compiler-binding.generated.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
@@ -175,7 +176,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       descriptor: moon.clientProgramSourceCaptureExportDescriptor(exported),
       rows: moon.clientProgramSourceCaptureExportRows(exported),
       ...(originalFacts === undefined ? {} : {original_input: {version: ORIGINAL_INPUT,
-        schema_cid: originalFacts._0, rows_cid: originalFacts._1, rows: originalFacts._2}}),
+        schema_cid: runtimeField(originalFacts, 0), rows_cid: runtimeField(originalFacts, 1), rows: runtimeField(originalFacts, 2)}}),
       source_evidence_wire: sourceEvidenceWire,
       ...(state.checkpointCid === undefined ? {} : {checkpoint_cid: state.checkpointCid}),
       capture_started_at: startedAt, capture_completed_at: completedAt};
@@ -314,7 +315,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
           try { sourceCurrent(state); return true; }
           catch { return false; }
         }, referenceIssuer,
-        input === undefined ? undefined : {_0: input.schema_cid, _1: input.rows_cid, _2: input.rows}));
+        input === undefined ? undefined : runtimeTriple(input.schema_cid, input.rows_cid, input.rows)));
       restorations.add(owner);
       const capturedSource = moon.clientProgramSourceCaptureSource(owner);
       if (capturedSource === undefined) fail('SourceCaptureCustodyUnavailable');

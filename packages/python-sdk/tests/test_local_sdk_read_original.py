@@ -1,4 +1,5 @@
 """Scalar/loan boundary only; no real Wasm, grant, delivery or Store ACK."""
+from local_abi_declaration_fixture import assert_current_local_abi
 import copy
 from threading import RLock
 import unittest
@@ -28,7 +29,7 @@ class SDKReadOriginalTests(unittest.TestCase):
 
     def test_closed_signature_and_exact_original_loans_are_forwarded(self):
         core, source, output, calls, _ = self.bridge()
-        self.assertEqual(LOCAL_CORE_ABI, 72)
+        assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_sdk_read_original'],
                          ('i64 i32 i32 i32 i32 i32 i32', 'i32'))
         for ordinal in range(3):

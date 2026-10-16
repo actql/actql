@@ -24,7 +24,6 @@ from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
-LOCAL_CORE_ABI = 74
 
 
 class LocalCoreError(RuntimeError):
@@ -188,353 +187,45 @@ class _Output:
     family: str = "material"
 
 
-# This is the private in-process ABI, independent of Client wire versions.
-_BUFFER_SIGNATURES = {
-    'open_live': ('i64 i64 i32 i32', 'i32'),
-    'report_live': ('i64', 'i32'),
-    'stop_live': ('i64', 'i32'),
-    'open': ('i64 i64 i32 i32 i32 i32 i32 i64 i64 i64 i64', 'i32'),
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'fill': ('i64 i32 i32 i32', 'i32'),
-    'seal': ('i64 i32', 'i32'),
-    'byte': ('i64 i32 i32', 'i32'),
-    'borrow': ('i64 i32', 'i32'),
-    'return': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'allocated': ('i64', 'i64'),
-    'reserved': ('i64', 'i64'),
-    'close_pool': ('i64', 'i32'),
-}
-_PROGRAM_SIGNATURES = {
-    'install_environment': ('i64 i32', 'i32'),
-    'install_source_environment': ('i64 i32', 'i32'),
-    'reserve_preparation': ('i64 i32 i32 i32', 'i32'),
-    'prepare': ('i64 i32', 'i32'),
-    'prepared_results': ('i64 i32', 'i32'),
-    'prepared_tasks': ('i64 i32', 'i32'),
-    'close_preparation': ('i64 i32', 'i32'),
-    'close_environment': ('i64 i32', 'i32'),
-}
-_RUN_SIGNATURES = {
-    'dispatch_action': ('i64 i32 i32 i32', 'i32'),
-    'install_configuration': ('i64 i32', 'i32'),
-    'install_current_configuration': ('i64 i32 i32', 'i32'),
-    'install_sdk_configuration': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32 i32', 'i32'),
-    'prepare': ('i64 i32', 'i32'),
-    'prepare_sdk': ('i64 i32 i32', 'i32'),
-    'restore': ('i64 i32 i32', 'i32'),
-    'prepared': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'close_configuration': ('i64 i32', 'i32'),
-    'reserve_physical_start': ('i64 i32 i32 i32', 'i32'),
-    'reserve_sdk_physical_start': ('i64 i32 i32', 'i32'),
-    'confirm_physical_start': ('i64 i32', 'i32'),
-    'physical_start_ready': ('i64 i32', 'i32'),
-    'close_physical_start': ('i64 i32', 'i32'),
-}
-_SUBMISSION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'validate_append': ('i64 i32 i32', 'i32'),
-    'retire_output': ('i64 i32', 'i32'),
-}
-
-_BOOTSTRAP_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'produce_sdk': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_SOURCE_PUBLICATION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'prepare': ('i64 i32 i32', 'i32'),
-    'advance': ('i64 i32 i32', 'i32'),
-    'progress': ('i64 i32 i32', 'i64'),
-    'finish': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_RUN_INVOCATION_SIGNATURES = {
-    'reserve_source_free': ('i64 i32 i32 i32 i64', 'i32'),
-    'prepare_source_free': ('i64 i32 i32', 'i32'),
-    'length_source_free': ('i64 i32', 'i32'),
-    'close_source_free': ('i64 i32', 'i32'),
-}
-_MATERIAL_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'reserve_submitted_rows': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'validate_submitted_rows': ('i64 i32', 'i32'),
-    'validate_sdk_start': ('i64 i32', 'i32'),
-    'confirm_sdk_start': ('i64 i32', 'i32'),
-    'validate_sdk_publication': ('i64 i32', 'i32'),
-    'confirm_sdk_publication': ('i64 i32', 'i32'),
-    'retire_output': ('i64 i32', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'reserve_restoration': ('i64 i32', 'i32'),
-    'restore': ('i64 i32', 'i32'),
-    'restored': ('i64 i32', 'i32'),
-    'close_restoration': ('i64 i32', 'i32'),
-}
-_PUBLICATION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'prepare': ('i64 i32 i32', 'i32'),
-    'advance': ('i64 i32 i32 i32', 'i32'),
-    'progress': ('i64 i32 i32', 'i64'),
-    'finish': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'retire_output': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'prepare_commit': ('i64 i32 i32 i32', 'i32'),
-    'validate_run': ('i64 i32 i32 i32', 'i32'),
-    'advance_commit': ('i64 i32 i32 i32', 'i32'),
-    'commit_progress': ('i64 i32 i32', 'i64'),
-    'finish_commit': ('i64 i32 i32', 'i32'),
-    'prepare_observation': ('i64 i32 i32 i32 i32', 'i32'),
-    'advance_observation': ('i64 i32 i32 i32', 'i32'),
-    'observation_progress': ('i64 i32 i32', 'i64'),
-    'finish_observation': ('i64 i32 i32', 'i32'),
-    'retire_observation': ('i64 i32', 'i32'),
-    'prepare_lookup': ('i64 i32 i32 i32 i32', 'i32'),
-    'retire_lookup': ('i64 i32', 'i32'),
-}
-_PUBLICATION_PREFLIGHT_SIGNATURES = {
-    'result_count': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'prepare': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'retire_output': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
+# Existing publication field selection is separate from scalar signatures.
 _CommitMaterialField = Literal['wire', 'name', 'identity_field', 'identity']
 _COMMIT_MATERIAL_FIELDS = {'wire': 0, 'name': 1, 'identity_field': 2, 'identity': 3}
 
 
-_PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
-    'count': ('i64 i32 i32', 'i32'),
-    'result_count': ('i64 i32 i32', 'i32'),
-    'produce_observed_index': ('i64 i32 i32 i32', 'i32'),
-    'produce_run_state': ('i64 i32 i32 i32', 'i32'),
-    'produce_sdk_read_original': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_read_evidence': ('i64 i32 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_read_grant': ('i64 i32 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_read_evidence_decision': ('i64 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_read_delivery_storage': ('i64 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_delivery_lookup': ('i64 i32 i32 i32 i32', 'i32'),
-    'retire_sdk_delivery_output': ('i64 i32', 'i32'),
-    'prepare_sdk_payload_codecs': ('i64 i32 i32 i32', 'i32'),
-    'sdk_payload_ordinal': ('i64 i32 i32 i32', 'i32'),
-    'bind_sdk_payload_record': ('i64 i32 i32 i32 i32 i32', 'i32'),
-    'prepare_sdk_payload_input': ('i64 i32 i32 i32', 'i32'),
-    'produce_sdk_payload_chunk': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
-    'confirm_sdk_payload_chunk': ('i64 i32', 'i64'),
-    'produce_sdk_payload_receipt': ('i64 i32 i32 i32 i32', 'i32'),
-    'produce_sdk_terminal_storage': ('i64 i32 i32 i32 i32', 'i32'),
-    'observe_sdk_terminal': ('i64 i32 i32', 'i32'),
-    'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
-    'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
-    'produce_index_key': ('i64 i32 i32', 'i32'),
-    'produce_schema': ('i64 i32 i32 i32 i32', 'i32'),
-    'validate_payload_binding': ('i64 i32 i32 i32 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_REQUEST_SIGNATURES = {
-    'start_replay': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_RESULT_BINDING_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_CHUNK_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'final': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_RECORD_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'begin': ('i64 i32 i32', 'i32'),
-    'confirm': ('i64 i32 i32 i32', 'i32'),
-    'validate_snapshot': ('i64 i32 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_RESERVATION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'begin': ('i64 i32 i32', 'i32'),
-    'confirm': ('i64 i32 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_WRITING_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'begin': ('i64 i32 i32', 'i32'),
-    'confirm': ('i64 i32 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_ALLOCATION_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'begin': ('i64 i32 i32', 'i32'),
-    'confirm': ('i64 i32 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_NAMES_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_PAYLOAD_BINDING_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32 i32', 'i32'),
-    'validate': ('i64 i32 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_SOURCE_SIGNATURES = {
-    'reserve_configuration': ('i64 i32 i32', 'i32'),
-    'configure': ('i64 i32', 'i32'),
-    'configured': ('i64 i32', 'i32'),
-    'configuration_issue': ('i64 i32', 'i32'),
-    'capacity': ('i64 i32 i32', 'i64'),
-    'close_configuration': ('i64 i32', 'i32'),
-    'reserve_attempt': ('i64 i32 i32 i32', 'i32'),
-    'start': ('i64 i32', 'i32'),
-    'started': ('i64 i32', 'i32'),
-    'close_attempt': ('i64 i32', 'i32'),
-    'accept': ('i64 i32 i32 i32', 'i32'),
-    'completed': ('i64 i32', 'i32'),
-    'close_event': ('i64 i32', 'i32'),
-    'reserve_command': ('i64 i32 i32 i32 i32 i64', 'i32'),
-    'produce_command': ('i64 i32', 'i32'),
-    'command_length': ('i64 i32', 'i32'),
-    'close_command': ('i64 i32', 'i32'),
-}
-_TASK_SIGNATURES = {
-    'reserve_next_sdk': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32', 'i32'),
-    'start': ('i64 i32', 'i32'),
-    'started': ('i64 i32', 'i32'),
-    'issue': ('i64 i32', 'i32'),
-    'assessment': ('i64 i32 i32 i32', 'i64'),
-    'feed': ('i64 i32 i32', 'i32'),
-    'inputs_ready': ('i64 i32', 'i32'),
-    'advance': ('i64 i32 i32', 'i32'),
-    'progress': ('i64 i32 i32', 'i64'),
-    'prepare_finalization': ('i64 i32', 'i32'),
-    'advance_finalization': ('i64 i32 i32', 'i32'),
-    'complete': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_COMPUTE_SIGNATURES = {
-    'reserve_source_free': ('i64 i32 i32 i32', 'i32'),
-    'configure_source_free': ('i64 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32', 'i32'),
-    'configure': ('i64 i32', 'i32'),
-    'configured': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_RESULT_SIGNATURES = {
-    'reserve_from_compute': ('i64 i32 i32 i32', 'i32'),
-    'reserve': ('i64 i32 i32', 'i32'),
-    'start': ('i64 i32', 'i32'),
-    'feed': ('i64 i32 i32', 'i32'),
-    'inputs_ready': ('i64 i32', 'i32'),
-    'advance': ('i64 i32 i32', 'i32'),
-    'progress': ('i64 i32 i32', 'i32'),
-    'finish_preparation': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'reserve_chunk': ('i64 i32 i32 i64', 'i32'),
-    'produce_chunk': ('i64 i32', 'i32'),
-    'chunk_length': ('i64 i32', 'i32'),
-    'chunk_final': ('i64 i32', 'i32'),
-    'close_chunk': ('i64 i32', 'i32'),
-}
-_WORKSPACE_SIGNATURES = {
-    'reserve': ('i64 i32 i64', 'i32'),
-    'close': ('i64 i32', 'i32'),
-    'root_reserved': ('i64', 'i64'),
-}
-_PUBLISHER_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'install': ('i64 i32 i32', 'i32'),
-    'authorize': ('i64 i32 i32 i32 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_IMPORT_SIGNATURES = {
-    'execution_child_admit': ('i64', 'i32'),
-    'execution_child_current': ('i64', 'i32'),
-    'execution_child_limit': ('i64 i32', 'i64'),
-    'execution_child_capacity': ('i64 i32', 'i64'),
-    'execution_child_report': ('i64 i32 i32 i32 i64 i64 i64 i64 i64 i64 i64', 'i32'),
-    'execution_child_stop': ('i64', 'i32'),
-    'input_byte': ('i32 i32', 'i32'),
-    'input_cleanup': ('i32', 'i32'),
-    'reader_stop': ('i32 i32', 'i32'),
-    'native_settled': ('i32', 'i32'),
-    'native_stopped': ('i32', 'i32'),
-    'native_cleaned': ('i32', 'i32'),
-    'publisher_current': ('i32', 'i32'),
-    'publisher_begin': ('i32 i32', 'i32'),
-    'publisher_byte': ('i32 i32 i32', 'i32'),
-    'publisher_finish': ('i32', 'i32'),
-    'journal_current': ('i32', 'i32'),
-    'journal_begin': ('i32 i32 i32 i32', 'i32'),
-    'journal_query_byte': ('i32 i32 i32', 'i32'),
-    'journal_query': ('i32', 'i32'),
-    'journal_length': ('i32 i32', 'i32'),
-    'journal_byte': ('i32 i32 i32', 'i32'),
-    'journal_revision': ('i32', 'i64'),
-    'journal_release': ('i32', 'i32'),
-}
-_JOURNAL_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'inspect': ('i64 i32', 'i32'),
-    'revision': ('i64 i32 i32', 'i64'),
-    'admission_length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_CURRENT_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i64', 'i32'),
-    'bind': ('i64 i32', 'i32'),
-    'validate': ('i64 i32', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
-_ORIGINAL_SIGNATURES = {
-    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
-    'produce': ('i64 i32', 'i32'),
-    'length': ('i64 i32', 'i32'),
-    'close': ('i64 i32', 'i32'),
-}
+# Scalar declarations are generated from the original MoonBit boundary.
+from ._local_wasm_abi import (
+    LOCAL_CORE_ABI,
+    _BUFFER_SIGNATURES,
+    _PROGRAM_SIGNATURES,
+    _RUN_SIGNATURES,
+    _SUBMISSION_SIGNATURES,
+    _BOOTSTRAP_SIGNATURES,
+    _SOURCE_PUBLICATION_SIGNATURES,
+    _RUN_INVOCATION_SIGNATURES,
+    _MATERIAL_SIGNATURES,
+    _PUBLICATION_SIGNATURES,
+    _PUBLICATION_PREFLIGHT_SIGNATURES,
+    _PUBLICATION_COMMIT_EXPORT_SIGNATURES,
+    _PAYLOAD_REQUEST_SIGNATURES,
+    _RESULT_BINDING_SIGNATURES,
+    _PAYLOAD_CHUNK_SIGNATURES,
+    _PAYLOAD_RECORD_SIGNATURES,
+    _PAYLOAD_RESERVATION_SIGNATURES,
+    _PAYLOAD_WRITING_SIGNATURES,
+    _PAYLOAD_ALLOCATION_SIGNATURES,
+    _PAYLOAD_NAMES_SIGNATURES,
+    _PAYLOAD_BINDING_SIGNATURES,
+    _SOURCE_SIGNATURES,
+    _TASK_SIGNATURES,
+    _COMPUTE_SIGNATURES,
+    _RESULT_SIGNATURES,
+    _WORKSPACE_SIGNATURES,
+    _PUBLISHER_SIGNATURES,
+    _IMPORT_SIGNATURES,
+    _JOURNAL_SIGNATURES,
+    _CURRENT_SIGNATURES,
+    _ORIGINAL_SIGNATURES,
+)
 _MEMORY_LIMIT = 16 * 1024 * 1024
 
 
@@ -616,8 +307,7 @@ def _validate_core_module(wasmtime: Any, module: Any) -> None:
             not isinstance(exports[name], wasmtime.FuncType) or
             _signature(exports[name]) != signature
             for name, signature in expected.items()) or
-            any(name.startswith('actql_') and name not in expected
-                for name in exports)):
+            set(exports) != set(expected) | {'memory'}):
         raise ValueError('Unrecognized Local Core exports')
     memory = exports.get('memory')
     if (not isinstance(memory, wasmtime.MemoryType) or memory.is_64 or

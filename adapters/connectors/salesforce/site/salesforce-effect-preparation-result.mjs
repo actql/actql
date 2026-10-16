@@ -1,3 +1,4 @@
+import {runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {checkedEffectPreparation} from
   '../../../host-common/effect-preparation-result.mjs';
@@ -7,7 +8,7 @@ import {checkedEffectPreparation} from
 // The JSON comes from the exact opaque MoonBit observation used by the check;
 // caller-supplied metadata is not accepted here.
 export function checkedSalesforceCatalogPreparation(result, moon, observation) {
-  if (result?.$tag !== 0) return checked(result);
+  if (!runtimeIsError(result)) return checked(result);
   const {listed_resources: resources} = JSON.parse(
     moon.salesforceCatalogObservationJson(observation));
   const observed = Array.isArray(resources) && resources.length > 0 &&

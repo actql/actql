@@ -8,6 +8,9 @@ not enlarge or rescue that original failed backing/attempt. The plan is maintain
 public Client configuration or an alternative to the missing normal supplier.
 """
 import ctypes as C
+import copy
+import pickle
+from threading import Thread
 import hashlib
 import json
 import os
@@ -121,6 +124,26 @@ if case == 'runtime-close':
             untouched = C.c_void_p()
             assert call(C.c_void_p(1), C.byref(untouched)) == -1
             assert untouched.value is None
+# Independent same-width role mutations at the actual compiled C boundary.
+# No Owner callback, read/capture, output slot or cleanup is acquired here.
+if case == 'runtime-close':
+    def utf16(text):
+        raw = text.encode('utf-16-le')
+        return (C.c_uint16 * (len(raw) // 2)).from_buffer_copy(raw)
+    args = [utf16(str(root)), utf16('a' * 40), utf16('darwin-arm64'), utf16(hashlib.sha256(manifest).hexdigest())]
+    for roles in ((0, 2, 1, 3), (0, 3, 2, 1)):
+        a, b, c, e = [args[i] for i in roles]
+        out = C.c_void_p()
+        owner = original._domain._owner
+        owner._enter()
+        try:
+            status = runtime_functions.capture(original._host, original._original,
+                a, len(a), b, len(b), c, len(c), e, len(e), 65536, C.byref(out))
+        finally:
+            owner._busy = False
+        assert status == -2 and out.value is None
+    print(json.dumps({'actual_C_same_width_role_swap_rejections': 2}), flush=True)
+
 if case == 'runtime-invalid':
     try:
         _OriginalPackagedRuntimeCustody._capture_original(original, runtime_functions,
@@ -144,6 +167,29 @@ else:
     else:
         assert case != 'runtime-partial'
         assert runtime.current().issue_family == 0
+        if case == 'runtime-close':
+            for operation in (copy.copy, copy.deepcopy, pickle.dumps):
+                try: operation(runtime)
+                except TypeError: pass
+                else: raise AssertionError('Actual Runtime custody escaped by copy/serialization')
+            errors = []
+            def foreign_thread():
+                try: runtime.current()
+                except ValueError: errors.append('foreign-thread')
+            worker = Thread(target=foreign_thread)
+            worker.start(); worker.join(timeout=2)
+            assert not worker.is_alive() and errors == ['foreign-thread']
+            owner = original._domain._owner
+            assert not owner._busy
+            owner._busy = True
+            try:
+                try: runtime.current()
+                except ValueError: pass
+                else: raise AssertionError('Actual Runtime callback reentry was accepted')
+            finally:
+                owner._busy = False
+            assert runtime._unknown is None and runtime.current().issue_family == 0
+            print(json.dumps({'actual_carrier_copy_thread_reentry_rejections': 5}), flush=True)
         if case == 'runtime-changed':
             (root / 'data/values.json').write_bytes(b'bad')
             try: runtime.current()

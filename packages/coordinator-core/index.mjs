@@ -1,3 +1,4 @@
+import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import * as owner from './dist/remote_coordinator_abi.js';
 
 const siteInteger = value => typeof value === 'bigint' && value >= 0n &&
@@ -34,7 +35,7 @@ export const sitePlanning = Object.freeze({
       input.transferRequired, input.sharedTransfer, input.sourceRevoked,
       input.estimateAvailable, input.transferBytes, input.retainedBytes,
       input.executionBytes);
-    const code = result._0, duration = result._1;
+    const code = runtimeField(result, 0), duration = runtimeField(result, 1);
     return Object.freeze({code, durationMilliseconds: code === 0 ? duration : null});
   },
   select: (durations, keys) => {
@@ -46,9 +47,9 @@ export const sitePlanning = Object.freeze({
 });
 
 function checked(result) {
-  if (result?.$tag === 1) return result._0;
-  if (result?.$tag === 0) {
-    throw Object.assign(new Error('CoordinatorOwnerRejected', {cause: result._0}),
+  if (runtimeIsOk(result)) return runtimeField(result, 0);
+  if (runtimeIsError(result)) {
+    throw Object.assign(new Error('CoordinatorOwnerRejected', {cause: runtimeField(result, 0)}),
       {code: 'CoordinatorOwnerRejected'});
   }
   throw Object.assign(new Error('InvalidCoordinatorOwnerResult'),
@@ -346,10 +347,10 @@ export const durableDispatchCid = owner.coordinatorDurableDispatchCid;
 export const durableRequest = owner.coordinatorDurableRequest;
 export const acceptedSiteOutput = durable => {
   const option = checked(owner.coordinatorAcceptedSiteOutput(durable));
-  if (option?.$tag === 0) return undefined;
-  if (option?.$tag !== 1 || !Array.isArray(option._0) ||
-      option._0.length !== 14 ||
-      !option._0.every(value => typeof value === 'string')) {
+  if (runtimeIsBoxedNone(option)) return undefined;
+  if (!runtimeIsBoxedSome(option) || !Array.isArray(runtimeField(option, 0)) ||
+      runtimeField(option, 0).length !== 14 ||
+      !runtimeField(option, 0).every(value => typeof value === 'string')) {
     throw Object.assign(new Error('InvalidCoordinatorOutputProjection'),
       {code: 'InvalidCoordinatorOutputProjection'});
   }
@@ -357,7 +358,7 @@ export const acceptedSiteOutput = durable => {
     materialGeneration, holdingEvidenceCid, managedProfileCid,
     resultSchemaCid, logicalViewCid, representationCodecCid,
     physicalManifestCid, measurementEvidenceCid, rowCount,
-    retainedBytes, subjectCid] = option._0;
+    retainedBytes, subjectCid] = runtimeField(option, 0);
   return Object.freeze({evidenceCid, measurementCid, dispatchRequestCid,
     materialGeneration, holdingEvidenceCid, managedProfileCid,
     resultSchemaCid, logicalViewCid, representationCodecCid,
@@ -368,14 +369,14 @@ export const acceptedSiteOutput = durable => {
 // Source, policy and authorization checks before Invocation/publication.
 export const acceptedSourceObservation = durable => {
   const option = owner.coordinatorAcceptedSourceObservation(durable);
-  if (option?.$tag === 0) return undefined;
-  if (option?.$tag !== 1 || !Array.isArray(option._0) ||
-      option._0.length !== 5 ||
-      !option._0.every(value => typeof value === 'string')) {
+  if (runtimeIsBoxedNone(option)) return undefined;
+  if (!runtimeIsBoxedSome(option) || !Array.isArray(runtimeField(option, 0)) ||
+      runtimeField(option, 0).length !== 5 ||
+      !runtimeField(option, 0).every(value => typeof value === 'string')) {
     throw new Error('InvalidCoordinatorSourceObservationProjection');
   }
   const [ordinal, sourceEvidenceWire, inputLogicalWire,
-    captureStartedAt, captureCompletedAt] = option._0;
+    captureStartedAt, captureCompletedAt] = runtimeField(option, 0);
   const taskOrdinal = Number(ordinal);
   if (!Number.isSafeInteger(taskOrdinal) || taskOrdinal < 0 ||
       String(taskOrdinal) !== ordinal) {

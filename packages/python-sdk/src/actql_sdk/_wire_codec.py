@@ -13,6 +13,20 @@ def utf16_length(text):
     return len(text.encode('utf-16-le', 'strict')) // 2
 
 
+def _finite_number(value):
+    try:
+        return math.isfinite(value) and not (value == 0 and math.copysign(1, value) < 0)
+    except OverflowError:
+        return False
+
+
+def _pattern_matches(pattern, value):
+    if pattern == "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$":
+        return (value != '' and value != '__cid' and not value.startswith('__actql_') and '.' not in value
+                and any(ord(character) not in (9,10,11,12,13,32,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288,65279,) for character in value))
+    return re.search(pattern, value, re.ASCII) is not None
+
+
 def _equal(left, right):
     # Python bool is an int subclass; JSON constants never conflate them.
     if type(left) is bool or type(right) is bool:
@@ -38,7 +52,7 @@ def valid(value, schema):
     if 'enum' in schema and not any(_equal(value, item) for item in schema['enum']):
         return False
     if type(value) in (int, float):
-        if not math.isfinite(value) or value == 0 and math.copysign(1, value) < 0:
+        if not _finite_number(value):
             return False
         if value < schema.get('minimum', -math.inf) or value > schema.get('maximum', math.inf):
             return False
@@ -49,7 +63,7 @@ def valid(value, schema):
             return False
         if len(value) < schema.get('minLength', 0) or length > schema.get('maxLength', math.inf):
             return False
-        if 'pattern' in schema and re.search(schema['pattern'], value, re.ASCII) is None:
+        if 'pattern' in schema and not _pattern_matches(schema['pattern'], value):
             return False
     kind = schema.get('type')
     if kind == 'string':
@@ -79,4 +93,60 @@ def valid(value, schema):
         if 'propertyNames' in schema and not all(valid(key, schema['propertyNames']) for key in value):
             return False
         return all(key not in value or valid(value[key], field) for key, field in properties.items())
+    return True
+
+
+def negotiated(value, schema, selected):
+    if not valid(value, schema) or not valid(selected, 'connection'):
+        return False
+    rules = CONTRACT['response_rules'][schema]
+    if any(value.get(key) != selected.get(key) for key in rules['matchConnection']):
+        return False
+    if any(selected.get(key) == expected and value.get(key) != expected
+           for key, expected in rules['requireRequested'].items()):
+        return False
+    return True
+
+
+def correlated(value, schema, request_id):
+    rules = CONTRACT['request_response_rules'][schema]
+    field = rules['matchRequest']
+    if not valid(request_id, SCHEMAS[rules['expectedSchema']]['properties'][field]):
+        return False
+    return any(valid(value, name) and (field not in SCHEMAS[name]['properties'] or value[field] == request_id)
+               for name in rules['schemas'])
+
+
+def check_outcome(value):
+    if not valid(value, 'check_outcome') or value['outcome_schema_cid'] != CONTRACT['check_outcome_schema_cid']:
+        return False
+    report = value.get('report', value.get('partial_report'))
+    if report is None:
+        return True
+    documents = {item['document_id']: item for item in report['inputs']}
+    occurrences = report['reasons'] + report['requirements'] + report['coverage']['limits']
+    if len(documents) != len(report['inputs']):
+        return False
+    if 'program' in documents:
+        if documents['program']['kind'] != 'structured' or {'source', 'parameter_declarations'} & documents.keys():
+            return False
+    elif documents.get('source', {}).get('kind') != 'text':
+        return False
+    if any(item['kind'] != 'structured' for key, item in documents.items() if key != 'source'):
+        return False
+    for reason in occurrences:
+        location = reason.get('location')
+        if location is not None:
+            doc = documents.get(location['document_id'])
+            if doc is None or (doc['revision'], doc['kind']) != (location['revision'], location['kind']):
+                return False
+            if location['kind'] == 'text' and not 0 <= location['start_byte'] <= location['end_byte'] <= doc['byte_length']:
+                return False
+    for reason in occurrences:
+        for fix in reason.get('fixes', []):
+            doc = documents.get(fix['target']['document_id'])
+            if doc is None or doc['kind'] != 'text' or doc['revision'] != fix['target']['revision']:
+                return False
+            if any(edit['start_byte'] != doc['byte_length'] or edit['end_byte'] != doc['byte_length'] for edit in fix['edits']):
+                return False
     return True

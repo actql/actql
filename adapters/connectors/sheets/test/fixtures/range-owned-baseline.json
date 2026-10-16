@@ -1,0 +1,28 @@
+{
+  "source": "02f9e53f29b4913d5c6e8276d2ac248800fe8173",
+  "providerModuleSha256": "5c891155f1c1629f4f333adbc75dc60472629584cc40986d283562d8b79d3c0d",
+  "site": {
+    "apiOrigin": "https://sheets.example.test",
+    "spreadsheetId": "book",
+    "gridRange": {"sheetId": 7, "startRow": 2, "endRow": 4, "startColumn": 1, "endColumn": 3},
+    "columns": [{"name": "text", "type": "string", "nullable": false}, {"name": "flag", "type": "boolean", "nullable": true}]
+  },
+  "connectorId": "sheets-book",
+  "catalogCid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "bindingCid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "value": {"rows": [{"text": "=e\u0301\r\n", "flag": false}, {"text": "second", "flag": true}]},
+  "providerIdentityCid": "sha256:d7482f414734110c3d1775460ab9c00fd769271779374b48ceef7bf4ecc73845",
+  "rangeIdentityCid": "sha256:3df522c65a0e49bd6aa3b16c946d9b5f587b824800bbdc6e021654f4a524042d",
+  "commandCid": "sha256:e3b7d39898d2037cffd055b1c51f24c66e616d2bb8ae3d4a34529515c26196ab",
+  "inputContractCid": "sha256:78db59086c6c4c9465fb3056c990d3fb01272730b035cefe01c26acfd726f299",
+  "outputContractCid": "sha256:055d991819365174d58a40e0ae5a108d6fd165273ec970fc174da5a21c99f4b9",
+  "requestCid": "sha256:5ba9eddd97003fa7e4341324589b449134332400a662262039776cff24004f21",
+  "requestBody": "{\"requests\":[{\"updateCells\":{\"range\":{\"sheetId\":7,\"startRowIndex\":2,\"endRowIndex\":4,\"startColumnIndex\":1,\"endColumnIndex\":3},\"rows\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"=é\\r\\n\"}},{\"userEnteredValue\":{\"boolValue\":false}}]},{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"second\"}},{\"userEnteredValue\":{\"boolValue\":true}}]}],\"fields\":\"userEnteredValue\"}}]}",
+  "recoveryObservationCid": "sha256:af8322924b910fde0e1bfd46a909921fcd7039f869969b8e94ce0c23aa738e6e",
+  "catalogInput": {
+    "catalog_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "catalog": "{\"schema\":\"actql.catalog/0.1\",\"connector_id\":\"sheets-book\",\"source_views\":[],\"commands\":[],\"contracts\":[],\"catalog_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"}",
+    "contracts": []
+  },
+  "catalogWithCommandCid": "sha256:f8139dc2eb8070940ce48b1c873b8c2557fcff03495e7decbe70ff62275ee36e"
+}

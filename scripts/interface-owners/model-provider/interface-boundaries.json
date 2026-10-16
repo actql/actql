@@ -1,0 +1,3455 @@
+{
+  "source": "759af47f092ed3706d96d0b91b7684a33b39fa2a",
+  "qualification": "References and syntax coverage only; actual147 tests retain separate Source qualification.",
+  "declarations": [
+    {
+      "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
+      "sha256": "bb36bd5f6ca4a29c855809a835d91e0f3f122d45401aa85d8198383d4432fa8d",
+      "exports": [
+        "createInstalledOpenAIChatRegistration",
+        "createInstalledUndiciOpenAIChatRegistration"
+      ],
+      "operations": [
+        {
+          "name": "assertRuntime/assertRuntime",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertRuntime/assertRuntime/assertRuntime",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledOpenAIChatRegistration",
+          "parameters": [
+            "config"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledUndiciOpenAIChatRegistration",
+          "parameters": [
+            "config"
+          ],
+          "async": false
+        },
+        {
+          "name": "frozen/frozen",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration",
+          "parameters": [
+            "config",
+            "originalUndici"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight",
+          "parameters": [
+            "request",
+            "notification",
+            "retainRawBinder",
+            "admittedProvider"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration/installedChatRegistration",
+          "parameters": [
+            "task",
+            "selector",
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration#2",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration#4",
+          "parameters": [
+            "name",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration#6",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedChatRegistration/installedChatRegistration#7",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "int/int",
+          "parameters": [
+            "value",
+            "minimum"
+          ],
+          "async": false
+        },
+        {
+          "name": "issue/issue",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotData",
+          "parameters": [
+            "value",
+            "keys",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotData/entries/entries",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotData/snapshotData",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotData/snapshotData#2",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./bounded-response.mjs",
+        "./compiler-binding.generated.mjs",
+        "./openai-chat.mjs",
+        "./original-materials.mjs",
+        "./original-openai-chat.mjs",
+        "./original-undici-transport.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertRuntime/assertRuntime",
+            "assertRuntime/assertRuntime/assertRuntime",
+            "cid/cid",
+            "createInstalledOpenAIChatRegistration",
+            "createInstalledUndiciOpenAIChatRegistration",
+            "frozen/frozen",
+            "installedChatRegistration",
+            "installedChatRegistration/installedChatRegistration",
+            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight",
+            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
+            "installedChatRegistration/installedChatRegistration/installedChatRegistration",
+            "installedChatRegistration/installedChatRegistration#2",
+            "installedChatRegistration/installedChatRegistration#3",
+            "installedChatRegistration/installedChatRegistration#4",
+            "installedChatRegistration/installedChatRegistration#5",
+            "installedChatRegistration/installedChatRegistration#6",
+            "installedChatRegistration/installedChatRegistration#7",
+            "int/int",
+            "issue/issue",
+            "snapshotData",
+            "snapshotData/entries/entries",
+            "snapshotData/snapshotData",
+            "snapshotData/snapshotData#2",
+            "text/text"
+          ],
+          "exports": [
+            "createInstalledOpenAIChatRegistration",
+            "createInstalledUndiciOpenAIChatRegistration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/installed-typesafe-decision.mjs",
+      "sha256": "4afd8b02a05002b22f4bebbb2c239f9712d7195163572187771f4dc2870e719a",
+      "exports": [
+        "createInstalledTypeSafeDecisionRegistration"
+      ],
+      "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration",
+          "parameters": [
+            "config"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#2",
+          "parameters": [
+            "task",
+            "selector",
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration/init:physicalPreflight/init:physicalPreflight",
+          "parameters": [
+            "request",
+            "notification",
+            "retainRawBinder",
+            "admittedProvider"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#2",
+          "parameters": [
+            "key",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#5",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTypeSafeDecisionRegistration/int/int",
+          "parameters": [
+            "value",
+            "minimum"
+          ],
+          "async": false
+        },
+        {
+          "name": "frozen/frozen",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issue/issue",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot",
+          "parameters": [
+            "value",
+            "keys",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#2",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./bounded-response.mjs",
+        "./compiler-binding.generated.mjs",
+        "./native-decision-preflight.mjs",
+        "./typesafe-decision.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cid/cid",
+            "createInstalledTypeSafeDecisionRegistration",
+            "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration",
+            "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration",
+            "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#2",
+            "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration/init:physicalPreflight/init:physicalPreflight",
+            "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
+            "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#2",
+            "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#3",
+            "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#4",
+            "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#5",
+            "createInstalledTypeSafeDecisionRegistration/int/int",
+            "frozen/frozen",
+            "issue/issue",
+            "snapshot",
+            "snapshot/snapshot",
+            "snapshot/snapshot#2",
+            "snapshot/snapshot#3",
+            "text/text"
+          ],
+          "exports": [
+            "createInstalledTypeSafeDecisionRegistration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
+      "sha256": "6e8522c11f1527975afbb53494ade5f50617c72724e1f36f140bd80f64873321",
+      "exports": [
+        "createSdkModelPreflight",
+        "createSdkNativeDecisionPreflight"
+      ],
+      "operations": [
+        {
+          "name": "createSdkModelPreflight",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkModelPreflight/createSdkModelPreflight",
+          "parameters": [
+            "moon",
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkNativeDecisionPreflight",
+          "parameters": [
+            "options",
+            "original",
+            "provider",
+            "probability"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight",
+          "parameters": [
+            "moon",
+            "request",
+            "bytes",
+            "quantities",
+            "profile",
+            "installation",
+            "start"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight#2",
+          "parameters": [
+            "moon",
+            "response",
+            "checked"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight",
+          "parameters": [
+            "moon",
+            "request",
+            "preparation",
+            "profile",
+            "installation",
+            "quantities",
+            "fetch",
+            "responseLimits",
+            "persistRaw",
+            "notify",
+            "checked",
+            "observeAt",
+            "cleanupRaw",
+            "preparationProgress",
+            "rawCaptureBinder",
+            "preparePlan",
+            "selectSaved",
+            "responseMode"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/advance/advance",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/bound/bound",
+          "parameters": [
+            "registration",
+            "persistence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/cancel/cancel",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/createSdkPhysicalPreflight",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/init:readReconciledUsage/init:readReconciledUsage",
+          "parameters": [
+            "original",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#2",
+          "parameters": [
+            "saved"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/poll/poll",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/pollResponse/pollResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#2",
+          "parameters": [
+            "saved"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#3",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/preflight/preflight",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/start/start",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/wake/wake",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "generationPlan",
+          "parameters": [
+            "moon",
+            "request",
+            "bytes",
+            "quantities",
+            "profile",
+            "installation",
+            "start"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./intercepted-request.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createSdkModelPreflight",
+            "createSdkModelPreflight/createSdkModelPreflight",
+            "createSdkNativeDecisionPreflight",
+            "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight",
+            "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight#2",
+            "createSdkPhysicalPreflight",
+            "createSdkPhysicalPreflight/advance/advance",
+            "createSdkPhysicalPreflight/bound/bound",
+            "createSdkPhysicalPreflight/cancel/cancel",
+            "createSdkPhysicalPreflight/cleanup/cleanup",
+            "createSdkPhysicalPreflight/createSdkPhysicalPreflight",
+            "createSdkPhysicalPreflight/init:readReconciledUsage/init:readReconciledUsage",
+            "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw",
+            "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw",
+            "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#2",
+            "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#3",
+            "createSdkPhysicalPreflight/poll/poll",
+            "createSdkPhysicalPreflight/pollResponse/pollResponse",
+            "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse",
+            "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#2",
+            "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#3",
+            "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#4",
+            "createSdkPhysicalPreflight/preflight/preflight",
+            "createSdkPhysicalPreflight/start/start",
+            "createSdkPhysicalPreflight/wake/wake",
+            "generationPlan"
+          ],
+          "exports": [
+            "createSdkModelPreflight",
+            "createSdkNativeDecisionPreflight"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/native-decision-preflight.mjs",
+      "sha256": "d2408bae69efbe154e6cc8b2330be3113f7c302fd9f8df5ca3f9706822085df1",
+      "exports": [
+        "createAdmittedTypeSafeDecisionPreflight"
+      ],
+      "operations": [
+        {
+          "name": "createAdmittedTypeSafeDecisionPreflight",
+          "parameters": [
+            "moon",
+            "admittedProvider",
+            "request",
+            "projectionLimits",
+            "signal",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedTypeSafeDecisionPreflight/advance/advance",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAdmittedTypeSafeDecisionPreflight/bounds/bounds",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedTypeSafeDecisionPreflight/checked/checked",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedTypeSafeDecisionPreflight/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAdmittedTypeSafeDecisionPreflight/createAdmittedTypeSafeDecisionPreflight",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedTypeSafeDecisionPreflight/createAdmittedTypeSafeDecisionPreflight#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedTypeSafeDecisionPreflight/createAdmittedTypeSafeDecisionPreflight#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./bounded-response.mjs",
+        "./compiler-binding.generated.mjs",
+        "./typesafe-decision.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createAdmittedTypeSafeDecisionPreflight",
+            "createAdmittedTypeSafeDecisionPreflight/advance/advance",
+            "createAdmittedTypeSafeDecisionPreflight/bounds/bounds",
+            "createAdmittedTypeSafeDecisionPreflight/checked/checked",
+            "createAdmittedTypeSafeDecisionPreflight/cleanup/cleanup",
+            "createAdmittedTypeSafeDecisionPreflight/createAdmittedTypeSafeDecisionPreflight",
+            "createAdmittedTypeSafeDecisionPreflight/createAdmittedTypeSafeDecisionPreflight#2",
+            "createAdmittedTypeSafeDecisionPreflight/createAdmittedTypeSafeDecisionPreflight#3"
+          ],
+          "exports": [
+            "createAdmittedTypeSafeDecisionPreflight"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/original-materials.mjs",
+      "sha256": "d41122a739f8915dc575d06e408f4f09f8bd0a02975f816e22ecd6e3f94af902",
+      "exports": [
+        "admitOpenAIOriginalMaterials",
+        "snapshotOpenAIOriginalMaterials"
+      ],
+      "operations": [
+        {
+          "name": "admitOpenAIOriginalMaterials",
+          "parameters": [
+            "moon",
+            "materials"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitOpenAIOriginalMaterials/checked/checked",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitOpenAIOriginalMaterials/policies/policies",
+          "parameters": [
+            "name",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fields/fields",
+          "parameters": [
+            "names",
+            "check"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields/fields/fields",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "identity/identity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installation/installation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "original/original",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "original/original/original",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "quantity/quantity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record",
+          "parameters": [
+            "value",
+            "required",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record/fields/fields",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record/record",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record/record#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "scalar/scalar",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape",
+          "parameters": [
+            "names",
+            "check"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape/shape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "public-wire-codec",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitOpenAIOriginalMaterials",
+            "admitOpenAIOriginalMaterials/checked/checked",
+            "admitOpenAIOriginalMaterials/policies/policies",
+            "fail/fail",
+            "fields/fields",
+            "fields/fields/fields",
+            "identity/identity",
+            "installation/installation",
+            "integer/integer",
+            "original/original",
+            "original/original/original",
+            "quantity/quantity",
+            "record/record",
+            "record/record/fields/fields",
+            "record/record/record",
+            "record/record/record#2",
+            "scalar/scalar",
+            "shape/shape",
+            "shape/shape/shape",
+            "snapshotOpenAIOriginalMaterials",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#4",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#5",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#6",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
+            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#4"
+          ],
+          "exports": [
+            "admitOpenAIOriginalMaterials",
+            "snapshotOpenAIOriginalMaterials"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+      "sha256": "af362d739dbd630a487643f90c80976aced1f8667a3bab68ee269eeeb3fe5c63",
+      "exports": [
+        "createAdmittedOpenAIChatPreflight",
+        "prepareAdmittedOpenAIChatRequest",
+        "prepareOriginalOpenAIChatRequest"
+      ],
+      "operations": [
+        {
+          "name": "createAdmittedOpenAIChatPreflight",
+          "parameters": [
+            "moon",
+            "admittedProvider",
+            "request",
+            "taskCid",
+            "promptCid",
+            "outputSchemaCid",
+            "modelSelector",
+            "projectionLimits",
+            "modelId",
+            "baseURL",
+            "apiKey",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "signal",
+            "notify",
+            "rawCaptureBinder",
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedOpenAIChatPreflight/createAdmittedOpenAIChatPreflight",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedOpenAIChatPreflight/progress/init:advance/init:advance",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAdmittedOpenAIChatPreflight/progress/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareAdmittedOpenAIChatRequest",
+          "parameters": [
+            "moon",
+            "admittedProvider",
+            "request",
+            "taskCid",
+            "promptCid",
+            "outputSchemaCid",
+            "modelSelector",
+            "projectionLimits",
+            "installation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalOpenAIChatRequest",
+          "parameters": [
+            "moon",
+            "request",
+            "modelSelector",
+            "modelId",
+            "baseURL",
+            "apiKey",
+            "prompt",
+            "responseFormat",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "signal",
+            "notify",
+            "verifyRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalOpenAIChatRequest/exactInteger/exactInteger",
+          "parameters": [
+            "value",
+            "minimum"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalOpenAIChatRequest/prepareOriginalOpenAIChatRequest",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareProjectedOriginal",
+          "parameters": [
+            "moon",
+            "request",
+            "taskCid",
+            "promptCid",
+            "outputSchemaCid",
+            "modelSelector",
+            "installation",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareProjectedOriginal/init:verifyRequest/init:verifyRequest",
+          "parameters": [
+            "body",
+            "generation"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./model-port.mjs",
+        "./openai-chat.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createAdmittedOpenAIChatPreflight",
+            "createAdmittedOpenAIChatPreflight/createAdmittedOpenAIChatPreflight",
+            "createAdmittedOpenAIChatPreflight/progress/init:advance/init:advance",
+            "createAdmittedOpenAIChatPreflight/progress/init:cleanup/init:cleanup",
+            "prepareAdmittedOpenAIChatRequest",
+            "prepareOriginalOpenAIChatRequest",
+            "prepareOriginalOpenAIChatRequest/exactInteger/exactInteger",
+            "prepareOriginalOpenAIChatRequest/prepareOriginalOpenAIChatRequest",
+            "prepareProjectedOriginal",
+            "prepareProjectedOriginal/init:verifyRequest/init:verifyRequest"
+          ],
+          "exports": [
+            "createAdmittedOpenAIChatPreflight",
+            "prepareAdmittedOpenAIChatRequest",
+            "prepareOriginalOpenAIChatRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/typesafe-decision.mjs",
+      "sha256": "7393be4221d7d60f510298c8476d2ae584722eeef5998cc7b6dcd29b90cf285b",
+      "exports": [
+        "createProjectedTypeSafeDecisionPreflight",
+        "prepareProjectedTypeSafeDecisionRequest",
+        "prepareTypeSafeDecisionRequest",
+        "projectProjectedTypeSafeDecisionAnswers",
+        "requireTypeSafeOriginalTransportLimits"
+      ],
+      "operations": [
+        {
+          "name": "createProjectedTypeSafeDecisionPreflight",
+          "parameters": [
+            "moon",
+            "projected",
+            "admittedProvider",
+            "request",
+            "probability",
+            "taskCid",
+            "promptCid",
+            "outputSchemaCid",
+            "modelSelector",
+            "modelId",
+            "baseURL",
+            "apiKey",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "signal",
+            "notify",
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "createProjectedTypeSafeDecisionPreflight/progress/init:advance/init:advance",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createProjectedTypeSafeDecisionPreflight/progress/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareProjectedTypeSafeDecisionRequest",
+          "parameters": [
+            "moon",
+            "projected",
+            "admittedProvider",
+            "request",
+            "taskCid",
+            "promptCid",
+            "outputSchemaCid",
+            "modelSelector",
+            "modelId",
+            "baseURL",
+            "apiKey",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "signal",
+            "notify"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareProjectedTypeSafeDecisionRequest/init:verifyRequest/init:verifyRequest",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareProjectedTypeSafeDecisionRequest/init:verifyRequest/init:verifyRequest/originalQuestions/originalQuestions",
+          "parameters": [
+            "id",
+            "question"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareProjectedTypeSafeDecisionRequest/prepareProjectedTypeSafeDecisionRequest",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareTypeSafeDecisionRequest",
+          "parameters": [
+            "modelId",
+            "baseURL",
+            "apiKey",
+            "options",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "signal",
+            "notify",
+            "verifyRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareTypeSafeDecisionRequest/prepareTypeSafeDecisionRequest",
+          "parameters": [
+            "d"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareTypeSafeDecisionRequest/prepareTypeSafeDecisionRequest#2",
+          "parameters": [
+            "fetch",
+            "abortSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectProjectedTypeSafeDecisionAnswers",
+          "parameters": [
+            "moon",
+            "projected",
+            "admittedProvider",
+            "request",
+            "admittedResponse",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectProjectedTypeSafeDecisionAnswers/amounts/amounts",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectProjectedTypeSafeDecisionAnswers/projectProjectedTypeSafeDecisionAnswers",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireTypeSafeOriginalTransportLimits",
+          "parameters": [
+            "moon",
+            "profile",
+            "requestBytes",
+            "responseLimits"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./bounded-response.mjs",
+        "./compiler-binding.generated.mjs",
+        "./intercepted-request.mjs",
+        "./model-port.mjs",
+        "@ai-sdk/typesafe-ai",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createProjectedTypeSafeDecisionPreflight",
+            "createProjectedTypeSafeDecisionPreflight/progress/init:advance/init:advance",
+            "createProjectedTypeSafeDecisionPreflight/progress/init:cleanup/init:cleanup",
+            "prepareProjectedTypeSafeDecisionRequest",
+            "prepareProjectedTypeSafeDecisionRequest/init:verifyRequest/init:verifyRequest",
+            "prepareProjectedTypeSafeDecisionRequest/init:verifyRequest/init:verifyRequest/originalQuestions/originalQuestions",
+            "prepareProjectedTypeSafeDecisionRequest/prepareProjectedTypeSafeDecisionRequest",
+            "prepareTypeSafeDecisionRequest",
+            "prepareTypeSafeDecisionRequest/prepareTypeSafeDecisionRequest",
+            "prepareTypeSafeDecisionRequest/prepareTypeSafeDecisionRequest#2",
+            "projectProjectedTypeSafeDecisionAnswers",
+            "projectProjectedTypeSafeDecisionAnswers/amounts/amounts",
+            "projectProjectedTypeSafeDecisionAnswers/projectProjectedTypeSafeDecisionAnswers",
+            "requireTypeSafeOriginalTransportLimits"
+          ],
+          "exports": [
+            "createProjectedTypeSafeDecisionPreflight",
+            "prepareProjectedTypeSafeDecisionRequest",
+            "prepareTypeSafeDecisionRequest",
+            "projectProjectedTypeSafeDecisionAnswers",
+            "requireTypeSafeOriginalTransportLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-http/_internal/installed-http-chat.mjs",
+      "sha256": "1c738aecb43613466a89dbba571bb152e955b8a574d8ab738102d65e61675ede",
+      "exports": [
+        "createInstalledHttpChatRegistration"
+      ],
+      "operations": [
+        {
+          "name": "assertRuntime",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertRuntime/assertRuntime",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHttpChatRegistration",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHttpChatRegistration/config/config",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHttpChatRegistration/createInstalledHttpChatRegistration",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "frozen/frozen",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedOpaqueRegistration",
+          "parameters": [
+            "config"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedOpaqueRegistration/installedOpaqueRegistration",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedOpaqueRegistration/installedOpaqueRegistration/init:physicalPreflight/init:physicalPreflight",
+          "parameters": [
+            "request",
+            "notification",
+            "retainRawBinder",
+            "admittedProvider"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedOpaqueRegistration/installedOpaqueRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedOpaqueRegistration/installedOpaqueRegistration/installedOpaqueRegistration",
+          "parameters": [
+            "task",
+            "selector",
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedOpaqueRegistration/installedOpaqueRegistration#2",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value",
+            "minimum"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainConfiguration",
+          "parameters": [
+            "config"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainConfiguration/headers/headers",
+          "parameters": [
+            "originalPair"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainConfiguration/retainConfiguration",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainConfiguration/retainConfiguration#2",
+          "parameters": [
+            "name",
+            "amount"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainConfiguration/retainConfiguration#3",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot",
+          "parameters": [
+            "value",
+            "fields",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#2",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotArray",
+          "parameters": [
+            "value",
+            "maximum",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotArray/snapshotArray",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./bounded-response.mjs",
+        "./compiler-binding.generated.mjs",
+        "./model-port.mjs",
+        "./original-materials.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertRuntime",
+            "assertRuntime/assertRuntime",
+            "cid/cid",
+            "createInstalledHttpChatRegistration",
+            "createInstalledHttpChatRegistration/config/config",
+            "createInstalledHttpChatRegistration/createInstalledHttpChatRegistration",
+            "fail/fail",
+            "frozen/frozen",
+            "installedOpaqueRegistration",
+            "installedOpaqueRegistration/installedOpaqueRegistration",
+            "installedOpaqueRegistration/installedOpaqueRegistration/init:physicalPreflight/init:physicalPreflight",
+            "installedOpaqueRegistration/installedOpaqueRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
+            "installedOpaqueRegistration/installedOpaqueRegistration/installedOpaqueRegistration",
+            "installedOpaqueRegistration/installedOpaqueRegistration#2",
+            "integer/integer",
+            "retainConfiguration",
+            "retainConfiguration/headers/headers",
+            "retainConfiguration/retainConfiguration",
+            "retainConfiguration/retainConfiguration#2",
+            "retainConfiguration/retainConfiguration#3",
+            "snapshot",
+            "snapshot/snapshot",
+            "snapshot/snapshot#2",
+            "snapshot/snapshot#3",
+            "snapshotArray",
+            "snapshotArray/snapshotArray",
+            "text/text"
+          ],
+          "exports": [
+            "createInstalledHttpChatRegistration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-http/_internal/model-port.mjs",
+      "sha256": "897aac213bf3df784883ccbab51a4a462741317f85dc8d9902cd53e5813df784",
+      "exports": [
+        "createHttpChatPreflight"
+      ],
+      "operations": [
+        {
+          "name": "createHttpChatPreflight",
+          "parameters": [
+            "moon",
+            "admittedProvider",
+            "request",
+            "modelId",
+            "taskCid",
+            "promptCid",
+            "outputSchemaCid",
+            "modelSelector",
+            "projectionLimits",
+            "endpoint",
+            "headers",
+            "requestLimits",
+            "responseLimits",
+            "profile",
+            "installation",
+            "quantities",
+            "fetch",
+            "notify",
+            "observeAt",
+            "checked",
+            "signal",
+            "persistRaw",
+            "cleanupRaw",
+            "rawCaptureBinder"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/abort/abort",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/advance/advance",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/bound/bound",
+          "parameters": [
+            "registration",
+            "persistence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/cancel/cancel",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/cleanup/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/cleanup/cleanup/cleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/cleanup/cleanup/cleanup#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/cleanup/cleanup/cleanup#4",
+          "parameters": [
+            "done"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/cleanup/cleanup/cleanup#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/cleanup/cleanup/cleanup#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/createHttpChatPreflight",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/createHttpChatPreflight#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/createHttpChatPreflight#3",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/createHttpChatPreflight#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/init:readReconciledUsage/init:readReconciledUsage",
+          "parameters": [
+            "original",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#2",
+          "parameters": [
+            "saved"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/poll/poll",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/poll/poll/poll",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/poll/poll/poll#2",
+          "parameters": [
+            "saved"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/poll/poll/poll#3",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/poll/poll/poll#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/start/start",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/start/start/start",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/start/start/start/start",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/start/start/start/start/start",
+          "parameters": [
+            "done"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/start/start/start/start/start#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/start/start/start#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/start/start/start#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/unknown/unknown",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/wake/wake",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./bounded-response.mjs",
+        "./compiler-binding.generated.mjs",
+        "./original-chat-request.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createHttpChatPreflight",
+            "createHttpChatPreflight/abort/abort",
+            "createHttpChatPreflight/advance/advance",
+            "createHttpChatPreflight/bound/bound",
+            "createHttpChatPreflight/cancel/cancel",
+            "createHttpChatPreflight/cleanup/cleanup",
+            "createHttpChatPreflight/cleanup/cleanup/cleanup",
+            "createHttpChatPreflight/cleanup/cleanup/cleanup#2",
+            "createHttpChatPreflight/cleanup/cleanup/cleanup#3",
+            "createHttpChatPreflight/cleanup/cleanup/cleanup#4",
+            "createHttpChatPreflight/cleanup/cleanup/cleanup#5",
+            "createHttpChatPreflight/cleanup/cleanup/cleanup#6",
+            "createHttpChatPreflight/createHttpChatPreflight",
+            "createHttpChatPreflight/createHttpChatPreflight#2",
+            "createHttpChatPreflight/createHttpChatPreflight#3",
+            "createHttpChatPreflight/createHttpChatPreflight#4",
+            "createHttpChatPreflight/init:readReconciledUsage/init:readReconciledUsage",
+            "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw",
+            "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw",
+            "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#2",
+            "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#3",
+            "createHttpChatPreflight/poll/poll",
+            "createHttpChatPreflight/poll/poll/poll",
+            "createHttpChatPreflight/poll/poll/poll#2",
+            "createHttpChatPreflight/poll/poll/poll#3",
+            "createHttpChatPreflight/poll/poll/poll#4",
+            "createHttpChatPreflight/start/start",
+            "createHttpChatPreflight/start/start/start",
+            "createHttpChatPreflight/start/start/start/start",
+            "createHttpChatPreflight/start/start/start/start/start",
+            "createHttpChatPreflight/start/start/start/start/start#2",
+            "createHttpChatPreflight/start/start/start#2",
+            "createHttpChatPreflight/start/start/start#3",
+            "createHttpChatPreflight/unknown/unknown",
+            "createHttpChatPreflight/wake/wake",
+            "fail/fail",
+            "positive/positive"
+          ],
+          "exports": [
+            "createHttpChatPreflight"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-http/_internal/original-chat-request.mjs",
+      "sha256": "ec997a25657266a34994f92e8800177624bfb5e93b7efccd08a8283bce289e22",
+      "exports": [
+        "prepareOriginalHttpChatRequest"
+      ],
+      "operations": [
+        {
+          "name": "prepareOriginalHttpChatRequest",
+          "parameters": [
+            "moon",
+            "admittedProvider",
+            "request",
+            "modelId",
+            "taskCid",
+            "promptCid",
+            "outputSchemaCid",
+            "modelSelector",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalHttpChatRequest/prepareOriginalHttpChatRequest",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalHttpChatRequest/prepareOriginalHttpChatRequest#2",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalHttpChatRequest/values/values",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareOriginalHttpChatRequest",
+            "prepareOriginalHttpChatRequest/prepareOriginalHttpChatRequest",
+            "prepareOriginalHttpChatRequest/prepareOriginalHttpChatRequest#2",
+            "prepareOriginalHttpChatRequest/values/values"
+          ],
+          "exports": [
+            "prepareOriginalHttpChatRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-http/_internal/original-materials.mjs",
+      "sha256": "7b69f030557e3db7d9c82aa85dc4acbd72092237979bad491b7c8d3220c3be23",
+      "exports": [
+        "admitHTTPOriginalMaterials",
+        "snapshotHTTPOriginalMaterials"
+      ],
+      "operations": [
+        {
+          "name": "admitHTTPOriginalMaterials",
+          "parameters": [
+            "moon",
+            "materials"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitHTTPOriginalMaterials/checked/checked",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitHTTPOriginalMaterials/policies/policies",
+          "parameters": [
+            "name",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fields/fields",
+          "parameters": [
+            "names",
+            "check"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields/fields/fields",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "identity/identity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installation/installation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installation/installation/installation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "original/original",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "original/original/original",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "quantity/quantity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record",
+          "parameters": [
+            "value",
+            "required",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record/fields/fields",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record/record",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record/record#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "scalar/scalar",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape",
+          "parameters": [
+            "names",
+            "check"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape/shape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "public-wire-codec",
+      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitHTTPOriginalMaterials",
+            "admitHTTPOriginalMaterials/checked/checked",
+            "admitHTTPOriginalMaterials/policies/policies",
+            "fail/fail",
+            "fields/fields",
+            "fields/fields/fields",
+            "identity/identity",
+            "installation/installation",
+            "installation/installation/installation",
+            "integer/integer",
+            "original/original",
+            "original/original/original",
+            "quantity/quantity",
+            "record/record",
+            "record/record/fields/fields",
+            "record/record/record",
+            "record/record/record#2",
+            "scalar/scalar",
+            "shape/shape",
+            "shape/shape/shape",
+            "snapshotHTTPOriginalMaterials",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#2",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#3",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#2",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#3",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#4",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#5",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#6",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#2",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#3",
+            "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials#4"
+          ],
+          "exports": [
+            "admitHTTPOriginalMaterials",
+            "snapshotHTTPOriginalMaterials"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
+                "anchor": "cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/_internal/model-port.mjs",
+                "anchor": "Installation must fund"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "anchor": "projectionLimits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/generate-model-original-materials.mjs",
+      "sha256": "3eebe8affcb154899104f1a6cf179ca5e6b6ffa38ab59a8403900e8c4e9b8ef8",
+      "exports": [],
+      "operations": [],
+      "imports": [
+        "./generate-js-compiler-bindings.mjs",
+        "node:fs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "generated-binding",
+      "owner": "Existing Model material template and single private compiler-binding generator",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "One closed DATA snapshot/Common-reader connection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "anchor": "admit__PROVIDER__OriginalMaterials"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/raw_capture_save.mbt",
+                "anchor": "ModelPhysicalCall"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "pending cleanup"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous build-time generation; no Run, asynchronous callback or opaque execution."
+            },
+            "failure": [
+              {
+                "path": "packages/provider-http/model-port.test.mjs",
+                "anchor": "unknown"
+              },
+              {
+                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
+                "anchor": "failed save keeps original error"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Build-time source generation only; consumer cancellation remains with the original Model call."
+            },
+            "resources": {
+              "notApplicable": "Build-time finite source output, not a Run admission, capacity or numerical profile."
+            },
+            "extension": [
+              {
+                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "anchor": "generateCompilerBindings"
+              },
+              {
+                "path": "scripts/generate-model-original-materials.mjs",
+                "anchor": "generateCompilerBindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/original-materials.test.mjs",
+                "anchor": "actual HTTP Common readers"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "actual Common readers"
+              },
+              {
+                "path": "scripts/model-original-materials.test.mjs",
+                "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "file": "f-provider-owner-declarations.json",
+      "sha256": "f9f1a2b8ce793caba4f5f1fff561f2ce9095afa5560cf969cc8e15fd4db3d8b8"
+    }
+  ]
+}

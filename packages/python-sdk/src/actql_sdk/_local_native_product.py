@@ -5,6 +5,8 @@ an installed product nor turns copied identity into authority or capacity.
 """
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind as bind_native
+
 from ctypes import POINTER, byref, c_int, c_int32, c_uint16, c_void_p
 from typing import Any
 
@@ -17,26 +19,14 @@ from ._local_native_runtime import (
 class _OriginalPackagedProductFunctions:
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.observe = library.actql_packaged_product_observe_utf16_into
-        self.observe.argtypes = ([c_void_p] + [POINTER(c_uint16), c_int32] * 3
-                                + [c_int32, POINTER(c_void_p)])
-        self.identity = library.actql_packaged_product_identity_into
-        self.identity.argtypes = [c_void_p, POINTER(c_void_p)]
-        self.drop = library.actql_packaged_product_drop_reply
-        self.drop.argtypes = [POINTER(c_void_p), c_void_p, c_void_p, c_void_p]
-        self.validate = library.actql_packaged_product_validate_originals
-        self.validate.argtypes = [c_void_p, c_void_p, c_void_p, c_void_p]
-        for call in (self.observe, self.identity, self.drop, self.validate):
-            call.restype = c_int
-        self.operation = library.actql_packaged_product_operation
-        self.issue = library.actql_packaged_product_issue_family
-        self.length = library.actql_packaged_product_metadata_units
-        for call in (self.operation, self.issue, self.length):
-            call.argtypes = [c_void_p]
-            call.restype = c_int32
-        self.unit = library.actql_packaged_product_metadata_unit_at
-        self.unit.argtypes = [c_void_p, c_int32]
-        self.unit.restype = c_int32
+        self.observe = bind_native(library, 'actql_packaged_product_observe_utf16_into')
+        self.identity = bind_native(library, 'actql_packaged_product_identity_into')
+        self.drop = bind_native(library, 'actql_packaged_product_drop_reply')
+        self.validate = bind_native(library, 'actql_packaged_product_validate_originals')
+        self.operation = bind_native(library, 'actql_packaged_product_operation')
+        self.issue = bind_native(library, 'actql_packaged_product_issue_family')
+        self.length = bind_native(library, 'actql_packaged_product_metadata_units')
+        self.unit = bind_native(library, 'actql_packaged_product_metadata_unit_at')
 
     def _call(self, original: _OriginalPackagedRuntimeCustody, operation: int,
               buffers: tuple[Any, ...] = (), ceiling: int = 0) -> tuple[_OriginalArenaFact, str | None]:

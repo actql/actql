@@ -1,5 +1,6 @@
 // Standard source-checkout Host entry. Neither Program inputs nor ordinary
 // Connector registration can supply a replacement runtime/verifier/SQL callback.
+import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';
 import { randomUUID } from 'node:crypto';
 import {setImmediate as yieldToHost} from 'node:timers/promises';
 import { runNativeQuery } from './native-query.mjs';
@@ -194,8 +195,10 @@ export async function importResidentStrategyInput(environment, producer, tableBy
     BigInt(tableBytes), mappingLimits.maxEntries, mappingLimits.maxNameBytes, limits.maxSqlBytes));
   let count, columns, transfer, batchRows = 1;
   const compileBatch = requested => {
-    const {_0: rows, _1: sql} = checked(moon.residentImportBatch(table, requested,
+    let compilerTuple1 = checked(moon.residentImportBatch(table, requested,
       limits.maxParameters, limits.maxSqlBytes));
+    const rows = runtimeField(compilerTuple1, 0), sql = runtimeField(compilerTuple1, 1);
+    compilerTuple1 = undefined;
     return {rows, sql};
   };
   try {
@@ -227,7 +230,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
       const material = checked(moon.residentImportMaterial(table));
       const body = material == null ? undefined : retainedStorageBody(material);
       const scalarNames = material != null && boundedTransport(limits) && limits.threads === 1
-        ? moon.residentImportScalarNames(table)?._0 : undefined;
+        ? runtimeOptionalField(moon.residentImportScalarNames(table), 0) : undefined;
       const scalarStaging = scalarNames?.length === columns &&
         moon.residentImportCanonicalCopyMatches(table, body.cid, body.bytes, count);
       nativeScalarStaging = scalarStaging;
@@ -600,8 +603,10 @@ async function runHostCompute(
     createSql: port => checked(moon.computeHostSql(run, 0, port)),
     insertSql: port => checked(moon.computeHostSql(run, 1, port)),
     insertBatch: (port, count) => {
-      const {_0: batchRows, _1: sql} = checked(moon.computeHostImportBatch(
+      let compilerTuple2 = checked(moon.computeHostImportBatch(
         run, port, count, limits.maxParameters, limits.maxSqlBytes));
+      const batchRows = runtimeField(compilerTuple2, 0), sql = runtimeField(compilerTuple2, 1);
+      compilerTuple2 = undefined;
       return Object.freeze({rows: batchRows, sql});
     },
     parameter: (port, row, column) => JSON.parse(checked(moon.computeHostParameter(run, row, column, false, port))),
@@ -623,7 +628,7 @@ async function runHostCompute(
         await withRetainedInputFile(material, input, async file => {
           if (file.path !== path) throw new DuckDBTransportError('ForeignRetainedFile');
           fileBytes = file.bytes;
-          await session.command(sql._0, [{type: {id: 'VARCHAR'}, value: file.path}], () => {});
+          await session.command(runtimeField(sql, 0), [{type: {id: 'VARCHAR'}, value: file.path}], () => {});
         }, signal, bytes => {
           // Physical integrity scan plus native file read, before either starts.
           // Logical consumer measurements are charged by the typed scan below.
@@ -640,7 +645,7 @@ async function runHostCompute(
           () => !disposed && !signal?.aborted);
         let physical;
         const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));
-        const fields = await session.command(sql._1, [], chunk => {
+        const fields = await session.command(runtimeField(sql, 1), [], chunk => {
           signal?.throwIfAborted();
           begin(chunk.fields);
           const encodeStarted = measureCost ? performance.now() : 0;
@@ -839,9 +844,13 @@ async function runHostCompute(
         managedOutput, BigInt(body.bytes), () => body.available(),
       ));
     } else if (retained) {
-      const { _0: token, _1: tail } = checked(moon.computeHostStreamFinish(run));
+      let compilerTuple3 = checked(moon.computeHostStreamFinish(run));
+      const token = runtimeField(compilerTuple3, 0), tail = runtimeField(compilerTuple3, 1);
+      compilerTuple3 = undefined;
       await writer.append(tail);
-      const { _0: cid, _1: bytes } = moon.computeHostStreamIdentity(token);
+      let compilerTuple4 = moon.computeHostStreamIdentity(token);
+      const cid = runtimeField(compilerTuple4, 0), bytes = runtimeField(compilerTuple4, 1);
+      compilerTuple4 = undefined;
       body = await writer.seal({ cid, bytes });
       signal?.throwIfAborted();
       retainedHandle = checked(moon.computeHostStreamRetain(run, token, () => body.available()));
@@ -1223,9 +1232,13 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
         if (retained && role === 'native_result') {
           const finished = checked(moon.nativeHostStreamFinish(run));
           if (finished != null) {
-            const { _0: token, _1: tail } = finished;
+            let compilerTuple5 = finished;
+            const token = runtimeField(compilerTuple5, 0), tail = runtimeField(compilerTuple5, 1);
+            compilerTuple5 = undefined;
             await writer.append(tail);
-            const { _0: cid, _1: bytes } = moon.nativeHostStreamIdentity(token);
+            let compilerTuple6 = moon.nativeHostStreamIdentity(token);
+            const cid = runtimeField(compilerTuple6, 0), bytes = runtimeField(compilerTuple6, 1);
+            compilerTuple6 = undefined;
             body = await writer.seal({ cid, bytes });
             signal?.throwIfAborted();
             retainedHandle = checked(moon.nativeHostStreamRetain(run, token, () => body.available()));

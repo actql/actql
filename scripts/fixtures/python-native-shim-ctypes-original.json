@@ -1,0 +1,1198 @@
+{
+  "actql_control_originals_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_control_current_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_control_acquire_fd_into": [
+    [
+      "c_void_p",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_control_try_close_and_drop": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_control_drop_reply": [
+    [
+      "LP_c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_control_operation": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_control_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_borrow_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_current_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_return_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_enter_scope_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_leave_scope_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_originals_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_drop_reply": [
+    [
+      "LP_c_void_p",
+      "c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_finish_returned_data": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_finish_refused_borrow": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_operation": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_backing_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_project_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_copy_material": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ubyte",
+      "LP_c_ubyte",
+      "LP_c_long"
+    ],
+    "c_int"
+  ],
+  "actql_domain_read_prepare_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_read_current_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_read_enter_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_read_leave_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_read_cleanup_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_read_close_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_prepare_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_int",
+      "c_long",
+      "c_int",
+      "c_int",
+      "c_int",
+      "c_long",
+      "c_long",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_current_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_transfer_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_enter_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_leave_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_close_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_originals_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_drop_reply": [
+    [
+      "LP_c_void_p",
+      "c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_finish_closed_data": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_finish_refused_prepare": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_operation": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_domain_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_worker_select_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_worker_selection_current_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_worker_selection_originals_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_worker_selection_operation": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_worker_selection_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_worker_selection_drop_reply": [
+    [
+      "LP_c_void_p",
+      "c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_worker_selection_finish_data": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_prepare_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_long",
+      "c_long",
+      "c_long",
+      "c_long",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_current_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_enter_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_leave_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_cleanup_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_close_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_originals_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_drop_reply": [
+    [
+      "LP_c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_finish_closed_data": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_finish_refused_prepare": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_operation": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_parent_read_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_prepare_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_int",
+      "c_int",
+      "c_int",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_bind_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_long",
+      "c_long",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_operate_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_report_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_int",
+      "c_int",
+      "c_int",
+      "c_long",
+      "c_long",
+      "c_long",
+      "c_long",
+      "c_long",
+      "c_long",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_originals_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_drop_reply": [
+    [
+      "LP_c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_finish_retired_data": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_finish_refused_prepare": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_copy_state": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "LP_c_int"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_copy_limits": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "LP_c_long"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_copy_capacities": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "LP_c_long"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_operation": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_live_channel_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_prepare_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_current_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_close_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_originals_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_drop_reply": [
+    [
+      "LP_c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_finish_closed_data": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_finish_refused_prepare": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_operation": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_restore_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_initialize_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "c_ulong",
+      "c_ulong",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_observe_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_fence_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_close_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_read_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_scan_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_insert_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ubyte",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_compare_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "LP_c_ubyte",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_transaction_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_capacity_reserve_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "c_long",
+      "c_long",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_capacity_usage_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_capacity_release_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_capacity_read_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_database_usage_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_transaction_state_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_header_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_has_header": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_header_body_bytes": [
+    [
+      "c_void_p"
+    ],
+    "c_long"
+  ],
+  "actql_sqlite_database_begin_read_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_capacity_reserve_bounded_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "c_long",
+      "c_long",
+      "c_long",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_record_count": [
+    [
+      "c_void_p"
+    ],
+    "c_long"
+  ],
+  "actql_sqlite_database_record_body_bytes": [
+    [
+      "c_void_p"
+    ],
+    "c_long"
+  ],
+  "actql_sqlite_database_reservation_count": [
+    [
+      "c_void_p"
+    ],
+    "c_long"
+  ],
+  "actql_sqlite_database_transaction_active": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_capacity_changed": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_reserved_bytes": [
+    [
+      "c_void_p"
+    ],
+    "c_long"
+  ],
+  "actql_sqlite_database_reserved_objects": [
+    [
+      "c_void_p"
+    ],
+    "c_long"
+  ],
+  "actql_sqlite_database_originals_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_drop_reply": [
+    [
+      "LP_c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_finish_closed_data": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_finish_refused_open": [
+    [
+      "LP_c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_copy_row": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ubyte",
+      "c_long",
+      "LP_c_long"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_copy_key": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ubyte",
+      "c_long",
+      "LP_c_long"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_operation": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_stage": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_after_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_has_row": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_database_revision": [
+    [
+      "c_void_p"
+    ],
+    "c_long"
+  ],
+  "actql_sqlite_database_body_bound": [
+    [
+      "c_void_p"
+    ],
+    "c_long"
+  ],
+  "actql_sqlite_lookup_start_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_observe_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_read_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_scan_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "c_long",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_header_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_capacity_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_capacity_usage_utf16_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_database_usage_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_finish_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_close_into": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_sqlite_lookup_drop": [
+    [
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_packaged_product_observe_utf16_into": [
+    [
+      "c_void_p",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "LP_c_ushort",
+      "c_int",
+      "c_int",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_packaged_product_identity_into": [
+    [
+      "c_void_p",
+      "LP_c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_packaged_product_drop_reply": [
+    [
+      "LP_c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_packaged_product_validate_originals": [
+    [
+      "c_void_p",
+      "c_void_p",
+      "c_void_p",
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_packaged_product_operation": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_packaged_product_issue_family": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_packaged_product_metadata_units": [
+    [
+      "c_void_p"
+    ],
+    "c_int"
+  ],
+  "actql_packaged_product_metadata_unit_at": [
+    [
+      "c_void_p",
+      "c_int"
+    ],
+    "c_int"
+  ]
+}

@@ -80,3 +80,21 @@ test('Remote Credential use admits only the exact active scope', () => {
     scope: Object.freeze({...scope, resourceOrigin: 'https://other.example'}),
   })));
 });
+
+// The subject projection is generated from the Owner; operation remains a
+// separate use scope, and issuer trust comes from the signed grant admission.
+for (const field of ['principal', 'namespaceId', 'environment', 'siteKey',
+  'siteGeneration', 'runtimeBundleCid', 'connectorRegistration', 'connectorRevision',
+  'resourceOrigin', 'operation', 'runInvocationCid', 'taskAttempt', 'dispatchRequestCid']) {
+  test(`actual credential Owner refuses missing ${field} both before use and at final authorization`, () => {
+    const original = grantRequest();
+    const grant = control.prepare(original);
+    const use = control.prepareUse(grant, {useId: `missing-${field}`,
+      trustedNowMilliseconds: 1_999_999_999_999n, usedCount: 0, revoked: false, scope: original});
+    const missing = {...original}; delete missing[field];
+    assert.throws(() => control.prepareUse(grant, {useId: `foreign-${field}`,
+      trustedNowMilliseconds: 1_999_999_999_999n, usedCount: 0, revoked: false, scope: missing}));
+    assert.throws(() => control.authorizeUse(use, {
+      trustedNowMilliseconds: 1_999_999_999_999n, revoked: false, scope: missing}));
+  });
+}

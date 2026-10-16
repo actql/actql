@@ -3,6 +3,14 @@
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
 extern int32_t actql_bootstrap_control_scope_clear(void);
 #endif
+/* Pure declaration identity, separate from registration, authority and custody. */
+int32_t actql_packaged_runtime_binding_version(void) {
+    return ACTQL_PACKAGED_RUNTIME_BINDING_VERSION;
+}
+int32_t actql_packaged_runtime_binding_byte(int32_t index) {
+    return index >= 0 && index < 64
+        ? (unsigned char)ACTQL_PACKAGED_RUNTIME_BINDING_SHA256[index] : -1;
+}
 static struct {
     actql_runtime_capture_fn capture;
     actql_runtime_operation_fn current, close;

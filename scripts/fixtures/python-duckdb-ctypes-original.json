@@ -1,0 +1,419 @@
+{
+  "source": "f36ef7565367b19e246a8c83a126b58dbd4d5a4b",
+  "signatures": {
+    "library_version": [
+      [],
+      "c_char_p"
+    ],
+    "create_config": [
+      [
+        "LP_c_void_p"
+      ],
+      "c_int"
+    ],
+    "set_config": [
+      [
+        "c_void_p",
+        "c_char_p",
+        "c_char_p"
+      ],
+      "c_int"
+    ],
+    "destroy_config": [
+      [
+        "LP_c_void_p"
+      ],
+      null
+    ],
+    "open_ext": [
+      [
+        "c_char_p",
+        "LP_c_void_p",
+        "c_void_p",
+        "LP_c_void_p"
+      ],
+      "c_int"
+    ],
+    "free": [
+      [
+        "c_void_p"
+      ],
+      null
+    ],
+    "connect": [
+      [
+        "c_void_p",
+        "LP_c_void_p"
+      ],
+      "c_int"
+    ],
+    "disconnect": [
+      [
+        "LP_c_void_p"
+      ],
+      null
+    ],
+    "close": [
+      [
+        "LP_c_void_p"
+      ],
+      null
+    ],
+    "interrupt": [
+      [
+        "c_void_p"
+      ],
+      null
+    ],
+    "query": [
+      [
+        "c_void_p",
+        "c_char_p",
+        "LP__Result"
+      ],
+      "c_int"
+    ],
+    "prepare": [
+      [
+        "c_void_p",
+        "c_char_p",
+        "LP_c_void_p"
+      ],
+      "c_int"
+    ],
+    "nparams": [
+      [
+        "c_void_p"
+      ],
+      "c_ulong"
+    ],
+    "bind_null": [
+      [
+        "c_void_p",
+        "c_ulong"
+      ],
+      "c_int"
+    ],
+    "bind_boolean": [
+      [
+        "c_void_p",
+        "c_ulong",
+        "c_bool"
+      ],
+      "c_int"
+    ],
+    "bind_double": [
+      [
+        "c_void_p",
+        "c_ulong",
+        "c_double"
+      ],
+      "c_int"
+    ],
+    "bind_varchar_length": [
+      [
+        "c_void_p",
+        "c_ulong",
+        "c_char_p",
+        "c_ulong"
+      ],
+      "c_int"
+    ],
+    "destroy_prepare": [
+      [
+        "LP_c_void_p"
+      ],
+      null
+    ],
+    "execute_prepared_streaming": [
+      [
+        "c_void_p",
+        "LP__Result"
+      ],
+      "c_int"
+    ],
+    "destroy_result": [
+      [
+        "LP__Result"
+      ],
+      null
+    ],
+    "result_error": [
+      [
+        "LP__Result"
+      ],
+      "c_void_p"
+    ],
+    "column_count": [
+      [
+        "LP__Result"
+      ],
+      "c_ulong"
+    ],
+    "column_type": [
+      [
+        "LP__Result",
+        "c_ulong"
+      ],
+      "c_int"
+    ],
+    "column_name": [
+      [
+        "LP__Result",
+        "c_ulong"
+      ],
+      "c_void_p"
+    ],
+    "column_logical_type": [
+      [
+        "LP__Result",
+        "c_ulong"
+      ],
+      "c_void_p"
+    ],
+    "decimal_width": [
+      [
+        "c_void_p"
+      ],
+      "c_ubyte"
+    ],
+    "decimal_scale": [
+      [
+        "c_void_p"
+      ],
+      "c_ubyte"
+    ],
+    "decimal_internal_type": [
+      [
+        "c_void_p"
+      ],
+      "c_int"
+    ],
+    "destroy_logical_type": [
+      [
+        "LP_c_void_p"
+      ],
+      null
+    ],
+    "fetch_chunk": [
+      [
+        "_Result"
+      ],
+      "c_void_p"
+    ],
+    "destroy_data_chunk": [
+      [
+        "LP_c_void_p"
+      ],
+      null
+    ],
+    "data_chunk_get_size": [
+      [
+        "c_void_p"
+      ],
+      "c_ulong"
+    ],
+    "data_chunk_get_column_count": [
+      [
+        "c_void_p"
+      ],
+      "c_ulong"
+    ],
+    "data_chunk_get_vector": [
+      [
+        "c_void_p",
+        "c_ulong"
+      ],
+      "c_void_p"
+    ],
+    "vector_get_validity": [
+      [
+        "c_void_p"
+      ],
+      "LP_c_ulong"
+    ],
+    "validity_row_is_valid": [
+      [
+        "LP_c_ulong",
+        "c_ulong"
+      ],
+      "c_bool"
+    ],
+    "vector_get_data": [
+      [
+        "c_void_p"
+      ],
+      "c_void_p"
+    ],
+    "string_t_length": [
+      [
+        "_String"
+      ],
+      "c_uint"
+    ],
+    "string_t_data": [
+      [
+        "LP__String"
+      ],
+      "c_void_p"
+    ]
+  },
+  "layouts": {
+    "_Result": [
+      48,
+      8,
+      [
+        [
+          0,
+          [
+            8,
+            8
+          ]
+        ],
+        [
+          8,
+          [
+            8,
+            8
+          ]
+        ],
+        [
+          16,
+          [
+            8,
+            8
+          ]
+        ],
+        [
+          24,
+          [
+            8,
+            8
+          ]
+        ],
+        [
+          32,
+          [
+            8,
+            8
+          ]
+        ],
+        [
+          40,
+          [
+            8,
+            8
+          ]
+        ]
+      ]
+    ],
+    "_String": [
+      16,
+      8,
+      [
+        [
+          0,
+          [
+            16,
+            8,
+            [
+              [
+                0,
+                [
+                  16,
+                  8,
+                  [
+                    [
+                      0,
+                      [
+                        4,
+                        4
+                      ]
+                    ],
+                    [
+                      4,
+                      [
+                        4,
+                        1
+                      ]
+                    ],
+                    [
+                      8,
+                      [
+                        8,
+                        8
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              [
+                0,
+                [
+                  16,
+                  4,
+                  [
+                    [
+                      0,
+                      [
+                        4,
+                        4
+                      ]
+                    ],
+                    [
+                      4,
+                      [
+                        12,
+                        1
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    "_HugeInt": [
+      16,
+      8,
+      [
+        [
+          0,
+          [
+            8,
+            8
+          ]
+        ],
+        [
+          8,
+          [
+            8,
+            8
+          ]
+        ]
+      ]
+    ],
+    "_UHugeInt": [
+      16,
+      8,
+      [
+        [
+          0,
+          [
+            8,
+            8
+          ]
+        ],
+        [
+          8,
+          [
+            8,
+            8
+          ]
+        ]
+      ]
+    ]
+  }
+}

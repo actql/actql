@@ -21,23 +21,5 @@ void actql_native_control_register_packaged_runtime_roots(
     actql_runtime_host_fn, actql_runtime_read_fn, actql_runtime_original_fn,
     actql_runtime_tag_fn, actql_runtime_tag_fn);
 
-/* Bounded exact UTF-16 input, without locale conversion or normalization.
- * These copies belong to the outer control lifetime, never the read grant. */
-int actql_packaged_runtime_capture_utf16_into(actql_control_host *, actql_parent_read *,
-    const uint16_t *, int32_t, const uint16_t *, int32_t,
-    const uint16_t *, int32_t, const uint16_t *, int32_t,
-    int32_t, actql_packaged_runtime_reply **);
-int actql_packaged_runtime_current_into(actql_packaged_runtime *, actql_packaged_runtime_reply **);
-int actql_packaged_runtime_close_into(actql_packaged_runtime *, actql_packaged_runtime_reply **);
-int actql_packaged_runtime_originals_into(actql_packaged_runtime_reply *,
-    actql_control_host **, actql_parent_read **, actql_packaged_runtime **);
-int32_t actql_packaged_runtime_operation(actql_packaged_runtime_reply *);
-int32_t actql_packaged_runtime_issue_family(actql_packaged_runtime_reply *);
-int actql_packaged_runtime_drop_reply(actql_packaged_runtime_reply **,
-    actql_control_host *, actql_parent_read *, actql_packaged_runtime *);
-/* Inner Runtime close only. Parent read/Host ownership remains independent. */
-int actql_packaged_runtime_finish_closed_data(actql_control_host **,
-    actql_parent_read **, actql_packaged_runtime **, actql_packaged_runtime_reply **);
-int actql_packaged_runtime_finish_refused_capture(actql_control_host **,
-    actql_parent_read **, actql_packaged_runtime_reply **);
+#include "packaged_runtime_abi.generated.h"
 #endif
