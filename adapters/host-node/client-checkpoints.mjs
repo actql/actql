@@ -1967,8 +1967,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           if (!Number.isFinite(expires) || expires <= created) {
             fail('RequestedEffectStopLifetimeUnavailable');
           }
-          const wire = contractControl.sealRequestedEffectStop(requestedStop,
-            JSON.stringify({version: 'actql-execution-checkpoint/0.1',
+          const body = {version: 'actql-execution-checkpoint/0.1',
               checkpoint_id: `${runId}-effect-commit`, run_id: runId,
               run_definition_cid: runDefinitionCid,
               continuation_state_cid: refs[1],
@@ -1981,12 +1980,20 @@ export async function installRemoteCheckpoints({root, namespaceId,
               human_summary: 'Review the requested first Effect Set',
               created_at: new Date(created).toISOString(),
               expires_at: new Date(expires).toISOString(),
-            }), continuationWire, stopLimits);
+            };
+          const wire = contractControl.sealRequestedEffectStop(requestedStop,
+            JSON.stringify(body), continuationWire, stopLimits);
           stopCurrent();
-          const persisted = await journalPort.persistCheckpoint({body: wire,
+          // The Journal's existing entry accepts a body, not a sealed artifact.
+          // Both existing Common readers must name the same exact artifact;
+          // an uncertain/mismatched commit never becomes a returned wait.
+          const persisted = await journalPort.persistCheckpoint({body,
             priorStatus: 'running', declaredResults, authorities, binding,
             decisionSubjectCid: contractControl.requestedEffectStopIntentCid(requestedStop),
             requestedClaims: [], configurationCid: commit.configurationCid});
+          if (persisted.checkpointCid !== JSON.parse(wire).checkpoint_cid) {
+            fail('RequestedEffectStopCommitMismatch');
+          }
           return Object.freeze({boundary: 'effect_commit', action: 'waiting',
             reason: 'user_requested_stop', checkpoint: Object.freeze(persisted)});
         };
