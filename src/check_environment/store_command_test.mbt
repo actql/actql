@@ -190,16 +190,13 @@ test "STORE relationship is closed and a malformed present component never defau
 
 ///|
 test "STORE relationship cannot substitute a compatible foreign Catalog Command or CID" {
-  let (original, _) = store_command_fixture()
-  let original_root = member_body(
-    member_at(original, MappingContracts, 0).unwrap(),
-  )
-  let relationship = @decode.lookup(
-    @decode.open_object(original_root).unwrap(),
-    "store_command",
-  ).unwrap()
-  // Fixed original relationship values are read only to select the one subject
-  // being substituted. Expected refusal kinds are independently authored.
+  let (_, wire) = store_command_fixture()
+  guard @json.parse(wire) is Object(environment_fields) &&
+    environment_fields["mapping_contracts"] is Array(mappings) &&
+    mappings[0] is Object(mapping_fields) else {
+    abort("fixture originals")
+  }
+  let relationship = mapping_fields["store_command"]
   for
     (field, replacement, expected) in [
       (
@@ -218,7 +215,7 @@ test "STORE relationship cannot substitute a compatible foreign Catalog Command 
         StoreCommandIssue::Command(MissingCommand("command:crm.other.v1")),
       ),
     ] {
-    let value = @json.parse(@decode.raw_text(relationship))
+    let value = @json.parse(canonical_fixture(relationship))
     guard value is Object(fields) else { abort("fixture relationship") }
     fields[field] = replacement.to_json()
     let (environment, _) = store_command_fixture(relationship=Some(value))
@@ -231,9 +228,7 @@ test "STORE relationship cannot substitute a compatible foreign Catalog Command 
         mapping,
         store_command_fixture_catalogs(environment),
         100,
-      )
-      .err()
-      .unwrap(),
+      ).unwrap_err(),
       expected,
     )
   }

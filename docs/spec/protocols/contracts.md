@@ -1024,7 +1024,7 @@ installation authority. The installed Owner must bind its original target and
 installation to the checked pair and retain the full selection through original
 Run materials, Preview, apply and restore, with current installation and grants
 independently checked. See the authored-vs-canonical
-[STORE distinction](artifacts.md#reference-admission).
+[STORE distinction](artifacts.md#reference-admission-and-availability).
 
 Contract integrity and these static facts do not establish current
 provider authority, schema freshness, uniqueness, or apply permission.
