@@ -40,3 +40,9 @@ export function pythonWirePatternSource() {
 
 `;
 }
+
+// Whole-string registered non-control identifiers. Unlike $, the negative
+// lookahead cannot accept a position before a final LF in Python's search.
+// Keep this source pattern shared with the finite Native compiler; other
+// pattern classes retain their own registered rules.
+export const wireNonControlIdPattern = '^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])';

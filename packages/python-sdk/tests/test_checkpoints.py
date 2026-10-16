@@ -108,3 +108,37 @@ class CheckpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(review_bytes_match_cid(encoded, cid))
         self.assertFalse(review_bytes_match_cid(encoded + b' ', cid))
         self.assertFalse(review_bytes_match_cid(encoded, CID('a')))
+
+    async def test_noncontrol_ids_refuse_before_signing_credentials_or_resolve(self):
+        operations, credentials, signatures = [], [], []
+        def token():
+            credentials.append('token')
+            return 'token'
+        def sign(raw):
+            signatures.append(raw)
+            return bytes(64)
+        async def handler(request):
+            operations.append(request.url.path.rsplit('/', 1)[1])
+            return httpx.Response(200, json=PROFILE)
+        async with await AsyncClient.connect('https://host.invalid/', token,
+                transport=httpx.MockTransport(handler)) as client:
+            for identifier in ['id' + chr(point) for point in range(32)] + ['id' + chr(127)]:
+                for decision in ['approved', 'rejected']:
+                    with self.subTest(identifier=repr(identifier), decision=decision):
+                        summary = dict(SUMMARY, checkpointId=identifier)
+                        with self.assertRaises(ClientError) as failure:
+                            await client.resolve_checkpoints([{'checkpoint': summary, 'decision': decision}],
+                                signer=Signer('alice-key', 'alice', sign))
+                        self.assertEqual(failure.exception.code, 'InvalidCheckpointAnswer')
+        self.assertEqual(operations, ['connect'])
+        self.assertEqual(credentials, ['token'])
+        self.assertEqual(signatures, [])
+
+    async def test_signed_noncontrol_ids_preserve_exact_spaces_and_unicode(self):
+        from actql_sdk._checkpoints import signed_answer
+        signer = Signer('alice-key', 'alice', lambda raw: bytes(64))
+        for identifier in [' ', ' id ', 'é', 'e\u0301', '\u2028', '\u2029', 'id\u2028', 'id\u2029', '\\n']:
+            with self.subTest(identifier=repr(identifier)):
+                answer = await signed_answer(dict(SUMMARY, checkpointId=identifier), 'rejected', signer,
+                                             '2026-09-26T01:00:00.000Z')
+                self.assertEqual(json.loads(answer['resolutionWire'])['checkpoint_id'], identifier)

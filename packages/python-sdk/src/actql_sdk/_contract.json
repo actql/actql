@@ -358,7 +358,7 @@
         },
         "nonce": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -428,7 +428,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -458,7 +458,7 @@
                   "properties": {
                     "namespaceId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -541,7 +541,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -616,7 +616,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -643,13 +643,13 @@
                 },
                 "requestId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
                 "prepareAttemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -665,7 +665,7 @@
                 },
                 "lookupExpiresAt": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -681,7 +681,7 @@
                   "properties": {
                     "checkpointId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -700,7 +700,7 @@
                     },
                     "expiresAt": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -708,13 +708,13 @@
                 },
                 "endReason": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
                 "terminalErrorCode": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -842,7 +842,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -916,7 +916,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -983,7 +983,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -1058,7 +1058,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -1116,7 +1116,7 @@
               "properties": {
                 "code": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -1188,7 +1188,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -1263,7 +1263,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -1321,7 +1321,7 @@
               "properties": {
                 "code": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -1393,7 +1393,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -1472,7 +1472,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -1502,7 +1502,7 @@
                   "properties": {
                     "namespaceId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -1585,7 +1585,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -1660,7 +1660,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -1687,13 +1687,13 @@
                 },
                 "requestId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
                 "prepareAttemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -1709,7 +1709,7 @@
                 },
                 "lookupExpiresAt": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -1725,7 +1725,7 @@
                   "properties": {
                     "checkpointId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -1744,7 +1744,7 @@
                     },
                     "expiresAt": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -1752,13 +1752,13 @@
                 },
                 "endReason": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
                 "terminalErrorCode": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -1886,7 +1886,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -1960,7 +1960,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -2027,7 +2027,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -2102,7 +2102,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -2122,7 +2122,7 @@
               "properties": {
                 "code": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -2194,7 +2194,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -2269,7 +2269,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -2289,7 +2289,7 @@
               "properties": {
                 "code": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -2361,7 +2361,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -2435,7 +2435,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -2450,7 +2450,7 @@
               "properties": {
                 "code": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -2513,7 +2513,7 @@
                     },
                     "nonce": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -2549,7 +2549,7 @@
           "properties": {
             "namespaceId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -2588,7 +2588,7 @@
           "properties": {
             "namespaceId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -2602,7 +2602,7 @@
             },
             "cancelId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -2626,7 +2626,7 @@
       "properties": {
         "namespaceId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -2666,7 +2666,7 @@
         },
         "workspaceId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -2675,7 +2675,7 @@
           "uniqueItems": true,
           "items": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           }
@@ -2685,7 +2685,7 @@
           "uniqueItems": true,
           "items": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           }
@@ -2698,13 +2698,13 @@
         },
         "movementPolicyRef": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
         "cloudConnectionRef": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -2725,7 +2725,7 @@
                   "maxItems": 0,
                   "items": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -2761,7 +2761,7 @@
                   "maxItems": 0,
                   "items": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -2814,7 +2814,7 @@
                   "minItems": 1,
                   "items": {
                     "type": "string",
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                     "minLength": 1,
                     "maxLength": 256
                   }
@@ -2907,13 +2907,13 @@
         },
         "scopeRef": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
         "workspaceId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -2921,7 +2921,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           }
@@ -2991,7 +2991,7 @@
           "properties": {
             "namespaceId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -3033,7 +3033,7 @@
         },
         "requestId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -3048,7 +3048,7 @@
           "properties": {
             "namespaceId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -3070,7 +3070,7 @@
         },
         "lookupExpiresAt": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -3101,7 +3101,7 @@
         },
         "reason": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -3124,13 +3124,13 @@
         },
         "requestId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
         "prepareAttemptId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -3146,7 +3146,7 @@
         },
         "lookupExpiresAt": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -3162,7 +3162,7 @@
           "properties": {
             "checkpointId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -3181,7 +3181,7 @@
             },
             "expiresAt": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             }
@@ -3189,13 +3189,13 @@
         },
         "endReason": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
         "terminalErrorCode": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -3287,7 +3287,7 @@
           "properties": {
             "checkpointId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -3326,13 +3326,13 @@
                     },
                     "prepareAttemptId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
                     "requestId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     }
@@ -3352,7 +3352,7 @@
                     },
                     "runId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -3374,7 +3374,7 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -3393,20 +3393,20 @@
               "uniqueItems": true,
               "items": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               }
             },
             "createdAt": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
             "expiresAt": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -3436,7 +3436,7 @@
           "properties": {
             "checkpointId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -3464,7 +3464,7 @@
                 },
                 "runId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -3507,13 +3507,13 @@
             },
             "createdAt": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
             "expiresAt": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -3620,7 +3620,7 @@
         },
         "reason": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -3636,7 +3636,7 @@
       "properties": {
         "requestId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -3658,7 +3658,7 @@
           "properties": {
             "namespaceId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -3693,7 +3693,7 @@
       "properties": {
         "resourceConnection": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -3713,7 +3713,7 @@
             "properties": {
               "name": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                 "minLength": 1,
                 "maxLength": 256
               },
@@ -3749,13 +3749,13 @@
       "properties": {
         "resourceConnection": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
         "resource": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -3799,13 +3799,13 @@
       "properties": {
         "resourceConnection": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
         "resource": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -3819,7 +3819,7 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
             "minLength": 1,
             "maxLength": 256
           }
@@ -3880,7 +3880,7 @@
           "properties": {
             "namespaceId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
@@ -3896,7 +3896,7 @@
         },
         "resultName": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -3981,7 +3981,7 @@
       "properties": {
         "namespaceId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -3995,7 +3995,7 @@
         },
         "cancelId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         },
@@ -4040,7 +4040,7 @@
                   "properties": {
                     "namespaceId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -4079,7 +4079,7 @@
                   "properties": {
                     "namespaceId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -4093,7 +4093,7 @@
                     },
                     "cancelId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -4132,7 +4132,7 @@
               "properties": {
                 "namespaceId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -4146,7 +4146,7 @@
                 },
                 "cancelId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -4218,7 +4218,7 @@
             },
             "nonce": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             }
@@ -4245,7 +4245,7 @@
         },
         "attemptId": {
           "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
           "minLength": 1,
           "maxLength": 256
         }
@@ -4278,7 +4278,7 @@
                 },
                 "attemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -4305,7 +4305,7 @@
                   "properties": {
                     "namespaceId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -4340,7 +4340,7 @@
                   "properties": {
                     "namespaceId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -4354,7 +4354,7 @@
                     },
                     "cancelId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -4394,7 +4394,7 @@
                 },
                 "attemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -4421,7 +4421,7 @@
                   "properties": {
                     "namespaceId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -4459,7 +4459,7 @@
                   "properties": {
                     "namespaceId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -4473,7 +4473,7 @@
                     },
                     "cancelId": {
                       "type": "string",
-                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                       "minLength": 1,
                       "maxLength": 256
                     },
@@ -4514,7 +4514,7 @@
                 },
                 "attemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -4542,7 +4542,7 @@
               "properties": {
                 "namespaceId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -4556,7 +4556,7 @@
                 },
                 "cancelId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -4595,7 +4595,7 @@
                 },
                 "attemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -4620,7 +4620,7 @@
               "properties": {
                 "namespaceId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -4634,7 +4634,7 @@
                 },
                 "cancelId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 },
@@ -4679,7 +4679,7 @@
                 },
                 "attemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -4749,7 +4749,7 @@
                         },
                         "nonce": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         }
@@ -4779,7 +4779,7 @@
                           "properties": {
                             "namespaceId": {
                               "type": "string",
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                               "minLength": 1,
                               "maxLength": 256
                             },
@@ -4862,7 +4862,7 @@
                             },
                             "nonce": {
                               "type": "string",
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                               "minLength": 1,
                               "maxLength": 256
                             }
@@ -4937,7 +4937,7 @@
                         },
                         "nonce": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         }
@@ -4964,13 +4964,13 @@
                         },
                         "requestId": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         },
                         "prepareAttemptId": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         },
@@ -4986,7 +4986,7 @@
                         },
                         "lookupExpiresAt": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         },
@@ -5002,7 +5002,7 @@
                           "properties": {
                             "checkpointId": {
                               "type": "string",
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                               "minLength": 1,
                               "maxLength": 256
                             },
@@ -5021,7 +5021,7 @@
                             },
                             "expiresAt": {
                               "type": "string",
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                               "minLength": 1,
                               "maxLength": 256
                             }
@@ -5029,13 +5029,13 @@
                         },
                         "endReason": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         },
                         "terminalErrorCode": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         }
@@ -5163,7 +5163,7 @@
                             },
                             "nonce": {
                               "type": "string",
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                               "minLength": 1,
                               "maxLength": 256
                             }
@@ -5237,7 +5237,7 @@
                         },
                         "nonce": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         }
@@ -5304,7 +5304,7 @@
                             },
                             "nonce": {
                               "type": "string",
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                               "minLength": 1,
                               "maxLength": 256
                             }
@@ -5379,7 +5379,7 @@
                         },
                         "nonce": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         }
@@ -5437,7 +5437,7 @@
                       "properties": {
                         "code": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         },
@@ -5509,7 +5509,7 @@
                             },
                             "nonce": {
                               "type": "string",
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                               "minLength": 1,
                               "maxLength": 256
                             }
@@ -5584,7 +5584,7 @@
                         },
                         "nonce": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         }
@@ -5642,7 +5642,7 @@
                       "properties": {
                         "code": {
                           "type": "string",
-                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                           "minLength": 1,
                           "maxLength": 256
                         },
@@ -5714,7 +5714,7 @@
                             },
                             "nonce": {
                               "type": "string",
-                              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                               "minLength": 1,
                               "maxLength": 256
                             }
@@ -5793,7 +5793,7 @@
                 },
                 "attemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -5835,7 +5835,7 @@
                 },
                 "attemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -5890,7 +5890,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -5939,7 +5939,7 @@
                 },
                 "attemptId": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -5994,7 +5994,7 @@
                 },
                 "nonce": {
                   "type": "string",
-                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
                   "minLength": 1,
                   "maxLength": 256
                 }
@@ -6107,7 +6107,7 @@
           "properties": {
             "namespaceId": {
               "type": "string",
-              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
               "minLength": 1,
               "maxLength": 256
             },
