@@ -9,11 +9,15 @@ const fail = (code, message) => { throw Object.assign(new Error(message), {code}
 const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
 const emptyDirectory = path => {
   const directory = opendirSync(path);
+  let failed = false, cause;
   try { return directory.readSync() === null; }
+  catch (error) { failed = true; cause = error; throw error; }
   finally {
     try { directory.closeSync(); }
-    catch { throw Object.assign(new Error('Project directory cleanup is unconfirmed.'), {
-      code: 'ACTQL_E_PROJECT_CLEANUP_PENDING', directory,
+    catch (cleanupCause) { throw Object.assign(new Error('Project directory cleanup is unconfirmed.', {
+      cause: failed ? cause : cleanupCause,
+    }), {
+      code: 'ACTQL_E_PROJECT_CLEANUP_PENDING', directory, cleanupCause,
     }); }
   }
 };
@@ -61,6 +65,7 @@ export function scaffoldProject(directory, template) {
     }
     const fd = openSync(join(root, name), constants.O_CREAT | constants.O_EXCL |
       constants.O_WRONLY | constants.O_NOFOLLOW, 0o644);
+    let failed = false, cause;
     try {
       const opened = fstatSync(fd), bytes = Buffer.from(text);
       if (!opened.isFile() || opened.nlink !== 1) fail('ACTQL_E_PROJECT_CHANGED', 'A project file changed.');
@@ -71,12 +76,16 @@ export function scaffoldProject(directory, template) {
         offset += written;
       }
       fsyncSync(fd);
+    } catch (error) {
+      failed = true; cause = error; throw error;
     } finally {
       // Preserve the actual descriptor on an unconfirmed close. No successful
       // preparation receipt can hide an outstanding cleanup responsibility.
       try { closeSync(fd); }
-      catch { throw Object.assign(new Error('Project file cleanup is unconfirmed.'), {
-        code: 'ACTQL_E_PROJECT_CLEANUP_PENDING', descriptor: fd,
+      catch (cleanupCause) { throw Object.assign(new Error('Project file cleanup is unconfirmed.', {
+        cause: failed ? cause : cleanupCause,
+      }), {
+        code: 'ACTQL_E_PROJECT_CLEANUP_PENDING', descriptor: fd, cleanupCause,
       }); }
     }
     created.push(name);
