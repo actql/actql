@@ -7733,36 +7733,60 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
                 "anchor": "only place that names the Host"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
                 "anchor": "salesforceEffectSiteHooks"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
                 "anchor": "runInvocation: plan.invocationOwner"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
                 "anchor": "retainRecoveryOwner"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
                 "anchor": "prepareCaptured"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
                 "anchor": "InvalidInstalledEffectHooks"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "cancellation": [
@@ -7781,6 +7805,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
                 "anchor": "loadInstalledSalesforceEffectInstallation"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "verification": [
@@ -7866,36 +7894,60 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
                 "anchor": "Host supplies"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
                 "anchor": "loadInstalledSalesforceEffectInstallation"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
                 "anchor": "installedSalesforceEffectIdentityParts"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
                 "anchor": "close: () => effect.close()"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
                 "anchor": "await loadInstalledSalesforceEffect"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
                 "anchor": "checkInstalledSalesforceEffectProfile"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "cancellation": [
@@ -7918,6 +7970,10 @@
               {
                 "path": "scripts/connector-host-bundles.mjs",
                 "anchor": "generateInstallations"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "verification": [
@@ -8490,36 +8546,60 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "Host-owned Salesforce Site installation"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "assertAuthorizationAccountCurrent(decision);"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "loadInstalledSalesforceSite"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "assertAuthorizationAccountCurrent(decision);"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "installedSalesforceSiteBinding"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "assertAuthorizationAccountCurrent(decision);"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "handOverSiteRelease"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "assertAuthorizationAccountCurrent(decision);"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "installedDecisions"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "assertAuthorizationAccountCurrent(decision);"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "retainSalesforceSiteCleanup"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "assertAuthorizationAccountCurrent(decision);"
               }
             ],
             "cancellation": [
@@ -8542,6 +8622,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "# Credential interface references"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "assertAuthorizationAccountCurrent(decision);"
               }
             ],
             "verification": [

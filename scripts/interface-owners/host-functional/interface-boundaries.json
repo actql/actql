@@ -964,6 +964,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "inputsOutputs": [
@@ -978,6 +982,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "identity": [
@@ -992,6 +1000,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "ownership": [
@@ -1006,6 +1018,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "synchronization": [
@@ -1020,6 +1036,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "failure": [
@@ -1034,6 +1054,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "cancellation": [
@@ -1076,6 +1100,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "verification": [
@@ -1110,6 +1138,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "inputsOutputs": [
@@ -1124,6 +1156,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "identity": [
@@ -1138,6 +1174,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "ownership": [
@@ -1152,6 +1192,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "synchronization": [
@@ -1166,6 +1210,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "failure": [
@@ -1180,6 +1228,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "cancellation": [
@@ -1222,6 +1274,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-common/authorization-gate.mjs",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
               }
             ],
             "verification": [
@@ -12839,6 +12895,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               }
             ],
             "inputsOutputs": [
@@ -12853,6 +12913,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Checkpoint and Resolution admission"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               }
             ],
             "identity": [
@@ -12867,6 +12931,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               }
             ],
             "ownership": [
@@ -12881,6 +12949,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               }
             ],
             "synchronization": [
@@ -12895,6 +12967,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               }
             ],
             "failure": [
@@ -12909,6 +12985,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               }
             ],
             "cancellation": [
@@ -12951,6 +13031,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Checkpoint and Resolution admission"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               }
             ],
             "verification": [
@@ -13426,6 +13510,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "capturePreparedOriginal(prepared) {"
               }
             ],
             "inputsOutputs": [
@@ -13440,6 +13528,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "capturePreparedOriginal(prepared) {"
               }
             ],
             "identity": [
@@ -13454,6 +13546,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "capturePreparedOriginal(prepared) {"
               }
             ],
             "ownership": [
@@ -13468,6 +13564,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "capturePreparedOriginal(prepared) {"
               }
             ],
             "synchronization": [
@@ -13482,6 +13582,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "capturePreparedOriginal(prepared) {"
               }
             ],
             "failure": [
@@ -13496,6 +13600,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "capturePreparedOriginal(prepared) {"
               }
             ],
             "cancellation": [
@@ -13538,6 +13646,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "capturePreparedOriginal(prepared) {"
               }
             ],
             "verification": [
@@ -15293,6 +15405,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "restoreOriginal(original) {"
               }
             ],
             "inputsOutputs": [
@@ -15307,6 +15423,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "restoreOriginal(original) {"
               }
             ],
             "identity": [
@@ -15321,6 +15441,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "restoreOriginal(original) {"
               }
             ],
             "ownership": [
@@ -15335,6 +15459,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "restoreOriginal(original) {"
               }
             ],
             "synchronization": [
@@ -15349,6 +15477,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "restoreOriginal(original) {"
               }
             ],
             "failure": [
@@ -15363,6 +15495,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "restoreOriginal(original) {"
               }
             ],
             "cancellation": [
@@ -15405,6 +15541,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "restoreOriginal(original) {"
               }
             ],
             "verification": [
@@ -21249,6 +21389,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "inputsOutputs": [
@@ -21263,6 +21407,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "identity": [
@@ -21277,6 +21425,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "ownership": [
@@ -21291,6 +21443,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "synchronization": [
@@ -21305,6 +21461,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "failure": [
@@ -21319,6 +21479,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "cancellation": [
@@ -21361,6 +21525,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "verification": [
@@ -28093,6 +28261,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "inputsOutputs": [
@@ -28107,6 +28279,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "identity": [
@@ -28121,6 +28297,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "ownership": [
@@ -28135,6 +28315,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "synchronization": [
@@ -28149,6 +28333,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "failure": [
@@ -28163,6 +28351,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "cancellation": [
@@ -28205,6 +28397,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "verification": [
@@ -28244,6 +28440,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "inputsOutputs": [
@@ -28258,6 +28458,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "identity": [
@@ -28272,6 +28476,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "ownership": [
@@ -28286,6 +28494,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "synchronization": [
@@ -28300,6 +28512,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "failure": [
@@ -28314,6 +28530,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "cancellation": [
@@ -28356,6 +28576,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
               }
             ],
             "verification": [
@@ -28891,6 +29115,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               }
             ],
             "inputsOutputs": [
@@ -28905,6 +29133,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               }
             ],
             "identity": [
@@ -28919,6 +29151,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               }
             ],
             "ownership": [
@@ -28933,6 +29169,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               }
             ],
             "synchronization": [
@@ -28947,6 +29187,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               }
             ],
             "failure": [
@@ -28961,6 +29205,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               }
             ],
             "cancellation": [
@@ -29003,6 +29251,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               }
             ],
             "verification": [
@@ -29224,6 +29476,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "inputsOutputs": [
@@ -29238,6 +29494,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "identity": [
@@ -29252,6 +29512,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "ownership": [
@@ -29266,6 +29530,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "synchronization": [
@@ -29280,6 +29548,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "failure": [
@@ -29294,6 +29566,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "cancellation": [
@@ -29336,6 +29612,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "verification": [
@@ -29369,6 +29649,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "inputsOutputs": [
@@ -29383,6 +29667,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "identity": [
@@ -29397,6 +29685,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "ownership": [
@@ -29411,6 +29703,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "synchronization": [
@@ -29425,6 +29721,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "failure": [
@@ -29439,6 +29739,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "cancellation": [
@@ -29481,6 +29785,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect.mjs",
+                "anchor": "function splitUpdateTargetProfile(profile) {"
               }
             ],
             "verification": [
@@ -31909,6 +32217,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "inputsOutputs": [
@@ -31923,6 +32235,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "identity": [
@@ -31937,6 +32253,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "ownership": [
@@ -31951,6 +32271,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "synchronization": [
@@ -31965,6 +32289,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "failure": [
@@ -31979,6 +32307,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "cancellation": [
@@ -31993,6 +32325,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "finally { closeSync(fd); }"
               }
             ],
             "resources": [
@@ -32007,6 +32343,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "const MAX_CONFIGURATION_BYTES = 1_000_000;"
               }
             ],
             "extension": [
@@ -32021,6 +32361,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "verification": [
@@ -32031,6 +32375,14 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "function observeAccountConfigurationWire(authorization) {"
+              },
+              {
+                "path": "adapters/host-node/local-account-current.test.mjs",
+                "anchor": "test('the shared account observer keeps its fixed byte and fatal UTF-8 bounds'"
               }
             ]
           }
@@ -32056,6 +32408,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "inputsOutputs": [
@@ -32070,6 +32426,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "identity": [
@@ -32084,6 +32444,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "ownership": [
@@ -32098,6 +32462,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "synchronization": [
@@ -32112,6 +32480,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "failure": [
@@ -32126,6 +32498,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "cancellation": [
@@ -32140,6 +32516,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "finally { closeSync(fd); }"
               }
             ],
             "resources": [
@@ -32154,6 +32534,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "const MAX_CONFIGURATION_BYTES = 1_000_000;"
               }
             ],
             "extension": [
@@ -32168,6 +32552,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Account authorization routing"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization) {"
               }
             ],
             "verification": [
@@ -32178,6 +32566,14 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "function observeAccountConfigurationWire(authorization) {"
+              },
+              {
+                "path": "adapters/host-node/local-account-current.test.mjs",
+                "anchor": "test('the shared account observer keeps its fixed byte and fatal UTF-8 bounds'"
               }
             ]
           }
@@ -36312,6 +36708,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "function checkedPublication(moon, environment, publication) {"
               }
             ],
             "inputsOutputs": [
@@ -36326,6 +36726,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "function checkedPublication(moon, environment, publication) {"
               }
             ],
             "identity": [
@@ -36340,6 +36744,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "function checkedPublication(moon, environment, publication) {"
               }
             ],
             "ownership": [
@@ -36354,6 +36762,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "function checkedPublication(moon, environment, publication) {"
               }
             ],
             "synchronization": [
@@ -36368,6 +36780,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "function checkedPublication(moon, environment, publication) {"
               }
             ],
             "failure": [
@@ -36382,6 +36798,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "function checkedPublication(moon, environment, publication) {"
               }
             ],
             "cancellation": [
@@ -36424,6 +36844,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "function checkedPublication(moon, environment, publication) {"
               }
             ],
             "verification": [
@@ -37266,6 +37690,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
               }
             ],
             "inputsOutputs": [
@@ -37280,6 +37708,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
               }
             ],
             "identity": [
@@ -37294,6 +37726,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
               }
             ],
             "ownership": [
@@ -37308,6 +37744,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
               }
             ],
             "synchronization": [
@@ -37322,6 +37762,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
               }
             ],
             "failure": [
@@ -37336,6 +37780,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
               }
             ],
             "cancellation": [
@@ -37378,6 +37826,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
               }
             ],
             "verification": [
