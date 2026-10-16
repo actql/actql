@@ -116,6 +116,15 @@ test('legacy Source approval remains separate from an Effect target approval', a
   assert.throws(() => f.site.admitCheckpointReadApproval(f.issue()), {code: 'RowSourceReadApprovalNotAdmitted'});
 });
 
+test('a target approval cannot be re-admitted through the Source port to lose its operation fence', async t => {
+  const f = await fixture(t, {admitsSource: (binding, selected) => binding === physical && selected === resource});
+  const original = f.issue({physicalBinding: physical});
+  f.site.admitCheckpointEffectTargetRead(original, physical, operation);
+  assert.throws(() => f.site.admitCheckpointReadApproval(original), {code: 'RowSourceReadApprovalNotAdmitted'});
+  assert.throws(() => f.grant(original, {operation: 'gcs:object:upload'}), {code: 'RowSourceGrantNotAuthorized'});
+  assert.equal(f.state.grants, 0);
+});
+
 test('an asynchronous binding predicate never authorizes a target read', async t => {
   const f = await fixture(t, {hook: () => Promise.resolve(true)});
   assert.throws(() => f.site.admitCheckpointEffectTargetRead(f.issue(), physical, operation), failure);
