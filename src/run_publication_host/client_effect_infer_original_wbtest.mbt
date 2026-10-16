@@ -40,8 +40,11 @@ fn selected_infer_original_fixture() -> (
     limits,
     update_targets=Some(publication),
   )
+  if prepared is Err(Candidate(Computation(Closure(Joins(_))))) {
+    fail("selected Model original fixture: join requirements")
+  }
   if prepared is Err(Candidate(Computation(cause))) {
-    fail("selected Model original fixture: " + cause.to_string())
+    raise cause
   }
   let prepared = prepared.unwrap()
   let occurrence = prepared_client_effect_infer_occurrence(prepared).unwrap()
