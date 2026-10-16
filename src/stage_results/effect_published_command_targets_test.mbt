@@ -240,11 +240,23 @@ test "published Command selector alone cannot project or issue a nominal target"
 ///|
 test "published Command identifier requires original guaranteed column presence" {
   let effects = "{\"send\":{\"command\":{\"from\":{\"result\":\"r\"},\"target\":{\"published_command\":{\"target_ref\":\"connector://mailbox/current\",\"identifier_field\":\"amount\"}},\"contract\":\"command:mail.send.v1\",\"input\":{}}}}"
-  let (checked, headers) = effect_binding_inputs(
-    effects,
+  let operations = prepared(
+    "{\"from\":\"rows\",\"fields\":[\"amount\"]}",
+    effects=",\"effects\":" + effects,
     amount_presence=Some(@schema.Conditional),
   )
-  let issue = bind_effect_results(headers, checked, 100).unwrap_err()
-  assert_eq(effect_result_binding_issue_kind(issue), InvalidCommandIdentifier)
-  assert_eq(effect_result_binding_issue_field(issue), Some("amount"))
+  match check(operations, limits()) {
+    Err(Stage(0, issue)) =>
+      assert_eq(@results.issue_kind(issue), @results.PresenceRequired("amount"))
+    _ =>
+      fail(
+        "expected the existing Result presence boundary before Command binding",
+      )
+  }
+  let control = prepared(
+    "{\"from\":\"rows\",\"fields\":[\"amount\"]}",
+    effects=",\"effects\":" + effects,
+    amount_presence=Some(@schema.Required),
+  )
+  assert_true(check(control, limits()) is Ok(_))
 }
