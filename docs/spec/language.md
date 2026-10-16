@@ -8807,10 +8807,10 @@ The kind determines its authority class:
 - `command` invokes one Connector-owned typed provider operation against the
   ResourceRef values of its input Result (a named Result or a private
   capture); it is not arbitrary HTTP or generic CRUD;
-- `store` writes typed Content to a declared object, file or stage resource,
-  or persists typed rows into a declared table resource through its Mapping.
-  Object/file/stage inputs without a `content` field of type `content_ref`
-  are refused; serialization
+- Canonical `store` persists typed rows into a declared table resource
+  through its Mapping. Authored object/file/stage STORE instead normalizes to
+  the exact published typed Command relationship described below. Its inputs
+  without a `content` field of type `content_ref` are refused; serialization
   is an explicit preceding operation.
 
 <!-- requirement-block: effects.every-data-effect-must-explicitly-declare-target-and-a-typed-qualified effects.every-command-must-explicitly-declare-a-resourceref-result-field-and effects.published-store-original-pair effects.published-store-original-issuer effects.published-store-no-substitute effects.published-store-missing-originals effects.published-store-no-current-restore effects.preview-must-enforce-that-limit-on-the-complete-resolved-scope -->
