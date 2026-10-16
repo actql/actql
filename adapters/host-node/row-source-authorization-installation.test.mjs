@@ -14,6 +14,8 @@ import {sourceReadAccountConfiguration, contentCid} from './local-account-config
 import {openSqliteCredentialJournal} from '../site-node/sqlite-credential-journal.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite} from '../connectors/salesforce/host/installed-salesforce-site.mjs';
+import {openSalesforceEffectSiteFixture} from
+  '../connectors/salesforce/test/salesforce-effect-site.fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const textCid = wire => `sha256:${createHash('sha256').update(wire, 'utf8').digest('hex')}`;
@@ -28,7 +30,7 @@ const originalContext = root => Object.freeze({principal: principalId,
     root, principalId}))});
 const authorize = gate => gate.authorize('acquisition', tuple, {subjectCid: cid('5')});
 
-async function installed(t, {outcome = 'allow', gateOptions} = {}) {
+async function installed(t, {outcome = 'allow', gateOptions, org} = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'salesforce-shared-issuer-', label: 'Original Salesforce shared authorization issuer'});
   const root = scratch.path;
@@ -37,11 +39,15 @@ async function installed(t, {outcome = 'allow', gateOptions} = {}) {
     apiVersion: 'v62.0', cliAlias: 'fixture', cliUsername: 'fixture@example.test',
     connectionRevision: 'original-revision', credentialAuthorityId: 'fixture-authority',
     credentialKeyId: 'fixture-key', credentialPrivateKeyPath: join(root, 'credential.key'),
-    environment: 'test', instanceOrigin: 'https://fixture.invalid',
+    environment: 'test', instanceOrigin: org?.origin ?? 'https://fixture.invalid',
     journalRoot: join(root, 'credential-journal'), orgId: '00D000000000001EAA',
     siteGeneration: 3, siteKey: 'fixture-site', namespaceId: 'fixture-namespace'};
   await writeFile(profile.credentialPrivateKeyPath,
     pair.privateKey.export({type: 'pkcs8', format: 'pem'}));
+  if (org !== undefined) {
+    profile.caPath = join(root, 'org-ca.crt');
+    await writeFile(profile.caPath, org.credential.ca);
+  }
   const path = join(root, 'site.json');
   await writeFile(path, JSON.stringify(profile));
   // The old Salesforce preimage preserves original text, including NFD text;
@@ -54,7 +60,7 @@ async function installed(t, {outcome = 'allow', gateOptions} = {}) {
   const site = await loadInstalledSalesforceSite(path, {commonMoon, salesforceMoon,
     authorization, runtimeBundleCid: cid('b'), resolveSecret: async () => {
       state.secretCalls++;
-      return 'test-only-unused-secret';
+      return org === undefined ? 'test-only-unused-secret' : 'test-only-secret';
     },
     openCredentialJournal(root, options) {
       state.journals++;
@@ -83,8 +89,8 @@ const grant = (site, decision, extra = {}) => site.issueGrant({
   runInvocationCid: cid('3'), dispatchRequestCid: cid('4'), ...extra});
 
 // These are actual compiled Account and Credential Owners with a fresh SQLite
-// journal, not successful doubles. No Provider request, Describe or key lookup
-// is substituted for authorization; no secret resolver is expected to run.
+// journal, not successful doubles. The final case also reaches the unchanged
+// loopback Describe/query fixture; the other cases send no Provider request.
 test('shared installer retains its default context and exact original decision issuer', async t => {
   const root = 'shared-installation';
   const options = {accountConfiguration: accountConfiguration('allow'), principalId,
@@ -245,5 +251,33 @@ test('Salesforce shared issuer preserves read versus Effect denial and invalid s
     principalId, root: f.root}), {code: 'ACTQL_E_ACCOUNT_CONFIG_INVALID'});
   assert.equal(f.state.grants, 0);
   assert.equal(f.state.secretCalls, 0);
+  f.passed();
+});
+
+// Keep the existing independent provider oracle and exercise the two other
+// original issuer consumers, named metadata admission and bounded preview.
+test('Salesforce shared original issuer reaches unchanged loopback Describe and bounded peek', async t => {
+  const org = await openSalesforceEffectSiteFixture(t, {commonMoon, salesforceMoon,
+    runInvocationCid: cid('1'), dispatchRequestCid: cid('2')});
+  const f = await installed(t, {org});
+  const before = org.seen.length;
+  const observed = await f.site.describeEffectCatalog({resources: [resource],
+    occurrence: 'shared-issuer-description', runInvocationCid: cid('3'),
+    dispatchRequestCid: cid('4')});
+  assert.equal(observed.names.length, 1);
+  const decision = await authorize(f.authorization);
+  const preview = await f.site.peek({decision, resource, fields: ['Id'], maxRows: 1});
+  assert.deepEqual(preview.rows, [{Id: 'a00000000000001'}]);
+  assert.equal(preview.limited, true);
+  assert.deepEqual(org.seen.slice(before).map(item => decodeURIComponent(item.path)), [
+    '/services/data/v62.0/sobjects/Test_Record__c/describe',
+    '/services/data/v62.0/sobjects/Test_Record__c/describe',
+    '/services/data/v62.0/query?q=SELECT Id FROM Test_Record__c LIMIT 1',
+  ]);
+  await assert.rejects(f.site.peek({decision: {...decision}, resource, fields: ['Id'], maxRows: 1}),
+    {code: 'SalesforcePeekNotAuthorized'});
+  assert.equal(org.seen.length, before + 3);
+  assert.equal(f.state.grants, 3);
+  assert.equal(f.state.secretCalls, 3);
   f.passed();
 });
