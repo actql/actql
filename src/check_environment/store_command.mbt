@@ -89,7 +89,7 @@ pub fn bind_store_command(
     return Err(MissingRelationship)
   }
   if !physical_equal(
-      mapping.environment,
+      member_environment(mapping.item),
       contract_registry_environment(catalog_registry(catalogs)),
     ) {
     return Err(ForeignEnvironment)

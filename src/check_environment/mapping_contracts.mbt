@@ -17,7 +17,6 @@ pub(all) enum MappingShapeIssue {
 
 ///|
 pub struct MappingContractShape {
-  environment : WireEnvironment
   connector : ConnectorManifestEntry
   store_command : StoreCommandReference?
   item : Member
@@ -464,7 +463,6 @@ pub fn check_mapping_contract_shapes(
       }
       by_ref[mapping_ref] = entries.length()
       entries.push({
-        environment,
         connector: entry,
         store_command,
         item,

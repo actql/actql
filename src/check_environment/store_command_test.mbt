@@ -5,14 +5,16 @@ fn store_command_fixture(
   relationship? : Json? = None,
   omit? : Bool = false,
   operation? : String = "store",
+  foreign? : Bool = false,
 ) -> (WireEnvironment, String) raise {
+  let connector = if foreign { "other" } else { "crm" }
   let command = @json.parse(
     command_target_fixture(
-      "crm", "command:crm.upload.v1", "{\"cardinality\":\"single\",\"resource_kind\":\"crm/collection\"}",
+      connector, "command:crm.upload.v1", "{\"cardinality\":\"single\",\"resource_kind\":\"crm/collection\"}",
     ),
   )
   let catalog = @json.parse(
-    catalog_fixture("crm", [], commands=[canonical_fixture(command)]),
+    catalog_fixture(connector, [], commands=[canonical_fixture(command)]),
   )
   guard command is Object(command_fields) && catalog is Object(catalog_fields) else {
     abort("fixture objects")
@@ -52,7 +54,15 @@ fn store_command_fixture(
     "command_contracts": [command],
     "model_task_contracts": [],
     "contract_registry": [],
-    "connector_catalogs": [catalog],
+    "connector_catalogs": @json.parse(
+      sorted_body_array(
+        if foreign {
+          [canonical_fixture(catalog), catalog_fixture("crm", [])]
+        } else {
+          [canonical_fixture(catalog)]
+        },
+      ),
+    ),
     "host_policy_profile": {},
     "connector_manifest": {
       "version": "actql-connectors/0.1",
@@ -232,4 +242,21 @@ test "STORE relationship cannot substitute a compatible foreign Catalog Command 
       expected,
     )
   }
+}
+
+///|
+test "STORE relationship rejects a real foreign connection even when its exact Command resolves" {
+  let (environment, _) = store_command_fixture(foreign=true)
+  let mapping = mapping_shape_at(
+    check_mapping_contract_shapes(environment, mapping_shape_limits(), 100).unwrap(),
+    0,
+  ).unwrap()
+  let catalogs = store_command_fixture_catalogs(environment)
+  assert_true(
+    select_command_target(catalogs, "command:crm.upload.v1", 100) is Ok(_),
+  )
+  assert_true(
+    bind_store_command(mapping, catalogs, 100)
+    is Err(StoreCommandIssue::ForeignCatalog),
+  )
 }
