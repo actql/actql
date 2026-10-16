@@ -171,6 +171,17 @@ row-fetch APIs. The existing native adapter's C layouts and scalar row/field
 codec are shared boundary references. Canonical environment settings are
 generated from `adapters/connectors/duckdb/environment-contract.json`.
 
+The selected physical C API and by-value layouts are generated from the
+vendored DuckDB header by `scripts/generate-local-duckdb-binding.py`.
+`scripts/local-duckdb-c-api.json` selects existing operation names and the
+existing library-version string copy; it declares no query capability or new
+library compatibility. Other returned text pointers remain borrowed and
+length-aware. Generated field names follow the C header, while the independent
+pre-generation vector fixes scalar widths, order, alignment and nested layout.
+Actual C layout checks and selected-library executions qualify that header,
+Python wrapper and library together. The C header version, selected dynamic
+library version, private Local ABI and Client wire version remain independent.
+
 Before opening a database, the product Host must reserve the native workspace
 through the existing Core resource Owner. The adapter applies a memory limit,
 one worker, disabled external access and extension loading, and no temporary
