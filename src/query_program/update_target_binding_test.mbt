@@ -176,14 +176,14 @@ test "explicit logical UPDATE Mapping must match the concrete target" {
 
 ///|
 test "conflicting positive aliases do not choose the first installation" {
-  let alias = update_target_alias()
+  let target_alias = update_target_alias()
   let publication = bind_update_target_publication(
     update_target_fixture("one"),
-    [alias, alias],
+    [target_alias, target_alias],
     100,
   ).unwrap()
   assert_eq(
-    resolve_update_target_binding(publication, alias.name, None, 100).unwrap_err(),
+    resolve_update_target_binding(publication, target_alias.name, None, 100).unwrap_err(),
     AmbiguousTarget,
   )
 }
@@ -234,15 +234,15 @@ test "logical UPDATE candidate work is bounded before traversal" {
 
 ///|
 test "logical UPDATE publication owns alias arrays" {
-  let alias = update_target_alias()
-  let aliases = [alias]
+  let target_alias = update_target_alias()
+  let aliases = [target_alias]
   let publication = bind_update_target_publication(
     update_target_fixture("one"),
     aliases,
     100,
   ).unwrap()
   aliases.clear()
-  alias.name.clear()
+  target_alias.name.clear()
   let name = update_target_alias().name
   assert_true(
     resolve_update_target_binding(publication, name, None, 100) is Ok(_),
@@ -378,9 +378,9 @@ test "concrete UPDATE binding shares installed selection without alias lookup" {
 
 ///|
 test "concrete UPDATE never chooses conflicting original installed owners" {
-  let alias = update_target_alias()
+  let target_alias = update_target_alias()
   let equivalent = {
-    ..alias,
+    ..target_alias,
     name: [
       { value: "other", quoted: false, },
       { value: "name", quoted: false, },
@@ -388,13 +388,13 @@ test "concrete UPDATE never chooses conflicting original installed owners" {
   }
   let publication = bind_update_target_publication(
     update_target_fixture("one"),
-    [alias, equivalent],
+    [target_alias, equivalent],
     100,
   ).unwrap()
   assert_true(
     resolve_concrete_update_target_binding(
       publication,
-      alias.target_ref,
+      target_alias.target_ref,
       "mapping:crm.account.v1",
       100,
     )
@@ -406,13 +406,13 @@ test "concrete UPDATE never chooses conflicting original installed owners" {
   }
   let publication = bind_update_target_publication(
     update_target_fixture("one"),
-    [alias, conflicting],
+    [target_alias, conflicting],
     100,
   ).unwrap()
   assert_eq(
     resolve_concrete_update_target_binding(
       publication,
-      alias.target_ref,
+      target_alias.target_ref,
       "mapping:crm.account.v1",
       100,
     ).unwrap_err(),
@@ -421,7 +421,7 @@ test "concrete UPDATE never chooses conflicting original installed owners" {
   assert_eq(
     resolve_concrete_update_target_binding(
       publication,
-      alias.target_ref,
+      target_alias.target_ref,
       "mapping:crm.account.v1",
       1,
     ).unwrap_err(),
