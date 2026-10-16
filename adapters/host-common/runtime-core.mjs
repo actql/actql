@@ -4037,6 +4037,9 @@ function publicationControl(moon) {
       return Object.freeze({createdAt: runtimeField(lifetime, 0),
         validUntil: runtimeField(lifetime, 1)});
     },
+    requestedEffectStopIntentCid(original) {
+      return moon.clientProgramRequestedEffectStopIntentCid(original);
+    },
     sealRequestedEffectStop(original, bodyWire, continuationWire, limits) {
       issuanceLimits(limits, 'Requested Effect stop');
       return checked(moon.clientProgramRequestedEffectStopCheckpoint(original,

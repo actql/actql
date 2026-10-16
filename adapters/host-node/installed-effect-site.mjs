@@ -20,6 +20,7 @@ import {assertEffectTargetReadBinding, isEffectTargetReadRefusal} from
   './effect-target-read-continuation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
+import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from './client-checkpoints.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -76,7 +77,9 @@ function continuation(facts, stage, settlementOnly = false, requestedStop) {
     return checked(facts.moon.clientProgramRequestedEffectStopContinuation(
       requestedStop, stage.continuationWire,
       targetBinding === undefined ? undefined : canonicalValueJson(targetBinding, {dataKeys:true}),
-      262144, 10000, 64));
+      INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxWireBytes,
+      INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxNodes,
+      INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxDepth));
   }
   return canonicalValueJson({version: 'actql-installed-effect-continuation/0.1',
     run_definition_cid: facts.ref.runDefinitionCid,
@@ -88,7 +91,12 @@ function continuation(facts, stage, settlementOnly = false, requestedStop) {
 }
 
 function checkContinuation(facts, stage, settlementOnly = false) {
-  const expected = continuation(facts, stage, settlementOnly);
+  const original = facts.continuation?.requested_stop === undefined ? undefined
+    : requestedStopOriginal(facts, stage);
+  if (facts.continuation?.requested_stop !== undefined && original === undefined) {
+    fail('RequestedEffectStopUnavailable');
+  }
+  const expected = continuation(facts, stage, settlementOnly, original);
   if (canonicalValueJson(facts.continuation, {dataKeys: true}) !== expected) {
     fail('InstalledEffectContinuationMismatch');
   }

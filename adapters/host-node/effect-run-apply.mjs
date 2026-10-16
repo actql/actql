@@ -163,8 +163,14 @@ async function authorizeEffectCommit(authorization, subjectCid, signal) {
   // journal-authoritative admission; it is entered once, synchronously,
   // immediately before the first protected send of this claim generation.
   // A resumed commit without one sends nothing.
-  const admission = decisions.find(decision =>
+  let admission = decisions.find(decision =>
     decision.admission !== undefined)?.admission;
+  if (resumption !== undefined && admission === undefined &&
+      decisions.length > 0 &&
+      decisions.every(decision => decision.action === 'dispatch') &&
+      typeof authorization.gate.continuationAdmission === 'function') {
+    admission = authorization.gate.continuationAdmission(resumption, subjectCid);
+  }
   if (resumption !== undefined && admission === undefined &&
       decisions.length > 0 &&
       decisions.every(decision => decision.action === 'dispatch')) {

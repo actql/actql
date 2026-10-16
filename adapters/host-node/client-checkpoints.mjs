@@ -14,7 +14,8 @@ import {createHash, createPublicKey, createPrivateKey, randomUUID, sign,
 import {mkdir, open as openFile, readFile, rename} from
   'node:fs/promises';
 import {join} from 'node:path';
-import {ExecutionAuthorizationError, createAuthorizationDecisionBudget} from
+import {ExecutionAuthorizationError, createAuthorizationDecisionBudget,
+  admitResumedDispatch} from
   '../host-common/authorization-gate.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate} from
@@ -38,6 +39,11 @@ import {selectOriginalInferMetadataAcquisition,
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
+// The installed review ceiling and the existing Checkpoint reader's node/depth
+// ceilings. These are codec bounds, not resource reservations or permissions.
+export const INSTALLED_EFFECT_CHECKPOINT_LIMITS = Object.freeze({
+  maxWireBytes: MAX_REVIEW_BYTES, maxNodes: 65536, maxDepth: 64,
+});
 const MAX_PAGE = 100;
 const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -1839,6 +1845,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // a deferred target read is unsupported before any provider I/O.
     async effectAuthorization({runId, runDefinitionCid, unitId,
       declaredResults, reviewWire, continuationWire, beforeDefer, targetReads,
+      requestedStop, assertRequestedStopCurrent,
       journalPort = journal}) {
       if (!IDENTIFIER.test(runId ?? '') || !IDENTIFIER.test(unitId ?? '') ||
           typeof beforeDefer !== 'function' ||
@@ -1846,6 +1853,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
           typeof continuationWire !== 'string' ||
           !Array.isArray(declaredResults)) {
         fail('InvalidInstalledEffectContinuation');
+      }
+      if (requestedStop !== undefined &&
+          (typeof assertRequestedStopCurrent !== 'function' ||
+           typeof contractControl.requestedEffectStopLifetime !== 'function' ||
+           typeof contractControl.sealRequestedEffectStop !== 'function')) {
+        fail('RequestedEffectStopUnavailable');
       }
       declaredResults = Object.freeze([...declaredResults]);
       const common = {accountConfig, accountConfiguration,
@@ -1889,6 +1902,94 @@ export async function installRemoteCheckpoints({root, namespaceId,
             commit.configurationCid !== gate.configurationCid) {
           fail('EffectCheckpointConfigurationChanged');
         }
+        const stopLimits = Object.freeze({...INSTALLED_EFFECT_CHECKPOINT_LIMITS,
+          maxWireBytes: maxReviewBytes});
+        const stopCurrent = () => {
+          if (requestedStop === undefined) fail('RequestedEffectStopUnavailable');
+          assertRequestedStopCurrent();
+          read.assertConfigurationCurrent();
+          commit.assertConfigurationCurrent();
+        };
+        // Project the existing journal's admitted body, not caller-supplied
+        // approval DATA. Common rechecks its original Run/Preview/intent and
+        // canonical checkpoint CID before an ownership admission is returned.
+        const checkedStopView = (resumption, subjectCid) => {
+          const held = resumption?.claim;
+          const claim = held?.claim ?? held;
+          const admitted = journalPort.admitResume(claim,
+            {checkpointCid: held?.checkpointCid});
+          const view = journalPort.inspect(admitted.checkpointCid);
+          if (view?.reasonCode !== 'user_requested_stop') return undefined;
+          stopCurrent();
+          if (view.runId !== runId || view.runDefinitionCid !== runDefinitionCid ||
+              view.subject.kind !== 'run_unit' || view.subject.unit_id !== unitId ||
+              view.requiredArtifact.cid !== subjectCid ||
+              view.continuationStateCid !== `sha256:${hex(continuationWire)}`) {
+            fail('RequestedEffectStopBindingChanged');
+          }
+          const sealed = JSON.parse(contractControl.sealRequestedEffectStop(
+            requestedStop, JSON.stringify({
+              version: 'actql-execution-checkpoint/0.1',
+              checkpoint_id: view.checkpointId, run_id: view.runId,
+              run_definition_cid: view.runDefinitionCid,
+              continuation_state_cid: view.continuationStateCid,
+              subject: view.subject, phase: view.phase, kind: view.kind,
+              required_artifact: {artifact_type: view.requiredArtifact.type,
+                artifact_cid: view.requiredArtifact.cid},
+              requirements: view.requirements,
+              review_projection_cid: view.reviewProjectionCid,
+              reason_code: view.reasonCode, human_summary: view.humanSummary,
+              created_at: view.createdAt, expires_at: view.expiresAt,
+            }), continuationWire, stopLimits));
+          if (sealed.checkpoint_cid !== view.checkpointCid) {
+            fail('RequestedEffectStopBindingChanged');
+          }
+          stopCurrent();
+          return view;
+        };
+        const requestStop = async (decision, options) => {
+          stopCurrent();
+          options.signal?.throwIfAborted();
+          await beforeDefer();
+          stopCurrent();
+          const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
+            {name: 'review_projection', wire: reviewWire},
+            {name: 'continuation_record', wire: continuationWire},
+          ]);
+          stopCurrent();
+          options.signal?.throwIfAborted();
+          const lifetime = contractControl.requestedEffectStopLifetime(requestedStop);
+          const created = now();
+          // Run admission owns an exclusive end. A requested review cannot
+          // extend it, including after restart or a slow evidence Store write.
+          const expires = Math.min(created + checkpointTtlMs,
+            Date.parse(lifetime.validUntil) - 1);
+          if (!Number.isFinite(expires) || expires <= created) {
+            fail('RequestedEffectStopLifetimeUnavailable');
+          }
+          const wire = contractControl.sealRequestedEffectStop(requestedStop,
+            JSON.stringify({version: 'actql-execution-checkpoint/0.1',
+              checkpoint_id: `${runId}-effect-commit`, run_id: runId,
+              run_definition_cid: runDefinitionCid,
+              continuation_state_cid: refs[1],
+              subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
+                continuation: 'resume_unit'}, phase: 'commit', kind: 'effect_set',
+              required_artifact: {artifact_type: 'effect_set_preview',
+                artifact_cid: decision.subjectCid},
+              requirements: ['effect_scope_approved'],
+              review_projection_cid: refs[0], reason_code: 'user_requested_stop',
+              human_summary: 'Review the requested first Effect Set',
+              created_at: new Date(created).toISOString(),
+              expires_at: new Date(expires).toISOString(),
+            }), continuationWire, stopLimits);
+          stopCurrent();
+          const persisted = await journalPort.persistCheckpoint({body: wire,
+            priorStatus: 'running', declaredResults, authorities, binding,
+            decisionSubjectCid: contractControl.requestedEffectStopIntentCid(requestedStop),
+            requestedClaims: [], configurationCid: commit.configurationCid});
+          return Object.freeze({boundary: 'effect_commit', action: 'waiting',
+            reason: 'user_requested_stop', checkpoint: Object.freeze(persisted)});
+        };
         const scopes = [read, commit].map(owner => ({owner, closeAttempted: false,
           released: false}));
         const cleanupPending = () => scopes.some(scope => !scope.released);
@@ -1907,10 +2008,38 @@ export async function installRemoteCheckpoints({root, namespaceId,
           return !cleanupPending();
         };
         return Object.freeze({
-          authorize: (boundary, ...args) => boundary === 'acquisition' && targetReads !== undefined
-            ? targetReads.authorize(...args)
-            : (boundary === 'effect_commit' ? commit : read).authorize(boundary, ...args),
-          resume: (...args) => commit.resume(...args),
+          async authorize(boundary, scope, options = {}) {
+            if (boundary === 'acquisition' && targetReads !== undefined) {
+              return targetReads.authorize(scope, options);
+            }
+            const decision = await (boundary === 'effect_commit' ? commit : read)
+              .authorize(boundary, scope, options);
+            // A genuine delegated Checkpoint already stops this exact Preview.
+            // Neither an Account Allow nor an immediate Host permit discharges
+            // the independent user-requested restriction.
+            return boundary === 'effect_commit' && requestedStop !== undefined &&
+              decision.action === 'dispatch' ? requestStop(decision, options) : decision;
+          },
+          async resume(boundary, scope, options = {}) {
+            const view = checkedStopView(options.resumption, options.subjectCid);
+            if (view === undefined) return commit.resume(boundary, scope, options);
+            if (boundary !== 'effect_commit') fail('RequestedEffectStopBindingChanged');
+            // This approval releases only the continuation restriction. Current
+            // Delegate still needs a genuine current Host answer; these review
+            // claims must never be supplied to executionAuthorizationAnswer.
+            const decision = await commit.authorize(boundary, scope,
+              {...options, allowDeferral: false});
+            checkedStopView(options.resumption, options.subjectCid);
+            return decision;
+          },
+          continuationAdmission(resumption, subjectCid) {
+            if (checkedStopView(resumption, subjectCid) === undefined) return undefined;
+            const owned = admitResumedDispatch(journalPort, resumption,
+              {configurationCid: commit.configurationCid, approvalClaims: false});
+            if (owned.detail !== undefined) fail(owned.detail, owned.error);
+            stopCurrent();
+            return owned.admission;
+          },
           assertCurrent() {
             read.assertConfigurationCurrent();
             commit.assertConfigurationCurrent();

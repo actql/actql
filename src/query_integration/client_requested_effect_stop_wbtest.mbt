@@ -60,6 +60,10 @@ fn check_requested_effect_stop_projection(
     @publication_host.client_requested_effect_stop_intent_cid(original),
     @publication_host.client_submitted_intent_cid(intent),
   )
+  assert_eq(
+    @publication_host.client_requested_effect_stop_lifetime(original).unwrap(),
+    @publication.run_definition_lifetime(definition).unwrap(),
+  )
   let foreign_reference = @publication_host.prepare_client_submission_reference_record(
     token, "another-original",
   ).unwrap()
