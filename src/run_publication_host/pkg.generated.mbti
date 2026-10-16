@@ -1813,6 +1813,8 @@ pub fn restore_client_native_local_historical_scalar_runtime_pair_metadata(Bytes
 
 pub fn restore_client_native_local_scalar_runtime_pair(Bytes, ClientNativeLocalRuntime, ClientNativeLocalRuntime, ClientLocalProductAssets, ClientLocalProductAssets) -> Result[ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarRuntimePairIssue]
 
+pub fn restore_client_requested_effect_stop(ClientSubmittedIntent, ClientSubmissionReferenceRecord, ClientRequestIdentity, ClientEffectRunMaterials, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, ClientCapturedEffectPreviewLimits) -> Result[ClientRequestedEffectStop?, ClientRequestedEffectStopIssue]
+
 pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
 
 pub fn restore_client_run_observation_originals(@run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
@@ -3263,6 +3265,7 @@ pub(all) enum ClientRequestedEffectStopIssue {
   ForeignContinuation
   Limit
   OriginalLifetime
+  RestoredPreview(@effect_program_binding.EffectProgramRunPreviewIssue)
   Checkpoint(@checkpoint_runtime.CheckpointIssue)
 }
 

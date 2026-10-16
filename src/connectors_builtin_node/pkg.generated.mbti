@@ -1801,6 +1801,8 @@ pub fn client_program_restore_infer_prepared_call(@model_execution.ModelPrepared
 
 pub fn client_program_restore_infer_prepared_unknown(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[Unit, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_restore_requested_effect_stop(@run_publication_host.ClientSubmittedIntent, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectRunMaterials, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, ClientEffectPreviewInputLimits) -> Result[@run_publication_host.ClientRequestedEffectStop?, @run_publication_host.ClientRequestedEffectStopIssue]
+
 pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?, (String, String, Array[String])?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_restrict_infer_send_slots(@client_infer_host.Execution, Array[Bool]) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
