@@ -9,6 +9,15 @@ const pendingCleanup = owner => Object.assign(
     cleanupPending: true, cleanupHandle: owner},
 );
 
+// Keep an immutable original failure as the cause when private custody needs
+// writable diagnostic fields. This does not replace or recreate its owner.
+const writableFailure = error => {
+  if (error !== null && typeof error === 'object' && Object.isExtensible(error)) return error;
+  const failure = new Error(error?.message, {cause: error});
+  if (typeof error?.code === 'string') failure.code = error.code;
+  return failure;
+};
+
 export function preparePrivatePublicationHolding(store, binding, rawBytes) {
   const raw = binding?.name === 'model_raw_response';
   if (!store || typeof (raw ? store.confirmModelRawEvidence :
@@ -124,7 +133,10 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
         } catch (error) {
           let reconciled;
           try { reconciled = await confirm(); }
-          catch (failure) { error.reconciliationFailure = failure; }
+          catch (failure) {
+            error = writableFailure(error);
+            error.reconciliationFailure = failure;
+          }
           if (reconciled === undefined) throw error;
         }
         const verified = await confirm();
@@ -138,6 +150,7 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
       })().catch(error => {
         if ((record !== undefined && !committed) || constructionCleanup !== undefined ||
             prepared?.some(handle => handle.status().pending === true)) {
+          error = writableFailure(error);
           error.cleanupPending = true;
           error.cleanupHandle = owner;
         }

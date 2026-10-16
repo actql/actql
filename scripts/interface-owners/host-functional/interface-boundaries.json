@@ -5896,7 +5896,7 @@
     {
       "module": "adapters/host-common/private-publication-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c9abcb4ae01486855163dfff75ffecc64a0e4523ec37987166a2e082426d9808",
+      "sha256": "ea23f6c957c7b275a31eeb347a36600a738b011ae966d4e2a7d7cac5457577fc",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -6010,6 +6010,13 @@
             "handle"
           ],
           "async": false
+        },
+        {
+          "name": "writableFailure/writableFailure",
+          "parameters": [
+            "error"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -6033,7 +6040,8 @@
             "preparePrivatePublicationHolding/owner/init:retry/init:retry",
             "preparePrivatePublicationHolding/releaseUnused/releaseUnused",
             "preparePrivatePublicationHolding/status/status",
-            "preparePrivatePublicationHolding/status/status/status"
+            "preparePrivatePublicationHolding/status/status/status",
+            "writableFailure/writableFailure"
           ],
           "exports": [
             "preparePrivatePublicationHolding"
