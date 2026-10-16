@@ -147,7 +147,7 @@ test "a later assignment cannot reuse the earlier receiver property proof" {
   assert_false(property_guard_value(proved).nullable)
   let assigned = @relation_typing.check(
     Derive,
-    cursor("{\"risk\":{\"field\":\"replacement\"}}"),
+    cursor("[{\"risk\":{\"field\":\"replacement\"}}]"),
     proved,
     None,
     limits(),
