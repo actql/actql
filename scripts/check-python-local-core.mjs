@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {copyFile,mkdir,readFile,writeFile} from 'node:fs/promises';
-import {constants} from 'node:fs';
+import {constants,readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {runLocalCheck} from './local-checks-guard.mjs';
@@ -20,6 +20,22 @@ const resultPublicationBoundary=process.argv.includes('--result-publication-boun
 assert.ok([physicalBoundary,dispatchBoundary,submissionBoundary,sourcePublicationBoundary,invocationBoundary,resultPublicationBoundary].filter(Boolean).length<=1,
   'Select one focused boundary');
 
+// Every selected current fixture declares what its fuel observation establishes.
+// Version/package version and default-fuel performance are independent facts.
+const fixtureModes = Object.freeze({
+  'contract': 'actual artifact shape; synthetic entry refusal only',
+  'buffer': 'unmetered transfer/cleanup custody',
+  'preparation': 'unmetered positive; separate metered5k interruption',
+  'runtime': '100M instances; separate5k transfer trap and explicit cleanup funding',
+  'workspace': '100M instance; reservation/stop/cleanup',
+  'source-environment': 'two independent100M instances; refusal batch then positive lifetime',
+  'run': 'unmetered positive; distinct metered instance with explicit setup/5k interruption/100M cleanup',
+  'material': 'explicit private diagnostic fuel; no default100M claim',
+  'submission': '100M per independent instance; original identity/storage',
+  'dispatch': 'unmetered private process recovery decisions',
+  'native-result': 'unmetered private Native/Compute/Result; no default fuel claim',
+});
+
 function run(command,args,timeout=60000){
   const result=spawnSync(command,args,{cwd:root,env:{...process.env,PYTHONPATH:''},
     encoding:'utf8',timeout,maxBuffer:8*1024*1024});
@@ -28,6 +44,22 @@ function run(command,args,timeout=60000){
   assert.equal(result.error,undefined);
   assert.equal(result.signal,null);
   assert.equal(result.status,0,`${command} failed`);
+  const selected = /^scripts\/fixtures\/python-local-(.+)-abi\.py$/u.exec(args[0] ?? '');
+  if (command === python && selected) {
+    assert.ok(Object.hasOwn(fixtureModes,selected[1]),'Unclassified current ABI fixture');
+    const report = JSON.parse(result.stdout.trim());
+    const hash = path => createHash('sha256').update(readFileSync(join(root,path))).digest('hex');
+    const declaration = readFileSync(join(root,'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py'),'utf8');
+    const abi = Number(/^LOCAL_CORE_ABI = (\d+)$/mu.exec(declaration)?.[1]);
+    assert.ok(Number.isSafeInteger(abi));
+    assert.equal(report.module_sha256,createHash('sha256').update(readFileSync(args[1])).digest('hex'));
+    report.interface = {abi,fixture:args[0],fixture_sha256:hash(args[0]),
+      wrapper_sha256:hash('packages/python-sdk/src/actql_sdk/_local_core.py'),
+      declaration_sha256:hash('packages/python-sdk/src/actql_sdk/_local_wasm_abi.py'),
+      mode:fixtureModes[selected[1]],default_fuel_acceptance:false};
+    console.log(JSON.stringify({fixture_interface:report.interface,module_sha256:report.module_sha256}));
+    return JSON.stringify(report);
+  }
   return result.stdout.trim();
 }
 
