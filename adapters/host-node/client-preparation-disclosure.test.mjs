@@ -65,6 +65,7 @@ for (const cause of ['absent Source', 'denied Source', 'unavailable', 'report fa
     let outcome = structuredClone(verified);
     if (cause.includes('Source')) {
       outcome.report.verdict = 'undetermined';
+      outcome.report.runnable = {verdict: 'no', reasons: [{code: 'unresolved_protected'}]};
       outcome.report.coverage.unresolved = [{boundary: 'source_resolution', reason: 'unresolved_protected'}];
     } else if (cause === 'analysis budget') {
       outcome.report.verdict = 'undetermined';
@@ -124,6 +125,8 @@ for (const partial of [false, true]) {
   test(`Source budget disclosure uses an admitted ${partial ? 'partial' : 'completed'} public fact`, async () => {
     const report = structuredClone(verified.report);
     report.verdict = 'undetermined';
+    report.runnable = {verdict: 'no', reasons: [{code: 'analysis_budget_exhausted'},
+      {code: 'unresolved_protected'}]};
     report.coverage.limits = [{code: 'analysis_budget_exhausted'}];
     report.coverage.unresolved = [{boundary: 'source_resolution', reason: 'unresolved_protected'}];
     const outcome = partial ? {...failed, partial_report: report} : {...verified, report};
@@ -158,6 +161,7 @@ for (const partial of [false, true]) {
   test(`Source implementation disclosure uses an admitted ${partial ? 'partial' : 'completed'} public fact`, async () => {
     const report = structuredClone(verified.report);
     report.verdict = 'undetermined';
+    report.runnable = {verdict: 'no', reasons: [{code: 'implementation_limit'}]};
     report.coverage.limits = [{code: 'implementation_limit'}];
     const outcome = partial ? {...failed, partial_report: report} : {...verified, report};
     assert.equal(validCheckOutcome(outcome), true);
