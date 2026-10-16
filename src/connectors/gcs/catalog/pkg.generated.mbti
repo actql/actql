@@ -14,6 +14,10 @@ pub fn object_metadata_response_sha256(ObjectMetadata) -> String
 
 pub fn object_metadata_version(ObjectMetadata) -> String
 
+pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?
+
+pub fn object_mutation_before(ObjectMutationRequest) -> ObjectMetadataFields
+
 pub fn object_mutation_body(ObjectMutationRequest) -> String
 
 pub fn object_mutation_cid(ObjectMutationRequest) -> String
@@ -21,6 +25,8 @@ pub fn object_mutation_cid(ObjectMutationRequest) -> String
 pub fn object_mutation_method(ObjectMutationRequest) -> String
 
 pub fn object_mutation_path(ObjectMutationRequest) -> String
+
+pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?
 
 pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
@@ -90,6 +96,7 @@ pub struct ObjectMutationRequest {
   path : String
   body : String
   cid : String
+  logical_after : ObjectMetadataFields?
 }
 
 pub(all) enum ObjectRequestIssue {

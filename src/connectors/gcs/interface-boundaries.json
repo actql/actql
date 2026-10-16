@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/gcs/catalog/object_metadata.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "21299a331dc3a76925a73e395a4812a1ef980ce34a520ea300a884ce255aefa4",
+      "sha256": "ecf9bbd6d7f7c26d2d407ca95bc3b626b124f0a7a343c6b8f5791f5d47c438e7",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [],
@@ -16,6 +16,10 @@
         {
           "name": "custom_metadata",
           "declaration": "custom_metadata ( object : @ decode . ObjectView , limits : ObjectMetadataLimits , ) - > Result [ Array [ ( String , String ) ] ? , ObjectMetadataIssue ]"
+        },
+        {
+          "name": "logical_metadata",
+          "declaration": "logical_metadata ( metadata : Array [ ( String , String ) ] ? , ) - > Array [ ( String , String ) ] ?"
         },
         {
           "name": "metadata_integer",
@@ -48,6 +52,7 @@
             "<module>",
             "admit_object_metadata",
             "custom_metadata",
+            "logical_metadata",
             "metadata_integer",
             "metadata_text",
             "object_metadata_fields",
@@ -58,6 +63,10 @@
           "exports": [],
           "attributes": {
             "responsibility": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
               {
                 "path": "docs/connectors/gcs.md",
                 "anchor": "## Preview and reconciliation"
@@ -161,7 +170,7 @@
     {
       "module": "src/connectors/gcs/catalog/object_request.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "f7540af573d7afe4b71894ae510e22b6cc88bd0db8b3d391a3aefb32c12a0abc",
+      "sha256": "107b390a3e95bc5cc0f82547601cfb5c17a2addf7b46275105fe6ef593d78f58",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [],
@@ -184,7 +193,15 @@
         },
         {
           "name": "mutation_request",
-          "declaration": "mutation_request ( binding : ObjectMutationBinding , original : ObjectMetadata , verb : String , body : String , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+          "declaration": "mutation_request ( binding : ObjectMutationBinding , original : ObjectMetadata , verb : String , body : String , logical_after : ObjectMetadataFields ? , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+        },
+        {
+          "name": "object_mutation_after",
+          "declaration": "object_mutation_after ( request : ObjectMutationRequest , ) - > ObjectMetadataFields ?"
+        },
+        {
+          "name": "object_mutation_before",
+          "declaration": "object_mutation_before ( request : ObjectMutationRequest , ) - > ObjectMetadataFields"
         },
         {
           "name": "object_mutation_body",
@@ -201,6 +218,10 @@
         {
           "name": "object_mutation_path",
           "declaration": "object_mutation_path ( request : ObjectMutationRequest ) - > String"
+        },
+        {
+          "name": "object_mutation_protocol_behavior",
+          "declaration": "object_mutation_protocol_behavior ( request : ObjectMutationRequest , ) - > String ?"
         },
         {
           "name": "prepare_object_delete",
@@ -228,10 +249,13 @@
             "mutation_part",
             "mutation_path",
             "mutation_request",
+            "object_mutation_after",
+            "object_mutation_before",
             "object_mutation_body",
             "object_mutation_cid",
             "object_mutation_method",
             "object_mutation_path",
+            "object_mutation_protocol_behavior",
             "prepare_object_delete",
             "prepare_object_metadata_patch",
             "prepare_object_mutation_binding",
@@ -240,6 +264,10 @@
           "exports": [],
           "attributes": {
             "responsibility": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
               {
                 "path": "docs/connectors/gcs.md",
                 "anchor": "## Preview and reconciliation"
@@ -343,7 +371,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "ff862f74b851251f971524925583b7054e6191189644f07ef02d87ad2695857a",
+      "sha256": "1c481ff49e5ccc8609e1804385968dff9ee3da8ac09449621acf9c9b1ab96c2b",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -351,10 +379,13 @@
         "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
         "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
         "pub fn object_metadata_version(ObjectMetadata) -> String",
+        "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
+        "pub fn object_mutation_before(ObjectMutationRequest) -> ObjectMetadataFields",
         "pub fn object_mutation_body(ObjectMutationRequest) -> String",
         "pub fn object_mutation_cid(ObjectMutationRequest) -> String",
         "pub fn object_mutation_method(ObjectMutationRequest) -> String",
         "pub fn object_mutation_path(ObjectMutationRequest) -> String",
+        "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
         "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
@@ -381,6 +412,14 @@
           "declaration": "pub fn object_metadata_version(ObjectMetadata) -> String"
         },
         {
+          "name": "object_mutation_after",
+          "declaration": "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?"
+        },
+        {
+          "name": "object_mutation_before",
+          "declaration": "pub fn object_mutation_before(ObjectMutationRequest) -> ObjectMetadataFields"
+        },
+        {
           "name": "object_mutation_body",
           "declaration": "pub fn object_mutation_body(ObjectMutationRequest) -> String"
         },
@@ -395,6 +434,10 @@
         {
           "name": "object_mutation_path",
           "declaration": "pub fn object_mutation_path(ObjectMutationRequest) -> String"
+        },
+        {
+          "name": "object_mutation_protocol_behavior",
+          "declaration": "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?"
         },
         {
           "name": "prepare_object_delete",
@@ -421,10 +464,13 @@
             "object_metadata_fields",
             "object_metadata_response_sha256",
             "object_metadata_version",
+            "object_mutation_after",
+            "object_mutation_before",
             "object_mutation_body",
             "object_mutation_cid",
             "object_mutation_method",
             "object_mutation_path",
+            "object_mutation_protocol_behavior",
             "prepare_object_delete",
             "prepare_object_metadata_patch",
             "prepare_object_mutation_binding",
@@ -435,10 +481,13 @@
             "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
             "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
             "pub fn object_metadata_version(ObjectMetadata) -> String",
+            "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
+            "pub fn object_mutation_before(ObjectMutationRequest) -> ObjectMetadataFields",
             "pub fn object_mutation_body(ObjectMutationRequest) -> String",
             "pub fn object_mutation_cid(ObjectMutationRequest) -> String",
             "pub fn object_mutation_method(ObjectMutationRequest) -> String",
             "pub fn object_mutation_path(ObjectMutationRequest) -> String",
+            "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
             "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
@@ -449,6 +498,10 @@
           ],
           "attributes": {
             "responsibility": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
               {
                 "path": "docs/connectors/gcs.md",
                 "anchor": "## Preview and reconciliation"
