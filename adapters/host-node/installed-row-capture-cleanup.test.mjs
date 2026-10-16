@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 
 // Explicit Common progress-law doubles, matching the existing cleanup tests.
 // The actual prepared cleanup owner remains the production implementation.
@@ -104,4 +104,138 @@ test('successful independent cleanup rethrows the exact primary without wrapping
     control, releaseResults: async () => { events.push('results'); }}, primary),
   error => error === primary);
   assert.deepEqual(events, ['a', 'results']);
+});
+
+test('request child is retained before current refusal and blocks every parent until actual retirement', async () => {
+  const children = [], events = [];
+  let current = true, allowed = false, prepares = 0, released = false, failure;
+  const primary = Object.freeze(new Error('original-current-changed'));
+  const child = {prepare() { prepares++; },
+    async release() { events.push('child'); if (!allowed) return false; released = true; },
+    async retry() { events.push('child-retry'); if (!allowed) return false; released = true; },
+    status: () => ({pending: !released})};
+  await assert.rejects(prepareInstalledRowCaptureChild({children,
+    create() { current = false; return child; },
+    assertCurrent() { if (!current) throw primary; }}), error => error === primary);
+  assert.equal(prepares, 0);
+  assert.equal(children.length, 1);
+  assert.equal(children[0].prepared.status().pending, true);
+  const parent = payload('source', events);
+  await assert.rejects(releaseInstalledRowCapture({children, payloads: [parent], control,
+    releaseResults() { events.push('results'); },
+    releaseInputs() { events.push('inputs'); }}, primary), error => {
+    failure = error;
+    return error.primaryFailure === primary && error.cleanupPending === true;
+  });
+  assert.deepEqual(events, ['child']);
+  assert.equal(parent.prepared.status().pending, true);
+  allowed = true;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(events, ['child', 'child-retry', 'inputs', 'results', 'source']);
+  assert.equal(children[0].prepared.status().pending, false);
+  assert.equal(prepares, 0);
+});
+
+test('a pending child does not skip independent child siblings or permit early parent release', async () => {
+  const children = [], events = [];
+  let allowed = false, failure;
+  for (const name of ['a', 'b']) {
+    let pending = true;
+    const release = async () => {
+      events.push(name);
+      if (name === 'a' && !allowed) return false;
+      pending = false;
+    };
+    await prepareInstalledRowCaptureChild({children, create: () => ({
+      prepare: () => name, release, retry: release, status: () => ({pending})})});
+  }
+  const primary = Object.freeze(new Error('original-capture'));
+  await assert.rejects(releaseInstalledRowCapture({children, control,
+    payloads: [payload('source', events)],
+    releaseInputs() { events.push('inputs'); }}, primary), error => {
+    failure = error; return error.cleanupPending;
+  });
+  assert.deepEqual(events, ['a', 'b']);
+  assert.equal(children[1].prepared.status().pending, false);
+  allowed = true;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(events, ['a', 'b', 'a', 'inputs', 'source']);
+});
+
+test('prepare Promise settlement and child close are separate, including an early close observation', async () => {
+  const children = [], events = [];
+  let finish, failure, prepares = 0;
+  let pending = true;
+  const release = async () => { events.push('close'); pending = false; return true; };
+  const preparing = prepareInstalledRowCaptureChild({children, create: () => ({
+    prepare() { prepares++; return new Promise(resolve => { finish = resolve; }); },
+    release, retry: release, status: () => ({pending})})});
+  const primary = Object.freeze(new Error('stop-during-prepare'));
+  await assert.rejects(releaseInstalledRowCapture({children, control,
+    releaseInputs() { events.push('inputs'); }}, primary), error => {
+    failure = error; return error.cleanupPending;
+  });
+  assert.deepEqual(events, ['close']);
+  assert.equal(children[0].prepared.status().pending, true,
+    'A close callback cannot drop the original unresolved prepare Promise');
+  const request = Object.freeze({request: 'original'});
+  finish(request);
+  assert.strictEqual(await preparing, request);
+  assert.equal(children[0].prepared.status().pending, true,
+    'A settled request is not the final retirement observation');
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(events, ['close', 'close', 'inputs']);
+  assert.equal(prepares, 1);
+});
+
+test('post-await cancellation retains the original child and never returns its request', async () => {
+  const children = [], controller = new AbortController();
+  let finish, closes = 0;
+  const preparing = prepareInstalledRowCaptureChild({children, signal: controller.signal,
+    create: () => ({prepare: () => new Promise(resolve => { finish = resolve; }),
+      release() { closes++; return false; }, retry() { closes++; return false; },
+      status: () => ({pending: true})})});
+  const primary = Object.freeze(new Error('original-cancel'));
+  controller.abort(primary);
+  finish({request: 'must-not-be-adopted'});
+  await assert.rejects(preparing, error => error === primary);
+  assert.equal(children[0].prepared.status().pending, true);
+  let failure;
+  await assert.rejects(releaseInstalledRowCapture({children, control,
+    releaseInputs: () => assert.fail('Cancelled input still has an original borrower')}, primary),
+  error => { failure = error; return error.primaryFailure === primary && error.cleanupPending; });
+  assert.equal(closes, 1);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+});
+
+test('child methods are captured once with their original receiver', async () => {
+  const children = [], reads = {prepare: 0, release: 0, retry: 0, status: 0};
+  const original = {pending: true};
+  const methods = {
+    prepare() { assert.strictEqual(this, original); return 'exact-request'; },
+    release() { assert.strictEqual(this, original); this.pending = false; },
+    retry() { assert.strictEqual(this, original); this.pending = false; },
+    status() { assert.strictEqual(this, original); return {pending: this.pending}; },
+  };
+  for (const name of Object.keys(methods)) Object.defineProperty(original, name, {
+    configurable: true, get() { reads[name]++; return methods[name]; }});
+  assert.equal(await prepareInstalledRowCaptureChild({children, create: () => original}), 'exact-request');
+  for (const name of Object.keys(methods)) Object.defineProperty(original, name,
+    {value: () => assert.fail('A later method cannot replace the original')});
+  const primary = Object.freeze(new Error('primary'));
+  await assert.rejects(releaseInstalledRowCapture({children, control}, primary), error => error === primary);
+  assert.deepEqual(reads, {prepare: 1, release: 1, retry: 1, status: 1});
+  assert.equal(children[0].prepared.status().pending, false);
+});
+
+test('malformed returned child stays retained instead of releasing its parents', async () => {
+  const children = [];
+  await assert.rejects(prepareInstalledRowCaptureChild({children,
+    create: () => ({prepare() { assert.fail('Invalid child cannot begin'); }})}),
+  {code: 'InvalidInstalledRowRequestChild'});
+  assert.equal(children.length, 1);
+  assert.equal(children[0].prepared.status().pending, true);
+  await assert.rejects(releaseInstalledRowCapture({children, control,
+    releaseInputs: () => assert.fail('Unknown child retains the same original parent')}, 'primary'),
+  error => error.primaryFailure === 'primary' && error.cleanupPending);
 });
