@@ -151,6 +151,71 @@ const sameValue = (left, right) =>
   canonicalValueJson(left, {dataKeys: true}) ===
     canonicalValueJson(right, {dataKeys: true});
 
+// Private wiring over this capture's original Common materials. Escaped
+// callbacks keep only this retireable projection, not the captured Run graph.
+function commandContentBorrower(configuration) {
+  let original = configuration;
+  const views = [];
+  const observe = operation => {
+    const current = original;
+    if (current === undefined) fail('OriginalEffectContentUnavailable');
+    current.assertCurrent?.();
+    if (original !== current) fail('OriginalEffectContentUnavailable');
+    const result = operation();
+    current.assertCurrent?.();
+    if (original !== current) fail('OriginalEffectContentUnavailable');
+    return result;
+  };
+  return Object.freeze({
+    borrow(row, inputName) {
+      const current = original;
+      if (current === undefined || typeof inputName !== 'string' ||
+          inputName.length > current.limits.maxWork) {
+        fail('OriginalEffectContentUnavailable');
+      }
+      current.assertCurrent?.();
+      if (original !== current) fail('OriginalEffectContentUnavailable');
+      const prior = views.find(value => value.row === row && value.inputName === inputName);
+      if (prior !== undefined) {
+        if (!prior.borrow.current()) fail('OriginalEffectContentUnavailable');
+        current.assertCurrent?.();
+        if (original !== current) fail('OriginalEffectContentUnavailable');
+        return prior.borrow;
+      }
+      const {maxRows, maxFields, maxWork} = current.limits;
+      if (maxFields === 0 || Math.ceil((views.length + 1) / maxFields) > maxRows) {
+        fail('InstalledRowEffectContentBorrowLimit');
+      }
+      const common = current.control.borrowEffectCommandContent(current.prepared,
+        current.inputs, current.memberIndex, current.artifact, row, inputName,
+        {maxFields, maxWork});
+      if (original !== current) {
+        common.release();
+        fail('OriginalEffectContentUnavailable');
+      }
+      const borrow = Object.freeze({
+        current: () => original !== undefined && observe(() => common.current()),
+        wire: () => observe(() => common.wire()),
+        release: () => common.release(),
+      });
+      // Retain before another caller callback can throw or retire this input.
+      views.push({row, inputName, borrow});
+      current.assertCurrent?.();
+      if (original !== current) fail('OriginalEffectContentUnavailable');
+      return borrow;
+    },
+    release() {
+      original = undefined;
+      for (const {borrow} of views) borrow.release();
+      views.length = 0;
+    },
+  });
+}
+
+function commandContentRow(port, row) {
+  return inputName => port.borrow(row, inputName);
+}
+
 // This is the existing installation projection used by composed recovery.
 // Its canonical bytes identify an owner without admitting structural copies
 // of an adapter or introducing another installation registry.
@@ -575,10 +640,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // The exact request of every row of a member, from its mapped values and
   // selectors. A request that writes another value, or selects another
   // target, than the Program's row is refused.
-  const requestsOf = (member, rows, current) => Object.freeze(rows.map(row => {
+  const requestsOf = (member, rows, current, contentOf) => Object.freeze(rows.map((row, index) => {
     const {owned} = ownerOf(member);
     const prepared = owned.prepareRequest({member, value: row.value,
-      selector: row.selector, current});
+      selector: row.selector, current,
+      ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})});
     const entry = entryOf(member, prepared?.request, prepared?.requestCid);
     if (!sameValue(entry.value, row.value) ||
         (targeted(member.kind) && !sameValue(entry.target, row.selector))) {
@@ -1167,7 +1233,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     assertCurrent?.();
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
+    const contentBorrowers = [];
     const releaseInputs = () => {
+      for (const borrower of contentBorrowers) borrower.release();
+      contentBorrowers.length = 0;
       moon.clientProgramReleaseEffectInputs(inputs);
     };
     ownInputs(releaseInputs);
@@ -1227,12 +1296,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           approval: reads[index]?.approval, signal});
       assertCurrent?.();
       currents.push(description);
+      const contentOf = member.kind !== 'command' ? undefined : commandContentBorrower({
+        control, prepared, inputs, memberIndex: member.memberIndex,
+        artifact: sourceSet.members[index].payload.localResultArtifact,
+        limits, assertCurrent});
+      if (contentOf !== undefined) contentBorrowers.push(contentOf);
       const entries = requestsOf(member, proposals[index].map(proposal => {
         const changes = JSON.parse(proposal.changesWire);
         return {value: changes.value,
           selector: targeted(member.kind)
             ? JSON.parse(proposal.selectorWire) : undefined};
-      }), description);
+      }), description, contentOf);
       if (member.kind === 'create') {
         // Rows are put in canonical order before anything is derived.
         rowsOf.push(canonicalRows(entries));

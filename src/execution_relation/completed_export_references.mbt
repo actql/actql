@@ -53,6 +53,52 @@ pub fn completed_relation_export_content_reference(
 }
 
 ///|
+/// Resolve the checked source field in the exact export view. The bounded
+/// scan borrows the existing names; it neither copies their inventory nor
+/// interprets a caller's row/Reference envelope.
+pub fn completed_relation_export_content_field(
+  value : CompletedRelationExportReceipt,
+  row : Int,
+  field : @schema.Field,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[@admitted.ReferenceValue, CompletedExportIssue] {
+  if row < 0 || max_fields < 0 || max_work < 0 {
+    return Err(Admission(InvalidCaptureLimits))
+  }
+  guard field.contract.shape is @contract.ContentRef(..) else {
+    return Err(InvalidTarget)
+  }
+  let names = value.fields
+  if names.length() > max_fields || names.length() > max_work {
+    return Err(Admission(CaptureLimit))
+  }
+  let expected = @schema.field_reference_name(field)
+  let mut remaining = max_work - names.length()
+  for column, name in names {
+    if name.length() > remaining {
+      return Err(Admission(CaptureLimit))
+    }
+    remaining -= name.length()
+    if expected.length() > remaining {
+      return Err(Admission(CaptureLimit))
+    }
+    remaining -= expected.length()
+    if name == expected {
+      guard completed_relation_export_content_reference(value, row, column)
+        is Some(reference) else {
+        return Err(Unavailable)
+      }
+      if !@admitted.reference_compatible(reference, field.contract) {
+        return Err(ForeignMaterial)
+      }
+      return Ok(reference)
+    }
+  }
+  Err(InvalidTarget)
+}
+
+///|
 /// Row and column entries are bounded by admitted row/key nodes, and authority
 /// entries by admitted value nodes. Logical value work is not charged twice.
 fn prepare_completed_export_references(
