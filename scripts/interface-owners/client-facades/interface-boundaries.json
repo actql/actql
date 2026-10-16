@@ -3045,7 +3045,7 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "862d2dbde639095c651129379801957bb04c59cb6c034f5249d867fc2cc2e7c1",
+      "sha256": "9809d27dd256297e64d9d940ed087cc5746b6f005820f33caac5e3c4c54bd2c1",
       "exports": [
         "bytesCid",
         "canonicalJson",

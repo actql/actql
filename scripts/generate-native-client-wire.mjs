@@ -1,4 +1,4 @@
-import {finiteWireNumberSource} from './client-wire-scalar-rules.mjs';
+import {finiteWireNumberSource, wireNonControlIdPattern} from './client-wire-scalar-rules.mjs';
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {nativeCheckReportRules} from './client-check-report-rules.mjs';
@@ -108,7 +108,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       lines.push(`guard value is String(${needsText ? 'text' : '_'}) else { return false }`);
       if (schema.minLength !== undefined) lines.push(`if text.iter().count() < ${schema.minLength} { return false }`);
       if (schema.maxLength !== undefined) lines.push(`if text.length() > ${schema.maxLength} { return false }`);
-      if (schema.pattern === '^[^\\u0000-\\u001f\\u007f]+$') lines.push('if text.is_empty() { return false }', 'for character in text { if character.to_int() < 32 || character.to_int() == 127 { return false } }');
+      if (schema.pattern === wireNonControlIdPattern) lines.push('if text.is_empty() { return false }', 'for character in text { if character.to_int() < 32 || character.to_int() == 127 { return false } }');
       else if (schema.pattern === '^sha256:[0-9a-f]{64}$') lines.push('if text.length() != 71 || !text.has_prefix("sha256:") { return false }', 'for character in text[7:] { if !((character >= \'0\' && character <= \'9\') || (character >= \'a\' && character <= \'f\')) { return false } }');
       else if (schema.pattern === '^[0-9a-f]{64}$') lines.push('if text.length() != 64 { return false }', 'for character in text { if !((character >= \'0\' && character <= \'9\') || (character >= \'a\' && character <= \'f\')) { return false } }');
       else if (schema.pattern === '^rev:[0-9a-f]{64}$') lines.push('if text.length() != 68 || !text.has_prefix("rev:") { return false }',

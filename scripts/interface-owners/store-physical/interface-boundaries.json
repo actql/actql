@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ba3172b99077e4a3d2d1653001b2a279f7219a1412f4f59c34f4c471dcaa30ef",
+      "sha256": "120b70a2b3163e47526ed4ac174a9136e00c3a623daf361c3b92ad4983c16ee3",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -4610,7 +4610,7 @@
         {
           "name": "openLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "openLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry#2",
@@ -4618,8 +4618,10 @@
           "async": false
         },
         {
-          "name": "openLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry#3",
-          "parameters": [],
+          "name": "openLocalPublicationStore/consumeObject/consumeObject/consumeObject",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -6950,7 +6952,7 @@
             "openLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry",
             "openLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry",
             "openLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry#2",
-            "openLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry#3",
+            "openLocalPublicationStore/consumeObject/consumeObject/consumeObject",
             "openLocalPublicationStore/consumeObject/consumeObject/status/status",
             "openLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding",
             "openLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding/closed/closed",

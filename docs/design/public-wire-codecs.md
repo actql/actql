@@ -24,6 +24,21 @@ NFC-normalized; the Submission nonce's separate existing NFC/UTF-8 contract stil
 applies. The canonical-value field-name pattern uses ECMAScript whitespace,
 including NBSP and BOM, but excluding NEL, U+180E and zero-width space.
 
+The registered non-control identifier class is a nonempty whole string with
+no U+0000–U+001F or U+007F anywhere, including a final LF or CR. Its source
+machine-schema pattern uses an absolute-end negative lookahead, so a generic
+schema search and all generated consumers apply the same law. This class
+admits spaces, ordinary Unicode, U+2028 and U+2029 unless another existing
+field rule excludes them. IDs are never trimmed or normalized. Other regex
+classes retain their existing contracts.
+
+The initial 0.1 compatibility correction removes Python's prior acceptance of
+a terminal LF under its soft `$` anchor. JS without multiline mode and the
+Native all-character predicate already refused that value; CR was already
+refused by all three. Native is corroborating evidence, not the authority for
+this decision. Existing valid ID bytes and identity preimages are unchanged.
+Refusal occurs before signing, credential use or resolution transmission.
+
 A request-correlated variant must match its registered identity. The caller's
 expected identity is validated even for closed not-found/Unknown variants without
 an echoed identity. Those observations remain not-found/Unknown; acceptance of a

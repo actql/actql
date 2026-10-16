@@ -392,3 +392,29 @@ test('opaque data encoding keeps exact JSON keys with the shared value encoder',
   assert.equal(canonicalJson({'e\u0301\r\n': 'e\u0301\r\n'}),
     '{"é\\n":"e\u0301\\r\\n"}');
 });
+
+test('non-control IDs refuse before signing, credential use or resolution exchange', async t => {
+  const requests = host(t, {});
+  let credentials = 0, signatures = 0;
+  const client = await connect({...options, token: () => { credentials++; return 'scoped-token'; }});
+  const observedSigner = {...signer, sign(bytes) { signatures++; return signer.sign(bytes); }};
+  for (const point of [...Array.from({length:32}, (_, i) => i), 127]) {
+    for (const decision of ['approved', 'rejected']) {
+      await assert.rejects(client.resolveCheckpoints([
+        {checkpoint: {...summary, checkpointId: 'id'+String.fromCodePoint(point)}, decision},
+      ], {signer: observedSigner}), {code: 'InvalidCheckpointAnswer'});
+    }
+  }
+  await client.close();
+  assert.deepEqual(requests.map(value => value.operation), ['connect']);
+  assert.equal(credentials, 1);
+  assert.equal(signatures, 0);
+});
+
+test('signed non-control identifiers preserve spaces and ordinary Unicode bytes', async () => {
+  for (const checkpointId of [' ', ' id ', 'é', 'e\u0301', '\u2028', '\u2029', 'id\u2028', 'id\u2029', '\\n']) {
+    const answer = await signedAnswer({...summary, checkpointId}, 'rejected', signer,
+      '2026-09-26T01:00:00.000Z');
+    assert.equal(JSON.parse(answer.resolutionWire).checkpoint_id, checkpointId);
+  }
+});
