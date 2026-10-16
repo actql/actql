@@ -6,7 +6,9 @@ import test from 'node:test';
 import {canonicalJson as valueJson} from '../../packages/sdk/host-port.mjs';
 import {createInstalledRowEffect, installedRowEffectOwnerBinding} from './installed-row-effect.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
-import {updateTargetPreparedOriginalShape, updateTargetRunOriginalShape, updateTargetSelectionsCid} from './update-target-original-shape.mjs';
+import {updateTargetPreparedOriginalShape as preparedShape,
+  updateTargetRunOriginalShape as runShape, updateTargetSelectionsCid as selectionsCid} from './update-target-original-shape.mjs';
+import * as dataOwner from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
@@ -15,6 +17,17 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const ok = value => ({$tag: 1, _0: value});
 const limits = {maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 100};
 const expectedOwnerCid = 'sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9';
+const updateTargetPreparedOriginalShape = value => preparedShape(value, dataOwner);
+const updateTargetRunOriginalShape = (value, evidence) => runShape(value, evidence, dataOwner);
+const updateTargetSelectionsCid = value => selectionsCid(value, dataOwner);
+// Only bounded DATA checks use the actual compiled Owner here. The explicit
+// nominal ports below remain composition doubles, not execution evidence.
+const dataPorts = Object.fromEntries([
+  'clientProgramIssueEffectTargetInstallation', 'clientProgramEffectTargetInstallationsShape',
+  'clientProgramEffectTargetPreparedOriginalShape', 'clientProgramEffectTargetRunOriginalShape',
+  'clientProgramEffectTargetOriginalDataEqual', 'clientProgramEffectTargetSelectionDataCid',
+  'clientProgramEffectTargetRunSelectionCid',
+].map(name => [name, dataOwner[name]]));
 
 function runInstallationFixture() {
   const calls = [];
@@ -23,6 +36,10 @@ function runInstallationFixture() {
     assert.fail(`Installation or absent selection must not call ${name}`);
   };
   const moon = {
+    clientProgramEffectTargetSelectionOriginal(value) {
+      assert.equal(this.clientProgramEffectTargetSelections(value), undefined);
+      return [];
+    },
     clientProgramEffectCompilationIssueCode: () => undefined,
     clientProgramEffectRunStartCurrent: forbidden('run currency'),
     clientRunStartAction: forbidden('start action'),
@@ -76,6 +93,8 @@ async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'actql-update-originals-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const prepared = {}, compilation = {}, allowed = {}, definition = {};
+  const originalSelection = Object.freeze({});
+  let originalInstallation;
   const calls = [];
   const selections = [{stage_index: 0, effect_id: 'update', target_ref: 'connector://crm/account',
     mapping_ref: 'mapping:crm.account', mapping_cid: cid('a'), check_environment_cid: cid('b'),
@@ -88,6 +107,36 @@ async function fixture(t) {
     prepared_invocation: 'prepared invocation', run_authorization: 'authorization',
     effect_target_selections_json: selectionWire});
   const moon = {
+    ...dataPorts,
+    clientProgramEffectTargetSelectionOriginal(value) {
+      return this.clientProgramEffectTargetSelections(value) === undefined ? [] : [originalSelection];
+    },
+    clientProgramEffectTargetSelectionMatchesPrepared(original, value) {
+      return original === originalSelection && value === prepared;
+    },
+    clientProgramEffectTargetSelectionWire(original) {
+      assert.equal(original, originalSelection); return selectionWire;
+    },
+    clientProgramEffectTargetSelectionCid(original) {
+      assert.equal(original, originalSelection); return updateTargetSelectionsCid(selections);
+    },
+    clientProgramEffectTargetSelectionMatchesRun(original, value, run) {
+      return original === originalSelection && value === prepared && run === definition;
+    },
+    clientProgramEffectTargetSelectionCurrent(original, value, wire) {
+      if (original !== originalSelection || value !== prepared) return false;
+      assert.deepEqual(JSON.parse(wire), [{installation: originalInstallation,
+        update: true, mappings: [{target: 'connector://crm/account',
+          mappingRef: 'mapping:crm.account', mappingCid: cid('a'), update: true}]}]);
+      return true;
+    },
+    clientProgramEffectTargetSelectionMembersCurrent(original, value, wire) {
+      if (original !== originalSelection || value !== prepared) return false;
+      assert.deepEqual(JSON.parse(wire), selections.map(({stage_index, effect_id,
+        target_ref, mapping_ref, mapping_cid}) =>
+      ({stage_index, effect_id, target_ref, mapping_ref, mapping_cid})));
+      return true;
+    },
     strategyRemoteManagedOutputEvidenceKind: () => 'test-unused-kind',
     strategyPublicationContractJson: () => runDefinition.wire,
     clientRequestAuthorityScopeCid: () => cid('3'),
@@ -137,13 +186,14 @@ async function fixture(t) {
       targetRead: {operation: 'read'}, observeTargets: unavailable,
       recoveryEntry: unavailable, recoverRequests: unavailable, requestCid: unavailable},
   });
-  assert.equal(installedRowEffectOwnerBinding(installedEffect).cid, expectedOwnerCid);
+  originalInstallation = installedRowEffectOwnerBinding(installedEffect);
+  assert.equal(originalInstallation.cid, expectedOwnerCid);
   const control = {admit(kind, wire) {
     assert.equal(kind, 'compiled_plan'); assert.equal(wire, 'compiled'); return {identity: cid('1')};
   }};
   const originals = installUpdateTargetOriginals({moon, control, installedEffect, limits});
   return {prepared, compilation, allowed, definition, calls, originals, materialsWire,
-    selectionWire, selections, installedEffect, moon, control, runDefinition};
+    selectionWire, selections: originals.selectionsOf(prepared), installedEffect, moon, control, runDefinition};
 }
 
 test('held originals restore concrete selection without invoking a source resolver', async t => {
