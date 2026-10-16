@@ -165,4 +165,5 @@ test('real stdlib wheel and source readers execute the original and normal corre
   const count = /Ran (\d+) tests/u.exec(result.stderr);
   assert(count && Number(count[1]) >= 13, result.stderr);
   assert.match(result.stderr, /^OK$/mu);
+  process.stdout.write(result.stderr);
 });
