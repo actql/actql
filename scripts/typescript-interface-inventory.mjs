@@ -6,6 +6,42 @@ import {readFileSync, realpathSync} from 'node:fs';
 import {relative, resolve} from 'node:path';
 import ts from 'typescript';
 
+// Fold only bounded, closed literal syntax. Unknown expressions remain syntax,
+// and no callback, property getter or product function is ever evaluated.
+function literalValue(node, depth = 0) {
+  if (!node || depth > 8) return undefined;
+  if (ts.isStringLiteralLike(node)) return node.text;
+  if (ts.isNumericLiteral(node)) return Number(node.text);
+  if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
+  if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
+  if (ts.isParenthesizedExpression(node)) return literalValue(node.expression, depth + 1);
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    const left = literalValue(node.left, depth + 1), right = literalValue(node.right, depth + 1);
+    if (left !== undefined && right !== undefined) {
+      const value = left + right;
+      return typeof value === 'string' && value.length > 128 ? undefined : value;
+    }
+  }
+  if (ts.isTemplateExpression(node)) {
+    let value = node.head.text;
+    for (const span of node.templateSpans) {
+      const part = literalValue(span.expression, depth + 1);
+      if (part === undefined) return undefined;
+      value += String(part) + span.literal.text;
+      if (value.length > 128) return undefined;
+    }
+    return value;
+  }
+}
+function compilerField(node) {
+  const value = literalValue(node);
+  if (typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value)) return value;
+  if (node && ts.isTemplateExpression(node) && node.head.text === '_' &&
+      node.templateSpans.at(-1).literal.text === '') return '_<dynamic>';
+  if (node && ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
+      literalValue(node.left) === '_') return '_<dynamic>';
+}
+
 export function typescriptInterface(source, filename = 'interface.ts') {
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
   assert.equal(tree.parseDiagnostics.length, 0, `Invalid TypeScript interface: ${filename}`);
@@ -53,12 +89,19 @@ export function typescriptInterface(source, filename = 'interface.ts') {
     }
     if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword &&
         node.arguments[0] && ts.isStringLiteral(node.arguments[0])) imports.push(node.arguments[0].text);
+    const key = node.name && (ts.isComputedPropertyName(node.name) ? node.name.expression : node.name);
     const field = ts.isPropertyAccessExpression(node) ? node.name.text
-      : ts.isElementAccessExpression(node) && ts.isStringLiteral(node.argumentExpression) ? node.argumentExpression.text
+      : ts.isElementAccessExpression(node) ? compilerField(node.argumentExpression)
         : ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
-          node.expression.expression.getText(tree) === 'Reflect' && node.expression.name.text === 'get' &&
-          node.arguments[1] && ts.isStringLiteral(node.arguments[1]) ? node.arguments[1].text : undefined;
-    if (field && /^(?:\$tag|_\d+)$/u.test(field)) compilerFields.push(field);
+          ['Reflect', 'Object'].includes(node.expression.expression.getText(tree)) &&
+          ['get', 'set', 'getOwnPropertyDescriptor', 'defineProperty'].includes(node.expression.name.text)
+          ? compilerField(node.arguments[1])
+          : ts.isBindingElement(node) && node.propertyName
+            ? ts.isComputedPropertyName(node.propertyName) ? compilerField(node.propertyName.expression)
+              : node.propertyName.text
+            : ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)
+              ? compilerField(key) ?? (key && ts.isIdentifier(key) ? key.text : undefined) : undefined;
+    if (field && /^(?:\$tag|_\d+|_<dynamic>)$/u.test(field)) compilerFields.push(field);
     ts.forEachChild(node, child => visit(child, next));
   }
   visit(tree);

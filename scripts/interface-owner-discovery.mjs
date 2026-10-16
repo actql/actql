@@ -10,7 +10,7 @@ import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
 export function interfaceOwnerDeclarations(root, files = repositoryFiles(root)) {
   root = realpathSync(root);
-  return files.filter(path => basename(path) === 'interface-boundaries.json' && !isConnectorTestFixture(path))
+  return files.filter(path => /(?:^|-)interface-boundaries\.json$/u.test(basename(path)) && !isConnectorTestFixture(path))
     .sort().map(path => {
       const actual = realpathSync(resolve(root, path)), child = relative(root, actual);
       assert(!isAbsolute(child) && child !== '..' && !child.startsWith('../'), 'Interface declaration escapes repository');

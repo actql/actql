@@ -9,15 +9,16 @@ test('actual owner declarations outside the original directories remain discover
   const root = mkdtempSync(join(tmpdir(), 'actql-owner-declarations-'));
   t.after(() => rmSync(root, {recursive: true}));
   const files = ['new-sdk/contracts/interface-boundaries.json', 'elsewhere/interface-boundaries.json',
+    'another-owner/data-interface-boundaries.json',
     'fixtures/control/interface-boundaries.json'];
   for (const path of files) {
     mkdirSync(join(root, path, '..'), {recursive: true});
     writeFileSync(join(root, path), JSON.stringify([{module: 'explicitly-declared.mjs', owner: 'existing-owner'}]));
   }
   const result = interfaceOwnerDeclarations(root, files);
-  assert.equal(result.length, 2);
+  assert.equal(result.length, 3);
   assert.equal(result[0].declarations[0].role, undefined, 'the loader cannot invent the missing role');
-  assert.deepEqual(result.map(value => value.id), [...files.slice(0, 2)].sort());
+  assert.deepEqual(result.map(value => value.id), [...files.slice(0, 3)].sort());
 });
 
 test('an empty sidecar cannot silently grant module or operation coverage', t => {
