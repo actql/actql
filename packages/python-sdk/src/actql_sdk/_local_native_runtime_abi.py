@@ -1,6 +1,8 @@
 """Generated private same-library declarations; do not edit."""
 from ctypes import POINTER, c_int, c_int32, c_uint16, c_void_p
 
+from typing import Any
+
 BINDING_VERSION = 1
 BINDING_SHA256 = '43a69c40d3912c30a0ddd37ed054a5a32050de27cd8a106cb99fdbb5487b6c75'
 
@@ -16,7 +18,7 @@ PARAMETERS = {
     'finish_refused_capture': (('host', 'host_slot', 'owned Host slot after known no-Runtime refusal'), ('read', 'read_slot', 'owned read slot after known no-Runtime refusal'), ('reply', 'reply_slot', 'owned refusal reply slot')),
 }
 
-def bind(library):
+def bind(library: Any) -> dict[str, Any]:
     """Reject another compiled declaration before any Owner operation."""
     try:
         version = library.actql_packaged_runtime_binding_version

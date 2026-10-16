@@ -1,7 +1,8 @@
 """Generated private C/Rust memory declarations; do not edit."""
 from ctypes import POINTER, c_int, c_int64, c_uint64, c_size_t, c_ubyte, c_void_p
+from typing import Any
 
-SIGNATURES = {
+SIGNATURES: dict[str, tuple[list[Any], Any]] = {
     'actql_native_domain_borrow_capacity': ([c_void_p, POINTER(c_uint64)], c_int),
     'actql_native_domain_borrow_claim_holding': ([c_void_p, POINTER(c_void_p)], c_int),
     'actql_native_domain_borrow_close': ([c_void_p], c_int),
@@ -142,7 +143,7 @@ ORIGINS = {
     'actql_owned_try_close': 'packages/python-local-runtime/native/pre-root/owned_abi.rs',
 }
 
-def bind(library, symbol):
+def bind(library: Any, symbol: str) -> Any:
     """No loader, allocation, adoption, transfer or permission."""
     arguments, result = SIGNATURES[symbol]
     call = getattr(library, symbol)

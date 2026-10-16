@@ -171,6 +171,17 @@ row-fetch APIs. The existing native adapter's C layouts and scalar row/field
 codec are shared boundary references. Canonical environment settings are
 generated from `adapters/connectors/duckdb/environment-contract.json`.
 
+The selected physical C API and by-value layouts are generated from the
+vendored DuckDB header by `scripts/generate-local-duckdb-binding.py`.
+`scripts/local-duckdb-c-api.json` selects existing operation names and the
+existing library-version string copy; it declares no query capability or new
+library compatibility. Other returned text pointers remain borrowed and
+length-aware. Generated field names follow the C header, while the independent
+pre-generation vector fixes scalar widths, order, alignment and nested layout.
+Actual C layout checks and selected-library executions qualify that header,
+Python wrapper and library together. The C header version, selected dynamic
+library version, private Local ABI and Client wire version remain independent.
+
 Before opening a database, the product Host must reserve the native workspace
 through the existing Core resource Owner. The adapter applies a memory limit,
 one worker, disabled external access and extension loading, and no temporary
@@ -2080,7 +2091,7 @@ remain distinct. The existing inner Runtime close ACK clears only its data;
 outer original Root/Reader/Host retirement still requires its original Owner's
 separate stop/cleanup acknowledgment. No pointer is a public integer identity,
 serialized wire, authority, or permission to recreate a missing original.
-# Private Native transport declarations
+## Private Native transport declarations
 
 The installed Native control component's named C shim definitions are the
 authority for the private scalar transport signatures. The existing headers
@@ -2104,7 +2115,7 @@ per-operation bounds and refusal classifications stay in the existing shims
 and owners rather than in a second generated policy table.
 
 The generated C header is compiled against the original shim headers and
-definitions. The independent pre-generation signature fixture preserves all
-139 caller-selected declarations. Actual component probes remain necessary:
+definitions. The independent signature fixture preserves the existing
+caller-selected declarations. Actual component probes remain necessary:
 declaration freshness and C syntax alone do not establish physical custody,
 runtime compatibility, ordinary funding or installed product acceptance.

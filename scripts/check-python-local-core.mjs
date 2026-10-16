@@ -65,6 +65,9 @@ function run(command,args,timeout=60000){
 
 if(process.argv.includes('--build-and-consume')){
   assert.equal(run('git',['status','--porcelain']),'','Use committed ABI source');
+  for(const generator of ['generate-local-wasm-abi.py','generate-local-native-runtime-binding.py',
+    'generate-local-native-shim-bindings.py','generate-local-native-memory-binding.py',
+    'generate-local-duckdb-binding.py'])run(python,['scripts/'+generator,'--check']);
   const source=run('git',['rev-parse','HEAD']);
   const target=join(root,'_build/python-local-core/wasm');
   run('moon',['build','--target','wasm','--release','src/client_host_wasm','--target-dir',target],120000);
