@@ -2341,7 +2341,11 @@ pub fn client_submitted_intent(String, Int, Int, Int) -> @run_publication_host.C
 
 pub fn client_submitted_intent_cid(@run_publication_host.ClientSubmittedIntent) -> String
 
+pub fn client_submitted_intent_effect_compatible(@run_publication_host.ClientSubmittedIntent, @run_publication_host.PreparedClientEffectComputation) -> Bool
+
 pub fn client_submitted_intent_requests_commit_stop(@run_publication_host.ClientSubmittedIntent) -> Bool
+
+pub fn client_submitted_intent_requests_read_only(@run_publication_host.ClientSubmittedIntent) -> Bool
 
 pub fn client_submitted_intent_transition(String, String) -> Bool
 
