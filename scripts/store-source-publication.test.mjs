@@ -4,12 +4,14 @@ import test from 'node:test';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 const fixture=JSON.parse(readFileSync(new URL('./fixtures/store-source-targets/identities.json',import.meta.url),'utf8'));
 const moon=readFileSync(new URL('../src/query_program/store_source_publication_test.mbt',import.meta.url),'utf8');
+const bridge=readFileSync(new URL('../src/connectors_builtin_node/client_store_target_publication_wbtest.mbt',import.meta.url),'utf8');
 const without=(body,key)=>Object.fromEntries(Object.entries(body).filter(([name])=>name!==key));
 for(const [name,value] of Object.entries(fixture.cases)) {
   test(`independent complete Source STORE ${name} preimage`,()=>{
     const environment=value.environment;
     verifyIdentity(without(environment,'evidence_bundle_cid'),value.expected_environment_cid);
     assert.ok(moon.includes(canonicalText(environment)),'exact authored Moon caller preimage');
+    if(['collection','collectionForeignCatalog'].includes(name)) assert.ok(bridge.includes(canonicalText(environment)),'actual Node bridge uses the same independent original preimage');
     for(const contract of environment.contract_registry) verifyIdentity(without(contract,'cid'),contract.cid);
     for(const mapping of environment.mapping_contracts) {
       verifyIdentity(without(mapping,'mapping_contract_cid'),value.expected_mapping_cid);
