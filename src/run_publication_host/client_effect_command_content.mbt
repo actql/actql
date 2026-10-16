@@ -7,7 +7,7 @@ pub(all) enum ClientEffectCommandContentIssue {
   Unavailable
   Command(@stage_results.EffectPlanBindingIssue)
   Export(@execution.CompletedExportIssue)
-} derive(Debug)
+}
 
 ///|
 /// Borrow the original issued Content in one checked Command input, from the
