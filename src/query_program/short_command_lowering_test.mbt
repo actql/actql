@@ -657,15 +657,24 @@ test "short COMMAND nested input ID uses one existing typed property projection"
     Some(context),
     command_targets=Some(publication),
   ).unwrap()
-  let candidate = @check.prepare_effect_computation_candidate(
-    lowered.program.unwrap(),
-    environment,
-    None,
-    [],
-    check_limits(),
-    10,
-    10000,
-  ).unwrap()
+  let candidate = match
+    @check.prepare_effect_computation_candidate(
+      lowered.program.unwrap(),
+      environment,
+      None,
+      [],
+      check_limits(),
+      10,
+      10000,
+    ) {
+    Ok(value) => value
+    Err(Computation(Source(SourceView(Program(Program(Pipeline(_, detail))))))) =>
+      fail(@debug.to_string(detail.kind))
+    Err(Computation(Source(issue))) => raise issue
+    Err(Computation(issue)) => raise issue
+    Err(_) =>
+      fail("original nested ID must reach the existing Command input checker")
+  }
   let inputs = @stage_results.bind_effect_command_inputs(
     short_command_checked_targets(candidate),
     { max_work: 10000, max_nodes: 1000, max_depth: 100, max_text_bytes: 10000, },
