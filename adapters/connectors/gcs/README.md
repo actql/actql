@@ -250,6 +250,66 @@ same Source reservation must cover their actual lifetime before acquisition;
 page clamps do not establish that aggregate funding or retire an outstanding
 read/cleanup responsibility. No normal numerical profile is introduced.
 
+## Original multipart upload request
+
+`ObjectUploadBinding` borrows the original collection and copies the checked
+Command permission set. `ObjectUploadObservation` distinguishes an explicit
+physical 404 from an unobserved target; a 200 retains the original exact object
+metadata. Neither value authenticates the transport, supplies an installation
+owner, issues a Reference or grants a write. The installed caller must supply
+those original/current owners and the actual same-Store Content holding.
+
+`prepare_object_multipart_upload` constructs binary multipart bytes in the GCS
+MoonBit owner. It verifies the Content SHA256, computes big-endian base64 CRC32C,
+keeps the exact non-normalized name/media descriptor and includes the original
+operation marker in JSON metadata. An absent target uses `ifGenerationMatch=0`;
+replacement uses the observed generation and metageneration without binary64.
+An existing target without overwrite is refused. Optional overwrite presence
+remains distinct in the private request preimage. The Node ABI projects its
+closed `absent`/`false`/`true` DATA spellings in MoonBit, not a guessed compiler
+Option layout.
+
+The private `actql-gcs-object-upload-request/0.1` preimage binds the physical
+body SHA256/byte count/media type, exact path, original observation digest,
+collection/Catalog/installation/Command identities, lexical permission set and
+original ContentRef/content identities. It does not replace the Command input,
+approved Preview, original nominal pair, Run claim or saved recovery material.
+Targeted Preview DATA declares assignment of the reserved exact protocol key
+without exposing its token value. Marker/checksum consistency alone never
+settles an Effect or creates permission. Mutation of a separately exported body
+copy cannot change the sealed request.
+
+The multipart entry explicitly refuses bodies above 8 MiB with
+`RequiresResumable`; it does not silently fall back or claim the separate
+resumable session implementation is complete. The normal installed driver,
+same-Site Effect registration, live Content borrow, resumable/session recovery
+and ordinary installed STORE acceptance remain unfinished. No additional
+upload spelling or public wire/schema is introduced by this private primitive.
+
+The scoped transport emits one byte request through the existing Credential
+Owner and returns the same original response backing or thrown failure. It
+neither retries nor turns a 2xx, marker or body match into an applied receipt.
+Response capture, Unknown/nonresend, reconciliation and cleanup remain the
+original Effect/Store/Credential responsibilities. The actual Content must be
+borrowed from its existing authenticated holding, not reverse-looked-up by CID
+or recovered from current configuration.
+
+All parser/clamp limits are explicit structural bounds, not grants or normal
+numerical funding. Original collection/observation/binding records, permission
+copies, raw Content, metadata/canonical trees and strings, UTF8 header/tail,
+fixed assembly array and sealed body, body-copy projections, request preimage
+tree/String/encoding, SHA/CRC scratch, Node projection/WeakMap/control records,
+the scoped invocation's copied body, response and pending Promise/FD/cleanup
+aliases have their actual peak overlap. The original funded Host/Run envelope
+must cover these before calling/reading. Dropping a local alias, a weak key,
+cancel acknowledgement or function return does not prove physical retirement;
+unknown quantities and all four normal Model quotes remain None.
+
+Provider protocol references: [objects.insert](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/insert)
+defines the upload endpoint, metadata/checksum and generation preconditions;
+this implementation's multipart framing and response consistency are not a
+live-service or full resumable acceptance claim.
+
 ## Verification boundary
 
 The catalog white-box tests execute the portable semantics with independent

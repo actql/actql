@@ -1,6 +1,7 @@
 // Original Connector DATA only. The installed Common owner must retain its
 // checked Mapping/Command pair and issue the reference with actual currentness.
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {gcsUploadResult} from '../site/gcs-owned-upload-request.mjs';
 
 const originals = new WeakMap();
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -81,4 +82,22 @@ export function issueGcsCollectionReference(original, pair, declaredWire, connec
     const code = owner.moon.gcsCollectionReferenceFailureCode(failure.cause);
     throw Object.assign(new Error(code, {cause: failure.cause}), {code});
   }
+}
+
+// The installed driver borrows this same provider collection handle. A copied
+// DATA frame cannot construct the upload binding; this is not an issuer/grant.
+export function prepareGcsCollectionUploadBinding(original, {commandCid, permissions,
+  metadata, maxContentBytes, maxBodyBytes, maxPathBytes, maxIdentityBytes}) {
+  const owner = originals.get(original);
+  if (owner === undefined) fail('ForeignGcsCollectionTarget');
+  if (typeof commandCid !== 'string' || !Array.isArray(permissions) ||
+      permissions.some(value => typeof value !== 'string') || !metadata ||
+      ![metadata.maxBytes, metadata.maxNodes, metadata.maxDepth,
+        maxBodyBytes, maxPathBytes, maxIdentityBytes].every(integer) ||
+      !Number.isInteger(metadata.maxEntries) || metadata.maxEntries < 0 ||
+      metadata.maxEntries > 2147483647 || !Number.isInteger(maxContentBytes) ||
+      maxContentBytes < 0 || maxContentBytes > 2147483647) fail('GcsInvalidUploadAbiLimits');
+  return gcsUploadResult(owner.moon, owner.moon.gcsUploadBinding(owner.binding,
+    commandCid, permissions, metadata.maxBytes, metadata.maxNodes, metadata.maxDepth,
+    metadata.maxEntries, maxContentBytes, maxBodyBytes, maxPathBytes, maxIdentityBytes));
 }
