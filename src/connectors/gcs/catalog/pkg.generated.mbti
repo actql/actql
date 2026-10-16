@@ -24,6 +24,8 @@ pub fn object_collection_identity_json(ObjectCollectionBinding) -> String
 
 pub fn object_collection_resource_json(ObjectCollectionBinding) -> String
 
+pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
+
 pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields
 
 pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
@@ -35,6 +37,8 @@ pub fn object_metadata_page_count(ObjectMetadataPage) -> Int
 pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?
 
 pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String
+
+pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
 pub fn object_metadata_response_sha256(ObjectMetadata) -> String
 

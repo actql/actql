@@ -82,7 +82,8 @@ test('ordinary installed GCS supplies its original checked collection without to
   assert.equal(reference.provider_namespace, 'gcs');
   assert.equal(reference.resource_kind, 'file_collection');
   assert.equal(reference.boundary_cid, JSON.parse(source.environmentWire).connector_catalogs[0].catalog_cid);
-  assert.equal(source.sourceReadAccesses.length, 2, 'no synthetic target Source or Result field');
+  assert.deepEqual(source.sourceReadAccesses.map(value => value.resource).sort(),
+    ['contents', 'files', 'objects'], 'objects is a real read Source, never a fabricated target field');
   assert.equal(source.admitsSource('connector://storage/objects'), false);
   assert.throws(() => source.issueOriginalCollectionReference(pair, 1),
     {code: 'GcsCollectionReferenceCapacityExceeded'});

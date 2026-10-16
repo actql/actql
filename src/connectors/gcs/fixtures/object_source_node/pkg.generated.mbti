@@ -1,0 +1,13 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/gcs/fixtures/object_source_node"
+
+// Values
+pub fn fixture_gcs_object_data_wire(String, String) -> Result[String, String]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

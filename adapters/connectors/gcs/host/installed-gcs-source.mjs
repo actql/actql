@@ -13,6 +13,7 @@ import {retainInstalledHostInitializationFailure} from
 import {checkInstalledGcsSourceProfile as checkProfile, restoreGcsSourceDeclaration,
   GCS_REGISTRATION, GCS_REVISION} from './gcs-source-declaration.mjs';
 import {readGcsFileListing, GCS_FILE_LIST_OPERATION} from '../site/gcs-file-listing.mjs';
+import {readGcsObjects} from '../site/gcs-object-listing.mjs';
 import {readGcsKeyedContent} from '../site/gcs-keyed-content.mjs';
 import {gcsUploadCatalogDeclaration} from './gcs-upload-declaration.mjs';
 import {prepareGcsCollectionTarget, gcsCollectionUploadMapping,
@@ -79,7 +80,8 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
     fail('GcsCollectionProviderUnavailable');
   }
   const siteProfile = await readSite(installed.siteProfilePath);
-  const original = restoreGcsSourceDeclaration(moon, installed);
+  const original = restoreGcsSourceDeclaration(moon, installed, undefined,
+    {includeObjects: providerMoon !== undefined});
   const {declaration, scopeCid} = original;
   // A legacy explicitly supplied source-only installation has no collection
   // supplier. The ordinary declared provider selects the complete Command
@@ -138,7 +140,8 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
     provider_identity_cid: providerIdentityCid, authority_scope_cid: scopeCid,
     boundary_cid: declared.catalog_cid});
   const resourceFor = ({bucket, objectName}) => {
-    if (closed || bucket !== installed.bucket || !text(objectName) ||
+    if (closed || bucket !== installed.bucket || typeof objectName !== 'string' ||
+        !objectName.isWellFormed() || objectName.length === 0 || /[\r\n]/u.test(objectName) ||
         Buffer.byteLength(objectName) > installed.limits.maxPathBytes ||
         !objectName.startsWith(installed.prefix)) fail('GcsKeyedResourceUnavailable');
     return Object.freeze({...resourceBase, identity_cid: cid({
@@ -169,11 +172,18 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
       environmentWire: environment.wire, connectorId: installed.connectorId,
       connectorRegistration: GCS_REGISTRATION, connectorRevision: GCS_REVISION,
       authorization, site, physicalTarget: target,
-      readOperation: {files: GCS_FILE_LIST_OPERATION, contents: 'gcs:file:read'},
+      readOperation: {files: GCS_FILE_LIST_OPERATION, contents: 'gcs:file:read',
+        ...(providerMoon === undefined ? {} : {objects: GCS_FILE_LIST_OPERATION})},
       referenceIssuer, bindingCid,
       limits: {maxPages: limits.maxPages, maxPageBytes: limits.maxPageBytes,
         maxPageRows: limits.maxPageItems, maxCaptureRows: limits.maxListingItems},
       readPages: async options => {
+        if (options.resource === 'objects') return readGcsObjects({...options,
+          moon: providerMoon, target: {bucket: installed.bucket, prefix: installed.prefix},
+          limits: {maxPageBytes: limits.maxPageBytes, maxPageItems: limits.maxPageItems,
+            maxRequestBytes: limits.maxRequestBytes, maxTimeMs: limits.maxDurationMs,
+            maxPages: limits.maxPages, maxRows: limits.maxListingItems},
+          credential: site.credential, callResource: site.callResource, resourceFor});
         if (options.resource === 'files') return readGcsFileListing({
           target: {bucket: installed.bucket, prefix: installed.prefix},
           limits: {maxPageBytes: limits.maxPageBytes, maxPageItems: limits.maxPageItems,
