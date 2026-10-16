@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 
 export function commandTargetBindingVectors(corpus) {
   const output=['// Generated from independent fixed corpus by scripts/command-target-binding-vectors.mjs.'];
@@ -20,7 +21,7 @@ export function commandTargetBindingVectors(corpus) {
     assert.equal(self(catalog,'catalog_cid'),vector.catalog_cid);
     assert.equal(self(command,'contract_cid'),vector.command_cid);
     assert.deepEqual(environment.command_contracts,[command]);
-    assert.deepEqual(environment.contract_registry,catalog.contracts);
+    assert.deepEqual(environment.contract_registry,[...catalog.contracts].sort((a,b)=>machineCid(a)<machineCid(b)?-1:1));
     assert.equal(catalog.connector_id,command.connector_id);
     const {contract_cid,...withoutCid}=command;
     const original=structuredClone(withoutCid);
@@ -34,7 +35,7 @@ export function commandTargetBindingVectors(corpus) {
     }
     output.push('','///|',`test ${JSON.stringify('Original Command target fixed identity '+vector.id)} {`,
       '  let environment = read(',
-      `    @utf8.encode(${JSON.stringify(JSON.stringify(environment))}),`,
+      `    @utf8.encode(${JSON.stringify(canonicalText(environment))}),`,
       `    ${JSON.stringify(vector.environment_cid)}, caps(),`,
       '  ).unwrap()',
       '  let contents = check_catalog_contents(check_contract_registry(environment, caps()).unwrap(), caps()).unwrap()');
