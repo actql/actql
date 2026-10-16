@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub fn admit_range_binding(String, String, String, String, Limits) -> Result[RangeBinding, RangeFailure]
+
+pub fn admit_range_request(RangeBinding, RangeRequest) -> Result[Unit, RangeFailure]
+
 pub fn append_request(Int, Array[Column], Array[Json], Limits) -> Result[String, Issue]
 
 pub fn check_target(Bytes, String, GridRange, Int, Array[Column], Limits) -> Result[Unit, Issue]
@@ -16,9 +20,35 @@ pub fn excluded_blank_rows(Page) -> Int
 
 pub fn page_rows(Page) -> Array[Json]
 
+pub fn prepare_range_request(RangeBinding, String, String) -> Result[RangeRequest, RangeFailure]
+
 pub fn project_grid(Bytes, String, GridRange, Array[Column], Limits) -> Result[Page, Issue]
 
+pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure]
+
+pub fn range_command_json(String, String, String, Limits) -> Result[String, RangeFailure]
+
+pub fn range_failure_code(RangeFailure) -> String
+
+pub fn range_failure_refusal(RangeFailure) -> Issue?
+
+pub fn range_recovery_entry(RangeBinding, String) -> Result[String, RangeFailure]
+
+pub fn range_reference(String, String, GridRange, String, String, Limits) -> Result[Json, RangeFailure]
+
+pub fn range_request_body(RangeRequest) -> String
+
+pub fn range_request_body_for(RangeBinding, RangeRequest) -> Result[String, RangeFailure]
+
+pub fn range_request_identity(RangeRequest) -> String
+
+pub fn range_request_json(RangeBinding, RangeRequest) -> Result[String, RangeFailure]
+
+pub fn range_target_matches(RangeBinding, String) -> Bool
+
 pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]
+
+pub fn recover_range_requests(RangeBinding, String, String, Limits) -> Result[Array[Array[RangeRequest]], RangeFailure]
 
 pub fn update_request(GridRange, Array[Column], Array[Array[Json]], Limits) -> Result[String, Issue]
 
@@ -76,6 +106,30 @@ pub(all) struct Limits {
 pub struct Page {
   rows : Array[Json]
   excluded_blank_rows : Int
+}
+
+pub struct RangeBinding {
+  origin : String
+  spreadsheet_id : String
+  range : GridRange
+  columns : Array[Column]
+  command_cid : String
+  binding_cid : String
+  target_wire : String
+  limits : Limits
+}
+
+pub struct RangeFailure {
+  code : String
+  refusal : Issue?
+} derive(Eq, @debug.Debug)
+
+pub struct RangeRequest {
+  binding : RangeBinding
+  body : String
+  path : String
+  value_wire : String
+  cid : String
 }
 
 // Type aliases
