@@ -147,6 +147,15 @@ export function authorizationDispatchFacts(decision) {
     ? issuedDispatches.get(decision) : undefined;
 }
 
+// Resolve the original issuer, never a lookalike gate with matching facts.
+// The existing provenance projection remains historical after scope closure;
+// this synchronous fence additionally requires that issuer and account now.
+export function assertAuthorizationAccountCurrent(decision) {
+  const issuer = issuedDecisionScopes.get(decision);
+  if (issuer === undefined) fail('ForeignAuthorizationDecision');
+  issuer.assertAccountCurrent(decision);
+}
+
 // Decision-subject binding of a deferred decision: SHA-256 over the canonical
 // JSON of the ten-field decision subject projection (all members are strings;
 // keys sorted; ECMAScript string serialization is the canonical string form).
@@ -262,6 +271,7 @@ export function createAuthorizationGate({
   runtime,
   configuration,
   configurationCid,
+  readConfiguration,
   context,
   decide,
   answeringAuthorities = [],
@@ -279,6 +289,9 @@ export function createAuthorizationGate({
   }
   if (decide !== undefined && typeof decide !== 'function') {
     fail('InvalidAuthorizationDecisionFunction');
+  }
+  if (readConfiguration !== undefined && typeof readConfiguration !== 'function') {
+    fail('InvalidAuthorizationConfigurationReader');
   }
   if (!names(answeringAuthorities) || !names(requiredClaims) ||
       (decide !== undefined && answeringAuthorities.length === 0)) {
@@ -337,6 +350,7 @@ export function createAuthorizationGate({
   const core = Object.freeze({
     moon,
     account,
+    readConfiguration,
     accountId: state.state === 'admitted' ? state.account_id : undefined,
     configurationCid: state.state === 'admitted' ? state.configuration_cid
       : undefined,
@@ -362,7 +376,9 @@ export function createAuthorizationGate({
 }
 
 function gateFor(core, context) {
-  const gateScope = Object.freeze({});
+  const gateScope = Object.freeze({
+    assertAccountCurrent: decision => assertCurrentAccount(decision),
+  });
   const cache = new Map();
   const pending = new Set();
   let closed = false;
@@ -385,7 +401,56 @@ function gateFor(core, context) {
   };
   core.capacity.scopes.add(closeScope);
   const count = (name, delta = 1) => { core.counts[name] += delta; };
+  // Account currency only. The installed file reader observes the original
+  // configuration source; without one this live gate owns its immutable wire
+  // configuration. Neither branch asks for a replacement Host answer or
+  // enters a resumed approval/claim. The result stays private to this scope.
+  const unavailable = code => {
+    throw Object.assign(new Error(code), {code,
+      runtimeCode: 'ACTQL_E_ACCOUNT_CONFIG_INVALID'});
+  };
+  const assertScopeAccountCurrent = () => {
+    ensureOpen();
+    let account = core.account;
+    let state;
+    try {
+      if (core.readConfiguration !== undefined) {
+        const wire = core.readConfiguration();
+        account = typeof wire === 'string'
+          ? core.moon.executionAuthorizationAdmit(wire)
+          : core.moon.executionAuthorizationMissing();
+      }
+      state = JSON.parse(core.moon.executionAuthorizationAccountJson(account));
+    } catch { unavailable('AuthorizationCurrentAccountUnavailable'); }
+    ensureOpen();
+    if (state.state !== 'admitted') {
+      unavailable('AuthorizationCurrentAccountUnavailable');
+    }
+    if (state.account_id !== core.accountId ||
+        state.configuration_cid !== core.configurationCid) {
+      unavailable('AuthorizationCurrentAccountChanged');
+    }
+    return account;
+  };
+  const assertCurrentAccount = decision => {
+    const account = assertScopeAccountCurrent();
+    let outcome;
+    try {
+      outcome = JSON.parse(core.moon.executionAuthorizationEvaluationJson(
+        core.moon.executionAuthorizationEvaluate(account,
+          decision.tuple.principal, decision.tuple.connection,
+          decision.tuple.resource, decision.tuple.operation)));
+    } catch { unavailable('AuthorizationCurrentAccountUnavailable'); }
+    ensureOpen();
+    if (!['allow', 'delegate'].includes(outcome.outcome) ||
+        outcome.entry_id !== decision.entryId) {
+      unavailable('AuthorizationCurrentAccountChanged');
+    }
+  };
   const record = decision => {
+    // This is also the post-await fence for cached and resumed dispatches.
+    // Refusing a changed original account never requests a replacement answer.
+    if (decision.action === 'dispatch') assertCurrentAccount(decision);
     if (decision.action === 'dispatch' && core.configurationCid !== undefined &&
         Object.isFrozen(decision) && !issuedDispatches.has(decision)) {
       issuedDispatches.set(decision, Object.freeze({
@@ -860,6 +925,24 @@ function gateFor(core, context) {
     principal: context.principal,
     contextCid: context.contextCid,
 
+    // Recheck this exact scope's original dispatch before later protected work.
+    // Callers still own current physical installation and resumed approval/
+    // claim entry. Success here returns no new decision or authority.
+    assertAccountCurrent(decision) {
+      ensureOpen();
+      if (issuedDecisionScopes.get(decision) !== gateScope) {
+        fail('ForeignAuthorizationDecision');
+      }
+      assertCurrentAccount(decision);
+    },
+
+    // Non-authorizing fence for an existing Checkpoint owner's separate
+    // approval path. This admits no tuple or answer and accepts no substitute
+    // dispatch. The Checkpoint owner must separately check its approval/claim.
+    assertConfigurationCurrent() {
+      assertScopeAccountCurrent();
+    },
+
     // Evaluate one protected boundary for the exact scope. The tuple principal
     // is the Host context principal; the caller supplies only the Host-derived
     // connection/resource/operation and the sealed subject CID.
@@ -1194,3 +1277,4 @@ export function missingAuthorizationGate(context = {
 }) {
   return createAuthorizationGate({context});
 }
+

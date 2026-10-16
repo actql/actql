@@ -290,6 +290,12 @@ pub fn admit_prepared_client_run_publication(
   @publication.RunPublicationAdmissionIssue,
 ] {
   let identity = prepared_client_identity(value)
+  if @publication.publication_contract_effect_target_selections_cid(
+      compiled_plan,
+    )
+    is Some(_) {
+    return Err(@publication.RunAdmissionCheckedProgramMismatch)
+  }
   @publication.admit_checked_run_publication(
     template,
     prepared,

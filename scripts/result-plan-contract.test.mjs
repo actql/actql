@@ -4,6 +4,8 @@ import test from 'node:test';
 import {
   checkResultPlanBindings, checkResultPlanSchema, resultPlanCid,
 } from './result-plan-contract.mjs';
+import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
+import {machineCid} from './actql-spec-family.mjs';
 
 const registry = JSON.parse(readFileSync(
   'spec/contracts/actql-protocol-schemas.json', 'utf8',
@@ -45,6 +47,78 @@ function fixture() {
 
 test('registered Result Plan schema and nested root refs retain pins', () => {
   checkResultPlanSchema(registry);
+});
+
+const selections = JSON.parse(readFileSync(
+  'portability/corpus/effect-target-selection.json', 'utf8',
+));
+
+test('original UPDATE selection is optional in both closed Plan schemas', () => {
+  const keys = ['check_environment_cid', 'effect_id',
+    'installation_binding_cid', 'installation_owner_cid', 'mapping_cid',
+    'mapping_ref', 'stage_index', 'target_ref'];
+  for (const plan of [registry.artifact_schemas.executable_plan,
+    registry.artifact_schemas.plan_document.properties.plan]) {
+    const material = plan.properties.execution_material;
+    assert.equal(material.additionalProperties, false);
+    assert.ok(!material.required.includes('effect_target_selections'));
+    assert.ok(!Object.hasOwn(material.properties.program.properties,
+      'effect_target_selections'));
+    const selection = material.properties.effect_target_selections;
+    assert.equal(selection.type, 'array');
+    assert.equal(selection.minItems, 1);
+    assert.equal(selection.uniqueItems, true);
+    assert.equal(selection.items.additionalProperties, false);
+    assert.deepEqual(selection.items.required, keys);
+    assert.deepEqual(Object.keys(selection.items.properties), keys);
+    assert.deepEqual(selection.items.properties.stage_index,
+      {type: 'integer', minimum: 0});
+  }
+  for (const [key, pins] of Object.entries(selections.schema_pins)) {
+    assert.equal(machineCid(registry.artifact_schemas[key]), pins.after);
+    assert.equal(registry.artifact_schema_cids[key], pins.after);
+    assert.notEqual(pins.before, pins.after);
+  }
+  assert.equal(registry.artifact_registry_cid,
+    JSON.parse(readFileSync(
+      'portability/corpus/effect-target-selection-projection.json', 'utf8',
+    )).artifact_registry_pins.after);
+});
+
+test('independent original UPDATE vectors bind every selection and owner field', () => {
+  assert.equal(selections.version, 'actql-effect-target-selection-vectors/0.1');
+  for (const group of [selections.cases, selections.installation_owners]) {
+    for (const item of group) {
+      verifyIdentity(item.preimage, item.expected_cid,
+        item.expected_canonical_bytes);
+    }
+    assert.equal(new Set(group.map(item => item.expected_cid)).size,
+      group.length);
+  }
+  const original = selections.cases.find(item => item.id === 'original');
+  assert.equal(original.preimage[0].installation_owner_cid,
+    selections.installation_owners[0].expected_cid);
+  assert.notEqual(original.preimage[0].installation_binding_cid,
+    original.preimage[0].installation_owner_cid);
+  assert.doesNotMatch(original.expected_canonical_bytes, /alias|UPDATE/u);
+});
+
+test('selection occurrence vectors use Stage then UTF-16 order', () => {
+  const ordered = selections.cases.find(item =>
+    item.id === 'stage then UTF-16 occurrence order').preimage;
+  assert.deepEqual(ordered.map(item => [item.stage_index, item.effect_id]),
+    [[0, 'a'], [0, '\u{1f600}'], [0, '\ue000'], [1, 'a']]);
+  assert.deepEqual([...ordered].sort((left, right) =>
+    left.stage_index - right.stage_index ||
+      (left.effect_id < right.effect_id ? -1 :
+        left.effect_id > right.effect_id ? 1 : 0)), ordered);
+  const repeated = selections.cases.find(item =>
+    item.id === 'same Effect id in another Stage').preimage;
+  assert.equal(repeated[0].effect_id, repeated[1].effect_id);
+  assert.notEqual(repeated[0].stage_index, repeated[1].stage_index);
+  // Shape pins alone do not establish occurrence admission or saved recovery.
+  assert.equal(canonicalText(repeated), selections.cases.find(item =>
+    item.id === 'same Effect id in another Stage').expected_canonical_bytes);
 });
 
 test('independent Result Plan vector binds the checked semantic fields', () => {

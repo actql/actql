@@ -76,7 +76,6 @@ export const installedConnectors = Object.freeze([
     name: "salesforce", registration: "salesforce",
     revision: "salesforce/0.1",
     implementationFiles: Object.freeze([
-      Object.freeze({path: "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs", href: new URL("../connectors/salesforce/host/installed-salesforce-effect-hooks.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs", href: new URL("../connectors/salesforce/host/installed-salesforce-effect-installation.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs", href: new URL("../connectors/salesforce/host/installed-salesforce-effect.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/salesforce/host/installed-salesforce-site.mjs", href: new URL("../connectors/salesforce/host/installed-salesforce-site.mjs", import.meta.url).href}),

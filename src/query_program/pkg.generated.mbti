@@ -24,21 +24,35 @@ import {
 }
 
 // Values
-pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[@stage_syntax.Program, Issue]
+pub fn bind_update_target_publication(@check_environment.MappingContractShapes, Array[UpdateTargetAlias], Int) -> Result[UpdateTargetPublication, UpdateTargetIssue]
 
-pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[@stage_syntax.Program, Issue]
+pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?) -> Result[@stage_syntax.Program, Issue]
 
-pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[(@stage_syntax.Program, @program_source_builder.Source), Issue]
+pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?) -> Result[@stage_syntax.Program, Issue]
+
+pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?) -> Result[(@stage_syntax.Program, @program_source_builder.Source), Issue]
 
 pub fn issue_without_source(Issue) -> Issue
 
+pub fn resolve_concrete_update_target_binding(UpdateTargetPublication, String, String, Int) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
+
 pub fn resolve_table_write_binding(Array[TableWriteBinding], Array[@query_syntax.NamePart], Bool, Int) -> Result[TableWriteBinding, TableWriteBindingIssue]
+
+pub fn resolve_update_target_binding(UpdateTargetPublication, Array[@query_syntax.NamePart], @query_syntax.NamePart?, Int) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
+
+pub fn resolved_update_target(ResolvedUpdateTarget) -> (String, String)
+
+pub fn resolved_update_target_identity(ResolvedUpdateTarget) -> (String, String, String)
+
+pub fn resolved_update_target_owner_cid(ResolvedUpdateTarget) -> String
 
 pub fn same_relation_path(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
 
 pub fn unresolved_relation_namespace_presence(Issue, Context) -> Bool?
 
 pub fn unresolved_relation_reference(Issue) -> Array[@query_syntax.NamePart]?
+
+pub fn update_target_publication_environment(UpdateTargetPublication) -> @check_environment.WireEnvironment
 
 // Errors
 
@@ -161,6 +175,7 @@ pub(all) enum Issue {
   UnsupportedResult
   UnsupportedEffect
   TableWriteBinding(TableWriteBindingIssue)
+  UpdateTargetBinding(UpdateTargetIssue)
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   ExpressionTyping(@expression_typing.Issue)
@@ -180,6 +195,12 @@ pub(all) struct Limits {
 
 pub struct RelationResolutionReference {
   // private fields
+}
+
+pub struct ResolvedUpdateTarget {
+  publication : UpdateTargetPublication
+  target_alias : UpdateTargetAlias
+  mapping : @check_environment.MappingContractShape
 }
 
 pub(all) enum TableWriteAction {
@@ -204,6 +225,28 @@ pub(all) enum TableWriteBindingIssue {
   ActionMismatch
   WorkLimit
 } derive(Eq, @debug.Debug)
+
+pub(all) struct UpdateTargetAlias {
+  name : Array[@query_syntax.NamePart]
+  target_ref : String
+  installation_binding_cid : String
+  installation_owner_cid : String
+}
+
+pub(all) enum UpdateTargetIssue {
+  InvalidPublication
+  UnresolvedTarget
+  AmbiguousTarget
+  UnresolvedMapping
+  AmbiguousMapping
+  WorkLimit
+} derive(Eq, @debug.Debug)
+
+pub struct UpdateTargetPublication {
+  mappings : @check_environment.MappingContractShapes
+  aliases : Array[UpdateTargetAlias]
+  candidates : Array[@check_environment.MappingContractShape]
+}
 
 // Type aliases
 

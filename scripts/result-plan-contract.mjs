@@ -12,6 +12,26 @@ const portRef = {
   properties: {node_id: name, port: name},
 };
 
+// Retain the original logical UPDATE selection beside the checked Program.
+// This is identity material, not a second Mapping or installation authority.
+export function effectTargetSelectionsSchema() {
+  const properties = {
+    check_environment_cid: cid,
+    effect_id: name,
+    installation_binding_cid: cid,
+    installation_owner_cid: cid,
+    mapping_cid: cid,
+    mapping_ref: name,
+    stage_index: {type: 'integer', minimum: 0},
+    target_ref: name,
+  };
+  return {
+    type: 'array', minItems: 1, uniqueItems: true,
+    items: {type: 'object', additionalProperties: false,
+      required: Object.keys(properties), properties},
+  };
+}
+
 function insertAfter(entries, key, inserted, value) {
   const result = {};
   for (const [entry, body] of Object.entries(entries)) {
@@ -130,6 +150,8 @@ export function applyResultPlanSchema(registry) {
     registry.artifact_schemas.plan_document.properties.plan,
   ]) {
     plan.properties.root_refs.items.properties.ref = structuredClone(portRef);
+    plan.properties.execution_material.properties.effect_target_selections =
+      effectTargetSelectionsSchema();
   }
   registry.artifact_schemas = insertAfter(
     registry.artifact_schemas, 'executable_plan', 'result_plan', schema,
@@ -153,6 +175,11 @@ export function checkResultPlanSchema(registry) {
     registry.artifact_schemas.plan_document.properties.plan,
   ]) {
     assert.deepEqual(plan.properties.root_refs.items.properties.ref, portRef);
+    const material = plan.properties.execution_material;
+    assert.equal(material.additionalProperties, false);
+    assert.ok(!material.required.includes('effect_target_selections'));
+    assert.deepEqual(material.properties.effect_target_selections,
+      effectTargetSelectionsSchema());
   }
   for (const key of ['executable_plan', 'result_plan', 'plan_document']) {
     assert.equal(registry.artifact_schema_cids[key],

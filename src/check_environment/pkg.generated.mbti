@@ -397,6 +397,8 @@ pub fn mapping_shape_work(MappingContractShapes) -> Int
 
 pub fn mapping_shape_writable_fields(MappingContractShape) -> Array[String]
 
+pub fn mapping_supports_operation(MappingContractShape, String, String, Int) -> Result[(Bool, Int), MappingPermissionIssue]
+
 pub fn member_at(WireEnvironment, Section, Int) -> Member?
 
 pub fn member_body(Member) -> @decode_core.Cursor

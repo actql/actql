@@ -1226,8 +1226,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_attempt sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_record sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4
 ../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:6f4d64b352c4f039d4a010322cebe6a818e11716dd5ce844fa51fa1cb7228a4e
-../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:fae98b9b12e5b472855170b0451d34fee34ee0fe7227341310fccaaca0775df7
-../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:2bdd46f5723bc33676ed46ac367cb26cb02f8d91a134c09c8b754dd7675a908b
+../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:3458373ea99e5bc9bb22d3a7ecbbe801abe98875bf7c6c7e748924d8b92bad9c
+../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:3078ae712b11a42f03eb5d8aedca521d942bed276c0e25f4fa231a1b7c8b2008
 ../../../spec/contracts/actql-run-publication.json#/laws sha256:18e62f30a4120596c290b055c7bfacda84375eb3a4c0d02a7bfed1dae7af25a0
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/content_source sha256:18591195eb1c2484081052246944a32f9231dfe77b73decbdf61b558230e0e68
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/content_barrier sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5

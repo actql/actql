@@ -53,6 +53,10 @@
         "compiled_plan_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_target_selections_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
     },
@@ -1198,7 +1202,7 @@
     }
   },
   "schema_cids": {
-    "compiled_plan": "sha256:090a83a3999ddc0ac740a1edb7c62b8b3804750d7f3dfcffb23b706cf338db39",
+    "compiled_plan": "sha256:25094bdc116c9edae1f9ea4123e182d9d898f718941527fe466f55bd448fe7b8",
     "result_definition": "sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973",
     "run_invocation": "sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81",
     "result_retention_policy": "sha256:61bc287aae5c6b626bf7bea99ff8d40dd932e4fdf00495cedc3868f633f831c4",
@@ -1248,7 +1252,8 @@
       "program_definition_cid": "external:program-definition",
       "program_semantics_cid": "external:program-semantics",
       "aoa_contract_cid": "external:aoa-contract",
-      "aoa_logical_cid": "external:aoa-logical-plan"
+      "aoa_logical_cid": "external:aoa-logical-plan",
+      "effect_target_selections_cid": "external:executable-plan-effect-target-selections?"
     },
     "result_definition": {
       "program_definition_cid": "external:program-definition"
@@ -1491,6 +1496,12 @@
       "source": "compiled_plan",
       "slot": "aoa_logical_cid",
       "target": "external:aoa-logical-plan",
+      "role": "semantic"
+    },
+    {
+      "source": "compiled_plan",
+      "slot": "effect_target_selections_cid",
+      "target": "external:executable-plan-effect-target-selections?",
       "role": "semantic"
     },
     {

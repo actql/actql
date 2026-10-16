@@ -68,7 +68,38 @@ fn encode_prepared_client_effect_materials(
   normalization_wire : String?,
 ) -> Result[String, ClientEffectRunMaterialsIssue] {
   let prepared = client_effect_compilation_owner(allowed.compilation)
-  let (program, parameters, environment) = try {
+  let (program, parameters, environment) = match
+    client_effect_original_input_wires(prepared) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let infer_input = match
+    client_effect_original_infer_input(allowed.compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  encode_client_run_materials_body(
+    allowed.admission,
+    definition,
+    prepared_client_effect_computation_environment_cid(prepared),
+    environment,
+    program,
+    parameters,
+    request_wire~,
+    normalization_wire~,
+    target_selections_wire=prepared_client_effect_target_selections(prepared),
+    infer_input~,
+  ).map_err(fn(issue) { ClientEffectRunMaterialsIssue::Input(issue) })
+}
+
+///|
+/// Both pre-Run checkpoint and admitted Run projection read the same retained
+/// source, supplied values and checked environment. Neither accepts replacement
+/// authoring inputs or reads a current alias publication.
+fn client_effect_original_input_wires(
+  prepared : PreparedClientEffectComputation,
+) -> Result[(String, String?, String), ClientEffectRunMaterialsIssue] {
+  try {
     let source_writer = @encode.writer(65536, 8192, 64)
     @syntax.emit_program_source(prepared.source, source_writer)
     let program = @encode.finish(source_writer)
@@ -85,18 +116,8 @@ fn encode_prepared_client_effect_materials(
       @checked.effect_program_static_environment(prepared.candidate),
       environment_writer,
     )
-    (program, parameters, @encode.finish(environment_writer))
+    Ok((program, parameters, @encode.finish(environment_writer)))
   } catch {
     _ => return Err(Input(MaterialsMalformed))
   }
-  encode_client_run_materials_body(
-    allowed.admission,
-    definition,
-    prepared_client_effect_computation_environment_cid(prepared),
-    environment,
-    program,
-    parameters,
-    request_wire~,
-    normalization_wire~,
-  ).map_err(fn(issue) { ClientEffectRunMaterialsIssue::Input(issue) })
 }
