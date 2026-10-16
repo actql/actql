@@ -296,7 +296,8 @@ pub fn require_property_write(
 }
 
 ///|
-/// Provider-defined keys and positively observed custom unique properties.
+/// Provider-enforced keys and positively observed custom unique properties.
+/// Company domain lookup/import deduplication is not enforced API uniqueness.
 /// Object/account binding still has to be authenticated by the caller; the
 /// properties body alone cannot prove which object's schema was returned.
 pub fn require_unique_property(
@@ -307,8 +308,7 @@ pub fn require_unique_property(
     return Err(PropertyUnconfirmed(name))
   }
   let built_in = name == "hs_object_id" ||
-    (catalog.object_type == "contacts" && name == "email") ||
-    (catalog.object_type == "companies" && name == "domain")
+    (catalog.object_type == "contacts" && name == "email")
   if property.unique || built_in {
     Ok(())
   } else {

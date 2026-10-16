@@ -252,7 +252,9 @@ fn check_duplicate_company_domain(properties_body : String) -> Unit raise {
   assert_eq(rows[0].id, "101")
   assert_eq(rows[1].id, "202")
   for row in rows {
-    assert_true(object_row_values(row)[0].value is @admitted.Text("same.example"))
+    assert_true(
+      object_row_values(row)[0].value is @admitted.Text("same.example"),
+    )
   }
   assert_true(object_row_values(rows[0])[1].value is @admitted.Text("first"))
   assert_true(object_row_values(rows[1])[1].value is @admitted.Text("second"))
