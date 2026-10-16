@@ -81,6 +81,16 @@ pub fn effect_command_input_field_value(
 pub struct EffectCommandInputBinding {
   target : EffectCommandTargetBinding
   fields : Array[EffectCommandInputField]
+  input_key : @schema.Field?
+}
+
+///|
+/// Retains the original typed field under this exact input binding. This is
+/// not a KeySet or uniqueness proof; captured-input validation is still owed.
+pub fn effect_command_input_key(
+  value : EffectCommandInputBinding,
+) -> @schema.Field? {
+  value.input_key
 }
 
 ///|
@@ -256,6 +266,7 @@ pub fn bind_effect_command_inputs(
       supplied[name] = value
     }
     let result_fields : Map[String, @schema.Field] = Map([])
+    let mut input_key : @schema.Field? = None
     let bound_count = effect_result_field_binding_count(effect)
     match command_input_charge(work, bound_count, header) {
       Err(issue) => return Err(issue)
@@ -263,8 +274,12 @@ pub fn bind_effect_command_inputs(
     }
     for at in 0..<bound_count {
       let binding = effect_result_field_binding_at(effect, at).unwrap()
-      if effect_result_field_binding_role(binding) is EffectValue(name) {
-        result_fields[name] = effect_result_field_binding_field(binding)
+      match effect_result_field_binding_role(binding) {
+        EffectValue(name) =>
+          result_fields[name] = effect_result_field_binding_field(binding)
+        EffectCommandInputKey =>
+          input_key = Some(effect_result_field_binding_field(binding))
+        _ => ()
       }
     }
     let fields : Array[EffectCommandInputField] = []
@@ -355,7 +370,7 @@ pub fn bind_effect_command_inputs(
         return Err(command_input_issue(UnknownField(name), header))
       }
     }
-    entries.push({ target, fields, })
+    entries.push({ target, fields, input_key, })
   }
   Ok({
     targets,

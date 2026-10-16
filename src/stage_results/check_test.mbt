@@ -4,6 +4,8 @@ fn prepared(
   effects? : String = "",
   reference_nullable? : Bool? = None,
   amount_nullable? : Bool = false,
+  amount_type? : @contract.Contract? = None,
+  amount_presence? : @schema.Presence? = None,
   effect_only? : Bool = false,
 ) -> @parameters.CollectedOperations {
   let local_results = if effect_only { "{}" } else { "{\"r\":" + body + "}" }
@@ -46,7 +48,9 @@ fn prepared(
   let fields = [
     (
       @schema.Unqualified("amount"),
-      @contract.primitive(NumberType, nullable=amount_nullable),
+      amount_type.unwrap_or(
+        @contract.primitive(NumberType, nullable=amount_nullable),
+      ),
     ),
   ]
   if reference_nullable is Some(nullable) {
@@ -69,7 +73,26 @@ fn prepared(
     ).unwrap()
     fields.push((@schema.Unqualified("ref"), reference))
   }
-  let schema = @schema.from_fields(fields, max_fields=2, max_name_bytes=100).unwrap()
+  let schema = match amount_presence {
+    None =>
+      @schema.from_fields(fields, max_fields=2, max_name_bytes=100).unwrap()
+    Some(presence) =>
+      @schema.from_presence_fields(
+        fields.map(entry => {
+          (
+            entry.0,
+            entry.1,
+            if entry.0 == @schema.Unqualified("amount") {
+              presence
+            } else {
+              @schema.Required
+            },
+          )
+        }),
+        max_fields=2,
+        max_name_bytes=100,
+      ).unwrap()
+  }
   let pipelines = []
   for i in 0..<@parameters.stage_count(source) {
     let body = @decode.open_object(

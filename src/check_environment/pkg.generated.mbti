@@ -181,6 +181,14 @@ pub fn command_target_member(CommandTarget) -> Member
 
 pub fn command_target_resource_kind(CommandTarget) -> String
 
+pub fn command_target_selection_published(CommandTargetSelection) -> PublishedCommandBinding?
+
+pub fn command_target_selection_target(CommandTargetSelection) -> CommandTarget
+
+pub fn command_target_selection_usage(CommandTargetSelection) -> (Int, Int)
+
+pub fn command_target_selection_work(CommandTargetSelection) -> Int
+
 pub fn command_target_work(CommandTarget) -> Int
 
 pub fn compiler_aoa_contract_cid() -> String
@@ -619,6 +627,8 @@ pub fn resolve_model_task(ModelTasks, String) -> Result[ModelTaskContract, Model
 
 pub fn select_command_target(CatalogContents, String, Int) -> Result[CommandTarget, CommandTargetIssue]
 
+pub fn select_command_target_binding(CatalogContents, String, @value_contract.Limits, Int) -> Result[CommandTargetSelection, PublishedCommandBindingIssue]
+
 pub fn select_connector_source_evidence_members(WireEnvironment, ConnectorSourceEvidenceSelector) -> Result[ConnectorSourceEvidenceMembers, SourceEvidenceMemberIssue]
 
 pub fn select_mapping_permissions(MappingContractShape, String, String, Array[String], Int) -> Result[MappingPermissionSelection, MappingPermissionIssue]
@@ -912,6 +922,8 @@ pub(all) enum CommandTargetIssue {
   MissingCommand(String)
   InvalidCommand(String)
 } derive(Eq, @debug.Debug)
+
+type CommandTargetSelection
 
 pub struct ConnectorManifest {
   entries : Array[ConnectorManifestEntry]

@@ -1,0 +1,120 @@
+{
+  "qualification": "Independent Python canonical JSON SHA-256; not compiler output or execution evidence",
+  "previous_source": "585c4be8ecbe1bf30883bd4d716fb83b4fb97a6c",
+  "previous_program_file": "portability/fixtures/program-grammar-before-published-command.json",
+  "previous_program_cid": "sha256:44fb1d94a435948c6fe63111ce1e55b7e615674835d2214a0ae98cb9d3a92435",
+  "program_cid": "sha256:c2acebbb8ee7587780997e4a8eee9e1cea832cf82d94715a2f718b7b5c906eb4",
+  "programs": [
+    {
+      "mode": "installation",
+      "program": {
+        "version": "actql/0.1",
+        "id": "original-command",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "address",
+                  "body"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "published_command": {
+                  "target_ref": "connector://mailbox/current"
+                }
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              }
+            }
+          }
+        }
+      },
+      "cid": "sha256:d0cee1d0b7ebb8d205f1a8f88683f9dba67cc611fc2a793ed07077c81db58f9d",
+      "qualification": "Canonical authored data identity only; no executed input or issued target"
+    },
+    {
+      "mode": "identifier",
+      "program": {
+        "version": "actql/0.1",
+        "id": "original-command",
+        "stages": [
+          {
+            "id": "s",
+            "inputs": {
+              "rows": {}
+            },
+            "steps": [],
+            "results": {
+              "rows": {
+                "from": "rows",
+                "fields": [
+                  "address",
+                  "body"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": {
+              "stage": "s",
+              "result": "rows"
+            }
+          }
+        },
+        "effects": {
+          "send": {
+            "command": {
+              "from": {
+                "result": "rows"
+              },
+              "target": {
+                "published_command": {
+                  "target_ref": "connector://mailbox/current",
+                  "identifier_field": "address"
+                }
+              },
+              "contract": "command:mail.send.v1",
+              "input": {
+                "body": {
+                  "field": "body"
+                }
+              }
+            }
+          }
+        }
+      },
+      "cid": "sha256:b706327ca6d126218499ce1d8119fb662134bc7e2c167903f192c56889cbebd0",
+      "qualification": "Canonical authored data identity only; no executed input or issued target"
+    }
+  ]
+}
