@@ -20,7 +20,7 @@ test "project selection consumes the Common metadata relative to its selected fi
 }
 
 ///|
-test "project command flags override metadata without changing the legacy HOME default" {
+test "project command flags override metadata while legacy installation selection stays explicit" {
   let matches = command().parse(argv=[
     "--mode", "local", "--config", "actql.config.json", "--state-dir", "/other/.actql",
     "--profile", "selected", "connect",
@@ -31,7 +31,12 @@ test "project command flags override metadata without changing the legacy HOME d
   assert_eq(selected.state_directory, "/other/.actql")
   assert_eq(selected.profile, Some("selected"))
   let legacy = command().parse(argv=["--mode", "local", "connect"])
-  assert_true(local_project_read(legacy) is Ok(None))
+  assert_true(local_project_discovery_selected(legacy))
+  let explicit_legacy = command().parse(argv=[
+    "--mode", "local", "--config-file", "legacy.json", "connect",
+  ])
+  assert_false(local_project_discovery_selected(explicit_legacy))
+  assert_true(local_project_read(explicit_legacy) is Ok(None))
   assert_eq(
     local_product_selected_location(None, Some("/home/user")).directory_name,
     ".actql-local",
@@ -96,7 +101,9 @@ test "project selection refuses Remote or conflicting legacy options before file
         "ConflictingLocalProjectSelection",
       ),
       (
-        ["--mode", "local", "--profile", "mock", "connect"],
+        [
+          "--mode", "local", "--config-root", "/legacy", "--profile", "mock", "connect",
+        ],
         "ProjectConfigurationRequired",
       ),
     ] {
@@ -176,4 +183,91 @@ test "project file read retains the existing bounded Reader failure carrier" {
   assert_true(failure.issue() is @files.Missing)
   failure.retry_cleanup().unwrap()
   assert_true(failure.issue() is @files.Missing)
+}
+
+///|
+test "project discovery selects the nearest file and resolves paths beside that file" {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap_or_else(() => {
+      fail("mandatory fresh project configuration fixture missing")
+    },
+  )
+  let matches = command().parse(argv=["--mode", "local", "connect"])
+  let parent = local_project_read_from(matches, root + "/parent/child")
+    .unwrap()
+    .unwrap()
+  assert_eq(parent.state_directory, root + "/parent/.parent-state")
+  let nearest = local_project_read_from(matches, root + "/nearer/child")
+    .unwrap()
+    .unwrap()
+  assert_eq(nearest.state_directory, root + "/nearer/.nearer-state")
+  let overridden = command().parse(argv=[
+    "--mode",
+    "local",
+    "--state-dir",
+    root + "/.explicit-state",
+    "--profile",
+    "mock",
+    "connect",
+  ])
+  let selected = local_project_read_from(overridden, root + "/nearer/child")
+    .unwrap()
+    .unwrap()
+  assert_eq(selected.state_directory, root + "/.explicit-state")
+  assert_eq(selected.profile, Some("mock"))
+}
+
+///|
+test "project discovery cannot rescue malformed nearer metadata with a valid parent" {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap_or_else(() => {
+      fail("mandatory fresh project configuration fixture missing")
+    },
+  )
+  let matches = command().parse(argv=["--mode", "local", "connect"])
+  let rejected = try {
+    ignore(local_project_read_from(matches, root + "/malformed/child"))
+    false
+  } catch {
+    ClientStop(reason) => reason == "InvalidProjectConfiguration"
+  }
+  assert_true(rejected)
+}
+
+///|
+test "project discovery preserves physical refusal instead of trying another ancestor" {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap_or_else(() => {
+      fail("mandatory fresh project configuration fixture missing")
+    },
+  )
+  let matches = command().parse(argv=["--mode", "local", "connect"])
+  for name in ["symlink", "oversize", "invalid-utf8", "directory"] {
+    let original = match
+      local_project_read_from(matches, root + "/" + name + "/child") {
+      Err(original) => original
+      Ok(_) => {
+        fail("invalid nearest project input fell back")
+        return
+      }
+    }
+    match name {
+      "oversize" => assert_true(original.issue() is @files.CapacityExceeded)
+      "invalid-utf8" => assert_true(original.issue() is @files.InvalidUtf8)
+      _ => assert_true(original.issue() is @files.Filesystem(_))
+    }
+    original.retry_cleanup().unwrap()
+  }
+}
+
+///|
+test "project ancestor traversal terminates at root and Remote never discovers a Local project" {
+  assert_eq(local_project_parent_directory("/"), None)
+  assert_eq(local_project_parent_directory("/project"), Some("/"))
+  assert_eq(local_project_parent_directory("/project/child"), Some("/project"))
+  let remote = command().parse(argv=["connect"])
+  assert_false(local_project_discovery_selected(remote))
+  assert_true(local_project_read_from(remote, "/never-opened") is Ok(None))
+  let legacy_root = command().parse(argv=[
+    "--mode", "local", "--config-root", "/legacy", "connect",
+  ])
+  assert_false(local_project_discovery_selected(legacy_root))
+  assert_true(local_project_read_from(legacy_root, "/never-opened") is Ok(None))
 }
