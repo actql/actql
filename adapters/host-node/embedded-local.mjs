@@ -46,7 +46,7 @@ import {installNodeClientCheck} from './client-check.mjs';
 import {snapshotInstalledCalendar, installedCalendarIdentityCid,
   installedCalendarSelection, admitInstalledCalendar} from './installed-calendar.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {issueInstalledRunObservationKey,
+import {installedRunWaitDecision, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
   '../host-common/run-state-observation.mjs';
 import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
@@ -1001,33 +1001,41 @@ async function openInstalledHost(originalInstallation) {
     void checkpoints.sweep();
     return {requestId, kind: held.outcome};
   };
-  const wait = async ({ref, principalId: actual, until, signal}) => {
+  const wait = async ({ref, principalId: actual, until, since, signal}) => {
     if (until !== null && until !== 'terminal') {
       throw clientOperationError('InvalidWaitCondition');
     }
-    const current = await observeRun({ref, principalId: actual});
-    if (['succeeded', 'failed', 'cancelled'].includes(current.status)) {
-      return current;
+    if (since !== null && (!Number.isSafeInteger(since) || since < 0)) {
+      throw clientOperationError('InvalidWaitRevision');
     }
-    const operation = dispatchOwner.operation(ref);
-    if (operation === undefined) return current;
-    if (signal?.aborted) throw clientOperationError('WaitAborted');
-    let abort;
-    const interrupted = new Promise((_, reject) => {
-      abort = () => reject(clientOperationError('WaitAborted'));
-      signal?.addEventListener('abort', abort, {once: true});
-    });
-    try {
-      // The dispatch supervisor records execution failure only after owned
-      // stop and cleanup. Its rejected physical Promise is not a failure of
-      // this public observation operation. Read the resulting Run state;
-      // unresolved custody remains unknown rather than becoming success.
-      await Promise.race([operation.then(() => undefined, () => undefined),
-        interrupted]);
-    } finally {
-      signal?.removeEventListener('abort', abort);
+    const interruption = () => clientOperationError(
+      signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted');
+    if (signal?.aborted) throw interruption();
+    const observeStep = async promise => {
+      let abort;
+      const interrupted = new Promise((_, reject) => {
+        abort = () => reject(interruption());
+        signal?.addEventListener('abort', abort, {once:true});
+        if (signal?.aborted) abort();
+      });
+      try { return await Promise.race([promise, interrupted]); }
+      finally { signal?.removeEventListener('abort', abort); }
+    };
+    for (;;) {
+      // Reuse the original read/authorization owner. A caller timeout does
+      // not retire an unfinished Store read or the original physical work.
+      const current = await observeStep(observeRun({ref, principalId:actual}));
+      if (signal?.aborted) throw interruption();
+      const decision = installedRunWaitDecision(moon, current, since);
+      if (decision === 'ready') return current;
+      if (decision !== 'pending') throw clientOperationError(decision);
+      // One timer and one abort listener per wait. Never repeatedly attach
+      // reactions to an original physical Promise that may never settle.
+      let timer;
+      try {
+        await observeStep(new Promise(resolve => { timer = setTimeout(resolve, 100); }));
+      } finally { clearTimeout(timer); }
     }
-    return observeRun({ref, principalId: actual});
   };
   const prepareInferSelection = (preparedProgram, occurrence, retain = true) => {
     // The Effect compiler retains this exact graph for the saved admission.

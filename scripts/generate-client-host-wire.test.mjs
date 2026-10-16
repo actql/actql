@@ -22,6 +22,8 @@ test('generated Client–Host guards and types match the machine contract',
     assert.equal(outputs.types, await readFile(new URL(
       '../packages/client-wire/client-host.generated.d.ts', import.meta.url),
     'utf8'));
+    assert.equal(outputs.runWait, await readFile(new URL(
+      '../src/run_publication/run_wait.generated.mbt', import.meta.url), 'utf8'));
   });
 
 test('Native observation-only guards remain tested without adding a CLI operation', () => {

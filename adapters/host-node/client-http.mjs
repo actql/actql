@@ -62,7 +62,7 @@ function responseCode(error) {
       /^ACTQL_E_(ACCOUNT_[A-Z_]+|DELEGATION_[A-Z_]+)$/u
         .test(error?.code ?? '')) return 403;
   if (error?.code === 'CheckpointReviewUnavailable') return 410;
-  if (error?.code === 'WaitAborted') return 408;
+  if (error?.code === 'WaitAborted' || error?.code === 'WaitTimeout') return 408;
   if (error?.code === 'ClientRequestNotFound' ||
       error?.code === 'ResourceConnectionNotFound') return 404;
   if (error?.code === 'ResourceCatalogUnavailable') return 503;
