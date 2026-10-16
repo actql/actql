@@ -72,6 +72,19 @@ test('independent published-STORE and mixed identities preserve the same eight-f
   checkResultPlanSchema(registry);
 });
 
+test('published selection fixture carries the actual explicit bounded policy, not undefined', () => {
+  const source = readFileSync(
+    'src/run_publication_host/client_published_store_selection_wbtest.mbt', 'utf8');
+  const wire = source.match(/^    #\|(.+)$/mu)[1];
+  const body = JSON.parse(wire);
+  const {evidence_bundle_cid: cid, ...preimage} = body;
+  verifyIdentity(preimage, cid, canonicalText(preimage));
+  const original = JSON.parse(readFileSync(
+    'scripts/fixtures/store-effect-lowering/environment.json', 'utf8'));
+  assert.deepEqual(body.host_policy_profile, original.environment.host_policy_profile);
+  assert.equal(body.host_policy_profile.capacity.max_artifact_bytes, 1000);
+});
+
 test('original UPDATE selection is optional in both closed Plan schemas', () => {
   const keys = ['check_environment_cid', 'effect_id',
     'installation_binding_cid', 'installation_owner_cid', 'mapping_cid',
