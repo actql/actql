@@ -9,6 +9,8 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {readSourceProfileJson} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {sourceReadAccountConfiguration} from './local-account-config.mjs';
+import {installedSourceIdentity} from './installed-source.mjs';
+import {installedEffectIdentity} from './installed-effect.mjs';
 import {readGitHubSite, readGitHubPublication,
   installedGitHubSourceIdentityParts} from '../connectors/github/host/installed-github-source.mjs';
 import {installedGitHubEffectIdentityParts} from '../connectors/github/host/installed-github-effect.mjs';
@@ -107,6 +109,30 @@ test('GitHub Source and Effect identity reads keep the same bounded original par
     () => installedGitHubEffectIdentityParts(effect, readSourceProfileJson)]) {
     await assert.rejects(read(), {message: 'InvalidInstalledSourceProfile'});
   }
+  f.passed();
+});
+
+test('normal GitHub Source and Effect identity callers forward the explicit original Site ceiling', async t => {
+  const f = await fixture(t), site = githubSite(f.root);
+  const sourcePath = join(f.root, 'source.json'), effectPath = join(f.root, 'effect.json');
+  const publicationPath = join(f.root, 'publication.json');
+  const profile = {version: 'actql-installed-github-source/0.1', connectorId: 'github',
+    siteProfilePath: f.path, publicationPath, accountConfigurationWire: '{"account_id":"fixture"}'};
+  const effect = {...profile, version: 'actql-installed-github-effect/0.1',
+    writes: [{resource: 'issues', sources: [{target: 'title', field: 'title', null_behavior: 'reject'}]}]};
+  await fs.writeFile(sourcePath, JSON.stringify(profile));
+  await fs.writeFile(effectPath, JSON.stringify(effect));
+  await fs.writeFile(publicationPath, '{"original":"publication"}');
+  const body = JSON.stringify(site);
+  await fs.writeFile(f.path, body);
+  const sourceIdentity = await installedSourceIdentity(sourcePath);
+  const effectIdentity = await installedEffectIdentity(effectPath);
+  await fs.writeFile(f.path, body + ' '.repeat(siteLimit - Buffer.byteLength(body)));
+  assert.equal(await installedSourceIdentity(sourcePath), sourceIdentity);
+  assert.equal(await installedEffectIdentity(effectPath), effectIdentity);
+  await fs.appendFile(f.path, ' ');
+  await assert.rejects(installedSourceIdentity(sourcePath), {message: 'InvalidInstalledSourceProfile'});
+  await assert.rejects(installedEffectIdentity(effectPath), {code: 'InvalidInstalledEffectProfile'});
   f.passed();
 });
 
