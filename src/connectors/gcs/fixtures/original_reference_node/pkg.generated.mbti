@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/gcs/fixtures/original_reference_node"
+
+import {
+  "actql/actql/check_environment",
+  "actql/actql/program_check",
+  "actql/actql/value_admission",
+}
+
+// Values
+pub fn fixture_gcs_original_store_pair(@program_check.CheckEnvironment) -> Result[@check_environment.StoreCommandBinding, String]
+
+pub fn fixture_gcs_reference_available(@value_admission.CheckedValue) -> Bool
+
+pub fn fixture_gcs_reference_wire(@value_admission.CheckedValue) -> String?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

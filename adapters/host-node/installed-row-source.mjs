@@ -212,6 +212,9 @@ export async function openRowSourceCredentialSite({profile, principalId,
   };
   return Object.freeze({
     credential, connection, callResource,
+    // Borrowed references observe this same Site's lifecycle, not a caller's
+    // permission Boolean. False means closing, not physical cleanup ACK.
+    referenceCurrent: () => !closing,
     // Admit a resumed Checkpoint approval only for this installation's own
     // physical target of the same Resource.
     admitCheckpointReadApproval(decision) {
