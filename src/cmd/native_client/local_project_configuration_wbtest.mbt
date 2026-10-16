@@ -100,8 +100,9 @@ test "project selection refuses Remote or conflicting legacy options before file
         "ProjectConfigurationRequired",
       ),
     ] {
+    let parsed = command().parse(argv~)
     let rejected = try {
-      ignore(local_project_read(command().parse(argv~)))
+      ignore(local_project_read(parsed))
       false
     } catch {
       ClientStop(reason) => reason == expected

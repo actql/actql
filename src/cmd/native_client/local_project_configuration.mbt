@@ -3,7 +3,6 @@
 // originals. It cannot issue an Account decision, capture, grant or Run.
 priv struct LocalProjectConfiguration {
   metadata : @run_host.ClientProjectConfiguration
-  directory : String
   state_directory : String
   profile : String?
 }
@@ -67,7 +66,6 @@ fn local_project_select_loaded(
   ignore(local_product_selected_location(Some(state_directory), None))
   {
     metadata,
-    directory,
     state_directory,
     profile: match optional(matches, "profile") {
       Some(value) => Some(value)
@@ -94,6 +92,9 @@ fn local_project_read(
   let selected = selected.unwrap_or_else(() => {
     stop("ProjectConfigurationRequired")
   })
+  if selected.has_suffix("/") {
+    stop("InvalidProjectConfigurationPath")
+  }
   let cwd = @env.current_dir().unwrap_or_else(() => {
     stop("ProjectConfigurationDirectoryUnavailable")
   })
