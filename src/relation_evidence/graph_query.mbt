@@ -3,6 +3,7 @@ pub(all) enum GraphKeyOperation {
   MatchOperation(@graph.CheckedMatch)
   TraverseOperation(@graph.CheckedTraverse)
   ComponentsOperation(@graph.CheckedComponents)
+  DegreeOperation(@graph.CheckedDegree)
 }
 
 ///|
@@ -25,6 +26,12 @@ pub fn graph_query_keys(
         @graph.components_source(op),
         @graph.components_input(op),
         @graph.components_output(op),
+      )
+    DegreeOperation(op) =>
+      (
+        @graph.degree_source(op),
+        @graph.degree_input(op),
+        @graph.degree_output(op),
       )
   }
   try {
@@ -60,7 +67,8 @@ pub fn graph_query_keys(
             names.push(Unqualified("source_id"))
             names.push(Unqualified("target_id"))
           }
-        ComponentsOperation(_) => names.push(Unqualified("node_id"))
+        ComponentsOperation(_) | DegreeOperation(_) =>
+          names.push(Unqualified("node_id"))
       }
     }
     let fields : Array[KeyField] = []

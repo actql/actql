@@ -58,7 +58,7 @@ test "graph diagnostics retain typed identity, order and exact threshold forms" 
     @carrier.relation_rows(@graph_typing.degree_output(checked)).unwrap(),
   ).unwrap()
   assert_eq(@row.field_count(degree_rows), 2)
-  assert_true(@row.lookup(degree_rows, Unqualified("node")) is Some(_))
+  assert_true(@row.lookup(degree_rows, Unqualified("node_id")) is Some(_))
   assert_true(@row.lookup(degree_rows, Unqualified("degree")) is Some(_))
 }
 

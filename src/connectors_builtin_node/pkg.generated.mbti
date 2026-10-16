@@ -1902,6 +1902,8 @@ pub fn client_program_run_state_observation_revision(@run_publication.RunStateOb
 
 pub fn client_program_run_state_observation_wire(@run_publication.RunStateObservation, Int64) -> String raise ClientProgramRunObservationIssue
 
+pub fn client_program_run_wait_decision(String, Bool, Int64) -> String
+
 pub fn client_program_salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@catalog.QueryRead, @catalog.QueryReadIssue]
 
 pub fn client_program_salesforce_query_page_response_sha256(@catalog.QueryPage) -> String

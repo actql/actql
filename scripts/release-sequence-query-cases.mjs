@@ -2,13 +2,18 @@ import assert from 'node:assert/strict';
 import {sequenceSourceSuccesses, sequenceSourceRefusals}
   from './fixtures/sequence-source-input.mjs';
 
-// Complete original F05 inventory, not an easier installed-product subset.
+// Complete current inventory: original explicit F05 inputs, the formerly
+// refused overlap omission, and the adopted v0.1 all-omitted forms.
 export const releaseSequenceSuccessNames = Object.freeze([
+ ...[
   'relation', 'events', 'nullable-case', 'gap-adjacent', 'gap-subsequence', 'parameters',
-].flatMap(name => ['json', 'sql', 'aql-text'].map(format => `sequence-${format}-${name}`)));
+ ].flatMap(name => ['json', 'sql', 'aql-text'].map(format => `sequence-${format}-${name}`)),
+ 'sequence-implicit-overlap',
+ ...['json','sql','aql-text'].map(format=>`sequence-${format}-omitted-defaults`),
+]);
 export const releaseSequenceRefusalNames = Object.freeze([
   'string-predicate', 'prior-label-input', 'duplicate-label', 'reserved-label',
-  'nonboolean-predicate', 'zero-within', 'zero-output-guard', 'implicit-overlap',
+  'nonboolean-predicate', 'zero-within', 'zero-output-guard', 'invalid-overlap',
   'json-predicate-adapter',
 ].map(name => `sequence-${name}`));
 

@@ -10,8 +10,9 @@ const submissionRef = {epoch: {version: 'actql-submission-epoch/0.1',
 const intentCid = 'sha256:' + 'd'.repeat(64);
 const observation = {version: 'actql-check-outcome/0.1',
   reason_schema_cid: 'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742',
-  outcome_schema_cid: 'sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a',
+  outcome_schema_cid: 'sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce',
   outcome: 'completed', report: {context_ref: 'ctx:independent', scope: {kind: 'bound_input'},
+    runnable: {verdict: 'no', reasons: [{code: 'query_syntax_invalid'}]},
     verdict: 'invalid', inputs: [{document_id: 'source', kind: 'text',
       revision: 'rev:' + '4'.repeat(64), byte_length: 6}],
     reasons: [{code: 'query_syntax_invalid', location: {kind: 'text', document_id: 'source',
@@ -43,6 +44,28 @@ test('query alias absence wire enforces independent closed facts and current pin
     const response = {...entry.value, submissionRef, intentCid};
     assert.equal(validSubmissionOutcome(response, {}, submissionRef, intentCid), entry.expected,
       entry.name + ' [check-mutation:namespace-wire]');
+    assert.equal(validStoredSubmissionOutcome(response, submissionRef, intentCid), false);
+  }
+});
+
+test('current submission checking refuses the previous outcome pin and absent runnable facts', () => {
+  const base = {kind: 'not_accepted', submissionRef, intentCid,
+    problem: {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}};
+  const current = () => ({...base, checkObservation: structuredClone(observation)});
+  assert.equal(validSubmissionOutcome(current(), {}, submissionRef, intentCid), true);
+  for (const change of [
+    value => {value.outcome_schema_cid = 'sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a';},
+    value => {delete value.report.runnable;},
+    value => {value.report.runnable = undefined;},
+    value => {value.report.runnable = null;},
+    value => {
+      const {runnable, ...report} = value.report;
+      value.report = Object.assign(Object.create({runnable}), report);
+    },
+  ]) {
+    const response = current();
+    change(response.checkObservation);
+    assert.equal(validSubmissionOutcome(response, {}, submissionRef, intentCid), false);
     assert.equal(validStoredSubmissionOutcome(response, submissionRef, intentCid), false);
   }
 });

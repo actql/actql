@@ -30,7 +30,7 @@ fn graph_diagnostic_expected(
 test "Graph diagnostics independent machine Programs pass the common checker" {
   for
     (operation, body, fields) in [
-      ("degree", "{\"direction\":\"both\"}", "[\"degree\",\"node\"]"),
+      ("degree", "{\"direction\":\"both\"}", "[\"degree\",\"node_id\"]"),
       (
         "graph_bounds", "{\"max_nodes\":0,\"max_edges\":0,\"max_degree\":0}", "[\"actual\",\"kind\",\"node_id\",\"max\"]",
       ),
@@ -58,8 +58,8 @@ test "Graph diagnostics text matches independent complete machine Programs" {
   for
     (operation, arguments, body, selected, fields) in [
       (
-        "degree", "direction: 'both'", "{\"direction\":\"both\"}", "degree, node",
-        "[\"degree\",\"node\"]",
+        "degree", "direction: 'both'", "{\"direction\":\"both\"}", "degree, node_id",
+        "[\"degree\",\"node_id\"]",
       ),
       (
         "graph_bounds", "max_nodes: 0, max_edges: 0, max_degree: 0", "{\"max_nodes\":0,\"max_edges\":0,\"max_degree\":0}",
@@ -102,7 +102,7 @@ test "Graph diagnostics text matches independent complete machine Programs" {
 test "Graph diagnostic WITH reuses the normalized producer and current columns" {
   let program = compile_with_set(
     graph_diagnostic_prefix() +
-    " , `stats` AS (FROM g |> normalize_graph() |> degree(direction: 'out')) FROM `stats` |> WHERE degree = 0 |> SELECT degree, node |> ORDER BY degree |> LIMIT 1",
+    " , `stats` AS (FROM g |> normalize_graph() |> degree(direction: 'out')) FROM `stats` |> WHERE degree = 0 |> SELECT degree, node_id |> ORDER BY degree |> LIMIT 1",
   )
   let body = semantic(program)
   assert_eq(body.split("\"graph\":").length(), 2)
@@ -170,6 +170,27 @@ test "Graph diagnostic transition rejects Graph columns and another Graph call" 
       assert_true(actual is Err(InvalidQuery), msg=suffix)
     }
   }
+}
+
+///|
+test "degree rejects the former node column at its authored reference" {
+  let source = graph_diagnostic_prefix() +
+    "FROM g |> degree(direction: 'both') |> SELECT node"
+  let actual = compile_query_script(
+    @query.parse_query_script(source, syntax_limits()).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  )
+  guard actual
+    is Err(
+      Expression({ issue: @expression.UnknownReference, origin: Some(origin), })
+    ) else {
+    fail("degree has only node_id and degree, without a compatibility column")
+  }
+  assert_eq(@origin.kind(origin), @origin.Authored)
+  let span = @origin.span(origin)
+  assert_eq(span.start_byte, source.length() - 4)
+  assert_eq(span.end_byte, source.length())
 }
 
 ///|
