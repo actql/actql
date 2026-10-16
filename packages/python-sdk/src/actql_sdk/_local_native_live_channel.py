@@ -7,6 +7,8 @@ admission, current, cumulative usage and cleanup through its original domain.
 """
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind as bind_native
+
 from ctypes import POINTER, byref, c_int, c_int32, c_int64, c_void_p
 from os import getpid
 from threading import current_thread
@@ -38,38 +40,19 @@ class _OriginalLiveChannelFunctions:
 
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.prepare = library.actql_live_channel_prepare_into
-        self.prepare.argtypes = [c_void_p, c_void_p, c_int32, c_int32, c_int32,
-                                 c_int64, POINTER(c_void_p)]
-        self.bind = library.actql_live_channel_bind_into
-        self.bind.argtypes = [c_void_p, c_void_p, c_void_p, c_int64, c_int64,
-                              c_int64, POINTER(c_void_p)]
-        self.operate = library.actql_live_channel_operate_into
-        self.operate.argtypes = [c_void_p, c_void_p, c_void_p, c_int32, POINTER(c_void_p)]
-        self.report = library.actql_live_channel_report_into
-        self.report.argtypes = [c_void_p, c_void_p, c_void_p] + [c_int32] * 3 + [c_int64] * 7 + [POINTER(c_void_p)]
-        self.originals = library.actql_live_channel_originals_into
-        self.originals.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p), POINTER(c_void_p)]
-        self.drop = library.actql_live_channel_drop_reply
-        self.drop.argtypes = [POINTER(c_void_p), c_void_p, c_void_p, c_void_p]
-        self.finish = library.actql_live_channel_finish_retired_data
-        self.finish.argtypes = [POINTER(c_void_p)] * 4
-        self.refused = library.actql_live_channel_finish_refused_prepare
-        self.refused.argtypes = [POINTER(c_void_p)] * 3
-        self.state = library.actql_live_channel_copy_state
-        self.state.argtypes = [c_void_p] * 4 + [POINTER(c_int32)]
-        self.limits = library.actql_live_channel_copy_limits
-        self.limits.argtypes = [c_void_p] * 4 + [POINTER(c_int64)]
-        self.capacities = library.actql_live_channel_copy_capacities
-        self.capacities.argtypes = [c_void_p] * 4 + [POINTER(c_int64)]
-        for call in (self.prepare, self.bind, self.operate, self.report, self.originals,
-                     self.drop, self.finish, self.refused, self.state, self.limits, self.capacities):
-            call.restype = c_int
-        self.operation = library.actql_live_channel_operation
-        self.issue = library.actql_live_channel_issue_family
-        for call in (self.operation, self.issue):
-            call.argtypes = [c_void_p]
-            call.restype = c_int32
+        self.prepare = bind_native(library, 'actql_live_channel_prepare_into')
+        self.bind = bind_native(library, 'actql_live_channel_bind_into')
+        self.operate = bind_native(library, 'actql_live_channel_operate_into')
+        self.report = bind_native(library, 'actql_live_channel_report_into')
+        self.originals = bind_native(library, 'actql_live_channel_originals_into')
+        self.drop = bind_native(library, 'actql_live_channel_drop_reply')
+        self.finish = bind_native(library, 'actql_live_channel_finish_retired_data')
+        self.refused = bind_native(library, 'actql_live_channel_finish_refused_prepare')
+        self.state = bind_native(library, 'actql_live_channel_copy_state')
+        self.limits = bind_native(library, 'actql_live_channel_copy_limits')
+        self.capacities = bind_native(library, 'actql_live_channel_copy_capacities')
+        self.operation = bind_native(library, 'actql_live_channel_operation')
+        self.issue = bind_native(library, 'actql_live_channel_issue_family')
 
 
 class _OriginalLiveChannelCustody:
