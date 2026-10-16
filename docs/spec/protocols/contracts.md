@@ -1012,7 +1012,11 @@ does not authorize implicit coercion. Each permission rule carries effect kind,
 selector class, exact write-field set and its non-empty permission set.
 `row_mapping` binds each written create/store target field to one explicit
 result field or literal and one null behavior (`reject`, `write_null`, or
-`omit`). An object/file/stage write Mapping may additionally publish the closed
+`omit`). Contract integrity and these static facts do not establish current
+provider authority, schema freshness, uniqueness, or apply permission.
+
+<!-- requirement-block: store-command.exact-original-catalog-member store-command.invalid-present-relationship store-command.retained-installed-selection -->
+An object/file/stage write Mapping may additionally publish the closed
 `store_command` relationship: `catalog_cid`, `command_ref`, and
 `command_contract_cid`. These exact references are part of the Mapping's canonical
 self preimage. The existing Catalog/selection Owner MUST resolve them to the
@@ -1020,14 +1024,11 @@ original Command member in the same original Check Environment and the same
 connection and revision identified by the Mapping's connector-manifest entry.
 Absence does not select a Command; null, incomplete, foreign or ambiguous evidence
 MUST fail admission. This relationship neither issues a ResourceRef nor supplies
-installation authority. The installed Owner must bind its original target and
+installation authority. The installed Owner MUST bind its original target and
 installation to the checked pair and retain the full selection through original
 Run materials, Preview, apply and restore, with current installation and grants
 independently checked. See the authored-vs-canonical
 [STORE distinction](artifacts.md#reference-admission-and-availability).
-
-Contract integrity and these static facts do not establish current
-provider authority, schema freshness, uniqueness, or apply permission.
 
 <!-- requirement-block: mapping-contracts.the-resolved-mapping-contract-must-derive-exactly-one-non-empty-permission mapping-contracts.preview-and-apply-must-reject-a-mapping-unless-exactly-one mapping-generation.product-c4d159e6b70f mapping-generation.product-9c63aad3384b classification-inheritance.product-340f5cf73a23 -->
 The resolved mapping contract MUST derive exactly one non-empty permission set

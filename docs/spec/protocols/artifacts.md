@@ -946,7 +946,10 @@ effective data-policy CID. The Content issuer evidence and external egress
 admission MUST respectively bind that same effective data-policy CID and reject
 unknown classification before any provider call. Resolution MUST validate store/workspace scope,
 availability, expiry, size/range, and content CID. Raw bytes remain in host
-artifact storage. The canonical `store` opcode remains relation materialization.
+artifact storage.
+
+<!-- requirement-block: store-normalization.original-selection-retained store-normalization.mapping-not-discarded -->
+The canonical `store` opcode remains relation materialization.
 The authored [`EFFECT STORE`](../query-text.md#short-effect-forms-and-sql-statements)
 spelling also admits object/file/stage writes with an original typed ContentRef;
 it does not imply a format or codec. Such a write may normalize to an existing
