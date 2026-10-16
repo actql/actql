@@ -323,14 +323,14 @@ describe('exact README hero compiler inputs', () => {
   const hash = value => `sha256:${createHash('sha256').update(canonicalText(value)).digest('hex')}`;
   const without = (value, field) => Object.fromEntries(Object.entries(value).filter(([key]) => key !== field));
   const literals = moon.split('\n').filter(line => /^\s*#\|\{/.test(line)).map(line => JSON.parse(line.split('#|')[1]));
-  
+
   test('the compiled hero is the exact first README SQL, including its defaults', () => {
     const authored = read('README.md').split('```sql\n')[1].split('\n```')[0];
     const body = moon.split('fn readme_hero_text() -> String {')[1].split('\n}\n')[0];
     const compiled = body.split('\n').filter(line => /^\s*#\|/.test(line)).map(line => line.split('#|')[1]).join('\n');
     assert.equal(compiled, authored);
   });
-  
+
   test('independent complete environment and member preimages match the compiler literals', () => {
     const environment = fixture.environment;
     assert.deepEqual(literals[0], environment);
@@ -356,7 +356,7 @@ describe('exact README hero compiler inputs', () => {
       verifyIdentity(task.output_contract, task.output_schema_cid);
     }
   });
-  
+
   test('captured-input declarations retain independent schemas and original key evidence', () => {
     assert.deepEqual(literals.slice(1), Object.values(fixture.declarations));
     assert.deepEqual(fixture.expected_input_fields, ['notes', 'active_users', 'trend']);
