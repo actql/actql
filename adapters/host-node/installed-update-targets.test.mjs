@@ -107,7 +107,12 @@ async function fixture(t, installations = {main: adapter()}) {
         });
         // Fault fixtures may deliberately present unowned metadata. Valid
         // fixtures retain the real row factory's private provenance.
-        if (JSON.stringify(selected.effectSelectors) === JSON.stringify(row.effectSelectors)) {
+        // The independent environment sealer sorts contracts by CID. Its
+        // inventory order need not equal the fixture author's insertion order;
+        // retain the real row Owner only for the same COMPLETE selector set.
+        const selectorSet = values => values.map(canonicalJson).sort();
+        if (JSON.stringify(selectorSet(selected.effectSelectors)) ===
+            JSON.stringify(selectorSet(row.effectSelectors))) {
           selected.effectSelectors = row.effectSelectors;
         }
         const projected = Object.freeze({...row, ...selected,
