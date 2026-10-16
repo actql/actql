@@ -141,6 +141,13 @@ their original Source identity. An unchanged authored copy may retain its older
 artifact Source only when it also matches the current checked source input;
 this is not current-Source Native execution or compiler-provenance evidence.
 
+Installed TypeScript declarations (`.d.ts`, `.d.mts`, `.d.cts`) retain their
+authored-member discovery, exact source comparison and primary Owner coverage.
+They do not emit runtime code and are not separate runtime bundler entrances.
+Actual value imports still pass through the runtime resolver; a runtime import
+of a declaration does not gain a dependency exemption. Dormant runtime helpers
+and non-declaration TypeScript members remain runtime dependency obligations.
+
 Runtime-dependent imports are never silently dropped. Lexical single-write
 references only provide candidate targets; the existing manifest/builder or
 installation Owner must map them to its actual dependency or artifact inventory.
