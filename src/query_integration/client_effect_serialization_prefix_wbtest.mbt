@@ -27,8 +27,6 @@ fn effect_serialization_prefix_fixture(
     Err(Syntax(_)) => fail("Effect serialization fixture syntax failed")
     Err(Candidate(_)) =>
       fail("Effect serialization fixture candidate binding failed")
-    Err(TargetSelection(_)) =>
-      fail("Effect serialization fixture target selection failed")
     Err(Mapping(_)) => fail("Effect serialization fixture mapping failed")
     Err(Static(_)) => fail("Effect serialization fixture static Effect failed")
     Err(Stage(_)) =>
