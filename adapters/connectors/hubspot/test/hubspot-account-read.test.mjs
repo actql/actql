@@ -18,7 +18,7 @@ test('actual identity request uses its original credential and RowRun charge wit
   assert.equal(f.row.usage()[3], BigInt(Buffer.byteLength(f.state.body)));
   assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n);
   f.row.assertNoCapture();
-  assert.equal(f.state.resolutions, 1); assert.equal(f.state.currentCalls, 3);
+  assert.equal(f.state.resolutions, 1); assert.equal(f.state.currentCalls, 4);
   assert.equal(Object.keys(f.binding).length, 0);
   assert.equal(JSON.stringify(result).includes('provider-secret'), false);
 });
@@ -83,6 +83,16 @@ test('Credential revocation while resolving the original secret prevents an iden
   f.state.resolve = () => f.journal.revoke(f.control.identity(f.grant));
   await assert.rejects(f.observe());
   assert.equal(f.state.resolutions, 1); assert.equal(f.state.requests.length, 0);
+  assert.equal(f.journal.recover()[0].outcome, 'failed');
+  assert.equal(f.state.charges, 0); assert.equal(f.state.consumed, 0);
+});
+
+test('Account replacement during the original resolver await refuses before physical send', async t => {
+  const f = await accountFixture(t);
+  f.state.resolve = async () => { await f.writeAccount('deny'); };
+  await assert.rejects(f.observe(), {code: 'AuthorizationCurrentAccountChanged'});
+  assert.equal(f.state.resolutions, 1);
+  assert.equal(f.state.requests.length, 0);
   assert.equal(f.journal.recover()[0].outcome, 'failed');
   assert.equal(f.state.charges, 0); assert.equal(f.state.consumed, 0);
 });

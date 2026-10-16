@@ -4308,6 +4308,7 @@
             "maxRequestBytes",
             "maxResponseBytes",
             "returnRejectedResponse",
+            "currentBeforeSend",
             "signal",
             "binding"
           ],
@@ -4597,7 +4598,7 @@
           }
         }
       ],
-      "sha256": "12e2806284ca5ee08ab577f053a8db0e7be99cbad0990fa5c6d6ff1ae7d18255"
+      "sha256": "eab60346c2dde44ce0f75c02a0ebac83019e8bad7434978044184585265d117a"
     },
     {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",
