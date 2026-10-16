@@ -56,11 +56,11 @@ def exercise(client):
     assert dict(lookup['admission']['ref']) == original['run']
     run = yield client.attach(original['run'])
     if phase == 'decide':
-        answer = yield getattr(client, decision)(original['checkpoint']['checkpointId'])
+        answer = yield getattr(client, decision)(original['checkpoint']['checkpoint_id'])
         item, = answer['signed']
         resolution = json.loads(item['resolutionWire'])
-        assert resolution['checkpoint_id'] == original['checkpoint']['checkpointId']
-        assert resolution['checkpoint_cid'] == original['checkpoint']['checkpointCid']
+        assert resolution['checkpoint_id'] == original['checkpoint']['checkpoint_id']
+        assert resolution['checkpoint_cid'] == original['checkpoint']['checkpoint_cid']
         assert resolution['run_id'] == original['run']['runId']
         assert resolution['decision'] == ('approved' if decision == 'approve' else 'rejected')
         if decision == 'approve':
