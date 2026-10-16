@@ -30263,7 +30263,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {open, readFile} from 'node:fs/promises';"
+                "anchor": "import {readSourceProfileJson} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -30436,7 +30436,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {open, readFile} from 'node:fs/promises';"
+                "anchor": "import {readSourceProfileJson} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
