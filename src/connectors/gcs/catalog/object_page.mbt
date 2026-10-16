@@ -22,6 +22,11 @@ pub fn admit_object_metadata_page(
   if max_items < 0 {
     return Err(InvalidLimits)
   }
+  if expected_bucket.is_empty() ||
+    @scalar.admit_utf8_length(expected_bucket, 222) is Err(_) ||
+    @scalar.admit_utf8_length(expected_prefix, 1024) is Err(_) {
+    return Err(ObjectMismatch)
+  }
   let root = match metadata_cursor(bytes, limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)

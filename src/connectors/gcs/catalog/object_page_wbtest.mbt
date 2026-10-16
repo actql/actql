@@ -44,6 +44,16 @@ test "GCS object page keeps exact Int64 and original physical digest" {
 
 ///|
 test "GCS empty object pages retain continuation and absence is not null" {
+  assert_true(
+    admit_object_metadata_page(
+      b"{\"kind\":\"storage#objects\"}",
+      "",
+      "in/",
+      0,
+      metadata_limits(),
+    )
+    is Err(ObjectMismatch),
+  )
   for wire in ["{\"kind\":\"storage#objects\"}", object_page_wire("[]")] {
     assert_eq(
       object_metadata_page_count(object_page_read(wire, maximum=0).unwrap()),
