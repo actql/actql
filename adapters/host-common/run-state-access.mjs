@@ -117,7 +117,7 @@ function unavailableFrom(error, at) {
   }
 }
 
-async function observeResult(installed, context, resultName, at) {
+async function observeResult(installed, context, resultName) {
   const retentionCid = installed.control.resultReadRetentionPolicyCid(
     context.manifest, resultName,
   );
@@ -127,11 +127,17 @@ async function observeResult(installed, context, resultName, at) {
       retentionCid, 'result_retention_policy',
     );
   } catch (error) {
-    return {name: resultName, ...unavailableFrom(error, at)};
+    return {name: resultName,
+      ...unavailableFrom(error, observedAt(installed.now))};
   }
   const clockCid = installed.control.resultRetentionClockContractCid(
     retention,
   );
+  // The original retention read may finish after another authorized read.
+  // Sample only after it settles, then synchronously enqueue that same sample
+  // on the existing Store clock owner. A stale pre-read sample must not turn
+  // ordinary completion reordering into a reported clock regression.
+  const at = observedAt(installed.now);
   try {
     await installed.store.observeTrustedClock(clockCid, at);
   } catch (error) {
@@ -272,7 +278,6 @@ export async function inspectAuthorizedRunState(service, request) {
   const names = installed.control.manifestResultNames(
     manifest, installed.limits,
   );
-  const at = observedAt(installed.now);
   const context = Object.freeze({
     indexKey,
     entry,
@@ -283,8 +288,13 @@ export async function inspectAuthorizedRunState(service, request) {
   });
   const observations = [];
   for (const name of names) {
-    observations.push(await observeResult(installed, context, name, at));
+    observations.push(await observeResult(installed, context, name));
   }
+  // Each Result carries its own original observation sample. The aggregate
+  // uses the last observation, without resampling, clamping or hiding a real
+  // clock-regression refusal. An empty inventory still has a read timestamp.
+  const at = observations.length === 0 ? observedAt(installed.now)
+    : observations.at(-1).observedAt;
   const wire = installed.control.issueSucceededRunState({
     runId: installed.control.runDefinitionRunId(runDefinition),
     updatedAt: at,
