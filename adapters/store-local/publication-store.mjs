@@ -976,7 +976,9 @@ export async function openLocalPublicationStore(
     let handle, flight;
     const writer = {cleanup: undefined};
     activePhysicalRecordWriters.add(writer);
-    const status = () => Object.freeze({pending: activePhysicalRecordWriters.has(writer)});
+    let original = {writers: activePhysicalRecordWriters, writer, temporary,
+      directory: stagingDirectory, syncDirectory};
+    const status = () => Object.freeze({pending: original !== undefined});
     const cleanup = Object.freeze({status, retry() {
       if (flight !== undefined) return flight;
       if (!status().pending) return Promise.resolve(status());
@@ -985,10 +987,11 @@ export async function openLocalPublicationStore(
           if (await handle.close() === false) fail('PublicationStoreCleanupPending');
           handle = undefined;
         }
-        try { await unlink(temporary); }
+        try { await unlink(original.temporary); }
         catch (error) { if (error?.code !== 'ENOENT') throw error; }
-        await syncDirectory(stagingDirectory);
-        activePhysicalRecordWriters.delete(writer);
+        await original.syncDirectory(original.directory);
+        original.writers.delete(original.writer);
+        original = undefined;
         return status();
       }).finally(() => { flight = undefined; });
       return flight;

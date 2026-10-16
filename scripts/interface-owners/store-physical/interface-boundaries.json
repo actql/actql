@@ -1,6 +1,6 @@
 {
   "source": "a6cabd33cd55bdd9f59850877ef2a88412d648a7",
-  "qualification": "Existing Store/representation responsibility references over B actual AST closure. No new semantic parser, scheduler, ledger, capacity authority or physical support grant; the initial reference-only supply made no product changes. Later explicitly owned product changes and source-qualified tests are recorded separately; the source/projection above is not a runtime acceptance receipt. Original declared same-process bodies/row codecs remain distinct from public Remote wire.",
+  "qualification": "Existing Store/representation responsibility references over B actual AST closure. No new semantic parser, scheduler, ledger, capacity authority or physical support grant; the initial reference-only supply made the initial reference-only supply made no product changes. Later explicitly owned product changes and source-qualified tests are recorded separately; the source/projection above is not a runtime acceptance receipt. Later explicitly owned product changes and source-qualified tests are recorded separately; the source/projection above is not a runtime acceptance receipt. Original declared same-process bodies/row codecs remain distinct from public Remote wire.",
   "projection": {
     "path": "i6-f-store-uncovered-projection.json",
     "sha256": "4f02763736fb74e739d4ffab6951c46514f92aaacde1daa93c3ae4eb3d1ca3f7"
@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "64e04154833437ce9a3a8584bbdc7a8d5cb56e75c17e4c32d99d372ed95702c5",
+      "sha256": "ba3172b99077e4a3d2d1653001b2a279f7219a1412f4f59c34f4c471dcaa30ef",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -7409,6 +7409,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
+                "anchor": "an already corrupt final holding remains refused"
               },
               {
                 "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",

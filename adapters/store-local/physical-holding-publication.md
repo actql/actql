@@ -25,6 +25,8 @@ single-flight, and `Store.close` retains/drains the same duty even if the
 caller sanitized or discarded its error. Original prepared-object custody and
 the holding-directory ACK remain independent. No key, ownership or capacity
 is released merely because a callback returned or cancellation was requested.
+After confirmed cleanup, an escaped cleanup handle drops its explicit original
+Store/writer association; its retired status does not retain that live set.
 
 The original metadata envelope includes the admitted record/Buffer, temporary
 path/UUID Strings, file and hard-link/directory operations, writer-set entry,
