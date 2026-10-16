@@ -74,6 +74,38 @@ test "GCS empty metadata is present and explicit null is not absent" {
 }
 
 ///|
+test "GCS logical metadata excludes only the exact private marker without changing original data" {
+  let wire = metadata_wire(
+    extra=",\"metadata\":{\"actql-request\":\"foreign-original\",\"Actql-request\":\"case\",\"actql-request-extra\":\"prefix\",\"actql-requést\":\"decomposed\"}",
+  )
+  let value = metadata_read(wire).unwrap()
+  assert_eq(
+    object_metadata_fields(value).metadata,
+    Some([
+      ("Actql-request", "case"),
+      ("actql-request-extra", "prefix"),
+      ("actql-requést", "decomposed"),
+    ]),
+  )
+  assert_eq(
+    value.fields.metadata.unwrap()[0],
+    ("actql-request", "foreign-original"),
+  )
+  assert_eq(
+    object_metadata_response_sha256(value),
+    @sha.hex(@utf8.encode(wire)),
+  )
+  let marker_only = metadata_read(
+    metadata_wire(extra=",\"metadata\":{\"actql-request\":\"copied\"}"),
+  ).unwrap()
+  assert_eq(object_metadata_fields(marker_only).metadata, Some([]))
+  assert_eq(
+    object_metadata_fields(metadata_read(metadata_wire()).unwrap()).metadata,
+    None,
+  )
+}
+
+///|
 test "GCS all optional provider fields survive the metadata projection" {
   let value = metadata_read(
     metadata_wire(

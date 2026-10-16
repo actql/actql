@@ -274,3 +274,91 @@ test "GCS delete is bodyless conditional material and has no metadata marker" {
     is Err(InvalidBinding),
   )
 }
+
+///|
+test "GCS request Preview preserves user removals and declares fresh private marker assignment" {
+  let request = prepare_object_metadata_patch(
+    mutation_binding(),
+    mutation_original(),
+    mutation_changes(),
+    mutation_marker(),
+  ).unwrap()
+  assert_eq(
+    object_mutation_before(request).metadata,
+    Some([("drop", "old"), ("keep", "kept")]),
+  )
+  let after = object_mutation_after(request).unwrap()
+  assert_eq(after.metadata, Some([("keep", "kept"), ("new", "=é\r\n")]))
+  assert_eq(after.content_type, Some("text/csv"))
+  assert_eq(
+    object_mutation_protocol_behavior(request),
+    Some("assign_original_request_marker:actql-request"),
+  )
+  after.metadata.unwrap()[0] = ("changed", "detached")
+  assert_eq(
+    object_mutation_after(request).unwrap().metadata.unwrap()[0],
+    ("keep", "kept"),
+  )
+  assert_eq(
+    request.original.fields.metadata.unwrap()[2],
+    ("actql-request", "old"),
+  )
+  assert_true(object_mutation_body(request).contains(mutation_marker()))
+  assert_true(!object_mutation_body(request).contains("\"old\""))
+  let deletion = prepare_object_delete(
+    mutation_binding(kind=DeleteObject),
+    mutation_original(),
+  ).unwrap()
+  assert_eq(object_mutation_after(deletion), None)
+  assert_eq(object_mutation_protocol_behavior(deletion), None)
+}
+
+///|
+test "GCS reserved collision is exact and replacement preserves other opaque keys" {
+  let binding = mutation_binding()
+  let request = prepare_object_metadata_patch(
+    binding,
+    mutation_original(),
+    @utf8.encode(
+      "{\"metadata\":{\"Actql-request\":\"case\",\"actql-request-extra\":\"prefix\",\"é\":\"decomposed\",\"é\":\"composed\"}}",
+    ),
+    mutation_marker(),
+  ).unwrap()
+  assert_eq(
+    object_mutation_after(request).unwrap().metadata,
+    Some([
+      ("Actql-request", "case"),
+      ("actql-request-extra", "prefix"),
+      ("é", "decomposed"),
+      ("é", "composed"),
+    ]),
+  )
+  assert_true(object_mutation_body(request).contains("\"drop\":null"))
+  assert_true(object_mutation_body(request).contains("\"keep\":null"))
+  assert_true(
+    prepare_object_metadata_patch(
+      binding,
+      mutation_original(),
+      b"{\"metadata\":{\"actql-request\":\"same-or-foreign\"}}",
+      mutation_marker(),
+    )
+    is Err(ReservedMetadata),
+  )
+  // This is only the before-send version guard, not reconciliation or an apply
+  // classifier. Its success emits no receipt or applied outcome. A copied
+  // marker cannot bypass the original metageneration check.
+  let copied = metadata_read(
+    metadata_wire(
+      extra=",\"metadata\":{\"actql-request\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}",
+    ),
+  ).unwrap()
+  assert_eq(recheck_object_mutation(binding, request, copied), Ok(()))
+  assert_eq(
+    recheck_object_mutation(
+      binding,
+      request,
+      mutation_original(metageneration="3"),
+    ),
+    Err(StaleObservation),
+  )
+}

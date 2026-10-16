@@ -45,6 +45,7 @@ pub struct ObjectMutationRequest {
   path : String
   body : String
   cid : String
+  logical_after : ObjectMetadataFields?
 }
 
 ///|
@@ -214,6 +215,7 @@ fn mutation_request(
   original : ObjectMetadata,
   verb : String,
   body : String,
+  logical_after : ObjectMetadataFields?,
 ) -> Result[ObjectMutationRequest, ObjectRequestIssue] {
   let path = match mutation_path(binding, original) {
     Ok(value) => value
@@ -248,6 +250,7 @@ fn mutation_request(
     path,
     body,
     cid: "sha256:" + @sha.hex(@utf8.encode(wire)),
+    logical_after,
   })
 }
 
@@ -288,11 +291,14 @@ pub fn prepare_object_metadata_patch(
     return Err(InvalidChanges)
   }
   let body : Map[String, Json] = Map([])
+  let before = object_metadata_fields(original)
+  let mut after = { ..before, metadata: Some(before.metadata.unwrap_or([])), }
   if @decode.lookup(object, "content_type") is Some(content_type) {
     guard @decode.text(content_type) is Ok(value) else {
       return Err(InvalidChanges)
     }
     body["contentType"] = value.to_json()
+    after = { ..after, content_type: Some(value), }
   }
   let patch : Map[String, Json] = Map([])
   if @decode.lookup(object, "metadata") is Some(metadata) {
@@ -303,6 +309,7 @@ pub fn prepare_object_metadata_patch(
       return Err(CapacityExceeded)
     }
     let desired : Map[String, Json] = Map([])
+    let logical = []
     for index in 0..<count {
       guard @decode.field_at(metadata, index) is Some((key, value)) &&
         @decode.text(value) is Ok(text) else {
@@ -312,6 +319,7 @@ pub fn prepare_object_metadata_patch(
         return Err(ReservedMetadata)
       }
       desired[key] = text.to_json()
+      logical.push((key, text))
     }
     if original.fields.metadata is Some(entries) {
       for (key, _) in entries {
@@ -323,6 +331,7 @@ pub fn prepare_object_metadata_patch(
     for key, value in desired {
       patch[key] = value
     }
+    after = { ..after, metadata: Some(logical), }
   }
   patch["actql-request"] = marker.to_json()
   body["metadata"] = Json::object(patch)
@@ -335,7 +344,7 @@ pub fn prepare_object_metadata_patch(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  mutation_request(binding, original, "PATCH", body)
+  mutation_request(binding, original, "PATCH", body, Some(after))
 }
 
 ///|
@@ -346,7 +355,40 @@ pub fn prepare_object_delete(
   if binding.kind != DeleteObject {
     return Err(InvalidBinding)
   }
-  mutation_request(binding, original, "DELETE", "")
+  mutation_request(binding, original, "DELETE", "", None)
+}
+
+///|
+// Preview is intended logical DATA for the same sealed request, not an apply
+// receipt or a prediction of the resulting generation/metageneration.
+// The private marker remains in body/CID and retained physical original fields.
+pub fn object_mutation_before(
+  request : ObjectMutationRequest,
+) -> ObjectMetadataFields {
+  object_metadata_fields(request.original)
+}
+
+///|
+pub fn object_mutation_after(
+  request : ObjectMutationRequest,
+) -> ObjectMetadataFields? {
+  request.logical_after.map(fields => {
+    ..fields,
+    metadata: fields.metadata.map(entries => entries.copy()),
+  })
+}
+
+///|
+// A declared physical side effect of PATCH, never a user-supplied permission.
+// The human projection declares the behavior without exporting the token value.
+pub fn object_mutation_protocol_behavior(
+  request : ObjectMutationRequest,
+) -> String? {
+  if request.verb == "PATCH" {
+    Some("assign_original_request_marker:actql-request")
+  } else {
+    None
+  }
 }
 
 ///|

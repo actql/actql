@@ -236,10 +236,17 @@ pub fn admit_object_metadata(
 
 ///|
 pub fn object_metadata_fields(value : ObjectMetadata) -> ObjectMetadataFields {
-  {
-    ..value.fields,
-    metadata: value.fields.metadata.map(entries => entries.copy()),
-  }
+  { ..value.fields, metadata: logical_metadata(value.fields.metadata), }
+}
+
+///|
+// This exact protocol key belongs to the original Connector request owner.
+// Other keys, including case variants and prefixes, remain opaque user DATA.
+// Filtering a detached logical view never changes the retained physical fields.
+fn logical_metadata(
+  metadata : Array[(String, String)]?,
+) -> Array[(String, String)]? {
+  metadata.map(entries => entries.filter(entry => entry.0 != "actql-request"))
 }
 
 ///|
