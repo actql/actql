@@ -14,7 +14,11 @@ test "GCS target read accepts only the original full metadata representation and
       ("x-goog-metageneration", "2"),
     ],
   ).unwrap()
-  assert_eq(original.response_sha256, @sha.hex(body))
+  assert_eq(body.length(), 106)
+  assert_eq(
+    original.response_sha256,
+    "339823cc8338e2e0db12486efead1e17b618c62129f82d7f9bacf515de60289e",
+  )
   assert_eq(original.original.unwrap().fields.generation, 9007199254740993L)
   for
     (header, value) in [
