@@ -89,6 +89,10 @@ class DataChannelTests(unittest.TestCase):
         contract = mapping()
         rows = [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2, "p": None},
                 {"id": 3}, {"id": 3}]
+        # The declared physical column is binary64, not a Python int column.
+        # These independent physical expectations are not product projections.
+        expected = [{"id": 1.0, "p": "e\u0301\r\n"}, {"id": 2.0, "p": None},
+                    {"id": 3.0}, {"id": 3.0}]
         with tempfile.TemporaryDirectory(prefix="actql-data-iceberg-") as root:
             catalog = SqlCatalog("data", uri=f"sqlite:///{root}/catalog.db",
                                  warehouse=f"file://{root}/warehouse")
@@ -103,7 +107,8 @@ class DataChannelTests(unittest.TestCase):
                           decode_physical(contract, pq.read_table(task.file.file_path))]
                 bag = lambda values: Counter(json.dumps(value, ensure_ascii=False,
                     sort_keys=True) for value in values)
-                self.assertEqual(bag(actual), bag(rows))
+                self.assertTrue(all(type(row["id"]) is float for row in actual))
+                self.assertEqual(bag(actual), bag(expected))
                 self.assertEqual(table.schema(), iceberg_schema(contract))
             finally:
                 catalog.close()
