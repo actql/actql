@@ -25,13 +25,15 @@ for (const entrance of ['local', 'https']) {
         const submissionRef = host.client.newSubmission({nonce: `immutable-${phase}`});
         const original = structuredClone(openingProgram);
         if (phase === 'not_accepted') original.stages[0].steps[0].values.rows[0].id = 'wrong';
-        let originalRun, originalFailure;
+        let originalRun, originalFailure, originalState;
         try {originalRun = await host.client.start(original, {submissionRef});}
         catch (error) {originalFailure = error;}
         const originalOutcome = sdk.getSubmissionOutcome(originalRun ?? originalFailure);
         assert.equal(originalOutcome.kind, phase);
         if (phase === 'ready') {
-          assert.equal((await originalRun.status()).status, 'succeeded');
+          originalState = await originalRun.status();
+          assert.equal(originalState.status, 'succeeded');
+          assert.ok(Number.isSafeInteger(originalState.revision) && originalState.revision >= 0);
           assert.deepEqual(await originalRun.result('answer').all(), openingExpected);
         } else assert.equal(originalRun, undefined);
         const originalInput = sdk.getSubmissionInput(originalRun ?? originalFailure);
@@ -50,6 +52,11 @@ for (const entrance of ['local', 'https']) {
           assert.equal(before.intents[0].phase, phase);
           const expectedComputes = phase === 'ready' ? 1 : 0;
           assert.equal(before.requests.length, expectedComputes);
+          if (phase === 'ready') {
+            assert.equal(before.requests[0].state_revision, originalState.revision);
+            assert.ok(typeof before.requests[0].state_observation_key === 'string' &&
+              before.requests[0].state_observation_key.length > 0);
+          }
           const changed = structuredClone(openingProgram);
           changed.stages[0].steps[0].values.rows[0].id = 20;
           let returnedRun, failure;
@@ -72,13 +79,16 @@ for (const entrance of ['local', 'https']) {
           {returnedRun: false, intentsUnchanged: true, requestsUnchanged: true,
             computes: expectedComputes, definitions: expectedComputes},
           '[check-mutation:submission-intent-immutable]');
-          // Current wire lacks typed Conflict; generic dispatched failures
-          // remain Unknown rather than deriving authority from their codes.
-          assert.equal(failure.code, 'SubmissionUnknown');
+          // This invocation's typed conflict never replaces the durable
+          // original outcome or grants permission to change its input.
+          assert.equal(failure.code, 'SubmissionConflict');
+          assert.equal(sdk.getSubmissionAttempt(failure).kind, 'conflict');
+          assert.equal(sdk.getSubmissionAttempt(failure).reason, 'intent');
           assert.deepEqual(sdk.getSubmissionInput(failure).input, changed);
           assert.deepEqual(sdk.getSubmissionInput(failure).submissionRef, submissionRef);
           assert.equal(sdk.getSubmissionOutcome(failure), undefined);
-          assert.equal(sdk.explainSubmission(failure).observation, 'acceptance_unknown');
+          assert.equal(sdk.explainSubmission(failure).observation, 'conflict');
+          assert.equal(sdk.explainSubmission(failure).reason, 'intent');
           assert.deepEqual(sdk.getSubmissionInput(originalRun ?? originalFailure), originalInput);
           assert.deepEqual(await host.client.lookupSubmission(submissionRef), originalOutcome);
           assert.deepEqual(records(), before);
