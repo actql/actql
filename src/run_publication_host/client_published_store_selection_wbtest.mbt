@@ -189,7 +189,20 @@ test "published STORE selection preserves independent eight-field bytes and Plan
 ///|
 test "valid mixed UPDATE and published STORE keep ordered separate original occurrences" {
   let admitted = published_selection_prepare(mixed=true)
-  assert_eq(admitted.map(_ => ()), Ok(()))
+  assert_eq(
+    admitted.map(_ => ()).map_err(issue => {
+      match issue {
+        Syntax(_) => "syntax"
+        Candidate(_) => "candidate"
+        Mapping(_) => "mapping"
+        Static(_) => "static"
+        Stage(_) => "stage"
+        Graph(_) => "graph"
+        TargetSelection(_) => "selection"
+      }
+    }),
+    Ok(()),
+  )
   let prepared = admitted.unwrap()
   let expected =
     #|[{"check_environment_cid":"sha256:3abdc285f8997b2d6e37abb4d407754d615391014d1884287bd868de38deaed2","effect_id":"save","installation_binding_cid":"sha256:8888888888888888888888888888888888888888888888888888888888888888","installation_owner_cid":"sha256:83a8d70240b5ff70509fe61c30e141a5ab8caf859a48e1ae9605dc69df4763c7","mapping_cid":"sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5","mapping_ref":"mapping:fixture.archive.v1","stage_index":0,"target_ref":"connector://storage/archive"},{"check_environment_cid":"sha256:3abdc285f8997b2d6e37abb4d407754d615391014d1884287bd868de38deaed2","effect_id":"update","installation_binding_cid":"sha256:6666666666666666666666666666666666666666666666666666666666666666","installation_owner_cid":"sha256:9fb1b923109be7230392d96d2dd4f3e62dc6ba6a661a8c218148e7858142d506","mapping_cid":"sha256:1c815d61a8df2721d953fb92f1559d5f1e15d6181f241f5cc61d67c2fe0febe5","mapping_ref":"mapping:fixture.archive.v1","stage_index":0,"target_ref":"connector://storage/archive"}]
