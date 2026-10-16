@@ -46,7 +46,7 @@ test "published Command installation mode retains exact original Catalog and env
     1000,
   ).unwrap()
   assert_eq(published_command_binding_mode(bound), Installation)
-  assert_eq(published_command_binding_identifier_type(bound), None)
+  assert_true(published_command_binding_identifier_type(bound) is None)
   assert_eq(published_command_binding_usage(bound), (2, 12))
   assert_eq(published_command_binding_work(bound), 16)
   let target = published_command_binding_target(bound)
@@ -99,7 +99,11 @@ test "absent Command binding keeps legacy field meaning and cannot become an ins
     )
     is Err(MissingBinding),
   )
-  for binding in [{ "kind": "installation" }, published_identifier_fixture()] {
+  let bindings : Array[Json] = [
+    { "kind": "installation" },
+    published_identifier_fixture(),
+  ]
+  for binding in bindings {
     let contents = published_command_fixture(Some(binding))
     assert_true(
       select_command_target(contents, "command:mailbox.send.v1", 1000)
@@ -110,22 +114,22 @@ test "absent Command binding keeps legacy field meaning and cannot become an ins
 
 ///|
 test "published Command binding is closed and malformed presence never becomes absence" {
-  for
-    binding in [
-      Json::Null,
-      Json::False,
-      {},
-      { "kind": "other" },
-      { "kind": 1 },
-      { "kind": "installation", "extra": true },
-      { "kind": "installation", "identity_contract": Json::Null },
-      { "kind": "identifier" },
-      {
-        "kind": "identifier",
-        "identity_contract": { "type": "string", "nullable": false },
-        "extra": false,
-      },
-    ] {
+  let bindings : Array[Json] = [
+    Json::null(),
+    Json::boolean(false),
+    {},
+    { "kind": "other" },
+    { "kind": 1 },
+    { "kind": "installation", "extra": true },
+    { "kind": "installation", "identity_contract": Json::null() },
+    { "kind": "identifier" },
+    {
+      "kind": "identifier",
+      "identity_contract": { "type": "string", "nullable": false },
+      "extra": false,
+    },
+  ]
+  for binding in bindings {
     let contents = published_command_fixture(Some(binding))
     assert_true(
       select_published_command_binding(
@@ -141,28 +145,28 @@ test "published Command binding is closed and malformed presence never becomes a
 
 ///|
 test "published Command identifiers require the existing checked nonnull KeyComparable domain" {
-  for
-    contract in [
-      { "type": "string", "nullable": true },
-      { "type": "json", "nullable": false },
-      {
-        "type": "vector",
-        "nullable": false,
-        "dimensions": 2,
-        "element_type": "f32",
-      },
-      {
-        "type": "object",
-        "nullable": false,
-        "additional_properties": false,
-        "fields": {},
-      },
-      {
-        "type": "array",
-        "nullable": false,
-        "items": { "type": "string", "nullable": false },
-      },
-    ] {
+  let contracts : Array[Json] = [
+    { "type": "string", "nullable": true },
+    { "type": "json", "nullable": false },
+    {
+      "type": "vector",
+      "nullable": false,
+      "dimensions": 2,
+      "element_type": "f32",
+    },
+    {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {},
+    },
+    {
+      "type": "array",
+      "nullable": false,
+      "items": { "type": "string", "nullable": false },
+    },
+  ]
+  for contract in contracts {
     let contents = published_command_fixture(
       Some({ "kind": "identifier", "identity_contract": contract }),
     )
@@ -176,7 +180,8 @@ test "published Command identifiers require the existing checked nonnull KeyComp
       is Err(UnsupportedIdentifierDomain),
     )
   }
-  for contract in [Json::Null, {}, { "type": "string" }] {
+  let malformed : Array[Json] = [Json::null(), {}, { "type": "string" }]
+  for contract in malformed {
     let contents = published_command_fixture(
       Some({ "kind": "identifier", "identity_contract": contract }),
     )
@@ -194,13 +199,17 @@ test "published Command identifiers require the existing checked nonnull KeyComp
 
 ///|
 test "published Command selection budgets original walk, declaration and every checked type" {
-  for
-    (binding, nodes, text, work) in [
-      ({ "kind": "installation" }, 2, 12, 16),
-      (published_identifier_fixture(), 3, 16, 21),
-    ] {
+  let cases : Array[(Json, Int, Int, Int)] = [
+    ({ "kind": "installation" }, 2, 12, 16),
+    (published_identifier_fixture(), 3, 16, 21),
+  ]
+  for (binding, nodes, text, work) in cases {
     let contents = published_command_fixture(Some(binding))
-    let exact = { max_nodes: nodes, max_depth: 1, max_text_bytes: text, }
+    let exact : @value_contract.Limits = {
+      max_nodes: nodes,
+      max_depth: 1,
+      max_text_bytes: text,
+    }
     assert_true(
       select_published_command_binding(
         contents, "command:mailbox.send.v1", exact, work,
