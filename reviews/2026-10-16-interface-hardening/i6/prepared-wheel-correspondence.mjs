@@ -8,4 +8,7 @@ process.exitCode = await runLocalCheck({root, heavy: false, timeoutSeconds: 60, 
       '--', '--test-concurrency=1', '--test-name-pattern=^real stdlib wheel', 'scripts/interface-inventory.test.mjs']},
   {name: 'Read-only retained SDK-only wheel exact member/source correspondence, not a normal cohort',
     command: process.execPath, args: ['--input-type=module', '-e',
-      'import {execFileSync} from "node:child_process";execFileSync("python3",["-B","reviews/2026-10-16-interface-hardening/i6/retained-sdk-wheel-correspondence.py"],{stdio:"inherit",timeout:30000});']}]});
+      'import {execFileSync} from "node:child_process";execFileSync("python3",["-B","reviews/2026-10-16-interface-hardening/i6/retained-sdk-wheel-correspondence.py"],{stdio:"inherit",timeout:30000});']},
+  {name: 'Actual ordinary Python SDK source interface command', command: process.execPath,
+    args: ['--input-type=module', '-e',
+      'import {execFileSync} from "node:child_process";execFileSync("npm",["run","check:interfaces","--","--manifest","packages/python-sdk/pyproject.toml"],{stdio:"inherit",timeout:30000});']}]});
