@@ -1,3 +1,4 @@
+import {buildSync} from 'esbuild';
 import './typed-results.test.mjs';
 import './request-recovery.test.mjs';
 import './source-query.test.mjs';
@@ -134,7 +135,10 @@ test('missing or malformed translation data falls back to the same safe English 
   const english = ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'];
   for (const replacement of ["'unrelated': ['missing']", "'reason.query_syntax_invalid': [42]",
     "'reason.query_syntax_invalid': ['', '']"]) {
-    const module = await import(`data:text/javascript;base64,${Buffer.from(source.replace(anchor, replacement)).toString('base64')}`);
+    const bundled = buildSync({stdin: {contents: source.replace(anchor, replacement),
+      resolveDir: fileURLToPath(new URL('./', import.meta.url)), sourcefile: 'check-presentation.mjs'},
+      bundle: true, platform: 'browser', format: 'esm', target: 'es2022', write: false});
+    const module = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].contents).toString('base64')}`);
     assert.deepEqual(module.localizeCheck('reason.query_syntax_invalid', english, {locale: 'ja'}), english);
   }
 });
