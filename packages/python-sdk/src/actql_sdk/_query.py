@@ -168,7 +168,9 @@ class AsyncQueryReader(_OriginalQueryHandle):
         return await self._reader.__anext__()
 
     async def aclose(self):
-        if self._advance is asyncio.current_task():
+        current = asyncio.current_task()
+        if (self._advance is current or self._reader is not None
+                and self._reader._advance is current):
             raise ClientError('ReaderAdvanceInProgress')
         self._closed = True
         if self._advance is not None:

@@ -7492,7 +7492,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_query.py",
-      "sha256": "4c5995ace8c30affcb53a3e6e80675a0e22b51bd818ac9e514d4cea1f5e1a5ad",
+      "sha256": "a4714072975d33edfbe20032256191ea1722ddaa67130a8b3a105f572e9fea59",
       "exports": [
         "AsyncQuery",
         "AsyncQueryReader",

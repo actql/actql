@@ -377,6 +377,26 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failure.exception.code, 'ResultSchemaMismatch')
         self.assertEqual(peer.operations().count('submit-intent'), 1)
 
+    async def test_same_underlying_read_close_refuses_without_cancelling_its_parent(self):
+        peer = Peer(); reader = None; reentered = False
+        async def token():
+            nonlocal reentered
+            if reader is not None and reader._reader is not None and not reentered:
+                reentered = True
+                with self.assertRaises(ClientError) as failure: await reader.aclose()
+                self.assertEqual(failure.exception.code, 'ReaderAdvanceInProgress')
+            return 'original-token'
+        client = await AsyncClient.connect('https://host.invalid/', token,
+            transport=httpx.MockTransport(peer.handle))
+        self.addAsyncCleanup(client.aclose)
+        reader = client.sql('SELECT 1').rows()
+        try:
+            self.assertEqual(await asyncio.wait_for(anext(reader), 0.5), {'n': 1})
+        finally:
+            await reader.aclose()
+        self.assertTrue(reentered)
+        self.assertEqual(peer.operations(), ['connect', 'submit-intent', 'wait', 'read'])
+
     async def test_schema_callback_is_captured_before_lazy_admission(self):
         peer = Peer(); client = await self.client(peer); query = client.sql('SELECT 1')
         class Schema:
