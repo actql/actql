@@ -383,6 +383,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "does not retry acquisition, Compute, or an Effect dispatch"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "inputsOutputs": [
@@ -393,6 +397,10 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "identity": [
@@ -403,24 +411,40 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "Equal CIDs do not establish ownership"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "retainComputationOwner"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "physical owner calls this after confirmed stop"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "cancellation": [
@@ -439,6 +463,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "const result = assertUpdateSelectionCurrent();"
               }
             ],
             "verification": [
@@ -809,6 +837,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-continuation.mjs",
                 "anchor": "existing Run-unit Checkpoint"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "inputsOutputs": [
@@ -819,30 +851,50 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/acquired-effect-source-binding.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/acquired-effect-continuation.mjs",
                 "anchor": "encrypted continuation custody"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/acquired-effect-continuation.mjs",
                 "anchor": "current"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/acquired-effect-source-binding.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "cancellation": [
@@ -861,6 +913,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "anchor": "const sourceOriginalCurrent = state => {"
               }
             ],
             "verification": [

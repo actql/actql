@@ -10996,7 +10996,7 @@
           "async": false
         }
       ],
-      "owner": "Existing ModelTask/check-environment registration and current Account observation",
+      "owner": "Existing ModelTask/check-environment registration and original provider/dependency binding; shared Account observation remains with the existing Local account/authorization Owner",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -11048,6 +11048,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "inputsOutputs": [
@@ -11058,6 +11062,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "identity": [
@@ -11068,6 +11076,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "ownership": [
@@ -11078,6 +11090,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "# Exclusive Model Provider registration"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "synchronization": [
@@ -11088,6 +11104,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "failure": [
@@ -11098,6 +11118,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "# Exclusive Model Provider registration"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "cancellation": [
@@ -11118,6 +11142,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "// bytes. The extra byte detects growth without an unbounded read or allocation."
               }
             ],
             "extension": [
@@ -11128,6 +11156,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "# Exclusive Model Provider registration"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
               }
             ],
             "verification": [
