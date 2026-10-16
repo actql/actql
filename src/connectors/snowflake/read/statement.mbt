@@ -12,6 +12,7 @@ pub(all) enum StatementIssue {
   RequestLimit
   InvalidResponse
   ForeignHandle
+  UnrepresentableHandle
   HttpRejected(Int)
   TransportUnknown
   Read(ReadIssue)
@@ -95,6 +96,11 @@ fn statement_handle_path(
   partition : Int?,
   max_bytes : Int,
 ) -> Result[String, StatementIssue] {
+  // Standard URL construction removes exact dot segments, including %2E.
+  // Keep the valid opaque observation, but issue no changed-handle candidate.
+  if handle == "." || handle == ".." {
+    return Err(UnrepresentableHandle)
+  }
   let prefix = "/api/v2/statements/"
   let suffix = match partition {
     Some(value) => "?partition=" + value.to_string()
