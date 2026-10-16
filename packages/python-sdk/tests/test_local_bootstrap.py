@@ -1,4 +1,5 @@
 """Independent metadata/loan ABI doubles; not real Wasm or public Local PASS."""
+from local_abi_declaration_fixture import assert_current_local_abi
 import copy
 from threading import RLock
 import unittest
@@ -141,7 +142,7 @@ class BootstrapCustodyTests(unittest.TestCase):
             self.assertEqual(core._inputs[loan.ticket].payload, b'')
 
     def test_bootstrap_exports_use_the_closed_current_private_abi(self):
-        self.assertEqual(LOCAL_CORE_ABI, 72)
+        assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_BOOTSTRAP_SIGNATURES, {
             'reserve': ('i64 i32 i32 i64', 'i32'),
             'produce': ('i64 i32', 'i32'),

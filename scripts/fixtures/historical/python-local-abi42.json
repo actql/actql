@@ -1,0 +1,30 @@
+{
+  "source": "af1f80f56da7c06b5daafdd19dd29bd38f6a72e1",
+  "abi": 42,
+  "fixtures": [
+    {
+      "path": "scripts/fixtures/python-local-source-environment-abi.py",
+      "git_blob": "e2c7e76ab438bb7c58c12ffae64c640551bb596f",
+      "sha256": "e55d215c6ebdf8d1788e9146b017132ef71e53266940d165eccca1a8da663d1c"
+    },
+    {
+      "path": "scripts/fixtures/python-local-dispatch-abi.py",
+      "git_blob": "664f6c981672ebeb14065d4f418aeb73dae2a72d",
+      "sha256": "44f718b27d42cf9ba8098e4b773031825c4948b260e472a7f454d25988025398"
+    },
+    {
+      "path": "scripts/fixtures/python-local-native-result-abi.py",
+      "git_blob": "4f853aa11e87c1d780982706236ef7508f0a60dd",
+      "sha256": "212acc9b36e2f2bacbe7b3cf6f0466e6867f7177c6ea216d549ef6867200e94e"
+    },
+    {
+      "path": "scripts/fixtures/python_local_physical.py",
+      "git_blob": "e18ff4856ee7cae058cfdf58e366e7842fb9dab0",
+      "sha256": "7008f12fd75c20ac79a9a0c90504da77de21bd06bd8ce32340517d370f499eaf"
+    }
+  ],
+  "module_sha256": null,
+  "executable": false,
+  "reason": "The retained source42 record reports compile-only and no built ABI42 module. No current module may stand in for that missing historical artifact.",
+  "record": "reviews/2026-10-10-python-client/local-store-observation-evidence/af1f80f56da7c06b5daafdd19dd29bd38f6a72e1/handoff.json"
+}

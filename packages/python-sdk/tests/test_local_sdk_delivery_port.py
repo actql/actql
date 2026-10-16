@@ -1,4 +1,5 @@
 """ABI and original buffer custody only; physical Wasm/usage ACK absent."""
+from local_abi_declaration_fixture import assert_current_local_abi
 import copy
 import unittest
 
@@ -33,7 +34,7 @@ class SDKDeliveryPortTests(unittest.TestCase):
         self.assertTrue(all(name == 'retire_sdk_delivery_output' for _, name, _ in calls))
 
     def test_strict_original_signature_and_copy_bool_unknown_boundaries(self):
-        self.assertEqual(LOCAL_CORE_ABI, 72)
+        assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_sdk_read_delivery_storage'],
                          ('i64 i32 i32 i32 i32', 'i32'))
         core, request, output, calls, status = original_fixture.SDKReadOriginalTests.bridge(self)

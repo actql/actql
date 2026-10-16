@@ -15,7 +15,7 @@ from tempfile import TemporaryDirectory
 
 module = Path(sys.argv[1]).read_bytes()
 digest = hashlib.sha256(module).hexdigest()
-core = LocalCore(module, digest=digest, transfer_capacity=12 * 1024 * 1024, slots=64,
+core = LocalCore(module, digest=digest, transfer_capacity=12 * 1024 * 1024, slots=64, fuel=2**64 - 1,
                  resources=LocalCoreResources(100000, 64, 64, 32000000, 200000000, 16 * 1024 * 1024 + 12 * 1024 * 1024))
 inputs = []
 stopped = [False]
@@ -126,4 +126,5 @@ finally:
             if resource is not None:
                 resource.close()
 
-print(json.dumps({'success': True, 'module_sha256': digest, 'material_cases': 9}))
+print(json.dumps({'success': True, 'module_sha256': digest, 'fuel_mode': 'explicit private diagnostic allowance; not default100M', 'default_fuel_acceptance': False,
+                  'material_cases': 9}))

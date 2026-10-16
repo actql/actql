@@ -6,6 +6,8 @@ loss. Known cleanup uses only the same original Core child; no SQL is replayed.
 """
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind_group
+
 from ctypes import POINTER, byref, c_int, c_int32, c_int64, c_uint16, c_ubyte, c_void_p
 from typing import Any, Callable, NoReturn
 
@@ -26,25 +28,7 @@ class _OriginalLookupError(RuntimeError):
 
 class _OriginalLookupFunctions:
     def __init__(self, library: Any) -> None:
-        p, pp, text = c_void_p, POINTER(c_void_p), POINTER(c_uint16)
-        signatures: dict[str, tuple[list[Any], Any]] = {
-            'start_into': ([p, p, pp, pp], c_int),
-            'observe_into': ([p, p, pp], c_int),
-            'read_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, pp], c_int),
-            'scan_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, pp], c_int),
-            'header_utf16_into': ([p, p, text, c_int32, text, c_int32, pp], c_int),
-            'capacity_utf16_into': ([p, p, text, c_int32, text, c_int32, pp], c_int),
-            'capacity_usage_utf16_into': ([p, p, text, c_int32, pp], c_int),
-            'database_usage_into': ([p, p, pp], c_int),
-            'finish_into': ([p, p, pp], c_int),
-            'close_into': ([p, p, pp], c_int),
-            'drop': ([pp], c_int),
-        }
-        self.calls: dict[str, Any] = {}
-        for name, (args, result) in signatures.items():
-            call = getattr(library, 'actql_sqlite_lookup_' + name)
-            call.argtypes, call.restype = args, result
-            self.calls[name] = call
+        self.calls = bind_group(library, 'actql_sqlite_lookup_', ('start_into', 'observe_into', 'read_utf16_into', 'scan_utf16_into', 'header_utf16_into', 'capacity_utf16_into', 'capacity_usage_utf16_into', 'database_usage_into', 'finish_into', 'close_into', 'drop'))
 
 
 class _OriginalLookupCustody:

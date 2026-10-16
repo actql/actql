@@ -6,6 +6,8 @@ operation. Dropping these data references does not retire that operation.
 """
 from __future__ import annotations
 
+from ._local_native_shim_abi import bind as bind_native
+
 from ctypes import POINTER, byref, c_int, c_int32, c_void_p
 from dataclasses import dataclass
 from typing import Any, NoReturn
@@ -32,26 +34,13 @@ class _OriginalWorkerSelectionFunctions:
 
     def __init__(self, library: Any) -> None:
         self.library = library
-        self.select = library.actql_worker_select_into
-        self.select.argtypes = [c_void_p, POINTER(c_void_p)]
-        self.select.restype = c_int
-        self.current = library.actql_worker_selection_current_into
-        self.current.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
-        self.current.restype = c_int
-        self.originals = library.actql_worker_selection_originals_into
-        self.originals.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p)]
-        self.originals.restype = c_int
-        self.operation = library.actql_worker_selection_operation
-        self.issue = library.actql_worker_selection_issue_family
-        for call in (self.operation, self.issue):
-            call.argtypes = [c_void_p]
-            call.restype = c_int32
-        self.drop = library.actql_worker_selection_drop_reply
-        self.drop.argtypes = [POINTER(c_void_p), c_void_p, c_void_p]
-        self.drop.restype = c_int
-        self.finish = library.actql_worker_selection_finish_data
-        self.finish.argtypes = [POINTER(c_void_p), POINTER(c_void_p), POINTER(c_void_p)]
-        self.finish.restype = c_int
+        self.select = bind_native(library, 'actql_worker_select_into')
+        self.current = bind_native(library, 'actql_worker_selection_current_into')
+        self.originals = bind_native(library, 'actql_worker_selection_originals_into')
+        self.operation = bind_native(library, 'actql_worker_selection_operation')
+        self.issue = bind_native(library, 'actql_worker_selection_issue_family')
+        self.drop = bind_native(library, 'actql_worker_selection_drop_reply')
+        self.finish = bind_native(library, 'actql_worker_selection_finish_data')
 
 
 class _OriginalWorkerSelectionCustody:
