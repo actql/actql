@@ -180,10 +180,29 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
             failures.append(failure.exception)
         self.assertIs(failures[0], failures[1])
         self.assertEqual(failures[0].code, 'SubmissionUnknown')
+        self.assertIsNone(failures[0].execution)
+        self.assertIsNone(failures[0].observation)
         self.assertEqual(failures[0].submission_ref['nonce'], 'unknown-original')
         self.assertEqual(get_submission_input(failures[0])['readOnly'], True)
         self.assertIsNone(query.execution)
         self.assertEqual(peer.operations(), ['connect', 'submit-intent'])
+
+    async def test_token_reentry_does_not_deadlock_or_duplicate_original_admission(self):
+        peer = Peer(); query = None; reentered = False
+        async def token():
+            nonlocal reentered
+            if query is not None and not reentered:
+                reentered = True
+                with self.assertRaises(ClientError) as failure: await query.all()
+                self.assertEqual(failure.exception.code, 'QueryConsumptionInProgress')
+            return 'original-token'
+        client = await AsyncClient.connect('https://host.invalid/', token,
+            transport=httpx.MockTransport(peer.handle))
+        self.addAsyncCleanup(client.aclose)
+        query = client.sql('SELECT 1 AS n')
+        self.assertEqual(await asyncio.wait_for(query.all(), 0.5), [{'n': 1}, {'n': 2}])
+        self.assertTrue(reentered)
+        self.assertEqual(peer.operations(), ['connect', 'submit-intent', 'wait', 'read'])
 
     async def test_wait_loss_keeps_original_execution_and_no_poll_resume_cancel(self):
         peer = Peer(); peer.loss = 'wait'; client = await self.client(peer)
