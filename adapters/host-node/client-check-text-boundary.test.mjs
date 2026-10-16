@@ -384,6 +384,8 @@ for (const entrance of ['local', 'http']) for (const kind of ['text', 'program']
       const first = await client.check(input, {...options, parameters: {x: null}});
       assert.equal(first.outcome, 'failed');
       assert.equal(first.partial_report.verdict, 'invalid');
+      assert.deepEqual(first.partial_report.runnable, {verdict: 'no',
+        reasons: [{code: 'supplied_value_type_mismatch'}]});
       assert.equal(getCheckInput(first, 'parameters').value.x, null);
       assert.deepEqual(first.partial_report.reasons[0].facts,
         {parameter: 'x', expected_type: 'boolean', actual_type: 'null'});

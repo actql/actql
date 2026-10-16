@@ -247,6 +247,7 @@ test('composition: Program contexts bind original Unicode keys and supplied null
     version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
     outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
       context_ref, scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [], requirements: [],
+      runnable: {verdict: 'yes', reasons: []},
       inputs: [{document_id: 'program', kind: 'structured', revision, byte_length: Buffer.byteLength(body)},
         ...(parameters === undefined ? [] : [{document_id: 'parameters', kind: 'structured',
           revision: suppliedRevision, byte_length: Buffer.byteLength(parameters)}])],
