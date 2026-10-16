@@ -46,13 +46,12 @@ fn metadata_text(
   object : @decode.ObjectView,
   name : String,
   maximum : Int,
-  empty~ : Bool = false,
+  empty? : Bool = false,
 ) -> String? {
   guard @decode.lookup(object, name) is Some(value) &&
     @decode.text(value) is Ok(value) &&
     (empty || !value.is_empty()) &&
-    @utf8.encode(value).length() <= maximum &&
-    value.iter().all(character => character >= ' ' && character != '\u{007f}') else {
+    @utf8.encode(value).length() <= maximum else {
     return None
   }
   Some(value)
@@ -64,8 +63,10 @@ fn optional_metadata_text(
   name : String,
   maximum : Int,
 ) -> Result[String?, ObjectMetadataIssue] {
-  if @decode.lookup(object, name) is None { return Ok(None) }
-  match metadata_text(object, name, maximum) {
+  if @decode.lookup(object, name) is None {
+    return Ok(None)
+  }
+  match metadata_text(object, name, maximum, empty=true) {
     Some(value) => Ok(Some(value))
     None => Err(InvalidMetadata)
   }
@@ -92,15 +93,18 @@ fn custom_metadata(
   object : @decode.ObjectView,
   limits : ObjectMetadataLimits,
 ) -> Result[Array[(String, String)]?, ObjectMetadataIssue] {
-  guard @decode.lookup(object, "metadata") is Some(value) else { return Ok(None) }
+  guard @decode.lookup(object, "metadata") is Some(value) else {
+    return Ok(None)
+  }
   guard @decode.object_length(value) is Some(count) else {
     return Err(InvalidMetadata)
   }
-  if count > limits.max_metadata_entries { return Err(BudgetExceeded) }
+  if count > limits.max_metadata_entries {
+    return Err(BudgetExceeded)
+  }
   let entries = []
   for index in 0..<count {
     guard @decode.field_at(value, index) is Some((key, value)) &&
-      !key.is_empty() &&
       @decode.text(value) is Ok(text) else {
       return Err(InvalidMetadata)
     }
@@ -129,7 +133,9 @@ pub fn admit_object_metadata(
     limits.max_metadata_entries < 0 {
     return Err(InvalidLimits)
   }
-  if bytes.length() > limits.max_bytes { return Err(BudgetExceeded) }
+  if bytes.length() > limits.max_bytes {
+    return Err(BudgetExceeded)
+  }
   let parsed = match
     @source.parse_json_bytes_preserving(bytes, {
       max_input_bytes: limits.max_bytes,
@@ -155,14 +161,19 @@ pub fn admit_object_metadata(
     Ok(value) => value
     Err(issue) =>
       return Err(
-        if issue.kind is @decode.BudgetExceeded { BudgetExceeded } else { InvalidMetadata },
+        if issue.kind is @decode.BudgetExceeded {
+          BudgetExceeded
+        } else {
+          InvalidMetadata
+        },
       )
   }
   guard @decode.open_object(root) is Ok(object) &&
     metadata_text(object, "bucket", 222) is Some(bucket) &&
     metadata_text(object, "name", 1024) is Some(name) &&
     metadata_integer(object, "generation", positive=true) is Some(generation) &&
-    metadata_integer(object, "metageneration", positive=true) is Some(metageneration) &&
+    metadata_integer(object, "metageneration", positive=true)
+    is Some(metageneration) &&
     metadata_integer(object, "size", positive=false) is Some(size) else {
     return Err(InvalidMetadata)
   }
@@ -171,27 +182,32 @@ pub fn admit_object_metadata(
     (expected_name is Some(expected) && name != expected) {
     return Err(ObjectMismatch)
   }
-  let content_type = match optional_metadata_text(object, "contentType", 1024) {
+  let content_type = match
+    optional_metadata_text(object, "contentType", limits.max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let content_encoding = match optional_metadata_text(object, "contentEncoding", 1024) {
+  let content_encoding = match
+    optional_metadata_text(object, "contentEncoding", limits.max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let storage_class = match optional_metadata_text(object, "storageClass", 128) {
+  let storage_class = match
+    optional_metadata_text(object, "storageClass", limits.max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let updated = match optional_metadata_text(object, "updated", 128) {
+  let updated = match
+    optional_metadata_text(object, "updated", limits.max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let md5 = match optional_metadata_text(object, "md5Hash", 128) {
+  let md5 = match optional_metadata_text(object, "md5Hash", limits.max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let crc32c = match optional_metadata_text(object, "crc32c", 128) {
+  let crc32c = match
+    optional_metadata_text(object, "crc32c", limits.max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -220,7 +236,10 @@ pub fn admit_object_metadata(
 
 ///|
 pub fn object_metadata_fields(value : ObjectMetadata) -> ObjectMetadataFields {
-  { ..value.fields, metadata: value.fields.metadata.map(entries => entries.copy()) }
+  {
+    ..value.fields,
+    metadata: value.fields.metadata.map(entries => entries.copy()),
+  }
 }
 
 ///|
