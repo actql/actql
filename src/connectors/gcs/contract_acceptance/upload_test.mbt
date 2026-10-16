@@ -115,7 +115,12 @@ fn upload_environment_details() -> (
   guard body is Object(fields) else { abort("environment") }
   fields["evidence_bundle_cid"] = expected.to_json()
   let wire = canonical(body)
-  (@environment.read(@utf8.encode(wire), expected, caps()).unwrap(), wire, binding, declared_wire)
+  (
+    @environment.read(@utf8.encode(wire), expected, caps()).unwrap(),
+    wire,
+    binding,
+    declared_wire,
+  )
 }
 
 ///|

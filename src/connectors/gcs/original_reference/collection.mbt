@@ -43,20 +43,17 @@ fn cursor_wire(
     budget.remaining -= 1
     match @canonical.advance_cursor_admission(pending) {
       CursorAdmissionContinue => ()
-      CursorAdmissionComplete(value, _, _) => {
-        return try {
-          Ok(
-            @canonical.stringify_value(
-              value,
-              limits.max_bytes,
-              limits.max_nodes,
-              limits.max_depth,
-            ),
-          )
-        } catch {
+      CursorAdmissionComplete(value, _, _) =>
+        return Ok(
+          @canonical.stringify_value(
+            value,
+            limits.max_bytes,
+            limits.max_nodes,
+            limits.max_depth,
+          ),
+        ) catch {
           _ => Err(CapacityExceeded)
         }
-      }
       CursorAdmissionFailed(_) | CursorAdmissionTerminal =>
         return Err(CapacityExceeded)
     }
@@ -150,40 +147,38 @@ pub fn issue_collection_reference(
     @environment.command_target_catalog(command),
   )
   if !physical_equal(
-    @environment.member_environment(mapping),
-    @environment.member_environment(@environment.command_target_member(command)),
-  ) ||
+      @environment.member_environment(mapping),
+      @environment.member_environment(
+        @environment.command_target_member(command),
+      ),
+    ) ||
     !physical_equal(
       @environment.member_environment(mapping),
       @environment.member_environment(catalog),
     ) ||
     @environment.command_target_resource_kind(command) != "file_collection" ||
     @environment.command_target_id(command) !=
-      "command:" + connector_id + ".gcs.upload.v1" {
+    "command:" + connector_id + ".gcs.upload.v1" {
     return Err(ForeignSelection)
   }
   let budget = { remaining: limits.max_work, }
-  let actual_mapping = match cursor_wire(
-    @environment.member_body(mapping), limits, budget,
-  ) {
+  let actual_mapping = match
+    cursor_wire(@environment.member_body(mapping), limits, budget) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if actual_mapping != expected_mapping {
     return Err(ForeignSelection)
   }
-  let actual_catalog = match cursor_wire(
-    @environment.member_body(catalog), limits, budget,
-  ) {
+  let actual_catalog = match
+    cursor_wire(@environment.member_body(catalog), limits, budget) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if actual_catalog != expected_catalog {
     return Err(ForeignSelection)
   }
-  guard contract(limits) is Some(contract) else {
-    return Err(CapacityExceeded)
-  }
+  guard contract(limits) is Some(contract) else { return Err(CapacityExceeded) }
   match
     @admitted.issue_reference(
       issuer,
