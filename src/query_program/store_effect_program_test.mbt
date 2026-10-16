@@ -390,9 +390,9 @@ test "STORE takes original typed content from SERIALIZE through the existing com
       1000,
     ) {
     Ok(candidate) => candidate
-    Err(Computation(Source(SourceView(Program(Pipeline(_, detail)))))) =>
+    Err(Computation(Source(SourceView(Program(Program(Pipeline(_, detail))))))) =>
       fail(@debug.to_string(detail.kind))
-    Err(Computation(Source(SourceView(Program(Order(_, _)))))) =>
+    Err(Computation(Source(SourceView(Program(Program(Order(_, _))))))) =>
       fail("SourceView.Program.Order")
     Err(Computation(Source(SourceView(Program(_))))) =>
       fail("SourceView.Program.other")
