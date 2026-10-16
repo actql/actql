@@ -54,13 +54,13 @@ How much a Preview can show depends on the Connector:
 | --- | --- | --- |
 | `full_diff` | The exact targets, the current values and the new values | yes |
 | `targeted` | The exact targets and the new values | yes |
-| `blind` | Only the intent; the targets cannot be resolved in advance | shown, never applied |
 
 A Connector that can read a record before writing it gives you `full_diff`;
 one that can address records exactly but not read them first gives
 `targeted`, which is applied only when the Connector can also verify the
 condition it was approved under at apply time — a version guard, a
-conditional request. A `blind` Preview can be shown, but it is never applied.
+conditional request. There is no weaker strength: an Effect whose targets
+cannot be resolved before sending cannot be declared.
 
 ## Who decides
 

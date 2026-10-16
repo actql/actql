@@ -134,9 +134,9 @@ so `explain` marks it as decided at run time rather than guessing.
   charges, access logs — and go through policy for that reason.
 - Before an Effect is applied, its changes are computed and stored as a
   preview. How exact the preview is depends on the Connector: it may hold the
-  current and new values (`full_diff`), the exact targets and the new values
-  (`targeted`), or only the intent, when the targets cannot be resolved in
-  advance (`blind`). A blind preview can be shown, but never applied.
+  current and new values (`full_diff`) or the exact targets and the new values
+  (`targeted`); an Effect whose targets cannot be resolved in advance cannot
+  be declared.
 - An approval covers that preview only; if the preview would change, a new
   approval is required.
 - Policy and the bound approval are checked again immediately before each

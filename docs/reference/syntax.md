@@ -1011,7 +1011,7 @@ Runs a named operation once per row: send a message, refresh an extract,
 start a job. The contract fixes the input types, the target kind, the
 permission, what the Preview shows and how an outcome is confirmed; `check`
 verifies all of it. The outcome per item is `accepted` (the system took the
-request), `applied` (it confirmed the result) or `unknown`; an unknown
+request), `applied` (it confirmed the result), `failed` or `unknown`; an unknown
 outcome is confirmed through the Connector's own evidence, never resent.
 Resources that publish more than one Command contract are addressed with
 the long form at the end of this section.

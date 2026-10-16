@@ -26,7 +26,7 @@ accepted is refused at check time with a named reason, never approximated.
 | `INSERT INTO target …` | SQL form of an insert Effect. |
 | `DELETE FROM target WHERE …` | SQL form of a delete Effect. |
 
-One statement per Program text, apart from the Effect postlude. Interpolation
+One query per Program text, apart from the Command postludes after the `;`. Interpolation
 and multiple unrelated statements are refused.
 
 ## Pipe operators
@@ -147,7 +147,8 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Chains of `FULL JOIN`, `FULL`/`LEFT` `BY NAME` set operations | Not supported. |
 | Multiple aggregates, non-string axes or computed buckets in `PIVOT` | Only the single-aggregate, string-axis form. |
 | Unknown function names or operations | Never resolved by fuzzy matching or synonyms. |
-| String interpolation, several statements in one text | One statement per Program text. |
+| `\|> CALL`, `\|> WINDOW` as a standalone step, `\|> TABLESAMPLE`, `\|> ASSERT condition` | GoogleSQL pipe operators outside the accepted set; the `WINDOW` clause inside `SELECT`/`EXTEND` and `\|> ASSERT UNIQUE BY` are accepted. |
+| String interpolation, several statements in one text | One query per Program text, with at most one data-changing Effect and Command postludes after the `;`. |
 
 What is defined here and what each environment executes today are different
 questions; see [Implementation status](status.md).
