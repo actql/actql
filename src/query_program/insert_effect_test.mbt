@@ -173,6 +173,38 @@ test "INSERT omitted VALUES captures same-named fields and keeps explicit public
 }
 
 ///|
+test "INSERT keeps original Mapping capture after CTE JOIN and complete set continuations" {
+  for
+    text in [
+      "WITH original AS (FROM messages) FROM original |> EFFECT INSERT salesforce.Account (Name) VALUES (body)",
+      "FROM messages AS l JOIN messages AS r ON l.id = r.id |> SELECT l.body AS Name |> EFFECT INSERT salesforce.Account (Name) VALUES (Name)",
+      "FROM messages |> SELECT body AS Name |> UNION ALL (FROM messages |> SELECT body AS Name) |> EFFECT INSERT salesforce.Account (Name)",
+    ] {
+    let program = insert_program(text)
+    assert_eq(insert_fields(program), ["name"])
+    assert_eq(@program.export_count(program), 0)
+    assert_true(insert_static_result(program, "one") is Ok(_))
+  }
+}
+
+///|
+test "INSERT does not discard the original Mapping row correspondence for an authored subset" {
+  let query = @query.parse_query(
+    "FROM messages |> EFFECT INSERT salesforce.Account (Name) VALUES (body)",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(
+      query,
+      short_command_context(),
+      construction_limits(),
+      update_targets=Some(insert_publication("subset")),
+    )
+    is Err(UnsupportedEffect),
+  )
+}
+
+///|
 test "literal-only INSERT VALUES retain a real derived payload without an empty or artificial capture" {
   let program = insert_program(
     "FROM messages |> EFFECT INSERT salesforce.Account (Name) VALUES ('fixed')",

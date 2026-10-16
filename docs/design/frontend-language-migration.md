@@ -137,6 +137,26 @@ or treating its rows as a pure query.
 
 ## Evidence classification
 
+### Original Mapping route for INSERT
+
+INSERT first selects the original Mapping using the existing create/none
+operation contract, independently of VALUES and current write permissions.
+The Relation lowerer evaluates each authored expression once, retains its
+multiplicity and captures only the actual values needed by that selection.
+The existing canonical `create.from` consumes the original Mapping's complete
+row correspondence. For that route, the capture projects target values into
+the Mapping's original source column names; it does not create a new Mapping,
+infer a grant or reinterpret the legacy raw single-item `create.payload`.
+
+That canonical route cannot represent every authored field subset or different
+values for targets sharing one original source column. The missing projection
+is reported as an implementation boundary, not a permanent language restriction.
+It must not be rescued by dropping original Mapping entries, supplying missing
+values, or combining the mutually exclusive legacy `from` and `payload` forms.
+Source preparation also requires the original create-purpose selection at the
+existing capture/current/Run boundary; an UPDATE original is not a substitute.
+Only explicitly authored public Results are exported.
+
 Historical `.aql` parsing/formatting is internal fixture evidence. Independent
 JSON/YAML Program execution proves retained common capability. New query source
 execution proves that specific text path only. A machine-input SGA success must
