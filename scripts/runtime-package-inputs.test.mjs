@@ -52,6 +52,19 @@ test('actual coordinator source graph records its generated artifact without pre
   assert(result.types.some(value => value.module === 'packages/coordinator-core/index.d.ts'));
 });
 
+test('ordinary bundled Workers sources and local Host assets remain in source coverage', async () => {
+  const result = await sourceInterfaceClosure(process.cwd(), {distributionRoots:
+    npmInterfaceRoots(process.cwd()).filter(value => ['@actql/run-host-core', '@actql/local-node'].includes(value.name))});
+  assert.equal(result.qualification, 'source-input-coverage-only');
+  assert(result.modules.some(value => value.module === 'adapters/workers/finite-runtime.mjs'));
+  assert(result.artifacts.some(value => value.module === '_build/workers/modules/bridge.mjs' &&
+    value.sourcePackages.includes('connectors_workers_bridge')));
+  assert(!result.modules.some(value => /conformance|fixture/u.test(value.module)));
+  assert(result.copies.some(value => value.destination === 'packages/local-node/adapters/host-common/observation.mjs'));
+  assert(result.modules.some(value => value.module === 'adapters/connectors/local/iceberg/process_worker.py' && value.operations.length));
+  assert(result.assets.some(value => value.module === 'spec/contracts/actql-local-table-iceberg.json'));
+});
+
 test('source graph retains imported contract data without parsing it as executable JavaScript', async t => {
   // The actual ordinary readers still own runtime input declarations.
   const root = process.cwd(), directory = mkdtempSync(join(root, '_build/interface-source-data-'));
