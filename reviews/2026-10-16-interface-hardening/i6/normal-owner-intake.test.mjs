@@ -11,7 +11,7 @@ import {pythonInterfaceSources} from '../../../scripts/python-interface-sources.
 
 test('normal owner intake verifies generation and reports every uncovered authored module explicitly', async () => {
   const directory = '/Users/t14i/workspace/20260822/reviews/2026-10-16-interface-hardening/';
-  const vite = JSON.parse(readFileSync(directory + 'i6-actual-vite-source-coverage.json', 'utf8'));
+  const vite = JSON.parse(readFileSync(directory + 'i6-actual-vite-source-coverage-550f4cb7482b.json', 'utf8'));
   assert.equal(vite.readerSource, '550f4cb7482ba7b718c9d906cfb93ecc3dbcefc3');
   // Reuse the verified input metadata only while every authored input remains
   // byte-identical. This does not relabel its original build or artifact source.
