@@ -1,4 +1,4 @@
-import type {Execution} from './index.mjs';
+import type {Execution} from './index.d.ts';
 import type {WireClientBodyByOperation} from '@actql/client-wire';
 
 declare const run: Execution;
