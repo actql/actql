@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
+import {commandTargetBindingSchemas} from './command-target-bindings.mjs';
 
 export const valueKinds=['request_schema','command_input','command_output','idempotency_key','checkpoint',
   'lookup_request_key','lookup_batch_request','lookup_response_key'];
@@ -82,16 +83,21 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const read=p=>JSON.parse(readFileSync(p,'utf8'));
   const protocol=read('spec/contracts/actql-protocol-schemas.json');
   if(process.argv.includes('--write-schema')){
+    commandTargetBindingSchemas(protocol,true);
     commandInputPresenceSchemas(protocol,true);
     writeFileSync('spec/contracts/actql-protocol-schemas.json',JSON.stringify(protocol,null,2)+'\n');
     console.log('Command presence inline structural copies and initial-0.1 pins updated.');
   }else{
+    commandTargetBindingSchemas(protocol);
     commandInputPresenceSchemas(protocol);
     assert.deepEqual(read('spec/contracts/actql-check-environment.json').value_contract_bodies,valueBodyContract(protocol));
     const path='src/check_environment/value_roles.generated.mbt',text=generateValueKinds(protocol);
     if(process.argv.includes('--write'))writeFileSync(path,text);
     assert.equal(readFileSync(path,'utf8'),text);
     await import('./command-input-presence-vectors.mjs');
+    const {commandTargetBindingVectors}=await import('./command-target-binding-vectors.mjs');
+    assert.equal(readFileSync('src/check_environment/command_target_bindings.generated_test.mbt','utf8'),
+      commandTargetBindingVectors(read('portability/corpus/command-target-bindings.json')));
     console.log('All 17 kinds classified; eight legacy value roles and Command-only presence verified.');
   }
 }
