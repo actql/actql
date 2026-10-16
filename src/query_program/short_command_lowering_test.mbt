@@ -569,11 +569,11 @@ test "short COMMAND retained occurrence comes from the actual Model continuation
 
 ///|
 test "short COMMAND private capture is not an authored Result for a long postlude" {
-  for name in ["``", "aql_private_command"] {
+  for name in ["aql_private_command"] {
     let script = @query.parse_query_script(
       "FROM messages |> EFFECT COMMAND mail.send ID id INPUT (body = body); EFFECT audit COMMAND FROM RESULT " +
       name +
-      " AS t TARGET t.id CONTRACT c INPUT (body = t.body);",
+      " AS t TARGET t.id CONTRACT `command:audit.v1` INPUT (body = t.body);",
       syntax_limits(),
     ).unwrap()
     assert_true(
@@ -591,7 +591,7 @@ test "short COMMAND private capture is not an authored Result for a long postlud
 ///|
 test "short COMMAND private port does not reserve the same public Result spelling" {
   let program = short_command_program(
-    "FROM messages |> RESULT aql_private_command |> EFFECT COMMAND mail.send ID id INPUT (body = body); EFFECT audit COMMAND FROM RESULT aql_private_command AS t TARGET t.mailbox CONTRACT c INPUT (body = t.body);",
+    "FROM messages |> RESULT aql_private_command |> EFFECT COMMAND mail.send ID id INPUT (body = body); EFFECT audit COMMAND FROM RESULT aql_private_command AS t TARGET t.mailbox CONTRACT `command:audit.v1` INPUT (body = t.body);",
   )
   assert_eq(@program.export_count(program), 1)
   let headers = @program.collect_effect_headers(program, 10, 10000).unwrap()
@@ -608,4 +608,15 @@ test "short COMMAND private port does not reserve the same public Result spellin
     }
   }
   assert_eq(observed, ["audit"])
+}
+
+///|
+test "short COMMAND postlude empty identifier is rejected by the original lexer" {
+  assert_true(
+    @query.parse_query_script(
+      "FROM messages |> EFFECT COMMAND mail.send ID id INPUT (body = body); EFFECT audit COMMAND FROM RESULT `` AS t TARGET t.id CONTRACT `command:audit.v1` INPUT (body = t.body);",
+      syntax_limits(),
+    )
+    is Err({ issue: Lexical(EmptyIdentifier), .. }),
+  )
 }
