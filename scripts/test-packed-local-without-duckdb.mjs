@@ -48,6 +48,8 @@ console.log(run(process.execPath, ['acceptance.mjs', 'initial']).trimEnd());
 console.log(run(process.execPath, ['acceptance.mjs', 'restart']).trimEnd());
 await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.mjs'),
   join(root, 'short-queries.mjs'));
+await copyFile(join(repository, 'scripts/fixtures/run-revision-assertions.mjs'),
+  join(root, 'run-revision-assertions.mjs'));
 await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.typecheck.mts'),
   join(root, 'short-queries.typecheck.mts'));
 await copyFile(join(repository, 'packages/local-node/source-inventory.typecheck.mts'),

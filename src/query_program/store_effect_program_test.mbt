@@ -1,0 +1,584 @@
+///|
+// The static-publication fixture intentionally has no capacity policy. Full
+// computation checking uses this independent original with the existing test
+// policy; no capacity default is invented when the original omits one.
+fn store_effect_check_environment() -> @check.CheckEnvironment {
+  let wire = @environment.read(
+    @utf8.encode(
+      (
+        #|{"command_contracts":[{"atomicity":"single_target","command_id":"command:fixture.upload.v1","connector_id":"storage","contract_cid":"sha256:cc127c70d073273d011fbb36068fb8b45e77cab31fa5d0737553bccb9978b0f2","idempotency":{"support":"unsupported"},"input_contract":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"path":{"nullable":false,"type":"string"}}},"input_schema":{"cid":"sha256:0146ce90a7071e37336a39b05f68d2f1505847a80a6f37731140fbb60ae54312","id":"fixture.upload.command_input","version":"fixture-1"},"minimum_approval":"required","outcome":"synchronous","output_schema":{"cid":"sha256:7412c07a4deb13f8d3dbe75a93ae44e657f2c9728d99cff3c90c0f65555f52dc","id":"fixture.upload.command_output","version":"fixture-1"},"permissions":["scope:write"],"preview":{"strength":"exact"},"reversibility":"unknown","schema":"actql.command_contract/0.1","target":{"cardinality":"single","resource_kind":"file_collection"},"version":"fixture-1"}],"connector_capabilities":[],"connector_catalogs":[{"catalog_cid":"sha256:a937153e39e2f69f5d6893275d3b6a7457498cc22627a1152627d473897f8757","commands":[{"atomicity":"single_target","command_id":"command:fixture.upload.v1","connector_id":"storage","contract_cid":"sha256:cc127c70d073273d011fbb36068fb8b45e77cab31fa5d0737553bccb9978b0f2","idempotency":{"support":"unsupported"},"input_contract":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"path":{"nullable":false,"type":"string"}}},"input_schema":{"cid":"sha256:0146ce90a7071e37336a39b05f68d2f1505847a80a6f37731140fbb60ae54312","id":"fixture.upload.command_input","version":"fixture-1"},"minimum_approval":"required","outcome":"synchronous","output_schema":{"cid":"sha256:7412c07a4deb13f8d3dbe75a93ae44e657f2c9728d99cff3c90c0f65555f52dc","id":"fixture.upload.command_output","version":"fixture-1"},"permissions":["scope:write"],"preview":{"strength":"exact"},"reversibility":"unknown","schema":"actql.command_contract/0.1","target":{"cardinality":"single","resource_kind":"file_collection"},"version":"fixture-1"}],"connector_id":"storage","connector_version":"fixture-1","contracts":[{"body":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"path":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"cid":"sha256:0146ce90a7071e37336a39b05f68d2f1505847a80a6f37731140fbb60ae54312","id":"fixture.upload.command_input","kind":"command_input","schema":"actql.contract/0.1","version":"fixture-1"},{"body":{"additional_properties":false,"fields":{},"nullable":false,"type":"object"},"cid":"sha256:7412c07a4deb13f8d3dbe75a93ae44e657f2c9728d99cff3c90c0f65555f52dc","id":"fixture.upload.command_output","kind":"command_output","schema":"actql.contract/0.1","version":"fixture-1"}],"schema":"actql.connector_catalog/0.1","source_views":[]}],"connector_manifest":{"connectors":[{"connector":"fixture","connector_id":"storage","connector_version":"fixture-1"}],"version":"actql-connectors/0.1"},"contract_registry":[{"body":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"path":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"cid":"sha256:0146ce90a7071e37336a39b05f68d2f1505847a80a6f37731140fbb60ae54312","id":"fixture.upload.command_input","kind":"command_input","schema":"actql.contract/0.1","version":"fixture-1"},{"body":{"additional_properties":false,"fields":{},"nullable":false,"type":"object"},"cid":"sha256:7412c07a4deb13f8d3dbe75a93ae44e657f2c9728d99cff3c90c0f65555f52dc","id":"fixture.upload.command_output","kind":"command_output","schema":"actql.contract/0.1","version":"fixture-1"}],"evidence_bundle_cid":"sha256:f90cdb6f1b80d81f2ca9707aa5378f63be5aae1dc73b9a6c7e0028dd5f837c3f","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_analytic_frame_memberships":1000,"max_analytic_input_wire_bytes":1000,"max_analytic_output_wire_bytes":1000,"max_analytic_partition_wire_bytes":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[{"connector_manifest_cid":"sha256:6960590acec3fcbd045e40dbb94ec08f77c3a2d271943b019a8ada57283a3208","conversions":[],"mapping_contract_cid":"sha256:7d2514050811313eeb33ef05a6a694c0dfb5bbfd6cf1347a072853b6320b459a","mapping_ref":"mapping:fixture.archive.v1","minimum_approval":"none","permission_rules":[{"effect_kind":"create","permissions":["scope:write"],"selector_class":"none","write_fields":["content","path"]}],"primary_identity":null,"required_fields":["content","path"],"required_permissions":[],"resource_identity_cid":"sha256:e3d4f3b2c3b392c4c889b78ea6b4794bc6a715d39a740275ab3c936d20ec6759","row_mapping":{"content":{"field":"content","null_behavior":"reject"},"path":{"field":"path","null_behavior":"reject"}},"schema":"actql.mapping_contract/0.1","store_command":{"catalog_cid":"sha256:a937153e39e2f69f5d6893275d3b6a7457498cc22627a1152627d473897f8757","command_contract_cid":"sha256:cc127c70d073273d011fbb36068fb8b45e77cab31fa5d0737553bccb9978b0f2","command_ref":"command:fixture.upload.v1"},"target_ref":"connector://storage/archive","target_schema":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"path":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"target_schema_identity":"sha256:793f546b62fd8f3db0862d0369fc5451de8cee5fce0bd2408d7749efc6c3c336","version":"fixture-1","writable_fields":["content","path"]}],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+      ),
+    ),
+    "sha256:f90cdb6f1b80d81f2ca9707aa5378f63be5aae1dc73b9a6c7e0028dd5f837c3f",
+    { max_bytes: 40000, max_nodes: 4000, max_depth: 100, max_members: 100, },
+  ).unwrap()
+  @check.checking_environment(wire, { text_time: false, veca: false, }, {
+    rela: true,
+    sga: false,
+    tea: false,
+    calendar: false,
+    text_rank: false,
+  })
+}
+
+///|
+// A nominal captured input declaration, not a Values substitute for ContentRef
+// acquisition. Installed availability, issuer/current and apply remain Host-owned.
+fn store_capture_context() -> Context {
+  let declaration = @wire.admit(
+    @source.parse_json(
+      "{\"carrier\":\"relation\",\"schema\":{\"path\":{\"type\":\"string\",\"nullable\":false},\"content\":{\"type\":\"content_ref\",\"nullable\":false}}}",
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let input : Input = {
+    relation: [{ value: "files", quoted: false, }],
+    name: "files",
+    source: Captured(declaration),
+    visible_fields: ["path", "content"],
+    graph_bindings: [],
+  }
+  { ..fixture_context(), program_id: "fixture.store_private", inputs: [input], }
+}
+
+///|
+fn store_capture_publication() -> StoreTargetPublication {
+  let environment = store_source_environment("collection")
+  @source_publication.published_store_targets(
+    environment,
+    store_source_publication(environment),
+  )
+  .unwrap()
+  .unwrap()
+}
+
+///|
+fn store_capture_program(source : String) -> @program.Program raise {
+  let query = @query.parse_query(source, syntax_limits()).unwrap()
+  match
+    compile(
+      query,
+      store_capture_context(),
+      construction_limits(),
+      store_targets=Some(store_capture_publication()),
+    ) {
+    Ok(program) => program
+    Err(issue) =>
+      fail(
+        "STORE lowerer refused: " +
+        store_capture_issue_label(issue) +
+        " source=" +
+        source,
+      )
+  }
+}
+
+///|
+fn store_capture_issue_label(issue : Issue) -> String {
+  match issue {
+    BindingPreparation(LocalProgram(Pipeline(_, detail))) =>
+      @debug.to_string(detail.kind)
+    BindingPreparationSource(LocalProgram(Pipeline(_, detail)), _) =>
+      @debug.to_string(detail.kind)
+    BindingPreparation(LocalProgram(Order(_, _))) => "LocalProgram.Order"
+    BindingPreparation(LocalProgram(_)) => "LocalProgram.other"
+    BindingPreparation(Demand(_)) => "Demand"
+    BindingPreparation(SourceDeclarations(_)) => "SourceDeclarations"
+    BindingPreparation(MissingSourceCatalog(_)) => "MissingSourceCatalog"
+    BindingPreparation(Declarations(_)) => "Declarations"
+    _ => private_update_issue_label(issue)
+  }
+}
+
+///|
+fn store_capture_field(cursor : @wire.Cursor, name : String) -> @wire.Cursor {
+  @wire.required(@wire.open_object(cursor).unwrap(), name).unwrap()
+}
+
+///|
+fn store_capture_private(program : @program.Program) -> @wire.Cursor {
+  store_capture_field(
+    store_capture_field(
+      @program.stage_body(@program.stages(program).last().unwrap()),
+      "results",
+    ),
+    "aql_private_store",
+  )
+}
+
+///|
+fn store_capture_steps(program : @program.Program) -> Array[@wire.Cursor] {
+  let steps : Array[@wire.Cursor] = []
+  for stage in @program.stages(program) {
+    steps.append(
+      @wire.elements(store_capture_field(@program.stage_body(stage), "steps")).unwrap(),
+    )
+  }
+  steps
+}
+
+///|
+fn store_capture_header(
+  program : @program.Program,
+) -> @program.EffectHeader raise {
+  let headers = @program.collect_effect_headers(program, 10, 10000).unwrap()
+  assert_eq(@program.effect_header_count(headers), 1)
+  @program.effect_header_at(headers, 0).unwrap()
+}
+
+///|
+test "STORE collection uses its original Command pair and one private input" {
+  for
+    source in [
+      "FROM files |> EFFECT STORE storage.archive", "SELECT path, content FROM files |> EFFECT STORE storage.archive",
+      "WITH original AS (FROM files) FROM original |> EFFECT STORE storage.archive SET (path = path, content = content)",
+    ] {
+    let program = store_capture_program(source)
+    assert_eq(@program.export_count(program), 0)
+    let header = store_capture_header(program)
+    assert_eq(@program.effect_header_kind(header), "command")
+    assert_eq(@program.effect_header_id(header), "aql_store_effect")
+    assert_eq(
+      @program.effect_header_contract_ref(header),
+      "command:fixture.upload.v1",
+    )
+    assert_eq(
+      @program.effect_header_published_store_target(header),
+      Some(("connector://storage/archive", "mapping:fixture.archive.v1")),
+    )
+    assert_eq(
+      @program.effect_header_source_result(header),
+      Some("aql_private_store"),
+    )
+    let fields = @wire.elements(
+        store_capture_field(store_capture_private(program), "fields"),
+      )
+      .unwrap()
+      .map(field => @wire.text(field).unwrap())
+    assert_eq(fields, ["path", "content"])
+    let input = store_capture_field(
+      @program.effect_header_body(header),
+      "input",
+    )
+    assert_eq(@wire.object_field_names(input).unwrap(), ["path", "content"])
+    for name in fields {
+      assert_eq(
+        @wire.text(
+          store_capture_field(store_capture_field(input, name), "field"),
+        ).unwrap(),
+        name,
+      )
+    }
+  }
+}
+
+///|
+test "STORE SET evaluates one existing Relation expression and retains ContentRef" {
+  let program = store_capture_program(
+    "FROM files |> EFFECT upload STORE storage.archive SET (path = CONCAT(path, '.csv'), content = content)",
+  )
+  assert_eq(@program.effect_header_id(store_capture_header(program)), "upload")
+  let derives = store_capture_steps(program).filter(step => {
+    @wire.lookup(@wire.open_object(step).unwrap(), "derive") is Some(_)
+  })
+  assert_eq(derives.length(), 1)
+  let derivation = store_capture_field(derives[0], "derive")
+  assert_eq(@wire.object_length(derivation), Some(1))
+  let expression = @wire.field_at(derivation, 0).unwrap().1
+  let args = @wire.elements(store_capture_field(expression, "concat_strict")).unwrap()
+  assert_eq(args.length(), 2)
+  assert_eq(@wire.text(store_capture_field(args[0], "field")).unwrap(), "path")
+  assert_eq(
+    @wire.text(store_capture_field(args[1], "literal")).unwrap(),
+    ".csv",
+  )
+  let capture = store_capture_private(program)
+  let capture_name = @wire.text(store_capture_field(capture, "from")).unwrap()
+  let step = store_capture_steps(program).filter(step => {
+      @wire.lookup(@wire.open_object(step).unwrap(), "as").map(value => {
+        @wire.text(value).unwrap()
+      }) ==
+      Some(capture_name)
+    })[0]
+  let selected = @wire.elements(store_capture_field(step, "select")).unwrap()
+  assert_eq(@wire.text(selected[1]).unwrap(), "content")
+}
+
+///|
+test "STORE retains authored public Result independently from its private SET" {
+  let program = store_capture_program(
+    "FROM files |> RESULT before_write |> EFFECT STORE storage.archive SET (path = path, content = content)",
+  )
+  assert_eq(@program.exports(program), [("before_write", "main", "rows")])
+  assert_eq(@program.result_names(@program.stages(program).last().unwrap()), [
+    "rows", "aql_private_store",
+  ])
+}
+
+///|
+test "STORE target admission precedes SET binding and never guesses from rows" {
+  let query = @query.parse_query(
+    "FROM files |> EFFECT STORE storage.archive SET (path = absent, content = content)",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, store_capture_context(), construction_limits())
+    is Err(StoreTargetBinding(UnresolvedTarget)),
+  )
+  assert_true(
+    compile(
+      query,
+      store_capture_context(),
+      construction_limits(),
+      store_targets=Some(store_target_publication("ambiguous")),
+    )
+    is Err(StoreTargetBinding(AmbiguousMapping)),
+  )
+  assert_true(
+    compile(
+      query,
+      store_capture_context(),
+      construction_limits(),
+      store_targets=Some(store_capture_publication()),
+    )
+    is Err(_),
+  )
+}
+
+///|
+test "STORE WITH control retains the same captured input before terminal lowering" {
+  let source = "WITH original AS (FROM files) FROM original"
+  let query = @query.parse_query(source, syntax_limits()).unwrap()
+  match compile(query, store_capture_context(), construction_limits()) {
+    Ok(_) => ()
+    Err(issue) => fail(store_capture_issue_label(issue))
+  }
+}
+
+///|
+test "STORE never claims an empty primary key as input evidence" {
+  let valid = match store_capture_context().inputs[0].source {
+    Captured(source) => source
+    _ => abort("expected the captured declaration control")
+  }
+  let limits : @local_input.Limits = {
+    max_nodes: 100,
+    max_depth: 10,
+    max_text_bytes: 1000,
+  }
+  assert_true(@local_input.read(valid, limits) is Ok(_))
+  let invalid = @wire.admit(
+    @source.parse_json(
+      "{\"carrier\":\"relation\",\"primary_key\":[],\"schema\":{\"path\":{\"type\":\"string\",\"nullable\":false},\"content\":{\"type\":\"content_ref\",\"nullable\":false}}}",
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  assert_true(@local_input.read(invalid, limits) is Err(PrimaryKey(_)))
+}
+
+///|
+test "STORE set tail captures the completed UNION once" {
+  let program = store_capture_program(
+    "FROM files |> UNION ALL (FROM files) |> EFFECT STORE storage.archive SET (path = path, content = content)",
+  )
+  assert_eq(@program.export_count(program), 0)
+  let steps = store_capture_steps(program)
+  let union_steps = steps.filter(step => {
+    @wire.lookup(@wire.open_object(step).unwrap(), "append") is Some(_)
+  })
+  assert_eq(union_steps.length(), 1)
+  assert_eq(
+    @program.effect_header_count(
+      @program.collect_effect_headers(program, 10, 10000).unwrap(),
+    ),
+    1,
+  )
+  assert_eq(@program.result_names(@program.stages(program).last().unwrap()), [
+    "aql_private_store",
+  ])
+}
+
+///|
+test "STORE consumes immutable range values before the public projection drops them" {
+  let program = store_capture_program(
+    "FROM files AS original |> SET path = 'replacement' |> EFFECT STORE storage.archive SET (path = original.path, content = original.content)",
+  )
+  let capture = store_capture_private(program)
+  let capture_name = @wire.text(store_capture_field(capture, "from")).unwrap()
+  let step = store_capture_steps(program).filter(step => {
+      @wire.lookup(@wire.open_object(step).unwrap(), "as").map(value => {
+        @wire.text(value).unwrap()
+      }) ==
+      Some(capture_name)
+    })[0]
+  let selected = @wire.elements(store_capture_field(step, "select")).unwrap()
+  // The immutable range still names original slots, not the newly derived path.
+  assert_eq(@wire.text(selected[0]).unwrap(), "path")
+  assert_eq(@wire.text(selected[1]).unwrap(), "content")
+}
+
+///|
+test "STORE relation Mapping keeps canonical relation materialization" {
+  let query = @query.parse_query(
+    "FROM orders |> EFFECT STORE storage.archive SET (id = id, value = status)",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(
+    query,
+    fixture_context(),
+    construction_limits(),
+    store_targets=Some(store_target_publication("relation")),
+  ).unwrap()
+  let header = store_capture_header(program)
+  assert_eq(@program.effect_header_kind(header), "store")
+  assert_true(@program.effect_header_published_store_target(header) is None)
+  assert_eq(
+    @program.effect_header_source_result(header),
+    Some("aql_private_store"),
+  )
+  let body = @program.effect_header_body(header)
+  assert_eq(
+    @wire.text(store_capture_field(body, "target")).unwrap(),
+    "connector://storage/archive",
+  )
+  assert_eq(
+    @wire.text(store_capture_field(body, "mapping")).unwrap(),
+    "mapping:fixture.archive.v1",
+  )
+  assert_eq(@program.export_count(program), 0)
+}
+
+///|
+test "STORE takes original typed content from SERIALIZE through the existing compiler" {
+  let environment = store_effect_check_environment()
+  let publication = @source_publication.published_store_targets(
+      environment,
+      store_source_publication(environment),
+    )
+    .unwrap()
+    .unwrap()
+  let query = @query.parse_query(
+    "FROM pair |> SERIALIZE FORMAT JSONL PRESERVE ORDER OPTIONS (name = 'pair.jsonl', max_rows = 1, max_bytes = 128) |> EFFECT STORE storage.archive SET (path = name, content = content)",
+    syntax_limits(),
+  ).unwrap()
+  let program = match
+    compile(
+      query,
+      pair_context(),
+      construction_limits(),
+      store_targets=Some(publication),
+    ) {
+    Ok(program) => program
+    Err(issue) =>
+      fail("SERIALIZE STORE refused: " + store_capture_issue_label(issue))
+  }
+  assert_eq(@program.export_count(program), 0)
+  let headers = @program.collect_effect_headers(program, 10, 10000).unwrap()
+  assert_eq(@program.effect_header_count(headers), 1)
+  let steps = store_capture_steps(program)
+  assert_eq(
+    steps
+    .filter(step => {
+      @wire.lookup(@wire.open_object(step).unwrap(), "serialize") is Some(_)
+    })
+    .length(),
+    1,
+  )
+  let candidate = match
+    @check.prepare_effect_computation_candidate(
+      program,
+      environment,
+      None,
+      [],
+      check_limits(),
+      1,
+      1000,
+    ) {
+    Ok(candidate) => candidate
+    Err(Computation(Source(SourceView(Program(Program(Pipeline(_, detail))))))) =>
+      fail(@debug.to_string(detail.kind))
+    Err(Computation(Source(SourceView(Program(Program(Order(_, _))))))) =>
+      fail("SourceView.Program.Order")
+    Err(Computation(Source(SourceView(Program(_))))) =>
+      fail("SourceView.Program.other")
+    Err(Computation(Source(issue))) => raise issue
+    Err(Computation(issue)) => raise issue
+    Err(_) =>
+      fail(
+        "original SERIALIZE computation must reach the existing Effect checker",
+      )
+  }
+  let mappings = @environment.check_mapping_contract_shapes(
+    @check.checking_environment_wire(environment),
+    { max_bytes: 40000, max_nodes: 4000, max_depth: 100, max_members: 100, },
+    10000,
+  ).unwrap()
+  let closed = @check.close_effect_computation_static(candidate, mappings, {
+    max_members: 10,
+    max_work: 10000,
+    max_admission_nodes: 1000,
+    max_admission_depth: 100,
+    max_admission_text_bytes: 10000,
+  }).unwrap()
+  assert_eq(
+    @program.effect_header_count(@check.effect_program_static_headers(closed)),
+    1,
+  )
+}
+
+///|
+test "source Frontend preserves the original STORE publication and private output" {
+  let publication = store_capture_publication()
+  let lowered = @frontend.lower(
+    "FROM files |> EFFECT STORE storage.archive SET (path = path, content = content)",
+    @frontend.select_format("aql").unwrap(),
+    Some(store_capture_context()),
+    store_targets=Some(publication),
+  ).unwrap()
+  assert_true(physical_equal(lowered.store_targets.unwrap(), publication))
+  assert_eq(@program.export_count(lowered.program.unwrap()), 0)
+}
+
+///|
+fn store_serialized_program(
+  environment : @check.CheckEnvironment,
+  assignments : String,
+) -> @program.Program {
+  let publication = @source_publication.published_store_targets(
+      environment,
+      store_source_publication(environment),
+    )
+    .unwrap()
+    .unwrap()
+  let query = @query.parse_query(
+    "FROM pair |> SERIALIZE FORMAT JSONL PRESERVE ORDER OPTIONS (name = 'pair.jsonl', max_rows = 1, max_bytes = 128) |> EFFECT STORE storage.archive SET (" +
+    assignments +
+    ")",
+    syntax_limits(),
+  ).unwrap()
+  compile(
+    query,
+    pair_context(),
+    construction_limits(),
+    store_targets=Some(publication),
+  ).unwrap()
+}
+
+///|
+test "STORE does not synthesize capacity for the original static publication fixture" {
+  let environment = store_source_environment("collection")
+  let program = store_serialized_program(
+    environment, "path = name, content = content",
+  )
+  assert_true(
+    @check.prepare_effect_computation_candidate(
+      program,
+      environment,
+      None,
+      [],
+      check_limits(),
+      1,
+      1000,
+    )
+    is Err(Computation(Source(SourceView(Context(Policy(MissingCapacity)))))),
+  )
+}
+
+///|
+test "STORE content type remains the existing Command input Owner refusal" {
+  let environment = store_effect_check_environment()
+  let program = store_serialized_program(
+    environment, "path = name, content = 7",
+  )
+  let candidate = @check.prepare_effect_computation_candidate(
+    program,
+    environment,
+    None,
+    [],
+    check_limits(),
+    1,
+    1000,
+  ).unwrap()
+  let mappings = @environment.check_mapping_contract_shapes(
+    @check.checking_environment_wire(environment),
+    { max_bytes: 40000, max_nodes: 4000, max_depth: 100, max_members: 100, },
+    10000,
+  ).unwrap()
+  match
+    @check.close_effect_computation_static(candidate, mappings, {
+      max_members: 10,
+      max_work: 10000,
+      max_admission_nodes: 1000,
+      max_admission_depth: 100,
+      max_admission_text_bytes: 10000,
+    }) {
+    Err(CommandInputs(issue)) => {
+      assert_eq(
+        @stage_results.effect_command_input_issue_kind(issue),
+        IncompatibleField("content"),
+      )
+      assert_eq(
+        @stage_results.effect_command_input_issue_effect(issue),
+        "aql_store_effect",
+      )
+    }
+    _ => fail("numeric data must not become a typed ContentRef")
+  }
+}
+
+///|
+test "STORE SET siblings do not become expression bindings" {
+  let query = @query.parse_query(
+    "FROM files |> EFFECT STORE storage.archive SET (new_path = path, content = new_path)",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(
+      query,
+      store_capture_context(),
+      construction_limits(),
+      store_targets=Some(store_capture_publication()),
+    )
+    is Err(Expression(_) | UnknownColumn),
+  )
+}
+
+///|
+test "STORE after a retained tap publishes only the authored Result" {
+  let program = store_capture_program(
+    "FROM files |> RESULT before_write |> WHERE path != '' |> EFFECT STORE storage.archive",
+  )
+  assert_eq(@program.exports(program), [
+    ("before_write", "main", "aql_retained_result_0"),
+  ])
+  assert_eq(@program.result_names(@program.stages(program).last().unwrap()), [
+    "aql_retained_result_0", "aql_private_store",
+  ])
+}
+
+///|
+test "STORE Model continuation keeps its original public prefix without an implicit tail Result" {
+  let query = @query.parse_query(
+    "FROM pair |> ASSERT UNIQUE BY (x) |> INFER score ITEM KEY (x) INPUT (n = y) KEEP (x, y) AS assessment |> RESULT classified |> SERIALIZE FORMAT JSONL PRESERVE ORDER OPTIONS (name = 'pair.jsonl', max_rows = 1, max_bytes = 128) |> EFFECT STORE storage.archive SET (path = name, content = content)",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(
+    query,
+    pair_context(),
+    construction_limits(),
+    store_targets=Some(store_capture_publication()),
+  ).unwrap()
+  assert_eq(@program.stage_count(program), 2)
+  assert_eq(@program.exports(program), [("classified", "main", "rows")])
+  assert_eq(@program.result_names(@program.stages(program).last().unwrap()), [
+    "aql_private_store",
+  ])
+  assert_eq(
+    @program.effect_header_count(
+      @program.collect_effect_headers(program, 1, 10000).unwrap(),
+    ),
+    1,
+  )
+}

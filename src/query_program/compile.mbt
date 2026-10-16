@@ -98,6 +98,7 @@ pub(all) enum Issue {
   UnsupportedEffect
   TableWriteBinding(TableWriteBindingIssue)
   UpdateTargetBinding(UpdateTargetIssue)
+  StoreTargetBinding(StoreTargetIssue)
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   // Retain the common checker's cause and authored cursor from scope probes.
@@ -197,6 +198,7 @@ priv struct RetainedResult {
   carrier_complete : Bool
   // Frontend construction metadata for a closed, unexported UPDATE input.
   update : (String, Array[(String, @builder.Node)])?
+  store : Bool
 }
 
 ///|
@@ -215,7 +217,7 @@ fn retained_result_exports(
   keep_default? : Bool = false,
   implicit_primary? : Bool = true,
 ) -> Array[(String, String)]? raise Abort {
-  let public = retained.filter(result => result.update is None)
+  let public = retained.filter(result => result.update is None && !result.store)
   if public.is_empty() {
     return if retained.is_empty() {
       None
@@ -258,12 +260,14 @@ fn retained_stage_results(
 ) -> @builder.Node raise Abort {
   let definitions = if (
       !implicit_primary &&
-      !retained.any(result => result.update is None && result.terminal)
+      !retained.any(result => {
+        result.update is None && !result.store && result.terminal
+      })
     ) ||
     (
       !keep_default &&
-      retained.any(result => result.update is Some(_)) &&
-      retained.all(result => result.update is Some(_))
+      retained.any(result => result.update is Some(_) || result.store) &&
+      retained.all(result => result.update is Some(_) || result.store)
     ) {
     []
   } else {
@@ -3091,6 +3095,7 @@ fn compile_steps(
           terminal: terminal_result,
           carrier_complete: !needs_view,
           update: None,
+          store: false,
         })
         if terminal_result {
           output = pipe_visible.map(pair => pair.0)
@@ -6942,7 +6947,7 @@ fn compile_steps(
   // An implicit UPDATE consumes this exact Relation scope, including its
   // immutable range slots. Save a branch before the ordinary public projection
   // can discard those slots; the Effect branch closes only its demanded fields.
-  let update_steps : Array[Array[(String, @builder.Node)]] = []
+  let effect_capture_steps : Array[Array[(String, @builder.Node)]] = []
   if @query.terminal_effect(query) is Some(clause) &&
     clause.result is None &&
     @query.set_part_count(query) == 0 &&
@@ -6986,7 +6991,51 @@ fn compile_steps(
       ),
     )
     retained.push(capture)
-    update_steps.append(body)
+    effect_capture_steps.append(body)
+  }
+  if @query.terminal_store_effect(query) is Some(clause) &&
+    @query.set_part_count(query) == 0 &&
+    retained is Some(retained) {
+    let names = reserved_bindings +
+      nearest_inputs.map(input => input.name) +
+      [input.name, final_alias] +
+      retained.map(result => result.from)
+    let producer = pipe_physical_name(names, "aql_store_input_")
+    reserved_bindings.push(producer)
+    let checkpoint : Array[(String, @builder.Node)] = []
+    if first || terminal_result {
+      checkpoint.push(("from", construction.text(input_from)))
+    }
+    checkpoint.push(
+      (
+        "select",
+        construction.array(active_fields.map(field => construction.text(field))),
+      ),
+    )
+    checkpoint.push(("as", construction.text(producer)))
+    step_entries.push(checkpoint)
+    input_from = producer
+    first = true
+    let (capture, body) = lower_store_capture(
+      construction,
+      clause,
+      producer,
+      pipe_visible,
+      pipe_ranges,
+      active_fields,
+      max_work,
+      reserved_bindings~,
+      expression_columns=Some(
+        unnest_expression_columns(
+          pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+        ),
+      ),
+      value_ranges=value_range_names(
+        value_table_receivers, scalar_value_table_ranges,
+      ),
+    )
+    retained.push(capture)
+    effect_capture_steps.append(body)
   }
   let retained_scope = match preserved_scope {
     Some(scopes) => Some(scopes)
@@ -7057,7 +7106,7 @@ fn compile_steps(
       ("as", construction.text(final_alias)),
     )
   }
-  step_entries.append(update_steps)
+  step_entries.append(effect_capture_steps)
   let emitted = match source_projection_capture {
     Some(capture) if capture.count > 0 => {
       let tail = Array::makei(step_entries.length() - capture.count, i => {
@@ -7141,14 +7190,13 @@ pub fn compile_with_source(
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
+  store_targets? : StoreTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
-  if @query.terminal_store_effect(query) is Some(_) {
-    return Err(UnsupportedEffect)
-  }
   // Binding and primary scopes must be installed before inspecting a JOIN
   // input. The standalone probe sees only Context inputs, not authored WITH
   // producers or transformed range inputs.
-  if @query.terminal_command_effect_count(query) > 0 ||
+  if @query.terminal_store_effect(query) is Some(_) ||
+    @query.terminal_command_effect_count(query) > 0 ||
     @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
     has_pipe_range_input(query) ||
@@ -7163,6 +7211,7 @@ pub fn compile_with_source(
       limits,
       table_writes~,
       update_targets~,
+      store_targets~,
     )
   }
   let needs_input_binding = join_requires_input_binding(query, context) catch {
@@ -7175,6 +7224,7 @@ pub fn compile_with_source(
       limits,
       table_writes~,
       update_targets~,
+      store_targets~,
     )
   }
   let mut has_nearest = false
@@ -7206,6 +7256,7 @@ pub fn compile_with_source(
       limits,
       table_writes~,
       update_targets~,
+      store_targets~,
     )
   }
   if @query.join_part_count(query) > 0 && context.captured_stage is Some(_) {
@@ -9926,8 +9977,16 @@ pub fn compile(
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
+  store_targets? : StoreTargetPublication? = None,
 ) -> Result[@program.Program, Issue] {
-  compile_with_source(query, context, limits, table_writes~, update_targets~)
+  compile_with_source(
+    query,
+    context,
+    limits,
+    table_writes~,
+    update_targets~,
+    store_targets~,
+  )
   .map(pair => pair.0)
   .map_err(issue_without_source)
 }
