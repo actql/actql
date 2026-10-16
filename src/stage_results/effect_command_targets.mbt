@@ -4,6 +4,12 @@ pub(all) enum EffectCommandTargetIssueKind {
   WorkLimit
   Contract(@environment.CommandTargetIssue)
   TargetKindMismatch
+  MissingStoreMappings
+  ForeignEnvironment
+  MissingStoreMapping(String)
+  StoreTargetMismatch
+  StoreContractMismatch
+  StoreBinding(@environment.StoreCommandIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -38,6 +44,7 @@ pub fn effect_command_target_issue_effect(
 pub struct EffectCommandTargetBinding {
   effect : EffectResultBinding
   contract : @environment.CommandTarget
+  store_binding : @environment.StoreCommandBinding?
 }
 
 ///|
@@ -52,6 +59,15 @@ pub fn effect_command_target_contract(
   value : EffectCommandTargetBinding,
 ) -> @environment.CommandTarget {
   value.contract
+}
+
+///|
+/// Retain the original checked pair for installed capture. It is not a
+/// ResourceRef, current authorization, or permission to execute the Command.
+pub fn effect_command_target_store_binding(
+  value : EffectCommandTargetBinding,
+) -> @environment.StoreCommandBinding? {
+  value.store_binding
 }
 
 ///|
@@ -122,6 +138,7 @@ pub fn bind_effect_command_targets(
   effects : EffectResultBindings,
   references : @environment.CatalogReferences,
   max_work : Int,
+  mappings? : @environment.MappingContractShapes? = None,
 ) -> Result[EffectCommandTargets, EffectCommandTargetIssue] {
   if max_work < 0 {
     return Err({ kind: InvalidLimits, stage_index: -1, effect_id: "", })
@@ -137,6 +154,51 @@ pub fn bind_effect_command_targets(
     }
     remaining -= 1
     if @syntax.effect_header_kind(header) != "command" {
+      continue
+    }
+    if @syntax.effect_header_published_store_target(header)
+      is Some((target_ref, mapping_ref)) {
+      guard mappings is Some(mappings) else {
+        return Err(command_target_issue(MissingStoreMappings, header))
+      }
+      if !physical_equal(
+          @environment.mapping_shape_environment(mappings),
+          @environment.contract_registry_environment(
+            @environment.catalog_registry(catalogs),
+          ),
+        ) {
+        return Err(command_target_issue(ForeignEnvironment, header))
+      }
+      // One bounded lookup and the fixed original-reference comparisons. The
+      // existing pair owner separately charges its Mapping and Catalog work.
+      if remaining == 0 {
+        return Err(command_target_issue(WorkLimit, header))
+      }
+      remaining -= 1
+      guard @environment.mapping_shape_for(mappings, mapping_ref)
+        is Some(mapping) else {
+        return Err(
+          command_target_issue(MissingStoreMapping(mapping_ref), header),
+        )
+      }
+      if @environment.mapping_shape_target(mapping) != target_ref {
+        return Err(command_target_issue(StoreTargetMismatch, header))
+      }
+      let pair = match
+        @environment.bind_store_command(mapping, catalogs, remaining) {
+        Ok(value) => value
+        Err(@environment.StoreCommandIssue::WorkLimit) =>
+          return Err(command_target_issue(WorkLimit, header))
+        Err(issue) =>
+          return Err(command_target_issue(StoreBinding(issue), header))
+      }
+      remaining -= @environment.store_command_work(pair)
+      let selected = @environment.store_command_target(pair)
+      if @environment.command_target_id(selected) !=
+        @syntax.effect_header_contract_ref(header) {
+        return Err(command_target_issue(StoreContractMismatch, header))
+      }
+      entries.push({ effect, contract: selected, store_binding: Some(pair), })
       continue
     }
     let selected = match
@@ -163,7 +225,7 @@ pub fn bind_effect_command_targets(
     if target_kind != Some(@environment.command_target_resource_kind(selected)) {
       return Err(command_target_issue(TargetKindMismatch, header))
     }
-    entries.push({ effect, contract: selected, })
+    entries.push({ effect, contract: selected, store_binding: None, })
   }
   Ok({ effects, references, entries, work: max_work - remaining, })
 }
