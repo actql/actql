@@ -2,9 +2,9 @@
 
 The DuckDB Connector reads and writes tables in a DuckDB database file and
 copies content to files next to it. As a Connector it is the quickest way to
-run Programs over local data: point a connection at a file and query it. When
-you install the package that bundles DuckDB, the same DuckDB is also an
-engine the Host can use for work no single source can do — a join across
+run Programs over local data: point a connection at a file and query it. The
+same DuckDB, bundled in the standard `@actql/node`, `actql` and CLI packages,
+is also an engine the Host can use for work no single source can do — a join across
 Salesforce and Snowflake, say — and `explain` shows it in the Engine column,
 separately from the Site it runs on.
 

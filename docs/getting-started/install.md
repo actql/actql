@@ -16,8 +16,9 @@ where ActQL keeps its state.
 | CLI and Node library | Node.js 22 or later |
 | Python library | Python 3.11 or later |
 
-The engine itself is bundled; there is nothing else to install, no server to
-run and no account to create. Connectors for external systems need credentials
+The engine itself is bundled, and so is DuckDB for larger joins on your
+machine; there is nothing else to install, no server to run and no account
+to create. Connectors for external systems need credentials
 only when you configure a connection to a real system — the mock profile used
 by the [Quickstart](quickstart.md) needs none.
 
@@ -83,6 +84,22 @@ with actql.open(state_dir=".actql") as db:
 ```
 
 See [Python](../guides/python.md).
+
+## Only calling a remote Host or ActQL Cloud
+
+An application that only talks to a Host someone else runs — a remote Host
+or ActQL Cloud — does not need the engine. Install the lightweight SDK
+instead; it has the same client API, with `mode: 'remote'` and no local
+mode:
+
+```sh
+npm install @actql/sdk      # TypeScript
+uv add actql-sdk            # Python (or pip install actql-sdk)
+```
+
+The standard packages above also contain the remote client, so an
+application that starts local can switch to remote by changing its
+connection options. See [Local and remote Hosts](../guides/hosts.md).
 
 ## Skills for coding agents
 

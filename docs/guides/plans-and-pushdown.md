@@ -172,8 +172,9 @@ again.
 ## Where a join runs
 
 Work that spans sources runs on a Site that can see both inputs, usually your
-machine, where the Host has two engines: its built-in engine and, in the
-package that bundles it, DuckDB. The Host compares the candidates that keep
+machine, where the Host has two engines: its built-in engine and DuckDB,
+which the standard `@actql/node`, `actql` and CLI packages bundle (the
+lightweight SDK has no engine). The Host compares the candidates that keep
 the meaning, the permissions and the resource limits, weighing the kind of
 operation, the engines' Capabilities, and the cost of starting, transferring,
 holding and computing; the input sizes it learns during the Run are one input
