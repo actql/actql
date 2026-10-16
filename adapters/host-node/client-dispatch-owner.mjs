@@ -181,7 +181,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       directAccess, keyedAccess, preparedKeyed, acquisition, capacity, ledger, capturedContent} = selected;
     // Retain the aggregate before the first await. Compute borrows these
     // inputs; its confirmed close must precede reclamation of either source.
-    entry.multiSources = true;
+    entry.borrowedSources = true;
     const children = [];
     const closed = new Set();
     entry.sourceCapture = Object.freeze({async close() {
@@ -317,7 +317,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
 
   async function settleCleanup(entry) {
     const execution = entry.cleanupOwner;
-    if (entry.multiSources && entry.sourceCapture !== undefined) {
+    if (entry.borrowedSources && entry.sourceCapture !== undefined) {
       // Stop Compute before closing any borrowed native input. The same
       // NativePhysical issuer must confirm close before the DAG can release
       // its transferred holding. A failed close retains these exact owners.
@@ -608,6 +608,25 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           sourceCapacity: installedSource.ledgerCapacity(held.preparedSource)});
         entry.acquisitionLedger = ledger;
       }
+      const singleAccounted = acquiring && !multiple && keyedSelection === undefined &&
+        !inferring && !serializing;
+      if (singleAccounted) {
+        const access = checkpoints?.acquisitionAccess(submission.requestId,
+          installedSource.sourceAccess) ?? installedSource.sourceAccess;
+        if (held.preparedSourceAccess !== access) {
+          held.preparedSource = await prepareAcquisition(preparedProgram, access);
+          held.preparedSourceAccess = access;
+        }
+        if (typeof installedSource.ledgerCapacity !== 'function') {
+          throw new Error('InstalledSingleSourceCapacityUnavailable');
+        }
+        const capacity = installedSource.ledgerCapacity(held.preparedSource);
+        ledger = moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
+          capacity.capacity, capacity.transferBytes, capacity.executionBytes,
+          registry, values, fragment, ordered);
+        if (ledger === undefined) throw new Error('InstalledSingleSourceLedgerUnavailable');
+        entry.acquisitionLedger = ledger;
+      }
       let setup;
       let acquiredInfer;
       let acquiredContent;
@@ -655,7 +674,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         setup = keyed.setup;
         acquiredContent = keyed.acquiredContent;
       } else if (multiple) {
-        entry.multiSources = true;
+        entry.borrowedSources = true;
         const captures = [];
         const closed = new Set();
         entry.sourceCapture = Object.freeze({async close() {
@@ -742,7 +761,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         }
         const {captureStartedAt, captureCompletedAt, sourceEvidenceWire} =
           await acquireSource(entry, preparedProgram, held.preparedSource, sourceAccess,
-            {captureOnly: generatingContent, ledger: generatingContent ? ledger : undefined});
+            {captureOnly: generatingContent, ledger: generatingContent || singleAccounted ? ledger : undefined});
         if (generatingContent) {
           acquiredContent = {captured: entry.sourceCapture, ledger, sourceEvidenceWire,
             authorityScopeCid, captureStartedAt, captureCompletedAt,
@@ -771,7 +790,19 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           captureStartedAt, captureCompletedAt, namespaceId,
           requestId: submission.requestId, storeAuthorityCid, now});
         }
-        setup = entry.sourceCapture.setup;
+        if (singleAccounted) {
+          // Reuse the existing borrowed-input cleanup order: stop Compute,
+          // close its original physical input, then reclaim DAG outputs.
+          entry.borrowedSources = true;
+          const capture = entry.sourceCapture.capture;
+          setup = moon.clientProgramOpenSingleCapturedLocalHost(preparedProgram,
+            capture.source(), ledger, registry, values, fragment, ordered, retainedRelationOutput);
+          if (setup === undefined) throw new Error('InstalledSingleSourceHostUnavailable');
+          // Retain before binding the borrow: a failed binding still leaves
+          // this same Compute owner in child-first cleanup custody.
+          entry.pendingSetup = setup;
+          capture.retainTask(moon.strategyHostRun(setup), 0);
+        } else setup = entry.sourceCapture.setup;
       }
       entry.abort.signal.throwIfAborted();
       entry.physicalWorkMayHaveStarted = true;
