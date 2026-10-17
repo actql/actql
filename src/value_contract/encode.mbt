@@ -6,6 +6,8 @@ priv enum Emission {
   Members(Array[(String, Emission)], Int)
   Key(String)
   TextValue(String)
+  Enumeration(TextEnumeration)
+  EnumerantsAt(TextEnumeration, Int)
   NumberValue(Double)
   BoolValue(Bool)
   Schema(Contract)
@@ -48,7 +50,7 @@ pub fn start_json_schema_emission(
 ///|
 fn schema_shape_supported(shape : Shape) -> Bool {
   match shape {
-    Text({ min_length: None, max_codepoints: None, max_utf8_bytes: None, }) =>
+    Text({ min_length: None, max_codepoints: None, max_utf8_bytes: None, .. }) =>
       true
     Number | Boolean | Object(_) | Array(_, max_items=None) => true
     _ => false
@@ -211,6 +213,19 @@ pub fn advance_checked_emission(
       Key(name) => cursor.key = Some(@encode.start_ordered_key(writer, name))
       TextValue(value) =>
         cursor.text = Some(@encode.start_string_value(writer, value))
+      Enumeration(value) => {
+        @encode.begin_array(writer)
+        push_emission(cursor, EndArray)
+        if !value.values.is_empty() {
+          push_emission(cursor, EnumerantsAt(value, 0))
+        }
+      }
+      EnumerantsAt(value, index) => {
+        if index + 1 < value.values.length() {
+          push_emission(cursor, EnumerantsAt(value, index + 1))
+        }
+        push_emission(cursor, TextValue(value.values[index]))
+      }
       NumberValue(value) => @encode.number_value(writer, value)
       BoolValue(value) => @encode.bool_value(writer, value)
       End => @encode.end_object(writer)
@@ -244,6 +259,11 @@ pub fn advance_checked_emission(
         push_emission(cursor, TextValue(type_name(shape)))
         push_emission(cursor, Key("type"))
         match shape {
+          Text(bounds) =>
+            if bounds.enumeration is Some(value) {
+              push_emission(cursor, Enumeration(value))
+              push_emission(cursor, Key("enum"))
+            }
           Object(fields) => {
             push_emission(cursor, Required(fields))
             push_emission(cursor, Key("required"))
@@ -320,6 +340,9 @@ pub fn advance_checked_emission(
             optional_number(members, "min_length", bounds.min_length)
             optional_number(members, "max_codepoints", bounds.max_codepoints)
             optional_number(members, "max_utf8_bytes", bounds.max_utf8_bytes)
+            if bounds.enumeration is Some(value) {
+              members.push(("enum", Enumeration(value)))
+            }
           }
           Decimal(precision~, scale~) => {
             members.push(("precision", NumberValue(precision.to_double())))
