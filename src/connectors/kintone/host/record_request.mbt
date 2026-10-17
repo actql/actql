@@ -46,7 +46,9 @@ pub fn record_form_request_body(
   if max_bytes <= 0 {
     return Err(InvalidLimits)
   }
-  let writer = @encode.writer(max_bytes, 4, 2)
+  let writer = @encode.writer(max_bytes, 4, 2) catch {
+    issue => return Err(RequestEncoding(issue))
+  }
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "app")
@@ -88,7 +90,9 @@ pub fn record_page_request_body(
     }
   }
   let query = prefix + "order by $id asc limit " + per_page.to_string()
-  let writer = @encode.writer(max_bytes, prepared.names.length() + 12, 3)
+  let writer = @encode.writer(max_bytes, prepared.names.length() + 12, 3) catch {
+    issue => return Err(RequestEncoding(issue))
+  }
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "app")
