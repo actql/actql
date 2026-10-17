@@ -5,7 +5,8 @@ import test from 'node:test';
 import * as moon from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {admitGcsObjectMetadata, projectGcsObjectMetadata, prepareGcsObjectBinding,
   prepareOwnedGcsMetadataPatch, prepareOwnedGcsObjectDelete, ownedGcsObjectRequestCid,
-  recheckOwnedGcsObjectRequest, sendOwnedGcsObjectRequest} from '../site/gcs-owned-object-request.mjs';
+  recheckOwnedGcsObjectRequest, sendOwnedGcsObjectRequest, ownedGcsObjectResponseMatches,
+  projectOwnedGcsObjectResponse} from '../site/gcs-owned-object-request.mjs';
 
 const metadata = Object.freeze({maxBytes: 8192, maxNodes: 1000, maxDepth: 12, maxEntries: 16});
 const marker = `sha256:${'d'.repeat(64)}`;
@@ -144,4 +145,53 @@ test('bodyless delete preserves a rejected original response without creating a 
   assert.equal(result.observation.statusCode, 412);
   assert.equal(result.observation.accepted, false);
   assert.equal(result.outcome, undefined);
+});
+
+test('metadata direct response requires the original marker exact user values and advancing version', () => {
+  const {request: r} = request();
+  const body = changes => Buffer.from(JSON.stringify({bucket: 'bucket', name: 'in/e\u0301%2F.csv',
+    generation: '9007199254740993', metageneration: '3', size: '7', contentType: 'text/csv',
+    metadata: {keep: 'kept', new: '=e\u0301\r\n', 'actql-request': marker}, ...changes}));
+  const original = body();
+  const observed = admitGcsObjectMetadata(moon, {bucket: 'bucket', prefix: 'in/', limits: metadata,
+    bytes: original});
+  assert.equal(ownedGcsObjectResponseMatches(r, observed), true);
+  assert.deepEqual(projectOwnedGcsObjectResponse(r, {statusCode: 200, body: original}, 8192),
+    {kind: 'typed-success-response', outcome: {state: 'applied', result: {}}});
+  for (const bytes of [Buffer.from('{}'), Buffer.from([0xff]), body({metageneration: '2'}),
+    body({generation: '9007199254740994'}), body({metadata: {keep: 'kept', new: '=e\u0301\r\n'}}),
+    body({metadata: {keep: 'kept', new: '=é\r\n', 'actql-request': marker}}),
+    body({metadata: {keep: 'kept', new: '=e\u0301\r\n', 'actql-request': 'foreign'}})]) {
+    assert.deepEqual(projectOwnedGcsObjectResponse(r, {statusCode: 200, body: bytes}, 8192),
+      {kind: 'provider-response'});
+  }
+  assert.deepEqual(original, body(), 'classification preserves original retained backing');
+});
+
+test('delete confirmation is an original empty 204 not a later 404 or nonempty success', () => {
+  const binding = prepareGcsObjectBinding(moon, config({kind: 'delete', permissions: ['storage.objects.delete']}));
+  const r = prepareOwnedGcsObjectDelete({moon, binding, original: read(), maxProjectionBytes: 8192});
+  assert.equal(ownedGcsObjectResponseMatches(r, read()), false, 'metadata cannot prove a delete');
+  assert.deepEqual(projectOwnedGcsObjectResponse(r, {statusCode: 204, body: Buffer.alloc(0)}, 1024),
+    {kind: 'typed-success-response', outcome: {state: 'applied', result: {}}});
+  for (const [statusCode, body] of [[404, Buffer.alloc(0)], [204, Buffer.from('{}')],
+    [200, Buffer.alloc(0)], [202, Buffer.alloc(0)], [503, Buffer.alloc(0)]]) {
+    assert.deepEqual(projectOwnedGcsObjectResponse(r, {statusCode, body}, 1024), {kind: 'provider-response'});
+  }
+  assert.equal(projectOwnedGcsObjectResponse(r, {statusCode: 412, body: Buffer.from('{}')}, 1024)
+    .outcome.error.code, 'conflict');
+});
+
+test('mutation response projection refuses foreign copies malformed bytes and its exact bounds', () => {
+  const {request: r} = request();
+  assert.throws(() => projectOwnedGcsObjectResponse({...r}, {statusCode: 412, body: Buffer.from('{}')}, 1024),
+    {code: 'ForeignGcsObjectRequest'});
+  assert.throws(() => projectOwnedGcsObjectResponse(r, {statusCode: 412,
+    body: new Uint8Array(new SharedArrayBuffer(1))}, 1024), {code: 'InvalidGcsObjectResponse'});
+  assert.throws(() => projectOwnedGcsObjectResponse(r, {statusCode: 412, body: Buffer.alloc(8193)}, 1024),
+    {code: 'GcsObjectRequestCapacityExceeded'});
+  assert.throws(() => projectOwnedGcsObjectResponse(r, {statusCode: 412, body: Buffer.from('{}')}, 1),
+    {code: 'GcsObjectRequestCapacityExceeded'});
+  assert.throws(() => projectOwnedGcsObjectResponse(r, {statusCode: 0, body: Buffer.alloc(0)}, 1024),
+    {code: 'InvalidGcsObjectResponse'});
 });

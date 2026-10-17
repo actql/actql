@@ -572,6 +572,35 @@ or physical retirement acknowledgement.
 
 ## Verification boundary
 
+### Original metadata and delete responses
+
+The existing GCS Owner classifies only the authenticated retained direct
+response of its original conditional metadata PATCH or DELETE. A PATCH needs
+the same bucket/name/generation and byte size, advancing metageneration, exact
+intended user properties and the new marker extracted from its own sealed
+request. Available original storage class/checksums/encoding remain consistent.
+Case, NFD user text, omission and explicit empty metadata maps are not merged.
+
+An original empty 204 DELETE response confirms the provider operation. A later
+404, matching fields, missing reply, nonempty response or unrelated status is
+not a delete receipt; the existing Effect retains Unknown and cannot resend.
+Only an original direct 412 selects conditional conflict. The API's logical
+deletion is not a claim of permanent physical erasure in a versioned or
+soft-delete bucket, and no resource/Store cleanup ACK is inferred.
+
+The same binding/request remains nominal across the private Node projection.
+Response bytes and original request body overlap bounded parsed trees, decode
+indexes, marker String, sorted logical-map arrays, output tree/writer/String
+and Node JSON view. They remain the original read/capture envelope's managed
+inventory, not zero-cost workspace or a new numerical grant. Original response
+backing/failure and pending cleanup are not replaced by this interpretation.
+
+Provider protocol references:
+[metadata PATCH](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/patch)
+and [object DELETE](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/delete).
+The actual installed registration, original capture/approval, same-Run restore,
+normal funding and live-service acceptance are still separate obligations.
+
 The catalog white-box tests execute the portable semantics with independent
 request byte/CID expectations. The Node tests consume the actual compiled GCS
 bridge and the existing scoped invocation helper, using explicit physical
