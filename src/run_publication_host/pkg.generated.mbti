@@ -2584,6 +2584,7 @@ pub(all) struct ClientHostSignerReadLimits {
 
 type ClientHostSignerSelection
 pub fn ClientHostSignerSelection::allows_kind(Self, @checkpoint_runtime.CheckpointKind) -> Bool
+pub fn ClientHostSignerSelection::allows_kind_name(Self, String) -> Bool
 pub fn ClientHostSignerSelection::key_id(Self) -> String
 pub fn ClientHostSignerSelection::name(Self) -> String
 pub fn ClientHostSignerSelection::principal(Self) -> String

@@ -46,6 +46,28 @@ import {
 }
 
 // Values
+pub fn client_host_signer_allows_kind(@run_publication_host.ClientHostSignerSelection, String) -> Bool
+
+pub fn client_host_signer_key_id(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signer_name(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signer_principal(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signer_private_key_file(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signer_public_key_file(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signers_admit(String, Int, Int, Int, Int) -> Result[@run_publication_host.ClientHostSignerConfiguration, @run_publication_host.ClientHostSignerConfigurationIssue]
+
+pub fn client_host_signers_count(@run_publication_host.ClientHostSignerConfiguration) -> Int
+
+pub fn client_host_signers_explicit(@run_publication_host.ClientHostSignerConfiguration) -> Bool
+
+pub fn client_host_signers_original_wire(@run_publication_host.ClientHostSignerConfiguration) -> String
+
+pub fn client_host_signers_select(@run_publication_host.ClientHostSignerConfiguration, String) -> @run_publication_host.ClientHostSignerSelection?
+
 pub fn client_program_acquired_effect_catalog_bodies(@run_publication_host.ClientEffectAcquiredEvidence, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_acquired_effect_dependency_bodies(@run_publication_host.ClientEffectAcquiredEvidence) -> Array[(String, String)]
