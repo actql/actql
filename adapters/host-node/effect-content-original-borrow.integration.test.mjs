@@ -19,11 +19,12 @@ test('actual Content preparation borrows the original captured Command input and
   });
   const generated = await createGeneratedContentFixture(t);
   await generated.store.commitPhysicalHolding(generated.holding, [generated.physical.prepared]);
-  await generated.issue();
+  const issued = await generated.issue();
+  const equalWire = await generated.issue();
   let borrowed;
   let preparationFailure;
   let preparations = 0;
-  const host = await openContentCommandHost({scratch, generated,
+  const host = await openContentCommandHost({scratch, generated, originalContentValue: issued,
     keys: generateKeyPairSync('ed25519'), entrance: 'Local',
     onPrepareContent({value, originalContent}) {
       try {
@@ -32,9 +33,13 @@ test('actual Content preparation borrows the original captured Command input and
         borrowed = originalContent('content');
         assert.equal(originalContent('content'), borrowed, 'one original view per row/input');
         assert.equal(borrowed.current(), true);
+        assert.equal(borrowed.matchesIssued(issued), true);
+        assert.equal(borrowed.matchesIssued(equalWire), false,
+          'equal wire and Store custody cannot replace the issued original');
         assert.deepEqual(JSON.parse(borrowed.wire()), value.content);
         assert.equal(borrowed.wire(), generated.description.wire);
         const copied = {...borrowed.binding};
+        assert.equal(moon.clientProgramEffectCommandContentMatchesIssued(copied, issued), false);
         assert.throws(() => checked(moon.clientProgramEffectCommandContentWire(copied)));
         moon.clientProgramEffectCommandContentRelease(copied);
         assert.equal(borrowed.current(), true, 'foreign retirement cannot retire the original view');
@@ -72,6 +77,7 @@ test('actual Content preparation borrows the original captured Command input and
   assert.equal(host.sends(), 0, 'the Content projection does not issue a dispatch grant');
   await host.close();
   assert.equal(borrowed.current(), false);
+  assert.equal(borrowed.matchesIssued(issued), false);
   assert.throws(() => borrowed.wire());
   assert.equal(borrowed.release(), undefined, 'alias retirement is not a physical ACK');
   assert.equal(borrowed.release(), undefined);
@@ -86,11 +92,11 @@ test('actual Content capture keeps the same original parent through an async pre
   });
   const generated = await createGeneratedContentFixture(t);
   await generated.store.commitPhysicalHolding(generated.holding, [generated.physical.prepared]);
-  await generated.issue();
+  const issued = await generated.issue();
   let borrowed, preparations = 0, closes = 0, pending = true;
   const closeObserved = Promise.withResolvers();
   const closeAcknowledged = Promise.withResolvers();
-  const host = await openContentCommandHost({scratch, generated,
+  const host = await openContentCommandHost({scratch, generated, originalContentValue: issued,
     keys: generateKeyPairSync('ed25519'), entrance: 'Local',
     onPrepareContent() { assert.fail('The async child must not start a second synchronous preparation'); },
     prepareContentChild(context) {
@@ -114,6 +120,7 @@ test('actual Content capture keeps the same original parent through an async pre
         assert.equal(borrowed.current(), true);
         await turn();
         assert.equal(borrowed.current(), true);
+        assert.equal(borrowed.matchesIssued(issued), true);
         assert.strictEqual(originalContent('content'), borrowed);
         assert.deepEqual(JSON.parse(borrowed.wire()), value.content);
         return preparedRequest;
@@ -126,6 +133,7 @@ test('actual Content capture keeps the same original parent through an async pre
   assert.equal(pending, true);
   assert.equal(borrowed.current(), true,
     'The actual still-pending original child retains the source/pin');
+  assert.equal(borrowed.matchesIssued(issued), true);
   closeAcknowledged.resolve();
   const state = await run.wait({signal: AbortSignal.timeout(15000)});
   assert.equal(state.status, 'waiting_checkpoint');
@@ -135,11 +143,54 @@ test('actual Content capture keeps the same original parent through an async pre
   assert.equal(closes, 1);
   assert.equal(borrowed.current(), false,
     'The same Owner may retire inputs once the last original child actually acknowledges');
+  assert.equal(borrowed.matchesIssued(issued), false);
   await host.close();
   assert.equal(closes, 1);
   assert.equal(pending, false);
   assert.equal(borrowed.current(), false);
   assert.throws(() => borrowed.wire());
+  await generated.store.retirePhysicalHolding(generated.holding.holding_cid);
+  scratch.passed();
+});
+
+test('actual issued Content match rechecks retirement after its original availability callback', async t => {
+  const scratch = await createOwnedScratch({
+    parent: new URL('../../_build/', import.meta.url).pathname,
+    prefix: 'effect-content-reentrant-', label: 'Original Content callback retirement',
+  });
+  const generated = await createGeneratedContentFixture(t);
+  await generated.store.commitPhysicalHolding(generated.holding, [generated.physical.prepared]);
+  let observe = () => true;
+  const issued = await generated.issue({available: () => observe()});
+  let borrowed;
+  let callbacks = 0;
+  const host = await openContentCommandHost({scratch, generated, originalContentValue: issued,
+    keys: generateKeyPairSync('ed25519'), entrance: 'Local',
+    onPrepareContent({originalContent}) {
+      borrowed = originalContent('content');
+      assert.equal(borrowed.matchesIssued(issued), true);
+      // This synchronous preparation still owns its original input pin. Once
+      // waiting is published, that pin may already have retired normally.
+      observe = () => { callbacks++; borrowed.release(); return true; };
+      assert.equal(borrowed.matchesIssued(issued), false,
+        'a Host callback cannot keep a just-retired original projection current');
+      assert.ok(callbacks > 0);
+      assert.equal(borrowed.current(), false);
+      assert.equal(borrowed.matchesIssued(issued), false);
+      observe = () => true;
+    }});
+  t.after(host.close);
+  const run = await host.client.start(host.fixture.program);
+  assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status,
+    'waiting_checkpoint');
+  assert.ok(callbacks > 0);
+  assert.equal(borrowed.current(), false);
+  assert.equal(borrowed.matchesIssued(issued), false);
+  assert.equal(generated.store.status().storedBytes, 3,
+    'view retirement neither retires original physical bytes nor acknowledges cleanup');
+  assert.equal(host.sends(), 0);
+  observe = () => true;
+  await host.close();
   await generated.store.retirePhysicalHolding(generated.holding.holding_cid);
   scratch.passed();
 });

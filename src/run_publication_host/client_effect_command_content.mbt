@@ -304,6 +304,22 @@ pub fn client_effect_command_content_matches(
 }
 
 ///|
+/// Match the issued original, not an equal wire, CID or issuer domain. The
+/// captured occurrence must still be current after its Host callback. This
+/// predicate neither lends capacity nor authorizes physical byte acquisition.
+pub fn client_effect_command_content_matches_issued(
+  value : ClientEffectCommandContent,
+  issued : @values.CheckedValue,
+) -> Bool {
+  guard value.original is Some(original) &&
+    issued.value is @values.Reference(reference) else {
+    return false
+  }
+  physical_equal(reference, original.reference) &&
+  client_effect_command_content_current(value)
+}
+
+///|
 /// Immutable observed DATA only. Byte custody, funding and read permission
 /// must still be supplied by the original selected physical Store owner.
 pub fn client_effect_command_content_wire(
