@@ -231,9 +231,6 @@ pub fn project_notion_data_source(
   guard notion_database_source_at(database, source_index) is Some((selected, _)) else {
     return Err(InvalidSelection)
   }
-  if !database_limits_valid(limits) {
-    return Err(InvalidLimits)
-  }
   if bytes.length() > limits.max_bytes {
     return Err(BudgetExceeded)
   }
