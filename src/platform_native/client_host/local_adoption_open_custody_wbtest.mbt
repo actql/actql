@@ -19,7 +19,7 @@ fn adoption_open_refusal(
 }
 
 ///|
-fn adoption_open_require_locked(parent : @filesystem.Root) raise {
+fn adoption_open_require_locked(parent : @filesystem.Root) -> Unit raise {
   match parent.acquire_lock_with_custody("local-adoption.lock") {
     Err(original) => {
       assert_true(original.issue() is @filesystem.Lock(_))

@@ -137,7 +137,8 @@ fn local_adoption_open_private_root(
   custody : NativeLocalAdoptionOpenFailure?,
 ) -> Result[@filesystem.Root, NativeLocalAdoptionIssue] {
   match custody {
-    None => @filesystem.open_private_root(path).map_err(Filesystem)
+    None =>
+      @filesystem.open_private_root(path).map_err(issue => Filesystem(issue))
     Some(original) =>
       @filesystem.open_private_root_with_custody(path).map_err(failure => {
         original.root_acquisition = Some(failure)
@@ -152,7 +153,10 @@ fn local_adoption_acquire_lock(
   custody : NativeLocalAdoptionOpenFailure?,
 ) -> Result[@filesystem.Lock, NativeLocalAdoptionIssue] {
   match custody {
-    None => parent.acquire_lock("local-adoption.lock").map_err(Filesystem)
+    None =>
+      parent
+      .acquire_lock("local-adoption.lock")
+      .map_err(issue => Filesystem(issue))
     Some(original) =>
       parent
       .acquire_lock_with_custody("local-adoption.lock")
@@ -170,7 +174,7 @@ fn local_adoption_open_child(
   custody : NativeLocalAdoptionOpenFailure?,
 ) -> Result[@filesystem.Root, NativeLocalAdoptionIssue] {
   match custody {
-    None => parent.open_child(state_name).map_err(Filesystem)
+    None => parent.open_child(state_name).map_err(issue => Filesystem(issue))
     Some(original) =>
       parent
       .open_child_with_custody(state_name)
