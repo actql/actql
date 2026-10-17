@@ -6178,6 +6178,10 @@
               {
                 "path": "adapters/host-node/command-original-capture-phase.test.mjs",
                 "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
               }
             ]
           }
