@@ -545,7 +545,7 @@ test "kintone changed current Form refuses with original charge and cleanup resp
     )
     let stopped = Ref(false)
     let read = kintone_borrow(prepared, run, stopped, Ref(0))
-    let original = @utf8.decode(kintone_original_form_body()).unwrap()
+    let original = @utf8.decode(kintone_original_form_body())
     let text = match replacement {
       "revision" =>
         original.replace(old="\"revision\":\"7\"", new="\"revision\":\"8\"")
