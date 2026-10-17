@@ -72,7 +72,6 @@ fn write_test_wire(
     value,
     write_test_limits(),
   ).unwrap()
-  assert_true(notion_property_write_matches(write, source, value))
   notion_page_properties_write_wire(source, [write], write_test_limits()).unwrap()
 }
 
@@ -122,6 +121,7 @@ test "Notion property write identity binds original source and checked input wit
     write_test_wire(source, value),
     "{\"properties\":{\"p%3Ax\":{\"checkbox\":false}}}",
   )
+  assert_true(notion_property_write_matches(write, source, value))
   assert_true(
     !notion_property_write_matches(write, write_test_source("checkbox"), value),
   )
@@ -267,7 +267,7 @@ test "Notion nullable native fields retain null and never conflate false or empt
 ///|
 test "Notion relation and people encode actual checked identifier arrays without issuing references" {
   let value = write_test_value(
-    "{\"type\":\"array\",\"nullable\":false,\"element\":{\"type\":\"string\",\"nullable\":false}}",
+    "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"string\",\"nullable\":false}}",
     "[\"one\",\"é\"]",
   )
   for kind in ["people", "relation"] {
