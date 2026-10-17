@@ -31,6 +31,13 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
   body.connector_manifest.connectors.push(...commandEnvironment.connector_manifest.connectors);
   body.command_contracts = commandEnvironment.command_contracts;
   body.contract_registry.push(...commandEnvironment.contract_registry);
+  // Each original top-level evidence inventory is ordered by its complete
+  // body identity; internal Catalog member order and all body bytes stay put.
+  for (const name of ['schema_snapshots', 'connector_capabilities', 'source_views',
+    'contract_registry', 'connector_catalogs', 'mapping_contracts', 'model_task_contracts', 'command_contracts']) {
+    body[name].sort((left, right) => cid(left).localeCompare(cid(right)));
+  }
+  body.connector_manifest.connectors.sort((left, right) => cid(left).localeCompare(cid(right)));
   const environmentCid = cid(body);
   const environment = moon.clientProgramCheckEnvironment(canonical({...body, evidence_bundle_cid: environmentCid}), environmentCid,
     false, false, true, false, false, false, false);
