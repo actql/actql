@@ -3966,11 +3966,13 @@
         "check_outcome",
         "correlated",
         "epoch",
+        "named_submission_attempt",
         "negotiated",
         "negotiated_contract",
         "re",
         "restart",
         "submission_attempt",
+        "submission_name",
         "submission_outcome",
         "submission_ref",
         "unicodedata",
@@ -3987,6 +3989,13 @@
       "module": "packages/python-sdk/src/actql_sdk/_wire.py",
       "responsibilityFacet": "primary",
       "operations": [
+        {
+          "name": "_canonical_submission_text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
         {
           "async": false,
           "name": "bounded_text",
@@ -4028,6 +4037,15 @@
           ]
         },
         {
+          "name": "named_submission_attempt",
+          "parameters": [
+            "value",
+            "selected",
+            "body"
+          ],
+          "async": false
+        },
+        {
           "async": false,
           "name": "negotiated",
           "parameters": [
@@ -4052,6 +4070,13 @@
             "selected",
             "body"
           ]
+        },
+        {
+          "name": "submission_name",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         },
         {
           "async": false,
@@ -4081,7 +4106,7 @@
           ]
         }
       ],
-      "sha256": "031a153af6c55198bd23f3240cd46c5fdb0cba895bdccc97d110acedb6b68373",
+      "sha256": "b7e83e8c284258a841b7d331472af86884f82285f406aaf1dd5115c9ba06c50e",
       "role": "public-wire-codec",
       "owner": "E / existing registered Client-Host, protocol and publication wire Owners",
       "contracts": [
@@ -4191,12 +4216,15 @@
           "operations": [
             "epoch",
             "restart",
-            "submission_ref"
+            "submission_ref",
+            "_canonical_submission_text",
+            "submission_name"
           ],
           "exports": [
             "epoch",
             "restart",
-            "submission_ref"
+            "submission_ref",
+            "submission_name"
           ],
           "attributes": {
             "responsibility": [
@@ -4296,11 +4324,13 @@
         {
           "operations": [
             "submission_attempt",
-            "submission_outcome"
+            "submission_outcome",
+            "named_submission_attempt"
           ],
           "exports": [
             "submission_attempt",
-            "submission_outcome"
+            "submission_outcome",
+            "named_submission_attempt"
           ],
           "attributes": {
             "responsibility": [

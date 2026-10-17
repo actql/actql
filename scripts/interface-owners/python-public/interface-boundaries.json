@@ -259,6 +259,7 @@
         "Query",
         "QueryReader",
         "Reader",
+        "RequestConflict",
         "Result",
         "RunState",
         "Scope",
@@ -279,7 +280,7 @@
       "module": "packages/python-product/src/actql/__init__.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "377b605a33fda4dddde6ecfa15a751112d46fd648d30f38aa9150c5d8991271f",
+      "sha256": "34605f2325c52d4f3255ba11ac16786d2679f4710b2f070212b91f26b26af8a0",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -311,7 +312,8 @@
             "get_submission_check_observation",
             "get_submission_input",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -537,6 +539,7 @@
         "Query",
         "QueryReader",
         "Reader",
+        "RequestConflict",
         "Result",
         "RunState",
         "Scope",
@@ -557,7 +560,7 @@
       "module": "packages/python-product/src/actql/__init__.pyi",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "806fdd1cea9ea5ffe903c376e70d4c7727963146b750edd4b5ee73d092b3a4a7",
+      "sha256": "0e7b43ad57ec03bc0a4f6414366c12850120d823fc368cc53ac85af80093ecf4",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -589,7 +592,8 @@
             "get_submission_check_observation",
             "get_submission_input",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -815,6 +819,7 @@
         "Query",
         "QueryReader",
         "Reader",
+        "RequestConflict",
         "Result",
         "RunState",
         "Scope",
@@ -844,7 +849,7 @@
       "module": "packages/python-sdk/src/actql_sdk/__init__.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "b5e23dfcc48ad1852d4a489dc6a6e0897e3059218e60c9de82a58f3fbe022fd4",
+      "sha256": "f716ec58e4bf8578edd7ed45ba61f4d62f1d72883a0db756431903b796ab9321",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -876,7 +881,8 @@
             "get_submission_check_observation",
             "get_submission_input",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -1116,6 +1122,7 @@
         "Query",
         "QueryReader",
         "Reader",
+        "RequestConflict",
         "Result",
         "RunState",
         "SSLContext",
@@ -1350,6 +1357,7 @@
             "self",
             "program",
             "submission_ref",
+            "request_id",
             "parameters",
             "attempt_id",
             "stop_before",
@@ -1364,6 +1372,7 @@
             "text",
             "format",
             "submission_ref",
+            "request_id",
             "parameters",
             "parameter_declarations",
             "attempt_id",
@@ -1889,6 +1898,7 @@
             "self",
             "program",
             "submission_ref",
+            "request_id",
             "parameters",
             "attempt_id",
             "stop_before",
@@ -1903,6 +1913,7 @@
             "text",
             "format",
             "submission_ref",
+            "request_id",
             "parameters",
             "parameter_declarations",
             "attempt_id",
@@ -2220,6 +2231,19 @@
           "async": false
         },
         {
+          "name": "RequestConflict",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "RequestConflict/__init__",
+          "parameters": [
+            "self",
+            "**facts"
+          ],
+          "async": false
+        },
+        {
           "name": "Result",
           "parameters": [],
           "async": false
@@ -2380,7 +2404,7 @@
           "async": false
         }
       ],
-      "sha256": "d3b44d9f89896b927a0a50ade7147ba2a66daadc3eb2630e63a7a1b6e27b565f",
+      "sha256": "b1f0bc0eee18bd77bfb3caf5871c8ab26f6d91dc5b81b309556a9ff52ecbf605",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2494,7 +2518,9 @@
             "get_submission_check_observation",
             "get_submission_input",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict",
+            "RequestConflict/__init__"
           ],
           "exports": [
             "Any",
@@ -2538,7 +2564,8 @@
             "get_submission_input",
             "overload",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -2860,6 +2887,7 @@
         "AsyncExecution",
         "ClientError",
         "Observation",
+        "RequestConflict",
         "RunState",
         "asyncio",
         "base64",
@@ -2996,7 +3024,8 @@
             "parameters",
             "attempt_id",
             "stop_before",
-            "read_only"
+            "read_only",
+            "request_name"
           ],
           "async": false
         },
@@ -3095,7 +3124,8 @@
             "parameters",
             "attempt_id",
             "stop_before",
-            "read_only"
+            "read_only",
+            "request_name"
           ],
           "async": false
         },
@@ -3173,6 +3203,15 @@
             "body"
           ],
           "async": true
+        },
+        {
+          "name": "AsyncClient/_submission_candidate",
+          "parameters": [
+            "self",
+            "reference",
+            "request_id"
+          ],
+          "async": false
         },
         {
           "name": "AsyncClient/_valid_token",
@@ -3319,6 +3358,7 @@
             "self",
             "program",
             "submission_ref",
+            "request_id",
             "parameters",
             "attempt_id",
             "stop_before",
@@ -3333,6 +3373,7 @@
             "text",
             "format",
             "submission_ref",
+            "request_id",
             "parameters",
             "parameter_declarations",
             "attempt_id",
@@ -3481,6 +3522,14 @@
           "async": true
         },
         {
+          "name": "_submission_context",
+          "parameters": [
+            "body",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "get_submission_input",
           "parameters": [
             "result"
@@ -3488,7 +3537,7 @@
           "async": false
         }
       ],
-      "sha256": "094f0ab83d6a8fc3ab365b8b7458ddb74283348e9590d67ef8fa651c1dad39f7",
+      "sha256": "102296c0c157606b1712db2b204378974d10164f1b0057924cfd92e517560368",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3550,7 +3599,9 @@
             "_LocalCoreCleanupPort",
             "_LocalCoreCleanupPort/__init__",
             "_LocalCoreCleanupPort/aclose",
-            "get_submission_input"
+            "get_submission_input",
+            "AsyncClient/_submission_candidate",
+            "_submission_context"
           ],
           "exports": [
             "AsyncClient",
@@ -3582,7 +3633,8 @@
             "uuid",
             "weakref",
             "wire",
-            "wire_bytes"
+            "wire_bytes",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -4469,7 +4521,8 @@
     },
     {
       "exports": [
-        "ClientError"
+        "ClientError",
+        "RequestConflict"
       ],
       "imports": [],
       "module": "packages/python-sdk/src/actql_sdk/_errors.py",
@@ -4488,9 +4541,22 @@
             "**facts"
           ],
           "async": false
+        },
+        {
+          "name": "RequestConflict",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "RequestConflict/__init__",
+          "parameters": [
+            "self",
+            "**facts"
+          ],
+          "async": false
         }
       ],
-      "sha256": "6e6ad9348dd944199d01670086464be2aa639547bb9fd84b134586c827274244",
+      "sha256": "54bcba513acb962152177733d28a2ebbf047c6ced93213fe2e919a5d7bf1e280",
       "role": "observation-presentation",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4499,10 +4565,13 @@
           "operations": [
             "<module>",
             "ClientError",
-            "ClientError/__init__"
+            "ClientError/__init__",
+            "RequestConflict",
+            "RequestConflict/__init__"
           ],
           "exports": [
-            "ClientError"
+            "ClientError",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -7867,7 +7936,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_query.py",
-      "sha256": "a4714072975d33edfbe20032256191ea1722ddaa67130a8b3a105f572e9fea59",
+      "sha256": "0381267b4fd5c849d5d342076c462cc42f5253944ba72a9e03825788504fa7cc",
       "exports": [
         "AsyncQuery",
         "AsyncQueryReader",
