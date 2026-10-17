@@ -18,15 +18,15 @@
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 19825,
-      "sha256": "dd2fc8b56790b2d78e42daddec22d84186262cfa3722e67f4b2f4e0e30184007"
+      "bytes": 20874,
+      "sha256": "a08f2bda0d45984817423606b59d6550b3692d026d939a4f1b0311b7e6420a78"
     },
     {
       "root": "provider",
       "path": "owned_region.inc",
       "output": "owned_region.inc",
-      "bytes": 21225,
-      "sha256": "a2597dc680c2842659d7bded630e2b29bcdce9b0ec70f2577339d10d8212e291"
+      "bytes": 21313,
+      "sha256": "3cfd396ab2ac0d550ef0eb220df20dbce4b79999ab6eb9518b035bac1379165f"
     },
     {
       "root": "provider",
@@ -157,12 +157,12 @@
   ],
   "outputs": {
     "owned_capacity.c": {
-      "bytes": 20374,
-      "sha256": "844a15bad4e240179e9001103d44d893d1cfef674e3dae8c25c881fc3bdfe7d2"
+      "bytes": 21423,
+      "sha256": "79bb7a74564b302f6902022ed859326a8280cb6a4a8b5e0e8ed0f7b300e41568"
     },
     "owned_region.inc": {
-      "bytes": 21267,
-      "sha256": "30ba4885fb1eb50b0a7b53e1550b1af4a6fe6c8e747a08c659b43dc85a1a38ad"
+      "bytes": 21355,
+      "sha256": "3c81e770b069c07918d5e84b8c320810fb593af82118fb15007750bb7349c898"
     },
     "owned_capacity.h": {
       "bytes": 3526,
