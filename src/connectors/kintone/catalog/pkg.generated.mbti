@@ -2,6 +2,7 @@
 package "actql/actql/connectors/kintone/catalog"
 
 import {
+  "actql/actql/decode_core",
   "moonbitlang/core/debug",
 }
 
@@ -14,7 +15,21 @@ pub fn form_field_options(FormFieldMetadata) -> Array[String]?
 
 pub fn form_field_paths(FormFieldCatalog) -> Array[Array[String]]
 
+pub fn original_record_fields(OriginalRecord) -> Array[OriginalRecordField]
+
+pub fn original_record_table_rows(OriginalRecordField) -> Array[OriginalTableRow]?
+
+pub fn original_record_value(OriginalRecordField) -> @decode_core.Cursor
+
+pub fn original_table_fields(OriginalTableRow) -> Array[OriginalRecordField]
+
 pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCatalog, FormFieldIssue]
+
+pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLimits) -> Result[OriginalRecordPage, RecordPageIssue]
+
+pub fn record_page_records(OriginalRecordPage) -> Array[OriginalRecord]
+
+pub fn record_page_uses_catalog(OriginalRecordPage, FormFieldCatalog) -> Bool
 
 pub fn require_form_unique_key(FormFieldCatalog, String) -> Result[FormFieldMetadata, FormFieldIssue]
 
@@ -54,6 +69,52 @@ pub struct FormFieldMetadata {
   calculation_format : String?
   // private fields
 } derive(Eq)
+
+pub struct OriginalRecord {
+  record_id : String
+  revision : String
+  // private fields
+}
+
+pub struct OriginalRecordField {
+  metadata : FormFieldMetadata
+  // private fields
+}
+
+pub struct OriginalRecordPage {
+  app_id : String
+  form_revision : String
+  response_sha256 : String
+  total_count : String?
+  // private fields
+}
+
+pub struct OriginalTableRow {
+  id : String
+  // private fields
+}
+
+pub(all) enum RecordPageIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  DuplicateSelection(String)
+  FieldUnavailable(String)
+  MissingField(String)
+  InvalidField(String)
+  DuplicateRecord(String)
+  DuplicateTableRow(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordPageLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_columns : Int
+  max_cells : Int
+  max_table_rows : Int
+}
 
 // Type aliases
 
