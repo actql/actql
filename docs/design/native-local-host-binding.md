@@ -958,6 +958,22 @@ must be checked at that connection. No new numeric profile is admitted here.
 
 ## Original named-directory observations
 
+The existing-only Adoption entrance shares the original constructor but retains
+partial acquisitions when it refuses. Its opaque failure keeps the original
+reason, each actual source/parent/child/managed Root, the actual Lock and any
+rejected Root/Lock or pending Reader constructor. Equal paths or ownership DATA
+never collapse distinct acquired descriptors or authorize closing a borrowed
+Root. This entrance cannot initialize a missing Host or repair missing intent.
+
+Cleanup uses those same objects without reopening, rereading or retrying the
+refused adoption. Original read cleanup and Root acknowledgements precede Lock
+release; an unconfirmed close keeps the same failure and exclusive Lock held.
+The original reason remains readable after successful cleanup. Successful
+acquisition still returns the existing Session: its journal/current admission,
+escaped aliases and outer funded read lifetime retain their separate Owners and
+acknowledgements. The failure carrier itself supplies no read budget, permission,
+Host transport, issuer or execution authority.
+
 The existing Root can also capture a transient opaque observation of its actual
 opened directory, including device/inode, mode and UID/GID. Only the path already
 retained by that Root is used to compare the named directory. A bounded no-follow
