@@ -8,7 +8,7 @@ import test from 'node:test';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-async function entries(t) {
+async function entries(t, protocol = false) {
   const scratch = await createOwnedScratch({parent: join(repository, '_build'),
     prefix: 'node-local-owner-', label: 'public Local owner selection component'});
   const packages = join(scratch.path, 'node_modules/@actql');
@@ -25,9 +25,27 @@ async function entries(t) {
   }
   // No provider, key, Store or Run is opened by this explicit Host double.
   await writeFile(join(packages, 'local-node/adapters/host-node/embedded-local.mjs'), `
+import {connectInProcess} from '@actql/sdk/host-port';
 export const calls = [];
+export const requests = [];
+export let closes = 0;
 export function connectEmbeddedLocal(options) {
   calls.push(options);
+  if (${JSON.stringify(protocol)}) {
+    const {installation, ...clientOptions} = options;
+    void installation;
+    return connectInProcess(clientOptions, {
+      perform(operation, request) {
+        if (operation !== 'connect') throw new Error('Unexpected operation');
+        requests.push(request);
+        return {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+          durability: 'durable', scopeRef: 'fixture-scope', capabilities: [],
+          limits: {maxReadWireBytes: 65536, maxRowWireBytes: 1024,
+            maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 65536,
+            maxRows: 256, maxBatchRows: 3, maxBatchRetainedValueBytes: 4096}};
+      }, close() { closes++; },
+    });
+  }
   return Promise.resolve(Object.freeze({selected: options}));
 }
 export const publishInstalledSource = () => { throw new Error('Not selected'); };
@@ -40,7 +58,7 @@ export const publishInstalledEffect = () => { throw new Error('Not selected'); }
   const physical = await import(pathToFileURL(join(packages,
     'local-node/adapters/host-node/embedded-local.mjs')));
   t.after(() => scratch.passed());
-  return {node, local, calls: physical.calls};
+  return {node, local, calls: physical.calls, physical};
 }
 
 test('public Node embedded Local omission selects only the existing Local owner', async t => {
@@ -110,4 +128,54 @@ test('public short open keeps its existing explicit Local selection', async t =>
   assert.equal(calls[0].mode, 'local');
   assert.equal(calls[0].owner, 'local');
   assert.equal(client.info.stateDir, calls[0].installation.directory);
+});
+
+test('default selection preserves other original descriptors without reading their getters', async t => {
+  const {local, calls} = await entries(t);
+  const prototype = {original: true};
+  const symbolic = Symbol('original-installation-metadata');
+  let reads = 0;
+  const readInstallation = () => { reads++; return {original: true}; };
+  const options = Object.create(prototype, {
+    mode: {value: 'local', enumerable: true},
+    installation: {get: readInstallation, enumerable: false},
+    [symbolic]: {value: 'original', enumerable: false},
+  });
+  await local.connect(options);
+  assert.equal(reads, 0, 'the selector is not the installation reader');
+  assert.strictEqual(Object.getPrototypeOf(calls[0]), prototype);
+  assert.strictEqual(Object.getOwnPropertyDescriptor(calls[0], 'installation').get,
+    readInstallation);
+  assert.equal(calls[0][symbolic], 'original');
+  assert.equal(Object.getOwnPropertyDescriptor(calls[0], symbolic).enumerable, false);
+  assert.equal(Object.hasOwn(options, 'owner'), false);
+});
+
+test('explicit original Local options keep their physical identity', async t => {
+  const {local, calls} = await entries(t);
+  const original = Object.freeze({mode: 'local', owner: 'local'});
+  await local.connect(original);
+  assert.strictEqual(calls[0], original);
+});
+
+test('foreign owner refusal does not inspect installation or remaining descriptors', async t => {
+  const {local, calls} = await entries(t);
+  const options = new Proxy({mode: 'local', owner: 'cloud'}, {
+    ownKeys() { assert.fail('foreign ownership must refuse before copying'); },
+  });
+  assert.throws(() => local.connect(options), {code: 'LocalHybridUnavailable'});
+  assert.equal(calls.length, 0);
+});
+
+test('real SDK admits the same closed Local wire and awaited Client close after default selection', async t => {
+  const {node, physical} = await entries(t, true);
+  const client = await node.connect({mode: 'local', installation: {directory: '.actql'}});
+  assert.deepEqual(physical.requests.map(request => request.connection), [{
+    mode: 'local', owner: 'local', consentRefs: [], runners: [],
+  }]);
+  assert.equal(client.profile.mode, 'local');
+  assert.equal(client.profile.owner, 'local');
+  await client.close();
+  await client.close();
+  assert.equal(physical.closes, 1);
 });
