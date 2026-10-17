@@ -602,7 +602,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/data-source-read.mjs",
-      "sha256": "184ad50c92997d74a383d9a72d8c7c4736c9417ff71ac04959d424a7e7a9bf61",
+      "sha256": "570f1d2075aaf5fa993624c573027a9e8bb0ddd7081781a08e83e274ec32d4bd",
       "exports": [
         "NOTION_DATA_SOURCE_READ_OPERATION",
         "NotionDataSourceReadFailure",
@@ -730,6 +730,7 @@
             "readContracts",
             "initialAuthorization",
             "propertyAuthorization",
+            "propertyAuthorizationFor",
             "credential",
             "authorizationFor",
             "current",
@@ -821,6 +822,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Provider-declared query incompleteness"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original dependent property authorization"
               }
             ],
             "inputsOutputs": [
@@ -831,6 +836,10 @@
               {
                 "path": "src/connectors/notion/catalog/read_row.mbt",
                 "anchor": "pub fn start_notion_read_row("
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original dependent property authorization"
               }
             ],
             "identity": [
@@ -841,18 +850,30 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "A query grant is never"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original dependent property authorization"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "The assembly retains the original binding/schema/query-row graph, one private"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original dependent property authorization"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Account/authorization remain independently checked before and through each"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original dependent property authorization"
               }
             ],
             "failure": [
@@ -867,6 +888,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Provider-declared query incompleteness"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original dependent property authorization"
               }
             ],
             "cancellation": [
@@ -895,6 +920,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Provider-declared query incompleteness"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original dependent property authorization"
               }
             ],
             "extension": [
@@ -931,6 +960,18 @@
               {
                 "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
                 "anchor": "actual Notion explicit complete statuses preserve exact Decimal and original page custody"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion lazy property grant follows the original pending request without early authorization"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion lazy property selection refuses query and foreign original grants without fallback"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion current denial or stop after the awaited property selection sends no dependent request"
               }
             ]
           }
