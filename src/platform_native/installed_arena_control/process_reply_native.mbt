@@ -211,13 +211,23 @@ pub fn prepare_installed_arena_process_child_reply(
   arguments : Array[String],
   environment : Array[(String, String)],
 ) -> InstalledArenaProcessReply {
-  let issue = match host.prepare_process_child(domain, process, executable, arguments, environment) {
+  let issue = match
+    host.prepare_process_child(
+      domain, process, executable, arguments, environment,
+    ) {
     Ok(_) => None
     Err(issue) => Some(issue)
   }
-  { host: process.domain.host, domain: process.domain, process: Some(process),
-    operation: 10, issue, descriptors: None, backing_descriptor: -1,
-    stop_observation: 0, }
+  {
+    host: process.domain.host,
+    domain: process.domain,
+    process: Some(process),
+    operation: 10,
+    issue,
+    descriptors: None,
+    backing_descriptor: -1,
+    stop_observation: 0,
+  }
 }
 
 ///|
@@ -229,13 +239,19 @@ fn decode_process_fields(block : Bytes, maximum : Int) -> Array[String]? {
   let mut start = 0
   for index = 0; index < block.length(); index = index + 1 {
     if block[index] == (0 : Byte) {
-      if fields.length() >= maximum { return None }
+      if fields.length() >= maximum {
+        return None
+      }
       let field = @utf8.decode(block[start:index]) catch { _ => return None }
       fields.push(field)
       start = index + 1
     }
   }
-  if start != block.length() { None } else { Some(fields) }
+  if start != block.length() {
+    None
+  } else {
+    Some(fields)
+  }
 }
 
 ///|
@@ -252,20 +268,35 @@ pub fn prepare_installed_arena_process_child_bytes_reply(
 ) -> InstalledArenaProcessReply {
   let result = match host.require_process_current(domain, process) {
     Err(issue) => Err(issue)
-    Ok(_) => {
-      match (decode_process_fields(arguments, 255), decode_process_fields(environment, 8)) {
+    Ok(_) =>
+      match
+        (
+          decode_process_fields(arguments, 255),
+          decode_process_fields(environment, 8),
+        ) {
         (Some(arguments), Some(fields)) if fields.length() % 2 == 0 => {
           let environment = []
           for index = 0; index < fields.length(); index = index + 2 {
             environment.push((fields[index], fields[index + 1]))
           }
-          host.prepare_process_child(domain, process, executable, arguments, environment)
+          host.prepare_process_child(
+            domain, process, executable, arguments, environment,
+          )
         }
         _ => Err(@bootstrap.Process(@executor.InvalidConfiguration))
       }
-    }
   }
-  { host: process.domain.host, domain: process.domain, process: Some(process),
-    operation: 10, issue: match result { Ok(_) => None; Err(issue) => Some(issue) },
-    descriptors: None, backing_descriptor: -1, stop_observation: 0, }
+  {
+    host: process.domain.host,
+    domain: process.domain,
+    process: Some(process),
+    operation: 10,
+    issue: match result {
+      Ok(_) => None
+      Err(issue) => Some(issue)
+    },
+    descriptors: None,
+    backing_descriptor: -1,
+    stop_observation: 0,
+  }
 }

@@ -124,6 +124,10 @@ pub fn prepare_installed_arena_live_channel_reply(InstalledArenaHost, InstalledA
 
 pub fn prepare_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaDomain, Int64, Int64, Int64, Int64, Int64) -> InstalledArenaOriginalReadReply
 
+pub fn prepare_installed_arena_process_child_bytes_reply(InstalledArenaHost, InstalledArenaDomain, InstalledArenaProcess, String, Bytes, Bytes) -> InstalledArenaProcessReply
+
+pub fn prepare_installed_arena_process_child_reply(InstalledArenaHost, InstalledArenaDomain, InstalledArenaProcess, String, Array[String], Array[(String, String)]) -> InstalledArenaProcessReply
+
 pub fn prepare_installed_arena_process_reply(InstalledArenaHost, InstalledArenaDomain, String, Int, Int64, Int64, Int64) -> InstalledArenaProcessReply
 
 pub fn prepare_installed_arena_reply(String, Bytes, Int64, Int64, Int, Int, Int, Int64, Int64, Int64, Int64) -> InstalledArenaReply
