@@ -530,10 +530,40 @@ Form bytes, Record Number, a partial page or an unrelated checked value document
 cannot reconstruct this custody. The checks remain DATA correspondence, not a
 current read/write decision, sealed Preview or applied Effect.
 
-CREATE's connector-specific required/default-field observation and its same
-request custody are a following necessary connection; the common CREATE
-projection does not invent that original vendor evidence. No new bridge or
-runtime capability is advertised by the pure Mapping API alone.
+The kintone CREATE projection uses the same complete original Form to select
+required request members. The [Add Records contract](https://kintone.dev/en/docs/kintone/rest-api/records/add-records/)
+requires explicit required fields even when their Form metadata also contains
+a default. Optional omitted fields remain omitted in the original request;
+the provider's eventual values are not intended writes or reconstructed
+postimages. The [Form Fields response](https://kintone.dev/en/docs/kintone/rest-api/apps/form/get-form-fields/)
+supplies each original required flag. A missing flag cannot become false, a
+default cannot become a source value, and an automatically generated or
+positively observed Lookup destination cannot become a required caller write.
+
+The bounded Catalog projection checks every original lookup mapping before
+collecting required input names. The same Row Owner then binds CREATE/none,
+the full retained Relation Contract, actual writable sources, required fields
+and existing create permission into its Mapping. The kintone wrapper privately
+copies required, written and omittable names; escaped Mapping metadata cannot
+weaken request correspondence. Every record must retain that same physical
+Form and exactly the intended field inventory, subject only to explicit
+optional omission. Equal Form bytes, a compatible declaration or an extra
+unmapped write cannot replace those originals.
+
+Unsupported required carriers and table-row requirements remain unfinished
+supplier connections and refuse this finite projection; they do not restrict
+readable Relation schemas or declare the full Connector complete. The ordinary
+provider's required-value validation still applies. No new bridge, current
+authority, absence/create decision, sealed Preview, physical request or runtime
+capability is advertised by this pure Mapping connection. Actual installed
+CREATE, original response funding and approval/apply/recovery remain required.
+
+The requirement projection's temporary copied-destination map, required-name
+array and bounded comparisons overlap the original Form and its names. Caller
+field/work bounds precede output. Mapping construction retains the original
+Relation/Contract, canonical body and private required/write/omit arrays beside
+the original checked request values. Those finite metadata limits do not
+reserve or retire any simultaneous holding or numerical funding.
 
 The UPDATE wrapper snapshots its before-field inventory through the same Row
 Owner's bounded projection of the immutable Mapping body. It does not reread
