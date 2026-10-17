@@ -107,7 +107,12 @@ pub fn ClientProjectProfileSelection::mock_data_file(
   if self.selected != Some("mock") {
     return Ok(None)
   }
-  Ok(self.configuration.flat_map(value => value.mock_data_file()))
+  Ok(
+    match self.configuration {
+      Some(value) => value.mock_data_file()
+      None => None
+    },
+  )
 }
 
 ///|
@@ -136,7 +141,12 @@ pub fn ClientProjectProfileSelection::mock_answer_at(
   if self.selected != Some("mock") {
     return Ok(None)
   }
-  Ok(self.configuration.flat_map(value => value.mock_answer_at(index)))
+  Ok(
+    match self.configuration {
+      Some(value) => value.mock_answer_at(index)
+      None => None
+    },
+  )
 }
 
 ///|
