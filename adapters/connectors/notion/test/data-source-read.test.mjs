@@ -141,3 +141,15 @@ test('actual Notion aggregate response/output exhaustion and stop retain raw wit
   await assert.rejects(handle.read(),error=>error.cause===reason);assert.equal(stopped.state.requests.length,1);
   assert.deepEqual(stopped.rows,[]);assert.equal(handle.observe().cleanupConfirmed,false);
 });
+
+test('actual Notion aggregate page node cap applies to all complete rows together',async t=>{
+  const f=await fixture(t);
+  f.state.respond=request=>request.method==='POST'?queryPage(['p1','p2','p3','p4','p5']):propertyPage('ab');
+  // The original checked schema fits 20 writer nodes and each row fits four.
+  // The complete five-row page needs 1 + 5 * 4 = 21 nodes, including its array.
+  const reader=f.create({limits:{...limits,maxRowsWireNodes:20}});
+  await assert.rejects(reader.read(),{code:'NotionDataSourceReadFailed'});
+  assert.deepEqual(f.rows,[]);
+  assert.equal(f.state.requests.length,6);
+  assert.equal(reader.observe().cleanupConfirmed,false);
+});
