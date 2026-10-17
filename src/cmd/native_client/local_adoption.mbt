@@ -380,6 +380,11 @@ fn execute_native_local_adoption(
     }
     if operation == "check" {
       local_check_for_host(host, crypto, name, input_root, child)
+    } else if local_quick_query_requested(operation, child) {
+      local_quick_query(
+        host, settings, crypto, sqlite, check_environment, input_root, operation,
+        child,
+      )
     } else if operation == "start" || operation == "aql" {
       local_submission_start(
         host,

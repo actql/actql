@@ -845,16 +845,39 @@ fn command() -> @argparse.Command {
       @argparse.Command("new-submission", options=[
         @argparse.OptionArg("request-id", required=true),
       ]),
-      @argparse.Command("aql", options=[
-        @argparse.OptionArg("program-file", required=true),
-        @argparse.OptionArg("stop-before"),
-        @argparse.OptionArg("parameters-file"),
-        @argparse.OptionArg("parameter-declarations-file"),
-        @argparse.OptionArg("format", required=true),
-        @argparse.OptionArg("request-id"),
-        @argparse.OptionArg("submission-ref-file", required=true),
-        @argparse.OptionArg("operation-attempt-id", required=true),
-      ]),
+      @argparse.Command(
+        "sql",
+        positionals=[
+          @argparse.PositionArg(
+            "query",
+            num_args=@argparse.ValueRange::single(),
+          ),
+        ],
+        options=[
+          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
+          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
+          @argparse.OptionArg("format"),
+          @argparse.OptionArg("output"),
+        ],
+      ),
+      @argparse.Command(
+        "aql",
+        positionals=[
+          @argparse.PositionArg("query", conflicts_with=["program-file"]),
+        ],
+        options=[
+          @argparse.OptionArg("program-file", conflicts_with=["query"]),
+          @argparse.OptionArg("stop-before"),
+          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
+          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
+          @argparse.OptionArg("parameter-declarations-file"),
+          @argparse.OptionArg("format"),
+          @argparse.OptionArg("output"),
+          @argparse.OptionArg("request-id"),
+          @argparse.OptionArg("submission-ref-file"),
+          @argparse.OptionArg("operation-attempt-id"),
+        ],
+      ),
       @argparse.Command(
         "run",
         flags=[@argparse.FlagArg("json")],
@@ -983,6 +1006,7 @@ fn command() -> @argparse.Command {
 
 ///|
 fn execute(matches : @argparse.Matches) -> String raise ClientStop {
+  normalize_native_query_arguments(matches)
   normalize_native_status_arguments(matches)
   match required(matches, "mode") {
     "local" => return execute_native_local(matches)
@@ -1001,6 +1025,10 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   if optional(matches, "state-dir") is Some(_) {
     stop("Local installation directory is unavailable in Remote mode")
+  }
+  if matches.subcommand is Some((operation, child)) &&
+    local_quick_query_requested(operation, child) {
+    stop("QuickQueryRequiresLocalHost")
   }
   if optional(matches, "input-root") is Some(_) {
     stop("Local document root is unavailable in Remote mode")
