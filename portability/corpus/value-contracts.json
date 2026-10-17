@@ -28,6 +28,13 @@
     {"id":"invalid-decimal-scale","mode":"author","input":{"type":"decimal","nullable":false,"precision":2,"scale":3},"expected_error":"InvalidRange"},
     {"id":"blank-field","mode":"author","input":{"type":"object","nullable":false,"fields":{"\n \t":{"type":"string","nullable":false}}},"expected_error":"InvalidFieldName"},
     {"id":"dot-after-newline","mode":"author","input":{"type":"object","nullable":false,"fields":{"first\n.name":{"type":"string","nullable":false}}},"expected_error":"InvalidFieldName"},
-    {"id":"reserved-field","mode":"author","input":{"type":"object","nullable":false,"fields":{"__actql_internal":{"type":"string","nullable":false}}},"expected_error":"InvalidFieldName"}
+    {"id":"reserved-field","mode":"author","input":{"type":"object","nullable":false,"fields":{"__actql_internal":{"type":"string","nullable":false}}},"expected_error":"InvalidFieldName"},
+    {"id":"text-enum-author","mode":"author","input":{"type":"string","nullable":false,"enum":["low","medium","high"]},"expected_json":"{\"enum\":[\"low\",\"medium\",\"high\"],\"nullable\":false,\"type\":\"string\"}"},
+    {"id":"text-enum-empty","mode":"checked","input":{"type":"string","nullable":false,"enum":[]},"expected_json":"{\"enum\":[],\"nullable\":false,\"type\":\"string\"}"},
+    {"id":"text-enum-nullable-empty","mode":"author","input":{"type":"string","nullable":true,"enum":[]},"expected_json":"{\"enum\":[],\"nullable\":true,\"type\":\"string\"}"},
+    {"id":"text-enum-repetitions-and-order","mode":"author","input":{"type":"string","nullable":false,"enum":["high","low","high"]},"expected_json":"{\"enum\":[\"high\",\"low\",\"high\"],\"nullable\":false,\"type\":\"string\"}"},
+    {"id":"text-enum-unicode-exact","mode":"author","input":{"type":"string","nullable":false,"enum":["é","é","😀"]},"expected_json":"{\"enum\":[\"é\",\"é\",\"😀\"],\"nullable\":false,\"type\":\"string\"}"},
+    {"id":"text-enum-extent-intersection","mode":"checked","input":{"type":"string","nullable":false,"enum":["x","large"],"max_codepoints":1},"expected_json":"{\"enum\":[\"x\",\"large\"],\"max_codepoints\":1,\"nullable\":false,\"type\":\"string\"}"},
+    {"id":"text-enum-array","mode":"author","input":{"type":"array","nullable":false,"items":{"type":"string","nullable":true,"enum":["high"]}},"expected_json":"{\"items\":{\"enum\":[\"high\"],\"nullable\":true,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"}"}
   ]
 }

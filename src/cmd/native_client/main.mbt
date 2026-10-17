@@ -567,6 +567,11 @@ fn request_body(
   connection : Json,
   maximum : Int,
 ) -> Bytes raise ClientStop {
+  let stop_before = if operation == "aql" || operation == "start" {
+    native_requested_stop_before(child)
+  } else {
+    None
+  }
   let fields : Map[String, Json] = Map([("connection", connection)])
   match operation {
     "connect" | "new-submission" => ()
@@ -701,6 +706,9 @@ fn request_body(
     }
     _ => stop("unsupported Client operation")
   }
+  if stop_before is Some(boundary) {
+    fields["stopBefore"] = Json::string(boundary)
+  }
   if operation == "aql" ||
     operation == "start" ||
     operation == "lookup-submission" {
@@ -727,6 +735,9 @@ fn request_body(
       let intent : Map[String, Json] = Map([])
       for key in ["kind", "input", "parameters"] {
         intent[key] = fields[key]
+      }
+      if stop_before is Some(boundary) {
+        intent["stopBefore"] = Json::string(boundary)
       }
       let original_wire = encode_request_json(Json::object(intent), maximum)
       let admitted = match
@@ -836,6 +847,7 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("aql", options=[
         @argparse.OptionArg("program-file", required=true),
+        @argparse.OptionArg("stop-before"),
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("parameter-declarations-file"),
         @argparse.OptionArg("format", required=true),
@@ -851,6 +863,7 @@ fn command() -> @argparse.Command {
         ],
         options=[
           @argparse.OptionArg("program-file", conflicts_with=["program"]),
+          @argparse.OptionArg("stop-before"),
           @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
           @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
           @argparse.OptionArg("parameter-declarations-file"),
@@ -866,6 +879,7 @@ fn command() -> @argparse.Command {
       ),
       @argparse.Command("start", options=[
         @argparse.OptionArg("program-file", required=true),
+        @argparse.OptionArg("stop-before"),
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("request-id"),
         @argparse.OptionArg("submission-ref-file", required=true),

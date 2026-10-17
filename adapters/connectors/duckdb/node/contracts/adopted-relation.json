@@ -1,7 +1,7 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:ee56c009fc4983ae885fb6f7ed414f12de46b6b68de38ebe52d95d33dd931cb7",
-  "values_cid": "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7",
+  "registry_cid": "sha256:e22e68346562f75943e37453469d40c378bfe6994b124977f73addc1c23e76b6",
+  "values_cid": "sha256:493be37a957c68a479a4f91c2b9028d04b7320cfaa64414328d6af38df3d2f64",
   "fragment_cid": "sha256:6f134824290c260bd59a3f770aa1201cc6705491e24fc122bc3ad17807951b99",
   "graph_cid": "sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282",
   "registry": {
@@ -477,7 +477,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/REL.values",
-        "cid": "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7"
+        "cid": "sha256:493be37a957c68a479a4f91c2b9028d04b7320cfaa64414328d6af38df3d2f64"
       }
     },
     "ACTQL.expression_fragment/0.1": {
@@ -521,7 +521,7 @@
       "canonical_value_contract": {
         "path": "spec/contracts/actql-protocol-schemas.json",
         "pointer": "/schemas/canonical_value_contract",
-        "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+        "cid": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
       }
     },
     "params_schema": {
@@ -1337,6 +1337,12 @@
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 9007199254740991
+                },
+                "enum": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 }
               }
             },
@@ -1480,6 +1486,7 @@
       "strings": "preserve_well_formed_unicode_scalar_sequence_without_NFC_or_line_break_repair",
       "object_member_names": "NFC_then_LF_reject_noncanonical_names_and_collisions",
       "string_extents": "retained_unicode_scalars_and_UTF8_bytes",
+      "text_enumeration": "exact_original_vector_membership_intersected_with_retained_extents_preserve_nullable_and_empty_duplicates_order_no_constraint_stripping_or_authority",
       "decimal": "canonical_fixed_scale_string_under_declared_precision_and_scale",
       "empty_rows": "retain_declared_schema",
       "row_order": "retain_occurrence_order",
