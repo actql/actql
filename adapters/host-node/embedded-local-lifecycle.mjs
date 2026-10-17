@@ -165,7 +165,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       }, close, seal,
     });
     return await connectInProcess(options, port);
-    catch (cause) {
+    } catch (cause) {
       try { await close(); }
       catch {
         // No Client was returned to own retry. Expose only this connection's
