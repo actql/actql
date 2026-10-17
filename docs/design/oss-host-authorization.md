@@ -124,6 +124,15 @@ that self CID. Approval binds the review actually shown and cannot discharge
 another Preview, scope, claim set or redaction policy. Neither projection nor
 physical persistence issues an Account grant, apply permit or cleanup ACK.
 
+The Python and Node Clients verify self-addressed Effect review bytes in the
+existing exact DATA-key domain (`actql-review-projection/0.1`), including nested
+row keys. They remove only the root `review_projection_cid` for that digest and
+require the received complete wire to be canonical. Model review integrity
+keeps its existing identifier-key domain (`actql-run-review-projection/0.1`);
+legacy complete-byte digests remain a distinct transport-integrity path. This
+check neither readmits a private Preview nor supplies its semantic correspondence,
+current authorization, signing authority or resolve permission.
+
 The existing private continuation ledger keeps those two identities on the
 same review holding: its historical `semantic_cid` still addresses complete
 plaintext bytes, while optional `artifact_cid` names the Common self-addressed

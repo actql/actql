@@ -2,7 +2,7 @@
 // and copies only this authored harness/oracle closure into a fresh application.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {readFile, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
@@ -16,7 +16,7 @@ import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mj
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 import {tableTestModule} from './fixtures/table-test-modules.mjs';
 import {selectRealCrossConnectorControl} from '../../scripts/fixtures/real-cross-connector-control.mjs';
-import {checkRealRoutePreview} from '../../scripts/fixtures/real-cross-connector-preview.mjs';
+import {checkRealRouteReviewProjection} from '../../scripts/fixtures/real-cross-connector-preview.mjs';
 import {connectRealRouteTransport, closeRealRouteTransport} from '../../scripts/fixtures/real-cross-connector-transport.mjs';
 import {observeInstalledGcsMetadata, observeInstalledDuckDbReads}
   from '../../scripts/fixtures/real-cross-connector-observation.mjs';
@@ -193,8 +193,17 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     const checkpoints = (await client.checkpoints()).items; assert.equal(checkpoints.length, 1);
     record.phase = 'sealed_review';
     const preview = await client.reviewCheckpoint(checkpoints[0], {maxBytes: 1000000});
-    const previewExpected = {catalogCid: f.catalog.catalogCid, mappingCid: declared.mapping.mapping_contract_cid};
-    record.originalPreview = checkRealRoutePreview(preview, previewExpected);
+    // Retain the authorized boundary before asserting its content, so a
+    // failed review leaves complete original bytes and Summary correspondence.
+    const reviewBytes = Buffer.from(preview.bytes);
+    await writeFile(join(f.root, 'authorized-review-projection.initial.json'), reviewBytes,
+      {flag: 'wx', mode: 0o600});
+    record.publicReviewEvidence = {artifactCid: preview.artifactCid, bytes: reviewBytes.length,
+      fullByteSHA256: createHash('sha256').update(reviewBytes).digest('hex'),
+      checkpoint: checkpoints[0]};
+    await save();
+    const previewExpected = {catalogCid: f.catalog.catalogCid, checkpoint: checkpoints[0], runRef: run.ref, runId: waitingState.run_id};
+    record.originalPreview = checkRealRouteReviewProjection(preview, previewExpected);
     assert.equal(preview.artifactCid, checkpoints[0].reviewProjectionCid);
     await save();
     const capturedCounts = {gcs: network.observation(), duckdb: reads.observation()};

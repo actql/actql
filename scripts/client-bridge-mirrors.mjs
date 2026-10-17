@@ -34,6 +34,8 @@ export function checkRelaClientBridges(root, write = false) {
     'client_project_configuration_bridge.mbt',
     'client_host_signers_bridge.mbt',
     'client_local_signing_bridge.mbt',
+    'client_installation_preparation_bridge.mbt',
+    'client_installation_preparation_fields.generated.mbt',
     'client_model_defaults_bridge.mbt',
     'client_public_model_task_bridge.mbt',
     'client_row_listing_capacity.mbt',

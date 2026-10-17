@@ -25,6 +25,45 @@ const outcomes = Object.freeze(new Map([
   ['unknown', 3],
 ]));
 
+// The original Run projection remains the exact existing 17-member array.
+// A closed metadata control retains its original opaque Subject and Scope;
+// named DATA is not flattened into missing legacy fields or new authority.
+function validJournalGrantProjection(control, projection, grantCid) {
+  const purpose = Object.getOwnPropertyDescriptor(control, 'kind');
+  if (purpose === undefined) {
+    return Array.isArray(projection) && projection.length === 17 &&
+      projection[0] === grantCid;
+  }
+  if (!Object.hasOwn(purpose, 'value') || purpose.value !== 'installation-metadata' ||
+      !Object.isFrozen(control) || typeof control.subjectFields !== 'function' ||
+      typeof control.scopeFields !== 'function' || projection === null ||
+      typeof projection !== 'object' || Array.isArray(projection) ||
+      !Object.isFrozen(projection)) return false;
+  const subject = Object.getOwnPropertyDescriptor(control, 'subject');
+  if (subject === undefined || !Object.hasOwn(subject, 'value')) return false;
+  const keys = ['grantCid', 'issuerAuthority', 'expiresUnixMilliseconds',
+    'maxUses', 'subject', 'scope'];
+  const fields = Object.getOwnPropertyDescriptors(projection);
+  const actual = Reflect.ownKeys(fields);
+  if (actual.length !== keys.length ||
+      actual.some(key => typeof key !== 'string' || !keys.includes(key)) ||
+      keys.some(key => !fields[key]?.enumerable ||
+        !Object.hasOwn(fields[key], 'value'))) return false;
+  const values = Object.fromEntries(keys.map(key => [key, fields[key].value]));
+  if (values.grantCid !== grantCid || !text(values.issuerAuthority) ||
+      typeof values.expiresUnixMilliseconds !== 'bigint' ||
+      values.expiresUnixMilliseconds < 0n || !count(values.maxUses) ||
+      values.subject !== subject.value || values.subject === null ||
+      typeof values.subject !== 'object' || values.scope === null ||
+      typeof values.scope !== 'object') return false;
+  // These are the existing Common control's own membership checks, including
+  // same-Subject scope correspondence and retired-view refusal. Do not make
+  // a second field/policy evaluator or reconstruct an original from JSON/CID.
+  control.subjectFields();
+  control.scopeFields(values.scope);
+  return true;
+}
+
 function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
@@ -209,8 +248,8 @@ export function openSqliteCredentialJournal(root, {
       const grantCid = control.identity(grant);
       const grantJson = control.json(grant);
       const projection = control.projection(grant);
-      if (!text(grantCid) || !Array.isArray(projection) ||
-          projection.length !== 17 || projection[0] !== grantCid ||
+      if (!text(grantCid) ||
+          !validJournalGrantProjection(control, projection, grantCid) ||
           Buffer.byteLength(grantJson, 'utf8') > maxGrantBytes) {
         fail('InvalidRemoteCredentialGrant');
       }

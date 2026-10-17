@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:actql:local-signing-bootstrap-policy:0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["max_issue_interval_ms", "max_uses", "version"],
+  "properties": {
+    "max_issue_interval_ms": {"const": 300000},
+    "max_uses": {"const": 1},
+    "version": {"const": "actql-local-signing-bootstrap-policy/0.1"}
+  }
+}

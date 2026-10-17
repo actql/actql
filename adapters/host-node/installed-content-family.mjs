@@ -20,18 +20,34 @@ export function installEffectContentFamily({moon, control, publications, bodies,
   const generationLimits = Object.freeze({maxRows: 100, maxBytes: 10000,
     maxValueNodes: 10000, maxValueDepth: 64, maxFrames: 100});
   const contractLimits = Object.freeze({maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64});
-  let active, capturedProof, writer, physical, byteHolding, retained, generation, recovery;
+  let active, capturedProof, writer, physical, byteHolding, retained, generation, recovery, storedOriginal;
   let cancelled = false, cleaned = false, durable = false, flight;
   if (restored !== undefined) {
     if (restored.completion === undefined) throw new TypeError('ContentRecoveryCompletionMissing');
     generation = restored.generation;
     recovery = restored.recovery;
+    storedOriginal = restored.storedOriginal;
     durable = true;
   }
   let failureCleanup;
   const retirement = new Map();
   const live = () => !cancelled && store.status().closed === false &&
     Date.parse(now()) < Date.parse(definition.valid_until) && authorize(principalId) === true;
+  // Keep the original issuance/confirmed holding with this generation, not a
+  // wire-to-Reference index. Temporary encoder cleanup does not retire durable
+  // Content; abandoned generation cleanup still owns its physical holdings.
+  const selectedForContent = binding => {
+    const original = storedOriginal;
+    const current = () => durable && !cancelled && flight === undefined &&
+      signal?.aborted !== true && original !== undefined && storedOriginal === original;
+    if (binding === undefined || !current() || !live() || !current() ||
+        typeof moon.clientProgramEffectCommandContentMatchesIssued !== 'function') return undefined;
+    const matched = moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued);
+    // Both the typed matcher and Host authority may invoke a current callback.
+    // A prior match cannot hand off a retired/cancelled original occurrence.
+    if (!current() || !live() || !current()) return undefined;
+    return matched === true ? original : undefined;
+  };
   const port = Object.freeze({
     cancel() { cancelled = true; return true; },
     stopped: () => flight === undefined,
@@ -56,10 +72,18 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     return true;
   };
   const cleanup = async () => {
-    if (cleaned) return true;
+    // Successful encoder cleanup may precede this explicit parent close. It
+    // must not let the completed temporary-duty flag preserve a new borrower.
     cancelled = true;
+    if (cleaned) {
+      storedOriginal = undefined;
+      return true;
+    }
     if (flight !== undefined) await flight.catch(() => {});
-    if (cleaned) return true;
+    if (cleaned) {
+      storedOriginal = undefined;
+      return true;
+    }
     if (failureCleanup !== undefined) {
       if ((await failureCleanup.retry()).pending) return false;
       failureCleanup = undefined;
@@ -81,6 +105,9 @@ export function installEffectContentFamily({moon, control, publications, bodies,
         if (child.status().pending) return false;
       }
     }
+    // Retire this family's selection alias, not the durable Store holding or
+    // any escaped original/borrower still retained by its existing owner.
+    storedOriginal = undefined;
     cleaned = true;
     return true;
   };
@@ -139,7 +166,8 @@ export function installEffectContentFamily({moon, control, publications, bodies,
         const content = await issueStoredGeneratedContent({store, control, candidate,
           holdingCid: byteHolding.holding_cid, workspaceScopeCid: authorityScopeCid,
           effectiveDataPolicyCid: graphPolicy.cid, available: live,
-          authorize: () => live(), limits: referenceLimits});
+          authorize: () => live(), limits: referenceLimits,
+          retainOriginal: original => { storedOriginal = original; }});
         signal?.throwIfAborted();
         generation = control.familyComplete(plan.compiled, plan.runDefinition, active,
           evidence, candidate, content, live, completionLimits);
@@ -170,6 +198,10 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     },
     generation: () => durable ? generation : undefined,
     recovery: () => durable ? recovery : undefined,
+    issuedForContent: binding => selectedForContent(binding)?.issued,
+    storageForContent: binding => selectedForContent(binding),
+    storageCurrentForContent: (original, binding) => original !== undefined &&
+      selectedForContent(binding) === original,
     close: cleanup, cleanup,
     cleanupPending: () => !cleaned,
   });
