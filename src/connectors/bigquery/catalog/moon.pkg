@@ -1,0 +1,12 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/client_row_source_host" @rows,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+}
