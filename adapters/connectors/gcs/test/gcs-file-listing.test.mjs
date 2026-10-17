@@ -42,6 +42,23 @@ function fixture(pages = [
   return {options, state};
 }
 
+test('opaque prefix listing retains exact query bytes, original page charge and Resource input', async () => {
+  const prefix = 'test/e\u0301\t\0\u007f%2F/';
+  const name = prefix + 'file.csv';
+  const {options, state} = fixture([{kind: 'storage#objects', items: [{...metadata, name}]}]);
+  options.target.prefix = prefix;
+  await readGcsFileListing(options);
+  assert.equal(state.calls.length, 1);
+  assert.equal(state.charges.length, 1);
+  assert.equal(state.calls[0].operations.get(GCS_FILE_LIST_OPERATION).path,
+    '/storage/v1/b/actql-fixture/o?prefix=test%2Fe%CC%81%09%00%7F%252F%2F&maxResults=3&projection=noAcl');
+  assert.equal(state.envelopes[0].items[0].name, name);
+  assert.equal(state.envelopes[0].items[0].path, name);
+  assert.deepEqual(state.envelopes[0].items[0].resource,
+    {$fixtureResource: {bucket: 'actql-fixture', objectName: name}});
+  assert.equal(JSON.parse(state.charges[0].bytes).items[0].name, name);
+});
+
 test('GCS listing retains empty continuation pages, exact keys and string generations', async () => {
   const {options, state} = fixture();
   await readGcsFileListing(options);

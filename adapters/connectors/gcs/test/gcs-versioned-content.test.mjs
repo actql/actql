@@ -108,6 +108,39 @@ test('explicit historical source-only ABI retains its original identity read beh
   assert.equal(state.handoffs[0].observation.contentCharge, state.charges[1]);
 });
 
+test('opaque prefix versioned read retains exact scope, paths, charges and original content', async () => {
+  const prefix = 'fixture/e\u0301\t\0\u007f%2F/';
+  const objectName = prefix + 'file.json';
+  const {options, state} = fixture({target: {prefix, objectName}});
+  const result = await readGcsVersionedContent(options);
+  assert.equal(result.metadata.objectName, objectName);
+  assert.equal(result.digests.contentCid, contentCid);
+  assert.equal(state.calls.length, 2);
+  const path = '/storage/v1/b/actql-fixture/o/fixture%2Fe%CC%81%09%00%7F%252F%2Ffile.json' +
+    '?generation=9007199254740993&ifGenerationMatch=9007199254740993';
+  assert.equal(state.calls[0].operations.get(scope.operation).path, path);
+  assert.equal(state.calls[1].operations.get(scope.operation).path,
+    path + '&alt=media&ifMetagenerationMatch=9007199254740995');
+  assert.deepEqual(state.handoffs[0].bytes, body);
+  assert.equal(state.handoffs[0].observation.metadataCharge, state.charges[0]);
+  assert.equal(state.handoffs[0].observation.contentCharge, state.charges[1]);
+});
+
+test('opaque prefix versioned scope cannot be widened by Unicode normalization or invalid scalars', async () => {
+  for (const target of [
+    {prefix: 'fixture/e\u0301\t/', objectName: 'fixture/é\t/file'},
+    {prefix: 'fixture/é\t/', objectName: 'fixture/e\u0301\t/file'},
+    {prefix: 'fixture/\ud800/', objectName: 'fixture/file'},
+    {prefix: 'é'.repeat(513), objectName: 'fixture/file'},
+  ]) {
+    const {options, state} = fixture({target});
+    await assert.rejects(readGcsVersionedContent(options), {code: 'InvalidGcsContentRead'});
+    assert.equal(state.calls.length, 0);
+    assert.equal(state.charges.length, 0);
+    assert.equal(state.handoffs.length, 0);
+  }
+});
+
 test('exact stored bytes use generation and metageneration without normalization', async () => {
   const {options, state} = fixture();
   const result = await readGcsVersionedContent(options);

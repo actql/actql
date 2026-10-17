@@ -80,6 +80,28 @@ updated owner projection. Refreshing inventory after a safe extraction or rename
 does not change an independent behavior oracle. Never regenerate expected values
 or accept Unknown as success to make inventory fresh.
 
+`projectOwnerSources(root, {source, base, paths})` already reads immutable Git
+objects with the shared JS/TS/Moon/Python syntax readers. Owners need not copy
+hashes, exports or private operation signatures by hand. For an existing single
+Owner facet, `projectOwnerSourceUpdates(root, options, declarations)` additionally
+returns mechanical candidates and exact added/removed/changed export/operation
+names. It reports removed sources from the same Git comparison, including a
+deletion-only diff. Both revisions must be full Git object names. No product
+module is imported and no declaration file is written.
+
+Candidates preserve existing responsibility classification and all ten semantic
+reference groups. They never assign new helpers or exports to a group, infer an
+Owner for an outside-directory module, approve anchors, or issue trusted
+generation evidence. A new module has only its syntax fields; removed modules
+require an explicit retirement or relocation review. Every implementation change
+still requests semantic and independent-boundary review, even when the only
+mechanical change is its hash. A candidate is not an approval receipt: the lead
+must review the classification, all ten references and group membership before
+applying it, then run the ordinary strict command. Missing/stale references,
+primary responsibilities, new operation membership and generated qualifications
+remain refusals of that command. Diagnostic empty candidate diffs do not change
+ordinary source projection's default nonempty requirement or normal admission.
+
 Compiler representation access additionally requires the generated-binding role
 and a matching owner-verified generated output digest, generator reference and
 read-only freshness reference. A `.generated` filename or comment is not proof.

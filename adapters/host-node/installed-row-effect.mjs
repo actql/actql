@@ -30,6 +30,10 @@
 //   `{providerNamespace, resourceKind, boundaryCid}`, or the provider's
 //   complete write footprint (`kind` and its fields).
 // Optionally:
+// - `prepareRequestChild({member, value, selector, current, content, signal,
+//   authorizationForRow})` (command): synchronously returns the same original
+//   `{prepare, release, retry, status}` child. Capture retains it before await;
+//   missing physical funding/read authority must refuse before acquisition.
 // - `describe({member, runInvocationCid, dispatchRequestCid, label,
 //   signal})`: the provider's current description of the member's Resource
 //   (`current`), taken for the Preview and again for each apply.
@@ -89,7 +93,7 @@ import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
   './effect-physical-dispatch.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
-import {releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {issueUpdateTargetInstallation, assertUpdateTargetSelectionCurrent,
   assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
 
@@ -297,7 +301,7 @@ function checkDriver(driver) {
       ![driver.describe, driver.recheckRequests, driver.issueCapability,
         driver.observeTargets, driver.recoveryEntry, driver.recoverRequests,
         driver.requestCid, driver.checkRequest,
-        driver.admitTargetReadApproval].every(optionalFunction) ||
+        driver.admitTargetReadApproval, driver.prepareRequestChild].every(optionalFunction) ||
       (driver.check !== undefined && (!text(driver.check?.resource) ||
         !text(driver.check.operation) ||
         typeof driver.checkRequest !== 'function')) ||
@@ -641,17 +645,19 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // The exact request of every row of a member, from its mapped values and
   // selectors. A request that writes another value, or selects another
   // target, than the Program's row is refused.
-  const requestsOf = (member, rows, current, contentOf) => Object.freeze(rows.map((row, index) => {
-    const {owned} = ownerOf(member);
-    const prepared = owned.prepareRequest({member, value: row.value,
-      selector: row.selector, current,
-      ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})});
+  const requestEntry = (member, row, prepared) => {
     const entry = entryOf(member, prepared?.request, prepared?.requestCid);
     if (!sameValue(entry.value, row.value) ||
         (targeted(member.kind) && !sameValue(entry.target, row.selector))) {
       fail('ForeignInstalledRowEffectRequest');
     }
     return entry;
+  };
+  const requestsOf = (member, rows, current, contentOf) => Object.freeze(rows.map((row, index) => {
+    const {owned} = ownerOf(member);
+    return requestEntry(member, row, owned.prepareRequest({member, value: row.value,
+      selector: row.selector, current,
+      ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})}));
   }));
 
   // The common sealed capability of an installation whose driver issues
@@ -1230,13 +1236,26 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   async function captureStage({control, store, execution, checkedHost,
     prepared, identity, plan, previewContext, unit, members,
     runInvocationCid, dispatches, requestScope, storedResults, signal,
-    targetReads, own, ownInputs, assertCurrent}) {
+    targetReads, own, ownInputs, ownChildren, assertCurrent}) {
     assertCurrent?.();
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
     const contentBorrowers = [];
     const contentArtifacts = [];
-    const releaseInputs = () => {
+    const requestChildren = [];
+    ownChildren(requestChildren);
+    const childrenPending = () => requestChildren.some(value =>
+      typeof value?.prepared?.status !== 'function' ||
+      value.prepared.status()?.pending !== false);
+    const releaseInputs = async () => {
+      // This is the same prepared cleanup owner as on capture failure. Never
+      // retire the parent pin/Artifact/Source based on Promise completion alone.
+      if (requestChildren.length) {
+        const marker = Object.freeze(new Error('InstalledRowEffectRequestCleanup'));
+        try { await releaseInstalledRowCapture({children: requestChildren,
+          payloads: sourceSet.payloads, control}, marker); }
+        catch (error) { if (error !== marker) throw error; }
+      }
       for (const borrower of contentBorrowers) borrower.release();
       contentBorrowers.length = 0;
       let retired = true;
@@ -1318,12 +1337,26 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         artifact: sourceSet.members[index].payload.localResultArtifact,
         limits, assertCurrent});
       if (contentOf !== undefined) contentBorrowers.push(contentOf);
-      const entries = requestsOf(member, proposals[index].map(proposal => {
+      const rows = proposals[index].map(proposal => {
         const changes = JSON.parse(proposal.changesWire);
         return {value: changes.value,
           selector: targeted(member.kind)
             ? JSON.parse(proposal.selectorWire) : undefined};
-      }), description, contentOf);
+      });
+      let entries;
+      if (member.kind === 'command' && owned.prepareRequestChild !== undefined) {
+        const preparedEntries = [];
+        for (const [rowIndex, row] of rows.entries()) {
+          if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
+          const context = {member, value: row.value, selector: row.selector,
+            current: description, content: commandContentRow(contentOf, rowIndex), signal,
+            authorizationForRow: reads[index]?.authorizationForRow};
+          const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
+            create: () => owned.prepareRequestChild(context), assertCurrent, signal});
+          preparedEntries.push(requestEntry(member, row, preparedRequest));
+        }
+        entries = Object.freeze(preparedEntries);
+      } else entries = requestsOf(member, rows, description, contentOf);
       if (member.kind === 'create') {
         // Rows are put in canonical order before anything is derived.
         rowsOf.push(canonicalRows(entries));
@@ -1439,7 +1472,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       contractLimits: plan.contractLimits, signal});
     assertCurrent?.();
     for (const payload of sourceSet.payloads) {
-      if (payload.prepared.status().pending) await payload.prepared.release();
+      if (!childrenPending() && payload.prepared.status().pending) await payload.prepared.release();
       assertCurrent?.();
     }
     const ledger = openLedger(identity);
@@ -1481,7 +1514,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         continuationWire: continuationOf(plan, unit, members, dispatches,
           assertCurrent !== undefined),
         releaseInputs,
-        dispose: () => { releaseInputs(); ledger.close(); }});
+        dispose: async () => { await releaseInputs(); ledger.close(); }});
     } catch (error) {
       ledger.close();
       throw error;
@@ -1524,14 +1557,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       outputLimits: plan.outputLimits, contractLimits: plan.contractLimits});
     let sourceSet;
     let releaseInputs;
+    let requestChildren;
     try {
       return await captureStage({control, store, execution, checkedHost,
         prepared, identity, plan, previewContext, unit, members,
         runInvocationCid, dispatches, requestScope, storedResults, signal,
         targetReads, assertCurrent, own: value => { sourceSet = value; },
+        ownChildren: value => { requestChildren = value; },
         ownInputs: release => { releaseInputs = release; }});
     } catch (error) {
       await releaseInstalledRowCapture({payloads: sourceSet?.payloads,
+        children: requestChildren,
         // This owner's false means already released, not pending cleanup.
         releaseResults: async () => { await releaseCompletedRunPreparedPayloads(storedResults, control); },
         releaseInputs, control}, error);
