@@ -287,6 +287,17 @@ unknown-depth and oversized extension trees refuse before token material is
 returned. Unknown OAuth extension members are ignored only after the complete
 response passes the same byte, node, depth and string admission.
 
+The original physical exchange bounds `expires_in` from its trusted clock
+sample immediately before the authorized POST, conservatively preceding the
+server's response generation. Neither network delay nor awaited post-response
+current checks restart that duration. The same post-response and final current
+checks remain mandatory; an expired response retains the original Unknown use
+and never installs a token or triggers another claim/send. This follows the
+response-generation lifetime in [RFC 6749 section 5.1](https://www.rfc-editor.org/rfc/rfc6749#section-5.1),
+without trusting a remote timestamp or replacing earlier grant/material expiry.
+The retained send-time scalar replaces the former receive-time scalar in the
+same original exchange frame; it does not add a timer, reservation or Owner.
+
 An optional response `scope` is observed as an ordered token array without
 sorting or deduplicating the original response;
 absence remains absent. The codec neither substitutes requested scopes nor

@@ -349,7 +349,10 @@ export async function exchangeHttpsCredentialAuthentication({binding, material,
       body, BigInt(trustedNow));
     Object.assign(exchange, {request: paired, operation, deadline});
     await currentBeforeSend();
-    authenticationCurrent(state, original, scope, control, journal, now, signal);
+    // The server generates its response after this trusted sample. Starting
+    // expires_in here is conservative: transport/current-check delay must not
+    // renew a token whose original response has already consumed its lifetime.
+    const sentAt = authenticationCurrent(state, original, scope, control, journal, now, signal);
     started = true;
     const response = await receive({hostname: 'oauth2.googleapis.com', path: '/token',
       method: 'POST', body, bodyMediaType: 'application/x-www-form-urlencoded',
@@ -358,9 +361,9 @@ export async function exchangeHttpsCredentialAuthentication({binding, material,
     // Observe the original current authority after the actual response/socket
     // await and before exposing any use of the private token.
     await currentBeforeSend();
-    const receivedAt = authenticationCurrent(state, original, scope, control, journal, now, signal);
+    authenticationCurrent(state, original, scope, control, journal, now, signal);
     const decoded = reader.read(response);
-    const advertised = BigInt(receivedAt) + BigInt(decoded.lifetimeSeconds) * 1000n;
+    const advertised = BigInt(sentAt) + BigInt(decoded.lifetimeSeconds) * 1000n;
     const expires = [advertised, deadline, original.expiresUnixMilliseconds]
       .reduce((minimum, value) => value < minimum ? value : minimum);
     const finalNow = authenticationCurrent(state, original, scope, control, journal, now, signal);
