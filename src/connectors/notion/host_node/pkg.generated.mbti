@@ -16,7 +16,17 @@ pub fn notion_project_data_source(@catalog.NotionDatabaseCatalog, Int, Bytes, In
 
 pub fn notion_project_database(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseCatalog, @catalog.NotionDatabaseIssue]
 
+pub fn notion_project_query_page(@catalog.NotionDataSourceCatalog, Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.OriginalNotionQueryPage, @catalog.NotionQueryIssue]
+
 pub fn notion_project_user_list(Bytes, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionUserListPage, @catalog.NotionUserListIssue]
+
+pub fn notion_query_page_matches_source(@catalog.OriginalNotionQueryPage, @catalog.NotionDataSourceCatalog) -> Bool
+
+pub fn notion_query_page_metadata_json(@catalog.OriginalNotionQueryPage, Int, Int, Int) -> Result[String, @catalog.NotionQueryIssue]
+
+pub fn notion_query_page_original_json(@catalog.OriginalNotionQueryPage, Int) -> Result[String, @catalog.NotionQueryIssue]
+
+pub fn notion_query_property_value_json(@catalog.OriginalNotionQueryPage, Int, Int, Int) -> Result[String, @catalog.NotionQueryIssue]
 
 pub fn notion_user_list_column_names() -> Array[String]
 
