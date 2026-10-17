@@ -206,7 +206,13 @@ export function effectRowOutcomeReceiptSchema(outcome) {
       http_status_code: {type: 'integer', minimum: 100, maximum: 599},
       typed_outcome: {
         oneOf: outcome.oneOf.filter(branch =>
-          branch.properties?.state?.const !== 'unknown').map(clone),
+          branch.properties?.state?.const !== 'unknown').map(branch => {
+          const typed = clone(branch);
+          if (typed.properties?.state?.const === 'applied') {
+            typed.$comment = 'action is required exactly for an applied upsert; admission checks the original dispatch operation. It is included in the typed outcome and receipt identities.';
+          }
+          return typed;
+        }),
       },
       typed_outcome_cid: clone(cid),
       receipt_cid: clone(cid),
@@ -398,6 +404,7 @@ export function runStateSchema(previous) {
     'next_action',
     'result_available',
     'result_availability',
+    'revision',
   ];
   state.properties.control = {
     type: 'object', additionalProperties: false,
@@ -408,6 +415,7 @@ export function runStateSchema(previous) {
       physical_stop: {enum: ['unknown', 'confirmed']},
     },
   };
+  state.properties.revision = {type: 'integer', minimum: 0, maximum: 9007199254740991};
   state.properties.next_action = nextAction;
   state.properties.result_available = {type: 'boolean'};
   state.properties.result_availability = availability;
