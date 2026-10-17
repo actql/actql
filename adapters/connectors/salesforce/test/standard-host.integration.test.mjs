@@ -247,8 +247,10 @@ test('published Salesforce original views explicitly supply visible query aliase
   assert.equal(alias.schemaContractCid, catalogView.output.schema.cid);
   const {client} = await setup.open();
   const before = setup.org.seen.length;
-  const checked = await client.check(JSON.parse(numberProgram), {kind: 'program', scope: 'bound_input'});
-  assert.equal(checked.report.verdict, 'verified');
+  const document = JSON.parse(numberProgram);
+  document.stages[0].inputs.remote.view = 'records';
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
   assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
   assert.equal(setup.org.seen.length, before);
   assert.equal(setup.queries().length, 0);
@@ -260,7 +262,9 @@ test('a Salesforce publication without explicit visible aliases remains protecte
   await writeFile(setup.profilePath, JSON.stringify({...setup.profile, queryAliases: []}));
   const {client} = await setup.open();
   const before = setup.org.seen.length;
-  const checked = await client.check(JSON.parse(numberProgram), {kind: 'program', scope: 'bound_input'});
+  const document = JSON.parse(numberProgram);
+  document.stages[0].inputs.remote.view = 'records';
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
   assert.equal(checked.report.verdict, 'undetermined');
   assert.deepEqual(checked.report.coverage.unresolved,
     [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
