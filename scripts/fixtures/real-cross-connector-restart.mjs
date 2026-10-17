@@ -3,13 +3,13 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
-import {sign} from 'node:crypto';
+import {createHash, sign} from 'node:crypto';
 import {dirname, join} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {observeInstalledGcsMetadata, observeInstalledDuckDbReads, observeInstalledTableWorkers}
   from './real-cross-connector-observation.mjs';
 import {selectRealCrossConnectorControl} from './real-cross-connector-control.mjs';
-import {checkRealRoutePreview} from './real-cross-connector-preview.mjs';
+import {checkRealRouteReviewProjection} from './real-cross-connector-preview.mjs';
 import {createServer} from 'node:https';
 import {connectRealRouteTransport, closeRealRouteTransport} from './real-cross-connector-transport.mjs';
 
@@ -41,7 +41,14 @@ try {
     assert.equal(checkpoints.length, 1);
     assert.equal(checkpoints[0].checkpointCid, input.approval.checkpointCid);
     const preview = await client.reviewCheckpoint(checkpoints[0], {maxBytes: 1000000});
-    reviewedPreview = checkRealRoutePreview(preview, {...input.approval.previewExpected,
+    const reviewBytes = Buffer.from(preview.bytes);
+    await writeFile(join(dirname(process.argv[2]), 'authorized-review-projection.approve.json'),
+      reviewBytes, {flag: 'wx', mode: 0o600});
+    await writeFile(join(dirname(process.argv[2]), 'authorized-review-transport.approve.json'),
+      JSON.stringify({artifactCid: preview.artifactCid, bytes: reviewBytes.length,
+        fullByteSHA256: createHash('sha256').update(reviewBytes).digest('hex'),
+        checkpoint: checkpoints[0]}) + '\n', {flag: 'wx', mode: 0o600});
+    reviewedPreview = checkRealRouteReviewProjection(preview, {...input.approval.previewExpected,
       original: input.approval.originalPreview});
     const ref = checkpoints[0];
     const answer = await client.resolveCheckpoints([{checkpoint: ref, decision: 'approved'}], {signer: {
