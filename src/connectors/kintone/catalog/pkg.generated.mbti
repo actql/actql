@@ -29,13 +29,25 @@ pub fn form_field_options(FormFieldMetadata) -> Array[String]?
 
 pub fn form_field_paths(FormFieldCatalog) -> Array[Array[String]]
 
+pub fn match_original_record_target_revision(OriginalRecordTarget, OriginalRecordPage, Int) -> Result[Unit, RecordMutationIssue]
+
 pub fn original_record_fields(OriginalRecord) -> Array[OriginalRecordField]
 
 pub fn original_record_table_rows(OriginalRecordField) -> Array[OriginalTableRow]?
 
+pub fn original_record_target_id(OriginalRecordTarget) -> String
+
+pub fn original_record_target_page(OriginalRecordTarget) -> OriginalRecordPage
+
+pub fn original_record_target_revision(OriginalRecordTarget) -> String
+
 pub fn original_record_value(OriginalRecordField) -> @decode_core.Cursor
 
 pub fn original_table_fields(OriginalTableRow) -> Array[OriginalRecordField]
+
+pub fn prepare_original_record_target(OriginalRecordPage, Int, Int) -> Result[OriginalRecordTarget, RecordMutationIssue]
+
+pub fn prepare_record_delete_request(Array[OriginalRecordTarget], RecordMutationLimits) -> Result[RecordDeleteRequest, RecordMutationIssue]
 
 pub fn project_checked_record_page(OriginalRecordPage, AppNumberSettings?, RecordValueLimits) -> Result[CheckedRecordPage, RecordValueIssue]
 
@@ -43,7 +55,15 @@ pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCa
 
 pub fn project_number_settings(Bytes, String, NumberSettingsLimits) -> Result[AppNumberSettings, NumberSettingsIssue]
 
+pub fn project_record_delete_acknowledgement(RecordDeleteRequest, Int, Bytes, Int, Int, Int) -> Result[RecordDeleteAcknowledgement, RecordMutationIssue]
+
 pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLimits) -> Result[OriginalRecordPage, RecordPageIssue]
+
+pub fn record_delete_acknowledgement_request(RecordDeleteAcknowledgement) -> RecordDeleteRequest
+
+pub fn record_delete_request_body(RecordDeleteRequest) -> String
+
+pub fn record_delete_request_targets(RecordDeleteRequest) -> Array[OriginalRecordTarget]
 
 pub fn record_page_columns(OriginalRecordPage) -> Array[String]
 
@@ -136,9 +156,44 @@ pub struct OriginalRecordPage {
   // private fields
 }
 
+pub struct OriginalRecordTarget {
+  // private fields
+}
+
 pub struct OriginalTableRow {
   id : String
   // private fields
+}
+
+pub struct RecordDeleteAcknowledgement {
+  response_sha256 : String
+  // private fields
+}
+
+pub struct RecordDeleteRequest {
+  // private fields
+}
+
+pub(all) enum RecordMutationIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidIndex
+  ForeignCatalog
+  MissingTarget
+  ChangedRevision
+  DuplicateTarget
+  InvalidRequest
+  UnexpectedStatus
+  InvalidResponse
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordMutationLimits {
+  max_records : Int
+  max_identity_bytes : Int
+  max_comparison_work : Int
+  max_output_bytes : Int
+  max_output_nodes : Int
+  max_output_depth : Int
 }
 
 pub(all) enum RecordPageIssue {
