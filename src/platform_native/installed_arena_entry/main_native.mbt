@@ -518,6 +518,75 @@ extern "C" fn register_original_live_channel_roots(
 ) -> Unit = "actql_native_control_register_live_channel_roots"
 
 ///|
+/// Code roots only. Actual regular C emission determines the private callback
+/// prototypes and borrow/return RC before the matching C transport is defined.
+extern "C" fn register_original_live_preparation_roots(
+  prepare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      Int,
+      Int,
+      Int64,
+    ) -> @control.InstalledArenaLiveChannelReply,
+  ],
+  bind_child : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      @bootstrap.NativeBackedLiveChannel[
+        @control.InstalledArenaHost,
+        @control.InstalledArenaDomain,
+      ],
+      Int,
+    ) -> @control.InstalledArenaLiveChannelReply,
+  ],
+  prepare_ledger : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      @bootstrap.NativeBackedLiveChannel[
+        @control.InstalledArenaHost,
+        @control.InstalledArenaDomain,
+      ],
+    ) -> @control.InstalledArenaChannelLedgerReply,
+  ],
+  operate_ledger : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      @bootstrap.NativeBackedLiveChannel[
+        @control.InstalledArenaHost,
+        @control.InstalledArenaDomain,
+      ],
+      @resources.ImportedChildLedger,
+      Int,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaChannelLedgerReply,
+  ],
+  original_host : FuncRef[
+    (@control.InstalledArenaChannelLedgerReply) -> @control.InstalledArenaHost,
+  ],
+  original_domain : FuncRef[
+    (@control.InstalledArenaChannelLedgerReply) -> @control.InstalledArenaDomain,
+  ],
+  original_channel : FuncRef[
+    (@control.InstalledArenaChannelLedgerReply) -> @bootstrap.NativeBackedLiveChannel[
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+    ],
+  ],
+  original_frame : FuncRef[
+    (@control.InstalledArenaChannelLedgerReply) -> @resources.ImportedChildLedger?,
+  ],
+  operation : FuncRef[(@control.InstalledArenaChannelLedgerReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaChannelLedgerReply) -> Int],
+  limit : FuncRef[(@control.InstalledArenaChannelLedgerReply, Int) -> Int64],
+  description : FuncRef[(@control.InstalledArenaChannelLedgerReply) -> String],
+) -> Unit = "actql_native_control_register_live_preparation_roots"
+
+///|
 /// Matching regular C emission determines the callback ABI before its private
 /// transport is declared or linked. Registration contains code references only.
 extern "C" fn register_original_parent_read_roots(
@@ -846,6 +915,36 @@ fn main {
     fn(reply) { reply.operation_tag() },
     fn(reply) { reply.issue_family() },
     fn(reply) { reply.state_tag() },
+    fn(reply, ordinal) { reply.limit(ordinal) },
+    fn(reply) { reply.issue_description() },
+  )
+  register_original_live_preparation_roots(
+    fn(host, domain, read_fd, write_fd, nonce) {
+      @control.prepare_installed_arena_live_channel_before_spawn_reply(
+        host, domain, read_fd, write_fd, nonce,
+      )
+    },
+    fn(host, domain, channel, child_pid) {
+      @control.bind_installed_arena_live_channel_child_reply(
+        host, domain, channel, child_pid,
+      )
+    },
+    fn(host, domain, channel) {
+      @control.prepare_installed_arena_channel_ledger_reply(
+        host, domain, channel,
+      )
+    },
+    fn(host, domain, channel, frame, operation, retained, execution) {
+      @control.operate_installed_arena_channel_ledger_reply(
+        host, domain, channel, frame, operation, retained, execution,
+      )
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_domain() },
+    fn(reply) { reply.original_channel() },
+    fn(reply) { reply.original_frame() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
     fn(reply, ordinal) { reply.limit(ordinal) },
     fn(reply) { reply.issue_description() },
   )

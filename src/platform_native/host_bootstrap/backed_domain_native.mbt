@@ -48,6 +48,8 @@ struct NativeBackedExecutionDomain[T, C] {
   // Same original physical channel carrier, registered before capture/admit.
   mut live_channel : NativeBackedLiveChannel[T, C]?
   mut live_channel_attempted : Bool
+  // Original pre-spawn process binding also owns partial FD/view retirement.
+  mut process_region : NativeBackedProcessRegion[T, C]?
 }
 
 ///|
@@ -128,6 +130,7 @@ pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(
     live_child_attempted: false,
     live_channel: None,
     live_channel_attempted: false,
+    process_region: None,
   }
   view.domain = Some(domain)
   let status = domain_status_ffi(physical)
@@ -149,6 +152,7 @@ fn[T, C] NativeHostBootstrap::require_domain_current(
     Ok(_) => ()
   }
   if domain.closed ||
+    domain.process_region is Some(_) ||
     domain.view.closed ||
     !(domain.view.domain is Some(selected) && physical_equal(selected, domain)) {
     return Err(Bootstrap(ForeignOriginal))
@@ -263,6 +267,9 @@ pub fn[T, C] NativeHostBootstrap::close_backed_domain(
     !physical_equal(domain.view.loan.region.owner, self) ||
     !physical_equal(domain.view.loan.child, child) {
     return Err(Bootstrap(ForeignOriginal))
+  }
+  if domain.process_region is Some(_) {
+    return Err(Bootstrap(ReadersPending))
   }
   if domain.closed {
     return Ok(())

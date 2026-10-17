@@ -67,17 +67,34 @@ class _NativeHoldingLease:
 
     __slots__ = ('_pointer', '_try_close', '_library', '_core_identity',
                  '_generation', '_recipe', '_transfer_attempted',
-                 '_close_failure', '_close_inflight', '_borrow')
+                 '_close_failure', '_close_inflight', '_borrow', '_prefix')
 
     _borrow: _OriginalDomainBorrow | None
 
     def __init__(self, pointer: c_void_p, library: Any, *, generation: int, recipe: bytes) -> None:
+        self._initialize_original(pointer, library, generation, recipe, 'actql_owned_')
+
+    @classmethod
+    def _from_native_provider(cls, pointer: c_void_p, library: Any, *,
+                              generation: int, recipe: bytes) -> _NativeHoldingLease:
+        """Move a trusted supplier's already acquired direct-provider slot.
+
+        This does not load, acquire or grant anything. Unlike the historical
+        Rust-forwarder entry, it can retain/enter the C holding before the
+        dependent Rust DLL is imported. Both paths use the same C provider.
+        """
+        holding = cls.__new__(cls)
+        holding._initialize_original(pointer, library, generation, recipe, 'actql_native_owned_')
+        return holding
+
+    def _initialize_original(self, pointer: c_void_p, library: Any, generation: int,
+                             recipe: bytes, prefix: str) -> None:
         if type(pointer) is not c_void_p or pointer.value is None:
             raise ValueError('Unavailable original native holding')
         if (type(generation) is not int or not 0 < generation <= 2**64 - 1
                 or type(recipe) is not bytes or len(recipe) != 32):
             raise ValueError('Invalid original native holding acquisition context')
-        retire = bind_memory(library, 'actql_owned_try_close')
+        retire = bind_memory(library, prefix + 'try_close')
         # Retain the same loaded library as long as its native pointer exists.
         self._library = library
         self._pointer = c_void_p(pointer.value)
@@ -90,6 +107,7 @@ class _NativeHoldingLease:
         self._close_failure: BaseException | None = None
         self._close_inflight = False
         self._borrow = None
+        self._prefix = prefix
         # Move the trusted supplier's owning slot exactly once. A second wrapper
         # cannot consume that same slot. Arbitrary raw pointers are not trusted.
         pointer.value = None
@@ -107,6 +125,7 @@ class _NativeHoldingLease:
         holding._transfer_attempted = False
         holding._close_failure, holding._close_inflight = None, False
         holding._borrow = borrow
+        holding._prefix = ''  # Borrowed calls use the original typed borrow port.
         holding._try_close = holding._close_borrowed_slot
         failure = NativeHoldingInitializationError(holding)
         try:
@@ -141,7 +160,7 @@ class _NativeHoldingLease:
         if self._borrow is not None:
             self._borrow._transfer_holding(self, self._pointer, self._generation, self._recipe)
             return
-        transfer = bind_memory(self._library, 'actql_owned_transfer')
+        transfer = bind_memory(self._library, self._prefix + 'transfer')
         recipe = (c_ubyte * 32).from_buffer_copy(self._recipe)
         code = transfer(self._pointer, self._generation, recipe)
         if type(code) is not int or code != 0:
@@ -175,7 +194,7 @@ class _NativeHoldingLease:
             if not 0 < value <= 2**63 - 1:
                 raise NativeHoldingObservationError('capacity', None)
             return value
-        inspect = bind_memory(self._library, 'actql_owned_capacity_bytes')
+        inspect = bind_memory(self._library, self._prefix + 'capacity_bytes')
         observed = c_uint64()
         code = inspect(self._pointer, byref(observed))
         if (type(code) is not int or code != 0
@@ -191,7 +210,7 @@ class _NativeHoldingLease:
             with self._scope():
                 self._borrow._holding_contains(self, address, length)
             return
-        contains = bind_memory(self._library, 'actql_owned_contains_live_span')
+        contains = bind_memory(self._library, self._prefix + 'contains_live_span')
         with self._scope():
             code = contains(self._pointer, address, length)
         if type(code) is not int or code != 0:
@@ -215,8 +234,8 @@ class _NativeHoldingLease:
             with self._borrow._holding_scope(self):
                 yield
             return
-        enter = bind_memory(self._library, 'actql_owned_enter')
-        leave = bind_memory(self._library, 'actql_owned_leave')
+        enter = bind_memory(self._library, self._prefix + 'enter')
+        leave = bind_memory(self._library, self._prefix + 'leave')
         code = enter(self._pointer)
         if type(code) is not int or code != 0:
             raise NativeHoldingScopeError('enter', code if type(code) is int else None)

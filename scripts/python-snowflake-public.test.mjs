@@ -9,6 +9,8 @@ import test from 'node:test';
 import {publicSnowflakeFixture, publicSnowflakeInstallation} from '../adapters/connectors/snowflake/test/public-snowflake.fixture.mjs';
 import {pending, resultBody} from '../adapters/connectors/snowflake/test/snowflake-read.fixture.mjs';
 import {keyPairPublicSnowflakeInstallation} from '../adapters/connectors/snowflake/test/key-pair-public.fixture.mjs';
+const shortQuery = process.env.ACTQL_TEST_PYTHON_SHORT_QUERY === '1';
+const surface = shortQuery ? 'lazy sql' : 'start_source';
 
 async function python(phase, facade, fixture, custody) {
   assert(process.env.ACTQL_PYTHON_WHEEL, 'Select an independently qualified normal SDK-only installation');
@@ -29,6 +31,7 @@ async function python(phase, facade, fixture, custody) {
   assert.equal(terminal.code, 0, stderr);
   const result = JSON.parse(stdout);
   assert.equal(result.pid, terminal.pid);
+  assert.equal(result.surface, shortQuery ? 'sql' : 'start_source');
   assert.deepEqual({phase: result.phase, facade: result.facade, success: result.success},
     {phase, facade, success: true});
   assert(result.sdk.includes('/site-packages/actql_sdk/'), 'Use actual installed SDK, not repository imports');
@@ -36,7 +39,7 @@ async function python(phase, facade, fixture, custody) {
 }
 
 for (const credential of ['token', 'key-pair']) for (const facade of ['sync', 'async']) test(
-  `ordinary SDK-only wheel ${facade}/${credential}: Snowflake decimal38/NULL, bounded reader, typed rows and separate-process original attach`, async t => {
+  `ordinary SDK-only wheel ${facade}/${credential}/${surface}: Snowflake decimal38/NULL, bounded reader, typed rows and separate-process original attach`, async t => {
     const fixture = await publicSnowflakeFixture(t, 'HTTPS', credential === 'key-pair'
       ? keyPairPublicSnowflakeInstallation : publicSnowflakeInstallation);
     assert.equal(fixture.state.requests.length, 0);
@@ -95,7 +98,7 @@ async function childHost(t, installationPath, sourceMaterialPath) {
 }
 
 for (const credential of ['token', 'key-pair']) for (const facade of ['sync', 'async']) test(
-  `ordinary SDK-only wheel ${facade}/${credential}: same Snowflake Run and Result survive a fresh Host and Python process`, async t => {
+  `ordinary SDK-only wheel ${facade}/${credential}/${surface}: same Snowflake Run and Result survive a fresh Host and Python process`, async t => {
     const fixture = await (credential === 'key-pair'
       ? keyPairPublicSnowflakeInstallation : publicSnowflakeInstallation)(t);
     // This is the existing source-Host fixture's explicit test-only resolver,

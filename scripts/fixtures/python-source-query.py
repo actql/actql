@@ -6,7 +6,7 @@ from pathlib import Path
 import ssl
 import sys
 
-from actql_sdk import AsyncClient, Client, get_submission_input
+from actql_sdk import AsyncClient, Client, ClientError, get_submission_input
 from pydantic import BaseModel
 
 phase, facade, endpoint, ca, custody = sys.argv[1:]
@@ -73,7 +73,15 @@ def steps(client):
 
 
 async def asynchronous():
-    async with await AsyncClient.connect(endpoint, 'fixture-token', verify=trust) as client:
+    args = (endpoint,) if endpoint.startswith('actql://token:') else (endpoint, 'fixture-token')
+    if phase == 'refusal':
+        try:
+            async with await AsyncClient.connect(*args, verify=trust):
+                raise AssertionError('Foreign Workspace connected')
+        except ClientError as failure:
+            assert failure.code == 'ClientConnectionDenied'
+        return
+    async with await AsyncClient.connect(*args, verify=trust) as client:
         program = steps(client); value = None
         while True:
             try: pending = program.send(value)
@@ -82,7 +90,15 @@ async def asynchronous():
 
 
 def synchronous():
-    with Client.connect(endpoint, 'fixture-token', verify=trust) as client:
+    args = (endpoint,) if endpoint.startswith('actql://token:') else (endpoint, 'fixture-token')
+    if phase == 'refusal':
+        try:
+            with Client.connect(*args, verify=trust):
+                raise AssertionError('Foreign Workspace connected')
+        except ClientError as failure:
+            assert failure.code == 'ClientConnectionDenied'
+        return
+    with Client.connect(*args, verify=trust) as client:
         program = steps(client); value = None
         while True:
             try: value = program.send(value)
