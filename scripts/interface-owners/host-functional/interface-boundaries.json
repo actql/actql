@@ -31745,7 +31745,7 @@
             "resources": [
               {
                 "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Credential Site failure handoff"
+                "anchor": "## Credential Site failure handoff"
               }
             ],
             "extension": [
