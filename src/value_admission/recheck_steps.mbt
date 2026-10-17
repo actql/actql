@@ -12,6 +12,7 @@ priv enum RecheckFrame {
   JsonName(Array[(String, Value)], Int, Int, Int)
   VectorItems(Array[Double], Int)
   TextUnits(String, @contract.TextLimits, Int, Int64, Int64)
+  TextEnumeration(String, @contract.TextLimits, Int, Int)
 }
 
 ///|
@@ -108,6 +109,13 @@ pub fn advance_recheck_runtime_value(cursor : RecheckCursor) -> RecheckPoll {
     )
   }
   match frame {
+    TextEnumeration(value, bounds, entry, offset) =>
+      match text_membership_step(value, bounds, entry, offset) {
+        TextMember => ()
+        TextNotMember => return recheck_step_fail(cursor)
+        TextMembershipContinue(next, unit) =>
+          cursor.stack.push(TextEnumeration(value, bounds, next, unit))
+      }
     CheckNode(value, contract, depth) =>
       if !recheck_node_step(cursor, value, contract, depth) {
         return recheck_step_fail(cursor)
@@ -333,12 +341,18 @@ fn recheck_text_units(
     true
   } else {
     cursor.text_counts = Some((count, byte_count))
-    (bounds.min_length is None || count >= bounds.min_length.unwrap()) &&
-    (bounds.max_codepoints is None || count <= bounds.max_codepoints.unwrap()) &&
-    (
-      bounds.max_utf8_bytes is None ||
-      byte_count <= bounds.max_utf8_bytes.unwrap()
-    )
+    let fits = (
+        bounds.min_length is None || count >= bounds.min_length.unwrap()
+      ) &&
+      (bounds.max_codepoints is None || count <= bounds.max_codepoints.unwrap()) &&
+      (
+        bounds.max_utf8_bytes is None ||
+        byte_count <= bounds.max_utf8_bytes.unwrap()
+      )
+    if fits && @contract.text_enumerant_count(bounds) is Some(_) {
+      cursor.stack.push(TextEnumeration(value, bounds, 0, 0))
+    }
+    fits
   }
 }
 

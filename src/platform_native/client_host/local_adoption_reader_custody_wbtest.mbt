@@ -135,3 +135,57 @@ test "unknown Reader retirement keeps the original session lock and never retrie
   assert_true(session.check_original() is Err(Closed))
   adoption_reader_pending_originals.push(session)
 }
+
+///|
+test "adoption byte copies preserve empty exact and cross-chunk bounded originals" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let root = @filesystem.open_private_root(path).unwrap()
+  for length in [0, 1, 65535, 65536, 65537, 1048576] {
+    let name = "adoption-copy-" + length.to_string()
+    let expected = Bytes::makei(length, i => ((i * 37 + 23) % 256).to_byte())
+    let writer = root.create_writer(name + ".stage", length.to_int64()).unwrap()
+    writer.append(expected).unwrap()
+    let generation = writer.seal(name + ".bin").unwrap()
+    let (body, observed) = local_adoption_read(
+      root,
+      name + ".bin",
+      length.to_int64(),
+    ).unwrap()
+    assert_eq(body, expected)
+    assert_eq(observed, generation)
+    assert_eq(body.length(), length)
+    if length > 0 {
+      assert_true(
+        local_adoption_read(root, name + ".bin", length.to_int64() - 1L)
+        is Err(ConfigurationLimit),
+      )
+    }
+    writer.cancel().unwrap()
+  }
+  root.close().unwrap()
+}
+
+///|
+test "adoption byte copies stay owned after another chunked read and Root close" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let root = @filesystem.open_private_root(path).unwrap()
+  let first = Bytes::makei(65537, i => ((i * 19 + 3) % 256).to_byte())
+  let second = Bytes::makei(65537, i => ((i * 53 + 201) % 256).to_byte())
+  let writers : Array[@filesystem.Writer] = []
+  for (name, original) in [("copy-first", first), ("copy-second", second)] {
+    let writer = root.create_writer(name + ".stage", 65537L).unwrap()
+    writer.append(original).unwrap()
+    writer.seal(name + ".bin").unwrap() |> ignore
+    writers.push(writer)
+  }
+  let (retained, _) = local_adoption_read(root, "copy-first.bin", 65537L).unwrap()
+  let (next, _) = local_adoption_read(root, "copy-second.bin", 65537L).unwrap()
+  assert_eq(retained, first)
+  assert_eq(next, second)
+  for writer in writers {
+    writer.cancel().unwrap()
+  }
+  root.close().unwrap()
+  assert_eq(retained, first)
+  assert_eq(next, second)
+}

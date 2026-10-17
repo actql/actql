@@ -151,7 +151,7 @@
     "schema": {
       "file": "spec/contracts/actql-protocol-schemas.json",
       "pointer": "/schemas/canonical_value_contract",
-      "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+      "cid": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
     },
     "admission": "all_supplied_bodies_including_unused_exact_checked_grammar_no_author_defaults_or_JSON_Schema_conversion",
     "ownership": "retain_exact_registry_envelope_and_environment_not_only_bare_body_cid",
@@ -968,6 +968,12 @@
                   "max_utf8_bytes": {
                     "type": "integer",
                     "minimum": 0
+                  },
+                  "enum": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 }
               },
@@ -1125,6 +1131,26 @@
       "values": "omit_only_unsupplied_optional_bindings_no_synthetic_null_false_default_placeholder_or_Ref_keep_supplied_type_nullability_and_unknown_field_refusal",
       "identity": "unchanged_existing_envelope_command_catalog_preimages_no_version_bump_or_saved_byte_upgrade",
       "authority": "type_declaration_and_original_pair_only_not_permission_currentness_Ref_issuance_or_execution"
+    },
+    "text_enumeration": {
+      "base": "existing_Text_not_a_new_scalar_or_authority",
+      "grammar": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "membership": "exact_Unicode_scalar_sequence_intersected_with_retained_extents_no_normalization_coercion_or_default",
+      "nullability": "nullable_independent_null_is_not_an_enumerant",
+      "original": "empty_and_repeated_vectors_allowed_preserve_order_and_every_repetition_in_checked_preimage",
+      "equality": "complete_checked_contract_including_exact_vector_not_membership_equivalence",
+      "assignment": "actual_admitted_finite_domain_enum_intersected_with_extents_original_nullability_and_recursive_rules",
+      "join": "nullable_OR_existing_common_extents_absent_if_either_enum_absent_else_left_vector_then_previously_absent_right_values_in_order",
+      "join_qualification": "coordinatewise_conservative_common_supertype_not_necessarily_exact_union_or_global_least_upper_bound_not_either_original",
+      "custody": "validate_and_charge_every_occurrence_even_repeated_or_extent_excluded_keep_comparison_vector_alias_and_union_holdings",
+      "propagation": "identity_preserving_paths_retain_constraint_transforming_Text_may_drop_only_sound_derived_output_never_original_admission",
+      "provider": "retain_schema_constraint_or_report_unavailable_never_strip_to_accept",
+      "compatibility": "enum_absent_bytes_and_existing_absent_bounds_behavior_unchanged"
     }
   },
   "carrier_contract_bodies": {
@@ -2183,6 +2209,12 @@
                 "max_utf8_bytes": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "enum": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 }
               }
             },

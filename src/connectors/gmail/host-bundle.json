@@ -1,0 +1,17 @@
+{
+  "installation": {
+    "registration": "gmail",
+    "revision": "gmail/0.1",
+    "providerBundle": "connectors/gmail/host_node",
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-gmail-source/0.1",
+      "module": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+      "exports": {
+        "check": "checkInstalledGmailSourceProfile",
+        "identityParts": "installedGmailSourceIdentityParts",
+        "load": "loadInstalledGmailSource"
+      }
+    }
+  }
+}

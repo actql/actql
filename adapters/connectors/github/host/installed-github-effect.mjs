@@ -96,8 +96,8 @@ export async function installedGitHubEffectIdentityParts(profile, read) {
   return [
     {...profile, accountConfigurationWire: JSON.parse(
       profile.accountConfigurationWire)},
-    await read(checked.siteProfilePath),
-    await read(checked.publicationPath),
+    await read(checked.siteProfilePath, {maxBytes: 1024 * 1024}),
+    await read(checked.publicationPath, {maxBytes: 1024 * 1024}),
   ];
 }
 

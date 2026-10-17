@@ -24,11 +24,11 @@ pub(all) enum WriteBodyIssue {
 } derive(Eq, Debug)
 
 ///|
-/// One bounded scalar row body. This is not an Effect admission or permission
+/// One bounded row body. This is not an Effect admission or permission
 /// to send a mutation; current authority and preview guards remain separate.
 /// `json` is the provider request body; `value_json` is the same row as ActQL
-/// values, the meaning a Preview states. They differ only in how a decimal
-/// is spelled: a JSON number to the provider, fixed-scale text in ActQL.
+/// values, the meaning a Preview states. Decimal text becomes a provider
+/// number; Multi-select arrays become the provider's semicolon-delimited text.
 pub struct WriteBody {
   projection : WriteProjection
   json : String
@@ -104,6 +104,72 @@ fn emit_write_cell(
       }
       emit_each(writers, writer => @encode.string_value(writer, value))
     }
+    "multipicklist" => {
+      if observed_source is Some(_) {
+        guard @decode.text(cursor) is Ok(text) else {
+          return Err(InvalidValue(field.name))
+        }
+        match emit_each([output], writer => @encode.begin_array(writer)) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        if !text.is_empty() {
+          for part in text.split(";") {
+            let value = part.to_owned()
+            if !multipicklist_item_valid(value) {
+              return Err(InvalidValue(field.name))
+            }
+            match
+              emit_each([output], writer => @encode.string_value(writer, value)) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+          }
+        }
+        return emit_each([output], writer => @encode.end_array(writer))
+      }
+      guard @decode.array_length(cursor) is Some(count) else {
+        return Err(InvalidValue(field.name))
+      }
+      let text = StringBuilder()
+      for index in 0..<count {
+        guard @decode.element_at(cursor, index) is Some(item) &&
+          @decode.text(item) is Ok(value) &&
+          multipicklist_item_valid(value) &&
+          !(count == 1 && value.is_empty()) else {
+          return Err(InvalidValue(field.name))
+        }
+        if index > 0 {
+          text.write_char(';')
+        }
+        text.write_string(value)
+      }
+      match
+        emit_each([output], writer => {
+          @encode.string_value(writer, text.to_string())
+        }) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      match value_output {
+        None => Ok(())
+        Some(value) => {
+          match emit_each([value], writer => @encode.begin_array(writer)) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          for index in 0..<count {
+            let item = @decode.text(@decode.element_at(cursor, index).unwrap()).unwrap()
+            match
+              emit_each([value], writer => @encode.string_value(writer, item)) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+          }
+          emit_each([value], writer => @encode.end_array(writer))
+        }
+      }
+    }
     "boolean" => {
       guard @decode.boolean(cursor) is Ok(value) else {
         return Err(InvalidValue(field.name))
@@ -118,8 +184,8 @@ fn emit_write_cell(
         @encode.number_value(writer, value.to_double())
       })
     }
-    "double" => {
-      guard double_decimal(field) is Some((precision, scale)) else {
+    "double" | "currency" | "percent" => {
+      guard described_decimal(field) is Some((precision, scale)) else {
         return Err(InvalidValue(field.name))
       }
       match observed_source {

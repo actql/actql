@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "120b70a2b3163e47526ed4ac174a9136e00c3a623daf361c3b92ad4983c16ee3",
+      "sha256": "94f594cecb19f1ad9582c7827dc5279bcc876e200cc05b0e1bfe48acc3433772",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -4102,12 +4102,13 @@
           "name": "acquireStoreOwnership",
           "parameters": [
             "root",
-            "bootstrap"
+            "bootstrap",
+            "key"
           ],
           "async": true
         },
         {
-          "name": "acquireStoreOwnership/init:release/init:release",
+          "name": "acquireStoreOwnership/ownership/init:release/init:release",
           "parameters": [],
           "async": true
         },
@@ -6571,7 +6572,8 @@
           "name": "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord",
           "parameters": [
             "path",
-            "bytes"
+            "bytes",
+            "exclusive"
           ],
           "async": true
         },
@@ -6647,12 +6649,21 @@
         },
         {
           "name": "readBounded/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [],
+          "parameters": [
+            "result"
+          ],
           "async": false
         },
         {
           "name": "readBounded/cleanup/init:retry/init:retry/init:retry#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBounded/readBounded",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -6850,6 +6861,40 @@
           "async": true
         },
         {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/syncDirectoryPath",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "validateConfiguration",
           "parameters": [
             "options"
@@ -6879,7 +6924,7 @@
           "operations": [
             "<module>",
             "acquireStoreOwnership",
-            "acquireStoreOwnership/init:release/init:release",
+            "acquireStoreOwnership/ownership/init:release/init:release",
             "cidHex/cidHex",
             "encodePrivateEvidenceEnvelope",
             "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
@@ -7258,6 +7303,7 @@
             "readBounded/cleanup/init:retry/init:retry/init:retry",
             "readBounded/cleanup/init:retry/init:retry/init:retry#2",
             "readBounded/cleanup/init:retry/init:retry/init:retry#3",
+            "readBounded/readBounded",
             "readBounded/sameFile/sameFile",
             "readBounded/status/status",
             "removeOpeningTree",
@@ -7291,6 +7337,12 @@
             "storeBootstrapAcquisition/readDirectory/readDirectory/status/status",
             "storeBootstrapAcquisition/readMetadata/readMetadata",
             "syncDirectoryPath",
+            "syncDirectoryPath/cleanup/init:retry/init:retry",
+            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry",
+            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
+            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
+            "syncDirectoryPath/status/status",
+            "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
             "writeExclusive"
@@ -7415,6 +7467,10 @@
               {
                 "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
                 "anchor": "an already corrupt final holding remains refused"
+              },
+              {
+                "path": "adapters/store-local/physical-reader-close-ack.test.mjs",
+                "anchor": "setter cannot discard the original Content FD responsibility"
               }
             ]
           }

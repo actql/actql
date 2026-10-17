@@ -1611,6 +1611,15 @@ function remoteCredentialControl(moon) {
       ));
     },
     useProjection: moon.strategyRemoteCredentialUseProjection,
+    prepareAuthenticationRequest: (...args) => checked(
+      moon.strategyCredentialAuthenticationRequest(...args),
+    ),
+    bindAuthenticationUse: (...args) => checked(
+      moon.strategyCredentialAuthenticationUseBind(...args),
+    ),
+    checkAuthenticationOperation: (...args) => checked(
+      moon.strategyCredentialAuthenticationOperationCheck(...args),
+    ),
   });
   remoteCredentialControls.set(moon, control);
   return control;
@@ -3709,6 +3718,58 @@ function publicationControl(moon) {
       });
       localEffectIdentityTokens.set(value, issued);
       return value;
+    },
+    prepareEffectCommandContentArtifact(owner, inputs, memberIndex, artifact, limits) {
+      const owned = localEffectArtifactTokens.get(artifact);
+      if (owned === undefined || ![memberIndex, limits?.maxFields, limits?.maxWork]
+        .every(value => Number.isSafeInteger(value) && value >= 0)) {
+        throw new TypeError('Invalid original Effect Content Artifact');
+      }
+      checked(moon.clientProgramEffectCommandContentPrepareArtifact(
+        owner, inputs, memberIndex, owned, limits.maxFields, limits.maxWork));
+    },
+    releaseEffectCommandContentArtifact(artifact, quantum) {
+      const owned = localEffectArtifactTokens.get(artifact);
+      if (owned === undefined || !Number.isSafeInteger(quantum) || quantum <= 0) {
+        throw new TypeError('Invalid original Effect Content retirement');
+      }
+      return moon.clientProgramEffectCommandContentReleaseArtifact(owned, quantum);
+    },
+    borrowEffectCommandContent(owner, inputs, memberIndex, artifact, row,
+      inputName, limits) {
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      if (ownedArtifact === undefined || typeof inputName !== 'string' ||
+          ![memberIndex, row, limits?.maxFields, limits?.maxWork].every(
+            value => Number.isSafeInteger(value) && value >= 0)) {
+        throw new TypeError('Invalid original Effect Content input');
+      }
+      const view = checked(moon.clientProgramEffectCommandContentBorrow(
+        owner, inputs, memberIndex, ownedArtifact, row, inputName,
+        limits.maxFields, limits.maxWork));
+      let original = {view, owner, inputs, memberIndex,
+        artifact: ownedArtifact, row, inputName};
+      const current = () => original !== undefined &&
+        moon.clientProgramEffectCommandContentMatches(original.view,
+          original.owner, original.inputs, original.memberIndex,
+          original.artifact, original.row, original.inputName);
+      // A physical preparation retains this view before awaiting. Its wire is
+      // observed DATA, not byte custody, a capacity loan or a read/send grant.
+      return Object.freeze({binding: view, current,
+        matchesIssued(issued) {
+          const retained = original;
+          return retained !== undefined &&
+            moon.clientProgramEffectCommandContentMatchesIssued(retained.view, issued) &&
+            original === retained;
+        },
+        wire() {
+          if (!current()) throw new TypeError('Original Effect Content unavailable');
+          return checked(moon.clientProgramEffectCommandContentWire(original.view));
+        },
+        release() {
+          if (original === undefined) return;
+          moon.clientProgramEffectCommandContentRelease(original.view);
+          original = undefined;
+        }});
     },
     localEffectTableStorageMapping(artifact, limits) {
       issuanceLimits(limits, 'Table storage mapping');

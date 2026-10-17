@@ -13,6 +13,7 @@ import * as moon from '../../_build/js/release/build/connectors_builtin_node/con
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {issueStoredGeneratedContent} from './generated-content-holding.mjs';
+import {retainCapturedContent} from './captured-content-holding.mjs';
 import {createGeneratedContentFixture, generatedContentFixtureControl as control}
   from './fixtures/generated-content.fixture.mjs';
 
@@ -179,4 +180,101 @@ test('generated Content rechecks holding authority after awaited Store confirmat
   afterSync = undefined;
   await value.store.retirePhysicalHolding(value.holding.holding_cid);
   assert.equal(value.store.status().storedBytes, 0);
+});
+
+test('generated Content does not hand off an issued value after its issuer callback retires availability', async t => {
+  const value = await setup(t);
+  await value.store.commitPhysicalHolding(value.holding, [value.physical.prepared]);
+  let checks = 0;
+  await assert.rejects(value.issue({authorize() {
+    checks++;
+    value.invalidate();
+    return true;
+  }}), {code: 'GeneratedContentHoldingUnavailable'});
+  assert.equal(checks, 1);
+  // Issuance is not retirement or permission to discard the original bytes.
+  assert.equal(value.store.status().storedBytes, 3);
+  assert.equal(value.physical.prepared.status().pending, false);
+  assert.deepEqual(await value.store.inspectPhysicalHolding(value.holding.holding_cid), value.holding);
+  await value.store.retirePhysicalHolding(value.holding.holding_cid);
+  assert.equal(value.store.status().storedBytes, 0);
+});
+
+test('stored Content retains the exact confirmed holding and issued original without a byte loan', async t => {
+  const value = await setup(t);
+  await value.store.commitPhysicalHolding(value.holding, [value.physical.prepared]);
+  let observed, original;
+  const store = {...value.store, async inspectPhysicalHolding(cid) {
+    observed = await value.store.inspectPhysicalHolding(cid);
+    return observed;
+  }};
+  const issued = await value.issue({store, retainOriginal(next) { original = next; }});
+  assert.ok(Object.isFrozen(original));
+  assert.deepEqual(Object.keys(original), ['candidate', 'issued', 'holding',
+    'storeAuthorityCid', 'workspaceScopeCid', 'effectiveDataPolicyCid']);
+  assert.strictEqual(original.candidate, value.candidate);
+  assert.strictEqual(original.issued, issued);
+  assert.strictEqual(original.holding, observed, 'do not reconstruct the confirmed observation');
+  assert.deepEqual(original.holding, value.holding);
+  assert.equal(original.storeAuthorityCid, value.description.storeCid);
+  assert.equal(original.workspaceScopeCid, value.description.workspaceScopeCid);
+  assert.equal(original.effectiveDataPolicyCid, value.description.effectiveDataPolicyCid);
+  assert.equal(value.store.status().storedBytes, 3);
+  assert.equal(value.store.status().objectCount, 1);
+});
+
+test('stored Content original receiver is fenced after callback and retains the original failure', async t => {
+  const value = await setup(t);
+  await value.store.commitPhysicalHolding(value.holding, [value.physical.prepared]);
+  const primary = new Error('original receiver failed');
+  await assert.rejects(value.issue({retainOriginal() { throw primary; }}),
+    error => error === primary);
+  assert.equal(value.store.status().storedBytes, 3);
+  let observed;
+  await assert.rejects(value.issue({retainOriginal(original) {
+    observed = original;
+    value.invalidate();
+  }}), {code: 'GeneratedContentHoldingUnavailable'});
+  assert.ok(observed.issued);
+  assert.equal(value.store.status().storedBytes, 3);
+  assert.equal(value.physical.prepared.status().pending, false);
+  assert.deepEqual(await value.store.inspectPhysicalHolding(value.holding.holding_cid),
+    observed.holding);
+});
+
+test('stored Content rejects an invalid original receiver before acquisition or issuance', async t => {
+  const value = await setup(t);
+  let reads = 0;
+  const store = {...value.store, async inspectPhysicalHolding() { reads++; }};
+  await assert.rejects(value.issue({store, retainOriginal: {}}),
+    {name: 'TypeError', message: 'InvalidContentOriginalReceiver'});
+  assert.equal(reads, 0);
+  assert.equal(value.authorityChecks(), 0);
+  assert.equal(value.physical.prepared.status().pending, true);
+  await value.physical.prepared.release();
+});
+
+test('physical capture retains its confirmed holding original before the issued value escapes', async t => {
+  const value = await setup(t);
+  // This is the real byte writer/Store and common issued candidate, not a
+  // genuine Source admission or a new capture-phase funding receipt.
+  await value.physical.prepared.release();
+  const custody = {};
+  let original;
+  const retained = await retainCapturedContent({store: value.store, control,
+    candidate: value.candidate, bytes: Buffer.from('id\n'),
+    holdingCid: value.holding.holding_cid,
+    workspaceScopeCid: value.description.workspaceScopeCid,
+    effectiveDataPolicyCid: value.description.effectiveDataPolicyCid,
+    retainCustody(handles) { Object.assign(custody, handles); },
+    available: () => true, authorize: () => true, limits,
+    retainOriginal(next) { original = next; }});
+  assert.strictEqual(original.issued, retained.value);
+  assert.strictEqual(original.candidate, value.candidate);
+  assert.deepEqual(original.holding, retained.holding);
+  assert.notStrictEqual(original.holding, retained.holding,
+    'retain the parsed confirmed Store observation, not the pre-commit proposal');
+  assert.strictEqual(custody.holding, retained.holding);
+  assert.equal(custody.prepared.status().pending, false);
+  assert.equal(value.store.status().storedBytes, 3);
 });

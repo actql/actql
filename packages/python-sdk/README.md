@@ -50,6 +50,54 @@ Sync calls reject with `SyncClientInRunningEventLoop` before I/O when a caller's
 event loop is running. Use the async facade there. The sync facade owns a private,
 persistent Runner; it does not stop or nest an application loop.
 
+## Lazy short queries
+
+Both clients expose `sql(text, parameters)` and `aql(text, parameters)`. A
+query captures the original input immediately, but sends nothing until its
+first `all()` or reader iteration:
+
+```python
+with Client.connect(endpoint, token) as client:
+    query = client.sql("SELECT @n AS n", {"n": 1})
+    rows = query.all(max_rows=10)
+    with client.aql("FROM crm.accounts |> LIMIT 10").rows() as reader:
+        for row in reader:
+            print(row)
+# Async: query = client.sql(...); rows = await query.all()
+# async with query.rows(schema=Account) as reader: ...
+```
+
+The same original submission carries `readOnly: true`. The Common admission
+Owner checks the complete checked Effect inventory of that same preparation
+before Source, Model, Preview or Effect work. This is a restriction, not an
+authorization grant or `stop_before="commit"`; even a zero-row or unreachable
+Effect requires the general `start_source` surface. An older Host that cannot
+admit the restriction refuses it; the SDK never removes it or sends a separate
+check as a substitute.
+
+Use `request_id=` or `submission_ref=` to select the existing original identity
+(not both). Changing the query or restriction under that identity is a conflict.
+Omission on general `start`/`start_source` preserves their original behavior;
+their explicit `read_only=True` selects the same restriction. `False` and `None`
+are invalid choices. No restriction is inferred when attaching to a Run.
+
+After one submission and one stable wait, the query selects an available named
+Result. If more than one Result exists, pass `result="name"`; it does not guess.
+`schema=` and read limits use the existing Result reader. Explicit subsequent
+reads share the same Run and open distinct delivery attempts. A held admission,
+lost reply, cancellation, blocked state or failed observation never causes a
+second submission, approval, reconciliation or status polling. Inspect
+`query.execution` and `get_submission_input(query)` for the retained original
+materials; an observation error also retains that execution and observation.
+Query handles cannot be copied or serialized as fresh operations. Save the
+existing Run reference and use `attach` for explicit observation after restart.
+
+Closing an unused query reader sends nothing. Closing a started reader only
+releases its existing local resources; failed cleanup remains with that reader
+and Client for an explicit retry. It is neither Run cancellation nor Host ACK.
+This lightweight Remote composition does not complete the unfinished installed
+Local funding supplier or prove an ordinary Local wheel execution.
+
 `run.status()` and `run.wait()` return immutable `RunState` values. To wait
 for a later stable observation, pass the original state revision:
 
@@ -208,3 +256,25 @@ schema cannot supply a missing protocol completion marker or Host receipt.
 | resources | Existing page/control/signature limits remain; the convenience makes one exact lookup, without independent polling, pagination or retained cache. |
 | extension | Optional application signer does not require a Host/token/path for Local open; missing original Local funding still refuses. Remote remains engine-free. |
 | verification | Public sync/async, exact-ID, interruption, close-retry, signature preimage and strict typing cases remain distinct from installed Local acceptance. |
+
+### Check report attributes
+
+`check()` returns an immutable `CheckObservation` dataclass in both facades.
+For a completed outcome, inspect `outcome.report.verdict` and iterate
+`outcome.report.reasons`; each reason exposes `code`, `facts`, `location` and
+`fixes`. A failed check may carry `partial_report`; an unavailable check has no
+report. These are the original Host observations, not a Python check result.
+
+```python
+outcome = client.check("SELECT 1", kind="text", format="sql", scope="template_only")
+if outcome.report is not None:
+    for reason in outcome.report.reasons:
+        print(reason.code, reason.location)
+```
+
+Mapping access and `to_dict()` preserve exact wire absence. Optional dataclass
+attributes use `None` when absent; `dataclasses.asdict()` returns detached data,
+not a replacement wire response. Copies do not inherit the original check's
+input custody: pass the original observation to `get_check_input()` and
+`resolve_check_location()`. Reading these attributes performs no additional
+request and confers no execution or signing permission.

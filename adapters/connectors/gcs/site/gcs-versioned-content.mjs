@@ -49,7 +49,12 @@ function exactText(value, maxBytes, allowEmpty = false) {
 // consume an attempt and leave fictitious transport cleanup responsibility.
 function checkedTarget(target) {
   if (!target || !exactText(target.bucket, 222) ||
-      !exactText(target.objectName, 1024) || !exactText(target.prefix, 1024, true) ||
+      // JSON object names are opaque Unicode, not HTTP header values or XML
+      // names. The physical encoder escapes controls; CR/LF remain forbidden.
+      typeof target.objectName !== 'string' || target.objectName.length === 0 ||
+      !target.objectName.isWellFormed() || /[\r\n]/u.test(target.objectName) ||
+      Buffer.byteLength(target.objectName) > 1024 || typeof target.prefix !== 'string' ||
+      !target.prefix.isWellFormed() || Buffer.byteLength(target.prefix) > 1024 ||
       !target.objectName.startsWith(target.prefix) || !token(target.generation)) {
     fail('InvalidGcsContentRead');
   }

@@ -5,10 +5,13 @@ import {issueStoredCapturedContent} from './generated-content-holding.mjs';
 
 export async function retainCapturedContent({store, control, candidate, bytes,
   holdingCid, workspaceScopeCid, effectiveDataPolicyCid, retainCustody,
-  available, authorize, limits, signal}) {
+  available, authorize, limits, signal, retainOriginal}) {
   if (!(bytes instanceof Uint8Array) || typeof retainCustody !== 'function' ||
       typeof available !== 'function' || typeof authorize !== 'function') {
     throw new TypeError('Captured Content requires bytes and existing custody');
+  }
+  if (retainOriginal !== undefined && typeof retainOriginal !== 'function') {
+    throw new TypeError('InvalidContentOriginalReceiver');
   }
   signal?.throwIfAborted();
   const description = control.inspect(candidate);
@@ -39,7 +42,8 @@ export async function retainCapturedContent({store, control, candidate, bytes,
   await store.commitPhysicalHolding(holding, [physical.prepared]);
   signal?.throwIfAborted();
   const value = await issueStoredCapturedContent({store, control, candidate,
-    holdingCid, workspaceScopeCid, effectiveDataPolicyCid, available, authorize, limits});
+    holdingCid, workspaceScopeCid, effectiveDataPolicyCid, available, authorize, limits,
+    retainOriginal});
   signal?.throwIfAborted();
   return Object.freeze({value, wire: description.wire, holding});
 }

@@ -7,7 +7,7 @@ from ._wire_codec import (CONTRACT, SCHEMAS, valid as valid, utf16_length, corre
 
 def bounded_text(value, limit=256):
     return valid(value, {'type': 'string', 'minLength': 1, 'maxLength': limit,
-                         'pattern': r'^[^\u0000-\u001f\u007f]+$'})
+                         'pattern': r'^[^\u0000-\u001f\u007f]+(?![\s\S])'})
 
 
 def epoch(value):
@@ -106,8 +106,9 @@ def valid_body(operation, body):
         if operation == 'restart-intent' and not restart(body['unresolvedHistory'], body['submissionRef']):
             return False
         submitted = {key: body[key] for key in ('connection', 'kind', 'input', 'parameters')}
-        if 'stopBefore' in body:
-            submitted['stopBefore'] = body['stopBefore']
+        for key in CONTRACT.get('request_optional_fields', {}).get('submit', {}):
+            if key in body:
+                submitted[key] = body[key]
         return valid_body('submit', submitted | {'requestId': body['submissionRef']['nonce']}) and (body['parameters'] is None or type(body['parameters']) is dict)
     if operation in ('submit', 'check'):
         is_check = operation == 'check'

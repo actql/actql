@@ -118,7 +118,7 @@ fn parameter_decode(
         let kind = text(type_cursor, budget)
         let extras = match kind {
           "number" => ["integer", "minimum", "maximum"]
-          "string" => ["format"]
+          "string" => ["format", "enum"]
           "boolean" | "date" | "timestamp" => []
           "decimal" => ["precision", "scale"]
           "array" => ["items", "length", "max_items"]
@@ -167,6 +167,7 @@ fn parameter_decode(
               min_length: None,
               max_codepoints: None,
               max_utf8_bytes: None,
+              enumeration: read_text_enumeration(view, budget, depth),
             })
           }
           "boolean" => Boolean

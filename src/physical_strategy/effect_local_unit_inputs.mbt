@@ -177,7 +177,7 @@ pub fn start_captured_effect_local_unit_result_export(
     Ok(value) => value
     Err(issue) => return Err(Export(issue))
   }
-  Ok({ owner: LocalUnit(inputs), result, preparation, })
+  Ok({ owner: LocalUnit(inputs), result, preparation, derived_retained: None, })
 }
 
 ///|

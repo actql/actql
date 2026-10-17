@@ -6,6 +6,7 @@ import {checkInstalledSalesforceEffectProfile, loadInstalledSalesforceEffect,
   publishInstalledSalesforceEffect} from './installed-salesforce-effect.mjs';
 import {retainInstalledRowEffectAdapter} from
   '../../../host-node/installed-row-effect.mjs';
+import {readPublicationFile} from './salesforce-publication.mjs';
 
 export function checkInstalledSalesforceEffectInstallation(profile) {
   return checkInstalledSalesforceEffectProfile(profile);
@@ -19,8 +20,8 @@ export async function installedSalesforceEffectIdentityParts(profile, read) {
   return [
     {...profile, accountConfigurationWire: JSON.parse(
       profile.accountConfigurationWire)},
-    await read(checked.siteProfilePath),
-    await read(checked.publicationPath),
+    await read(checked.siteProfilePath, {maxBytes: 8 * 1024 * 1024}),
+    JSON.parse((await readPublicationFile(checked.publicationPath)).body),
   ];
 }
 

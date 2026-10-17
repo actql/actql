@@ -3,17 +3,19 @@
 // installed once for all its Sites. Programs and callers supply none of them.
 // Credential grants are issued only for a protected decision that installed
 // gate returned as dispatch.
-import {createHash, createPrivateKey, createPublicKey} from 'node:crypto';
+import {createHash, createPrivateKey} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
+import {retainInstalledCredentialSiteCleanup, releaseInstalledCredentialSite} from
+  '../../../host-node/installed-host-cleanup.mjs';
 import {isAbsolute} from 'node:path';
-import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {canonicalJson as canonicalValueJson} from '../../../../packages/sdk/host-port.mjs';
-import {canonicalJson, contentCid, createLocalAuthorizationGate} from
+import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
+import {installRowSourceAuthorization, openRowSourceCredentialCustody} from
+  '../../../host-node/installed-row-source.mjs';
 import {openSqliteCredentialJournal} from
   '../../../site-node/sqlite-credential-journal.mjs';
-import {signRemoteCredentialGrant} from
-  '../../../site-node/remote-credential-signature.mjs';
 import {createSalesforceCliSecretResolver} from
   '../site/salesforce-cli-secret.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -61,7 +63,12 @@ export const DEFAULT_SALESFORCE_CATALOG_LIMITS = Object.freeze({
 });
 
 const fail = (code, cause) => {
-  throw Object.assign(new Error(code, {cause}), {code});
+  const failure = Object.assign(new Error(code, {cause}), {code});
+  if (cause?.cleanupHandle !== undefined) {
+    Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
+      cleanupPending: cause.cleanupPending});
+  }
+  throw failure;
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const cid = value => `sha256:${createHash('sha256')
@@ -130,19 +137,13 @@ export async function installSalesforceAuthorization({accountConfiguration,
   const context = Object.freeze({principal: principalId,
     contextCid: cid({version: 'actql-installed-salesforce-context/0.1',
       root, principalId})});
-  const gate = await createLocalAuthorizationGate({...gateOptions,
-    accountConfiguration, principal: principalId, context});
-  const issued = new WeakSet();
-  const own = decision => {
-    if (decision !== null && typeof decision === 'object') issued.add(decision);
-    return decision;
-  };
-  const authorization = Object.freeze({...gate, context,
-    // The exact configuration text, for a Host Checkpoint that decides the
-    // same source's reads under the same configuration.
-    accountConfiguration,
-    authorize: async (...args) => own(await gate.authorize(...args)),
-    resume: async (...args) => own(await gate.resume(...args))});
+  const {issued, ...gate} = await installRowSourceAuthorization({
+    accountConfiguration, principalId, root, connectorRegistration: 'salesforce',
+    originalContext: context, gateOptions});
+  // Preserve the compatibility entry's original surface and its private
+  // installation provenance. Decision issuance belongs to the shared issuer;
+  // a caller-supplied object with an `issued` method is never an installation.
+  const authorization = Object.freeze(gate);
   installedDecisions.set(authorization, issued);
   return authorization;
 }
@@ -173,7 +174,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   const principalId = authorization.context.principal;
   const context = authorization.context;
   let profile;
-  try { profile = JSON.parse(await readFile(path, 'utf8')); }
+  // Match the existing Host identity/configuration ceiling; Salesforce's
+  // publication uses its separate original 16,000,000-byte text boundary.
+  try { profile = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024}); }
   catch (error) { fail('InvalidInstalledSalesforceSiteProfile', error); }
   if (!validProfile(profile)) fail('InvalidInstalledSalesforceSiteProfile');
   let privateKey;
@@ -196,47 +199,17 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     environment: profile.environment, siteKey: profile.siteKey,
     siteGeneration: profile.siteGeneration,
   });
-  const control = runtimeCore(commonMoon).remoteCredentialControl;
-  const journal = openCredentialJournal(profile.journalRoot, {
-    credentialAuthorities: new Map([[profile.credentialAuthorityId,
-      new Map([[profile.credentialKeyId, createPublicKey(privateKey)]])]]),
-  });
-  // Closing refuses every new operation at once; the Site is released only
-  // once its credential journal has actually closed. A failed journal close
-  // leaves the Site closing and unreleased, and the next close retries it.
-  let closing = false;
-  let released = false;
-  const ensureOpen = () => {
-    if (closing) fail('SalesforceSiteClosed');
-  };
-  const credential = Object.freeze({orgId: profile.orgId, control, journal,
-    resolveSecret: secret, ca, now});
-
-  function sign({operation, runInvocationCid, taskAttempt,
-    dispatchRequestCid, maxUses}) {
-    ensureOpen();
-    if (!cidPattern.test(runInvocationCid ?? '') ||
-        !cidPattern.test(dispatchRequestCid ?? '') ||
-        !Number.isSafeInteger(taskAttempt) || taskAttempt < 1 ||
-        !Number.isSafeInteger(maxUses) || maxUses < 1 || maxUses > 10_000) {
-      fail('InvalidSalesforceCredentialGrantRequest');
-    }
-    const scope = Object.freeze({
-      issuerAuthority: profile.credentialAuthorityId,
-      principal: principalId, namespaceId: profile.namespaceId,
-      environment: profile.environment, siteKey: profile.siteKey,
-      siteGeneration: profile.siteGeneration, runtimeBundleCid,
-      connectorRegistration: 'salesforce',
-      connectorRevision: 'salesforce/0.1',
-      resourceOrigin: profile.instanceOrigin, operation, runInvocationCid,
-      taskAttempt, dispatchRequestCid,
-      expiresUnixMilliseconds: BigInt(now() + grantLifetimeMs), maxUses,
-    });
-    const grant = control.prepare(scope);
-    journal.acceptGrant(signRemoteCredentialGrant(grant, control, {
-      keyId: profile.credentialKeyId, privateKey}), control);
-    return Object.freeze({grant, scope});
-  }
+  // Keep the original Salesforce origin, task attempt and diagnostic names;
+  // credential journal/signing/retirement are the shared Row Site's one path.
+  const custody = openRowSourceCredentialCustody({
+    profile: Object.freeze({...profile, resourceOrigin: profile.instanceOrigin}),
+    principalId, connectorRegistration: 'salesforce',
+    connectorRevision: 'salesforce/0.1', runtimeBundleCid, commonMoon,
+    privateKey, resolveSecret: secret, ca, now, grantLifetimeMs,
+    openCredentialJournal, credentialFacts: Object.freeze({orgId: profile.orgId}),
+    closedCode: 'SalesforceSiteClosed',
+    grantCode: 'InvalidSalesforceCredentialGrantRequest'});
+  const {credential, ensureOpen, sign} = custody;
 
   // Issue one credential grant for a record operation on `resource`. The
   // decision must be the installed gate's dispatch for the same connection,
@@ -275,7 +248,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const hostCommit = commitFacts !== undefined &&
       commitFacts.principal === principalId &&
       commitFacts.configurationCid === authorization.configurationCid;
-    if (!(issuedDecisions.has(decision) || hostCommit) ||
+    if (!(issuedDecisions(decision) || hostCommit) ||
         decision.action !== 'dispatch' ||
         decision.boundary !== required[0] ||
         (!hostCommit && decision.contextCid !== context.contextCid) ||
@@ -415,7 +388,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         siteGeneration: profile.siteGeneration,
         connectionRevision: profile.connectionRevision, resource,
         occurrence}), signal});
-    if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
+    if (!issuedDecisions(decision) || decision.action !== 'dispatch' ||
         decision.boundary !== 'acquisition' ||
         decision.contextCid !== context.contextCid ||
         decision.tuple?.connection !== connection ||
@@ -735,7 +708,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   async function peek({decision, resource, fields, maxRows,
     maxBytes = 65536, maxNodes = 10000, signal} = {}) {
     ensureOpen();
-    if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
+    if (!issuedDecisions(decision) || decision.action !== 'dispatch' ||
         decision.boundary !== 'acquisition' ||
         decision.contextCid !== context.contextCid ||
         decision.tuple?.connection !== connection ||
@@ -829,83 +802,20 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     ownsDeclaration: declaration => declarations.has(declaration),
     // Stop new operations, then release the credential journal. Returns
     // once released; a failed release throws and stays retryable.
-    close() {
-      closing = true;
-      if (released) return;
-      journal.close();
-      released = true;
-    },
+    close: custody.closeOnce,
     // Whether this Site was closed but its journal is not yet released.
-    cleanupPending: () => closing && !released,
+    cleanupPending: custody.cleanupPending,
   });
 }
 
-// The failure of a caller that acquired `site`: the primary failure stays
-// the error, and the Site's release is attempted at once. When it does not
-// complete, the error carries the release responsibility (`cleanupPending`,
-// `cleanupErrors`, `cleanupHandle` {retry, status}) to the caller, beside any
-// cleanup responsibility it already carried. A frozen or non-object failure
-// is wrapped with `primaryFailure`.
+// Compatibility entries delegate the same Site and primary failure to the
+// shared Host lifecycle owner. Keep Salesforce's original fallback code and
+// synchronous first close; this does not prepare or retry provider work.
 export function retainSalesforceSiteCleanup(site, primary) {
-  const errors = [];
-  try { site.close(); } catch (error) { errors.push(error); }
-  return handOverSiteRelease(site, primary, errors);
+  return retainInstalledCredentialSiteCleanup(site, primary,
+    'SalesforceSiteOwnerFailed');
 }
 
-// Release `site` after its caller succeeded. A release that does not
-// complete throws its failure carrying the retry responsibility; the failed
-// attempt is not repeated here.
 export function releaseSalesforceSite(site) {
-  try { site.close(); }
-  catch (error) { throw handOverSiteRelease(site, error, [error]); }
+  return releaseInstalledCredentialSite(site, 'SalesforceSiteOwnerFailed');
 }
-
-function handOverSiteRelease(site, primary, errors) {
-  // Capture the previous owner before wrapping or replacing its metadata.
-  const earlier = primary?.cleanupHandle;
-  const earlierOwned = earlier !== undefined || primary?.cleanupPending === true;
-  const earlierErrors = primary?.cleanupErrors ?? [];
-  const earlierStatus = () => {
-    try {
-      return typeof earlier?.status === 'function' ? earlier.status() : undefined;
-    } catch (error) {
-      // An unavailable observation cannot replace the primary failure or
-      // confirm release. Keep the retry owner and the observation failure.
-      if (!errors.includes(error)) errors.push(error);
-      return undefined;
-    }
-  };
-  const failure = primary !== null && typeof primary === 'object' &&
-    Object.isExtensible(primary) ? primary
-    : Object.assign(new Error('SalesforceSiteOwnerFailed', {cause: primary}),
-      {code: primary?.code ?? 'SalesforceSiteOwnerFailed',
-        primaryFailure: primary});
-  if (site.cleanupPending() !== true && !earlierOwned) return failure;
-  const status = () => {
-    const before = earlierStatus();
-    return Object.freeze({
-      // Only the previous owner can confirm its own release. A missing or
-      // incomplete handle must not turn an outstanding duty into success.
-      pending: site.cleanupPending() === true ||
-        earlierOwned && before?.pending !== false,
-      errors: Object.freeze([...(before?.errors ?? earlierErrors), ...errors])});
-  };
-  const handle = Object.freeze({status, async retry() {
-    if (earlierStatus()?.pending !== false &&
-        typeof earlier?.retry === 'function') {
-      try { await earlier.retry(); } catch (error) { errors.push(error); }
-    }
-    if (site.cleanupPending() === true) {
-      try { site.close(); } catch (error) { errors.push(error); }
-    }
-    const current = status();
-    failure.cleanupPending = current.pending;
-    failure.cleanupErrors = current.errors;
-    return current;
-  }});
-  failure.cleanupPending = status().pending;
-  failure.cleanupErrors = status().errors;
-  failure.cleanupHandle = handle;
-  return failure;
-}
-

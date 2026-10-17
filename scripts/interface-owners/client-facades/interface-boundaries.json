@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "e23018785a9502fde12af8a16feaa75f547762ff2fcefff62355993052e8ae0f",
+      "sha256": "71e76b7e343cd463b2c03ede07d2c3afbccf9c2a89e07f00c3eaf059cef5ba16",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -35,6 +35,7 @@
         "InstallationFailure",
         "InstalledConnectorBinding",
         "InstalledRowEffect",
+        "InstalledRowProviderReader",
         "InstalledRowSource",
         "InvocationAuthorization",
         "InvocationPrimitive",
@@ -48,8 +49,10 @@
         "RowEffectMapping",
         "RowEffectMember",
         "RowEffectProjection",
+        "RowEffectRequestChild",
         "RowMappingSource",
         "RowPageRequest",
+        "RowProviderReaderRequest",
         "RowSourceCredentialProfile",
         "RowSourceCredentialSite",
         "RowSourceDeclarationFacts",
@@ -98,7 +101,7 @@
         {
           "name": "createInstalledRowSource",
           "parameters": [
-            "options: Readonly<{\n  moon: ConnectorRuntimeOwner;\n  declaration: ConnectorRuntimeHandle;\n  declared: RowSourceDeclarationFacts;\n  environmentWire: string;\n  connectorId: string;\n  connectorRegistration: string;\n  connectorRevision: string;\n  site: RowSourceCredentialSite;\n  authorization: InstallationAuthorization;\n  readOperation: string;\n  physicalTarget: (resource: string, fields: readonly string[]) => ConnectorJsonObject;\n  readPages: (request: RowPageRequest) => Awaitable<unknown>;\n  bindingCid: string;\n  limits: RowSourceLimits;\n  /** Trusted target-bound ExecutionCapacity declaration from the selected\n   * Core runtime. Not a grant; the original Source Ledger must reserve it\n   * before additional report allocations or page I/O. No numeric default. */\n  listingReportCapacity?: ConnectorRuntimeHandle;\n}>"
+            "options: Readonly<{\n  moon: ConnectorRuntimeOwner;\n  declaration: ConnectorRuntimeHandle;\n  declared: RowSourceDeclarationFacts;\n  environmentWire: string;\n  connectorId: string;\n  connectorRegistration: string;\n  connectorRevision: string;\n  site: RowSourceCredentialSite;\n  authorization: InstallationAuthorization;\n  readOperation: string;\n  physicalTarget: (resource: string, fields: readonly string[]) => ConnectorJsonObject;\n  readPages: (request: RowPageRequest) => Awaitable<unknown>;\n  bindingCid: string;\n  limits: RowSourceLimits;\n  /** Trusted target-bound ExecutionCapacity declaration from the selected\n   * Core runtime. Not a grant; the original Source Ledger must reserve it\n   * before additional report allocations or page I/O. No numeric default. */\n  listingReportCapacity?: ConnectorRuntimeHandle;\n  /** Supplemental ordinary reader selection, mutually exclusive with listing\n   * reports. DATA only: same-runtime Core planning/reservation and original\n   * physical/caller retirement are independently required. No fallback. */\n  providerReader?: Readonly<{\n    capacity: ConnectorRuntimeHandle;\n    prepare(request: RowProviderReaderRequest): InstalledRowProviderReader;\n  }>;\n}>"
           ],
           "result": "Promise<InstalledRowSource>"
         },
@@ -116,6 +119,13 @@
             "request: RowPageRequest"
           ],
           "result": "Awaitable<unknown>"
+        },
+        {
+          "name": "createInstalledRowSource/prepare",
+          "parameters": [
+            "request: RowProviderReaderRequest"
+          ],
+          "result": "InstalledRowProviderReader"
         },
         {
           "name": "CredentialContext/<call>",
@@ -209,6 +219,21 @@
           "name": "InstalledRowEffect/close",
           "parameters": [],
           "result": "void"
+        },
+        {
+          "name": "InstalledRowProviderReader/observe",
+          "parameters": [],
+          "result": "Readonly<{cleanupConfirmed: boolean}>"
+        },
+        {
+          "name": "InstalledRowProviderReader/read",
+          "parameters": [],
+          "result": "Awaitable<unknown>"
+        },
+        {
+          "name": "InstalledRowProviderReader/requestStop",
+          "parameters": [],
+          "result": "Awaitable<void>"
         },
         {
           "name": "InstalledRowSource/admitsSource",
@@ -339,6 +364,30 @@
           "result": "Readonly<{request: Request; requestCid: string}>"
         },
         {
+          "name": "RowEffectDriver/prepareRequestChild",
+          "parameters": [
+            "options: Readonly<{member: RowEffectMember;\n    value: ConnectorJsonObject; selector?: ConnectorJsonValue;\n    current: Current | undefined; signal?: AbortSignal;\n  } & ({rowIndex: number;\n    authorizationForRow: () => Promise<InvocationAuthorization>;\n    /** Existing selected-preparation fence; absence is not a new current proof. */\n    assertCurrent?: () => void;\n  } | {rowIndex?: undefined;\n    authorizationForRow?: (index: number) => Promise<InvocationAuthorization>;\n    assertCurrent?: undefined;\n  })>"
+          ],
+          "result": "RowEffectRequestChild<Request>"
+        },
+        {
+          "name": "RowEffectDriver/prepareRequestChild/<call>",
+          "parameters": [],
+          "result": "Promise<InvocationAuthorization>"
+        },
+        {
+          "name": "RowEffectDriver/prepareRequestChild/<call>#2",
+          "parameters": [],
+          "result": "void"
+        },
+        {
+          "name": "RowEffectDriver/prepareRequestChild/<call>#3",
+          "parameters": [
+            "index: number"
+          ],
+          "result": "Promise<InvocationAuthorization>"
+        },
+        {
           "name": "RowEffectDriver/project",
           "parameters": [
             "options: Readonly<{member: RowEffectMember; memberIndex: number;\n    rowIndex: number; preview: ConnectorRuntimeHandle; request: Request;\n    current: Current | undefined; observation: CredentialObservation;\n    headers: HttpPairs | undefined}>"
@@ -395,6 +444,26 @@
           "result": "string"
         },
         {
+          "name": "RowEffectRequestChild/prepare",
+          "parameters": [],
+          "result": "Awaitable<Readonly<{request: Request; requestCid: string}>>"
+        },
+        {
+          "name": "RowEffectRequestChild/release",
+          "parameters": [],
+          "result": "Awaitable<boolean | void>"
+        },
+        {
+          "name": "RowEffectRequestChild/retry",
+          "parameters": [],
+          "result": "Awaitable<boolean | void>"
+        },
+        {
+          "name": "RowEffectRequestChild/status",
+          "parameters": [],
+          "result": "Readonly<{pending: boolean}>"
+        },
+        {
           "name": "RowPageRequest/authorizationFor",
           "parameters": [
             "index: number"
@@ -415,6 +484,18 @@
             "admission?: Readonly<{charge?: ConnectorRuntimeHandle}>"
           ],
           "result": "number"
+        },
+        {
+          "name": "RowProviderReaderRequest/<call>",
+          "parameters": [
+            "charge: ConnectorRuntimeHandle"
+          ],
+          "result": "unknown"
+        },
+        {
+          "name": "RowProviderReaderRequest/verifyRead",
+          "parameters": [],
+          "result": "Promise<InstallationDecision>"
         },
         {
           "name": "rowSourceCheckEnvironment",
@@ -479,6 +560,7 @@
             "createInstalledRowSource",
             "createInstalledRowSource/<call>",
             "createInstalledRowSource/<call>#2",
+            "createInstalledRowSource/prepare",
             "CredentialContext/<call>",
             "CredentialJournalOwner/acceptGrant",
             "CredentialJournalOwner/close",
@@ -494,6 +576,9 @@
             "InstallationFailure/retry",
             "InstallationFailure/status",
             "InstalledRowEffect/close",
+            "InstalledRowProviderReader/observe",
+            "InstalledRowProviderReader/read",
+            "InstalledRowProviderReader/requestStop",
             "InstalledRowSource/admitsSource",
             "InstalledRowSource/close",
             "installRowSourceAuthorization",
@@ -513,6 +598,10 @@
             "RowEffectDriver/observeTargets",
             "RowEffectDriver/observeTargets/<call>",
             "RowEffectDriver/prepareRequest",
+            "RowEffectDriver/prepareRequestChild",
+            "RowEffectDriver/prepareRequestChild/<call>",
+            "RowEffectDriver/prepareRequestChild/<call>#2",
+            "RowEffectDriver/prepareRequestChild/<call>#3",
             "RowEffectDriver/project",
             "RowEffectDriver/recheckRequests",
             "RowEffectDriver/recoverRequests",
@@ -521,9 +610,15 @@
             "RowEffectDriver/requestFacts",
             "RowEffectDriver/send",
             "RowEffectDriver/writeOperation",
+            "RowEffectRequestChild/prepare",
+            "RowEffectRequestChild/release",
+            "RowEffectRequestChild/retry",
+            "RowEffectRequestChild/status",
             "RowPageRequest/authorizationFor",
             "RowPageRequest/chargePage",
             "RowPageRequest/consumePage",
+            "RowProviderReaderRequest/<call>",
+            "RowProviderReaderRequest/verifyRead",
             "rowSourceCheckEnvironment",
             "RowSourceCredentialSite/admitCheckpointReadApproval",
             "RowSourceCredentialSite/close",
@@ -560,6 +655,7 @@
             "InstallationFailure",
             "InstalledConnectorBinding",
             "InstalledRowEffect",
+            "InstalledRowProviderReader",
             "InstalledRowSource",
             "InvocationAuthorization",
             "InvocationPrimitive",
@@ -573,8 +669,10 @@
             "RowEffectMapping",
             "RowEffectMember",
             "RowEffectProjection",
+            "RowEffectRequestChild",
             "RowMappingSource",
             "RowPageRequest",
+            "RowProviderReaderRequest",
             "RowSourceCredentialProfile",
             "RowSourceCredentialSite",
             "RowSourceDeclarationFacts",
@@ -596,12 +694,28 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Owned guarded request preparation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
               }
             ],
             "identity": [
@@ -612,6 +726,18 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "fail('ForeignInstalledRowEffectRequest')"
               }
             ],
             "ownership": [
@@ -622,6 +748,18 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "children.push({prepared: Object.freeze"
               }
             ],
             "synchronization": [
@@ -632,6 +770,18 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
               }
             ],
             "failure": [
@@ -642,6 +792,14 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
               }
             ],
             "cancellation": [
@@ -652,6 +810,18 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "signal?.throwIfAborted()"
               }
             ],
             "resources": [
@@ -662,6 +832,18 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
               }
             ],
             "extension": [
@@ -672,12 +854,44 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-row-source.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "Reader preparation is synchronous and cannot hide I/O."
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded child cleanup pending retains the same failure and original cleanup handle"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "the child cannot substitute another row index into its read use"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "Read authorization is closed over the original row."
               }
             ]
           }
@@ -1237,7 +1451,7 @@
     {
       "module": "packages/local-node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "35b5cf577148ccba92fdcaee04d942d69040a5158c38c700f19449d12e7a5f63",
+      "sha256": "41c2927ae71fd295e50e4f18b3efbe63427ead4774e5d7cc856902aab920e4f0",
       "exports": [
         "CalendarArtifactInstallation",
         "EffectProfilePaths",
@@ -1311,7 +1525,7 @@
         {
           "name": "connect",
           "parameters": [
-            "options: Readonly<{\n  mode: 'local'; owner: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';\n  consentRefs?: readonly string[]; installation?: HostInstallation;\n}>"
+            "options: Readonly<{\n  mode: 'local'; owner?: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';\n  consentRefs?: readonly string[]; installation?: HostInstallation;\n}>"
           ],
           "result": "Promise<Client>"
         },
@@ -1467,6 +1681,14 @@
               {
                 "path": "adapters/host-node/client-interactive-read-public.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
+              },
+              {
+                "path": "packages/node/local-owner.typecheck.mts",
+                "anchor": "const embedded: EmbeddedLocalOptions"
               }
             ]
           }
@@ -1476,7 +1698,7 @@
     {
       "module": "packages/local-node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9adae86024fa8a91f5ca73cb2135d60eb08c215e4bac6ae87ae76cbfa6488a5d",
+      "sha256": "a312370ace32a5fcfd8025564cdbf49bb57eed32d94aa07632032eb8d58d2c00",
       "exports": [
         "connect",
         "createInstalledConnectorTable",
@@ -1617,6 +1839,14 @@
               {
                 "path": "adapters/host-node/client-interactive-read-public.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
+              },
+              {
+                "path": "packages/node/local-owner.typecheck.mts",
+                "anchor": "const embedded: EmbeddedLocalOptions"
               }
             ]
           }
@@ -1906,7 +2136,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "c479158d0f9e5008dc397cf2b7f1eb77315a5a8d9c06e8be177829e19c6edaf2",
+      "sha256": "48c70aeef4198a44021c3ce989e7e2ee1430cbefac32716f553df7885ec5fd66",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
@@ -2120,6 +2350,14 @@
               {
                 "path": "scripts/local-node-package-imports.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
+              },
+              {
+                "path": "packages/node/local-owner.typecheck.mts",
+                "anchor": "const embedded: EmbeddedLocalOptions"
               }
             ]
           }
@@ -2874,7 +3112,7 @@
     {
       "module": "packages/sdk/check-reason-catalog.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "7e291fa3deaeb14830c80096d3a0d0253a940c0b90638a463721f080eb3beecb",
+      "sha256": "c2aa2035c258254aa1c302a47a93db041034a62958de4e28335143ff82e331a3",
       "exports": [
         "getCheckReasonCatalogEntry",
         "getCheckReasonCatalogInfo",
@@ -2960,6 +3198,10 @@
               {
                 "path": "spec/contracts/actql-check-reason-catalog.json",
                 "anchor": "\"code\": \"query_syntax_invalid\""
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "identity": [
@@ -2970,6 +3212,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.js",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "ownership": [
@@ -3030,12 +3276,20 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.js",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/check-reason-catalog.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/protocol-value-contracts.test.mjs",
+                "anchor": "actual generated structural type validator keeps enum shape"
               }
             ]
           }
@@ -3814,7 +4068,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "4e89d07e3020bb92dbc07b4380def28cf5e6610791859f86ab19a484f84ee3c9",
+      "sha256": "ad744453b084406c26ad1aecd8a3a4e830061af986c81d3141e0b6828dd84578",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -4955,6 +5209,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -4969,6 +5227,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -4987,6 +5249,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -5005,6 +5271,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -5023,6 +5293,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -5041,6 +5315,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -5059,6 +5337,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -5085,6 +5367,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -5102,7 +5388,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -5125,6 +5411,14 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -8370,7 +8664,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "415f263155c51a4cd946d872e75aaf220159846fa0abde44ee84b609cbc31100",
+      "sha256": "8c019f98ebb73cbd1eb0668ffe1b4b53ed07d5ce0f4bb6bd3dcccd4f2aac06e9",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -8788,6 +9082,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -8798,6 +9096,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -8812,6 +9114,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -8826,6 +9132,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -8840,6 +9150,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -8854,6 +9168,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -8868,6 +9186,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -8886,6 +9208,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -8899,7 +9225,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -8914,6 +9240,14 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -10420,7 +10754,7 @@
     {
       "module": "packages/sdk/source-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "af9de0db06bd7792c920d1f2c33e945e84664d881bf99945246d58a7621fa349",
+      "sha256": "dd72a93531fa82e540ee33bdf9ce7dfe945ffa266bbe66efff97d0447dbbd71e",
       "exports": [
         "sourceQuery"
       ],
@@ -10581,12 +10915,20 @@
               {
                 "path": "packages/sdk/source-query.mjs",
                 "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/source-query.mjs",
                 "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -10597,6 +10939,10 @@
               {
                 "path": "packages/sdk/source-query.mjs",
                 "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -10607,6 +10953,10 @@
               {
                 "path": "packages/sdk/source-query.mjs",
                 "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -10617,6 +10967,10 @@
               {
                 "path": "packages/sdk/source-query.mjs",
                 "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -10627,6 +10981,10 @@
               {
                 "path": "packages/sdk/source-query.mjs",
                 "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -10637,6 +10995,10 @@
               {
                 "path": "packages/sdk/source-query.mjs",
                 "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -10647,6 +11009,10 @@
               {
                 "path": "packages/sdk/source-query.mjs",
                 "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -10657,12 +11023,24 @@
               {
                 "path": "packages/sdk/source-query.mjs",
                 "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/source-query.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }

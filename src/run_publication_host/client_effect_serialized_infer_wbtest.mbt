@@ -67,6 +67,27 @@ fn client_effect_serialized_infer_fixture(
 }
 
 ///|
+test "read-only restriction sees the complete Source Model and Effect preparation before any execution" {
+  let owner = client_effect_serialized_infer_fixture()
+  assert_true(prepared_client_effect_infer_occurrence(owner) is Some(_))
+  assert_true(
+    @strategy.graph_captured_prefix(
+      @strategy.checked_effect_computation_graph(
+        prepared_client_effect_computation_graph(owner),
+      ),
+    ) >
+    0,
+  )
+  let intent = prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":{},\"parameters\":null,\"readOnly\":true}",
+    4096, 128, 16,
+  ).unwrap()
+  // The original static candidate owns all three stages. No Source reader,
+  // Model port, Preview or dispatch is acquired to enforce this choice.
+  assert_false(client_submitted_intent_effect_compatible(intent, owner))
+}
+
+///|
 test "original Effect Infer KEEP retains the authentic Content producer edge" {
   let owner = client_effect_serialized_infer_fixture(keep=true)
   let occurrence = prepared_client_effect_infer_occurrence(owner).unwrap()

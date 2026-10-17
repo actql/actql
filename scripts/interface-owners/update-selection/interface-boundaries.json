@@ -1,6 +1,6 @@
 {
   "source": "09544d253400245c03331b7d2fff62db6d0c369d",
-  "qualification": "Existing Common UPDATE selection Owner references for three physical conversion/custody modules. The DATA codec is not a privileged compiler binding. No new semantic Owner or executed behavior claim.",
+  "qualification": "Existing Common UPDATE, checked DELETE and published-STORE selection Owner references for three physical conversion/custody modules. Original checked Header and full Run admission determine purpose, not the eight-field DATA codec or an equal CID. No new semantic Owner or physical execution claim.",
   "declarations": [
     {
       "module": "adapters/host-node/update-target-original-shape.mjs",
@@ -759,7 +759,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [

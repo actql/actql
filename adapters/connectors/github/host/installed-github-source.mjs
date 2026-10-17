@@ -20,6 +20,7 @@ import {dirname, isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {retainInstalledHostInitializationFailure} from
   '../../../host-node/installed-host-cleanup.mjs';
+import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
 import {createInstalledRowSource, installRowSourceAuthorization,
@@ -52,7 +53,12 @@ const rowLimits = Object.freeze({maxPages: readLimits.maxPages,
   maxPageBytes: 4_000_000, maxPageRows: 100, maxCaptureRows: 100});
 
 const fail = (code, cause) => {
-  throw Object.assign(new Error(code, {cause}), {code});
+  const failure = Object.assign(new Error(code, {cause}), {code});
+  if (cause?.cleanupHandle !== undefined) {
+    Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
+      cleanupPending: cause.cleanupPending});
+  }
+  throw failure;
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const absolute = value => text(value) && isAbsolute(value);
@@ -72,9 +78,7 @@ export function checkInstalledGitHubSourceProfile(profile) {
 
 async function readJson(path, code) {
   try {
-    const bytes = await readFile(path);
-    if (bytes.byteLength > 1024 * 1024) fail(code);
-    return JSON.parse(bytes.toString('utf8'));
+    return await readSourceProfileJson(path, {maxBytes: 1024 * 1024});
   } catch (cause) {
     if (cause?.code === code) throw cause;
     fail(code, cause);
@@ -116,8 +120,8 @@ export async function installedGitHubSourceIdentityParts(profile,
   return [
     {...profile, accountConfigurationWire: JSON.parse(
       profile.accountConfigurationWire)},
-    await read(checkedProfile.siteProfilePath),
-    await read(checkedProfile.publicationPath),
+    await read(checkedProfile.siteProfilePath, {maxBytes: 1024 * 1024}),
+    await read(checkedProfile.publicationPath, {maxBytes: 1024 * 1024}),
   ];
 }
 
@@ -126,8 +130,8 @@ export async function installedGitHubSourceIdentityParts(profile,
 export async function readGitHubPublication(checkedProfile, site) {
   let publication;
   try {
-    publication = JSON.parse(await readFile(checkedProfile.publicationPath,
-      'utf8'));
+    publication = await readSourceProfileJson(checkedProfile.publicationPath,
+      {maxBytes: 1024 * 1024});
   } catch (cause) {
     fail('GitHubPublicationMissing', cause);
   }

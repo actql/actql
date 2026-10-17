@@ -13,3 +13,7 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
 }
+
+import {
+  "actql/actql/encode_core" @encode,
+} for "wbtest"

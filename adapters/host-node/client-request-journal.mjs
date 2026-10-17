@@ -17,7 +17,7 @@ import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
-import {sameSubmissionRef, validSubmissionRef, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
+import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -543,6 +543,37 @@ const epochMarkerName = 'submission-epoch-format.json';
 const intentMarkerName = 'submitted-intent-format.json';
 const retirementMarkerName = 'submitted-intent-retirement-format.json';
 const restartMarkerName = 'submission-restart-format.json';
+const nameMarkerName = 'submission-name-format.json';
+const nameMarker = Buffer.from(JSON.stringify({
+  version: 'actql-client-request-journal/0.1', feature: 'scoped_submission_names',
+}));
+const nameTables = [
+  ['client_submission_names', `CREATE TABLE client_submission_names (
+          namespace_id TEXT NOT NULL,
+          actor_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          authority_scope_cid TEXT NOT NULL,
+          submission_id TEXT NOT NULL UNIQUE,
+          intent_cid TEXT NOT NULL,
+          binding_authenticator TEXT NOT NULL,
+          PRIMARY KEY (namespace_id, actor_id, name)
+        ) STRICT`],
+  ['client_submission_name_custody', `CREATE TABLE client_submission_name_custody (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          issued_count INTEGER NOT NULL CHECK (issued_count >= 0),
+          retained_count INTEGER NOT NULL CHECK (retained_count >= 0)
+        ) STRICT`],
+];
+const nameTriggers = [
+  ['client_submission_name_insert_count', `CREATE TRIGGER client_submission_name_insert_count
+    AFTER INSERT ON client_submission_names BEGIN
+      UPDATE client_submission_name_custody SET retained_count = retained_count + 1 WHERE singleton = 1;
+    END`],
+  ['client_submission_name_delete_count', `CREATE TRIGGER client_submission_name_delete_count
+    AFTER DELETE ON client_submission_names BEGIN
+      UPDATE client_submission_name_custody SET retained_count = retained_count - 1 WHERE singleton = 1;
+    END`],
+];
 const restartMarker = Buffer.from(JSON.stringify({
   version: 'actql-client-request-journal/0.1', feature: 'submission_restarts',
 }));
@@ -623,6 +654,38 @@ function inspectRestartStorage(database, enabled) {
   }
 }
 
+function inspectNameStorage(database, enabled) {
+  const names = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
+    AND name IN ('client_submission_names', 'client_submission_name_custody')`).all();
+  if (!enabled && names.length === 0) return;
+  if (!enabled || names.length !== 2) fail('UnknownClientRequestJournalFormat');
+  for (const [name, sql] of nameTables) {
+    if (database.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(name)?.sql !== sql) fail('UnknownClientRequestJournalFormat');
+  }
+  const fields = database.prepare('PRAGMA table_info(client_submission_names)').all()
+    .map(field => field.name).sort();
+  const counters = database.prepare('PRAGMA table_info(client_submission_name_custody)').all()
+    .map(field => field.name).sort();
+  const custody = database.prepare('SELECT * FROM client_submission_name_custody').all();
+  if (JSON.stringify(fields) !== JSON.stringify(['namespace_id', 'actor_id', 'name',
+    'authority_scope_cid', 'submission_id', 'intent_cid', 'binding_authenticator'].sort()) ||
+      JSON.stringify(counters) !== JSON.stringify(['issued_count', 'retained_count', 'singleton']) ||
+      custody.length !== 1 || custody[0].singleton !== 1 ||
+      !Number.isSafeInteger(custody[0].issued_count) || custody[0].issued_count < 0 ||
+      !Number.isSafeInteger(custody[0].retained_count) || custody[0].retained_count < 0) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  for (const [name, sql] of nameTriggers) {
+    if (database.prepare("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?")
+      .get(name)?.sql !== sql) fail('UnknownClientRequestJournalFormat');
+  }
+  // Startup integrity inspection has no retained JS row inventory. Ordinary
+  // resolution uses the indexed key and the transaction-maintained singleton.
+  if (database.prepare('SELECT COUNT(*) AS n FROM client_submission_names').get().n !==
+      custody[0].retained_count) fail('UnknownClientRequestJournalFormat');
+}
+
 function inspectCancellationStorage(database, enabled) {
   const tables = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
     AND name IN ('client_cancellation_operations', 'client_cancellation_custody')`).all();
@@ -675,6 +738,10 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
   const restartEnabled = entries.includes(restartMarkerName);
   if (restartEnabled && (!intentEnabled || !lstatSync(restartPath).isFile() ||
       !readFileSync(restartPath).equals(restartMarker))) fail('UnknownClientRequestJournalFormat');
+  const namePath = join(directory, nameMarkerName);
+  const nameEnabled = entries.includes(nameMarkerName);
+  if (nameEnabled && (!intentEnabled || !lstatSync(namePath).isFile() ||
+      !readFileSync(namePath).equals(nameMarker))) fail('UnknownClientRequestJournalFormat');
   inspectSqliteSnapshot(databasePath, database => {
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
@@ -687,6 +754,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
     inspectIntentStorage(database, intentEnabled);
     inspectIntentRetirementStorage(database, retirementEnabled);
     inspectRestartStorage(database, restartEnabled);
+    inspectNameStorage(database, nameEnabled);
   }, {code: 'UnknownClientRequestJournalFormat',
     validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
       (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
@@ -695,6 +763,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
       (!intentEnabled || readFileSync(intentPath).equals(intentMarker)) &&
       (!retirementEnabled || readFileSync(retirementPath).equals(retirementMarker)) &&
       (!restartEnabled || readFileSync(restartPath).equals(restartMarker)) &&
+      (!nameEnabled || readFileSync(namePath).equals(nameMarker)) &&
       JSON.stringify(readdirSync(directory).sort()) === JSON.stringify(entries)});
 }
 
@@ -923,6 +992,19 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, cancellationMarkerName), 'wx', 0o600);
       try { writeFileSync(marker, cancellationMarker); fsyncSync(marker); }
       finally { closeSync(marker); }
+      syncDirectory(root);
+    }
+    if (!existsSync(join(root, nameMarkerName))) {
+      // Old nonces are not names. This empty additive index never adopts or
+      // searches their history. Once issued, a name is not evicted or reused.
+      transaction.run(() => database.exec(`
+        ${nameTables.map(([, sql]) => `${sql};`).join('\n')}
+        INSERT INTO client_submission_name_custody VALUES (1, 0, 0);
+        ${nameTriggers.map(([, sql]) => `${sql};`).join('\n')}
+      `));
+      const marker = openSync(join(root, nameMarkerName), 'wx', 0o600);
+      try {writeFileSync(marker, nameMarker); fsyncSync(marker);}
+      finally {closeSync(marker);}
       syncDirectory(root);
     }
   // Statement preparation is part of initialization: no journal owner has
@@ -1192,6 +1274,65 @@ export function openClientRequestJournal(directory, {
     if (checked === undefined || control.clientSubmittedIntentCid(checked) !== identity ||
         control.clientSubmittedIntentWire(checked) !== wire) fail('InvalidClientSubmittedIntent');
     return {wire, identity};
+  };
+  const nameSelect = database.prepare(`SELECT * FROM client_submission_names
+    WHERE namespace_id = ? AND actor_id = ? AND name = ?`);
+  const nameCustody = database.prepare('SELECT * FROM client_submission_name_custody WHERE singleton = 1');
+  const assertNameCustody = () => {
+    const row = nameCustody.get();
+    if (row?.singleton !== 1 || !Number.isSafeInteger(row.issued_count) ||
+        row.issued_count < 0 || row.issued_count !== row.retained_count) {
+      fail('ClientSubmissionNameCustodyLost');
+    }
+    return row.issued_count;
+  };
+  const authenticateName = row => {
+    const authority = epochAuthority.get();
+    if (!validEpochAuthority(authority)) fail('ClientSubmissionEpochCustodyLost');
+    // This is private storage authentication, not a new public CID domain or
+    // authority token. Every original scope and intent component is included.
+    return createHmac('sha256', Buffer.from(authority.authentication_key, 'hex'))
+      .update(JSON.stringify(['scoped-submission-name', row.namespace_id, row.actor_id,
+        row.name, row.authority_scope_cid, row.submission_id, row.intent_cid]), 'utf8').digest('hex');
+  };
+  // The caller must already hold this journal's transaction. Both ordinary
+  // epoch admission and named resolution use this same custody transition.
+  const recordIntentLocked = (submissionRef, original, {authorityScopeCid,
+    currentAuthorization, phase = 'preparing', outcome}, restartWire, requestId, control) => {
+    const retained = assertIntentCustody();
+    assertRestartCustody();
+    const existing = intentSelect.get(requestId);
+    if (existing !== undefined) {
+      const previous = retainedIntent(existing, control);
+      if (previous.intentCid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
+      if (restartSelect.get(requestId)?.link_wire !== restartWire) rejectSubmission('ClientSubmissionRestartConflict', 'conflict', 'restart_decision');
+      return {inserted: false, ...previous};
+    }
+    const current = verifyEpochLocked(submissionRef.epoch, {authorityScopeCid,
+      currentAuthorization, purpose: 'admit'}, control);
+    if (current.validity !== 'admissible') return {epochRejected: current.validity};
+    const {restarts, originalRequestId} = checkRestartLocked(requestId, restartWire,
+      {authorityScopeCid, currentAuthorization}, control);
+    if (retained.n >= maxRecords || retained.issued === Number.MAX_SAFE_INTEGER ||
+        retained.bytes + Buffer.byteLength(original.wire) > 64 * 1024 * 1024) {
+      rejectSubmission('ClientSubmittedIntentCapacity', 'refused', 'admission_capacity');
+    }
+    database.prepare(`INSERT INTO client_submitted_intents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
+      .run(requestId, authorityScopeCid, submissionRef.nonce,
+        canonicalValueJson(current.epoch, {dataKeys: true}), original.identity,
+        original.wire, epochAuthority.get().observed_at, phase,
+        outcome === undefined ? null : canonicalValueJson(outcome, {dataKeys: true}));
+    if (Number(database.prepare(`UPDATE client_submitted_intent_custody
+      SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
+      .run(retained.issued).changes) !== 1) fail('ClientSubmittedIntentCustodyLost');
+    if (restartWire !== undefined) {
+      database.prepare('INSERT INTO client_submission_restarts VALUES (?, ?, ?)')
+        .run(requestId, originalRequestId, restartWire);
+      if (Number(database.prepare(`UPDATE client_submission_restart_custody
+        SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
+        .run(restarts.n).changes) !== 1) fail('ClientSubmissionRestartCustodyLost');
+    }
+    return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control)};
   };
   const restartDecision = (submissionRef, intentCid, unresolvedHistory, actorId) => {
     if (unresolvedHistory === undefined) return undefined;
@@ -1613,6 +1754,71 @@ export function openClientRequestJournal(directory, {
     },
     // Intent custody is separate from Run-definition custody. A preparing
     // receipt contains no invented execution CID and performs no dispatch.
+    resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,
+      currentAuthorization, submissionRef}, control) {
+      ensureOpen();
+      if (!validSubmissionName(name) || !text(namespaceId) ||
+          !namespaceId.isWellFormed() || !text(actorId) || !actorId.isWellFormed() ||
+          !cid(authorityScopeCid)) fail('InvalidClientSubmissionName');
+      if (currentAuthorization !== true) fail('ClientSubmissionEpochUnauthorized');
+      const original = originalIntent(intent, control);
+      const result = submissionTransaction(() => {
+        const issued = assertNameCustody();
+        assertIntentCustody();
+        const existing = nameSelect.get(namespaceId, actorId, name);
+        if (existing !== undefined) {
+          if (!hexKey(existing.binding_authenticator) ||
+              !timingSafeEqual(Buffer.from(existing.binding_authenticator, 'hex'),
+                Buffer.from(authenticateName(existing), 'hex'))) fail('ClientSubmissionNameCustodyLost');
+          if (existing.authority_scope_cid !== authorityScopeCid ||
+              existing.intent_cid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
+          const row = intentSelect.get(existing.submission_id);
+          // Formal retirement leaves this permanent bounded fence. Missing
+          // history is never promoted to an unused name or a fresh epoch.
+          if (row === undefined) fail('ClientSubmissionNameUnresolvable');
+          const retained = retainedIntent(row, control);
+          if (retained.requestId !== existing.submission_id ||
+              retained.intentCid !== existing.intent_cid || retained.intentWire !== original.wire ||
+              retained.submissionRef.epoch.authorityScopeCid !== authorityScopeCid) {
+            fail('ClientSubmissionNameCustodyLost');
+          }
+          verifyEpochLocked(retained.submissionRef.epoch, {authorityScopeCid,
+            currentAuthorization, purpose: 'lookup'}, control);
+          return {inserted: false, ...retained};
+        }
+        if (issued >= maxRecords || issued === Number.MAX_SAFE_INTEGER) {
+          rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');
+        }
+        if (!validSubmissionRef(submissionRef)) fail('InvalidClientSubmissionName');
+        const verified = verifyEpochLocked(submissionRef.epoch, {authorityScopeCid,
+          currentAuthorization, purpose: 'admit'}, control);
+        if (verified.validity !== 'admissible') return {epochRejected: verified.validity};
+        const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
+        if (requestId === undefined) fail('InvalidClientSubmissionNonce');
+        // A caller-selected old nonce is not retroactively named. Only an
+        // unused authenticated reference can acquire this new name and intent.
+        if (intentSelect.get(requestId) !== undefined) fail('ClientSubmissionNameReferenceUsed');
+        const retained = recordIntentLocked(submissionRef, original,
+          {authorityScopeCid, currentAuthorization}, undefined, requestId, control);
+        if (retained.epochRejected !== undefined) return retained;
+        const row = {namespace_id: namespaceId, actor_id: actorId, name,
+          authority_scope_cid: authorityScopeCid, submission_id: requestId, intent_cid: original.identity};
+        database.prepare('INSERT INTO client_submission_names VALUES (?, ?, ?, ?, ?, ?, ?)')
+          .run(namespaceId, actorId, name, authorityScopeCid, requestId,
+            original.identity, authenticateName(row));
+        if (Number(database.prepare(`UPDATE client_submission_name_custody
+          SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
+          .run(issued).changes) !== 1) fail('ClientSubmissionNameCustodyLost');
+        assertNameCustody();
+        return retained;
+      });
+      if (result.epochRejected !== undefined) rejectSubmissionEpoch(result.epochRejected);
+      return Object.freeze(result);
+    },
+    resolveNamedSubmissionAttempt(name, intent, options, control) {
+      return submissionAttempt(options.submissionRef, intent, options, control,
+        () => journal.resolveOrBindSubmittedName(name, intent, options, control), 'recorded');
+    },
     checkSubmittedIntent(submissionRef, intent, {authorityScopeCid,
       currentAuthorization, unresolvedHistory, actorId}, control) {
       ensureOpen();
@@ -1658,42 +1864,8 @@ export function openClientRequestJournal(directory, {
           !validStoredSubmissionOutcome(outcome, submissionRef, original.identity))) {
         fail('InvalidClientSubmittedIntentOutcome');
       }
-      const result = submissionTransaction(() => {
-        const retained = assertIntentCustody();
-        assertRestartCustody();
-        const existing = intentSelect.get(requestId);
-        if (existing !== undefined) {
-          const previous = retainedIntent(existing, control);
-          if (previous.intentCid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
-          if (restartSelect.get(requestId)?.link_wire !== restartWire) rejectSubmission('ClientSubmissionRestartConflict', 'conflict', 'restart_decision');
-          return {inserted: false, ...previous};
-        }
-        const current = verifyEpochLocked(submissionRef.epoch, {authorityScopeCid,
-          currentAuthorization, purpose: 'admit'}, control);
-        if (current.validity !== 'admissible') return {epochRejected: current.validity};
-        const {restarts, originalRequestId} = checkRestartLocked(requestId, restartWire,
-          {authorityScopeCid, currentAuthorization}, control);
-        if (retained.n >= maxRecords || retained.issued === Number.MAX_SAFE_INTEGER ||
-            retained.bytes + Buffer.byteLength(original.wire) > 64 * 1024 * 1024) {
-          rejectSubmission('ClientSubmittedIntentCapacity', 'refused', 'admission_capacity');
-        }
-        database.prepare(`INSERT INTO client_submitted_intents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
-          .run(requestId, authorityScopeCid, submissionRef.nonce,
-            canonicalValueJson(current.epoch, {dataKeys: true}), original.identity,
-            original.wire, epochAuthority.get().observed_at, phase,
-            outcome === undefined ? null : canonicalValueJson(outcome, {dataKeys: true}));
-        if (Number(database.prepare(`UPDATE client_submitted_intent_custody
-          SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
-          .run(retained.issued).changes) !== 1) fail('ClientSubmittedIntentCustodyLost');
-        if (restartWire !== undefined) {
-          database.prepare('INSERT INTO client_submission_restarts VALUES (?, ?, ?)')
-            .run(requestId, originalRequestId, restartWire);
-          if (Number(database.prepare(`UPDATE client_submission_restart_custody
-            SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
-            .run(restarts.n).changes) !== 1) fail('ClientSubmissionRestartCustodyLost');
-        }
-        return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control)};
-      });
+      const result = submissionTransaction(() => recordIntentLocked(submissionRef, original,
+        {authorityScopeCid, currentAuthorization, phase, outcome}, restartWire, requestId, control));
       if (result.epochRejected !== undefined) rejectSubmissionEpoch(result.epochRejected);
       return Object.freeze(result);
     },
@@ -1937,7 +2109,8 @@ export function openClientRequestJournal(directory, {
           fail('ClientRequestSubmittedIntentMismatch');
         }
         if (expectedCid === undefined) {
-          if (requestControl.clientSubmittedIntentRequestsCommitStop(intent)) {
+          if (requestControl.clientSubmittedIntentRequestsCommitStop(intent) ||
+              requestControl.clientSubmittedIntentRequestsReadOnly(intent)) {
             fail('ClientRequestSubmittedIntentBindingMissing');
           }
           return undefined;

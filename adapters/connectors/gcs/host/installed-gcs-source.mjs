@@ -2,14 +2,15 @@
 // declaration, RowRun, ReferenceIssuer and lookup owners as other Sources.
 // Loading reads only installed documents; it never resolves a token or lists.
 import {createHash} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {createInstalledRowSource, installRowSourceAuthorization,
-  openRowSourceCredentialSite, rowSourceCheckEnvironment} from
+  rowSourceCheckEnvironment} from
   '../../../host-node/installed-row-source.mjs';
+import {openGcsCredentialSite} from '../site/gcs-credential-site.mjs';
 import {retainInstalledHostInitializationFailure} from
   '../../../host-node/installed-host-cleanup.mjs';
+import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
 import {checkInstalledGcsSourceProfile as checkProfile, restoreGcsSourceDeclaration,
   GCS_REGISTRATION, GCS_REVISION} from './gcs-source-declaration.mjs';
 import {readGcsFileListing, GCS_FILE_LIST_OPERATION} from '../site/gcs-file-listing.mjs';
@@ -54,10 +55,13 @@ function checkSite(site) {
 
 async function readSite(path) {
   try {
-    const body = await readFile(path);
-    if (body.byteLength > 1048576) fail('InvalidInstalledGcsSite');
-    return checkSite(JSON.parse(body.toString('utf8')));
+    return checkSite(await readSourceProfileJson(path, {maxBytes: 1048576}));
   } catch (cause) {
+    if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) {
+      throw Object.assign(new Error('InvalidInstalledGcsSite', {cause}),
+        {code: 'InvalidInstalledGcsSite', cleanupHandle: cause.cleanupHandle,
+          cleanupPending: cause.cleanupPending});
+    }
     if (cause?.code === 'InvalidInstalledGcsSite') throw cause;
     fail('InvalidInstalledGcsSite', cause);
   }
@@ -65,7 +69,7 @@ async function readSite(path) {
 
 export async function installedGcsSourceIdentityParts(profile, providerProfile, read) {
   const installed = checkInstalledGcsSourceProfile(providerProfile);
-  const site = checkSite(await read(installed.siteProfilePath));
+  const site = checkSite(await read(installed.siteProfilePath, {maxBytes: 1048576}));
   // Installation configuration has its own canonicalization. Exact object
   // scope is data: commit its value CID so NFC never merges different prefixes.
   return [{...profile, accountConfigurationWire: JSON.parse(profile.accountConfigurationWire)},
@@ -122,7 +126,7 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
     binding.resource === resource && fieldLists.has(resource) &&
     Array.isArray(binding.fields) && new Set(binding.fields).size === binding.fields.length &&
     binding.fields.every(field => fieldLists.get(resource).includes(field));
-  const site = await openRowSourceCredentialSite({
+  const site = await openGcsCredentialSite({
     profile: {...siteProfile, resourceOrigin: origin}, principalId, authorization,
     connection, connectorRegistration: GCS_REGISTRATION, connectorRevision: GCS_REVISION,
     runtimeBundleCid, commonMoon: moon, admitsApprovalTarget,

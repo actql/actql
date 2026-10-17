@@ -1901,8 +1901,177 @@
       ]
     },
     {
+      "module": "adapters/host-node/effect-command-key.mjs",
+      "sha256": "aaab7bedc83c35a58871e4ee94265e0892216308782384553aa8a3b6bbcbbf89",
+      "exports": [
+        "advanceEffectCommandKey",
+        "retireEffectCommandKeyWorkspace"
+      ],
+      "operations": [
+        {
+          "name": "advanceEffectCommandKey",
+          "parameters": [
+            "moon",
+            "key",
+            "signal",
+            "quantum"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace",
+          "parameters": [
+            "cleanup",
+            "cause"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace/retireEffectCommandKeyWorkspace",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace/retry/retry",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing captured Effect/Result and bounded key Owner with installed Node Host continuation and retained cleanup custody; no independent permission or retry issuance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advanceEffectCommandKey",
+            "retireEffectCommandKeyWorkspace",
+            "retireEffectCommandKeyWorkspace/retireEffectCommandKeyWorkspace",
+            "retireEffectCommandKeyWorkspace/retry/retry"
+          ],
+          "exports": [
+            "advanceEffectCommandKey",
+            "retireEffectCommandKeyWorkspace"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "The original Common continuation owns traversal"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "advanceEffectCommandKey"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "advance.call(moon, key, quantum)"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "Keep the exact original"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "await yieldEventLoop"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "EffectCommandKeyCleanupPending"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "callbacks and promise handlers overlap"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy/effect_command_input_keys.mbt",
+                "anchor": "step_captured_effect_command_key_validation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-command-key.test.mjs",
+                "anchor": "failed private retirement preserves"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
+                "anchor": "test \""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "3756cf05d8704c10e9e9fe8a9cb8cf040eddaef0dbf5e7cc2d370418e940806d",
+      "sha256": "e4b995cad2b3719d4ca641cfd4f61aef12cbe6285709ab0c301361238f1b7046",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -1963,6 +2132,8 @@
             "onReceipt",
             "onCanonicalRow",
             "canonicalRowLimits",
+            "prepareProposal",
+            "commandWorkspace",
             "signal",
             "advanceQuantum",
             "localResultIndex"
@@ -2163,6 +2334,7 @@
             "onProposalRow",
             "proposalMemberIndexes",
             "proposalLimits",
+            "onOriginalArtifact",
             "manifestSet",
             "local",
             "duplicateManifestMember"
@@ -2512,6 +2684,14 @@
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "Assemble existing owned Results, never caller-authored roots"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "inputsOutputs": [
@@ -2522,36 +2702,84 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "preparedEffectSourceSets.get(sources)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "All prepared payloads stay under the existing publication cleanup owner"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "commitPinnedEffectSourceHolding"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "Pending owners escape on error"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "resources": [
@@ -2562,12 +2790,28 @@
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "EffectDependencyBodyByteLimit"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "verification": [
@@ -2578,11 +2822,33 @@
               {
                 "path": "adapters/host-node/acquired-effect-source-binding.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
+                "anchor": "test \""
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:crypto",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
@@ -2646,6 +2912,10 @@
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "Match an admitted private Preview"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "inputsOutputs": [
@@ -2656,59 +2926,106 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "checked, retained Result view"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "caller owns partial-output cleanup"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "onChunk"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "InvalidEffectPlanVerification"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "ownedPlanLimits"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
+                "anchor": "test \""
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/effect-run-apply.mjs",
@@ -3154,7 +3471,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = if stop_before_commit { 4 } else { 3 }"
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -3181,7 +3498,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "95ba37207a00f544e9d019e419bdd4a9a26ce394b24fac407800b3a7a65faae4",
+      "sha256": "b21dd346c3c71dba8805e60a3e9fdd91f20e0a893969bb34922e30718bcaab1d",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -3704,11 +4021,6 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "openInstalledHost/init:stopModelRuntime/init:stopModelRuntime",
           "parameters": [],
           "async": false
@@ -3850,11 +4162,6 @@
         },
         {
           "name": "openInstalledHost/openInstalledHost#11",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/openInstalledHost#12",
           "parameters": [],
           "async": false
         },
@@ -4902,7 +5209,6 @@
             "openInstalledHost/hostOperations/hostOperations#2",
             "openInstalledHost/hostOperations/hostOperations#3",
             "openInstalledHost/ingress/ingress",
-            "openInstalledHost/init:retry/init:retry",
             "openInstalledHost/init:stopModelRuntime/init:stopModelRuntime",
             "openInstalledHost/inspectAcquisition/inspectAcquisition",
             "openInstalledHost/inspectAcquisition/inspectAcquisition/inspectAcquisition",
@@ -5072,6 +5378,10 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "pub fn run_wait_ready("
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -5090,6 +5400,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"run_wait\": {"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
               }
             ],
             "identity": [
@@ -5104,6 +5418,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "state.run_id !== latestState.runId"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
               }
             ],
             "ownership": [
@@ -5118,6 +5436,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -5136,6 +5458,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const observeStep = async promise => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -5150,6 +5476,10 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "return Err(InvalidSince)"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -5164,6 +5494,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -5186,6 +5520,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -5200,6 +5538,10 @@
               {
                 "path": "scripts/generate-client-host-wire.mjs",
                 "anchor": "const wait = requestRules.run_wait;"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
               }
             ],
             "verification": [
@@ -5226,6 +5568,14 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -5236,7 +5586,6 @@
             "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
             "openInstalledHost/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
             "openInstalledHost/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
-            "openInstalledHost/openInstalledHost#12",
             "openInstalledHost/prepareCapturedSubmission/prepareCapturedSubmission",
             "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
@@ -5353,7 +5702,7 @@
     },
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
-      "sha256": "0cc651f48b43c9e29685e7d7d4d9ce5e4425443c2747aef49890314d92b885ca",
+      "sha256": "ed59d3b180595a40d021bd3c70ffd66ab517065fb37c10a8bba5cad53daad8b6",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -5408,6 +5757,13 @@
           "name": "installRunKeyedContentCapture/capture/capture/capture/retained/retained",
           "parameters": [
             "handles"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/capture/capture/capture/retained/retained#2",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -5490,6 +5846,13 @@
           "async": false
         },
         {
+          "name": "installRunKeyedContentCapture/issuedForContent/issuedForContent",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
           "name": "installRunKeyedContentCapture/live/live",
           "parameters": [],
           "async": false
@@ -5506,6 +5869,13 @@
           "name": "installRunKeyedContentCapture/recover/recover/recover",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "installRunKeyedContentCapture/recover/recover/recover/value/value",
+          "parameters": [
+            "original"
+          ],
+          "async": false
         },
         {
           "name": "installRunKeyedContentCapture/recover/recover/recover#2",
@@ -5563,6 +5933,33 @@
             "entry"
           ],
           "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/selectedForContent/selectedForContent",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/selectionCurrent/selectionCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/storageCurrentForContent/storageCurrentForContent",
+          "parameters": [
+            "stored",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/storageForContent/storageForContent",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -5577,6 +5974,7 @@
             "installRunKeyedContentCapture/capture/capture",
             "installRunKeyedContentCapture/capture/capture/capture",
             "installRunKeyedContentCapture/capture/capture/capture/retained/retained",
+            "installRunKeyedContentCapture/capture/capture/capture/retained/retained#2",
             "installRunKeyedContentCapture/capture/capture/capture#2",
             "installRunKeyedContentCapture/capture/capture/capture#3",
             "installRunKeyedContentCapture/checkInventoryRoom/checkInventoryRoom",
@@ -5591,9 +5989,11 @@
             "installRunKeyedContentCapture/installRunKeyedContentCapture#3",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#4",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#5",
+            "installRunKeyedContentCapture/issuedForContent/issuedForContent",
             "installRunKeyedContentCapture/live/live",
             "installRunKeyedContentCapture/recover/recover",
             "installRunKeyedContentCapture/recover/recover/recover",
+            "installRunKeyedContentCapture/recover/recover/recover/value/value",
             "installRunKeyedContentCapture/recover/recover/recover#2",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/closed/closed",
@@ -5602,7 +6002,11 @@
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/recoverInventory#2",
             "installRunKeyedContentCapture/referenceIssuer/referenceIssuer",
             "installRunKeyedContentCapture/releaseCurrent/releaseCurrent",
-            "installRunKeyedContentCapture/remember/remember"
+            "installRunKeyedContentCapture/remember/remember",
+            "installRunKeyedContentCapture/selectedForContent/selectedForContent",
+            "installRunKeyedContentCapture/selectionCurrent/selectionCurrent",
+            "installRunKeyedContentCapture/storageCurrentForContent/storageCurrentForContent",
+            "installRunKeyedContentCapture/storageForContent/storageForContent"
           ],
           "exports": [
             "installRunKeyedContentCapture"
@@ -5612,6 +6016,10 @@
               {
                 "path": "adapters/host-node/installed-keyed-content-capture.mjs",
                 "anchor": "common Run/Source/candidate and Store owners decide identity"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "inputsOutputs": [
@@ -5622,6 +6030,10 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "identity": [
@@ -5632,42 +6044,78 @@
               {
                 "path": "adapters/host-node/installed-keyed-content-capture.mjs",
                 "anchor": "clientProgramKeyedAcquisitionMatchesProgram"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "client_effect_command_content_matches_issued"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-keyed-content-capture.mjs",
                 "anchor": "no capture journal here"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-keyed-content-capture.mjs",
                 "anchor": "authorize"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-keyed-content-capture.mjs",
                 "anchor": "maxBytes"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "inventoryCount"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "verification": [
@@ -5676,8 +6124,16 @@
                 "anchor": "test("
               },
               {
+                "path": "adapters/host-node/keyed-content-original-selection.integration.test.mjs",
+                "anchor": "test("
+              },
+              {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ]
           }

@@ -3,6 +3,59 @@
 // Same-runtime original row response borrowing; no wire reconstructs these types.
 
 ///|
+/// Host-private declaration DATA only. Selection, justification, actual
+/// reservation and the original reader's physical retirement remain separate.
+#export_name("clientProgramRowSourceProviderCapacity")
+pub fn client_program_row_source_provider_capacity(
+  retained : Int64,
+  execution : Int64,
+) -> @execution.ExecutionCapacity? {
+  @execution.execution_capacity(retained, execution)
+}
+
+///|
+#export_name("clientProgramInstalledProviderRowCaptureCapacity")
+pub fn client_program_installed_provider_row_capture_capacity(
+  acquisition : @client_row_source_host.RowAcquisition,
+  capacity : @execution.ExecutionCapacity?,
+) -> @client_local_host.ClientInstalledCaptureCapacity? {
+  @client_local_host.installed_provider_row_capture_capacity(
+    acquisition, capacity,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledProviderRowCaptureCapacityMatches")
+pub fn client_program_installed_provider_row_capture_capacity_matches(
+  capacity : @client_local_host.ClientInstalledCaptureCapacity,
+  acquisition : @client_row_source_host.RowAcquisition,
+  declaration : @execution.ExecutionCapacity,
+) -> Bool {
+  @client_local_host.installed_provider_row_capture_capacity_matches(
+    capacity, acquisition, declaration,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceStartProviderAccounted")
+pub fn client_program_row_source_start_provider_accounted(
+  acquisition : @client_row_source_host.RowAcquisition,
+  capacity : @execution.ExecutionCapacity?,
+  nonce : String,
+  verify : (@client_row_source_host.RowAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+) -> Result[
+  @client_row_source_host.RowRun,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.start_accounted_provider_row_acquisition(
+    acquisition, capacity, nonce, verify, ledger, transfer_bytes, execution_scratch,
+  )
+}
+
+///|
 #export_name("clientProgramRowSourceCheckOriginalAcquisition")
 pub fn client_program_row_source_check_original_acquisition(
   acquisition : @client_row_source_host.RowAcquisition,

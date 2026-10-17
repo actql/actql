@@ -85,10 +85,23 @@ creating new product-specific top-level platform packages.
 
 ## Original Effect selection boundary
 
-UPDATE and `command.target.published_store` use the same existing selection
+UPDATE, checked DELETE and `command.target.published_store` use the same existing selection
 Owner. Field-target Commands and canonical relation STORE do not acquire this
 selection context. Valid mixed occurrences retain their separate original
 Stage/Effect/header bindings; equal target strings do not merge purposes.
+
+DELETE intentionally extends this existing selection scope without adding a
+kind field or another identity domain. Its eight-field bytes may equal those
+of an UPDATE with the same occurrence and original installation. Consequently,
+the original checked Header, selector and Mapping determine the required
+operation support. Complete original Run admission remains mandatory in
+addition to the selection-CID facet; that facet alone cannot prove purpose.
+Saved material admission checks the retained Program and environment rather
+than resolving current aliases. The concrete DELETE binding inspects that same
+publication's complete original Mapping inventory, not UPDATE-only shorthand
+candidates. Short UPDATE resolution and all old instance bytes are unchanged.
+This static connection issues no physical DELETE capability, before/version
+observation, absent-after Preview, conditional-send or cleanup acknowledgement.
 
 `run_publication_host/client_effect_target_selections.mbt` and its package-local
 original-data projection retain the checked selection, its original prepared
@@ -123,3 +136,131 @@ memory, physical retirement ACKs, capacity reservations or a numerical profile.
 Releasing references or completing a synchronous comparison makes none of those
 claims. The original Run, Store, Checkpoint, Unknown and cleanup responsibilities
 stay with their existing Owners.
+
+## Original Content preparation projection
+
+The existing execution-relation export owns the issued Content Reference and
+its per-cell inventory. The existing Effect capture owns the exact prepared
+computation, captured input pin, member, Command field and local Artifact.
+`client_effect_command_content.mbt` joins those originals in a bounded,
+read-only projection; a parsed Content envelope, equal wire or CID cannot
+reconstruct that occurrence or replace another Run's original input.
+
+That admission must occur before the transient export's normal finally. For a
+checked Command with a mapped Content field, the same Common Owner moves the
+exact export reference backing into the existing local Artifact. It copies no
+rows, Ref values or canonical material. The old receipt loses its bind/reissue
+right; immutable schema, logical identity, bytes and CID facts remain unchanged.
+Later preparation reads the moved inventory, never a cancelled export receipt
+or a newly parsed envelope. The capture retains the Artifact before the move
+can invoke a fallible original-current callback.
+
+The projection reads only a declared Content input mapped from an original
+Result field. It checks field/work ceilings and original availability, then
+rechecks the same input retention after the Reference's Host callback. Its
+private constructor and original back-reference reject copied views. The
+installed adapter also checks its original installation/current fence before
+and after projection. Invalid, foreign, unavailable or retired inputs refuse;
+retention alone is not availability or authorization.
+
+The physical supplier can compare its already-issued CheckedValue with the
+borrowed view through `matchesIssued`. Common requires the same original opaque
+Reference, then performs that view's existing bounded current check, including
+retention after the Host callback. Equal canonical bytes, CID or issuer domain
+do not suffice. The method closures share the existing retireable original
+capture; each call also holds its CheckedValue argument and observation callback
+workspace. Retirement still cuts the original back-reference, not those costs.
+This predicate issues no reservation, allocation, byte loan or read permission.
+
+The existing physical Source inventory may retain the exact confirmed Store
+holding alongside that issued value and its original candidate, Store authority,
+workspace Scope and data policy. Confirmation precedes the synchronous private
+receiver and the same availability fence runs again after it. Fresh capture and
+saved capture use this same boundary; neither reconstructs issuer custody by
+looking up a Reference or CID later. The inventory's typed original matcher and
+post-callback entry/current check are also required when selecting this stored
+binding. A copied binding or equal-wire issuance cannot substitute for that
+entry. The immutable observation exposes no Store, path, key or byte buffer.
+The post-matcher fence checks both inventory retirement and the original Source's
+current availability; a callback can change the latter without starting cleanup
+or replacing the entry. It rechecks inventory retirement after that availability
+callback as well. A prior successful match is not a substitute for either fence.
+It is metadata custody, not a physical loan, original phase assignment, read
+authorization or cleanup acknowledgement. Its extra record and aliases remain
+in the Source/Host envelope through their actual lifetimes; temporary Source
+cleanup does not retire the committed Content holding or escaped aliases.
+
+The same Owner can additionally borrow a supplier's already allocated
+`SharedAllocation`. It first matches the original issued Reference and captured
+input, then checks the same live Run Ledger and Resource's exact capacity /
+allocation ownership. It reserves and allocates no bytes. In particular,
+same-Ledger correspondence does not select an installation or physical phase:
+that original assignment and its complete simultaneous envelope must come from
+the existing trusted physical supplier, not arbitrary caller tokens.
+
+The borrower is transferred to the existing physical child's custody before
+another currentness callback or I/O. Resource admission may itself invoke the
+original Host. If a late callback retires the view, the caller must keep the
+successfully acquired borrower, refuse new I/O and clean up that same duty;
+throwing after acquisition must not discard the loan. View/input retirement,
+cancellation, Promise completion and a stored receipt return no capacity.
+The exact loan is returned once only after its physical use and last aliases
+retire. Returning it neither retires its parent allocation or arena nor affects
+another borrower or sibling allocation. Missing physical phase assignment or
+funding remains unavailable; this private port is not a read/dispatch grant.
+
+A synchronous trusted Command preparation can borrow the same view repeatedly
+for one row/input. The capture retains it before further caller callbacks and
+retires it through its existing input cleanup, including failure and cancellation
+paths. The view, its original record, row/name cache, callbacks, original input,
+Artifact and Reference coexist until those references actually retire. Release
+cuts the view's back-references only: it is not byte acquisition, physical FD or
+transport cleanup, a capacity loan, a Store ACK, a permission or a numerical
+profile. The Artifact then revokes and scrubs that same reference backing with
+bounded work. An incomplete scrub retains the same Artifact and parent input
+pin for cleanup retry; it does not return the input's allowance early. A future
+asynchronous child must remain under that same cleanup Owner
+before its first await; this projection does not implement or authorize it.
+
+The private Common/RelA bridges are generated from the existing shared bridge
+source and use the normal compiler binding. The focused execution-relation,
+input-retention and actual installed Host tests distinguish issuer identity,
+work exhaustion, callback retirement, copied views and parent cleanup. Their
+scope is not physical Content upload, cold recovery or public Provider acceptance.
+
+## Owned guarded request preparation
+
+An installed UPDATE/upsert driver may use the existing `prepareRequestChild`
+port when its exact conditional request depends on an authorized target read.
+The Host first obtains each member's original target-read decision, then passes
+the row index and a zero-argument read-grant supplier closed over that exact
+member, Run/dispatch and row. No write authorization is substituted for the
+read, and denied reads create no child or provider work.
+The existing selected-preparation current assertion is passed through unchanged
+for the child's physical pre-send and post-await checks. An absent assertion
+does not manufacture currentness; the driver's actual original Site/Scope and
+installation obligations remain required.
+
+The same capture retains the original child before method lookup, currentness
+checks or asynchronous preparation. The child acquires the target through its
+existing physical owner and derives the final request from that original
+before observation. Only then does the existing Common request/selector/value
+and Preview path admit it. At capture, `observeTargets` projects the same
+original before/version; later apply-current reads and recovery keep their
+existing independent obligations. An already identified request is not
+patched with a newly read condition.
+
+Children, pending prepare/read/close state, request/before aliases and callback
+closures remain in the existing bounded capture inventory. Stage cleanup does
+not return parent input/Artifact/Source custody before original child retirement.
+Current refusal, cancellation and prepare failure drive that same cleanup;
+Promise completion or a cancel request is not a physical ACK. This port issues
+no capacity or permission. Missing supplier funding remains unavailable.
+The existing Command caller omits `rowIndex` and the selected-preparation
+`assertCurrent`; its indexed `authorizationForRow` callback is optional. Typed
+consumers distinguish these contexts by the presence of `rowIndex`, preserving
+the required zero-argument supplier for guarded rows. A Command never receives
+a synthetic row index or read grant to satisfy a declaration.
+
+Pure synchronous preparation and the existing Command child path are unchanged;
+this connection does not add DELETE to the separate saved-selection domain.

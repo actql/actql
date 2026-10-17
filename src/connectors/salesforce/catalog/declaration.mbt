@@ -35,9 +35,8 @@ pub(all) enum DeclarationExclusionReason {
   UnconfirmedNullability
   /// No existing ActQL value contract carries this provider type exactly.
   UnsupportedType(String)
-  /// A Number (`double`) whose described precision and scale are missing,
-  /// invalid, or above precision 15, so its values are not all recovered
-  /// exactly from the reply.
+  /// A Number, Currency or Percent whose described precision and scale are
+  /// missing or outside the existing Decimal contract domain.
   UnsupportedPrecision(Int?, Int?)
   /// The Resource is not queryable; no SourceView is declared.
   NotQueryable
@@ -267,12 +266,10 @@ fn seal(
 /// if any. Salesforce `int` is a 32-bit integer and exact in binary64.
 /// `date` is `yyyy-MM-dd`, the ActQL date spelling. `datetime` is read in
 /// UTC as `...SSS+0000` and admitted as the same instant ending in `Z`.
-/// A Number (`double`) is `decimal(P,S)` from its described precision and
-/// scale, up to precision 15 (`double_decimal`), converted from the reply's
-/// number text alone. `percent`, `currency` and `time` are not declared:
-/// the scale of a percent and the currency of an amount are not fixed by
-/// the value, and `time` is a time of day in the saving user's time zone,
-/// which ActQL has no type for.
+/// Number, Currency and Percent use `decimal(P,S)` from their described
+/// precision and scale within the Decimal Owner's domain. Their exact number
+/// text is retained without currency conversion or percent scaling. `time`
+/// remains unsupported by this projection.
 fn read_value_type(native_type : String) -> String? {
   match native_type {
     "id"
@@ -284,11 +281,12 @@ fn read_value_type(native_type : String) -> String? {
     | "url"
     | "picklist"
     | "combobox" => Some("string")
+    "multipicklist" => Some("array")
     "boolean" => Some("boolean")
     "int" => Some("number")
     "date" => Some("date")
     "datetime" => Some("timestamp")
-    "double" => Some("decimal")
+    "double" | "currency" | "percent" => Some("decimal")
     _ => None
   }
 }
@@ -301,6 +299,7 @@ fn read_value_type(native_type : String) -> String? {
 /// whole seconds (see `timestamp_whole_seconds`).
 fn write_value_type(native_type : String) -> String? {
   match native_type {
+    "location" | "address" => None
     "date" => Some("date")
     "datetime" => Some("timestamp")
     _ => read_value_type(native_type)
@@ -310,8 +309,25 @@ fn write_value_type(native_type : String) -> String? {
 ///|
 fn typed_contract(field : FieldMetadata, kind : String?) -> Json? {
   guard field.nullability_confirmed && kind is Some(kind) else { return None }
+  if kind == "array" {
+    return Some(
+      object([
+        (
+          "items",
+          object([
+            ("nullable", Json::boolean(false)),
+            ("type", "string".to_json()),
+          ]),
+        ),
+        ("nullable", Json::boolean(field.nullable)),
+        ("type", kind.to_json()),
+      ]),
+    )
+  }
   if kind == "decimal" {
-    guard double_decimal(field) is Some((precision, scale)) else { return None }
+    guard described_decimal(field) is Some((precision, scale)) else {
+      return None
+    }
     return Some(
       object([
         ("nullable", Json::boolean(field.nullable)),
@@ -330,7 +346,31 @@ fn typed_contract(field : FieldMetadata, kind : String?) -> Json? {
 }
 
 ///|
-fn read_field_contract_json(field : FieldMetadata) -> Json? {
+fn read_field_contract_json(
+  field : FieldMetadata,
+  components? : Array[(String, FieldMetadata)] = [],
+) -> Json? {
+  if field.native_type == "location" || field.native_type == "address" {
+    if components.is_empty() {
+      return None
+    }
+    let fields = []
+    for (name, component) in components {
+      guard typed_contract(component, read_value_type(component.native_type))
+        is Some(contract) else {
+        return None
+      }
+      fields.push((name, contract))
+    }
+    return Some(
+      object([
+        ("additional_properties", Json::boolean(false)),
+        ("fields", object(fields)),
+        ("nullable", Json::boolean(field.nullable)),
+        ("type", "object".to_json()),
+      ]),
+    )
+  }
   typed_contract(field, read_value_type(field.native_type))
 }
 
@@ -343,7 +383,8 @@ fn write_field_contract_json(field : FieldMetadata) -> Json? {
 fn exclusion_reason(field : FieldMetadata) -> DeclarationExclusionReason {
   if read_value_type(field.native_type) is None {
     UnsupportedType(field.native_type)
-  } else if field.native_type == "double" && double_decimal(field) is None {
+  } else if described_decimal_type(field.native_type) &&
+    described_decimal(field) is None {
     UnsupportedPrecision(field.precision, field.scale)
   } else {
     UnconfirmedNullability
@@ -491,7 +532,9 @@ fn generate_owned_static_declaration(
       let fields : Array[(String, Json)] = []
       let field_names = []
       for field in resource.fields {
-        match read_field_contract_json(field) {
+        let components = compound_read_components(field, resource.fields).unwrap_or([],
+        )
+        match read_field_contract_json(field, components~) {
           Some(contract) => {
             fields.push((field.name, contract))
             field_names.push(field.name)
@@ -829,7 +872,8 @@ fn same_field_meaning(
   declared.case_sensitive == current.case_sensitive &&
   declared.reference_to == current.reference_to &&
   declared.precision == current.precision &&
-  declared.scale == current.scale
+  declared.scale == current.scale &&
+  declared.compound_field_name == current.compound_field_name
 }
 
 ///|
@@ -889,10 +933,23 @@ pub fn check_declared_read(
     if view.resource == plan.resource && view.view_cid == source_view_cid {
       // Each field must be declared and still exactly typed now; the
       // checked input contract is compared with the plan separately.
-      for field in plan.fields {
+      for column, field in plan.fields {
         if !view.fields.contains(field.name) ||
-          read_field_contract_json(field) is None {
+          read_field_contract_json(
+            field,
+            components=plan.field_components[column],
+          )
+          is None {
           return Err(UndeclaredField(field.name))
+        }
+        match
+          check_declared_fields(
+            declaration,
+            plan.resource,
+            plan.field_components[column].map(part => part.1),
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
         }
       }
       return check_declared_fields(declaration, plan.resource, plan.fields)
@@ -914,33 +971,47 @@ pub fn static_declaration_catalog_cid(
 }
 
 ///|
-fn exclusion_reason_json(reason : DeclarationExclusionReason) -> Json {
-  match reason {
-    UnconfirmedNullability =>
-      object([("kind", "unconfirmed_nullability".to_json())])
-    UnsupportedType(native) =>
-      object([
-        ("kind", "unsupported_type".to_json()),
-        ("native_type", native.to_json()),
-      ])
-    UnsupportedPrecision(precision, scale) =>
-      object([
-        ("kind", "unsupported_precision".to_json()),
-        ("native_type", "double".to_json()),
-        (
-          "precision",
-          precision.map(value => value.to_json()).unwrap_or(Json::null()),
-        ),
-        ("scale", scale.map(value => value.to_json()).unwrap_or(Json::null())),
-      ])
-    NotQueryable => object([("kind", "not_queryable".to_json())])
-    CreateRequirementUnknown(field) =>
-      object([
-        ("kind", "create_requirement_unknown".to_json()),
-        ("field", field.to_json()),
-      ])
-    NoRecordIdentity => object([("kind", "no_record_identity".to_json())])
-  }
+fn exclusion_reason_json(
+  declaration : StaticDeclaration,
+  exclusion : DeclarationExclusion,
+) -> Json? {
+  Some(
+    match exclusion.reason {
+      UnconfirmedNullability =>
+        object([("kind", "unconfirmed_nullability".to_json())])
+      UnsupportedType(native) =>
+        object([
+          ("kind", "unsupported_type".to_json()),
+          ("native_type", native.to_json()),
+        ])
+      UnsupportedPrecision(precision, scale) => {
+        // Use the same retained Describe field, never a default native type.
+        guard declaration.resources.search_by(resource => {
+            resource.name == exclusion.resource
+          })
+          is Some(index) &&
+          field_in(declaration.resources[index], exclusion.field) is Some(field) else {
+          return None
+        }
+        object([
+          ("kind", "unsupported_precision".to_json()),
+          ("native_type", field.native_type.to_json()),
+          (
+            "precision",
+            precision.map(value => value.to_json()).unwrap_or(Json::null()),
+          ),
+          ("scale", scale.map(value => value.to_json()).unwrap_or(Json::null())),
+        ])
+      }
+      NotQueryable => object([("kind", "not_queryable".to_json())])
+      CreateRequirementUnknown(field) =>
+        object([
+          ("kind", "create_requirement_unknown".to_json()),
+          ("field", field.to_json()),
+        ])
+      NoRecordIdentity => object([("kind", "no_record_identity".to_json())])
+    },
+  )
 }
 
 ///|
@@ -959,6 +1030,19 @@ pub fn static_declaration_json(
   declaration : StaticDeclaration,
   limits : DeclarationLimits,
 ) -> String? {
+  let exclusions = []
+  for exclusion in declaration.exclusions {
+    guard exclusion_reason_json(declaration, exclusion) is Some(reason) else {
+      return None
+    }
+    exclusions.push(
+      object([
+        ("resource", exclusion.resource.to_json()),
+        ("field", exclusion.field.to_json()),
+        ("reason", reason),
+      ]),
+    )
+  }
   let value = object([
     ("connector_id", declaration.connector_id.to_json()),
     ("connector_version", declaration.connector_version.to_json()),
@@ -1001,18 +1085,7 @@ pub fn static_declaration_json(
         }),
       ),
     ),
-    (
-      "exclusions",
-      Json::array(
-        declaration.exclusions.map(exclusion => {
-          object([
-            ("resource", exclusion.resource.to_json()),
-            ("field", exclusion.field.to_json()),
-            ("reason", exclusion_reason_json(exclusion.reason)),
-          ])
-        }),
-      ),
-    ),
+    ("exclusions", Json::array(exclusions)),
   ])
   try canonical_text(value, limits) catch {
     _ => None

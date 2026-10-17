@@ -12,7 +12,7 @@ const portRef = {
   properties: {node_id: name, port: name},
 };
 
-// Retain original UPDATE/published-STORE selection beside the checked Program.
+// Retain original UPDATE/DELETE/published-STORE selection beside the checked Program.
 // Exact purpose is verified against the original checked header by Common.
 // This is identity material, not a second Mapping or installation authority.
 export function effectTargetSelectionsSchema() {

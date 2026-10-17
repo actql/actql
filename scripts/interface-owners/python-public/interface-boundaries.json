@@ -247,6 +247,8 @@
       "exports": [
         "AsyncClient",
         "AsyncExecution",
+        "AsyncQuery",
+        "AsyncQueryReader",
         "AsyncReader",
         "AsyncResult",
         "Client",
@@ -254,6 +256,8 @@
         "Execution",
         "JSONValue",
         "Observation",
+        "Query",
+        "QueryReader",
         "Reader",
         "Result",
         "RunState",
@@ -275,7 +279,7 @@
       "module": "packages/python-product/src/actql/__init__.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "6b56bba435c229f8a6b0074ab9a6511b307a375648bd30771811b378b61ee067",
+      "sha256": "377b605a33fda4dddde6ecfa15a751112d46fd648d30f38aa9150c5d8991271f",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -403,6 +407,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "AsyncQuery",
+            "AsyncQueryReader",
+            "Query",
+            "QueryReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
         }
       ]
     },
@@ -410,6 +525,8 @@
       "exports": [
         "AsyncClient",
         "AsyncExecution",
+        "AsyncQuery",
+        "AsyncQueryReader",
         "AsyncReader",
         "AsyncResult",
         "Client",
@@ -417,6 +534,8 @@
         "Execution",
         "JSONValue",
         "Observation",
+        "Query",
+        "QueryReader",
         "Reader",
         "Result",
         "RunState",
@@ -438,7 +557,7 @@
       "module": "packages/python-product/src/actql/__init__.pyi",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "404df8ccf9a3282d705b93af4d17547e2d1ddc479073c2956a78883b1ad3ea75",
+      "sha256": "806fdd1cea9ea5ffe903c376e70d4c7727963146b750edd4b5ee73d092b3a4a7",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -566,6 +685,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "AsyncQuery",
+            "AsyncQueryReader",
+            "Query",
+            "QueryReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
         }
       ]
     },
@@ -573,13 +803,20 @@
       "exports": [
         "AsyncClient",
         "AsyncExecution",
+        "AsyncQuery",
+        "AsyncQueryReader",
         "AsyncReader",
         "AsyncResult",
+        "CheckObservation",
+        "CheckReason",
+        "CheckReport",
         "Client",
         "ClientError",
         "Execution",
         "JSONValue",
         "Observation",
+        "Query",
+        "QueryReader",
         "Reader",
         "Result",
         "RunState",
@@ -597,10 +834,12 @@
       ],
       "imports": [
         "._async",
+        "._check_observation",
         "._checkpoints",
         "._diagnostics",
         "._errors",
         "._public_types",
+        "._query",
         "._reader",
         "._run_state",
         "._sync",
@@ -609,7 +848,7 @@
       "module": "packages/python-sdk/src/actql_sdk/__init__.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "f1bc355b8cb33de0362ec17a3be2f628e60ab38eb76b96039a3f865276cb6a5b",
+      "sha256": "fafe6bc56f4c68eada59b16a23640f13304136ba8386f42646c110defb728d65",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -737,6 +976,227 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "AsyncQuery",
+            "AsyncQueryReader",
+            "Query",
+            "QueryReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "CheckObservation",
+            "CheckReason",
+            "CheckReport"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Resources: the already bounded immutable response backs nested views."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Extension: new wire variants must first pass the same generated codec."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Verification: public facade, detached-copy and original-location tests."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ]
+          }
         }
       ]
     },
@@ -747,13 +1207,18 @@
         "AsyncClient",
         "AsyncExecution",
         "AsyncIterator",
+        "AsyncQuery",
+        "AsyncQueryReader",
         "AsyncReader",
         "AsyncResult",
         "Awaitable",
         "Callable",
         "CancellationAttempt",
         "CancellationLookup",
+        "CheckObservation",
         "CheckOutcome",
+        "CheckReason",
+        "CheckReport",
         "Client",
         "ClientError",
         "Execution",
@@ -765,6 +1230,8 @@
         "Observation",
         "Profile",
         "Protocol",
+        "Query",
+        "QueryReader",
         "Reader",
         "Result",
         "RunState",
@@ -786,9 +1253,11 @@
         "resolve_check_text_range"
       ],
       "imports": [
+        "._check_observation",
         "._run_state",
         "._types",
         "collections.abc",
+        "dataclasses",
         "httpx",
         "ssl",
         "typing"
@@ -828,6 +1297,20 @@
           "parameters": [
             "self",
             "checkpoint_id"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncClient/aql",
+          "parameters": [
+            "self",
+            "text",
+            "parameters",
+            "submission_ref",
+            "request_id",
+            "attempt_id",
+            "parameter_declarations",
+            "result"
           ],
           "async": false
         },
@@ -967,6 +1450,20 @@
           "async": false
         },
         {
+          "name": "AsyncClient/sql",
+          "parameters": [
+            "self",
+            "text",
+            "parameters",
+            "submission_ref",
+            "request_id",
+            "attempt_id",
+            "parameter_declarations",
+            "result"
+          ],
+          "async": false
+        },
+        {
           "name": "AsyncClient/start",
           "parameters": [
             "self",
@@ -974,7 +1471,8 @@
             "submission_ref",
             "parameters",
             "attempt_id",
-            "stop_before"
+            "stop_before",
+            "read_only"
           ],
           "async": false
         },
@@ -988,7 +1486,8 @@
             "parameters",
             "parameter_declarations",
             "attempt_id",
-            "stop_before"
+            "stop_before",
+            "read_only"
           ],
           "async": false
         },
@@ -1059,6 +1558,128 @@
             "since"
           ],
           "async": true
+        },
+        {
+          "name": "AsyncQuery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "AsyncQuery/all",
+          "parameters": [
+            "self",
+            "schema",
+            "max_rows",
+            "max_retained_value_bytes",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQuery/all#2",
+          "parameters": [
+            "self",
+            "schema",
+            "max_rows",
+            "max_retained_value_bytes",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQuery/execution",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQuery/rows",
+          "parameters": [
+            "self",
+            "schema",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQuery/rows#2",
+          "parameters": [
+            "self",
+            "schema",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQueryReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "AsyncQueryReader/__aenter__",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/__aexit__",
+          "parameters": [
+            "self",
+            "*exc"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/__aiter__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQueryReader/__anext__",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/aclose",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/attempt_id",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQueryReader/delivery_attempt",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/rows_yielded",
+          "parameters": [
+            "self"
+          ],
+          "async": false
         },
         {
           "name": "AsyncReader",
@@ -1184,6 +1805,19 @@
           "async": false
         },
         {
+          "name": "CheckObservation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "CheckObservation/__init__",
+          "parameters": [
+            "self",
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "Client",
           "parameters": [],
           "async": false
@@ -1208,6 +1842,20 @@
           "parameters": [
             "self",
             "checkpoint_id"
+          ],
+          "async": false
+        },
+        {
+          "name": "Client/aql",
+          "parameters": [
+            "self",
+            "text",
+            "parameters",
+            "submission_ref",
+            "request_id",
+            "attempt_id",
+            "parameter_declarations",
+            "result"
           ],
           "async": false
         },
@@ -1354,6 +2002,20 @@
           "async": false
         },
         {
+          "name": "Client/sql",
+          "parameters": [
+            "self",
+            "text",
+            "parameters",
+            "submission_ref",
+            "request_id",
+            "attempt_id",
+            "parameter_declarations",
+            "result"
+          ],
+          "async": false
+        },
+        {
           "name": "Client/start",
           "parameters": [
             "self",
@@ -1361,7 +2023,8 @@
             "submission_ref",
             "parameters",
             "attempt_id",
-            "stop_before"
+            "stop_before",
+            "read_only"
           ],
           "async": false
         },
@@ -1375,7 +2038,8 @@
             "parameters",
             "parameter_declarations",
             "attempt_id",
-            "stop_before"
+            "stop_before",
+            "read_only"
           ],
           "async": false
         },
@@ -1498,6 +2162,128 @@
         },
         {
           "name": "Observation/to_dict",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "Query",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "Query/all",
+          "parameters": [
+            "self",
+            "schema",
+            "max_rows",
+            "max_retained_value_bytes",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "Query/all#2",
+          "parameters": [
+            "self",
+            "schema",
+            "max_rows",
+            "max_retained_value_bytes",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "Query/execution",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "Query/rows",
+          "parameters": [
+            "self",
+            "schema",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "Query/rows#2",
+          "parameters": [
+            "self",
+            "schema",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "QueryReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "QueryReader/__enter__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "QueryReader/__exit__",
+          "parameters": [
+            "self",
+            "*exc"
+          ],
+          "async": false
+        },
+        {
+          "name": "QueryReader/__iter__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "QueryReader/__next__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "QueryReader/attempt_id",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "QueryReader/close",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "QueryReader/delivery_attempt",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "QueryReader/rows_yielded",
           "parameters": [
             "self"
           ],
@@ -1726,7 +2512,7 @@
           "async": false
         }
       ],
-      "sha256": "9e88ff15cd155a0c1d6f73430e72e3498aaeb70d9490b7320678ff906fb8b2e5",
+      "sha256": "1791a7bcd3bee464c83075a4c08c79b4f63114162d829dd42cff3d63f2b5c9f3",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2051,6 +2837,371 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "AsyncClient/aql",
+            "AsyncClient/sql",
+            "AsyncQuery",
+            "AsyncQuery/all",
+            "AsyncQuery/all#2",
+            "AsyncQuery/execution",
+            "AsyncQuery/rows",
+            "AsyncQuery/rows#2",
+            "AsyncQueryReader",
+            "AsyncQueryReader/__aenter__",
+            "AsyncQueryReader/__aexit__",
+            "AsyncQueryReader/__aiter__",
+            "AsyncQueryReader/__anext__",
+            "AsyncQueryReader/aclose",
+            "AsyncQueryReader/attempt_id",
+            "AsyncQueryReader/delivery_attempt",
+            "AsyncQueryReader/rows_yielded",
+            "Client/aql",
+            "Client/sql",
+            "Query",
+            "Query/all",
+            "Query/all#2",
+            "Query/execution",
+            "Query/rows",
+            "Query/rows#2",
+            "QueryReader",
+            "QueryReader/__enter__",
+            "QueryReader/__exit__",
+            "QueryReader/__iter__",
+            "QueryReader/__next__",
+            "QueryReader/attempt_id",
+            "QueryReader/close",
+            "QueryReader/delivery_attempt",
+            "QueryReader/rows_yielded"
+          ],
+          "exports": [
+            "AsyncQuery",
+            "AsyncQueryReader",
+            "Query",
+            "QueryReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "CheckObservation",
+            "CheckReason",
+            "CheckReport"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Resources: the already bounded immutable response backs nested views."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Extension: new wire variants must first pass the same generated codec."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Verification: public facade, detached-copy and original-location tests."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "CheckObservation",
+            "CheckObservation/__init__"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Resources: the already bounded immutable response backs nested views."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Extension: new wire variants must first pass the same generated codec."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Verification: public facade, detached-copy and original-location tests."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ]
+          }
         }
       ]
     },
@@ -2096,6 +3247,7 @@
         "._local_distribution",
         "._local_product",
         "._local_worker_funding",
+        "._query",
         "._reader",
         "._run_state",
         "._sync",
@@ -2181,6 +3333,20 @@
             "self",
             "operation",
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncClient/_capture_start",
+          "parameters": [
+            "self",
+            "kind",
+            "input",
+            "reference",
+            "parameters",
+            "attempt_id",
+            "stop_before",
+            "read_only"
           ],
           "async": false
         },
@@ -2278,7 +3444,8 @@
             "reference",
             "parameters",
             "attempt_id",
-            "stop_before"
+            "stop_before",
+            "read_only"
           ],
           "async": false
         },
@@ -2327,6 +3494,21 @@
           "async": true
         },
         {
+          "name": "AsyncClient/_source_query",
+          "parameters": [
+            "self",
+            "format",
+            "text",
+            "parameters",
+            "submission_ref",
+            "request_id",
+            "attempt_id",
+            "parameter_declarations",
+            "result"
+          ],
+          "async": false
+        },
+        {
           "name": "AsyncClient/_start",
           "parameters": [
             "self",
@@ -2353,6 +3535,16 @@
           "parameters": [
             "self",
             "checkpoint_id"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncClient/aql",
+          "parameters": [
+            "self",
+            "text",
+            "parameters",
+            "**options"
           ],
           "async": false
         },
@@ -2454,6 +3646,16 @@
           "async": false
         },
         {
+          "name": "AsyncClient/sql",
+          "parameters": [
+            "self",
+            "text",
+            "parameters",
+            "**options"
+          ],
+          "async": false
+        },
+        {
           "name": "AsyncClient/start",
           "parameters": [
             "self",
@@ -2461,7 +3663,8 @@
             "submission_ref",
             "parameters",
             "attempt_id",
-            "stop_before"
+            "stop_before",
+            "read_only"
           ],
           "async": false
         },
@@ -2475,7 +3678,8 @@
             "parameters",
             "parameter_declarations",
             "attempt_id",
-            "stop_before"
+            "stop_before",
+            "read_only"
           ],
           "async": false
         },
@@ -2626,7 +3830,7 @@
           "async": false
         }
       ],
-      "sha256": "a9431f9d5207e42042ad065f4e91c3b34386c8a28ecea38d164a47965fe11756",
+      "sha256": "36dff44ee90a0f2b70596182f502c9a3b037df98c2175a3e18130b6ea2930644",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2888,6 +4092,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "AsyncClient/_capture_start",
+            "AsyncClient/_source_query",
+            "AsyncClient/aql",
+            "AsyncClient/sql"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
         }
       ]
     },
@@ -3097,10 +4412,10 @@
     {
       "exports": [
         "CONTRACT",
+        "CheckObservation",
         "ClientError",
         "Observation",
         "bind_check",
-        "check_outcome",
         "explain_check_reason",
         "freeze",
         "get_check_fixes",
@@ -3118,6 +4433,7 @@
         "wire_bytes"
       ],
       "imports": [
+        "._check_observation",
         "._errors",
         "._values",
         "._wire",
@@ -3208,7 +4524,7 @@
           ]
         }
       ],
-      "sha256": "51b96e5c42125be957d6aa701f0f9761eaca661a207362c2cb41e0bbcb88a1c5",
+      "sha256": "669b540391b2619f4927413a72fbcc31eb715a801d6d5c04b3b34af7284604d2",
       "role": "observation-presentation",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3232,7 +4548,6 @@
             "ClientError",
             "Observation",
             "bind_check",
-            "check_outcome",
             "explain_check_reason",
             "freeze",
             "get_check_fixes",
@@ -3343,6 +4658,114 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "CheckObservation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Resources: the already bounded immutable response backs nested views."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Extension: new wire variants must first pass the same generated codec."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Verification: public facade, detached-copy and original-location tests."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ]
+          }
         }
       ]
     },
@@ -3369,7 +4792,7 @@
           "async": false
         }
       ],
-      "sha256": "a79c965d063da1cc2b3066a014584d4be72348d4338d2524a27533570c3b5fc6",
+      "sha256": "6e6ad9348dd944199d01670086464be2aa639547bb9fd84b134586c827274244",
       "role": "observation-presentation",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3745,6 +5168,16 @@
           "async": false
         },
         {
+          "name": "AsyncResult/_all",
+          "parameters": [
+            "self",
+            "rows",
+            "size",
+            "captured"
+          ],
+          "async": true
+        },
+        {
           "name": "AsyncResult/_valid_delivery",
           "parameters": [
             "self",
@@ -3783,6 +5216,17 @@
           "async": false
         },
         {
+          "name": "_capture_rows",
+          "parameters": [
+            "profile",
+            "schema",
+            "max_wire_bytes",
+            "max_row_wire_bytes",
+            "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "_row_validator",
           "parameters": [
             "schema"
@@ -3812,7 +5256,7 @@
           "async": false
         }
       ],
-      "sha256": "cb524f8ea1b0a695fbb23afb7f678e7f2b102d4808a65f870ab1310b55ed64ec",
+      "sha256": "9562eddf9bd2e6ded755d6b04c42e7428226922f30ebb7eb73053fef0620118b",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3966,6 +5410,115 @@
               {
                 "path": "packages/python-sdk/README.md",
                 "anchor": "### Application row schemas"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "AsyncResult/_all",
+            "_capture_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
               }
             ]
           }
@@ -4178,6 +5731,8 @@
         "Client",
         "ClientError",
         "Execution",
+        "Query",
+        "QueryReader",
         "Reader",
         "Result",
         "asyncio"
@@ -4185,6 +5740,7 @@
       "imports": [
         "._async",
         "._errors",
+        "._query",
         "asyncio"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_sync.py",
@@ -4234,6 +5790,16 @@
           "parameters": [
             "self",
             "checkpoint_id"
+          ],
+          "async": false
+        },
+        {
+          "name": "Client/aql",
+          "parameters": [
+            "self",
+            "text",
+            "parameters",
+            "**options"
           ],
           "async": false
         },
@@ -4337,6 +5903,16 @@
           ]
         },
         {
+          "name": "Client/sql",
+          "parameters": [
+            "self",
+            "text",
+            "parameters",
+            "**options"
+          ],
+          "async": false
+        },
+        {
           "async": false,
           "name": "Client/start",
           "parameters": [
@@ -4427,6 +6003,55 @@
             "self",
             "**options"
           ]
+        },
+        {
+          "name": "Query",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "Query/__init__",
+          "parameters": [
+            "self",
+            "client",
+            "query"
+          ],
+          "async": false
+        },
+        {
+          "name": "Query/all",
+          "parameters": [
+            "self",
+            "**options"
+          ],
+          "async": false
+        },
+        {
+          "name": "Query/execution",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "Query/rows",
+          "parameters": [
+            "self",
+            "**options"
+          ],
+          "async": false
+        },
+        {
+          "name": "QueryReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "QueryReader/close",
+          "parameters": [
+            "self"
+          ],
+          "async": false
         },
         {
           "async": false,
@@ -4543,7 +6168,7 @@
           "parameters": []
         }
       ],
-      "sha256": "452149cd2ab43445ef08fd9f4b8042f8d652968409e181d8f0dbf8082ebffcc3",
+      "sha256": "00f3784c8fddf62f9a676b5f4db2d2f99b1e76d331c24ab9b092a5f452ffeacb",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4768,6 +6393,125 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "Client/aql",
+            "Client/sql",
+            "Query",
+            "Query/__init__",
+            "Query/all",
+            "Query/execution",
+            "Query/rows",
+            "QueryReader",
+            "QueryReader/close"
+          ],
+          "exports": [
+            "Query",
+            "QueryReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
         }
       ]
     },
@@ -4983,6 +6727,56 @@
         "LookupFoundRef",
         "LookupNotFound",
         "LookupUnknown",
+        "NamedSubmissionAttempt",
+        "NamedSubmissionAttempt0",
+        "NamedSubmissionAttempt0AttemptRef",
+        "NamedSubmissionAttempt0Outcome0",
+        "NamedSubmissionAttempt0Outcome0Admission",
+        "NamedSubmissionAttempt0Outcome0AdmissionRef",
+        "NamedSubmissionAttempt0Outcome0SubmissionRef",
+        "NamedSubmissionAttempt0Outcome0SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome0UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome1",
+        "NamedSubmissionAttempt0Outcome1Held",
+        "NamedSubmissionAttempt0Outcome1HeldCheckpoint",
+        "NamedSubmissionAttempt0Outcome1SubmissionRef",
+        "NamedSubmissionAttempt0Outcome1SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome1UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome2",
+        "NamedSubmissionAttempt0Outcome2SubmissionRef",
+        "NamedSubmissionAttempt0Outcome2SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome2UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome3",
+        "NamedSubmissionAttempt0Outcome3Problem",
+        "NamedSubmissionAttempt0Outcome3SubmissionRef",
+        "NamedSubmissionAttempt0Outcome3SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome3UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome4",
+        "NamedSubmissionAttempt0Outcome4Problem",
+        "NamedSubmissionAttempt0Outcome4SubmissionRef",
+        "NamedSubmissionAttempt0Outcome4SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome4UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome5",
+        "NamedSubmissionAttempt0Outcome5Problem",
+        "NamedSubmissionAttempt0Outcome5SubmissionRef",
+        "NamedSubmissionAttempt0Outcome5SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome5UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt1",
+        "NamedSubmissionAttempt1AttemptRef",
+        "NamedSubmissionAttempt2",
+        "NamedSubmissionAttempt2AttemptRef",
         "NotRequired",
         "OperationAttemptRef",
         "OwnerCursor",
@@ -5176,6 +6970,7 @@
         "SubmissionLookup5UnresolvedHistory",
         "SubmissionLookup5UnresolvedHistorySubmissionRef",
         "SubmissionLookup5UnresolvedHistorySubmissionRefEpoch",
+        "SubmissionName",
         "SubmissionOutcome",
         "SubmissionOutcome0",
         "SubmissionOutcome0Admission",
@@ -5239,7 +7034,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "2d4923f2f239fb8153a875b5a59f01640c55531a30e8950f1c81f85a604d6cdf",
+      "sha256": "d98ace1e071c7b0f566ee82f6fe600cce32d2ab2bada0a58130d26c43326f1e4",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -5717,6 +7512,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
               }
             ],
             "inputsOutputs": [
@@ -5735,6 +7534,14 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"installed_effect_continuation\""
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "identity": [
@@ -5749,6 +7556,14 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "<!-- requirement-block: run-observation.state-revision -->"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "ownership": [
@@ -5759,6 +7574,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
               }
             ],
             "synchronization": [
@@ -5769,6 +7588,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
             "failure": [
@@ -5779,6 +7602,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
               }
             ],
             "cancellation": [
@@ -5789,6 +7616,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
             "resources": [
@@ -5799,6 +7630,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_types.py",
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "max_bytes > 1048576"
               }
             ],
             "extension": [
@@ -5813,6 +7648,14 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"installed_effect_continuation\""
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "verification": [
@@ -5831,6 +7674,184 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"installed_effect_continuation\""
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "scripts/protocol-value-contracts.test.mjs",
+                "anchor": "actual generated structural type validator keeps enum shape"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "NamedSubmissionAttempt",
+            "NamedSubmissionAttempt0",
+            "NamedSubmissionAttempt0AttemptRef",
+            "NamedSubmissionAttempt0Outcome0",
+            "NamedSubmissionAttempt0Outcome0Admission",
+            "NamedSubmissionAttempt0Outcome0AdmissionRef",
+            "NamedSubmissionAttempt0Outcome0SubmissionRef",
+            "NamedSubmissionAttempt0Outcome0SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome0UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome1",
+            "NamedSubmissionAttempt0Outcome1Held",
+            "NamedSubmissionAttempt0Outcome1HeldCheckpoint",
+            "NamedSubmissionAttempt0Outcome1SubmissionRef",
+            "NamedSubmissionAttempt0Outcome1SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome1UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome2",
+            "NamedSubmissionAttempt0Outcome2SubmissionRef",
+            "NamedSubmissionAttempt0Outcome2SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome2UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome3",
+            "NamedSubmissionAttempt0Outcome3Problem",
+            "NamedSubmissionAttempt0Outcome3SubmissionRef",
+            "NamedSubmissionAttempt0Outcome3SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome3UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome4",
+            "NamedSubmissionAttempt0Outcome4Problem",
+            "NamedSubmissionAttempt0Outcome4SubmissionRef",
+            "NamedSubmissionAttempt0Outcome4SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome4UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome5",
+            "NamedSubmissionAttempt0Outcome5Problem",
+            "NamedSubmissionAttempt0Outcome5SubmissionRef",
+            "NamedSubmissionAttempt0Outcome5SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome5UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt1",
+            "NamedSubmissionAttempt1AttemptRef",
+            "NamedSubmissionAttempt2",
+            "NamedSubmissionAttempt2AttemptRef",
+            "SubmissionName"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Scoped durable submission names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"submit-named-intent\": ["
+              },
+              {
+                "path": "packages/client-wire/index.d.ts",
+                "anchor": "export declare function validNamedSubmissionAttempt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "original workspace, actor and authority"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "a newly supplied connection epoch is not its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The physical index belongs to this same Journal and transaction owner."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only the first confirmed insertion can enter preparation."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named unresolved and refused replies remain distinct from committed original admission'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Missing retained outcome, formal retirement,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names are not"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names have finite admission capacity under the existing Journal limit."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named packet identities pin new projections without changing old submission bodies'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The old explicit-epoch submission response still requires its original exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named observations correlate the original reference without weakening explicit epochs'"
+              },
+              {
+                "path": "adapters/host-node/client-named-submission-host.integration.test.mjs",
+                "anchor": "actual Host named submission survives a new process"
+              },
+              {
+                "path": "packages/client-wire/named-submission.typecheck.mts",
+                "anchor": "const retained: WireNamedSubmissionAttempt = value;"
+              },
+              {
+                "path": "scripts/generate-python-client-wire.mjs",
+                "anchor": "export function pythonTypes(schemas) {"
               }
             ]
           }
@@ -6160,6 +8181,952 @@
           }
         }
       ]
+    },
+    {
+      "module": "packages/python-sdk/src/actql_sdk/_query.py",
+      "sha256": "a4714072975d33edfbe20032256191ea1722ddaa67130a8b3a105f572e9fea59",
+      "exports": [
+        "AsyncQuery",
+        "AsyncQueryReader",
+        "AsyncReader",
+        "ClientError",
+        "asyncio",
+        "tighter"
+      ],
+      "operations": [
+        {
+          "name": "AsyncQuery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "AsyncQuery/__init__",
+          "parameters": [
+            "self",
+            "client",
+            "body",
+            "result_name"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQuery/_all",
+          "parameters": [
+            "self",
+            "rows",
+            "size",
+            "captured"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQuery/_error",
+          "parameters": [
+            "self",
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQuery/_select",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQuery/all",
+          "parameters": [
+            "self",
+            "max_rows",
+            "max_retained_value_bytes",
+            "**read_options"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQuery/execution",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQuery/rows",
+          "parameters": [
+            "self",
+            "**read_options"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQueryReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "AsyncQueryReader/__aenter__",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/__aexit__",
+          "parameters": [
+            "self",
+            "*exc"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/__aiter__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQueryReader/__anext__",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/__init__",
+          "parameters": [
+            "self",
+            "query",
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQueryReader/_next",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/aclose",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/attempt_id",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "AsyncQueryReader/delivery_attempt",
+          "parameters": [
+            "self"
+          ],
+          "async": true
+        },
+        {
+          "name": "AsyncQueryReader/rows_yielded",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalQueryHandle",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_OriginalQueryHandle/__copy__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalQueryHandle/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalQueryHandle/__reduce_ex__",
+          "parameters": [
+            "self",
+            "protocol"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "._async",
+        "._errors",
+        "._reader",
+        "._values",
+        "asyncio"
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing public Python Client / wire / reader boundary",
+      "rationale": "Lazy caller composition of the same original submission, Run and Result; no separate permission, revision, retry or cleanup Owner.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "AsyncQuery",
+            "AsyncQuery/__init__",
+            "AsyncQuery/_all",
+            "AsyncQuery/_error",
+            "AsyncQuery/_select",
+            "AsyncQuery/all",
+            "AsyncQuery/execution",
+            "AsyncQuery/rows",
+            "AsyncQueryReader",
+            "AsyncQueryReader/__aenter__",
+            "AsyncQueryReader/__aexit__",
+            "AsyncQueryReader/__aiter__",
+            "AsyncQueryReader/__anext__",
+            "AsyncQueryReader/__init__",
+            "AsyncQueryReader/aclose",
+            "AsyncQueryReader/attempt_id",
+            "AsyncQueryReader/delivery_attempt",
+            "AsyncQueryReader/rows_yielded"
+          ],
+          "exports": [
+            "AsyncQuery",
+            "AsyncQueryReader",
+            "AsyncReader",
+            "ClientError",
+            "asyncio",
+            "tighter"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_OriginalQueryHandle",
+            "_OriginalQueryHandle/__copy__",
+            "_OriginalQueryHandle/__deepcopy__",
+            "_OriginalQueryHandle/__reduce_ex__"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "AsyncQueryReader/_next"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+      "sha256": "2096e890b5d1e39f3567cb659871abcc19913e1a30c2fc8a47acccee41a39982",
+      "exports": [
+        "Any",
+        "CheckObservation",
+        "CheckReason",
+        "CheckReport",
+        "ClientError",
+        "Iterator",
+        "Literal",
+        "Mapping",
+        "Observation",
+        "Self",
+        "annotations",
+        "cast",
+        "check_outcome",
+        "dataclass",
+        "fields",
+        "freeze",
+        "snapshot",
+        "thaw"
+      ],
+      "operations": [
+        {
+          "name": "CheckObservation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "CheckObservation/__copy__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "CheckObservation/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ],
+          "async": false
+        },
+        {
+          "name": "CheckObservation/__init__",
+          "parameters": [
+            "self",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "CheckReason",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "CheckReport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_CheckFields",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_CheckFields/__copy__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_CheckFields/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ],
+          "async": false
+        },
+        {
+          "name": "_CheckFields/__getitem__",
+          "parameters": [
+            "self",
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "_CheckFields/__iter__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_CheckFields/__len__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_CheckFields/__setattr__",
+          "parameters": [
+            "self",
+            "name",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "_CheckFields/_from_snapshot",
+          "parameters": [
+            "cls",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "_CheckFields/to_dict",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "._errors",
+        "._run_state",
+        "._values",
+        "._wire_codec",
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "typing"
+      ],
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "CheckObservation",
+            "CheckObservation/__copy__",
+            "CheckObservation/__deepcopy__",
+            "CheckObservation/__init__",
+            "CheckReason",
+            "CheckReport",
+            "_CheckFields",
+            "_CheckFields/__copy__",
+            "_CheckFields/__deepcopy__",
+            "_CheckFields/__getitem__",
+            "_CheckFields/__iter__",
+            "_CheckFields/__len__",
+            "_CheckFields/__setattr__",
+            "_CheckFields/_from_snapshot",
+            "_CheckFields/to_dict"
+          ],
+          "exports": [
+            "Any",
+            "CheckObservation",
+            "CheckReason",
+            "CheckReport",
+            "ClientError",
+            "Iterator",
+            "Literal",
+            "Mapping",
+            "Observation",
+            "Self",
+            "annotations",
+            "check_outcome",
+            "dataclass",
+            "fields",
+            "freeze",
+            "snapshot",
+            "thaw"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Resources: the already bounded immutable response backs nested views."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Extension: new wire variants must first pass the same generated codec."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Verification: public facade, detached-copy and original-location tests."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "cast"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Resources: the already bounded immutable response backs nested views."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Extension: new wire variants must first pass the same generated codec."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Verification: public facade, detached-copy and original-location tests."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ]
+          }
+        }
+      ],
+      "role": "public-wire-codec",
+      "owner": "existing public Python Client / wire / reader boundary",
+      "rationale": "Immutable check/report/reason attributes delegate all admission to the original generated wire. Existing diagnostics alone retain original input custody; copies are detached data and issue no check, permission or Run."
     }
   ]
 }

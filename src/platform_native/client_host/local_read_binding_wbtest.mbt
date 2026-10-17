@@ -135,9 +135,7 @@ test "Native read binding never substitutes submit or Result read for both curre
     writer.append(@utf8.encode(local_read_original_wire)).unwrap()
     writer.seal(file).unwrap() |> ignore
     let account_body = @utf8.encode(
-      (
-        #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"explicit-operations","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run","result/answer"]},"operation":{"any_of":["submit","read"]},"exclusions":[{"principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["DENIED_RESOURCE"]},"operation":{"any_of":["read"]}}]}]}
-      ).replace_all(old="DENIED_RESOURCE", new=denied_resource),
+      local_read_denied_account_wire(denied_resource),
     )
     let host = policy_host_fixture(name, files=[file], account_body~)
     let crypto = epoch_test_crypto()
@@ -185,4 +183,47 @@ test "Native read binding never substitutes submit or Result read for both curre
     )
     host.close().unwrap()
   }
+}
+
+///|
+// Preserve the exact original malformed fixture as a negative, rather than
+// weakening the Account reader or changing its resource/operation set.
+let local_read_denied_account_unordered : String =
+  #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"explicit-operations","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run","result/answer"]},"operation":{"any_of":["submit","read"]},"exclusions":[{"principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["DENIED_RESOURCE"]},"operation":{"any_of":["read"]}}]}]}
+
+///|
+fn local_read_denied_account_wire(denied_resource : String) -> String {
+  local_read_denied_account_unordered
+  .replace_all(
+    old="[\"run\",\"result/answer\"]",
+    new="[\"result/answer\",\"run\"]",
+  )
+  .replace_all(old="[\"submit\",\"read\"]", new="[\"read\",\"submit\"]")
+  .replace_all(old="DENIED_RESOURCE", new=denied_resource)
+}
+
+///|
+test "Native read fixture retains original noncanonical Account refusals and exact permission sets" {
+  let original = local_read_denied_account_unordered.replace_all(
+    old="DENIED_RESOURCE",
+    new="run",
+  )
+  assert_true(
+    @authorization.admit_account_configuration_json(original)
+    is Err(@authorization.NonCanonicalOrder("$.entries[0].resource.any_of[1]")),
+  )
+  let resource_ordered = original.replace_all(
+    old="[\"run\",\"result/answer\"]",
+    new="[\"result/answer\",\"run\"]",
+  )
+  assert_true(
+    @authorization.admit_account_configuration_json(resource_ordered)
+    is Err(@authorization.NonCanonicalOrder("$.entries[0].operation.any_of[1]")),
+  )
+  assert_true(
+    @authorization.admit_account_configuration_json(
+      local_read_denied_account_wire("run"),
+    )
+    is Ok(_),
+  )
 }
