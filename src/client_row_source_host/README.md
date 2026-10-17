@@ -78,6 +78,8 @@ backing in the original reservation rather than transferring it to a task;
 execution and remaining retention survive evidence generation and pending
 cleanup. False retirement keeps the same debt for retry. Only that observer's
 confirmed retirement allows original close to settle the same reservation.
+After successful settlement the closed RowRun detaches that observer and
+provider declaration; repeated close cannot re-enter the retired reader.
 No numeric profile or transport implementation follows from this primitive.
 
 The existing `ClientInstalledCaptureCapacity` Owner's
