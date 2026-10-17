@@ -109,7 +109,9 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_retire_stopped_process_region(
     if (!process_region_original(record) || child <= 0 ||
         (record->child != 0 && record->child != child)) return ACTQL_OWNED_INVALID;
     if (record->closed) return record->unmapped ? ACTQL_OWNED_OK : ACTQL_OWNED_INVALID;
-    if (record->status != ACTQL_OWNED_OK) return record->status;
+    /* Cleanup is independent of the original capture's primary result. Keep
+     * that status unchanged even if the original stopped carrier can retire
+     * its partial descriptor/view; cleanup never promotes Pending to Ready. */
     if (!record->unmapped) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
         if (record->domain->read_context != NULL || record->domain->read_user ||
