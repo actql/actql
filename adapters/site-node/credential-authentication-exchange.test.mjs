@@ -38,7 +38,7 @@ async function fixture(t, options = {}) {
   const opens = () => openSqliteCredentialJournal(join(root, 'journal'), {credentialAuthorities:
     new Map([['authority', new Map([['issuer', authority.publicKey]])]])});
   const journal = opens();
-  let tokenRequests = 0, resourceRequests = 0, resolutions = 0, legacyResolutions = 0;
+  let tokenRequests = 0, resourceRequests = 0, resolutions = 0, legacyResolutions = 0, materialChecks = 0;
   let observedNow = nowValue;
   const originalToken = 'LOCAL_ONLY_ORIGINAL_TOKEN';
   const bodies = [], headers = [], serverErrors = [];
@@ -112,7 +112,10 @@ async function fixture(t, options = {}) {
   selected = original;
   const resolveSecret = async () => {legacyResolutions++; throw Error('Forbidden legacy token resolver');};
   const registration = {resolveMaterial: async () => {resolutions++; return original;},
-    assertCurrentMaterial: value => {assert.equal(value, original); assert.equal(selected, original);},
+    assertCurrentMaterial: value => {
+      options.onMaterialCurrent?.({checks: ++materialChecks, binding, journal, authGrant});
+      assert.equal(value, original); assert.equal(selected, original);
+    },
     clientEmail: original.clientEmail, keyGeneration: original.keyGeneration, scopes: original.scopes,
     lifetimeSeconds: 120, signingLimits, tokenRuntime: options.missingCodec ? undefined : google,
     responseLimits: options.missingLimits ? undefined : responseLimits};
@@ -264,4 +267,15 @@ test('lost API response keeps its already claimed parent Unknown and never refre
   assert.equal(f.journal.recover().find(x => x.useId === 'original-parent').outcome, 'unknown');
   await assert.rejects(f.resource());
   assert.equal(f.resourceRequests(), 1); assert.equal(f.tokenRequests(), 1); assert.equal(f.resolutions(), 1);
+});
+
+test('retirement inside the original material-current callback refuses before the auth POST', async t => {
+  let pending;
+  const f = await fixture(t, {onMaterialCurrent({checks, binding}) {
+    if (checks === 4) pending = closeHttpsCredentialBinding(binding);
+  }});
+  await assert.rejects(f.exchange(), {code: 'RemoteCredentialBindingRetiring'});
+  assert.equal(pending, 'pending');
+  assert.equal(f.tokenRequests(), 0);
+  assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'failed');
 });
