@@ -147,6 +147,22 @@ existing compatibility entry skips a confirmed close; the generic entry keeps
 its original idempotent journal-close invocation. Neither a cancellation,
 closed Site nor thrown diagnostic is a physical release acknowledgement.
 
+## Credential Site failure handoff
+
+The installed Host lifecycle module owns the synchronous Credential Site
+failure handoff used by Salesforce's compatibility entries. It keeps the
+original Site, primary failure and earlier cleanup handle; an unavailable
+observation remains pending. The Site's independent journal release may proceed
+while that earlier owner remains pending. This is the existing Site protocol,
+not the ordered Host initialization protocol that gates downstream resources.
+A completed Site or earlier owner is not closed again by this handoff.
+
+The compatibility entry supplies its original fallback diagnostic code. It
+neither retries provider work nor changes Checkpoint/current authority. The
+same original aliases, error snapshots and retry closure remain with the
+returned failure; relocation does not supply a reservation, numerical profile
+or whole-Host funding proof.
+
 ## Google service-account assertion preparation
 
 The Google setup consumes the existing Credential and installed Site owners.
@@ -208,18 +224,23 @@ that same use. Token issuance grants no API rights. A physical or installed
 acceptance receipt must prove these connections independently of the pure
 signature/reference controls.
 
-### Credential Site failure handoff
+### Original grant of an authentication claim
 
-The installed Host lifecycle module owns the synchronous Credential Site
-failure handoff used by Salesforce's compatibility entries. It keeps the
-original Site, primary failure and earlier cleanup handle; an unavailable
-observation remains pending. The Site's independent journal release may proceed
-while that earlier owner remains pending. This is the existing Site protocol,
-not the ordered Host initialization protocol that gates downstream resources.
-A completed Site or earlier owner is not closed again by this handoff.
+The existing SQLite Credential Journal's private `claim` result includes the
+same signature-admitted `grant` it supplied to the original claimed `use`.
+This is an alias of that original opaque grant, not a second admission, an
+issuer, a public credential reference or an authority derived from equal data.
+No stored grant/use bytes, CIDs, ordinals or transaction predicates change.
+The alias adds one retained reference to the same claim result; its lifetime
+and wrapper overlap remain part of the caller's original holding inventory.
 
-The compatibility entry supplies its original fallback diagnostic code. It
-neither retries provider work nor changes Checkpoint/current authority. The
-same original aliases, error snapshots and retry closure remain with the
-returned failure; relocation does not supply a reservation, numerical profile
-or whole-Host funding proof.
+The physical authentication caller prepares its bounded actual body and checks
+its original parent/current/capacity before claiming. It then binds the
+Common authentication request to that claim's original grant, parent use,
+material and body, followed by the existing final authorization fences before
+sending. Re-admitting the same signed JSON or using an equal issuer grant does
+not substitute for that original. A `replayed` claim still refuses a new send;
+returning a grant does not change response-loss Unknown or allow a new token
+exchange. If COMMIT outcome is unknown, the call throws without returning a
+claim result, even if a subsequent observation sees its durable row. Original
+journal/custody and no-resend responsibility remain with the existing Owner.
