@@ -2265,6 +2265,16 @@ retirement and any process-static runtime allocations remain with the existing
 process Owner. A C header projection or syntax check supplies none of these
 physical acknowledgments or missing normal funding.
 
+The private compiler's C configuration is projected from the same validated
+Engine-setting sequence used by the Python image producer and runtime. It binds
+the original module, source and both library digests. The projection neither
+creates native objects nor admits their resources. The caller must acquire the
+original physical scope before creating Config or pooling objects, retain both
+through a target-setting error, and delete both in that same scope. Attaching
+pooling settings copies them; it does not transfer ownership of the pool.
+Configuration preparation is not Engine creation, compilation or the final
+same-module physical acceptance required by the producer.
+
 A normal child borrow return leaves the original allocator closing and its
 one-shot borrow history intact. After the same process Owner confirms typed
 stop in the original empty physical scope, both never-borrowed startup and

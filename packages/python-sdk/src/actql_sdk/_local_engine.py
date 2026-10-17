@@ -18,24 +18,44 @@ from ._local_image_recipe import _SelectedImageRecipe, _load_selected_image
 from ._local_distribution import LocalComponents, LocalInstallationError, WASMTIME_VERSION, _read_file, _pairs
 
 
-def _configure_selected_engine(config: Any, pool: Any, ffi: Any,
-                               wasmtime: Any, recipe: _SelectedImageRecipe) -> None:
+def _selected_engine_settings(recipe: _SelectedImageRecipe) -> tuple[tuple[str, str, bool | int | str], ...]:
+    """The same validated settings for Python and private compiler C callers.
+
+    This immutable projection is DATA, not a Config, allocator or admission.
+    The original recipe remains the only validator of accepted values.
+    """
     recipe.validate()
     body = json.loads(recipe.engine_body)
-    config.consume_fuel = body['consume_fuel']
-    config.strategy = body['strategy']
-    pointer = config.ptr()
-    error = ffi.wasmtime_config_target_set(pointer, c_char_p(body['target'].encode('ascii')))
-    if error:
-        raise wasmtime.WasmtimeError._from_ptr(error)
+    settings: list[tuple[str, str, bool | int | str]] = [
+        ('config', 'consume_fuel', body['consume_fuel']),
+        ('config', 'strategy', body['strategy']),
+        ('config', 'target', body['target']),
+    ]
     # Explicit target suppresses host-inferred ISA features in pinned Wasmtime
     # 38. The baseline recipe never calls flag_enable or enables host tuning.
     for name in ('parallel_compilation', 'wasm_gc', 'wasm_component_model', 'async_support',
                  'memory_reservation', 'memory_guard_size',
                  'memory_reservation_for_growth', 'max_wasm_stack'):
-        getattr(ffi, 'wasmtime_config_' + name + '_set')(pointer, body[name])
-    for name, value in body['pooling'].items():
-        getattr(ffi, 'wasmtime_pooling_allocation_config_' + name + '_set')(pool, value)
+        settings.append(('config', name, body[name]))
+    settings.extend(('pool', name, value) for name, value in body['pooling'].items())
+    return tuple(settings)
+
+
+def _configure_selected_engine(config: Any, pool: Any, ffi: Any,
+                               wasmtime: Any, recipe: _SelectedImageRecipe) -> None:
+    settings = _selected_engine_settings(recipe)
+    for _, name, value in settings[:2]:
+        setattr(config, name, value)
+    pointer = config.ptr()
+    for domain, name, value in settings[2:]:
+        if domain == 'config' and name == 'target':
+            assert isinstance(value, str)
+            error = ffi.wasmtime_config_target_set(pointer, c_char_p(value.encode('ascii')))
+            if error:
+                raise wasmtime.WasmtimeError._from_ptr(error)
+        else:
+            prefix = 'wasmtime_config_' if domain == 'config' else 'wasmtime_pooling_allocation_config_'
+            getattr(ffi, prefix + name + '_set')(pointer if domain == 'config' else pool, value)
     ffi.wasmtime_pooling_allocation_strategy_set(pointer, pool)
 
 
