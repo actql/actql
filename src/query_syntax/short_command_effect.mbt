@@ -6,6 +6,7 @@ pub(all) struct ShortCommandEffectClause {
   operation : Array[NamePart]
   target : Expression?
   id : Array[NamePart]
+  id_expression : Expression
   input : Array[(NamePart, Expression)]
   start : Int
   end : Int
@@ -69,7 +70,13 @@ fn QueryParser::short_command_effect_clause(
     None
   }
   self.keyword("ID")
-  let id = self.path()
+  let id_start = self.peek().start
+  let id_expression = self.expression()
+  let id = match
+    expression_node(id_expression, expression_root(id_expression)).unwrap().kind {
+    Reference(parts) => parts.copy()
+    _ => raise QueryAbort("COMMAND ID requires a field path", id_start)
+  }
   let input : Array[(NamePart, Expression)] = []
   if self.has("INPUT") {
     self.keyword("INPUT")
@@ -92,5 +99,5 @@ fn QueryParser::short_command_effect_clause(
     self.symbol(41)
   }
   let end = token_at(self.source, self.index - 1).unwrap().end
-  { name, operation, target, id, input, start, end, }
+  { name, operation, target, id, id_expression, input, start, end, }
 }
