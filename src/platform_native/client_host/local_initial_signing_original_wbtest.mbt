@@ -193,6 +193,21 @@ test "initial Signing foreign material refuses before journal creation and authe
     "public_key_pem", "purpose", "root_role", "version",
   ]
   let fields = local_adoption_fields(payload, keys).unwrap()
+  // Keep this independent old Native vector: the physical initializer's new
+  // typed writer and restore reader must preserve the original payload bytes.
+  assert_eq(
+    local_adoption_record(keys.mapi((i, key) => (key, fields[i]))).unwrap(),
+    payload,
+  )
+  let typed = @host.read_client_local_initial_signing_payload(payload).unwrap()
+  assert_eq(
+    @host.client_local_initial_signing_payload_body(typed).unwrap(),
+    payload,
+  )
+  assert_eq(typed.adoption_cid, host.adoption_cid)
+  assert_eq(typed.initialization_intent_cid, host.session.intent_cid)
+  assert_eq(typed.key_projection, fields[4])
+  assert_eq(typed.public_key_pem, fields[9])
   // Authenticate each changed candidate with this real epoch only to isolate
   // independent binding rejection from the separate HMAC refusal below.
   for index in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] {

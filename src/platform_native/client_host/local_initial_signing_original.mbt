@@ -73,21 +73,21 @@ fn NativeLocalAdoptionSession::prepare_initial_signing_capture(
       local_adoption_digest(crypto, adoption),
     )
     let payload = local_initial_signing_value(
-      local_adoption_record([
-        ("adoption_cid", adoption_cid),
-        ("initialization_intent_cid", self.intent_cid),
-        ("issuer_authority", issuer),
-        ("key_file", "local-signing-key.pem"),
-        ("key_projection", @base64.encode(exported)),
-        ("policy_cid", policy.cid()),
-        ("policy_original", policy.original_wire()),
-        ("public_key_cid", public_key.cid()),
-        ("public_key_original", public_key.json()),
-        ("public_key_pem", pem),
-        ("purpose", "reviewer_proof"),
-        ("root_role", "store"),
-        ("version", "actql-native-local-installation-original/0.1"),
-      ]),
+      @host.client_local_initial_signing_payload_body({
+        adoption_cid,
+        initialization_intent_cid: self.intent_cid,
+        issuer_authority: issuer,
+        key_file: "local-signing-key.pem",
+        key_projection: @base64.encode(exported),
+        policy_cid: policy.cid(),
+        policy_original: policy.original_wire(),
+        public_key_cid: public_key.cid(),
+        public_key_original: public_key.json(),
+        public_key_pem: pem,
+        purpose: "reviewer_proof",
+        root_role: "store",
+        version: "actql-native-local-installation-original/0.1",
+      }).map_err(_ => Encoding),
     )
     // Existing installation HMAC payload bound, not another capacity grant.
     if payload.length() > 2048 {
@@ -176,57 +176,64 @@ fn read_local_initial_signing_control(
       read_local_installation_authenticated_payload(host, packet),
     )
     let fields = local_initial_signing_value(
-      local_adoption_fields(payload, [
-        "adoption_cid", "initialization_intent_cid", "issuer_authority", "key_file",
-        "key_projection", "policy_cid", "policy_original", "public_key_cid", "public_key_original",
-        "public_key_pem", "purpose", "root_role", "version",
-      ]),
+      @host.read_client_local_initial_signing_payload(payload).map_err(issue => {
+        match issue {
+          @host.Encoding => Encoding
+          @host.InvalidOriginal | @host.ConfigurationLimit => CustodyLost
+        }
+      }),
     )
     let policy = local_initial_signing_value(
-      @host.admit_client_local_signing_bootstrap_policy(fields[6], fields[5]).map_err(_ => {
-          CustodyLost
-        },
-      ),
+      @host.admit_client_local_signing_bootstrap_policy(
+        fields.policy_original,
+        fields.policy_cid,
+      ).map_err(_ => CustodyLost),
     )
     let issuer = local_initial_signing_value(
       policy.issuer_identity(host.session.intent_cid).map_err(_ => CustodyLost),
     )
-    if fields[0] != host.adoption_cid ||
-      fields[1] != host.session.intent_cid ||
-      fields[2] != issuer ||
-      fields[3] != "local-signing-key.pem" ||
-      fields[10] != "reviewer_proof" ||
-      fields[11] != "store" ||
-      fields[12] != "actql-native-local-installation-original/0.1" {
+    if fields.adoption_cid != host.adoption_cid ||
+      fields.initialization_intent_cid != host.session.intent_cid ||
+      fields.issuer_authority != issuer ||
+      fields.key_file != "local-signing-key.pem" ||
+      fields.purpose != "reviewer_proof" ||
+      fields.root_role != "store" ||
+      fields.version != "actql-native-local-installation-original/0.1" {
       return Err(CustodyLost)
     }
-    let exported = @base64.decode(fields[4]) catch {
+    let exported = @base64.decode(fields.key_projection) catch {
       _ => return Err(CustodyLost)
     }
-    if exported.length() != 106 + @utf8.encode(fields[3]).length() ||
-      @base64.encode(exported) != fields[4] ||
-      exported[106:].to_owned() != @utf8.encode(fields[3]) {
+    if exported.length() != 106 + @utf8.encode(fields.key_file).length() ||
+      @base64.encode(exported) != fields.key_projection ||
+      exported[106:].to_owned() != @utf8.encode(fields.key_file) {
       return Err(CustodyLost)
     }
     let public_key = local_initial_signing_value(
-      @credential.admit_local_signing_public_key_json(fields[8], fields[7]).map_err(_ => {
-          CustodyLost
-        },
-      ),
+      @credential.admit_local_signing_public_key_json(
+        fields.public_key_original,
+        fields.public_key_cid,
+      ).map_err(_ => CustodyLost),
     )
-    if !valid_initial_signing_public_pem(fields[9]) {
+    if !valid_initial_signing_public_pem(fields.public_key_pem) {
       return Err(CustodyLost)
     }
     let raw = local_initial_signing_value(
       host.epoch.crypto
-      .ed25519_public_key_raw32(fields[9])
+      .ed25519_public_key_raw32(fields.public_key_pem)
       .map_err(issue => Crypto(issue)),
     )
     guard public_key.raw32() is Ok(expected_raw) && expected_raw == raw else {
       return Err(CustodyLost)
     }
     Ok(
-      Some({ exported, policy, public_key, public_key_pem: fields[9], issuer, }),
+      Some({
+        exported,
+        policy,
+        public_key,
+        public_key_pem: fields.public_key_pem,
+        issuer,
+      }),
     )
   } catch {
     LocalInstallationAdoptionStop(issue) => Err(issue)
