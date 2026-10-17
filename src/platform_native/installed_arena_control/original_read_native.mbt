@@ -35,6 +35,9 @@ struct InstalledArenaOriginalRead {
   mut workspace : @buffers.WorkspaceLoan?
   mut claim : @resources.FundedReadClaim[InstalledArenaOriginalRead]?
   mut pair : @buffers.OriginalWorkspaceRead[InstalledArenaOriginalRead]?
+  // The same read Owner retains its one issued consumer through physical ACK.
+  // This is not another cleanup controller or a reissued available read pair.
+  mut consumer : InstalledArenaOriginalReadConsumer?
   // Only the exact original C-context retirement observation sets this cell.
   // Escaped retired WorkspaceLoans capture this cell, not the parent graph.
   physical_retired : Ref[Bool]
@@ -94,6 +97,7 @@ pub fn InstalledArenaHost::prepare_domain_original_read(
     workspace: None,
     claim: None,
     pair: None,
+    consumer: None,
     physical_retired: Ref(false),
     owns_read: false,
     child_started: false,
@@ -439,6 +443,7 @@ pub fn InstalledArenaHost::close_domain_original_read(
   record.inventory = None
   record.workspace = None
   record.claim = None
+  record.consumer = None
   record.closed = true
   Ok(())
 }
