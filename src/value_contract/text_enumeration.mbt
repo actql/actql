@@ -191,7 +191,7 @@ fn join_text_enumeration(
         enum_charge(work)
         values.push(value)
       }
-      let result = { values, }
+      let result : TextEnumeration = { values, }
       for value in right.values {
         enum_charge(work)
         if !enum_contains(result, value, work) {
