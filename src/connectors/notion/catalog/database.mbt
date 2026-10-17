@@ -361,3 +361,84 @@ pub fn notion_property_definition(
 ) -> @decode.Cursor {
   value.definition
 }
+
+///|
+/// Bounded ordinary metadata projection; not a logical schema or installation.
+pub fn notion_database_metadata_wire(
+  value : NotionDatabaseCatalog,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, NotionDatabaseIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "databaseId")
+    @encode.string_value(writer, value.id)
+    @encode.key(writer, "dataSources")
+    @encode.begin_array(writer)
+    for (id, name) in value.sources {
+      @encode.begin_object(writer)
+      @encode.key(writer, "id")
+      @encode.string_value(writer, id)
+      @encode.key(writer, "name")
+      @encode.string_value(writer, name)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
+}
+
+///|
+pub fn notion_data_source_metadata_wire(
+  value : NotionDataSourceCatalog,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, NotionDatabaseIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "databaseId")
+    @encode.string_value(writer, value.database.id)
+    @encode.key(writer, "dataSourceId")
+    @encode.string_value(writer, value.id)
+    @encode.key(writer, "properties")
+    @encode.begin_array(writer)
+    for field in value.properties {
+      @encode.begin_object(writer)
+      @encode.key(writer, "id")
+      @encode.string_value(writer, field.id)
+      @encode.key(writer, "name")
+      @encode.string_value(writer, field.name)
+      @encode.key(writer, "type")
+      @encode.string_value(writer, field.kind)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
+}
