@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeIsBoxedSome, runtimeIsBoxedNone, runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import * as google from '../../_build/js/release/build/connectors/google_service_account/host_node/host_node.js';
 
 // Independent fake response material. No key, secret resolver, token endpoint,
@@ -28,6 +29,18 @@ test('actual private Google Node codec returns exact token and explicit advertis
   const lower = read('{"access_token":"b","token_type":"bearer","expires_in":1,"ignored":[0,true,null]}');
   assert.equal(google.googleServiceAccountTokenResponseAccessToken(lower), 'b');
   assert.equal(google.googleServiceAccountTokenResponseLifetimeSeconds(lower), 1);
+});
+
+test('actual private Google Node scope export preserves observed presence order and independent array wrapper', () => {
+  const missing = google.googleServiceAccountTokenResponseScopes(read(valid));
+  assert.equal(runtimeIsBoxedNone(missing), true);
+  const response = read('{"access_token":"a","token_type":"Bearer","expires_in":1,"scope":"b a a"}');
+  const observed = google.googleServiceAccountTokenResponseScopes(response);
+  assert.equal(runtimeIsBoxedSome(observed), true);
+  const values = runtimeField(observed, 0);
+  assert.deepEqual(values, ['b', 'a', 'a']);
+  values[0] = 'foreign';
+  assert.deepEqual(runtimeField(google.googleServiceAccountTokenResponseScopes(response), 0), ['b', 'a', 'a']);
 });
 
 test('actual private Google Node codec refuses duplicate decoded members without native JSON fallback', () => {
