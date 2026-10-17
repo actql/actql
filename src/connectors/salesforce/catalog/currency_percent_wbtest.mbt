@@ -129,8 +129,10 @@ test "Currency and Percent read original number digits without conversion roundi
         ("-0.1", "-10e-2"),
         ("-0.0", "0e-2"),
       ] {
+      let page = money_rate_page(plan, input)
+      assert_true(page is Ok(_), msg=native_type + " " + input)
       assert_eq(
-        decimal_cell(money_rate_page(plan, input).unwrap(), 0),
+        decimal_cell(page.unwrap(), 0),
         Some(expected),
       )
     }

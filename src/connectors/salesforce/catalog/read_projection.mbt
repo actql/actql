@@ -40,7 +40,7 @@ pub(all) enum ExactIntComparison {
 /// Only wire forms that have an exact, lossless ActQL scalar admission are
 /// enabled. A `datetime` is admitted after its one documented UTC spelling
 /// (`+0000`) is written with `Z`, and Number, Currency and Percent as `decimal(P,S)`
-/// from its reply's number text; `percent`, `currency` and `time` are not.
+/// from its reply's original number text. `time` is not admitted here.
 fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
   let kind = match field.native_type {
     "id"
