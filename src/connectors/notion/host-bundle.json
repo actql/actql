@@ -1,0 +1,17 @@
+{
+  "installation": {
+    "registration": "notion",
+    "revision": "notion/0.1",
+    "providerBundle": "connectors/notion/host_node",
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-notion-source/0.1",
+      "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
+      "exports": {
+        "check": "checkInstalledNotionSourceProfile",
+        "identityParts": "installedNotionSourceIdentityParts",
+        "load": "loadInstalledNotionSource"
+      }
+    }
+  }
+}

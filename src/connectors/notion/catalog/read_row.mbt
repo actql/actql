@@ -16,6 +16,7 @@ pub(all) enum NotionReadRowIssue {
   Cell(NotionReadCellIssue)
   Property(NotionPropertyItemIssue)
   InvalidValue
+  InvalidSystemField(String)
 } derive(Eq, Debug)
 
 ///|
@@ -58,7 +59,7 @@ fn read_row_store(
   value : (@admitted.CheckedValue, Int, Int),
 ) -> Result[Unit, NotionReadRowIssue] {
   let (checked, input_nodes, input_text) = value
-  if !physical_equal(checked.contract, row.binding.columns[column].contract) {
+  if !physical_equal(checked.contract, notion_row_column(row.binding, column).1) {
     return Err(ForeignOriginal)
   }
   if !read_row_spend(row, input_nodes) || !read_row_spend(row, input_text) {
@@ -107,7 +108,7 @@ pub fn start_notion_read_row(
   guard notion_query_page_row_at(page, row_index) is Some(original) else {
     return Err(InvalidColumn)
   }
-  let count = binding.columns.length()
+  let count = notion_row_column_count(binding)
   if count > 0 && limits.values.max_depth <= 1 {
     return Err(BudgetExceeded)
   }
@@ -134,15 +135,33 @@ pub fn start_notion_read_row(
     max_depth: limits.values.max_depth - 1,
   }
   for index in 0..<count {
-    let column = binding.columns[index]
+    let (name, contract) = notion_row_column(binding, index)
     // Charge each original name occurrence, including UTF-8 backing, before
     // retaining an output field. Field names count in the complete object.
-    let name_bytes = @utf8.encode(column.name).length()
+    let name_bytes = @utf8.encode(name).length()
     if name_bytes > limits.values.max_text_bytes - row.text ||
       !read_row_spend(row, name_bytes) {
       return Err(BudgetExceeded)
     }
     row.text += name_bytes
+    if index >= binding.columns.length() {
+      // The same original response/decode graph remains held. Charge every
+      // metadata occurrence scan before conversion, including aliased id/time.
+      if !read_row_spend(row, page.raw.length()) {
+        return Err(BudgetExceeded)
+      }
+      let value = match
+        admit_notion_system_cell(original, name, contract, child_limits) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match read_row_store(row, index, value) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      continue
+    }
+    let column = binding.columns[index]
     if ["title", "rich_text", "people", "relation"].contains(
         column.property.kind,
       ) {
@@ -187,7 +206,7 @@ pub fn complete_notion_read_row_property(
     !physical_equal(page.request.row, row.row) {
     return Err(ForeignOriginal)
   }
-  if column < 0 || column >= row.cells.length() {
+  if column < 0 || column >= row.binding.columns.length() {
     return Err(InvalidColumn)
   }
   if row.complete is Some(_) || row.cells[column] is Some(_) {
@@ -272,11 +291,11 @@ pub fn finish_notion_read_row(
     for column in 0..<row.cells.length() {
       if !read_row_spend(row, 1) ||
         !read_row_spend(row, field.name.length()) ||
-        !read_row_spend(row, row.binding.columns[column].name.length()) {
+        !read_row_spend(row, notion_row_column(row.binding, column).0.length()) {
         @admitted.cancel_object_value(output) |> ignore
         return Err(BudgetExceeded)
       }
-      if row.binding.columns[column].name == field.name {
+      if notion_row_column(row.binding, column).0 == field.name {
         selected = row.cells[column]
         break
       }

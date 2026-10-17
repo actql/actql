@@ -31,6 +31,63 @@ source, toolchain, actual counts and mutation results retain their individual
 qualifications. No new compiled runtime, installed public product acceptance,
 Provider service operation, or numerical profile is established by this index.
 
+## Installation metadata DATA alternative
+
+The existing field generator separately reads
+`InstallationPreparationSubjectFields` and
+`InstallationPreparationCredentialScope` from `src/remote_credential`. It emits
+`installation-preparation-fields.generated.mjs`: eleven original subject keys
+and six per-use request keys. The opaque subject is not flattened into a CID
+or primitive constructor. A new Common field, omitted output or unsupported
+field shape fails freshness; the ordinary interface check runs this check too.
+The old thirteen Run invocation fields remain byte-identical.
+
+| Attribute | Existing authority and executable reference |
+| --- | --- |
+| Responsibility | `src/remote_credential/installation_preparation_subject.mbt`; `installation_preparation_grant.mbt`: closed DATA only |
+| Inputs/outputs | `InstallationPreparationSubjectFields`; `InstallationPreparationCredentialScope`; generated subject/request keys |
+| Identity | `InstallationPreparationSubject::cid`; `InstallationPreparationCredentialGrant::cid`; exact original declaration source bytes remain distinct from semantic Contracts |
+| Ownership | `installation_preparation_scope_matches`: same opaque original subject; the actual Host/Site/credential and physical journal remain separate |
+| Synchronization | Pure DATA construction and admission perform no asynchronous action or current permission check |
+| Failure | Existing `RemoteCredentialIssue`; closed/canonical body, original subject and exact per-use mismatch refusal |
+| Cancellation | No I/O is started here; this projection cannot acknowledge cancellation or pending physical cleanup |
+| Resources | Explicit input/field/writer/decoder bounds and retained originals; these bounds do not supply funding |
+| Extension | `generate-credential-scope-binding.mjs`: `checkInstallationPreparationBinding`; normal `interfaceGenerationFreshness` |
+| Verification | `installation_preparation_wbtest.mbt`; `installation-metadata-credential-contract.test.mjs`; `installation-preparation-binding.test.mjs` |
+
+The UTF-16 input lower-bound check precedes UTF-8 encoding. Subject/Grant/Use
+readers retain their independent 8192/16384/4096 UTF-8 input limits; admitted
+field bounds permit complete multibyte values, not a smaller ASCII-only route.
+Their source snapshot, encode/decode/hash workspace, canonical wire and
+original subject/grant/use references can overlap. Physical supplier and
+cleanup custody must cover that actual lifetime before an operational caller
+is connected. Cold DATA admission does not supply that operational original,
+claim an ordinal or permit retry. The private
+`installation-preparation-metadata.mjs` view and its canonical Node/RelA
+bridges project these originals without supplying the actual Host request,
+current Account/issuer or metadata resource supplier.
+
+The view captures its actual runtime methods and receiver once, retains each
+original behind a view-local opaque handle, and binds each returned control to
+one same original subject. Grant projection is a named DATA record; the old
+Run control and its seventeen-field projection remain distinct. Subject/Scope
+constructors and primitive field projections are generated from Common; the
+generated kinds preserve numeric fields without hand-maintained layout rules.
+The existing compiler-binding shim alone unwraps raised results. The Node
+bridge destructures Common tuples before projecting explicit protocol arrays.
+
+The actual-runtime cases in
+`adapters/host-node/installation-preparation-metadata.integration.test.mjs`
+exercise exact independent subject/grant/use preimages, copied/foreign/mixed
+scope refusal, per-operation/current-time/revocation/quota refusal, the existing
+signature helper with explicit fixture keys, original callback receivers,
+retirement and abnormal-result refusal. A cited test is not its execution
+receipt. Fixture signing is not an authenticated operational issuer or a
+durable use. The view's records, six maps, aliases, callbacks/receiver, field
+snapshots, generated vectors, writer/decoder/preimage workspace and escaped
+closures/bytes retain their actual overlapping lifetime independently of any
+later physical call and current permission.
+
 
 ## Same-acquisition private credential binding
 
@@ -423,3 +480,46 @@ The component TLS fixture routes the fixed Google HTTP/TLS server name only to
 its own local server; it uses actual RSA, Common, signed Journal and SQLite while
 issuing no live Google request or installed material authority. That qualification
 does not establish ordinary installed or public authentication acceptance.
+
+### Same-journal installation metadata admission
+
+The existing SQLite Credential Journal selects the closed
+`installation-metadata` control explicitly. Its frozen named grant projection
+retains the same control's original Subject and Scope tokens. The Common
+control checks their membership and same-Subject correspondence; JSON, equal
+CIDs, inherited fields, copied tokens or a legacy array do not substitute those
+originals. The original Run control still uses its exact 17-member projection,
+and both controls retain the existing four-member use projection. Unknown
+control purposes are refused, rather than interpreted as the Run layout.
+
+Signature admission still uses the existing configured issuer/public-key map
+and canonical Common signature reader. The existing tables, bounds,
+transactions, use ordinals, revocation, outcome and close protocol do not
+change. The actual signature-admitted claim grant remains beside its original
+use. Reopening the same Journal does not refund an already claimed or Unknown
+use or make a replay eligible for another physical send. A lost COMMIT reply
+retains the existing typed uncertainty and original cause; it does not trigger
+an automatic second acceptance or claim.
+
+This admission is not an operational Host preparation, Account authorization,
+current Site/material observation, egress decision or resource grant. Each
+metadata operation still needs its own original occurrence and actual current
+authority. The trusted Host must retain the actual publication request and
+original declaration/database selection; later query/property reads use their
+own authority. Retaining signed DATA does not restore a retired preparation or
+create a new request for an old Run.
+
+The named projection, its own-property descriptors, six-field snapshot and
+Common Subject/Scope field projections overlap the original grant/wire,
+signature, original tokens and prepared transaction state. These are bounded
+DATA workspaces, not an adopted normal numerical profile. The existing
+Journal remains the sole persistence/claim Owner; the actual Host/Site and
+resource suppliers retain their independent duties.
+
+The actual Common/SQLite counters are in
+`adapters/site-node/installation-metadata-credential-journal.integration.test.mjs`.
+They exercise original operation correspondence, copied/foreign refusal,
+purpose separation, durable claim/Unknown/reopen, expiry/revocation and COMMIT
+uncertainty. Explicit fixture Subjects and signing keys do not prove physical
+metadata acquisition, installed authentication or the complete publication to
+Run recovery path.

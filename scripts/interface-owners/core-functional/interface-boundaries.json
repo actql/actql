@@ -164,7 +164,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "3ba3aff046832417d9278e48d486f6323f0174edb6c7c0e496088b52b37e501a",
+      "sha256": "3e332c3569f9e7b82d88e73b05b03cf60234e247adffcd65067370e16a9bdffb",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -6470,6 +6470,14 @@
         {
           "name": "runtimeCore/runtimeCore#10",
           "parameters": [
+            "value",
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#11",
+          "parameters": [
             "receipt",
             "transfer",
             "source",
@@ -6479,16 +6487,9 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#11",
-          "parameters": [
-            "transfer"
-          ],
-          "async": false
-        },
-        {
           "name": "runtimeCore/runtimeCore#12",
           "parameters": [
-            "progress"
+            "transfer"
           ],
           "async": false
         },
@@ -6509,15 +6510,15 @@
         {
           "name": "runtimeCore/runtimeCore#15",
           "parameters": [
-            "progress",
-            "value"
+            "progress"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#16",
           "parameters": [
-            "progress"
+            "progress",
+            "value"
           ],
           "async": false
         },
@@ -6544,9 +6545,7 @@
         },
         {
           "name": "runtimeCore/runtimeCore#2",
-          "parameters": [
-            "value"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -6573,6 +6572,13 @@
         {
           "name": "runtimeCore/runtimeCore#23",
           "parameters": [
+            "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#24",
+          "parameters": [
             "value",
             "bytes",
             "nodes"
@@ -6580,7 +6586,7 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#24",
+          "name": "runtimeCore/runtimeCore#25",
           "parameters": [
             "value"
           ],
@@ -6589,13 +6595,20 @@
         {
           "name": "runtimeCore/runtimeCore#3",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#4",
+          "parameters": [
             "value",
             "task"
           ],
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#4",
+          "name": "runtimeCore/runtimeCore#5",
           "parameters": [
             "value",
             "source",
@@ -6606,7 +6619,7 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#5",
+          "name": "runtimeCore/runtimeCore#6",
           "parameters": [
             "value",
             "transfer",
@@ -6615,20 +6628,11 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#6",
-          "parameters": [
-            "value",
-            "transfer",
-            "confirmed"
-          ],
-          "async": false
-        },
-        {
           "name": "runtimeCore/runtimeCore#7",
           "parameters": [
             "value",
             "transfer",
-            "retained"
+            "confirmed"
           ],
           "async": false
         },
@@ -6637,7 +6641,7 @@
           "parameters": [
             "value",
             "transfer",
-            "confirmed"
+            "retained"
           ],
           "async": false
         },
@@ -6645,7 +6649,8 @@
           "name": "runtimeCore/runtimeCore#9",
           "parameters": [
             "value",
-            "receipt"
+            "transfer",
+            "confirmed"
           ],
           "async": false
         },
@@ -8106,11 +8111,120 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runtimeCore/runtimeCore#25"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The private Node metadata view captures the selected Common callbacks and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "export function createInstallationPreparationMetadata(moon)"
+              },
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function renderInstallationPreparationBridge("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('ForeignInstallationPreparationMetadata')"
+              },
+              {
+                "path": "src/remote_credential/installation_preparation_grant.mbt",
+                "anchor": "physical_equal(original.subject, actual.subject) && original == actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "the view cuts its own six maps' original-value references"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The view performs no asynchronous work, authentication or durable claim."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationMetadataRetired')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Object.getOwnPropertyDescriptors(value)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "request, original key/use/Unknown responsibility, journal claim or escaped"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "their actual escaped lifetime; WeakMap/retirement/GC is not a byte refund or"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "The view's records, six maps, aliases, callbacks/receiver, field"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function checkInstallationPreparationBridge("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "installationPreparationMetadata: () => createInstallationPreparationMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata actual Common subject scope and grant preserve independent originals"
+              },
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
+              },
+              {
+                "path": "scripts/installation-preparation-binding.test.mjs",
+                "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
+        "./installation-preparation-metadata.mjs",
         "./local-signing-metadata.mjs",
         "./publication-action.mjs",
         "./result-output-limits.mjs",
@@ -19180,6 +19294,697 @@
               {
                 "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
                 "anchor": "retiring only the metadata view refuses escaped references"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/installation-preparation-fields.generated.mjs",
+      "sha256": "a9e983c76fb30c3081a1b3a7b5d719845c9af6e471007555264dde7ee861b71e",
+      "exports": [
+        "installationPreparationRequestKeys",
+        "installationPreparationSubjectKeys",
+        "installationPreparationSubjectKinds"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing Credential installation-metadata DATA Owner and Node original-reference view",
+      "rationale": "Typed original DATA projection only; operational Host/issuer/current/funding and physical custody stay separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "installationPreparationRequestKeys",
+            "installationPreparationSubjectKeys",
+            "installationPreparationSubjectKinds"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The private Node metadata view captures the selected Common callbacks and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "export function createInstallationPreparationMetadata(moon)"
+              },
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function renderInstallationPreparationBridge("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('ForeignInstallationPreparationMetadata')"
+              },
+              {
+                "path": "src/remote_credential/installation_preparation_grant.mbt",
+                "anchor": "physical_equal(original.subject, actual.subject) && original == actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "the view cuts its own six maps' original-value references"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The view performs no asynchronous work, authentication or durable claim."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationMetadataRetired')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Object.getOwnPropertyDescriptors(value)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "request, original key/use/Unknown responsibility, journal claim or escaped"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "their actual escaped lifetime; WeakMap/retirement/GC is not a byte refund or"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "The view's records, six maps, aliases, callbacks/receiver, field"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function checkInstallationPreparationBridge("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "installationPreparationMetadata: () => createInstallationPreparationMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata actual Common subject scope and grant preserve independent originals"
+              },
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
+              },
+              {
+                "path": "scripts/installation-preparation-binding.test.mjs",
+                "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/installation-preparation-metadata.mjs",
+      "sha256": "c8187ef427d3afd103f2b731046af6b75bc09e81da462f39afb173f1c1e0d30c",
+      "exports": [
+        "createInstallationPreparationMetadata"
+      ],
+      "operations": [
+        {
+          "name": "createInstallationPreparationMetadata",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/active/active",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/createInstallationPreparationMetadata",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/own/own",
+          "parameters": [
+            "map",
+            "token",
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/rawScope/rawScope",
+          "parameters": [
+            "token",
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/retain/retain",
+          "parameters": [
+            "map",
+            "value",
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/scopeFields/scopeFields",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/subjectFields/subjectFields",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:admitSubject/init:admitSubject",
+          "parameters": [
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject",
+          "parameters": [
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#2",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#4",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#5",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#6",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#7",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#8",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#9",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitJson/init:admitJson",
+          "parameters": [
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitSignatureEnvelope/init:admitSignatureEnvelope",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitSignatureEnvelope/init:admitSignatureEnvelope/init:admitSignatureEnvelope",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitUse/init:admitUse",
+          "parameters": [
+            "token",
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:authorizeUse/init:authorizeUse",
+          "parameters": [
+            "token",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepare/init:prepare",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepareSignatureEnvelope/init:prepareSignatureEnvelope",
+          "parameters": [
+            "token",
+            "key",
+            "signature"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepareUse/init:prepareUse",
+          "parameters": [
+            "token",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:projection/init:projection",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:scopeFields/init:scopeFields",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/registerGrant/registerGrant",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope",
+          "parameters": [
+            "subject",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope/init:prepareScope",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:prepareSubject/init:prepareSubject",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:prepareSubject/init:prepareSubject/args/args",
+          "parameters": [
+            "key",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:retireMetadataView/init:retireMetadataView",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/view",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/view#2",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields",
+          "parameters": [
+            "values",
+            "keys",
+            "kinds"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields/fields",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields/fields#2",
+          "parameters": [
+            "key",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "stringProjection",
+          "parameters": [
+            "value",
+            "length"
+          ],
+          "async": false
+        },
+        {
+          "name": "stringProjection/stringProjection",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "time/time",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./installation-preparation-fields.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Credential installation-metadata DATA Owner and Node original-reference view",
+      "rationale": "Typed original DATA projection only; operational Host/issuer/current/funding and physical custody stay separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstallationPreparationMetadata",
+            "createInstallationPreparationMetadata/active/active",
+            "createInstallationPreparationMetadata/call/call",
+            "createInstallationPreparationMetadata/createInstallationPreparationMetadata",
+            "createInstallationPreparationMetadata/methods/methods",
+            "createInstallationPreparationMetadata/own/own",
+            "createInstallationPreparationMetadata/rawScope/rawScope",
+            "createInstallationPreparationMetadata/retain/retain",
+            "createInstallationPreparationMetadata/scopeFields/scopeFields",
+            "createInstallationPreparationMetadata/subjectFields/subjectFields",
+            "createInstallationPreparationMetadata/text/text",
+            "createInstallationPreparationMetadata/view/init:admitSubject/init:admitSubject",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#2",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#3",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#4",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#5",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#6",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#7",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#8",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#9",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitJson/init:admitJson",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitSignatureEnvelope/init:admitSignatureEnvelope",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitSignatureEnvelope/init:admitSignatureEnvelope/init:admitSignatureEnvelope",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitUse/init:admitUse",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:authorizeUse/init:authorizeUse",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepare/init:prepare",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepareSignatureEnvelope/init:prepareSignatureEnvelope",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepareUse/init:prepareUse",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:projection/init:projection",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:scopeFields/init:scopeFields",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/registerGrant/registerGrant",
+            "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope",
+            "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope/init:prepareScope",
+            "createInstallationPreparationMetadata/view/init:prepareSubject/init:prepareSubject",
+            "createInstallationPreparationMetadata/view/init:prepareSubject/init:prepareSubject/args/args",
+            "createInstallationPreparationMetadata/view/init:retireMetadataView/init:retireMetadataView",
+            "createInstallationPreparationMetadata/view/view",
+            "createInstallationPreparationMetadata/view/view#2",
+            "data",
+            "data/data",
+            "data/data#2",
+            "fail/fail",
+            "fields",
+            "fields/fields",
+            "fields/fields#2",
+            "integer/integer",
+            "invalid/invalid",
+            "stringProjection",
+            "stringProjection/stringProjection",
+            "time/time"
+          ],
+          "exports": [
+            "createInstallationPreparationMetadata"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The private Node metadata view captures the selected Common callbacks and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "export function createInstallationPreparationMetadata(moon)"
+              },
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function renderInstallationPreparationBridge("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('ForeignInstallationPreparationMetadata')"
+              },
+              {
+                "path": "src/remote_credential/installation_preparation_grant.mbt",
+                "anchor": "physical_equal(original.subject, actual.subject) && original == actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "the view cuts its own six maps' original-value references"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The view performs no asynchronous work, authentication or durable claim."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationMetadataRetired')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Object.getOwnPropertyDescriptors(value)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "request, original key/use/Unknown responsibility, journal claim or escaped"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "their actual escaped lifetime; WeakMap/retirement/GC is not a byte refund or"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "The view's records, six maps, aliases, callbacks/receiver, field"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function checkInstallationPreparationBridge("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "installationPreparationMetadata: () => createInstallationPreparationMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata actual Common subject scope and grant preserve independent originals"
+              },
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
+              },
+              {
+                "path": "scripts/installation-preparation-binding.test.mjs",
+                "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
               }
             ]
           }
