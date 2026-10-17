@@ -85,7 +85,8 @@
         "maximum",
         "format",
         "length",
-        "max_items"
+        "max_items",
+        "enum"
       ],
       "declaration_only_members": [
         "default",

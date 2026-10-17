@@ -53,6 +53,7 @@ export function executionContract(protocol) {
       strings: 'preserve_well_formed_unicode_scalar_sequence_without_NFC_or_line_break_repair',
       object_member_names: 'NFC_then_LF_reject_noncanonical_names_and_collisions',
       string_extents: 'retained_unicode_scalars_and_UTF8_bytes',
+      text_enumeration: 'exact_original_vector_membership_intersected_with_retained_extents_preserve_nullable_and_empty_duplicates_order_no_constraint_stripping_or_authority',
       decimal: 'canonical_fixed_scale_string_under_declared_precision_and_scale',
       empty_rows: 'retain_declared_schema',
       row_order: 'retain_occurrence_order', row_multiplicity: 'retain_all_occurrences',

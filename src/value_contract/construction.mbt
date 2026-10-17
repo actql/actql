@@ -13,7 +13,12 @@ pub(all) enum Primitive {
 pub fn primitive(kind : Primitive, nullable~ : Bool) -> Contract {
   let shape = match kind {
     StringType =>
-      Text({ min_length: None, max_codepoints: None, max_utf8_bytes: None, })
+      Text({
+        min_length: None,
+        max_codepoints: None,
+        max_utf8_bytes: None,
+        enumeration: None,
+      })
     NumberType => Number
     BooleanType => Boolean
     DateType => Date
@@ -90,7 +95,52 @@ pub fn string_contract(
   }
   Some({
     nullable,
-    shape: Text({ min_length, max_codepoints, max_utf8_bytes, }),
+    shape: Text({
+      min_length,
+      max_codepoints,
+      max_utf8_bytes,
+      enumeration: None,
+    }),
+  })
+}
+
+///|
+/// Detach the caller's enum vector only after its complete metadata budget and
+/// Unicode have been checked. Bounds intersect membership, never prune or
+/// normalize the retained declaration. No reference/operation is authorized.
+pub fn string_enum_contract(
+  enumerants : Array[String],
+  limits : Limits,
+  nullable~ : Bool,
+  min_length? : Int64? = None,
+  max_codepoints? : Int64? = None,
+  max_utf8_bytes? : Int64? = None,
+) -> Contract? {
+  guard string_contract(
+      nullable~,
+      min_length~,
+      max_codepoints~,
+      max_utf8_bytes~,
+    )
+    is Some({ shape: Text(bounds), .. }) else {
+    return None
+  }
+  if limits.max_nodes < 2 ||
+    enumerants.length() > limits.max_nodes - 2 ||
+    limits.max_depth < (if enumerants.is_empty() { 1 } else { 2 }) ||
+    limits.max_text_bytes < 0 {
+    return None
+  }
+  let mut remaining = limits.max_text_bytes
+  for value in enumerants {
+    guard @scalar.admit_utf8_length(value, remaining) is Ok(size) else {
+      return None
+    }
+    remaining -= size
+  }
+  Some({
+    nullable,
+    shape: Text({ ..bounds, enumeration: Some({ values: enumerants.copy(), }), }),
   })
 }
 

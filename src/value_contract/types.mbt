@@ -26,6 +26,13 @@ pub struct TextLimits {
   min_length : Int64?
   max_codepoints : Int64?
   max_utf8_bytes : Int64?
+  enumeration : TextEnumeration?
+} derive(Eq, Debug)
+
+///|
+/// Ordered checked data, not a public mutable array or a distinct value kind.
+struct TextEnumeration {
+  values : Array[String]
 } derive(Eq, Debug)
 
 ///|

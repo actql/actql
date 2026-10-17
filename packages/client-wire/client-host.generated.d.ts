@@ -13,6 +13,7 @@ export type WireValueContractShape = Readonly<{
   min_length?: number;
   max_codepoints?: number;
   max_utf8_bytes?: number;
+  enum?: readonly string[];
 }> | Readonly<{
   type: "number" | "boolean" | "timestamp" | "date" | "json";
   nullable: boolean;
@@ -1703,7 +1704,7 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
   admission?: Readonly<{
-  contract_schema_cid: "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947";
+  contract_schema_cid: "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c";
   kind: "parameter_declaration";
   contract: WireValueContractShape;
   supplier: "caller";
@@ -1818,7 +1819,7 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
   admission?: Readonly<{
-  contract_schema_cid: "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947";
+  contract_schema_cid: "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c";
   kind: "parameter_declaration";
   contract: WireValueContractShape;
   supplier: "caller";
@@ -1900,7 +1901,7 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742";
+  reason_schema_cid: "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -1990,7 +1991,7 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
   admission?: Readonly<{
-  contract_schema_cid: "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947";
+  contract_schema_cid: "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c";
   kind: "parameter_declaration";
   contract: WireValueContractShape;
   supplier: "caller";
@@ -2105,7 +2106,7 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
   admission?: Readonly<{
-  contract_schema_cid: "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947";
+  contract_schema_cid: "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c";
   kind: "parameter_declaration";
   contract: WireValueContractShape;
   supplier: "caller";
@@ -2191,7 +2192,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742";
+  reason_schema_cid: "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -2200,7 +2201,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742";
+  reason_schema_cid: "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{
