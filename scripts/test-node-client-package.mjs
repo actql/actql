@@ -944,7 +944,7 @@ sourceEnvironment.schema_snapshots = [{...sourceSelector,
   data_classification: 'unknown'}];
 sourceEnvironment.connector_capabilities = [{...sourceSelector,
   capability_contract_cids: [
-    'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
+    'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
 }];
 Object.assign(sourceEnvironment.host_policy_profile.capacity, {
   max_analytic_frame_memberships: 10000,

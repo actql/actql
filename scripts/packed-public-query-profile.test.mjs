@@ -12,9 +12,9 @@ const canonical = value => Array.isArray(value)
     : JSON.stringify(value);
 const pins = [
   ['actql-query-process-evidence',
-    'sha256:2fb477209d9149ec8fa6d103fb14af3c287e2d2bc331b237dadd281f9dbab916'],
+    'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b'],
   ['actql-query-two-receipt',
-    'sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7'],
+    'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
 ];
 
 test('packed query capability pins identify the authoritative contract bodies', () => {
