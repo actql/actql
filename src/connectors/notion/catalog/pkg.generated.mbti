@@ -65,6 +65,8 @@ pub fn notion_database_source_at(NotionDatabaseCatalog, Int) -> (String, String)
 
 pub fn notion_database_source_count(NotionDatabaseCatalog) -> Int
 
+pub fn notion_date_range_property_write_matches(NotionPropertyWrite, NotionDataSourceCatalog, Int, @value_admission.CheckedValue, @value_admission.CheckedValue) -> Bool
+
 pub fn notion_page_properties_write_wire(NotionDataSourceCatalog, Array[NotionPropertyWrite], NotionPropertyWriteLimits) -> Result[String, NotionPropertyWriteIssue]
 
 pub fn notion_property_definition(NotionPropertyMetadata) -> @decode_core.Cursor
@@ -138,6 +140,8 @@ pub fn notion_user_list_row_count(NotionUserListPage) -> Int
 pub fn notion_user_list_rows_wire(NotionUserListPage, Array[String], Int, Int, Int) -> Result[String, NotionUserListIssue]
 
 pub fn notion_user_list_schema_wire(Int, Int, Int) -> Result[String, NotionUserListIssue]
+
+pub fn prepare_notion_date_range_property_write(NotionDataSourceCatalog, Int, @value_admission.CheckedValue, @value_admission.CheckedValue, NotionPropertyWriteLimits) -> Result[NotionPropertyWrite, NotionPropertyWriteIssue]
 
 pub fn prepare_notion_property_write(NotionDataSourceCatalog, Int, @value_admission.CheckedValue, NotionPropertyWriteLimits) -> Result[NotionPropertyWrite, NotionPropertyWriteIssue]
 
