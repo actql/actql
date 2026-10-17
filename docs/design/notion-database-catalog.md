@@ -927,3 +927,13 @@ bounds remain distinct from lifetime funding. There is no asynchronous work,
 retry or cleanup acknowledgement in the projection; only the existing physical
 cleanup owner can retire those original aliases. Parent publication/reader
 cleanup must continue to retain the graph when it remains unconfirmed.
+
+The ordinary row Source Check Environment assembly preserves the complete
+checked Contracts as data. In particular, Text enumeration vectors retain exact
+Unicode, line endings, order and repetitions alongside their original carrier
+CIDs. Member sorting and the enclosing evidence preimage use the existing exact
+data canonicalizer. Host Account/configuration normalization remains separate.
+This projection holds the original parsed members, sorted arrays and canonical
+wire/hash workspace until the caller releases them; exact text is neither a
+grant nor a memory reservation. The original Source checker still admits the
+result before SQL/AQL preparation and does not relax an input Contract.
