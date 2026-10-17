@@ -157,11 +157,11 @@
     },
     {
       "source": "owned_region.h",
-      "sha256": "ca54c843cb38d9b1fc91335159647792c8a3621436e315bc762f613324cb8b22"
+      "sha256": "cdafe64f5a629e42bced6aea88443642bb8b75969a8258250ba7a66d39b500bc"
     },
     {
       "source": "owned_region.inc",
-      "sha256": "56619bc5a2a5c3436eba4f09abd54fdeb8b02eef7b9081bfeecf07b42907ab9d"
+      "sha256": "a2597dc680c2842659d7bded630e2b29bcdce9b0ec70f2577339d10d8212e291"
     },
     {
       "source": "owned_domain_borrow.h",
@@ -191,6 +191,6 @@
   },
   "thread_preparation": {
     "source": "thread-source.json",
-    "sha256": "22ec620d6f81dab308b27dfae01e6804e342e381f94eb0188867103fc61432f1"
+    "sha256": "41560a87196cd78ade1be21e703b51a738b21f11d265ee5a8b7c8c49d10d6484"
   }
 }
