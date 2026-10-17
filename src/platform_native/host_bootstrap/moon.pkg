@@ -5,6 +5,11 @@ import {
   "actql/actql/platform_native/executor_slot" @executor,
 }
 
+import {
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"
+
 options(
   "native-stub": [ "bootstrap_stub.c" ],
 )

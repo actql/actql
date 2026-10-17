@@ -42,6 +42,13 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_capture_process_region(
         actql_native_owned_domain_unborrowed(domain->lease, &view->view) != ACTQL_OWNED_OK ||
         !view->view.extent.writable)
         return record;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (domain->read_context != NULL || domain->read_user ||
+        domain->read_active != 0 || domain->read_prepare_scope) {
+        record->status = ACTQL_OWNED_BUSY;
+        return record;
+    }
+#endif
     struct stat before;
     if (!process_region_fd_identity(fd, view->view.extent.capacity, &before) ||
         (uint64_t)before.st_dev != view->view.extent.device ||
