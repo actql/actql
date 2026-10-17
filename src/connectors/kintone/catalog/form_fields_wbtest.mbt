@@ -71,23 +71,40 @@ test "original subtable paths and exact Unicode options survive immutable projec
 test "only positively enforced original top level field metadata supplies a unique key" {
   let catalog = form_test_catalog()
   assert_true(require_form_unique_key(catalog, "customer_code") is Ok(_))
-  assert_true(require_form_unique_key(catalog, "amount") is Err(UniqueKeyUnconfirmed))
-  assert_true(require_form_unique_key(catalog, "memo") is Err(UniqueKeyUnconfirmed))
-  assert_true(require_form_unique_key(catalog, "Customer label") is Err(FieldUnavailable))
+  assert_true(
+    require_form_unique_key(catalog, "amount") is Err(UniqueKeyUnconfirmed),
+  )
+  assert_true(
+    require_form_unique_key(catalog, "memo") is Err(UniqueKeyUnconfirmed),
+  )
+  assert_true(
+    require_form_unique_key(catalog, "Customer label") is Err(FieldUnavailable),
+  )
   assert_true(require_form_unique_key(catalog, "item") is Err(FieldUnavailable))
   for unique in ["false", "null", "\"true\""] {
     let body = "{\"revision\":\"7\",\"properties\":{\"key\":{\"type\":\"SINGLE_LINE_TEXT\",\"code\":\"key\",\"unique\":" +
-      unique + "}}}"
+      unique +
+      "}}}"
     if unique == "false" {
-      assert_true(require_form_unique_key(form_test_catalog(body~), "key") is Err(UniqueKeyUnconfirmed))
+      assert_true(
+        require_form_unique_key(form_test_catalog(body~), "key")
+        is Err(UniqueKeyUnconfirmed),
+      )
     } else {
-      assert_true(project_form_fields(@utf8.encode(body), "12", form_test_limits()) is Err(InvalidField("key")))
+      assert_true(
+        project_form_fields(@utf8.encode(body), "12", form_test_limits())
+        is Err(InvalidField("key")),
+      )
     }
   }
-  let readonly = form_test_catalog(body=(
-    #|{"revision":"7","properties":{"computed":{"type":"CALC","code":"computed","unique":true}}}
-  ))
-  assert_true(require_form_unique_key(readonly, "computed") is Err(UniqueKeyUnconfirmed))
+  let calculated = form_test_catalog(
+    body=(
+      #|{"revision":"7","properties":{"computed":{"type":"CALC","code":"computed","unique":true}}}
+    ),
+  )
+  assert_true(
+    require_form_unique_key(calculated, "computed") is Err(UniqueKeyUnconfirmed),
+  )
 }
 
 ///|
