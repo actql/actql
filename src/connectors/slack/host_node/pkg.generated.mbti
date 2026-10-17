@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/slack/host_node"
+
+import {
+  "actql/actql/connectors/slack/catalog",
+}
+
+// Values
+pub fn slack_project_user_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackUserListPage, @catalog.SlackUserListIssue]
+
+pub fn slack_user_list_column_names() -> Array[String]
+
+pub fn slack_user_list_metadata_json(@catalog.SlackUserListPage) -> String
+
+pub fn slack_user_list_relation_facts_wire() -> String
+
+pub fn slack_user_list_rows_wire(@catalog.SlackUserListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.SlackUserListIssue]
+
+pub fn slack_user_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.SlackUserListIssue]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
