@@ -169,10 +169,15 @@ async function installation(t, {readable = ['Test_Record__c'],
   const publishAliases = async (value, path, published) => {
     // Visible aliases are explicit trusted installation metadata projected
     // from this same original publication, never guessed from a Program.
-    value.queryAliases = published.declared.views.map(view => ({
-      name: `${value.connectorId}.${view.resource}`, sourceRef: view.source_ref,
-      sourceViewContractCid: view.view_cid, schemaContractCid: view.carrier_schema_cid,
-    }));
+    // Salesforce's summary omits carrier_schema_cid; its same canonical view
+    // body supplies the original output-schema reference instead.
+    const sourceViews = published.declared.source_views.map(text => JSON.parse(text));
+    value.queryAliases = published.declared.views.map(view => {
+      const original = sourceViews.find(body => body.contract_cid === view.view_cid);
+      assert.ok(original, 'Alias must use the same original Salesforce view');
+      return {name: `${value.connectorId}.${view.resource}`, sourceRef: view.source_ref,
+        sourceViewContractCid: view.view_cid, schemaContractCid: original.output.schema.cid};
+    });
     await writeFile(path, JSON.stringify(value));
   };
   const publish = async () => {
@@ -230,9 +235,13 @@ test('published Salesforce original views explicitly supply visible query aliase
   const setup = await installation(t, {numberFields: true});
   const publication = await setup.publish();
   const profile = JSON.parse(await readFile(setup.profilePath, 'utf8'));
-  assert.deepEqual(profile.queryAliases.map(alias => [alias.sourceRef,
-    alias.sourceViewContractCid, alias.schemaContractCid]),
-  publication.declared.views.map(view => [view.source_ref, view.view_cid, view.carrier_schema_cid]));
+  assert.equal(profile.queryAliases.length, 1);
+  const [alias] = profile.queryAliases;
+  const [catalogView] = JSON.parse(publication.declared.catalog).source_views;
+  assert.equal(alias.sourceRef, 'connector://crm-main/Test_Record__c#records');
+  assert.equal(alias.sourceViewContractCid, catalogView.contract_cid);
+  assert.match(alias.schemaContractCid, /^sha256:[0-9a-f]{64}$/u);
+  assert.equal(alias.schemaContractCid, catalogView.output.schema.cid);
   const {client} = await setup.open();
   const before = setup.org.seen.length;
   const checked = await client.check(JSON.parse(numberProgram), {kind: 'program', scope: 'bound_input'});
@@ -249,7 +258,11 @@ test('a Salesforce publication without explicit visible aliases remains protecte
   const {client} = await setup.open();
   const before = setup.org.seen.length;
   const checked = await client.check(JSON.parse(numberProgram), {kind: 'program', scope: 'bound_input'});
-  assert.equal(checked.report.verdict, 'unresolved_protected');
+  assert.equal(checked.report.verdict, 'undetermined');
+  assert.deepEqual(checked.report.coverage.unresolved,
+    [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+  assert.deepEqual(checked.report.runnable,
+    {verdict: 'no', reasons: [{code: 'unresolved_protected'}]});
   assert.equal(setup.org.seen.length, before);
   assert.equal(setup.queries().length, 0);
 });
