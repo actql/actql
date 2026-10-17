@@ -1,5 +1,5 @@
-import type {CheckpointSigner, Client, Execution, RunState} from './index.mjs';
-import type {InProcessHostPort} from './host-port.mjs';
+import type {CheckpointSigner, Client, Execution, RunState} from '@actql/sdk';
+import type {InProcessHostPort} from '@actql/sdk/host-port';
 import type {WireRunState} from '@actql/client-wire';
 
 declare const client: Client;
