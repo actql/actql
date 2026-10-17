@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "4285cf05e4748db6fa9eef350711c1ff0a67fcff85a1aee14275291005652e5b",
+      "sha256": "81c7de22ab47aa17f1c2e68e606d7d6dd54572e2e36ecc186d3d867517baa66a",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -49,6 +49,7 @@
         "RowEffectMapping",
         "RowEffectMember",
         "RowEffectProjection",
+        "RowEffectRequestChild",
         "RowMappingSource",
         "RowPageRequest",
         "RowProviderReaderRequest",
@@ -363,6 +364,23 @@
           "result": "Readonly<{request: Request; requestCid: string}>"
         },
         {
+          "name": "RowEffectDriver/prepareRequestChild",
+          "parameters": [
+            "options: Readonly<{member: RowEffectMember;\n    value: ConnectorJsonObject; selector?: ConnectorJsonValue;\n    current: Current | undefined; rowIndex: number;\n    authorizationForRow: () => Promise<InvocationAuthorization>;\n    /** Existing selected-preparation fence; absence is not a new current proof. */\n    assertCurrent?: () => void;\n    signal?: AbortSignal}>"
+          ],
+          "result": "RowEffectRequestChild<Request>"
+        },
+        {
+          "name": "RowEffectDriver/prepareRequestChild/<call>",
+          "parameters": [],
+          "result": "Promise<InvocationAuthorization>"
+        },
+        {
+          "name": "RowEffectDriver/prepareRequestChild/<call>#2",
+          "parameters": [],
+          "result": "void"
+        },
+        {
           "name": "RowEffectDriver/project",
           "parameters": [
             "options: Readonly<{member: RowEffectMember; memberIndex: number;\n    rowIndex: number; preview: ConnectorRuntimeHandle; request: Request;\n    current: Current | undefined; observation: CredentialObservation;\n    headers: HttpPairs | undefined}>"
@@ -417,6 +435,26 @@
             "member: RowEffectMember"
           ],
           "result": "string"
+        },
+        {
+          "name": "RowEffectRequestChild/prepare",
+          "parameters": [],
+          "result": "Awaitable<Readonly<{request: Request; requestCid: string}>>"
+        },
+        {
+          "name": "RowEffectRequestChild/release",
+          "parameters": [],
+          "result": "Awaitable<boolean | void>"
+        },
+        {
+          "name": "RowEffectRequestChild/retry",
+          "parameters": [],
+          "result": "Awaitable<boolean | void>"
+        },
+        {
+          "name": "RowEffectRequestChild/status",
+          "parameters": [],
+          "result": "Readonly<{pending: boolean}>"
         },
         {
           "name": "RowPageRequest/authorizationFor",
@@ -553,6 +591,9 @@
             "RowEffectDriver/observeTargets",
             "RowEffectDriver/observeTargets/<call>",
             "RowEffectDriver/prepareRequest",
+            "RowEffectDriver/prepareRequestChild",
+            "RowEffectDriver/prepareRequestChild/<call>",
+            "RowEffectDriver/prepareRequestChild/<call>#2",
             "RowEffectDriver/project",
             "RowEffectDriver/recheckRequests",
             "RowEffectDriver/recoverRequests",
@@ -561,6 +602,10 @@
             "RowEffectDriver/requestFacts",
             "RowEffectDriver/send",
             "RowEffectDriver/writeOperation",
+            "RowEffectRequestChild/prepare",
+            "RowEffectRequestChild/release",
+            "RowEffectRequestChild/retry",
+            "RowEffectRequestChild/status",
             "RowPageRequest/authorizationFor",
             "RowPageRequest/chargePage",
             "RowPageRequest/consumePage",
@@ -616,6 +661,7 @@
             "RowEffectMapping",
             "RowEffectMember",
             "RowEffectProjection",
+            "RowEffectRequestChild",
             "RowMappingSource",
             "RowPageRequest",
             "RowProviderReaderRequest",
@@ -644,6 +690,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original installed row reader custody"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Owned guarded request preparation"
               }
             ],
             "inputsOutputs": [
@@ -654,6 +704,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "async function readProvider({prepare, receiver, options})"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
               }
             ],
             "identity": [
@@ -672,6 +726,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "fail('ForeignInstalledRowEffectRequest')"
               }
             ],
             "ownership": [
@@ -690,6 +748,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "children.push({prepared: Object.freeze"
               }
             ],
             "synchronization": [
@@ -708,6 +770,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
               }
             ],
             "failure": [
@@ -722,6 +788,10 @@
               {
                 "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
                 "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
               }
             ],
             "cancellation": [
@@ -740,6 +810,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "pending read and stop Promises"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "signal?.throwIfAborted()"
               }
             ],
             "resources": [
@@ -758,6 +832,10 @@
               {
                 "path": "src/client_row_source_host/provider_capacity.mbt",
                 "anchor": "provider_retained"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
               }
             ],
             "extension": [
@@ -772,6 +850,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
               }
             ],
             "verification": [
@@ -790,6 +872,18 @@
               {
                 "path": "packages/local-node/connector-installation.typecheck.mts",
                 "anchor": "Reader preparation is synchronous and cannot hide I/O."
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded child cleanup pending retains the same failure and original cleanup handle"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "the child cannot substitute another row index into its read use"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "Read authorization is closed over the original row."
               }
             ]
           }
