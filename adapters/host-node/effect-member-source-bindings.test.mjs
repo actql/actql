@@ -309,3 +309,231 @@ test('acquired and imported source vectors are explicitly unsupported before Sto
     assert.equal(events.writers.length, 0);
   }
 });
+
+test('private Command phase slots reject mutable sparse or callback-backed vectors before Store I/O', async () => {
+  const callback = Object.freeze(Object.defineProperty([, undefined], '0', {
+    get() { throw new Error('PhaseAccessorMustNotRun'); },
+  }));
+  for (const commandWorkspaces of [[], [undefined, undefined],
+    Object.freeze([undefined]), Object.freeze([, undefined]), callback]) {
+    const {options, events} = fixture();
+    await assert.rejects(preparePinnedEffectSourceSet({...options, commandWorkspaces}),
+      /InvalidEffectCommandWorkspaces/);
+    assert.equal(events.writers.length, 0);
+    assert.equal(events.comparisons, 0);
+  }
+});
+
+test('absent private phase slots retain the original same-view Manifest and payload grouping', async () => {
+  const {options, events} = fixture();
+  const sources = await preparePinnedEffectSourceSet({...options,
+    commandWorkspaces: Object.freeze([undefined, undefined])});
+  assert.equal(sources.payloads.length, 1);
+  assert.equal(sources.members[0].payload, sources.members[1].payload);
+  assert.equal(events.manifests.length, 1);
+  assert.equal(events.manifests[0].length, 1);
+  await sources.payloads[0].prepared.release();
+});
+
+test('dependent private key phases require the original Local receiver before Store I/O', async () => {
+  const {options, events} = fixture();
+  options.localEvidenceContext.acquiredEvidence = {};
+  await assert.rejects(preparePinnedEffectSourceSet({...options,
+    commandWorkspaces: Object.freeze([{}, undefined])}),
+  /EffectCommandDependencyWorkspaceUnavailable/);
+  assert.equal(events.writers.length, 0);
+});
+
+test('a dependent Table cannot substitute the Local Result key receiver', async () => {
+  const {options, events} = fixture();
+  options.localEvidenceContext.acquiredEvidence = {};
+  options.localEvidenceContext.retentionDependencies = [];
+  options.moon.clientProgramBeginEffectLocalCommandKeyWorkspace = () => assert.fail('LocalBeginMustNotRun');
+  options.moon.clientProgramEffectLocalResultMatchesMember = () => false;
+  options.moon.clientProgramEffectTableInputAt = () => Object.freeze({});
+  options.moon.clientProgramEffectTableInputStage = () => 0;
+  await assert.rejects(preparePinnedEffectSourceSet({...options,
+    commandWorkspaces: Object.freeze([{}, undefined])}),
+  /EffectCommandDependencyWorkspaceUnavailable/);
+  assert.equal(events.writers.length, 0);
+});
+
+test('dependent same-view members retain separate original key phases and one logical Manifest', async () => {
+  // Sequencing doubles only. Actual Common original Local/foreign/material/key
+  // checks have their independent runtime cases; these values issue no proof.
+  const {options, events} = fixture();
+  const phases = Object.freeze([0, 1].map(member => Object.freeze({member,
+    key: Object.freeze({member, fixtureOnly: true})})));
+  const begun = [], completed = [], proposed = [], retained = [];
+  Object.assign(options.moon, {
+    clientProgramEffectLocalStaticBodies: () => ok([]),
+    clientProgramEffectTableInputAt: () => undefined,
+    clientProgramEffectInputExportNextCanonicalRow: () => ok(undefined),
+    clientProgramEffectInputExportFinish: stream => ok({_0: stream, _1: '[]'}),
+    clientProgramBeginEffectLocalCommandKeyWorkspace(scope, inputs, member, index) {
+      assert.equal(scope, phases[member]);
+      assert.equal(inputs, options.inputs);
+      assert.equal(index, 0);
+      begun.push(member);
+      return ok({input: inputs[member]});
+    },
+    clientProgramStartEffectCommandKeyWorkspace(scope) { return ok(scope.key); },
+    clientProgramEffectCommandKeyWorkspaceSynchronousEnd() {},
+    clientProgramEffectCommandKeyAdvance(key) {
+      assert.equal(key, phases[key.member].key);
+      completed.push(key.member);
+      return ok({_0: true, _1: 1});
+    },
+    clientProgramEffectProposalBeginWithKey(inputs, member, _fields, _work, key) {
+      assert.equal(inputs, options.inputs);
+      assert.equal(key, phases[member].key);
+      assert(completed.includes(member));
+      assert.equal(retained[member], key);
+      proposed.push(member);
+      return ok({member});
+    },
+    clientProgramEffectProposalFinish: () => ok(undefined),
+    clientProgramEffectProposalCancel() {},
+    clientProgramEffectInputExportSchemaWire: () => '{}',
+    clientProgramCloseEffectCommandKeyWorkspace() { assert.fail('ParentOwnsRetirement'); },
+  });
+  options.control.issueDependentLocalEffectResultArtifact = () =>
+    Object.freeze({identity: 'result-0', wire: '{}'});
+  const sources = await preparePinnedEffectSourceSet({...options,
+    commandWorkspaces: phases,
+    onProposalRow() { assert.fail('NoFixtureRows'); },
+    onCommandKey(member, key) { retained[member] = key; },
+    proposalLimits: {maxFields: 10, maxWork: 100, maxBytes: 100,
+      maxNodes: 100, maxDepth: 10, maxUtf16Units: 100},
+    localEvidenceContext: {...options.localEvidenceContext,
+      retentionDependencies: [], acquiredEvidence: {invocation: {}, bodies: []}},
+  });
+  assert.deepEqual(begun, [0, 1]);
+  assert.deepEqual(completed, [0, 1]);
+  assert.deepEqual(proposed, [0, 1]);
+  assert.equal(sources.payloads.length, 2);
+  assert.notEqual(sources.members[0].payload, sources.members[1].payload);
+  assert.equal(sources.members[0].payload.localManifest, sources.members[1].payload.localManifest);
+  assert.equal(sources.dependencies.length, 1);
+  assert.equal(events.manifests.length, 1);
+  assert.equal(events.manifests[0].length, 1);
+  for (const payload of sources.payloads) await payload.prepared.release();
+  assert(events.writers.every(value => !value.pending));
+});
+
+
+test('original target occurrences stay separate across one shared Result and Manifest', async () => {
+  // Opaque target and Common operations are sequencing doubles here. Only the
+  // actual Common issuer can admit a target; this test issues no Reference.
+  const {options, events} = fixture();
+  const targets = Object.freeze([Object.freeze({member: 0}), Object.freeze({member: 1})]);
+  const proposed = [];
+  Object.assign(options.moon, {
+    clientProgramEffectProposalBegin() { assert.fail('OriginalTargetMustNotBeDropped'); },
+    clientProgramEffectProposalBeginWithTarget(inputs, member, _fields, _work, target) {
+      assert.equal(inputs, options.inputs);
+      assert.equal(target, targets[member]);
+      proposed.push(member);
+      return ok({member});
+    },
+    clientProgramEffectProposalFinish: () => ok(undefined),
+    clientProgramEffectProposalCancel() {},
+    clientProgramEffectInputExportNextCanonicalRow: () => ok(undefined),
+  });
+  const sources = await preparePinnedEffectSourceSet({...options, publishedTargets: targets,
+    onProposalRow() { assert.fail('NoFixtureRows'); },
+    proposalLimits: {maxFields: 10, maxWork: 100, maxBytes: 100,
+      maxNodes: 100, maxDepth: 10, maxUtf16Units: 100}});
+  assert.deepEqual(proposed, [0, 1]);
+  assert.notEqual(sources.members[0].payload, sources.members[1].payload);
+  assert.equal(events.manifests[0].length, 1);
+  for (const payload of sources.payloads) await payload.prepared.release();
+});
+
+test('original target vectors reject sparse mutable accessor or silently unused entries before I/O', async () => {
+  const accessor = Object.freeze(Object.defineProperty([, undefined], '0', {
+    get() { throw new Error('TargetAccessorMustNotRun'); },
+  }));
+  for (const publishedTargets of [[], [undefined, undefined], Object.freeze([undefined]),
+    Object.freeze([, undefined]), accessor, Object.freeze([{}, undefined])]) {
+    const {options, events} = fixture();
+    await assert.rejects(preparePinnedEffectSourceSet({...options, publishedTargets}),
+      /InvalidEffectPublishedTargets/u);
+    assert.equal(events.writers.length, 0);
+  }
+});
+
+test('dependent target and key originals reach the same member before proposal without releasing either', async () => {
+  // Sequencing doubles only. Actual Common original Local/foreign/material/key
+  // checks have their independent runtime cases; these values issue no proof.
+  const {options, events} = fixture();
+  const phases = Object.freeze([0, 1].map(member => Object.freeze({member,
+    key: Object.freeze({member, fixtureOnly: true})})));
+  const targets = Object.freeze([Object.freeze({member: 0}), Object.freeze({member: 1})]);
+  const begun = [], completed = [], proposed = [], retained = [];
+  Object.assign(options.moon, {
+    clientProgramEffectLocalStaticBodies: () => ok([]),
+    clientProgramEffectTableInputAt: () => undefined,
+    clientProgramEffectInputExportNextCanonicalRow: () => ok(undefined),
+    clientProgramEffectInputExportFinish: stream => ok({_0: stream, _1: '[]'}),
+    clientProgramBeginEffectLocalCommandKeyWorkspace(scope, inputs, member, index) {
+      assert.equal(scope, phases[member]);
+      assert.equal(inputs, options.inputs);
+      assert.equal(index, 0);
+      begun.push(member);
+      return ok({input: inputs[member]});
+    },
+    clientProgramStartEffectCommandKeyWorkspace(scope) { return ok(scope.key); },
+    clientProgramEffectCommandKeyWorkspaceSynchronousEnd() {},
+    clientProgramEffectCommandKeyAdvance(key) {
+      assert.equal(key, phases[key.member].key);
+      completed.push(key.member);
+      return ok({_0: true, _1: 1});
+    },
+    clientProgramEffectProposalBeginWithTargetAndKey(inputs, member, _fields, _work, target, key) {
+      assert.equal(target, targets[member]);
+      assert.equal(inputs, options.inputs);
+      assert.equal(key, phases[member].key);
+      assert(completed.includes(member));
+      assert.equal(retained[member], key);
+      proposed.push(member);
+      return ok({member});
+    },
+    clientProgramEffectProposalFinish: () => ok(undefined),
+    clientProgramEffectProposalCancel() {},
+    clientProgramEffectInputExportSchemaWire: () => '{}',
+    clientProgramCloseEffectCommandKeyWorkspace() { assert.fail('ParentOwnsRetirement'); },
+  });
+  options.control.issueDependentLocalEffectResultArtifact = () =>
+    Object.freeze({identity: 'result-0', wire: '{}'});
+  const sources = await preparePinnedEffectSourceSet({...options,
+    commandWorkspaces: phases, publishedTargets: targets,
+    onProposalRow() { assert.fail('NoFixtureRows'); },
+    onCommandKey(member, key) { retained[member] = key; },
+    proposalLimits: {maxFields: 10, maxWork: 100, maxBytes: 100,
+      maxNodes: 100, maxDepth: 10, maxUtf16Units: 100},
+    localEvidenceContext: {...options.localEvidenceContext,
+      retentionDependencies: [], acquiredEvidence: {invocation: {}, bodies: []}},
+  });
+  assert.deepEqual(begun, [0, 1]);
+  assert.deepEqual(completed, [0, 1]);
+  assert.deepEqual(proposed, [0, 1]);
+  assert.equal(sources.payloads.length, 2);
+  assert.notEqual(sources.members[0].payload, sources.members[1].payload);
+  assert.equal(sources.members[0].payload.localManifest, sources.members[1].payload.localManifest);
+  assert.equal(sources.dependencies.length, 1);
+  assert.equal(events.manifests.length, 1);
+  assert.equal(events.manifests[0].length, 1);
+  for (const payload of sources.payloads) await payload.prepared.release();
+  assert(events.writers.every(value => !value.pending));
+});
+
+test('absent original target slots preserve the legacy shared payload and Manifest', async () => {
+  const {options, events} = fixture();
+  const sources = await preparePinnedEffectSourceSet({...options,
+    publishedTargets: Object.freeze([undefined, undefined])});
+  assert.equal(sources.members[0].payload, sources.members[1].payload);
+  assert.equal(events.writers.length, 1);
+  assert.equal(events.manifests[0].length, 1);
+  await sources.payloads[0].prepared.release();
+});

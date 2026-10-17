@@ -93,6 +93,7 @@ import {canonicalJson as canonicalValueJson} from
 import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
   retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
+import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
   './effect-physical-dispatch.mjs';
@@ -1247,6 +1248,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     assertCurrent?.();
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
+    const commandWorkspaces = [];
+    const commandKeys = [];
     const contentBorrowers = [];
     const contentArtifacts = [];
     const requestChildren = [];
@@ -1273,17 +1276,41 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       }
       if (!retired) fail('InstalledRowEffectContentCleanupPending');
       contentArtifacts.length = 0;
+      // The original parent retains phase/key aliases until request children,
+      // content borrowers and artifacts have actually retired. Export finally
+      // closes only the temporary import, never this byte borrower.
+      for (const workspace of commandWorkspaces) {
+        if (workspace === undefined) continue;
+        await retireEffectCommandKeyWorkspace(() => checked(
+          moon.clientProgramCloseEffectCommandKeyWorkspace(workspace)));
+      }
+      commandWorkspaces.length = 0;
+      commandKeys.length = 0;
       moon.clientProgramReleaseEffectInputs(inputs);
     };
     ownInputs(releaseInputs);
     const proposals = members.map(() => []);
     let proposalCount = 0;
+    const sourceLimits = moon.clientProgramEffectInputExportLimits(
+      ...exportLimits(plan.outputLimits));
+    if (typeof moon.clientProgramPlanEffectCommandKeyWorkspace === 'function') {
+      for (let index = 0; index < members.length; index++) {
+        // This is the original Local Effect Host, not the prepared computation
+        // (`checkedOwner`) or a Host re-created from the same CID.
+        commandWorkspaces.push(checked(moon.clientProgramPlanEffectCommandKeyWorkspace(
+          checkedHost, inputs, index, sourceLimits, limits.maxWork)));
+      }
+    }
     const sourceSet = await preparePinnedEffectSourceSet({moon,
+      ...(commandWorkspaces.length ? {commandWorkspaces: Object.freeze([...commandWorkspaces])} : {}),
+      onCommandKey(memberIndex, key) { commandKeys[memberIndex] = key; },
       checkedOwner: prepared, execution, inputs,
       maxMembers: members.length,
-      maxGroupingWork: (members.length + limits.maxPinnedResults) * 2,
-      limits: moon.clientProgramEffectInputExportLimits(
-        ...exportLimits(plan.outputLimits)),
+      // Membership, distinct keyed/target groups and dependency imports share
+      // the existing finite Host structural-work ceiling. Result/member counts
+      // bound inventory size, not the work of its cross-product comparisons.
+      maxGroupingWork: limits.maxWork,
+      limits: sourceLimits,
       store, maxBytes: plan.outputLimits.maxWireBytes, control,
       invocation: plan.invocation, retention: plan.effectInputRetention,
       ...(singular === undefined ? {memberSourceBindings: Object.freeze(members.map((member, memberIndex) =>
@@ -1449,6 +1476,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const chunks = [];
       const verified = await verifyPinnedEffectPlan({moon, execution,
         previewInputs, previewIndex: member.memberIndex,
+        inputKey: commandKeys[member.memberIndex],
         limits: moon.clientProgramEffectInputExportLimits(
           ...exportLimits(plan.outputLimits)),
         planLimits: {maxFields: limits.maxFields, maxWork: limits.planWork,

@@ -212,6 +212,8 @@ pub fn client_program_author_effect_preview(String, String, String, @logical_req
 
 pub fn client_program_begin_effect_command_key_workspace(ClientEffectCommandWorkspace, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue]
 
+pub fn client_program_begin_effect_local_command_key_workspace(ClientEffectCommandWorkspace, @physical_strategy.CapturedEffectInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue]
+
 pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
@@ -1421,6 +1423,46 @@ pub fn client_program_keyed_row_retain(@client_row_source_host.RowRun) -> Result
 pub fn client_program_keyed_row_start_accounted(@client_row_source_host.RowKeyedAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_keyed_row_target(@client_row_source_host.RowKeyedAcquisition) -> Result[Array[String], @client_row_source_host.RowHostIssue]
+
+pub fn client_program_kintone_accept_read_page(@actql/actql/connectors/kintone/host.RecordRead, Bytes) -> Result[Int, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_bind_read_cleanup(@actql/actql/connectors/kintone/host.RecordRead, () -> Bool) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_borrow_read(@actql/actql/connectors/kintone/host.PreparedRecordRead, @client_row_source_host.RowRun, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int) -> Result[@actql/actql/connectors/kintone/host.RecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_declaration_limits(Int, Int, Int, Int, Int) -> @client_row_source_host.RowDeclarationLimits
+
+pub fn client_program_kintone_declare_records(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.AppNumberSettings?, Array[String], String, String, String, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_form_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.FormFieldLimits
+
+pub fn client_program_kintone_form_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_page_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordPageLimits
+
+pub fn client_program_kintone_page_next_cursor(@actql/actql/connectors/kintone/host.RecordRead, Array[String], Int) -> Result[Array[String], @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_page_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Array[String], Int, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_project_form(Bytes, String, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.FormFieldIssue]
+
+pub fn client_program_kintone_read_acquisition(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> @client_row_source_host.RowAcquisition
+
+pub fn client_program_kintone_read_app(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> String
+
+pub fn client_program_kintone_read_fields(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> Array[String]
+
+pub fn client_program_kintone_read_page_ids(@actql/actql/connectors/kintone/host.RecordRead) -> Result[Array[String], @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_recheck_read_form(@actql/actql/connectors/kintone/host.RecordRead, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_record_declaration(@actql/actql/connectors/kintone/host.RecordDeclaration) -> @client_row_source_host.RowDeclaration
+
+pub fn client_program_kintone_retire_read(@actql/actql/connectors/kintone/host.RecordRead) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_value_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordValueLimits
 
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 

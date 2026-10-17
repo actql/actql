@@ -5,6 +5,7 @@
 struct ClientEffectCommandWorkspace {
   mut origin : (ClientLocalEffectHost, @strategy.CapturedEffectInputs)?
   member_index : Int
+  local_index : Int
   limits : @publication_host.PublicationOutputExportLimits
   max_work : Int
   quote : @execution.ExecutionCapacity
@@ -102,19 +103,22 @@ pub fn client_program_plan_effect_command_key_workspace(
   if count > max_work {
     return Err(Unavailable)
   }
-  let mut task = None
+  let mut selected = None
   for index in 0..<count {
     if @strategy.captured_effect_local_result_matches_member(
         inputs, index, member_index,
       ) {
-      if task is Some(_) {
+      if selected is Some(_) {
         return Err(ForeignOrigin)
       }
       let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
-      task = Some(@strategy.captured_effect_local_result_task(result))
+      selected = Some(
+        (index, @strategy.captured_effect_local_result_task(result)),
+      )
     }
   }
-  guard task is Some(task) && owner.sequences.get(task) is Some(sequence) else {
+  guard selected is Some((local_index, task)) &&
+    owner.sequences.get(task) is Some(sequence) else {
     return Err(Unavailable)
   }
   let graph = @strategy.captured_dag_graph(
@@ -135,6 +139,7 @@ pub fn client_program_plan_effect_command_key_workspace(
     Some({
       origin: Some((owner, inputs)),
       member_index,
+      local_index,
       limits,
       max_work,
       quote,
@@ -153,18 +158,42 @@ fn begin_client_effect_command_key_workspace(
   value : ClientEffectCommandWorkspace,
   output : @execution.ManagedCompletedOutput[Int],
   material : @execution.ManagedRetainedOutput[Int],
+  local_index : Int?,
 ) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue] {
   if !client_effect_command_workspace_current(value) ||
     value.importing is Some(_) {
     return Err(ForeignOrigin)
   }
   let (owner, inputs) = value.origin.unwrap()
-  guard @strategy.captured_effect_input_at(inputs, value.member_index)
-    is Some(input) else {
-    return Err(ForeignOrigin)
-  }
-  if !@strategy.captured_effect_input_matches_managed(input, output) {
-    return Err(ForeignOrigin)
+  let input = match local_index {
+    None => {
+      guard @strategy.captured_effect_input_at(inputs, value.member_index)
+        is Some(input) else {
+        return Err(ForeignOrigin)
+      }
+      if !@strategy.captured_effect_input_matches_managed(input, output) {
+        return Err(ForeignOrigin)
+      }
+      Some(input)
+    }
+    Some(index) => {
+      guard index == value.local_index &&
+        @strategy.captured_effect_local_result_matches_member(
+          inputs,
+          index,
+          value.member_index,
+        ) &&
+        @strategy.captured_effect_local_result_at(inputs, index) is Some(result) else {
+        return Err(ForeignOrigin)
+      }
+      if !client_effect_source_borrow_matches(
+          Result(@strategy.captured_effect_local_result_borrow(result)),
+          output,
+        ) {
+        return Err(ForeignOrigin)
+      }
+      None
+    }
   }
   let ledger = @strategy.captured_dag_ledger(
     @strategy.captured_effect_run_dag(owner.run),
@@ -209,13 +238,24 @@ fn begin_client_effect_command_key_workspace(
   if !client_effect_command_workspace_current(value) {
     return Err(Unavailable)
   }
-  let importing = match
-    client_program_effect_managed_input_begin(
-      input,
-      output,
-      material,
-      value.limits,
-    ) {
+  let result = match local_index {
+    None =>
+      client_program_effect_managed_input_begin(
+        input.unwrap(),
+        output,
+        material,
+        value.limits,
+      )
+    Some(index) =>
+      client_program_effect_local_managed_input_begin(
+        inputs,
+        index,
+        output,
+        material,
+        value.limits,
+      )
+  }
+  let importing = match result {
     Ok(importing) => importing
     Err(issue) => return Err(Import(issue))
   }
@@ -250,7 +290,42 @@ pub fn client_program_begin_effect_command_key_workspace(
     client_effect_workspace_limits_equal(value.limits, limits) else {
     return Err(ForeignOrigin)
   }
-  begin_client_effect_command_key_workspace(value, output, material)
+  begin_client_effect_command_key_workspace(value, output, material, None)
+}
+
+///|
+/// Admit the original managed completion through the scope's one selected
+/// local Result occurrence, never an arbitrary dependency/member or equal
+/// material. The existing import Owner validates its same retained material.
+/// The private caller retains this scope before invoking and always calls
+/// SynchronousEnd in finally, including on refusal or callback failure.
+#export_name("clientProgramBeginEffectLocalCommandKeyWorkspace")
+pub fn client_program_begin_effect_local_command_key_workspace(
+  value : ClientEffectCommandWorkspace,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  local_index : Int,
+  limits : @publication_host.PublicationOutputExportLimits,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue] {
+  value.operating += 1
+  if value.operating != 1 {
+    return Err(Unavailable)
+  }
+  guard value.origin is Some((_, original)) &&
+    physical_equal(original, inputs) &&
+    value.member_index == member_index &&
+    value.local_index == local_index &&
+    client_effect_workspace_limits_equal(value.limits, limits) else {
+    return Err(ForeignOrigin)
+  }
+  begin_client_effect_command_key_workspace(
+    value,
+    output,
+    material,
+    Some(local_index),
+  )
 }
 
 ///|

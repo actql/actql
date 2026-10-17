@@ -9,7 +9,7 @@ import {checked} from '../host-common/runtime-result.mjs';
  */
 export async function verifyPinnedEffectPlan({
   moon, execution, previewInputs, previewIndex, limits, planLimits,
-  onChunk, signal, advanceQuantum = 256,
+  onChunk, signal, inputKey, publishedTarget, advanceQuantum = 256,
 }) {
   if (typeof onChunk !== 'function' ||
       !Number.isSafeInteger(advanceQuantum) || advanceQuantum <= 0) {
@@ -35,9 +35,23 @@ export async function verifyPinnedEffectPlan({
   const task = moon.clientProgramEffectInputTask(input);
   const physical = execution.effectPhysicalSource(task);
   if (physical === undefined) throw new TypeError('MissingEffectPhysicalSource');
-  const importing = checked(moon.clientProgramEffectPlanImportBegin(
-    previewInputs, previewIndex, physical.completed, physical.material,
-    limits, ownedPlanLimits.maxFields, ownedPlanLimits.maxWork));
+  // The same capture-owned target/key enter the existing Common owner.
+  // No decoding, fallback, current-config lookup or new target issuance occurs.
+  const importing = checked(publishedTarget === undefined
+    ? inputKey === undefined
+      ? moon.clientProgramEffectPlanImportBegin(previewInputs, previewIndex,
+        physical.completed, physical.material, limits,
+        ownedPlanLimits.maxFields, ownedPlanLimits.maxWork)
+      : moon.clientProgramEffectPlanImportBeginWithKey(previewInputs, previewIndex,
+        physical.completed, physical.material, limits,
+        ownedPlanLimits.maxFields, ownedPlanLimits.maxWork, inputKey)
+    : inputKey === undefined
+      ? moon.clientProgramEffectPlanImportBeginWithTarget(previewInputs, previewIndex,
+        physical.completed, physical.material, limits,
+        ownedPlanLimits.maxFields, ownedPlanLimits.maxWork, publishedTarget)
+      : moon.clientProgramEffectPlanImportBeginWithTargetAndKey(previewInputs, previewIndex,
+        physical.completed, physical.material, limits,
+        ownedPlanLimits.maxFields, ownedPlanLimits.maxWork, publishedTarget, inputKey));
   let preparation, cursor, receipt;
   try {
     preparation = await physical.withRows(
