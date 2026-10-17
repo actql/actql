@@ -66,11 +66,17 @@ fn record_lookup_field_token(code : String) -> Bool {
     return false
   }
   for unit in code {
-    if unit <= ' ' || unit == '\u007f' || unit == '\u0085' ||
-      unit == '\u00a0' || unit == '\u1680' ||
+    if unit <= ' ' ||
+      unit == '\u007f' ||
+      unit == '\u0085' ||
+      unit == '\u00a0' ||
+      unit == '\u1680' ||
       (unit >= '\u2000' && unit <= '\u200a') ||
-      unit == '\u2028' || unit == '\u2029' || unit == '\u202f' ||
-      unit == '\u205f' || unit == '\u3000' {
+      unit == '\u2028' ||
+      unit == '\u2029' ||
+      unit == '\u202f' ||
+      unit == '\u205f' ||
+      unit == '\u3000' {
       return false
     }
     if unit < '\u0080' &&
@@ -127,8 +133,7 @@ pub fn prepare_record_text_key_lookup(
       return Err(BudgetExceeded)
     }
     remaining -= name.length()
-    if seen.contains(name) ||
-      form_field_named(catalog, [name]) is None {
+    if seen.contains(name) || form_field_named(catalog, [name]) is None {
       return Err(InvalidSelection)
     }
     seen[name] = true
@@ -142,10 +147,9 @@ pub fn prepare_record_text_key_lookup(
   }
   // Provider query escaping and JSON escaping are separate layers. Only the
   // exact original value is matched; no guessed case/Unicode normalization.
-  let literal = value.replace_all(old="\\", new="\\\\").replace_all(
-    old="\"",
-    new="\\\"",
-  )
+  let literal = value
+    .replace_all(old="\\", new="\\\\")
+    .replace_all(old="\"", new="\\\"")
   let query = key + " = \"" + literal + "\" limit 2"
   let writer = @encode.writer(
     limits.max_request_bytes,
@@ -231,7 +235,8 @@ pub fn project_record_key_lookup(
     Err(issue) => return Err(Page(issue))
   }
   let count = page.records.length()
-  guard count <= 1 && page.total_count is Some(total) &&
+  guard count <= 1 &&
+    page.total_count is Some(total) &&
     record_lookup_count_is(total, count) else {
     return Err(IncompleteResponse)
   }
@@ -247,8 +252,8 @@ pub fn project_record_key_lookup(
         guard @decode.text(field.value) is Ok(value) else {
           return Err(ForeignRecord)
         }
-        if value.length() > remaining || request.value.length() >
-          remaining - value.length() {
+        if value.length() > remaining ||
+          request.value.length() > remaining - value.length() {
           return Err(BudgetExceeded)
         }
         if value != request.value {
@@ -295,8 +300,10 @@ pub fn match_record_key_lookup(
     return Err(ChangedObservation)
   }
   if original.page.records.length() == 1 &&
-    (original.page.records[0].record_id != observed.page.records[0].record_id ||
-    original.page.records[0].revision != observed.page.records[0].revision) {
+    (
+      original.page.records[0].record_id != observed.page.records[0].record_id ||
+      original.page.records[0].revision != observed.page.records[0].revision
+    ) {
     return Err(ChangedObservation)
   }
   Ok(())
