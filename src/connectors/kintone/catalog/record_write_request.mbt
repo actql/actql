@@ -140,10 +140,10 @@ pub fn prepare_record_update_request(
       @encode.begin_ordered_object(writer)
       @encode.ordered_key(writer, "id")
       @encode.string_value(writer, target.record.record_id)
-      @encode.ordered_key(writer, "revision")
-      @encode.string_value(writer, target.record.revision)
       @encode.ordered_key(writer, "record")
       @encode.emit_document(writer, values.document)
+      @encode.ordered_key(writer, "revision")
+      @encode.string_value(writer, target.record.revision)
       @encode.end_object(writer)
     }
     @encode.end_array(writer)

@@ -75,7 +75,7 @@ test "updates retain each original target value pair and required wide revision 
   assert_eq(
     record_update_request_body(request),
     (
-      #|{"app":"12","records":[{"id":"9007199254740994","revision":"8","record":{"text":{"value":"second"}}},{"id":"9007199254740992","revision":"9007199254740993","record":{"text":{"value":"first"}}}],"upsert":false}
+      #|{"app":"12","records":[{"id":"9007199254740994","record":{"text":{"value":"second"}},"revision":"8"},{"id":"9007199254740992","record":{"text":{"value":"first"}},"revision":"9007199254740993"}],"upsert":false}
     ),
   )
   let originals = record_update_request_values(request)
