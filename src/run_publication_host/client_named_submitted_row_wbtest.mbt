@@ -5,6 +5,9 @@ test "named physical row preserves exact independent original fields and tag byt
     authenticator: Bytes::make(32, 0),
   }
   let body = client_submitted_name_row_body(row).unwrap()
+  assert_true(
+    @utf8.decode(body).unwrap().has_suffix("\",\"" + "0".repeat(64) + "\"]"),
+  )
   let decoded = decode_client_submitted_name_row(body).unwrap()
   assert_eq(decoded.binding, row.binding)
   assert_eq(decoded.authenticator, row.authenticator)

@@ -15,7 +15,7 @@ fn named_submission_index(
   // original index coordinates, then compare all retained coordinates too.
   // This is a private physical locator, not a new CID or release authority.
   @host.client_submitted_name_index_input(key)
-  .map(input => @sha.hex(@sha.digest(@utf8.encode(input))))
+  .map(input => @sha.hex(@utf8.encode(input)))
   .map_err(issue => NamedSubmission(issue))
 }
 

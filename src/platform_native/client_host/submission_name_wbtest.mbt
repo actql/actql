@@ -441,3 +441,52 @@ test "Native named long original coordinates fit the fixed physical index withou
   )
   database.close_checked().unwrap()
 }
+
+///|
+test "Native named current deny and foreign physical authority leave original rows unchanged" {
+  let (database, journal, authority, reference) = named_test_setup(
+    "named-current",
+  )
+  let scope = "sha256:" + "a".repeat(64)
+  let intent = submitted_test_intent("SELECT 1 AS n")
+  let epoch_before = database
+    .read("client_submission_epoch", "authority")
+    .unwrap()
+  assert_true(
+    journal.resolve_or_bind_submitted_name(
+      authority,
+      "workspace",
+      "actor",
+      "name",
+      intent,
+      Some(reference),
+      scope,
+      false,
+      5000.0,
+    )
+    is Err(AuthorizationDenied),
+  )
+  let (other, _, foreign, _) = named_test_setup("named-foreign")
+  assert_true(
+    journal.resolve_or_bind_submitted_name(
+      foreign,
+      "workspace",
+      "actor",
+      "name",
+      intent,
+      Some(reference),
+      scope,
+      true,
+      5000.0,
+    )
+    is Err(InvalidSubmission),
+  )
+  assert_eq(
+    database.read("client_submission_epoch", "authority").unwrap().body,
+    epoch_before.body,
+  )
+  assert_eq(journal.submitted_intent_custody().unwrap().0, 0)
+  assert_eq(journal.submitted_name_custody(authority).unwrap().0, 0)
+  other.close_checked().unwrap()
+  database.close_checked().unwrap()
+}

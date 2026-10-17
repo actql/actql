@@ -40,6 +40,19 @@ pub fn client_submitted_name_index_input(
 }
 
 ///|
+fn submitted_name_authenticator_hex(bytes : Bytes) -> String {
+  let output = StringBuilder(size_hint=64)
+  let digits : FixedArray[Char] = [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
+  ]
+  for byte in bytes {
+    output.write_char(digits[byte.to_int() >> 4])
+    output.write_char(digits[byte.to_int() & 15])
+  }
+  output.to_string()
+}
+
+///|
 pub fn client_submitted_name_row_body(
   row : ClientSubmittedNameRow,
 ) -> Result[Bytes, ClientSubmittedNameIssue] {
@@ -55,7 +68,10 @@ pub fn client_submitted_name_row_body(
     let writer = @encode.writer(16384, 3, 2)
     @encode.begin_array(writer)
     @encode.string_value(writer, original)
-    @encode.string_value(writer, @sha.hex(row.authenticator))
+    @encode.string_value(
+      writer,
+      submitted_name_authenticator_hex(row.authenticator),
+    )
     @encode.end_array(writer)
     Ok(@utf8.encode(@encode.finish(writer)))
   } catch {
