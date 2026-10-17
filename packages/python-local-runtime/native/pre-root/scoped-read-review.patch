@@ -1,3 +1,110 @@
+--- a/moonbit_runtime.h
++++ b/moonbit_runtime.h
+@@ -190,8 +190,18 @@
+ void *mi_malloc(size_t size);
+ #endif
+ void mi_free(void *ptr);
++#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
++/* Derived selected-runtime hook. Original control allocations outside a funded
++ * read call retain mi_malloc/mi_free. Managed aliases free through provenance
++ * after leaving that call. This flag alone never supplies a funded context. */
++void *actql_native_moon_scoped_allocate(size_t size);
++void actql_native_moon_scoped_free(void *pointer);
++#define MOONBIT_MALLOC_RAW actql_native_moon_scoped_allocate
++#define MOONBIT_FREE_RAW actql_native_moon_scoped_free
++#else
+ #define MOONBIT_MALLOC_RAW mi_malloc
+ #define MOONBIT_FREE_RAW mi_free
++#endif
+
+ #elif MOONBIT_ALLOCATOR == MOONBIT_ALLOCATOR_SYSTEM
+
+--- a/owned_capacity.c
++++ b/owned_capacity.c
+@@ -14,12 +14,17 @@
+ #include <pthread.h>
+
+ /* An extent is a physical allocator record, not a Run or capacity decision. */
++struct actql_read_context;
+ struct extent {
+     size_t pages;
+     bool retired;
+     bool sealed;
+     size_t external_readers;
+     bool external_writer;
++    /* Derived physical layout; not covered by an old numerical profile. */
++    struct actql_read_context *read_context;
++    pid_t read_process;
++    bool read_released;
+ };
+
+ struct actql_owned_capacity {
+@@ -39,6 +44,7 @@
+     bool transferred;
+     bool closing;
+     size_t active_scopes;
++    size_t read_context_count;
+     atomic_flag lock;
+     struct extent extents[];
+ };
+@@ -443,6 +449,9 @@
+     if (lease->active_scopes != 0) {
+         return ACTQL_OWNED_BUSY;
+     }
++    /* Retained read users still need their original allocation scope for
++     * physical cleanup. Logical Host closing remains enforced by its Owner. */
++    if (lease->read_context_count != 0) return ACTQL_OWNED_BUSY;
+     lease->closing = true;
+     for (size_t i = lease->control_pages; i < lease->page_count; i++) {
+         if (lease->extents[i].pages == 0) continue;
+@@ -486,3 +495,6 @@
+
+ /* Child startup and join reuse this provider's original scope and backing. */
+ #include "owned_thread.inc"
++
++/* Private selected read allocator preparation, same physical provider. */
++#include "scoped_read.inc"
+--- a/owned_region.inc
++++ b/owned_region.inc
+@@ -349,6 +349,7 @@
+         return ACTQL_OWNED_IMAGE_MISMATCH;
+     lock_capacity(lease);
+     if (!lease->transferred || lease->closing || lease->active_scopes != 0 ||
++        lease->read_context_count != 0 ||
+         lease->domain_borrow_attempted ||
+         atomic_load_explicit(&lease->domain_borrower_pid, memory_order_relaxed) != 0) {
+         unlock_capacity(lease);
+--- /dev/null
++++ b/scoped_read.h
+@@ -0,0 +1,28 @@
++#ifndef ACTQL_PRIVATE_SCOPED_READ_H
++#define ACTQL_PRIVATE_SCOPED_READ_H
++#include <stddef.h>
++#include "owned_capacity.h"
++/* Physical custody only. The existing Core supplier must first validate the
++ * original same-Ledger loan and backing borrow. DATA cannot issue this loan. */
++typedef struct actql_read_context actql_read_context;
++int actql_read_context_create(actql_owned_capacity *, actql_read_context **);
++int actql_read_context_retain(actql_read_context *);
++int actql_read_context_release_after_owner_ack(actql_read_context *);
++int actql_read_context_enter(actql_read_context *);
++/* Original stopped read-use only; no fresh user or read permission. */
++int actql_read_context_enter_cleanup(actql_read_context *);
++int actql_read_context_leave(actql_read_context *);
++int actql_read_context_try_close(actql_read_context **);
++/* Same-provider physical observations. A NULL valid-pointer projection is
++ * not proof that the raw TLS frame is empty. The full clear observation checks
++ * raw read/depth plus original owned/depth under the existing process guard. */
++actql_read_context *actql_read_context_current(void);
++int actql_read_context_control_scope_clear(void);
++/* Existing managed allocations retain their original free route after leave.
++ * These are private runtime hooks, not user-facing allocation operations. */
++void *actql_native_moon_scoped_allocate(size_t);
++void actql_native_moon_scoped_free(void *);
++void *actql_native_file_scoped_allocate(size_t);
++void *actql_native_file_scoped_callocate(size_t, size_t);
++void actql_native_file_scoped_free(void *);
++#endif
 --- /dev/null
 +++ b/scoped_read.inc
 @@ -0,0 +1,344 @@
@@ -345,110 +452,3 @@
 +    unlock_read_contexts();
 +    return clear ? 1 : 0;
 +}
---- a/moonbit_runtime.h
-+++ b/moonbit_runtime.h
-@@ -190,8 +190,18 @@
- void *mi_malloc(size_t size);
- #endif
- void mi_free(void *ptr);
-+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
-+/* Derived selected-runtime hook. Original control allocations outside a funded
-+ * read call retain mi_malloc/mi_free. Managed aliases free through provenance
-+ * after leaving that call. This flag alone never supplies a funded context. */
-+void *actql_native_moon_scoped_allocate(size_t size);
-+void actql_native_moon_scoped_free(void *pointer);
-+#define MOONBIT_MALLOC_RAW actql_native_moon_scoped_allocate
-+#define MOONBIT_FREE_RAW actql_native_moon_scoped_free
-+#else
- #define MOONBIT_MALLOC_RAW mi_malloc
- #define MOONBIT_FREE_RAW mi_free
-+#endif
-
- #elif MOONBIT_ALLOCATOR == MOONBIT_ALLOCATOR_SYSTEM
-
---- a/owned_region.inc
-+++ b/owned_region.inc
-@@ -349,6 +349,7 @@
-         return ACTQL_OWNED_IMAGE_MISMATCH;
-     lock_capacity(lease);
-     if (!lease->transferred || lease->closing || lease->active_scopes != 0 ||
-+        lease->read_context_count != 0 ||
-         lease->domain_borrow_attempted ||
-         atomic_load_explicit(&lease->domain_borrower_pid, memory_order_relaxed) != 0) {
-         unlock_capacity(lease);
---- /dev/null
-+++ b/scoped_read.h
-@@ -0,0 +1,28 @@
-+#ifndef ACTQL_PRIVATE_SCOPED_READ_H
-+#define ACTQL_PRIVATE_SCOPED_READ_H
-+#include <stddef.h>
-+#include "owned_capacity.h"
-+/* Physical custody only. The existing Core supplier must first validate the
-+ * original same-Ledger loan and backing borrow. DATA cannot issue this loan. */
-+typedef struct actql_read_context actql_read_context;
-+int actql_read_context_create(actql_owned_capacity *, actql_read_context **);
-+int actql_read_context_retain(actql_read_context *);
-+int actql_read_context_release_after_owner_ack(actql_read_context *);
-+int actql_read_context_enter(actql_read_context *);
-+/* Original stopped read-use only; no fresh user or read permission. */
-+int actql_read_context_enter_cleanup(actql_read_context *);
-+int actql_read_context_leave(actql_read_context *);
-+int actql_read_context_try_close(actql_read_context **);
-+/* Same-provider physical observations. A NULL valid-pointer projection is
-+ * not proof that the raw TLS frame is empty. The full clear observation checks
-+ * raw read/depth plus original owned/depth under the existing process guard. */
-+actql_read_context *actql_read_context_current(void);
-+int actql_read_context_control_scope_clear(void);
-+/* Existing managed allocations retain their original free route after leave.
-+ * These are private runtime hooks, not user-facing allocation operations. */
-+void *actql_native_moon_scoped_allocate(size_t);
-+void actql_native_moon_scoped_free(void *);
-+void *actql_native_file_scoped_allocate(size_t);
-+void *actql_native_file_scoped_callocate(size_t, size_t);
-+void actql_native_file_scoped_free(void *);
-+#endif
---- a/owned_capacity.c
-+++ b/owned_capacity.c
-@@ -14,12 +14,17 @@
- #include <pthread.h>
-
- /* An extent is a physical allocator record, not a Run or capacity decision. */
-+struct actql_read_context;
- struct extent {
-     size_t pages;
-     bool retired;
-     bool sealed;
-     size_t external_readers;
-     bool external_writer;
-+    /* Derived physical layout; not covered by an old numerical profile. */
-+    struct actql_read_context *read_context;
-+    pid_t read_process;
-+    bool read_released;
- };
-
- struct actql_owned_capacity {
-@@ -39,6 +44,7 @@
-     bool transferred;
-     bool closing;
-     size_t active_scopes;
-+    size_t read_context_count;
-     atomic_flag lock;
-     struct extent extents[];
- };
-@@ -443,6 +449,9 @@
-     if (lease->active_scopes != 0) {
-         return ACTQL_OWNED_BUSY;
-     }
-+    /* Retained read users still need their original allocation scope for
-+     * physical cleanup. Logical Host closing remains enforced by its Owner. */
-+    if (lease->read_context_count != 0) return ACTQL_OWNED_BUSY;
-     lease->closing = true;
-     for (size_t i = lease->control_pages; i < lease->page_count; i++) {
-         if (lease->extents[i].pages == 0) continue;
-@@ -486,3 +495,6 @@
-
- /* Child startup and join reuse this provider's original scope and backing. */
- #include "owned_thread.inc"
-+
-+/* Private selected read allocator preparation, same physical provider. */
-+#include "scoped_read.inc"

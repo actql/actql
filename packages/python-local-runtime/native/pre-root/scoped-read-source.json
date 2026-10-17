@@ -11,7 +11,7 @@
   "patch": {
     "path": "scoped-read-review.patch",
     "bytes": 19956,
-    "sha256": "a2a875eff91602773b8a77f95cf17226a3a81ee74ad67e064d74a4dc12a245a1"
+    "sha256": "7d531e56fd0fb823a74aae45224da7e33d08970f6c437bf050a745109cae121a"
   },
   "inputs": [
     {
