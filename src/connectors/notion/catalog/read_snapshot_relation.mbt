@@ -1,6 +1,7 @@
 ///|
-/// Project this same saved full database schema into the existing generic
-/// RowRelationViewSpec input. The row-source owner still admits its Catalog
+/// Project this same saved full database schema's checked fields into the
+/// existing RowRelationViewSpec input. Its field-map identity is distinct from
+/// the saved complete Object contract. The row-source owner admits its Catalog
 /// and contracts. This does not assert keys, acquisition facts, a Reference,
 /// installation membership, current authority or a funded physical reader.
 pub fn notion_database_read_snapshot_relation_specification(
@@ -27,6 +28,36 @@ pub fn notion_database_read_snapshot_relation_specification(
   if @admitted.text_value(resource, limits.max_bytes) is None {
     return Err(InvalidSnapshot)
   }
+  guard snapshot.read_contracts.schema.shape is @contract.Object(fields) &&
+    !snapshot.read_contracts.schema.nullable else {
+    return Err(SchemaMismatch)
+  }
+  // The existing Relation owner consumes a field-contract map, rather than
+  // the complete Object contract saved by the snapshot. Emit the same checked
+  // child contracts with their original order, constraints and nullability.
+  let schema_writer = @encode.writer(
+    limits.max_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  ) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  let schema_wire = try {
+    @encode.begin_ordered_object(schema_writer)
+    for index in 0..<@contract.field_count(fields) {
+      let field = @contract.field_at(fields, index).unwrap()
+      @encode.ordered_key(schema_writer, field.name)
+      @contract.emit_checked(field.contract, schema_writer)
+    }
+    @encode.end_object(schema_writer)
+    @encode.finish(schema_writer)
+  } catch {
+    _ => {
+      @encode.cancel_writer(schema_writer)
+      return Err(BudgetExceeded)
+    }
+  }
+  let schema_cid = "sha256:" + @sha.hex(@utf8.encode(schema_wire))
   let writer = @encode.writer(
     limits.max_bytes,
     limits.max_nodes,
@@ -43,8 +74,8 @@ pub fn notion_database_read_snapshot_relation_specification(
       (key, value) in [
         ("resource", resource),
         ("resource_kind", "notion_database"),
-        ("schema_cid", snapshot.schema_cid),
-        ("schema_wire", snapshot.schema_wire),
+        ("schema_cid", schema_cid),
+        ("schema_wire", schema_wire),
       ] {
       @encode.key(writer, key)
       @encode.string_value(writer, value)

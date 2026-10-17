@@ -1,5 +1,5 @@
 ///|
-test "Notion saved full schema projects exact schema bytes into existing relation specification" {
+test "Notion saved full schema projects the checked field map with its own relation identity" {
   let snapshot = snapshot_test_empty(system=true)
   let resource = "tasks-é😀"
   let specification = notion_database_read_snapshot_relation_specification(
@@ -33,13 +33,11 @@ test "Notion saved full schema projects exact schema bytes into existing relatio
     @decode.text(@decode.lookup(view, "resource_kind").unwrap()),
     Ok("notion_database"),
   )
-  assert_eq(
-    @decode.text(@decode.lookup(view, "schema_wire").unwrap()),
-    Ok(snapshot.schema_wire),
-  )
+  let schema_wire = @decode.text(@decode.lookup(view, "schema_wire").unwrap()).unwrap()
+  assert_true(schema_wire != snapshot.schema_wire)
   assert_eq(
     @decode.text(@decode.lookup(view, "schema_cid").unwrap()),
-    Ok(snapshot.schema_cid),
+    Ok("sha256:" + @sha.hex(@utf8.encode(schema_wire))),
   )
   assert_true(@decode.lookup(view, "facts_wire") is None)
   assert_true(@decode.lookup(view, "acquisition_wire") is None)
