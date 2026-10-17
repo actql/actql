@@ -1,4 +1,4 @@
-import {connect, type EmbeddedLocalOptions} from './index.mjs';
+import {connect, type EmbeddedLocalOptions} from '@actql/node';
 import {connect as connectLocal} from '@actql/local-node';
 
 const embedded: EmbeddedLocalOptions = {mode: 'local',
