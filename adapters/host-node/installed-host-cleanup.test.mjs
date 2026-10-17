@@ -145,7 +145,7 @@ for (const phase of ['schema', 'prepare']) {
         assert.equal(error.cause.cause, fault.primary);
         assert.equal(error.cleanupPending, true);
         assert.ok(error.cleanupErrors.some(item => item.error === fault.cleanup));
-        assert.deepEqual(error.cleanupHandle.status().owners, ['initialization']);
+        assert.deepEqual(error.cleanupHandle.status().owners, ['initialization', 'runtime']);
         return true;
       });
       assert.equal(fault.calls.close, 2);
