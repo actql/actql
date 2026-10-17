@@ -172,3 +172,24 @@ test('every generated binding member remains required before original write obse
   }
   assert.equal(f.tls.seen().length, 0); assert.equal(f.state.resolutions, 0);
 });
+
+for (const change of ['calculation', 'mapping']) {
+  test(`same-revision ${change} drift retains charged Form and refuses CREATE and UPDATE`, async t => {
+    for (const kind of ['create', 'update']) {
+      const f = await writeFixture(t, {kind});
+      f.state.form = () => ({...originalForm, properties: {...originalForm.properties,
+        Subject: {...originalForm.properties.Subject, expression: change === 'calculation' ? '"server value"' : '',
+          ...(change === 'mapping' ? {lookup: {fieldMappings: [{field: 'Tags', relatedField: 'source'}]}} : {})}}});
+      await assert.rejects(f.send(), error => {
+        assert.equal(error.code, 'MoonBitHostFailure');
+        assert.equal(error.phase, 'form');
+        assert.equal(error.observations.length, 1);
+        return true;
+      });
+      assert.equal(f.state.forms, 1); assert.equal(f.state.targets, 0);
+      assert.equal(f.state.writes, 0); assert.equal(f.tls.seen().length, 1);
+      assert.equal(f.state.charges, 1); assert.equal(f.state.consumed, 0);
+      assert.deepEqual(f.state.fixtureFailures, []);
+    }
+  });
+}
