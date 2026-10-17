@@ -30,7 +30,7 @@ async function fixture(t, mode, failSync = false) {
   const open = fs.open;
   const closeFailure = Object.freeze(new Error('OriginalRetirementDirectoryCloseFailure'));
   const syncFailure = Object.freeze(new Error('OriginalRetirementDirectorySyncFailure'));
-  let original, closeOriginal, next, allowClose = false;
+  let original, closeOriginal, next, displaced, allowClose = false;
   let opens = 0, syncs = 0, closes = 0;
   fs.open = async (...args) => {
     const handle = await Reflect.apply(open, fs, args);
@@ -62,12 +62,22 @@ async function fixture(t, mode, failSync = false) {
     syncBuiltinESMExports();
     if (original !== undefined) await closeOriginal();
     if (next !== undefined && !next.status().closed) await next.close();
+    if (displaced !== undefined) {
+      if (next !== undefined) await fs.rm(directory, {recursive: true, force: false});
+      await fs.rename(displaced, directory);
+    }
     if (!store.status().closed) await store.close();
     scratch.passed();
   });
   return {scratch, directory, store, ownedKey, closeFailure, syncFailure,
     original: () => original, counts: () => ({opens, syncs, closes}),
     allowClose: () => { allowClose = true; },
+    relocate: async replacement => {
+      displaced = join(scratch.path, 'original-root');
+      await fs.rename(directory, displaced);
+      if (replacement) next = await openLocalPublicationStore(configuration, control);
+      return next;
+    },
     successor: async () => { next = await openLocalPublicationStore(configuration, control); return next; }};
 }
 
@@ -131,3 +141,46 @@ test('pending old retirement directory close cannot remove a healthy successor',
   await successor.close();
   f.scratch.passed();
 });
+
+for (const mode of ['false', 'reject']) {
+  for (const replacement of [false, true]) {
+    test(`pending ${mode} FD drains before ${replacement ? 'foreign' : 'missing'} root refusal`, async t => {
+      const f = await fixture(t, mode);
+      await assert.rejects(f.store.close());
+      await f.original().stat();
+      const successor = await f.relocate(replacement);
+      const ownerPath = join(f.directory, 'owner', 'owner.json');
+      const bytes = successor === undefined ? undefined : await fs.readFile(ownerPath);
+      const inode = successor === undefined ? undefined : (await fs.lstat(ownerPath)).ino;
+      const before = f.counts();
+      f.allowClose();
+      const retry = f.store.close();
+      assert.equal(retry, f.store.close());
+      await assert.rejects(retry, {code: 'PublicationStoreOwnershipLost'});
+      assert.equal(f.counts().closes, 2, 'retry must close the same already-owned FD');
+      await assert.rejects(f.original().stat(), {code: 'EBADF'});
+      assert.deepEqual(f.counts(), {...before, closes: 2}, 'no new open or sync on a foreign/missing root');
+      assert.equal(f.store.status().closed, false, 'FD drain is not successful Store retirement');
+      assert.deepEqual(f.ownedKey, Buffer.alloc(32, 7), 'the original key remains held');
+      await assert.rejects(f.store.close(), {code: 'PublicationStoreOwnershipLost'});
+      assert.equal(f.counts().closes, 2, 'a drained FD is not closed again');
+      if (successor !== undefined) {
+        assert.equal(successor.status().closed, false);
+        assert.deepEqual(await fs.readFile(ownerPath), bytes);
+        assert.equal((await fs.lstat(ownerPath)).ino, inode);
+      }
+    });
+  }
+
+  test(`failed sync and pending ${mode} FD drain without acquiring a missing root`, async t => {
+    const f = await fixture(t, mode, true);
+    await assert.rejects(f.store.close(), error => error.primaryFailure === f.syncFailure);
+    await f.relocate(false);
+    f.allowClose();
+    await assert.rejects(f.store.close(), {code: 'PublicationStoreOwnershipLost'});
+    await assert.rejects(f.original().stat(), {code: 'EBADF'});
+    assert.deepEqual(f.counts(), {opens: 1, syncs: 1, closes: 2});
+    assert.equal(f.store.status().closed, false);
+    assert.deepEqual(f.ownedKey, Buffer.alloc(32, 7));
+  });
+}
