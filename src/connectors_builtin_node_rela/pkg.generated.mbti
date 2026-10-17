@@ -68,6 +68,34 @@ pub fn client_host_signers_original_wire(@run_publication_host.ClientHostSignerC
 
 pub fn client_host_signers_select(@run_publication_host.ClientHostSignerConfiguration, String) -> @run_publication_host.ClientHostSignerSelection?
 
+pub fn client_local_signing_grant_admit(String, String) -> @remote_credential.LocalSigningCredentialGrant raise NodeHostFailure
+
+pub fn client_local_signing_grant_cid(@remote_credential.LocalSigningCredentialGrant) -> String
+
+pub fn client_local_signing_grant_expires(@remote_credential.LocalSigningCredentialGrant) -> Int64
+
+pub fn client_local_signing_grant_max_uses(@remote_credential.LocalSigningCredentialGrant) -> Int
+
+pub fn client_local_signing_grant_scope(@remote_credential.LocalSigningCredentialGrant) -> @remote_credential.LocalSigningCredentialScope
+
+pub fn client_local_signing_grant_wire(@remote_credential.LocalSigningCredentialGrant) -> String raise NodeHostFailure
+
+pub fn client_local_signing_use_admit(@remote_credential.LocalSigningCredentialGrant, String, String) -> @remote_credential.LocalSigningCredentialUse raise NodeHostFailure
+
+pub fn client_local_signing_use_check(@remote_credential.LocalSigningCredentialUse, Int64, Bool, @remote_credential.LocalSigningCredentialScope) -> Unit raise NodeHostFailure
+
+pub fn client_local_signing_use_cid(@remote_credential.LocalSigningCredentialUse) -> String
+
+pub fn client_local_signing_use_grant_cid(@remote_credential.LocalSigningCredentialUse) -> String
+
+pub fn client_local_signing_use_id(@remote_credential.LocalSigningCredentialUse) -> String
+
+pub fn client_local_signing_use_ordinal(@remote_credential.LocalSigningCredentialUse) -> Int
+
+pub fn client_local_signing_use_prepare(@remote_credential.LocalSigningCredentialGrant, String, Int64, Int, Bool, @remote_credential.LocalSigningCredentialScope) -> @remote_credential.LocalSigningCredentialUse raise NodeHostFailure
+
+pub fn client_local_signing_use_wire(@remote_credential.LocalSigningCredentialUse) -> String raise NodeHostFailure
+
 pub fn client_program_acquired_effect_catalog_bodies(@run_publication_host.ClientEffectAcquiredEvidence, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_acquired_effect_dependency_bodies(@run_publication_host.ClientEffectAcquiredEvidence) -> Array[(String, String)]

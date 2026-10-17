@@ -3457,6 +3457,116 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/initial-local-signing-issuer.authenticated-original",
+      "statement_sha256": "0ebd8eafd71f2da37e0a8417353b955b6d346f8d49b464044a79e6d603db269e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-local-signing-issuer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/initial-local-signing-issuer.exact-operation",
+      "statement_sha256": "ae28d4e3cb5974b5a1aaf92003ad304db7b0f88625f0c5f74bf5bdc1d689bb0d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-local-signing-issuer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/initial-local-signing-issuer.independent-current-authority",
+      "statement_sha256": "000058e62a5c2842411add275ae25856ef4a48e940bcdd094fbbc0f85f1b1faf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-local-signing-issuer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/initial-local-signing-issuer.original-default-identity",
+      "statement_sha256": "a83c369deda42dad72f22b256511345e48d5a1b81114203149a0093dc5393ec1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-local-signing-issuer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/initial-local-signing-issuer.no-authority-expansion",
+      "statement_sha256": "50b7098664d5a56bbacd74e136a450e3e8d505ae2af2669246bc706d652f580e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-local-signing-issuer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/initial-local-signing-issuer.original-durable-use",
+      "statement_sha256": "ccf7460e104331c94ffa4f8d5412ff22234d0409ffd03e0a02e69257113e9f0f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-local-signing-issuer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/local-signing-bootstrap-policy.pinned-initial-original",
+      "statement_sha256": "d43a1533a4bcc545f39a3c190a03f3e73110281e638e36babd51fabbc0254a0c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-signing-bootstrap-policy",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/local-signing-bootstrap-policy.original-issuer-identity",
+      "statement_sha256": "8cad69ce81ad135d250aebc045f742b16b6665fd598b3791b612c795bdd3c32d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-signing-bootstrap-policy",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/local-signing-bootstrap-policy.first-durable-issue",
+      "statement_sha256": "80953456d8a8dad4256177f1bb9614b2174e384bc4cef0d7149e1b8d9ca419b4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-signing-bootstrap-policy",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/local-signing-bootstrap-policy.default-only-and-no-backfill",
+      "statement_sha256": "1160bc5601b1d0f4e2662d222bd7492a5f769eab24cf05738cd661180d8abd89",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-signing-bootstrap-policy",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
       "statement_sha256": "a062e474116a2c1e53ec862386043f5e19e3cced197ae2183c102af884b05831",
       "status": "pending",

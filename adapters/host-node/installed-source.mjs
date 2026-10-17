@@ -31,7 +31,6 @@
 // - optionally `discovery` ({resources, inspectResource, peekResource}) and
 //   `close()`.
 import {createHash} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
@@ -40,7 +39,7 @@ import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
-import {readSourceProfileJson} from './source-profile-json.mjs';
+import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
@@ -96,8 +95,6 @@ async function selectInstallation(profile, connectorTable) {
 
 // The Site binds its credential grants to the exact standard runtime this
 // Host executes.
-const runtimeBundleCidOf = async runtimeUrl => `sha256:${createHash('sha256')
-  .update(await readFile(runtimeUrl)).digest('hex')}`;
 
 // Provider compilation and Site runtime binding are independent. A JS-only
 // physical Source still binds credential grants to the actual Host runtime;
@@ -106,9 +103,9 @@ const runtimeBundleCidOf = async runtimeUrl => `sha256:${createHash('sha256')
 async function providerRuntime(entry, runtimeUrl) {
   const bundle = providerBundleUrl(entry);
   if (bundle === undefined) return runtimeUrl === undefined ? {}
-    : {runtimeBundleCid: await runtimeBundleCidOf(runtimeUrl)};
+    : {runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl)};
   return {providerMoon: await import(bundle.href),
-    runtimeBundleCid: await runtimeBundleCidOf(runtimeUrl)};
+    runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl)};
 }
 
 // A connected embedded Host keeps one installed source for its lifetime.
