@@ -23,10 +23,10 @@
           "inputsOutputs": [{"path": "adapters/connectors/gcs/site/gcs-credential-site.mjs", "anchor": "export function openGcsCredentialSite(options)"}],
           "identity": [{"path": "adapters/connectors/gcs/host/installed-gcs-source.mjs", "anchor": "binding.scope_cid === scopeCid"}],
           "ownership": [{"path": "adapters/host-node/installed-row-source.mjs", "anchor": "const approvals = new WeakMap()"}],
-          "ordering": [{"path": "adapters/host-node/installed-row-source.mjs", "anchor": "synchronous(approved.enter())"}],
+          "synchronization": [{"path": "adapters/host-node/installed-row-source.mjs", "anchor": "synchronous(approved.enter())"}],
           "failure": [{"path": "adapters/connectors/gcs/test/gcs-effect-target-read.test.mjs", "anchor": "GCS target read rejects a matching approval for foreign"}],
           "resources": [{"path": "adapters/connectors/gcs/README.md", "anchor": "The added predicate closure"}],
-          "authority": [{"path": "adapters/host-node/installed-row-source.mjs", "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"}],
+          "cancellation": [{"path": "adapters/connectors/gcs/test/gcs-effect-target-read.test.mjs", "anchor": "GCS target grant rechecks the original current fence and same Site lifetime"}],
           "extension": [{"path": "adapters/connectors/gcs/site/gcs-credential-site.mjs", "anchor": "resource === 'objects' && operation === 'gcs:file:read'"}],
           "verification": [{"path": "adapters/connectors/gcs/test/gcs-effect-target-read.test.mjs", "anchor": "GCS same Site admits the original objects read"}]
         }
