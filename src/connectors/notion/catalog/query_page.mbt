@@ -100,7 +100,7 @@ fn original_query_row(
   source : NotionDataSourceCatalog,
   original : @decode.Cursor,
   raw : Bytes,
-  limits : NotionQueryLimits,
+  max_properties : Int,
 ) -> Result[OriginalNotionQueryRow, NotionQueryIssue] {
   guard @decode.open_object(original) is Ok(row) &&
     @decode.lookup(row, "object") is Some(kind) &&
@@ -136,7 +136,7 @@ fn original_query_row(
     @decode.object_length(properties) == Some(source.properties.length()) else {
     return Err(SchemaChanged(id))
   }
-  if source.properties.length() > limits.metadata.max_properties {
+  if source.properties.length() > max_properties {
     return Err(BudgetExceeded)
   }
   let selected = []
@@ -220,7 +220,7 @@ pub fn project_notion_query_page(
         source,
         @decode.element_at(results, index).unwrap(),
         raw,
-        limits,
+        limits.metadata.max_properties,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
