@@ -21,9 +21,14 @@ test('actual Program schemas retain all original declarations and add only optio
     vectors.previous_source + ':spec/contracts/actql-protocol-schemas.json'],
   {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024})).artifact_schemas.executable_plan
     .properties.execution_material.properties.program);
+  const historical = structuredClone(prior);
+  command(historical).properties.input_key = structuredClone(commandInputKeySchema);
+  assert.equal(machineCid(historical), vectors.program_cid,
+    'The original input-key-only preimage retains its original type grammar');
   for (const program of parameterPrograms(protocol)) {
-    assert.equal(machineCid(withoutCreateValuesSchema(program)), vectors.program_cid,
-      'Retain the original Command-only containing schema identity before create.values');
+    // Later adopted type constraints do not rewrite a historical full-schema
+    // preimage. Compare the complete current Command against its original body.
+    assert.deepEqual(command(withoutCreateValuesSchema(program)), command(historical));
     assert.deepEqual(command(program).properties.input_key, commandInputKeySchema);
     assert.equal(command(program).required.includes('input_key'), false);
   }
