@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
-import {vectors,legacy,legacyBody,mutations,scope,policy,claims,originalRun,authoring,expectedCids,legacyCid} from
+import {vectors,legacy,legacyBody,mutations,scope,policy,claims,originalRun,authoring,expectedCids,legacyCid,insufficientOriginals} from
   './fixtures/effect-review-projection-vectors.mjs';
 
 export function generateEffectReviewVectors(){
@@ -31,6 +31,9 @@ export function generateEffectReviewVectors(){
     `  assert_eq(run_evidence_value_json(legacy), ${q(canonicalText(legacy))})\n`+
     `  assert_eq(run_evidence_value_identity(legacy), ${q(legacy.review_projection_cid)})\n`+
     `  assert_true(admit_effect_review_projection(original, ${q(v.previewWire)}, ${q(canonicalText(legacy))}, ${q(scope)}, ${array(claims)}, ${q(policy)}, 20000, 2000, 32) is Err(ForeignPreview))\n}\n`;
+  source+=`\n///|\ntest "rehashed private shape cannot upgrade insufficient original review evidence" {\n`+
+    insufficientOriginals.map((value,index)=>`  // ${value.name}\n  let original${index} = admit_effect_preview_identity(${q(value.wire)}, ${q(originalRun)}, ${q(authoring.authoring_context_cid)}, 20000, 2000, 32).unwrap()\n`+
+      `  assert_true(project_effect_review_projection(original${index}, ${q(value.wire)}, ${q(scope)}, ${array(claims)}, ${q(policy)}, 20000, 2000, 32) is Err(InsufficientEvidence(0, 0)))\n`).join('')+'}\n';
   source+=`\n///|\ntest "original Effect review preserves scope policy and bounded work refusals" {\n`+original(v)+
     `  assert_true(project_effect_review_projection(original, ${q(v.previewWire)}, ${q(scope)}, [], ${q(policy)}, 20000, 2000, 32) is Err(InvalidPolicy))\n`+
     `  assert_true(project_effect_review_projection(original, ${q(v.previewWire)}, ${q(scope)}, ["effect_scope_approved", "effect_scope_approved"], ${q(policy)}, 20000, 2000, 32) is Err(InvalidPolicy))\n`+

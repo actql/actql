@@ -20,11 +20,11 @@ function vector(name, kind, strength, target, rowTarget) {
     : kind === 'command' ? {state: 'not_applicable'}
       : strength === 'targeted' ? {state: 'unavailable'}
         : {state: 'present', value: {Name: 'Before'}};
-  const after = kind === 'command' ? {state: 'not_applicable'}
+  const after = kind === 'delete' ? {state: 'absent'} : kind === 'command' ? {state: 'not_applicable'}
     : {state: 'present', value: {Name: 'After'}};
   const guard = ['create', 'command'].includes(kind)
     ? {state: 'not_applicable'} : {state: 'version', version_cid: C('a')};
-  const intended = {state: 'present', value: kind === 'command'
+  const intended = kind === 'delete' ? {state: 'not_applicable'} : {state: 'present', value: kind === 'command'
     ? {operation: 'reindex', input: {label: 'original-e\u0301\r\n'}} : {Name: 'After'}};
   if (kind === 'create') rowTarget = {content_cid: hash({
     value: after, version: 'actql-effect-content-row/0.1'}), occurrence: 0};
@@ -77,6 +77,7 @@ export const vectors = [
   vector('create preserves absent before and content occurrence', 'create', 'full_diff', 'Object'),
   vector('command keeps concrete ResourceRef and typed request', 'command', 'full_diff', resource, resource),
   vector('store keeps concrete ResourceRef and intended value', 'store', 'full_diff', resource, resource),
+  vector('delete preserves absent after and payload-free change', 'delete', 'full_diff', 'Object', '001000000000001'),
 ];
 export const legacyBody = structuredClone(vectors[0].body);
 for (const name of ['preview_strength', 'target_guard', 'intended_changes']) delete legacyBody.displayed_rows[0][name];
@@ -88,8 +89,39 @@ export const expectedCids = [
   'sha256:15e6eb2ba487f9350a6909300defb23de18bb0d31749f51ff4fc1379c09aa655',
   'sha256:65d5eba02275b8471fafaf8d6930729379624ac2ee1322b081ee8c9162805214',
   'sha256:069e220e25f61baed146575925e7a40c9c1895cd258d039c61beee6d17ac2bf5',
+  'sha256:1ecc3251def806992ada589a1503a8912a28c3690fba532a9aef74f939613426',
 ];
 export const legacyCid = 'sha256:e93b31fcde78f6640c6997cad2d53b0e5cd44f17b2acb275220f76c183130d86';
+
+// Rehash independently authored invalid-strength examples all the way through
+// row/member/set. Their hash/shape validity must not upgrade weak evidence.
+function rehashPreview(value){
+  const preview=structuredClone(value);
+  const effect=preview.effects[0],row=effect.changes[0];
+  row.row_preview_cid=hash({version:'actql-effect-preview-row/0.1',
+    program_definition_cid:preview.program_definition_cid,invocation_cid:preview.invocation_cid,
+    effect_identity_cid:effect.effect_identity_cid,
+    resolved_contract_cid:effect.resolved_mapping_contract_cid,
+    operation:effect.effect_kind,target_row_identity:row.target_row_identity,
+    preview_strength:effect.preview_strength,target_guard:row.target_guard,
+    intended_changes:row.intended_changes,before:row.before,after:row.after});
+  effect.row_order=[row.row_preview_cid];
+  const {effect_member_preview_cid:ignored,...body}=effect;void ignored;
+  const {row_idempotency_key:excluded,...semanticRow}=row;void excluded;
+  body.changes=[semanticRow];
+  effect.effect_member_preview_cid=hash({version:'actql-effect-member-preview/0.1',member:body});
+  const {effect_preview_cid:self,run_identity_cid:run,authoring_context:context,...semantic}=preview;
+  void self;void run;void context;
+  semantic.effects=[{...body,effect_member_preview_cid:effect.effect_member_preview_cid}];
+  preview.effect_preview_cid=hash(semantic);
+  return canonicalText(preview);
+}
+export const insufficientOriginals=[
+  ['full diff unavailable before',p=>{p.effects[0].changes[0].before={state:'unavailable'};}],
+  ['full diff unavailable after',p=>{p.effects[0].changes[0].after={state:'unavailable'};}],
+  ['targeted invented before',p=>{p.effects[0].preview_strength='targeted';}],
+  ['unknown RowState field',p=>{p.effects[0].changes[0].before.extra=true;}],
+].map(([name,change])=>{const p=structuredClone(vectors[0].preview);change(p);return{name,wire:rehashPreview(p)};});
 export const mutations = [
   ...['preview_strength', 'target_guard', 'intended_changes'].map(name => {
     const body = structuredClone(vectors[0].body);delete body.displayed_rows[0][name];

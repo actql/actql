@@ -3,6 +3,7 @@ pub(all) enum EffectReviewProjectionIssue {
   InvalidLimits
   InvalidPolicy
   ForeignPreview
+  InsufficientEvidence(Int, Int)
   Preview(EffectPreviewIdentityIssue)
   Evidence(RunEvidenceValueIssue)
   Encoding
@@ -26,6 +27,68 @@ fn review_field(
 ) -> Unit raise @encode.EncodeFailure {
   @encode.key(writer, name)
   @json.emit_value(@json.object_field(value, name).unwrap(), writer)
+}
+
+///|
+fn review_row_state(value : @json.CanonicalValue) -> String? {
+  guard @json.object_field(value, "state") is Some(@json.String(state)) else {
+    return None
+  }
+  if state == "present" {
+    if @json.object_field_count(value) == Some(2) &&
+      @json.object_field(value, "value").bind(@json.object_field_count)
+      is Some(_) {
+      Some(state)
+    } else {
+      None
+    }
+  } else if ["absent", "unavailable", "not_applicable"].contains(state) &&
+    @json.object_field_count(value) == Some(1) {
+    Some(state)
+  } else {
+    None
+  }
+}
+
+///|
+// The private row identity already enforces original guard/change and operation
+// obligations. A public sealed review additionally cannot claim full_diff with
+// an unavailable before/after, or targeted with invented before evidence.
+fn review_row_evidence_sufficient(
+  effect : @json.CanonicalValue,
+  row : @json.CanonicalValue,
+) -> Bool {
+  guard @json.object_field(effect, "effect_kind") is Some(@json.String(kind)) &&
+    @json.object_field(effect, "preview_strength")
+    is Some(@json.String(strength)) &&
+    @json.object_field(row, "before").bind(review_row_state) is Some(before) &&
+    @json.object_field(row, "after").bind(review_row_state) is Some(after) else {
+    return false
+  }
+  if ["update", "delete", "upsert"].contains(kind) {
+    if strength == "targeted" {
+      if before != "unavailable" {
+        return false
+      }
+    } else if strength == "full_diff" {
+      if before != "present" && !(kind == "upsert" && before == "absent") {
+        return false
+      }
+    } else {
+      return false
+    }
+    if kind == "delete" {
+      after == "absent"
+    } else {
+      after == "present"
+    }
+  } else if kind == "create" {
+    after == "present"
+  } else {
+    // Command/store keep their exact kind-specific payload and row states;
+    // this does not invent a before row or infer a stronger Preview.
+    kind == "command" || kind == "store"
+  }
 }
 
 ///|
@@ -94,6 +157,16 @@ pub fn project_effect_review_projection(
     Some(@json.Array(items)) => @json.array_values(items)
     _ => return Err(ForeignPreview)
   }
+  for effect_index, effect in members {
+    guard @json.object_field(effect, "changes") is Some(@json.Array(changes)) else {
+      return Err(ForeignPreview)
+    }
+    for row_index, row in @json.array_values(changes) {
+      if !review_row_evidence_sufficient(effect, row) {
+        return Err(InsufficientEvidence(effect_index, row_index))
+      }
+    }
+  }
   let body_wire = try {
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
@@ -116,24 +189,24 @@ pub fn project_effect_review_projection(
     @encode.begin_object(writer)
     @encode.key(writer, "effects")
     @encode.begin_array(writer)
-    for member in members {
+    for effect in members {
       @encode.begin_object(writer)
-      review_field(writer, member, "effect_id")
+      review_field(writer, effect, "effect_id")
       @encode.key(writer, "kind")
       @json.emit_value(
-        @json.object_field(member, "effect_kind").unwrap(),
+        @json.object_field(effect, "effect_kind").unwrap(),
         writer,
       )
-      review_field(writer, member, "target")
-      review_field(writer, member, "count")
+      review_field(writer, effect, "target")
+      review_field(writer, effect, "count")
       @encode.end_object(writer)
     }
     @encode.end_array(writer)
     @encode.end_object(writer)
     @encode.key(writer, "displayed_permissions")
     @encode.begin_array(writer)
-    for member in members {
-      guard @json.object_field(member, "required_permissions")
+    for effect in members {
+      guard @json.object_field(effect, "required_permissions")
         is Some(@json.Array(permissions)) else {
         return Err(ForeignPreview)
       }
@@ -144,20 +217,20 @@ pub fn project_effect_review_projection(
     @encode.end_array(writer)
     @encode.key(writer, "displayed_rows")
     @encode.begin_array(writer)
-    for member in members {
-      guard @json.object_field(member, "changes") is Some(@json.Array(changes)) else {
+    for effect in members {
+      guard @json.object_field(effect, "changes") is Some(@json.Array(changes)) else {
         return Err(ForeignPreview)
       }
       for row in @json.array_values(changes) {
         @encode.begin_object(writer)
-        review_field(writer, member, "effect_id")
+        review_field(writer, effect, "effect_id")
         for
           name in ["row_preview_cid", "target_row_identity", "before", "after"] {
           review_field(writer, row, name)
         }
         // Strength comes from the original member, never from row shape or
         // kind. Guard and intended change retain their exact original states.
-        review_field(writer, member, "preview_strength")
+        review_field(writer, effect, "preview_strength")
         review_field(writer, row, "target_guard")
         review_field(writer, row, "intended_changes")
         @encode.end_object(writer)
