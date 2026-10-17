@@ -105,11 +105,18 @@ test('first Infer journal admission refuses copied or other-control tickets and 
   assert.throws(() => f.journal.acceptDefinition(f.value.request, {...f.options,
     runAdmissionEvidence: {...f.value.evidence, inferRunOriginal: f.value.materials}}, moon, control),
   {code: 'InvalidClientInferRunOriginal'});
-  assert.throws(() => f.journal.accept(f.value.request, {...f.options,
-    runDefinitionCid: f.value.definition.identity,
-    runAdmissionEvidence: {...f.value.evidence, inferRunOriginal: f.value.materials}}, moon),
-  {code: 'InvalidClientInferRunOriginal'});
   assert.equal(f.lookup(), undefined);
+  // The legacy metadata-only API has no evidence argument: an excess caller
+  // property is ignored, not promoted to an original or physical start.
+  const g = journalFixture(t);
+  const bare = g.journal.accept(g.value.request, {...g.options,
+    runDefinitionCid: g.value.definition.identity,
+    runAdmissionEvidence: {...g.value.evidence, inferRunOriginal: g.value.materials}}, moon);
+  assert.equal(bare.runAdmissionEvidence, undefined);
+  const database = new DatabaseSync(join(g.path, 'client-requests.sqlite3'), {readOnly: true});
+  try {
+    assert.equal(database.prepare('SELECT run_admission_evidence_json AS evidence FROM client_requests').get().evidence, null);
+  } finally {database.close();}
 });
 
 test('saved Infer originals and Result policy commit with the same Run and reopen as immutable DATA only', t => {

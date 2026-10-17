@@ -843,7 +843,6 @@ export function openClientRequestJournal(directory, {
   });
   const transaction = createSqliteTransaction(database,
     'ClientRequestJournal');
-  const originalInferAdmissions = new WeakSet();
   let closed = false;
   let databaseClosed = false;
   try {
@@ -1574,8 +1573,6 @@ export function openClientRequestJournal(directory, {
     runDefinitionWire, resultNames, runAdmissionEvidence, revision = 0, lookupExpiresAt,
     submission}, control) => {
     ensureOpen();
-    if (runAdmissionEvidence?.inferRunOriginal !== undefined &&
-        !originalInferAdmissions.has(runAdmissionEvidence)) fail('InvalidClientInferRunOriginal');
     if (!control || typeof control.clientRequestAdmitRecord !== 'function' ||
         typeof control.clientRequestRelation !== 'function') {
       fail('InvalidClientRequestJournalControl');
@@ -2067,7 +2064,6 @@ export function openClientRequestJournal(directory, {
         runAdmissionEvidence = {...runAdmissionEvidence,
           logicalPlanOriginal: Object.freeze({...original})};
       }
-      if (originalInferRun !== undefined) originalInferAdmissions.add(runAdmissionEvidence);
       const accepted = acceptRecord(identity, {namespaceId,
         runDefinitionCid: definition.identity,
         runDefinitionWire: definition.wire,
