@@ -31,9 +31,14 @@
 //   complete write footprint (`kind` and its fields).
 // Optionally:
 // - `prepareRequestChild({member, value, selector, current, content, signal,
-//   authorizationForRow})` (command): synchronously returns the same original
+//   rowIndex, authorizationForRow, assertCurrent})` (command or guarded write): synchronously returns the same original
 //   `{prepare, release, retry, status}` child. Capture retains it before await;
 //   missing physical funding/read authority must refuse before acquisition.
+//   Guarded rows receive their exact rowIndex and a zero-argument read grant
+//   supplier closed over that row and the original target-read decision. The
+//   child may read before deriving conditional request bytes; observeTargets
+//   must project that same original before observation at capture, not acquire
+//   another target or append a condition to an already identified request.
 // - `describe({member, runInvocationCid, dispatchRequestCid, label,
 //   signal})`: the provider's current description of the member's Resource
 //   (`current`), taken for the Preview and again for each apply.
@@ -1344,13 +1349,16 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             ? JSON.parse(proposal.selectorWire) : undefined};
       });
       let entries;
-      if (member.kind === 'command' && owned.prepareRequestChild !== undefined) {
+      if ((member.kind === 'command' || guarded(member.kind)) &&
+          owned.prepareRequestChild !== undefined) {
         const preparedEntries = [];
         for (const [rowIndex, row] of rows.entries()) {
           if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
           const context = {member, value: row.value, selector: row.selector,
             current: description, content: commandContentRow(contentOf, rowIndex), signal,
-            authorizationForRow: reads[index]?.authorizationForRow};
+            ...(guarded(member.kind) ? {rowIndex, assertCurrent,
+              authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} :
+              {authorizationForRow: reads[index]?.authorizationForRow})};
           const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
             create: () => owned.prepareRequestChild(context), assertCurrent, signal});
           preparedEntries.push(requestEntry(member, row, preparedRequest));
