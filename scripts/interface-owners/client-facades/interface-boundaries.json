@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "71e76b7e343cd463b2c03ede07d2c3afbccf9c2a89e07f00c3eaf059cef5ba16",
+      "sha256": "fcc21e611792bd7662e3dd96a592f3089be698cb9ea90ff2426b1491a7b7b4a9",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -40,6 +40,8 @@
         "InvocationAuthorization",
         "InvocationPrimitive",
         "ReadGrantRequest",
+        "RowEffectCommand",
+        "RowEffectCommandMember",
         "RowEffectDriver",
         "RowEffectEntry",
         "RowEffectFootprint",
@@ -47,9 +49,14 @@
         "RowEffectKind",
         "RowEffectLimits",
         "RowEffectMapping",
+        "RowEffectMappingKind",
+        "RowEffectMappingMember",
         "RowEffectMember",
         "RowEffectProjection",
         "RowEffectRequestChild",
+        "RowEffectRequestFacts",
+        "RowEffectValue",
+        "RowEffectValueKind",
         "RowMappingSource",
         "RowPageRequest",
         "RowProviderReaderRequest",
@@ -94,7 +101,7 @@
         {
           "name": "createInstalledRowEffect",
           "parameters": [
-            "options: Readonly<{\n    moon: ConnectorRuntimeOwner;\n    mappings: readonly RowEffectMapping[];\n    environmentWire: string;\n    connectorId: string;\n    connectorRegistration: string;\n    connectorRevision: string;\n    connection: string;\n    site: RowSourceCredentialSite;\n    authorization: InstallationAuthorization;\n    runtimeBundleCid: string;\n    bindingCid: string;\n    driver: RowEffectDriver<Request, Current>;\n    ledgerRoot: string;\n    /** The exact generated installation-table entry, never a reconstructed copy. */\n    installation?: object;\n    continuationBinding?: string;\n    /** Nested limit objects replace their defaults as complete objects. */\n    limits?: Partial<RowEffectLimits>;\n  }>"
+            "options: Readonly<{\n    moon: ConnectorRuntimeOwner;\n    mappings: readonly RowEffectMapping[];\n    commands?: readonly RowEffectCommand[];\n    environmentWire: string;\n    connectorId: string;\n    connectorRegistration: string;\n    connectorRevision: string;\n    connection: string;\n    site: RowSourceCredentialSite;\n    authorization: InstallationAuthorization;\n    runtimeBundleCid: string;\n    bindingCid: string;\n    driver: RowEffectDriver<Request, Current, Kind>;\n    ledgerRoot: string;\n    /** The exact generated installation-table entry, never a reconstructed copy. */\n    installation?: object;\n    continuationBinding?: string;\n    /** Nested limit objects replace their defaults as complete objects. */\n    limits?: Partial<RowEffectLimits>;\n  }>"
           ],
           "result": "Promise<InstalledRowEffect>"
         },
@@ -310,42 +317,42 @@
         {
           "name": "RowEffectDriver/admitTargetReadApproval",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    decision: InstallationDecision}>"
+            "options: Readonly<{member: RowEffectMember<Kind>;\n    decision: InstallationDecision}>"
           ],
           "result": "InstallationDecision"
         },
         {
           "name": "RowEffectDriver/checkRequest",
           "parameters": [
-            "options: Omit<RowEffectInvocation<Request, Current>, 'current'>"
+            "options: Omit<RowEffectInvocation<Request, Current, Kind>, 'current'>"
           ],
           "result": "Awaitable<unknown>"
         },
         {
           "name": "RowEffectDriver/describe",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember; runInvocationCid: string;\n    dispatchRequestCid: string; label: string;\n    approval?: InstallationDecision; signal?: AbortSignal}>"
+            "options: Readonly<{member: RowEffectMember<Kind>; runInvocationCid: string;\n    dispatchRequestCid: string; label: string;\n    approval?: InstallationDecision; signal?: AbortSignal}>"
           ],
           "result": "Awaitable<Current>"
         },
         {
           "name": "RowEffectDriver/footprint",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    entries: readonly RowEffectEntry<Request>[]}>"
+            "options: Readonly<{member: RowEffectMember<Kind>;\n    entries: readonly RowEffectEntry<Request, Kind>[]}>"
           ],
           "result": "RowEffectFootprint"
         },
         {
           "name": "RowEffectDriver/issueCapability",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    entries: readonly RowEffectEntry<Request>[]; current: Current | undefined;\n    runInvocationCid: string; dispatchRequestCid: string}>"
+            "options: Readonly<{member: RowEffectMember<Kind>;\n    entries: readonly RowEffectEntry<Request, Kind>[]; current: Current | undefined;\n    runInvocationCid: string; dispatchRequestCid: string}>"
           ],
           "result": "Readonly<{\n      identity: string; route: 'single_serial'; binding: Readonly<{\n        connector_registration: string; connector_revision: string;\n        runtime_bundle_cid: string}>}>"
         },
         {
           "name": "RowEffectDriver/observeTargets",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    entries: readonly RowEffectEntry<Request>[]; current: Current | undefined;\n    authorizationForRow: (index: number) => Promise<InvocationAuthorization>;\n    signal?: AbortSignal}>"
+            "options: Readonly<{member: RowEffectMember<Kind>;\n    entries: readonly RowEffectEntry<Request, Kind>[]; current: Current | undefined;\n    authorizationForRow: (index: number) => Promise<InvocationAuthorization>;\n    signal?: AbortSignal}>"
           ],
           "result": "Awaitable<readonly Readonly<{\n      identity: ConnectorJsonValue; versionCid: string;\n      before: ConnectorJsonObject}>[]>"
         },
@@ -359,14 +366,14 @@
         {
           "name": "RowEffectDriver/prepareRequest",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    value: ConnectorJsonObject; selector?: ConnectorJsonValue;\n    current: Current | undefined}>"
+            "options: Readonly<{member: RowEffectMember<Kind>;\n    value: RowEffectValue<Kind>; selector?: ConnectorJsonValue;\n    current: Current | undefined}>"
           ],
           "result": "Readonly<{request: Request; requestCid: string}>"
         },
         {
           "name": "RowEffectDriver/prepareRequestChild",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    value: ConnectorJsonObject; selector?: ConnectorJsonValue;\n    current: Current | undefined; signal?: AbortSignal;\n  } & ({rowIndex: number;\n    authorizationForRow: () => Promise<InvocationAuthorization>;\n    /** Existing selected-preparation fence; absence is not a new current proof. */\n    assertCurrent?: () => void;\n  } | {rowIndex?: undefined;\n    authorizationForRow?: (index: number) => Promise<InvocationAuthorization>;\n    assertCurrent?: undefined;\n  })>"
+            "options: Readonly<{member: RowEffectMember<Kind>;\n    value: RowEffectValue<Kind>; selector?: ConnectorJsonValue;\n    current: Current | undefined; signal?: AbortSignal;\n  } & ({rowIndex: number;\n    authorizationForRow: () => Promise<InvocationAuthorization>;\n    /** Existing selected-preparation fence; absence is not a new current proof. */\n    assertCurrent?: () => void;\n  } | {rowIndex?: undefined;\n    authorizationForRow?: (index: number) => Promise<InvocationAuthorization>;\n    assertCurrent?: undefined;\n  })>"
           ],
           "result": "RowEffectRequestChild<Request>"
         },
@@ -390,14 +397,14 @@
         {
           "name": "RowEffectDriver/project",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember; memberIndex: number;\n    rowIndex: number; preview: ConnectorRuntimeHandle; request: Request;\n    current: Current | undefined; observation: CredentialObservation;\n    headers: HttpPairs | undefined}>"
+            "options: Readonly<{member: RowEffectMember<Kind>; memberIndex: number;\n    rowIndex: number; preview: ConnectorRuntimeHandle; request: Request;\n    current: Current | undefined; observation: CredentialObservation;\n    headers: HttpPairs | undefined}>"
           ],
           "result": "RowEffectProjection"
         },
         {
           "name": "RowEffectDriver/recheckRequests",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    entries: readonly RowEffectEntry<Request>[];\n    current: Current | undefined}>"
+            "options: Readonly<{member: RowEffectMember<Kind>;\n    entries: readonly RowEffectEntry<Request, Kind>[];\n    current: Current | undefined}>"
           ],
           "result": "void"
         },
@@ -411,7 +418,7 @@
         {
           "name": "RowEffectDriver/recoveryEntry",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    current: Current | undefined}>"
+            "options: Readonly<{member: RowEffectMember<Kind>;\n    current: Current | undefined}>"
           ],
           "result": "Readonly<{\n      kind: string; observationCid: string; wire: string}>"
         },
@@ -427,19 +434,19 @@
           "parameters": [
             "request: Request"
           ],
-          "result": "Readonly<{\n    value: ConnectorJsonObject; target?: ConnectorJsonValue}>"
+          "result": "RowEffectRequestFacts<Kind>"
         },
         {
           "name": "RowEffectDriver/send",
           "parameters": [
-            "options: RowEffectInvocation<Request, Current>"
+            "options: RowEffectInvocation<Request, Current, Kind>"
           ],
           "result": "Awaitable<Readonly<{\n    observation: CredentialObservation; headers?: HttpPairs}>>"
         },
         {
           "name": "RowEffectDriver/writeOperation",
           "parameters": [
-            "member: RowEffectMember"
+            "member: RowEffectMember<Kind>"
           ],
           "result": "string"
         },
@@ -660,6 +667,8 @@
             "InvocationAuthorization",
             "InvocationPrimitive",
             "ReadGrantRequest",
+            "RowEffectCommand",
+            "RowEffectCommandMember",
             "RowEffectDriver",
             "RowEffectEntry",
             "RowEffectFootprint",
@@ -667,9 +676,14 @@
             "RowEffectKind",
             "RowEffectLimits",
             "RowEffectMapping",
+            "RowEffectMappingKind",
+            "RowEffectMappingMember",
             "RowEffectMember",
             "RowEffectProjection",
             "RowEffectRequestChild",
+            "RowEffectRequestFacts",
+            "RowEffectValue",
+            "RowEffectValueKind",
             "RowMappingSource",
             "RowPageRequest",
             "RowProviderReaderRequest",
@@ -702,6 +716,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Owned guarded request preparation"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
               }
             ],
             "inputsOutputs": [
@@ -716,6 +734,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
               }
             ],
             "identity": [
@@ -738,6 +760,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "fail('ForeignInstalledRowEffectRequest')"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
               }
             ],
             "ownership": [
@@ -760,6 +786,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "children.push({prepared: Object.freeze"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
               }
             ],
             "synchronization": [
@@ -782,6 +812,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
               }
             ],
             "failure": [
@@ -800,6 +834,10 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
               }
             ],
             "cancellation": [
@@ -822,6 +860,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
               }
             ],
             "resources": [
@@ -844,6 +886,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
               }
             ],
             "extension": [
@@ -862,6 +908,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
               }
             ],
             "verification": [
@@ -892,6 +942,14 @@
               {
                 "path": "packages/local-node/connector-installation.typecheck.mts",
                 "anchor": "Read authorization is closed over the original row."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "scripts/row-effect-delete-types.test.mjs",
+                "anchor": "public types actually reject proposed DELETE values and missing original value or cleanup"
               }
             ]
           }
