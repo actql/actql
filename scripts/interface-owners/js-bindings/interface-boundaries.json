@@ -50328,7 +50328,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "74bd92c128588e48eeb954d6f79716e24b4d6c3353bb5385484086b65c0edbe3",
+      "sha256": "b8e1b55e59c9c5e3d53e77a2b9b5e9ef214fe38cd651bf18362fabff9947969f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -53160,6 +53160,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
               }
             ],
             "cancellation": [
@@ -53216,6 +53220,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
               }
             ],
             "extension": [
@@ -53292,6 +53300,14 @@
               {
                 "path": "adapters/host-node/command-original-capture-phase.test.mjs",
                 "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
+              },
+              {
+                "path": "adapters/host-node/command-original-grouping-budget.test.mjs",
+                "anchor": "ordinary capture uses finite Host grouping work"
               }
             ]
           }
