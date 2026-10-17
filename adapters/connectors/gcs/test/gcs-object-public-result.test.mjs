@@ -74,7 +74,7 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
     {$actql_ref: 'resource', version: 'actql-resource-ref/0.1', provider_namespace: 'gcs',
       resource_kind: 'file', provider_identity_cid: token('a'), authority_scope_cid: token('b'),
       boundary_cid: token('c'), identity_cid: token(String(index + 1))}]));
-  const profileVersion = 'actql-gcs-public-result-fixture/0.1';
+  const profileVersion = 'actql-installed-gcs-public-result-fixture/0.1';
   const events = [];
   let calls = 0, acquisitions = 0, referenceChecks = 0, client;
   let allowRead = true;
