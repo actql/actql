@@ -6456,7 +6456,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "d61623b468c6334d266dfd6d282e8a218db0c22d5130dcc5cec5a1a4ca92f4df",
+      "sha256": "6057f5a672f31c342e648c922b6f3687913b64de3bd4f4a2a42996d960cfc9fd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -6577,6 +6577,34 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/readerRetired/readerRetired",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readProvider",
+          "parameters": [
+            "prepare",
+            "receiver",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "startInstalledRowRun/readProvider/readProvider",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readProvider/readProvider#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/run/run",
           "parameters": [
             "attempt"
@@ -6608,6 +6636,37 @@
             "attempt"
           ],
           "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#6",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/startInstalledRowRun",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/stopReader/stopReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/stopReader/stopReader/stopReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/stopReader/stopReader/stopReader#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -6629,11 +6688,20 @@
             "startInstalledRowRun/complete/source/source",
             "startInstalledRowRun/consumeKeyedPage",
             "startInstalledRowRun/init:confirmTransportStopped/init:confirmTransportStopped",
+            "startInstalledRowRun/readerRetired/readerRetired",
+            "startInstalledRowRun/readProvider",
+            "startInstalledRowRun/readProvider/readProvider",
+            "startInstalledRowRun/readProvider/readProvider#2",
             "startInstalledRowRun/run/run",
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
             "startInstalledRowRun/run/run#4",
-            "startInstalledRowRun/run/run#5"
+            "startInstalledRowRun/run/run#5",
+            "startInstalledRowRun/run/run#6",
+            "startInstalledRowRun/startInstalledRowRun",
+            "startInstalledRowRun/stopReader/stopReader",
+            "startInstalledRowRun/stopReader/stopReader/stopReader",
+            "startInstalledRowRun/stopReader/stopReader/stopReader#2"
           ],
           "exports": [
             "startInstalledRowRun"
@@ -6643,69 +6711,140 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "RowRun remains the sole acquisition, capture and release owner"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "clientProgramCapturedTaskSourceMatches"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "clientProgramRowSourceCaptureCleanup"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "clientProgramRowSourceCaptureAdvance"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "InstalledSourceCleanupPending"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "signal?.throwIfAborted"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "capacity.executionBytes"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "clientProgramRowSourceStartListingAccounted"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-row-run.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "2fec5cc67f4e0c6037744d23513f16fda1c42e2a45bebcd3c5c3ae548763d0ef",
+      "sha256": "91e7892c5c325f15a7acfaf0efcb444117f1dfcef802e79158fad960a6682378",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -6767,7 +6906,8 @@
             "listingPolicy",
             "captureContent",
             "listingReportCapacity",
-            "prepareAcquisition"
+            "prepareAcquisition",
+            "providerReader"
           ],
           "async": true
         },
@@ -6792,38 +6932,6 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/acquire/acquire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#3",
-          "parameters": [
-            "index"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#4",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#5",
-          "parameters": [
-            "rows",
-            "charge"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/acquire/complete/complete",
           "parameters": [],
           "async": true
@@ -6834,9 +6942,48 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/acquire/consumeObservation",
+          "name": "createInstalledRowSource/acquire/readerOptions/consumeObservation",
           "parameters": [
             "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
+          "parameters": [
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+          "parameters": [
+            "rows",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/captureCapacity/captureCapacity",
+          "parameters": [
+            "owner"
           ],
           "async": false
         },
@@ -6850,12 +6997,19 @@
         {
           "name": "createInstalledRowSource/createInstalledRowSource#2",
           "parameters": [
-            "key"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#4",
           "parameters": [
             "resource",
             "operation"
@@ -6863,14 +7017,14 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#4",
+          "name": "createInstalledRowSource/createInstalledRowSource#5",
           "parameters": [
             "sourceRef"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#5",
+          "name": "createInstalledRowSource/createInstalledRowSource#6",
           "parameters": [],
           "async": false
         },
@@ -7481,19 +7635,21 @@
             "cid/cid",
             "createInstalledRowSource",
             "createInstalledRowSource/acquire",
-            "createInstalledRowSource/acquire/acquire",
-            "createInstalledRowSource/acquire/acquire#2",
-            "createInstalledRowSource/acquire/acquire#3",
-            "createInstalledRowSource/acquire/acquire#4",
-            "createInstalledRowSource/acquire/acquire#5",
             "createInstalledRowSource/acquire/complete/complete",
             "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
-            "createInstalledRowSource/acquire/consumeObservation",
+            "createInstalledRowSource/acquire/readerOptions/consumeObservation",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/captureCapacity/captureCapacity",
             "createInstalledRowSource/createInstalledRowSource",
             "createInstalledRowSource/createInstalledRowSource#2",
             "createInstalledRowSource/createInstalledRowSource#3",
             "createInstalledRowSource/createInstalledRowSource#4",
             "createInstalledRowSource/createInstalledRowSource#5",
+            "createInstalledRowSource/createInstalledRowSource#6",
             "createInstalledRowSource/currentRead/currentRead",
             "createInstalledRowSource/decideRead/decideRead",
             "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
@@ -7589,6 +7745,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "## Installed collection issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
               }
             ],
             "inputsOutputs": [
@@ -7607,6 +7767,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
               }
             ],
             "identity": [
@@ -7621,6 +7785,14 @@
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
                 "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               }
             ],
             "ownership": [
@@ -7639,6 +7811,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "kind: 'effect_target'"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               }
             ],
             "synchronization": [
@@ -7657,6 +7837,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "currentEffectRead(approved)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
               }
             ],
             "failure": [
@@ -7675,6 +7863,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
               }
             ],
             "cancellation": [
@@ -7689,6 +7881,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "False means closing, not physical cleanup ACK"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
               }
             ],
             "resources": [
@@ -7711,6 +7911,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "Each such approval adds a seven-field record"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
               }
             ],
             "extension": [
@@ -7725,6 +7933,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "An explicitly supplied legacy"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
               }
             ],
             "verification": [
@@ -7755,6 +7967,14 @@
               {
                 "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
                 "anchor": "shared installer retains its default context"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
               }
             ]
           }
