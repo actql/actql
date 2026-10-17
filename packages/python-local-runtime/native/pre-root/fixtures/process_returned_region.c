@@ -6,7 +6,9 @@
 #include <sys/wait.h>
 #include "../../../../../src/platform_native/host_bootstrap/bootstrap_stub.c"
 
-int main(void) {
+int main(int argc, char **argv) {
+    assert(argc == 1 || (argc == 2 && strcmp(argv[1], "--nested-scope") == 0));
+    bool nested_probe = argc == 2;
     long selected = sysconf(_SC_PAGESIZE); assert(selected > 0);
     size_t page = (size_t)selected;
     char path[] = "/private/tmp/actql-returned-region-XXXXXX";
@@ -52,7 +54,19 @@ int main(void) {
            domain->lease->domain_borrow_attempted && domain->lease->closing);
     assert(actql_native_owned_domain_unborrowed(domain->lease, &view->view) == ACTQL_OWNED_BUSY &&
            actql_native_owned_domain_has_child(domain->lease, getpid(), child) == ACTQL_OWNED_INVALID);
-    int result = actql_bootstrap_retire_stopped_process_region(record, child);
+    int result;
+    bool nested_refused = true;
+    if (nested_probe) {
+        assert(actql_bootstrap_enter_scope(backing) == 0);
+        result = actql_bootstrap_retire_stopped_process_region(record, child);
+        assert(actql_bootstrap_leave_scope(backing) == 0);
+        nested_refused = result == ACTQL_OWNED_INVALID && !record->closed &&
+            !record->unmapped && domain->lease != NULL && view->view.mapping != NULL;
+        /* A red probe still retires its own known physical originals after
+         * leaving the scope. It never turns the forbidden earlier mutation
+         * into a successful refusal or another process/Native stop proof. */
+    }
+    result = actql_bootstrap_retire_stopped_process_region(record, child);
     if (result != 0) {
         printf("{\"discovered\":6,\"executed\":6,\"passed\":%d,\"failed\":%d,"
            "\"retirement_status\":%d,\"child_borrow_returned\":true,"
@@ -67,8 +81,12 @@ int main(void) {
            actql_bootstrap_return_region(backing, extent, loan) == 0 &&
            actql_bootstrap_retire(backing, extent) == 0 && actql_bootstrap_close(backing) == 0 &&
            close(fd) == 0 && close(returned[0]) == 0);
-    puts("{\"discovered\":6,\"executed\":6,\"passed\":6,\"failed\":0,"
-         "\"retirement_status\":0,\"child_borrow_returned\":true,"
-         "\"parent_cleanup_acknowledged\":true,\"Native_stop_proof\":false,\"fixture_pages\":64}");
-    return 0;
+    int total = nested_probe ? 7 : 6;
+    printf("{\"discovered\":%d,\"executed\":%d,\"passed\":%d,\"failed\":%d,"
+           "\"retirement_status\":0,\"child_borrow_returned\":true,"
+           "\"nested_scope_refused\":%s,\"parent_cleanup_acknowledged\":true,"
+           "\"Native_stop_proof\":false,\"fixture_pages\":64}\n",
+           total, total, nested_refused ? total : total - 1, nested_refused ? 0 : 1,
+           nested_refused ? "true" : "false");
+    return nested_refused ? 0 : 1;
 }
