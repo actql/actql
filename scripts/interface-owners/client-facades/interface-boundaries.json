@@ -1451,7 +1451,7 @@
     {
       "module": "packages/local-node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "35b5cf577148ccba92fdcaee04d942d69040a5158c38c700f19449d12e7a5f63",
+      "sha256": "41c2927ae71fd295e50e4f18b3efbe63427ead4774e5d7cc856902aab920e4f0",
       "exports": [
         "CalendarArtifactInstallation",
         "EffectProfilePaths",
@@ -1525,7 +1525,7 @@
         {
           "name": "connect",
           "parameters": [
-            "options: Readonly<{\n  mode: 'local'; owner: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';\n  consentRefs?: readonly string[]; installation?: HostInstallation;\n}>"
+            "options: Readonly<{\n  mode: 'local'; owner?: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';\n  consentRefs?: readonly string[]; installation?: HostInstallation;\n}>"
           ],
           "result": "Promise<Client>"
         },
@@ -1681,6 +1681,14 @@
               {
                 "path": "adapters/host-node/client-interactive-read-public.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
+              },
+              {
+                "path": "packages/node/local-owner.typecheck.mts",
+                "anchor": "const embedded: EmbeddedLocalOptions"
               }
             ]
           }
@@ -1690,7 +1698,7 @@
     {
       "module": "packages/local-node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9adae86024fa8a91f5ca73cb2135d60eb08c215e4bac6ae87ae76cbfa6488a5d",
+      "sha256": "a312370ace32a5fcfd8025564cdbf49bb57eed32d94aa07632032eb8d58d2c00",
       "exports": [
         "connect",
         "createInstalledConnectorTable",
@@ -1831,6 +1839,14 @@
               {
                 "path": "adapters/host-node/client-interactive-read-public.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
+              },
+              {
+                "path": "packages/node/local-owner.typecheck.mts",
+                "anchor": "const embedded: EmbeddedLocalOptions"
               }
             ]
           }
@@ -2120,7 +2136,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "c479158d0f9e5008dc397cf2b7f1eb77315a5a8d9c06e8be177829e19c6edaf2",
+      "sha256": "48c70aeef4198a44021c3ce989e7e2ee1430cbefac32716f553df7885ec5fd66",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
@@ -2334,6 +2350,14 @@
               {
                 "path": "scripts/local-node-package-imports.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
+              },
+              {
+                "path": "packages/node/local-owner.typecheck.mts",
+                "anchor": "const embedded: EmbeddedLocalOptions"
               }
             ]
           }
