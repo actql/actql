@@ -252,6 +252,70 @@ The tests' observation tickets are explicit doubles, not RowRun funding. Actual
 installation/configuration revision supply, full Source rows, query/Run restore
 and normal numerical acceptance remain separate required implementation work.
 
+## Original complete property rows
+
+The existing Catalog assembles every property column under the same original
+query row and complete checked property schema. Scalar admission runs before
+dependent property I/O. Pending title, rich-text, people and relation columns
+accept only completed property-item originals for that exact row occurrence and
+column. Another observation with the same page id, an equal schema/value or a
+copied assembly cannot replace the original. Missing columns and incomplete
+chains never produce a complete row. There is no JS contract evaluator or
+wire-to-original factory.
+
+The row uses the existing Common object builder in canonical field order and
+rechecks the complete Value against the original schema. Aggregate nodes, text,
+depth, columns and bounded work apply to that entire object, including names.
+Original input work and logical runtime usage remain distinct: Decimal input
+punctuation is charged as input, while Common measures the retained exact
+coefficient in the logical object. Neither representation passes through a
+rounded JS Number. Writer exhaustion returns no partial row and a completed
+read-only Value may be projected again without replacing its original schema.
+
+The physical caller queries the exact selected data-source id with the existing
+vendor POST operation. It checks cross-page ids, opaque cursor progress and
+aggregate page/row/response/output bounds before delivering each complete page.
+An empty nonterminal query is not completion; duplicates, cycles, malformed
+native values, changed discriminants and whole-contract failures refuse. This
+caller obtains property values through the existing original property reader,
+never by treating truncated inline arrays as complete. The selected vendor
+protocol remains [query a data source](https://developers.notion.com/reference/query-a-data-source).
+
+Query and property operations require separately scoped original grants/uses
+from the same declared Site/request relationship. A query grant is never
+retargeted to authorize a property read. Original Credential binding and current
+Account/authorization remain independently checked before and through each
+physical send. Token replacement, foreign parent bindings and missing property
+authority refuse; completing a typed row grants no additional operation. A lost
+dependent reply retains its original journal Unknown and the same child reader;
+neither the parent nor child may resend that use.
+
+Earlier actual response charges are consumed as observations. Exactly the last
+actual response ticket is retained for the complete page's row delivery, after
+every required cell has been checked. No charge is fabricated for canonical
+output bytes. Failed callback/current/stop paths retain the same parent/child
+and original observation responsibility. Already delivered complete pages do
+not turn a later failed acquisition into a completed Run.
+
+The assembly retains the original binding/schema/query-row graph, one private
+self-seal cell and cycle, a bounded array of CheckedValue aliases, aggregate
+counters and a cached complete Common object. Canonical field selection,
+object-builder storage, runtime recheck frames and output overlap those cells.
+Each query page also retains raw/decode/row metadata, per-page original assembly
+references, JSON wire/parsed output and callback aliases. The parent holds all
+child readers before awaiting them, child results/failures and original property
+chains, pending actual charges, response observations, cross-page id/cursor sets,
+provider/current callbacks and Promise/abort state. Distinct backings and escaped
+aliases remain holdings even where immutable Values share their original data.
+
+Cancellation aborts the same original readers. Query/child Promise completion,
+Schema/Value equality, Site close and GC are not physical retirement. The parent
+and children continue to report `cleanupConfirmed:false`. Actual installed
+configuration/revision/current-schema suppliers, ordinary Source/Run integration,
+standard system columns, saved-Run recovery, confirmed raw retirement and normal
+numerical funding remain required; this property-row caller does not claim those
+capabilities from a private Catalog pair or explicit fixture observation tickets.
+
 The private Node bridge forwards the same originals and existing checked writer;
 no compiler representation fields, new shim, issuer or public wire are exposed.
 Common tests cover complete/incomplete/empty chains, original/foreign columns,
