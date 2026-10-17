@@ -42,7 +42,35 @@ diagnostic wrapper overlap the existing close Promise, ownership phases and
 key. Native directory lifetime remains the selected Host responsibility;
 managed references and pending cleanup are not free or numerically funded by
 these filesystem tests. This does not generalize retirement ACKs to other
-directory readers, initialization or publication paths.
+directory readers or publication paths.
+
+## Original opening directory custody
+
+Directory durability during initial format and ownership acquisition keeps its
+original opened FD through false or rejected close. The failure exports the
+same close-only, single-flight cleanup facade, without reopening the pathname
+or repeating sync. If sync also failed, the raw primary (including null or
+undefined) and the close cause remain distinct. Diagnostic attachment defines
+own data properties when safe; frozen/readonly errors or a preexisting cleanup
+facet remain original causes of a wrapper, never overwritten responsibilities.
+
+The existing ownership release closure is constructed immediately after the
+original token is written and before either ownership-directory or root sync
+is awaited. The existing opening-failure receiver drains the failed FD first,
+then retires that same ownership. Its copied private key remains live until
+both acknowledge cleanup. A format-root failure before ownership uses that
+same receiver without inventing an owner token. The caller must still retain
+the failed initialization carrier; this is not a new global opening registry
+or a claim that all publication callers consume every directory-sync failure.
+Missing/foreign roots and original ownership validation remain refusals.
+
+The FD reference, sync-failure flag/raw value, original close cause, status and
+retry closures, single pending flight, descriptor workspace and optional
+wrapper overlap the existing opening configuration/key and ownership record.
+Native directory adapter lifetime remains selected trusted Host responsibility;
+none of these managed references or pending duties is zero-priced, a new lease
+or a normal Model four-role numerical supplier. Cleanup acknowledgement is not
+Store initialization success, durability replay, Provider permission or send.
 
 ## Bounded metadata reader close acknowledgement
 

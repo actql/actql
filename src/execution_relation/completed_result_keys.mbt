@@ -247,6 +247,28 @@ pub fn cancel_completed_result_key_validation(
 }
 
 ///|
+/// Drop this completed traversal's derived-view references after its existing
+/// captured Owner retained the checked correspondence. This cannot finish
+/// partial work, retire the original Result or acknowledge physical cleanup.
+pub fn release_completed_result_key_validation(
+  value : CompletedResultKeyValidation,
+) -> Bool {
+  let state = value.state
+  if state.cancelled ||
+    !state.completed ||
+    !state.retired ||
+    state.cursor is Some(_) ||
+    state.view is Some(_) {
+    return false
+  }
+  state.cancelled = true
+  state.completed = false
+  state.original = None
+  state.field = None
+  true
+}
+
+///|
 /// Exact original references and current source remain necessary after all
 /// values were checked. Equal schema/rows/CIDs cannot replace this pair.
 pub fn completed_result_key_validation_matches(

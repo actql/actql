@@ -6355,6 +6355,110 @@ pub fn client_program_effect_input_export_next_canonical_row(
 ///|
 /// Select one checked member Plan before authoring a private Preview. The
 /// caller must feed its canonical rows from the same bounded Result export.
+/// Whole-input correspondence enters only through an original export owner.
+#export_name("clientProgramEffectLocalCommandKeyStart")
+pub fn client_program_effect_local_command_key_start(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  local_index : Int,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_work : Int,
+) -> Result[
+  @strategy.CapturedEffectCommandKeyValidation?,
+  @strategy.CapturedEffectCommandKeyIssue,
+] {
+  match
+    @strategy.captured_effect_command_requires_input_key(
+      inputs, member_index, max_work,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(false) => return Ok(None)
+    Ok(true) => ()
+  }
+  @strategy.start_captured_effect_command_key_validation(
+    @bounded.control(),
+    inputs,
+    member_index,
+    local_index,
+    exported,
+    max_work,
+    max_work,
+    limits.values.max_nodes,
+    limits.max_result_workspace_entries,
+  ).map(value => Some(value))
+}
+
+///|
+/// Resolve only the exact captured occurrence that matches this original
+/// managed completion and re-admission bridge. No rows or field names can
+/// issue a key validation through this port.
+#export_name("clientProgramEffectManagedCommandKeyStart")
+pub fn client_program_effect_managed_command_key_start(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  importing : ClientEffectManagedInputImport,
+  max_work : Int,
+) -> Result[
+  @strategy.CapturedEffectCommandKeyValidation?,
+  @strategy.CapturedEffectCommandKeyIssue,
+] {
+  match
+    @strategy.captured_effect_command_requires_input_key(
+      inputs, member_index, max_work,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(false) => return Ok(None)
+    Ok(true) => ()
+  }
+  let count = @strategy.captured_effect_local_result_count(inputs)
+  if max_work < 0 || count > max_work {
+    return Err(ForeignOrigin)
+  }
+  for index in 0..<count {
+    if @strategy.captured_effect_local_result_matches_member(
+        inputs, index, member_index,
+      ) {
+      let exported = match
+        client_program_effect_local_managed_export_owner(
+          inputs, index, importing,
+        ) {
+        Ok(exported) => exported
+        Err(_) => return Err(ForeignOrigin)
+      }
+      return client_program_effect_local_command_key_start(
+        inputs,
+        member_index,
+        index,
+        exported,
+        importing.limits,
+        max_work,
+      )
+    }
+  }
+  Err(ForeignOrigin)
+}
+
+///|
+#export_name("clientProgramEffectCommandKeyAdvance")
+pub fn client_program_effect_command_key_advance(
+  value : @strategy.CapturedEffectCommandKeyValidation,
+  quantum : Int,
+) -> Result[(Bool, Int), @strategy.CapturedEffectCommandKeyIssue] {
+  @strategy.step_captured_effect_command_key_validation(value, quantum)
+}
+
+///|
+/// Retire only private key workspace. Original reader/material custody and
+/// successful retained correspondence remain with the captured Owner.
+#export_name("clientProgramEffectCommandKeyCleanup")
+pub fn client_program_effect_command_key_cleanup(
+  value : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[Bool, @strategy.CapturedEffectCommandKeyIssue] {
+  @strategy.cleanup_captured_effect_command_key_validation(value)
+}
+
+///|
 #export_name("clientProgramEffectProposalBegin")
 pub fn client_program_effect_proposal_begin(
   inputs : @strategy.CapturedEffectInputs,
@@ -6367,6 +6471,27 @@ pub fn client_program_effect_proposal_begin(
 ] {
   @strategy.prepare_captured_effect_proposal_plan(
     inputs, member_index, max_fields, max_work,
+  )
+}
+
+///|
+#export_name("clientProgramEffectProposalBeginWithKey")
+pub fn client_program_effect_proposal_begin_with_key(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[
+  @strategy.CapturedEffectProposalPlan,
+  @strategy.CapturedEffectProposalIssue,
+] {
+  @strategy.prepare_captured_effect_proposal_plan(
+    inputs,
+    member_index,
+    max_fields,
+    max_work,
+    input_key=Some(input_key),
   )
 }
 
@@ -6619,6 +6744,7 @@ pub fn client_program_effect_plan_import_begin(
     max_fields,
     max_work,
     None,
+    None,
   )
 }
 
@@ -6643,6 +6769,60 @@ pub fn client_program_effect_plan_import_begin_with_target(
     max_fields,
     max_work,
     Some(target),
+    None,
+  )
+}
+
+///|
+/// The caller must already own completed original correspondence. This port
+/// does not start unfunded key work or issue a workspace allocation.
+#export_name("clientProgramEffectPlanImportBeginWithKey")
+pub fn client_program_effect_plan_import_begin_with_key(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  client_effect_plan_import_begin(
+    preview,
+    preview_index,
+    output,
+    material,
+    limits,
+    max_fields,
+    max_work,
+    None,
+    Some(input_key),
+  )
+}
+
+///|
+#export_name("clientProgramEffectPlanImportBeginWithTargetAndKey")
+pub fn client_program_effect_plan_import_begin_with_target_and_key(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+  target : @strategy.CapturedEffectCommandTarget,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  client_effect_plan_import_begin(
+    preview,
+    preview_index,
+    output,
+    material,
+    limits,
+    max_fields,
+    max_work,
+    Some(target),
+    Some(input_key),
   )
 }
 
@@ -6656,6 +6836,7 @@ fn client_effect_plan_import_begin(
   max_fields : Int,
   max_work : Int,
   published_target : @strategy.CapturedEffectCommandTarget?,
+  input_key : @strategy.CapturedEffectCommandKeyValidation?,
 ) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
   guard @strategy.captured_effect_preview_input_at(preview, preview_index)
     is Some(input) else {
@@ -6668,6 +6849,7 @@ fn client_effect_plan_import_begin(
       max_fields,
       max_work,
       published_target~,
+      input_key~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Plan(issue))

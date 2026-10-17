@@ -1,9 +1,12 @@
 ///|
-fn command_key_managed_export(
+fn command_key_managed_export_with_bridge(
   inputs : @strategy.CapturedEffectInputs,
   operations : @local_driver.LocalManagedDispatchOperations[Int],
   completed : @execution.ManagedCompletedOutput[Int],
-) -> @strategy.CapturedEffectLocalResultExport {
+) -> (
+  @strategy.CapturedEffectLocalResultExport,
+  @execution.ManagedPublicationBridge[Int],
+) {
   let bridge = @execution.prepare_managed_publication_bridge(
     completed,
     (operations.material)().unwrap(),
@@ -26,9 +29,19 @@ fn command_key_managed_export(
     output,
     @strategy.captured_effect_input_occurrence(input),
   )
-  @strategy.bind_captured_effect_local_result_managed_export(
+  let exported = @strategy.bind_captured_effect_local_result_managed_export(
     inputs, 0, completed, bridge, preparation,
   ).unwrap()
+  (exported, bridge)
+}
+
+///|
+fn command_key_managed_export(
+  inputs : @strategy.CapturedEffectInputs,
+  operations : @local_driver.LocalManagedDispatchOperations[Int],
+  completed : @execution.ManagedCompletedOutput[Int],
+) -> @strategy.CapturedEffectLocalResultExport {
+  command_key_managed_export_with_bridge(inputs, operations, completed).0
 }
 
 ///|

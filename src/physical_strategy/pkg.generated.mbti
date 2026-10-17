@@ -126,6 +126,8 @@ pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
 pub fn captured_effect_command_key_validation_matches(CapturedEffectCommandKeyValidation, CapturedEffectInputs, Int, @stage_results.EffectCommandInputBinding) -> Bool
 
+pub fn captured_effect_command_requires_input_key(CapturedEffectInputs, Int, Int) -> Result[Bool, CapturedEffectCommandKeyIssue]
+
 pub fn captured_effect_input_at(CapturedEffectInputs, Int) -> CapturedEffectInput?
 
 pub fn captured_effect_input_borrow(CapturedEffectInput) -> CapturedAnyResultBorrow
@@ -780,6 +782,8 @@ pub fn resident_table_storage(ResidentTable) -> @execution_relation.ProducerStor
 
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 
+pub fn retain_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation) -> Result[Unit, CapturedEffectCommandKeyIssue]
+
 pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn retain_task_execution_allocation(CapturedDAG, TaskExecution, Int64) -> Result[TaskRetainedAllocation, @physical_resources.LedgerIssue]
@@ -835,6 +839,8 @@ pub fn start_captured_result_borrow_export(CapturedResultBorrow, @execution_rela
 pub fn start_captured_table_input_borrow_export(CapturedTableInputBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedTableInputRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn start_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, String, Int, Array[Double], Int, Int) -> Result[TaskNumericExecution, @numeric_reduction.ReductionIssue]?
+
+pub fn step_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation, Int) -> Result[(Bool, Int), CapturedEffectCommandKeyIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
@@ -951,6 +957,7 @@ pub(all) enum CapturedEffectCommandKeyIssue {
   Plan(@stage_results.EffectPlanBindingIssue)
   Validation(@execution_relation.CompletedResultKeyIssue)
   Control(@bounded_execution.Issue)
+  Stopped(@bounded_execution.StopReason)
 }
 
 type CapturedEffectCommandKeyValidation
