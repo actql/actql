@@ -91,12 +91,12 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_abandon_prepared_process_region(
     actql_bootstrap_process_region *record) {
     /* The Native caller also requires its original unstarted holder. This
      * physical check cannot manufacture that proof from allocator metadata. */
-    if (!process_region_original(record) || record->unmapped)
+    if (!process_region_original(record) || record->unmapped || record->child != 0)
         return ACTQL_OWNED_INVALID;
     if (record->closed) return ACTQL_OWNED_OK;
-    if (actql_native_owned_domain_unborrowed(record->domain->lease,
-            &record->view->view) != ACTQL_OWNED_OK)
-        return ACTQL_OWNED_INVALID;
+    /* Undo only this never-started preparation's descriptor capture. Domain
+     * readiness may itself have been the primary refusal. Do not change its
+     * allocator, borrower, view or loan, or claim that any region retired. */
     int status = process_region_close_descriptor(record);
     if (status == ACTQL_OWNED_OK) record->closed = true;
     return status;
