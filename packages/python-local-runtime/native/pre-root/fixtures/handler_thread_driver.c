@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include "../owned_capacity.h"
 
+void actql_test_original_extent_observation(actql_owned_capacity *, int);
+
 int main(int argc, char **argv) {
     assert(argc == 2);
     actql_owned_capacity *owner = NULL;
@@ -20,9 +22,11 @@ int main(int argc, char **argv) {
     symbol = dlsym(library, "actql_test_original_provider_current_address");
     void *(*address)(void) = NULL; assert(sizeof(address) == sizeof(symbol)); memcpy(&address, &symbol, sizeof(address));
     assert(address && address() == dlsym(RTLD_DEFAULT, "actql_native_owned_current"));
+    actql_test_original_extent_observation(owner, 0);
     for (int i = 0; i < 4; i++) {
         fprintf(stderr, "original mixed Rust/C case %d/4\n", i + 1);
         assert(run(i) == 0);
+        actql_test_original_extent_observation(owner, i + 1);
     }
     assert(actql_native_owned_leave(owner) == 0);
     /* The library/key stay loaded in this original process through its end.
