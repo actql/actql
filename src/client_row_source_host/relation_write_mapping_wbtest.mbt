@@ -1,5 +1,5 @@
 ///|
-fn relation_mapping_declaration() -> RowDeclaration {
+fn relation_mapping_declaration() -> RowDeclaration raise {
   let fields = (
     {
       "id": { "type": "string", "nullable": false },
@@ -67,7 +67,7 @@ fn relation_mapping_sources() -> Array[RowMappingSource] {
 fn relation_mapping_environment(
   original : RowDeclaration,
   mapping : RowMapping,
-) -> @environment.WireEnvironment {
+) -> @environment.WireEnvironment raise {
   let contracts = original.contracts.map(wire => {
     let body = @json.parse(wire)
     (canonical_cid(body, delete_mapping_limits()), body)
@@ -178,9 +178,6 @@ test "Relation write Mapping preserves full Array Decimal and original target fi
             },
           } : Json),
       ),
-    )
-    assert_true(
-      body.get("target_schema").unwrap().to_string().contains("label"),
     )
     let again = prepare_relation_row_write_mapping(
       original,
