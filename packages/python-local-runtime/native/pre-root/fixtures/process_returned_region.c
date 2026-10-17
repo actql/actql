@@ -53,17 +53,22 @@ int main(void) {
     assert(actql_native_owned_domain_unborrowed(domain->lease, &view->view) == ACTQL_OWNED_BUSY &&
            actql_native_owned_domain_has_child(domain->lease, getpid(), child) == ACTQL_OWNED_INVALID);
     int result = actql_bootstrap_retire_stopped_process_region(record, child);
-    printf("{\"discovered\":6,\"executed\":6,\"passed\":%d,\"failed\":%d,"
+    if (result != 0) {
+        printf("{\"discovered\":6,\"executed\":6,\"passed\":%d,\"failed\":%d,"
            "\"retirement_status\":%d,\"child_borrow_returned\":true,"
            "\"parent_cleanup_acknowledged\":%s,\"Native_stop_proof\":false,\"fixture_pages\":64}\n",
            result == 0 ? 6 : 5, result == 0 ? 0 : 1, result, result == 0 ? "true" : "false");
-    fflush(stdout);
-    if (result != 0) return 1;
+        fflush(stdout);
+        return 1;
+    }
     assert(record->closed && record->unmapped && domain->lease == NULL && view->view.mapping == NULL &&
            actql_bootstrap_retire_stopped_process_region(record, child) == 0 &&
            actql_bootstrap_retire_stopped_process_region(record, child + 1) == ACTQL_OWNED_INVALID &&
            actql_bootstrap_return_region(backing, extent, loan) == 0 &&
            actql_bootstrap_retire(backing, extent) == 0 && actql_bootstrap_close(backing) == 0 &&
            close(fd) == 0 && close(returned[0]) == 0);
+    puts("{\"discovered\":6,\"executed\":6,\"passed\":6,\"failed\":0,"
+         "\"retirement_status\":0,\"child_borrow_returned\":true,"
+         "\"parent_cleanup_acknowledged\":true,\"Native_stop_proof\":false,\"fixture_pages\":64}");
     return 0;
 }
