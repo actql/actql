@@ -1,5 +1,5 @@
 ///|
-fn relation_mapping_declaration() -> RowDeclaration raise {
+fn relation_mapping_declaration() -> RowDeclaration {
   // Independent canonical original Schema bytes and their literal digest.
   let wire =
     #|{"amount":{"nullable":true,"precision":18,"scale":3,"type":"decimal"},"choices":{"items":{"nullable":false,"type":"string"},"nullable":false,"type":"array"},"id":{"nullable":false,"type":"string"},"label":{"nullable":true,"type":"string"}}
