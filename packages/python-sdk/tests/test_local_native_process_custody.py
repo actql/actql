@@ -12,10 +12,11 @@ from actql_sdk._local_native_process_custody import (
 
 
 class ProcessFixture:
-    def __init__(self):
-        self.original = DomainFixture()
-        self.domain = self.original.take()
+    def __init__(self, *, original=None, domain=None):
+        self.original = original if original is not None else DomainFixture()
+        self.domain = domain if domain is not None else self.original.take()
         self.events, self.facts = [], {}
+        self.preparations = []
         self.issue, self.present = 0, True
         self.prepare_fault = self.capture_fault = self.call_fault = self.finish_fault = None
         self.wrong_operation = None
@@ -36,6 +37,7 @@ class ProcessFixture:
 
     def prepare(self, h, d, path, units, fd, nonce, retained, execution, reply):
         self.events.append(('prepare', h.value, d.value, fd))
+        self.preparations.append((nonce, retained, execution))
         self.reply(reply, 1)
         if self.prepare_fault: raise self.prepare_fault
         return 0

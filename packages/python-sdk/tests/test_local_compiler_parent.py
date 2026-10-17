@@ -10,6 +10,7 @@ from unittest.mock import patch
 import test_local_image_compiler_holding as holding
 from test_local_native_domain_custody import DomainFixture
 from test_local_native_control_custody import Function
+from test_local_native_process_custody import ProcessFixture, Error as ProcessError
 from actql_sdk._local_worker_slot import _OriginalDescriptor
 
 compiler = holding.compiler
@@ -140,6 +141,92 @@ class CompilerParentTests(unittest.TestCase):
             parent.close_unstarted()
         self.assertEqual(before, f.backing.events)
         self.assertFalse(parent._closed)
+
+    def process_parent(self):
+        native = DomainFixture()
+        parent = self.acquire(native)
+        process = ProcessFixture(original=native, domain=parent.domain)
+        return parent, process
+
+    def test_selected_child_process_blocks_parent_before_any_backing_return(self):
+        parent, native = self.process_parent()
+        process = parent.prepare_process(path='/private/compiler.slot', nonce=19)
+        self.assertIs(parent.domain._installed_process_original, process)
+        self.assertIs(process._domain, parent.domain)
+        self.assertEqual(native.preparations, [(19, self.body['child']['retained'],
+                                                self.body['child']['execution'])])
+        before = (list(native.events), list(native.original.backing.events))
+        with self.assertRaisesRegex(ValueError, 'process custody'):
+            parent.close_unstarted()
+        self.assertEqual(before, (native.events, native.original.backing.events))
+        self.assertFalse(parent.backing._closed or parent._closed or self.descriptor.close_attempted)
+        process.close_unstarted()
+        parent.close_unstarted()
+        self.assertTrue(parent._closed)
+
+    def test_lost_process_preparation_keeps_same_parent_and_partial_slot(self):
+        parent, native = self.process_parent()
+        native.prepare_fault = OSError('lost original process preparation')
+        with self.assertRaises(compiler.CompilerParentAcquisitionError) as caught:
+            parent.prepare_process(path='/private/compiler.slot', nonce=19)
+        self.assertIs(caught.exception.cleanup_parent, parent)
+        process = parent.domain._installed_process_original
+        self.assertIsNotNone(process._reply.value)
+        self.assertTrue(process._unknown.unknown)
+        before = (list(native.events), list(native.original.backing.events))
+        with self.assertRaisesRegex(ValueError, 'process custody'):
+            parent.close_unstarted()
+        with self.assertRaises(ValueError):
+            parent.prepare_process(path='/private/new.slot', nonce=20)
+        self.assertEqual(before, (native.events, native.original.backing.events))
+        self.assertEqual(len(native.preparations), 1)
+
+    def test_known_partial_process_refusal_retains_same_cleanup(self):
+        parent, native = self.process_parent()
+        native.issue = 6
+        with self.assertRaises(compiler.CompilerParentAcquisitionError) as caught:
+            parent.prepare_process(path='/private/compiler.slot', nonce=19)
+        self.assertIs(caught.exception.cleanup_parent, parent)
+        self.assertIsInstance(caught.exception.__cause__, ProcessError)
+        self.assertFalse(caught.exception.__cause__.unknown)
+        process = parent.domain._installed_process_original
+        with self.assertRaisesRegex(ValueError, 'process custody'):
+            parent.close_unstarted()
+        native.issue = 0
+        process.close_unstarted(); parent.close_unstarted()
+        self.assertTrue(parent._closed)
+
+    def test_no_process_refusal_keeps_parent_cleanup_available(self):
+        parent, native = self.process_parent()
+        native.issue, native.present = 1, False
+        with self.assertRaises(compiler.CompilerParentAcquisitionError) as caught:
+            parent.prepare_process(path='/private/compiler.slot', nonce=19)
+        self.assertIs(caught.exception.cleanup_parent, parent)
+        self.assertIsNone(parent.domain._installed_process_original)
+        parent.close_unstarted()
+        self.assertTrue(parent._closed)
+
+    def test_busy_process_entry_does_not_change_parent_or_existing_busy(self):
+        parent, native = self.process_parent()
+        parent.host._busy = True
+        with self.assertRaises(ValueError):
+            parent.prepare_process(path='/private/compiler.slot', nonce=19)
+        self.assertTrue(parent.host._busy)
+        self.assertIsNone(parent.domain._installed_process_original)
+        self.assertEqual(native.events, [])
+        parent.host._busy = False
+        process = parent.prepare_process(path='/private/compiler.slot', nonce=19)
+        process.close_unstarted(); parent.close_unstarted()
+
+    def test_changed_parent_descriptor_has_no_process_ffi(self):
+        parent, native = self.process_parent()
+        parent.descriptor = _OriginalDescriptor(-1)
+        with self.assertRaisesRegex(ValueError, 'parent domain'):
+            parent.prepare_process(path='/private/compiler.slot', nonce=19)
+        self.assertEqual(native.events, [])
+        self.assertIsNone(parent.domain._installed_process_original)
+        parent.descriptor = self.descriptor
+        parent.close_unstarted()
 
 
 if __name__ == '__main__':

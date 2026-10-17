@@ -19,8 +19,6 @@ compiler, base, plan = original['compiler'], original['base'], original['plan']
 parents, descriptors, cases = original['parents'], original['descriptors'], original['cases']
 assert len(cases) == 4
 from actql_sdk._local_native_process_custody import (
-    _OriginalInstalledProcessCustody as Process,
-    _OriginalInstalledProcessFunctions as Functions,
     _OriginalInstalledProcessError as ProcessError,
 )
 from actql_sdk._local_native_domain_custody import _OriginalDomainError
@@ -41,10 +39,7 @@ def acquire(label):
     fd = original['descriptor'](label+'.backing')
     parent = compiler._acquire_compiler_parent(value, selected, fd)
     parents.append(parent)
-    functions = Functions(parent.library)
-    process = Process._prepare_original(parent.domain, functions,
-        path=str(original['fixture']/(label+'.slot')), nonce=7,
-        retained=0, execution=48*original['page'])
+    process = parent.prepare_process(path=str(original['fixture']/(label+'.slot')), nonce=7)
     processes.append(process)
     return parent, fd, process
 
@@ -69,6 +64,10 @@ else: raise AssertionError('Generic domain current must not bypass original proc
 try: parent.domain.close_after_stop()
 except ValueError: pass
 else: raise AssertionError('Parent cannot retire before original process cleanup')
+try: parent.close_unstarted()
+except ValueError: pass
+else: raise AssertionError('Compiler assembly cannot return backing before original process cleanup')
+assert not parent.backing._closed
 assert parent.domain._unknown is None and not parent._closed
 cases.append('actual generic domain refusal and Python parent fence retain original responsibility')
 
