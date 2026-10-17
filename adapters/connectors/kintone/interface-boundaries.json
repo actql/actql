@@ -575,6 +575,258 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/kintone/site/kintone-record-delete.mjs",
+      "sha256": "7b7d3560de2f4789f58593148bb41b9f06f2a3f7740bcbeb10c552cb3fe56838",
+      "exports": [
+        "KINTONE_RECORD_DELETE_OPERATION",
+        "KINTONE_TARGET_READ_OPERATION",
+        "KintoneDeleteFailure",
+        "projectKintoneDeleteObservation",
+        "sendRawKintoneDelete"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "KintoneDeleteFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations",
+            "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectKintoneDeleteObservation",
+          "parameters": [
+            "moon",
+            "request",
+            "observation",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectKintoneDeleteObservation/projectKintoneDeleteObservation",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneDelete",
+          "parameters": [
+            "moon",
+            "originalAppId",
+            "request",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "current",
+            "limits",
+            "chargeResponse",
+            "consumeObservation",
+            "guestSpaceId",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawKintoneDelete/observedRead/observedRead",
+          "parameters": [
+            "operation",
+            "index",
+            "path",
+            "payload",
+            "check"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawKintoneDelete/receive/receive",
+          "parameters": [
+            "operation",
+            "index",
+            "path",
+            "method",
+            "payload",
+            "headers"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawKintoneDelete/receive/receive/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneDelete/receive/receive/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneDelete/sendRawKintoneDelete",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneDelete/sendRawKintoneDelete#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneDelete/sendRawKintoneDelete#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneDelete/sendRawKintoneDelete#4",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneDelete/sendRawKintoneDelete#5",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneDelete/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./kintone-record-read.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing original kintone Catalog, Account, Credential Site and Effect/capture owners; raw transport and response projection only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "KintoneDeleteFailure/constructor:constructor/constructor:constructor",
+            "positive/positive",
+            "projectKintoneDeleteObservation",
+            "projectKintoneDeleteObservation/projectKintoneDeleteObservation",
+            "sendRawKintoneDelete",
+            "sendRawKintoneDelete/observedRead/observedRead",
+            "sendRawKintoneDelete/receive/receive",
+            "sendRawKintoneDelete/receive/receive/response/response",
+            "sendRawKintoneDelete/receive/receive/response/response/response",
+            "sendRawKintoneDelete/sendRawKintoneDelete",
+            "sendRawKintoneDelete/sendRawKintoneDelete#2",
+            "sendRawKintoneDelete/sendRawKintoneDelete#3",
+            "sendRawKintoneDelete/sendRawKintoneDelete#4",
+            "sendRawKintoneDelete/sendRawKintoneDelete#5",
+            "sendRawKintoneDelete/verify/verify"
+          ],
+          "exports": [
+            "KINTONE_RECORD_DELETE_OPERATION",
+            "KINTONE_TARGET_READ_OPERATION",
+            "KintoneDeleteFailure",
+            "projectKintoneDeleteObservation",
+            "sendRawKintoneDelete"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
