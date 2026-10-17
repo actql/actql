@@ -93,9 +93,9 @@ async function executeRead(prepared,received){
           bounds.maxValueNodes,bounds.maxValueDepth,bounds.maxValueTextBytes,
           bounds.maxWireBytes,bounds.maxWireNodes,bounds.maxWireDepth));
         await verify();
-        await context.callbacks.consumeValue(valueWire,Object.freeze({charge,originalRequest:request}));
+        await context.callbacks.consumeValue(valueWire,Object.freeze({charge,originalRequest:request,completedPage:page}));
         await verify();
-        return Object.freeze({valueWire,pages:index+1,observations:Object.freeze(observations.slice())});
+        return Object.freeze({valueWire,completedPage:page,pages:index+1,observations:Object.freeze(observations.slice())});
       }
       await context.callbacks.consumeObservation(charge);
       if(index+1===bounds.maxPages)fail('NotionPropertyPageLimit');
