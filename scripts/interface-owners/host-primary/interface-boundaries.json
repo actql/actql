@@ -5702,7 +5702,7 @@
     },
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
-      "sha256": "85d76f963dd1704a7bb1323f883aaba2bb78ff3d01400bb048812eb5bb0802c9",
+      "sha256": "04ac0867114ec7478dec2f98bcd9cfedbf73cbc9b58f7e37fa843ce649d40e0c",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -5757,6 +5757,13 @@
           "name": "installRunKeyedContentCapture/capture/capture/capture/retained/retained",
           "parameters": [
             "handles"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/capture/capture/capture/retained/retained#2",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -5864,6 +5871,13 @@
           "async": true
         },
         {
+          "name": "installRunKeyedContentCapture/recover/recover/recover/value/value",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "installRunKeyedContentCapture/recover/recover/recover#2",
           "parameters": [],
           "async": false
@@ -5921,8 +5935,30 @@
           "async": false
         },
         {
+          "name": "installRunKeyedContentCapture/selectedForContent/selectedForContent",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
           "name": "installRunKeyedContentCapture/selectionCurrent/selectionCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/storageCurrentForContent/storageCurrentForContent",
+          "parameters": [
+            "stored",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/storageForContent/storageForContent",
+          "parameters": [
+            "binding"
+          ],
           "async": false
         }
       ],
@@ -5938,6 +5974,7 @@
             "installRunKeyedContentCapture/capture/capture",
             "installRunKeyedContentCapture/capture/capture/capture",
             "installRunKeyedContentCapture/capture/capture/capture/retained/retained",
+            "installRunKeyedContentCapture/capture/capture/capture/retained/retained#2",
             "installRunKeyedContentCapture/capture/capture/capture#2",
             "installRunKeyedContentCapture/capture/capture/capture#3",
             "installRunKeyedContentCapture/checkInventoryRoom/checkInventoryRoom",
@@ -5956,6 +5993,7 @@
             "installRunKeyedContentCapture/live/live",
             "installRunKeyedContentCapture/recover/recover",
             "installRunKeyedContentCapture/recover/recover/recover",
+            "installRunKeyedContentCapture/recover/recover/recover/value/value",
             "installRunKeyedContentCapture/recover/recover/recover#2",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/closed/closed",
@@ -5965,7 +6003,10 @@
             "installRunKeyedContentCapture/referenceIssuer/referenceIssuer",
             "installRunKeyedContentCapture/releaseCurrent/releaseCurrent",
             "installRunKeyedContentCapture/remember/remember",
-            "installRunKeyedContentCapture/selectionCurrent/selectionCurrent"
+            "installRunKeyedContentCapture/selectedForContent/selectedForContent",
+            "installRunKeyedContentCapture/selectionCurrent/selectionCurrent",
+            "installRunKeyedContentCapture/storageCurrentForContent/storageCurrentForContent",
+            "installRunKeyedContentCapture/storageForContent/storageForContent"
           ],
           "exports": [
             "installRunKeyedContentCapture"
@@ -5975,6 +6016,10 @@
               {
                 "path": "adapters/host-node/installed-keyed-content-capture.mjs",
                 "anchor": "common Run/Source/candidate and Store owners decide identity"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "inputsOutputs": [
@@ -5985,6 +6030,10 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "identity": [
@@ -5999,30 +6048,50 @@
               {
                 "path": "src/run_publication_host/client_effect_command_content.mbt",
                 "anchor": "client_effect_command_content_matches_issued"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-keyed-content-capture.mjs",
                 "anchor": "no capture journal here"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-keyed-content-capture.mjs",
                 "anchor": "authorize"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "resources": [
@@ -6033,12 +6102,20 @@
               {
                 "path": "adapters/host-node/installed-keyed-content-capture.mjs",
                 "anchor": "inventoryCount"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "verification": [
@@ -6053,6 +6130,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ]
           }

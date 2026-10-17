@@ -89,7 +89,7 @@ async function runAtPreparation(t, f, value, inspect, expectedStatus = 'waiting_
 test('keyed inventory selects only the same actual issued Command Content original', async t => {
   const f = await fixture(t);
   const issued = f.issued();
-  let borrowed;
+  let borrowed, stored;
   await runAtPreparation(t, f, issued, view => {
     borrowed = view;
     assert.strictEqual(f.owner.issuedForContent(view.binding), issued);
@@ -98,9 +98,21 @@ test('keyed inventory selects only the same actual issued Command Content origin
       'copied opaque fields do not recreate the original consumer view');
     assert.equal(f.owner.issuedForContent({binding: view.binding,
       matchesIssued: () => true}), undefined, 'caller matching callbacks are not consulted');
+    stored = f.owner.storageForContent(view.binding);
+    assert.ok(Object.isFrozen(stored));
+    assert.strictEqual(stored.issued, issued);
+    assert.strictEqual(stored.candidate, f.generated.candidate);
+    assert.deepEqual(stored.holding, f.generated.holding);
+    assert.equal(stored.workspaceScopeCid, f.generated.description.workspaceScopeCid);
+    assert.strictEqual(f.owner.storageForContent(view.binding), stored);
+    assert.equal(f.owner.storageCurrentForContent(stored, view.binding), true);
+    assert.equal(f.owner.storageCurrentForContent({...stored}, view.binding), false);
+    assert.equal(f.owner.storageForContent({...view.binding}), undefined);
     assert.equal(view.current(), true);
   });
   assert.equal(f.owner.issuedForContent(borrowed.binding), undefined, 'consumer retirement refuses');
+  assert.equal(f.owner.storageForContent(borrowed.binding), undefined);
+  assert.equal(f.owner.storageCurrentForContent(stored, borrowed.binding), false);
   assert.ok(f.counters.matches() >= 3);
   assert.equal(f.generated.store.status().storedBytes, 3);
   await f.execution().cleanup();
@@ -117,9 +129,29 @@ test('keyed inventory refuses an equal-wire reference from another actual issuan
     assert.equal(view.matchesIssued(equalWire), true);
     assert.equal(view.matchesIssued(f.issued()), false);
     assert.equal(f.owner.issuedForContent(view.binding), undefined);
+    assert.equal(f.owner.storageForContent(view.binding), undefined);
   });
   assert.equal(f.generated.store.status().storedBytes, 3);
   await f.execution().cleanup();
+  await f.generated.store.retirePhysicalHolding(f.generated.holding.holding_cid);
+  f.scratch.passed();
+});
+
+test('stored original handoff refuses cleanup begun by the original matcher callback', async t => {
+  let cleanup, cleanupFlight;
+  const f = await fixture(t, {matcher(binding, issued) {
+    const matched = moon.clientProgramEffectCommandContentMatchesIssued(binding, issued);
+    if (matched && cleanup !== undefined) cleanupFlight = cleanup();
+    return matched;
+  }});
+  cleanup = () => f.execution().cleanup();
+  await runAtPreparation(t, f, f.issued(), view => {
+    assert.equal(f.owner.storageForContent(view.binding), undefined);
+    assert.equal(f.execution().cleanupPending(), true);
+  }, 'needs_reconciliation');
+  assert.equal(await cleanupFlight, true);
+  assert.equal(f.counters.releases(), 1);
+  assert.equal(f.generated.store.status().storedBytes, 3);
   await f.generated.store.retirePhysicalHolding(f.generated.holding.holding_cid);
   f.scratch.passed();
 });

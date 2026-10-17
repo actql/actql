@@ -10756,7 +10756,7 @@
     {
       "module": "adapters/host-node/captured-content-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "30d391b800aa9d75ef2527eea3fe4b9d9584782264547a5f4215e99b93efc83c",
+      "sha256": "8d43a1b019001a3728178d42f4129c8d54819876465ada3667ca0a7f001b9ab2",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -10777,7 +10777,8 @@
             "available",
             "authorize",
             "limits",
-            "signal"
+            "signal",
+            "retainOriginal"
           ],
           "async": true
         }
@@ -10804,6 +10805,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "inputsOutputs": [
@@ -10818,6 +10823,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "identity": [
@@ -10832,6 +10841,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "ownership": [
@@ -10846,6 +10859,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "synchronization": [
@@ -10860,6 +10877,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "failure": [
@@ -10874,6 +10895,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "cancellation": [
@@ -10888,6 +10913,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "resources": [
@@ -10902,6 +10931,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "extension": [
@@ -10916,6 +10949,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "verification": [
@@ -10926,6 +10963,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ]
           }
@@ -23690,7 +23731,7 @@
     {
       "module": "adapters/host-node/generated-content-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fb2374b681b5b9d7a1b90347b5e22267a629c79aea396ce56cf4e3a36f311e69",
+      "sha256": "5a1f910809c3b7cd7860d193089e3180715e40b03407a4493e73a92d5cdaf90b",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -23718,6 +23759,7 @@
             "available",
             "authorize",
             "limits",
+            "retainOriginal",
             "prefix"
           ],
           "async": true
@@ -23760,7 +23802,8 @@
             "effectiveDataPolicyCid",
             "available",
             "authorize",
-            "limits"
+            "limits",
+            "retainOriginal"
           ],
           "async": true
         },
@@ -23847,6 +23890,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "inputsOutputs": [
@@ -23861,6 +23908,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "identity": [
@@ -23875,6 +23926,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "ownership": [
@@ -23889,6 +23944,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "synchronization": [
@@ -23903,6 +23962,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "failure": [
@@ -23917,6 +23980,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "cancellation": [
@@ -23931,6 +23998,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "resources": [
@@ -23945,6 +24016,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "extension": [
@@ -23959,6 +24034,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "verification": [
@@ -23969,6 +24048,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ]
           }

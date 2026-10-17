@@ -107,7 +107,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
   // or a caller-provided matching predicate. Nonmatching references short-circuit
   // in Common before its bounded current/field checks. The existing inventory
   // count bounds this scan without allocating a second reference index.
-  const issuedForContent = binding => {
+  const selectedForContent = binding => {
     if (binding === undefined || !selectionCurrent() || !live() ||
         !selectionCurrent() ||
         typeof moon.clientProgramEffectCommandContentMatchesIssued !== 'function') return undefined;
@@ -118,10 +118,17 @@ export function installRunKeyedContentCapture({moon, publications, control,
       // Common invokes Host currentness callbacks. They may begin cleanup or
       // replace this inventory; their prior true return is not a handoff fence.
       if (!selectionCurrent()) return undefined;
-      if (matched === true && inventory.get(original.wire) === original) return original.value;
+      if (matched === true && inventory.get(original.wire) === original) return original;
     }
     return undefined;
   };
+  const issuedForContent = binding => selectedForContent(binding)?.value;
+  // The same Source supplies this exact stored binding only after the typed
+  // original match. Exposed facts contain no Store/path/key, byte buffer or
+  // allocation. An escaped/copy record cannot replace the live entry check.
+  const storageForContent = binding => selectedForContent(binding)?.storedOriginal;
+  const storageCurrentForContent = (stored, binding) => stored !== undefined &&
+    selectedForContent(binding)?.storedOriginal === stored;
   const bindingFor = captureAuthorityCid => ({content_store_id: namespaceId,
     content_store_cid: storeAuthorityCid, workspace_scope_cid: authorityScopeCid,
     storage_scope: 'workspace', retention_class: 'local-content',
@@ -154,18 +161,23 @@ export function installRunKeyedContentCapture({moon, publications, control,
       const description = control.inspect(candidate);
       checkInventoryRoom(description.wire);
       current = {};
+      let storedOriginal;
       const retained = await retainCapturedContent({store, control, candidate,
         bytes: options.bytes, holdingCid: control.holdingCid(candidate),
         workspaceScopeCid: authorityScopeCid, effectiveDataPolicyCid: source[3],
         available: live, authorize: live, limits, signal: options.signal,
-        retainCustody: handles => { Object.assign(current, handles); }});
+        retainCustody: handles => { Object.assign(current, handles); },
+        retainOriginal: original => {
+          storedOriginal = original;
+          current.storedOriginal = original;
+        }});
       await options.verifyRead();
       signal?.throwIfAborted();
       options.signal?.throwIfAborted();
       if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
       if (!await releaseCurrent()) throw new Error('CapturedContentCleanupPending');
       remember(Object.freeze({candidate, wire: retained.wire, mediaType: description.mediaType,
-        value: retained.value, captureAuthorityCid: options.readSubjectCid}));
+        value: retained.value, storedOriginal, captureAuthorityCid: options.readSubjectCid}));
       return JSON.parse(retained.wire);
     })().catch(error => {
       if (error?.cleanupPending === true && error.cleanupHandle !== undefined) {
@@ -198,14 +210,16 @@ export function installRunKeyedContentCapture({moon, publications, control,
         acquisition, options.referenceWire, bindingFor(options.captureAuthorityCid), limits);
       const description = control.inspect(candidate);
       checkInventoryRoom(description.wire);
+      let storedOriginal;
       const value = await issueStoredCapturedContent({store, control, candidate,
         holdingCid: control.holdingCid(candidate), workspaceScopeCid: authorityScopeCid,
-        effectiveDataPolicyCid: source[3], available: live, authorize: live, limits});
+        effectiveDataPolicyCid: source[3], available: live, authorize: live, limits,
+        retainOriginal: original => { storedOriginal = original; }});
       await options.verifyRead();
       signal?.throwIfAborted();
       if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
       remember(Object.freeze({candidate, wire: description.wire, mediaType: description.mediaType,
-        value, captureAuthorityCid: options.captureAuthorityCid}));
+        value, storedOriginal, captureAuthorityCid: options.captureAuthorityCid}));
       return JSON.parse(description.wire);
     })().finally(() => { if (flight === operation) flight = undefined; });
     flight = operation;
@@ -257,7 +271,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
     return operation;
   };
   return Object.freeze({capture, recover: options => recover(options), recoverInventory, referenceIssuer,
-    issuedForContent,
+    issuedForContent, storageForContent, storageCurrentForContent,
     sourceBinding,
     recoveryInventory: () => !inventoryReady || !live() || cleaned || flight !== undefined ||
         inventoryFlight !== undefined ? undefined : Object.freeze({
