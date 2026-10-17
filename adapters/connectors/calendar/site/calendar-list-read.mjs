@@ -28,18 +28,22 @@ export class CalendarListReadFailure extends Error {
 function prepareCalendarListRead({moon, names, initialAuthorization,
   credential, authorizationFor, limits, current, chargeResponse, consumePage,
   signal, callResource = callHttpsCredentialResource}) {
-  if (providerExports.some(name => typeof moon?.[name] !== 'function') ||
-      !Array.isArray(names) ||
+  if (!Array.isArray(names) ||
       new Set(names).size !== names.length ||
-      !limitFields.every(key => positive(limits?.[key])) || limits.perPage > 250 ||
-      limits.maxPages > limits.maxRequests ||
       [authorizationFor, current, chargeResponse, consumePage, callResource].some(value => typeof value !== 'function') ||
-      !credential?.binding || typeof credential.binding !== 'object') fail('InvalidCalendarListRead');
-  const provider = Object.freeze(Object.fromEntries(providerExports.map(name => [name, moon[name]])));
-  const declaredColumns = provider.calendarListColumnNames();
-  if (names.some(name => !declaredColumns.includes(name))) fail('InvalidCalendarListRead');
+      !credential || typeof credential !== 'object' ||
+      !limits || typeof limits !== 'object') fail('InvalidCalendarListRead');
+  // Read trusted external properties once, then validate and use only that
+  // original snapshot. Validation must not re-read a changing provider/limit.
+  const provider = Object.freeze(Object.fromEntries(providerExports.map(name => [name, moon?.[name]])));
   const context = ownInvocationContext({authorization: initialAuthorization,
     credential, limits, callbacks: {authorizationFor, current, chargeResponse, consumePage, callResource}});
+  if (providerExports.some(name => typeof provider[name] !== 'function') ||
+      !limitFields.every(key => positive(context.limits[key])) || context.limits.perPage > 250 ||
+      context.limits.maxPages > context.limits.maxRequests ||
+      !context.credential.binding || typeof context.credential.binding !== 'object') fail('InvalidCalendarListRead');
+  const declaredColumns = provider.calendarListColumnNames();
+  if (names.some(name => !declaredColumns.includes(name))) fail('InvalidCalendarListRead');
   if (context.scope.operation !== CALENDAR_LIST_OPERATION) fail('ForeignCalendarListOperation');
   // The existing RowRun admits the complete declared row. Retain all four
   // checked cells even when a query projects columns away; ordinary Relation
