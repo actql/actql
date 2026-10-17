@@ -1,5 +1,8 @@
 /* Physical key generation only. This does not adopt a Store/key, issue an
  * identity or grant, claim a credential use, or authorize a Resolution.
+ * Synchronous, no callbacks/reentry: borrow the original Library and two
+ * distinct output buffers (48 private DER bytes, 44 public DER bytes). Free
+ * every temporary EVP key/context before returning; caller owns the output.
  * Optional symbols leave the existing verification/load contract unchanged.
  * https://docs.openssl.org/3.0/man3/EVP_PKEY_keygen/
  * https://www.rfc-editor.org/rfc/rfc8410#section-10.3 */
