@@ -4133,7 +4133,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "49a8f637490a01339dda4191c792122cd883d42fee5f1c53bb9fd9e55a0ccb7c",
+      "sha256": "78a1304c3fa9a92c7512498c6b79aad29f0c618e0ba272705656ebd3d0b4b500",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4702,6 +4702,11 @@
             "member",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/context/context",
+          "parameters": [],
           "async": false
         },
         {
@@ -5769,19 +5774,24 @@
             "createRowEffectStage/captureStage/captureStage#5",
             "createRowEffectStage/captureStage/captureStage#6",
             "createRowEffectStage/captureStage/captureStage#7",
+            "createRowEffectStage/captureStage/childrenPending/childrenPending",
+            "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
             "createRowEffectStage/captureStage/computation/computation",
             "createRowEffectStage/captureStage/computation/computation#2",
             "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
+            "createRowEffectStage/captureStage/context/context",
             "createRowEffectStage/captureStage/entries/entries",
             "createRowEffectStage/captureStage/entries/entries/entries",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
             "createRowEffectStage/captureStage/payloads/payloads",
             "createRowEffectStage/captureStage/preflight/preflight",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
             "createRowEffectStage/captureStage/proposals/proposals",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/route/route",
+            "createRowEffectStage/captureStage/rows/rows",
             "createRowEffectStage/captureStage/sourceSet/init:onProposalRow/init:onProposalRow",
             "createRowEffectStage/captureStage/sourceSet/sourceSet",
             "createRowEffectStage/captureStage/verified/verified",
@@ -5825,7 +5835,9 @@
             "createRowEffectStage/prepareCaptured/prepareCaptured",
             "createRowEffectStage/prepareCaptured/prepareCaptured#2",
             "createRowEffectStage/prepareCaptured/prepareCaptured#3",
+            "createRowEffectStage/prepareCaptured/prepareCaptured#4",
             "createRowEffectStage/prepareRecovered",
+            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
             "createRowEffectStage/prepareRecovered/dispatches/dispatches",
             "createRowEffectStage/prepareRecovered/ledgerOwner/init:cleanup/init:cleanup",
             "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
@@ -5855,6 +5867,7 @@
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping",
             "createRowEffectStage/recoveryCid/recoveryCid",
+            "createRowEffectStage/requestEntry/requestEntry",
             "createRowEffectStage/requestsOf/requestsOf",
             "createRowEffectStage/requestsOf/requestsOf/requestsOf",
             "createRowEffectStage/requireApproval/requireApproval",
@@ -5882,14 +5895,7 @@
             "retainInstalledRowEffectAdapter",
             "sameValue/sameValue",
             "targeted/targeted",
-            "text/text",
-            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
-            "createRowEffectStage/captureStage/childrenPending/childrenPending",
-            "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
-            "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
-            "createRowEffectStage/captureStage/rows/rows",
-            "createRowEffectStage/prepareCaptured/prepareCaptured#4",
-            "createRowEffectStage/requestEntry/requestEntry"
+            "text/text"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -5911,6 +5917,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "// The existing capture retains this original child before any fallible current"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Owned guarded request preparation"
               }
             ],
             "inputsOutputs": [
@@ -5925,6 +5935,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "rowIndex, authorizationForRow})` (command or guarded write)"
               }
             ],
             "identity": [
@@ -5939,6 +5953,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "let child = create();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "fail('ForeignInstalledRowEffectRequest')"
               }
             ],
             "ownership": [
@@ -5957,6 +5975,10 @@
               {
                 "path": "adapters/host-common/completed-run-publication.mjs",
                 "anchor": "export async function releasePreparedResults(exported, primary, control)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "children.push({prepared: Object.freeze"
               }
             ],
             "synchronization": [
@@ -5975,6 +5997,10 @@
               {
                 "path": "src/run_publication/cleanup_progress.mbt",
                 "anchor": "pub fn publication_cleanup_owner_action_code("
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
               }
             ],
             "failure": [
@@ -5989,6 +6015,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
               }
             ],
             "cancellation": [
@@ -6003,6 +6033,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "signal?.throwIfAborted()"
               }
             ],
             "resources": [
@@ -6021,6 +6055,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "if (childPending()) return false;"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
               }
             ],
             "extension": [
@@ -6035,6 +6073,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
               }
             ],
             "verification": [
@@ -6057,6 +6099,14 @@
               {
                 "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
                 "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded child cleanup pending retains the same failure and original cleanup handle"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "the child cannot substitute another row index into its read use"
               }
             ]
           }
@@ -6424,7 +6474,31 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../connectors-builtin/installations.generated.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-input-export.mjs",
+        "./effect-ledger.mjs",
+        "./effect-physical-dispatch.mjs",
+        "./effect-plan-verify.mjs",
+        "./effect-response-recovery.mjs",
+        "./installed-connectors.mjs",
+        "./installed-row-capture-cleanup.mjs",
+        "./local-account-config.mjs",
+        "./local-values-plan.mjs",
+        "./table-write-binding.mjs",
+        "./update-target-original-shape.mjs",
+        "node:crypto",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
