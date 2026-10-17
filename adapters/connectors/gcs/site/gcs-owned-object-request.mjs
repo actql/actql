@@ -329,6 +329,19 @@ export function ownedGcsObjectRequestCid(request, binding) {
   return request.request_cid;
 }
 
+// A detached initial-capture projection of this same request's original GET.
+// It never performs a replacement read or supplies an apply-current proof.
+export function projectOwnedGcsMetadataPatchTarget(request, maxProjectionBytes, binding) {
+  const original = originalRequest(request, binding);
+  if (!integer(maxProjectionBytes)) fail('InvalidGcsObjectAbiLimits');
+  if (typeof original.moon?.gcsObjectPatchEffectTarget !== 'function') {
+    fail('GcsOriginalMutationPreparationUnavailable');
+  }
+  return freeze(JSON.parse(gcsOwnedResult(original.moon,
+    original.moon.gcsObjectPatchEffectTarget(binding ?? original.binding,
+      original.handle, maxProjectionBytes))));
+}
+
 export function recheckOwnedGcsObjectRequest(request, current, binding) {
   const original = originalRequest(request, binding);
   return gcsOwnedResult(original.moon, original.moon.gcsObjectRecheck(

@@ -47,6 +47,7 @@ pub struct ObjectMutationRequest {
   cid : String
   logical_after : ObjectMetadataFields?
   authored_changes : String
+  marker : String?
 }
 
 ///|
@@ -218,6 +219,7 @@ fn mutation_request(
   body : String,
   logical_after : ObjectMetadataFields?,
   authored_changes : String,
+  marker? : String,
 ) -> Result[ObjectMutationRequest, ObjectRequestIssue] {
   let path = match mutation_path(binding, original) {
     Ok(value) => value
@@ -254,6 +256,7 @@ fn mutation_request(
     cid: "sha256:" + @sha.hex(@utf8.encode(wire)),
     logical_after,
     authored_changes,
+    marker,
   })
 }
 
@@ -339,6 +342,7 @@ fn prepare_object_metadata_patch_input(
     body,
     Some(after),
     authored_changes,
+    marker~,
   )
 }
 

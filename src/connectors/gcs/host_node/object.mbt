@@ -299,6 +299,19 @@ pub fn gcs_object_request_projection(
 }
 
 ///|
+#export_name("gcsObjectPatchEffectTarget")
+pub fn gcs_object_patch_effect_target(
+  binding : @catalog.ObjectMutationBinding,
+  request : @catalog.ObjectMutationRequest,
+  max_bytes : Int,
+) -> Result[String, GcsFailure] {
+  @catalog.object_metadata_patch_effect_target_json(binding, request, max_bytes).map_err(issue => {
+      Request(issue)
+    },
+  )
+}
+
+///|
 #export_name("gcsObjectRequestBody")
 pub fn gcs_object_request_body(
   binding : @catalog.ObjectMutationBinding,
