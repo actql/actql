@@ -413,3 +413,53 @@ SQLite/local-TLS tests exercise singleton/explicit selection through typed rows,
 foreign/missing schema contracts, original charges, current denial, Unknown,
 nonresend, bounded output and nominal handles. They do not establish a pristine
 installed or live Notion profile.
+
+## Original Source system columns
+
+The public database Source includes the original page's `id`, `url`,
+`created_time`, `created_by`, `last_edited_time`, `last_edited_by`, `resource` and
+`version` alongside its properties. The existing property-only projection is
+still useful as a component and retains its exact schema bytes. It is not a
+complete public Source schema. The same Catalog owner explicitly augments its
+opaque property binding with the eight fixed system contracts and constructs
+one complete checked Object schema. It retains the original declaration,
+selected data-source occurrence, property metadata and checked Contracts;
+no reparsed schema, invented property or matching CID replaces them.
+
+System `resource` is exactly the original page id and `version` is exactly the
+original `last_edited_time` String spelling. They are correlation DATA, not an
+issued ResourceRef/ContentRef, a version capability or mutation identity.
+The two logical Timestamp columns use the existing ValueAdmission physical
+normalizer and checked Timestamp contract. A known offset is converted exactly
+to UTC milliseconds; the original response and version coordinate retain its
+spelling. Unknown offsets, nonzero submillisecond digits and malformed times
+refuse. User columns require the actual returned partial User object/id; no
+missing identity, nullable value or lookup is synthesized. All eight fields
+must be present and admitted before a full Source row can finish.
+
+An original property's chosen column cannot overwrite a system column. The
+existing checked Object constructor refuses duplicate names; the existing
+explicit read declaration can choose a distinct property column. Standard
+columns never become property-item requests or replace a paginated property
+completion. The same original row, complete Value builder and whole-page
+admission check every property and system cell together. Field count/name
+bytes, schema and row bounds, original response scans, conversion, validation,
+canonical output and cancellation remain charged and fail closed.
+
+The augmented binding adds a bounded system-contract vector, tuple records and
+complete schema graph sharing original property references. Row assembly adds
+system CheckedValues, decoded/normalized timestamp backing and input/output
+text, with all original page/decode/property history, metadata and pending
+completion arrays still live. Shared aliases do not remove layout or overlap
+costs. The complete graph and physical reader still require their actual
+installation, original Run/funding and confirmed retirement suppliers.
+
+The thin discovery caller requests this full schema explicitly for Source
+preparation and forwards that same opaque binding to query/property assembly.
+No JS schema reconstruction, authority, second parser, wire version, permission
+or numeric profile is introduced. Actual private Account/Credential/SQLite/TLS
+coverage remains separate from ordinary installed and live Notion acceptance.
+The vendor metadata fields are defined by the existing selected
+[Page object](https://developers.notion.com/reference/page) and
+[data-source query](https://developers.notion.com/reference/query-a-data-source)
+contracts; this implementation does not migrate the selected API version.

@@ -113,3 +113,33 @@ test('copied Notion discovery handles and unsafe original path coordinates canno
   const declaration=checked(provider.notionReadDatabaseDeclaration(Buffer.from('".."'),...declarationBounds));
   assert.throws(()=>f.discover({declaration}),{code:'InvalidNotionDiscoveryCoordinate'});assert.equal(f.state.requests.length,0);
 });
+
+
+test('actual Notion discovery retains full Source metadata through the same original typed property row',async t=>{
+  const f=await fixture(t),original=await f.discover({systemColumns:true}).read();
+  const systems=['created_by','created_time','id','last_edited_by','last_edited_time','resource','text','url','version'];
+  assert.deepEqual(Object.keys(JSON.parse(original.schemaWire).fields),systems);
+  let properties=0;
+  f.state.respond=request=>request.method==='POST'?{object:'list',type:'page_or_data_source',page_or_data_source:{},
+    results:[{object:'page',id:'page',parent:{type:'data_source_id',data_source_id:'s'},
+      url:'https://notion.test/page',created_time:'2026-10-18T10:20:30+09:00',
+      created_by:{object:'user',id:'maker'},last_edited_time:'2026-10-18T10:21:30+09:00',
+      last_edited_by:{object:'user',id:'editor'},
+      properties:{text:{...definition,rich_text:[],has_more:true}}}],has_more:false,next_cursor:null}:
+    propertyItemPage(properties++===0?['a']:['b'],properties===1?'next':null);
+  const rows=[],l={...limits,maxPages:8,pageSize:10,maxTotalRows:100,maxRequestBytes:1024,
+    maxCursorBytes:128,maxRowNodes:128,maxRowDepth:16,maxRowTextBytes:4096,maxRowWork:100000,maxPageWork:100000,
+    maxRowsWireBytes:8192,maxRowsWireNodes:256,maxRowsWireDepth:16,maxPropertyPages:8,maxPropertyItems:128,
+    maxPropertyBytes:65536,maxPropertyNodes:4096,maxPropertyTextBytes:32768,maxPropertyWork:1000000};
+  const read=createNotionDataSourceReader({moon:provider,...original,
+    initialAuthorization:f.authorize(queryOperation,'system-query'),propertyAuthorization:f.authorize(propertyOperation,'system-property'),
+    credential:f.options.credential,authorizationFor:({operation,ordinal})=>f.authorize(operation,`system-${ordinal}`),
+    current:f.current,chargeResponse:f.options.chargeResponse,consumeObservation:f.options.consumeObservation,
+    consumePage:(page,{charge})=>{f.options.consumeObservation(charge);rows.push(...page);},limits:l});
+  assert.equal((await read.read()).rowCount,1);
+  assert.deepEqual(rows,[{created_by:'maker',created_time:'2026-10-18T01:20:30.000Z',id:'page',
+    last_edited_by:'editor',last_edited_time:'2026-10-18T01:21:30.000Z',resource:'page',text:'ab',
+    url:'https://notion.test/page',version:'2026-10-18T10:21:30+09:00'}]);
+  assert.equal(f.state.requests.length,5);assert.equal(f.journal.recover().filter(x=>x.outcome==='succeeded').length,5);
+  assert.equal(read.observe().cleanupConfirmed,false);
+});

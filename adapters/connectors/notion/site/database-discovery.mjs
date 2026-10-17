@@ -34,10 +34,12 @@ export class NotionDatabaseDiscoveryFailure extends Error{
 }
 
 function prepare({moon,declaration,initialAuthorization,sourceAuthorization,credential,
-  authorizationFor,current,chargeResponse,consumeObservation,limits,signal}){
+  authorizationFor,current,chargeResponse,consumeObservation,limits,signal,systemColumns=false}){
   if(!declaration||[authorizationFor,current,chargeResponse,consumeObservation].some(x=>typeof x!=='function'))fail('InvalidNotionDiscovery');
-  const provider=Object.freeze(Object.fromEntries(ports.map(name=>[name,moon?.[name]])));
-  if(ports.some(name=>typeof provider[name]!=='function'))fail('InvalidNotionDiscovery');
+  if(typeof systemColumns!=='boolean')fail('InvalidNotionDiscovery');
+  const names=systemColumns?[...ports,'notionSourceSystemReadContracts']:ports;
+  const provider=Object.freeze(Object.fromEntries(names.map(name=>[name,moon?.[name]])));
+  if(names.some(name=>typeof provider[name]!=='function'))fail('InvalidNotionDiscovery');
   const context=ownInvocationContext({authorization:initialAuthorization,credential,limits,
     callbacks:{authorizationFor,current,chargeResponse,consumeObservation}});
   const source=ownInvocationAuthorization(sourceAuthorization);
@@ -46,7 +48,7 @@ function prepare({moon,declaration,initialAuthorization,sourceAuthorization,cred
     source.scope.operation!==NOTION_DATA_SOURCE_RETRIEVE_OPERATION||
     !invocationBindingsMatch(source.scope,context.scope))fail('ForeignNotionDiscoveryAuthorization');
   const path=coordinate(provider.notionReadDatabaseId(declaration),'databases',context.limits.maxTargetBytes);
-  return Object.freeze({provider,declaration,context,source,path,signal});
+  return Object.freeze({provider,declaration,context,source,path,signal,systemColumns});
 }
 
 async function discover(original,state){
@@ -83,8 +85,13 @@ async function discover(original,state){
     await context.callbacks.consumeObservation(charges[0]);
     const schemaResponse=await request(NOTION_DATA_SOURCE_RETRIEVE_OPERATION,1,sourcePath);
     const source=checked(provider.notionProjectDataSource(database,index,schemaResponse.body,...metadata));
-    const readContracts=checked(provider.notionBindDataSourceReadContracts(declaration,source,...metadata,
+    const propertyContracts=checked(provider.notionBindDataSourceReadContracts(declaration,source,...metadata,
       b.maxContractNodes,b.maxContractDepth,b.maxContractTextBytes,b.maxColumns,b.maxWork));
+    // Public Source rows keep the same original property pair and add only
+    // Common's fixed system metadata contracts. No JS type/value interpreter.
+    const readContracts=original.systemColumns?checked(provider.notionSourceSystemReadContracts(
+      propertyContracts,...metadata,b.maxContractNodes,b.maxContractDepth,
+      b.maxContractTextBytes,b.maxColumns,b.maxWork)):propertyContracts;
     const schemaWire=checked(provider.notionDataSourceReadSchemaJson(readContracts,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth));
     await verify(NOTION_DATA_SOURCE_RETRIEVE_OPERATION);
     await context.callbacks.consumeObservation(charges[1]);
