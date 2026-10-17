@@ -38,6 +38,8 @@ pub fn notion_database_read_snapshot_declaration(@catalog.NotionDatabaseReadSnap
 
 pub fn notion_database_read_snapshot_matches(@catalog.NotionDatabaseReadSnapshot, @catalog.NotionReadSourceSelection, @catalog.NotionDataSourceCatalog, @catalog.NotionDataSourceReadContracts) -> Bool
 
+pub fn notion_database_read_snapshot_relation_specification(@catalog.NotionDatabaseReadSnapshot, String, Int, Int, Int) -> Result[String, @catalog.NotionReadSnapshotIssue]
+
 pub fn notion_database_read_snapshot_source(@catalog.NotionDatabaseReadSnapshot) -> Result[@catalog.NotionDataSourceCatalog, @catalog.NotionReadSnapshotIssue]
 
 pub fn notion_database_read_snapshot_source_cid(@catalog.NotionDatabaseReadSnapshot) -> Result[String, @catalog.NotionReadSnapshotIssue]

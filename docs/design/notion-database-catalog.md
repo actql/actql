@@ -857,3 +857,28 @@ bounded stages is not a reservation, zero-cost sharing or a normal numerical
 supplier. Cancellation is limited to bounded encoder failure; physical current,
 stop/Unknown/nonresend, raw retirement, installation publication persistence and
 final Run adoption remain separate consuming duties.
+
+### Ordinary Relation declaration intake
+
+The same sealed full-system snapshot can project its checked field-contract map
+into the existing `RowRelationViewSpec` input for one explicitly selected
+resource name. A property-only schema is refused using its original binding,
+even when authored columns happen to have system names. The existing Common
+row-source declaration owner remains responsible for schema/Catalog admission.
+Its existing Relation representation is a field map, not the complete Object
+contract retained by the snapshot. The existing Contract emitter preserves every
+checked child, including enum order/repetitions, extents, exact Decimal shape
+and nullability; the derived map has its own CID. It does not replace or reuse
+the snapshot's complete Object schema bytes/CID.
+The projection adds no facts, key evidence, request/acquisition profile,
+Reference, classification, installation membership or authority. Cold intake
+uses saved originals and performs no metadata discovery.
+
+Its bounded encoder frames, field-map String/hash/UTF-8 backing, resource text
+and returned specification String overlap with the saved snapshot, schema and
+checked Contract graph. Both sequential encoders retain independent output/node
+bounds; those bounds do not claim a single aggregate memory envelope.
+Generic declaration intake then retains its own decode/canonical/preimage
+workspace and new declaration alongside those originals. Structural bounds do
+not supply their funding or make returned aliases free. Installation, Run
+custody, current checks and physical reader retirement remain independent.

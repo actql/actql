@@ -73,6 +73,8 @@ pub fn notion_database_read_snapshot_declaration(NotionDatabaseReadSnapshot) -> 
 
 pub fn notion_database_read_snapshot_matches(NotionDatabaseReadSnapshot, NotionReadSourceSelection, NotionDataSourceCatalog, NotionDataSourceReadContracts) -> Bool
 
+pub fn notion_database_read_snapshot_relation_specification(NotionDatabaseReadSnapshot, String, NotionReadSnapshotLimits) -> Result[String, NotionReadSnapshotIssue]
+
 pub fn notion_database_read_snapshot_source(NotionDatabaseReadSnapshot) -> Result[NotionDataSourceCatalog, NotionReadSnapshotIssue]
 
 pub fn notion_database_read_snapshot_source_cid(NotionDatabaseReadSnapshot) -> Result[String, NotionReadSnapshotIssue]
