@@ -113,6 +113,7 @@ export async function preparePinnedEffectSourceSet({
   // Private phase views are retained by the original capture before this
   // asynchronous export. Only Common can match one to its Run/member/limits.
   let workspaces;
+  let hasCommandWorkspace = false;
   if (commandWorkspaces !== undefined) {
     if (!Array.isArray(commandWorkspaces) || !Object.isFrozen(commandWorkspaces) ||
         commandWorkspaces.length !== count) {
@@ -125,6 +126,7 @@ export async function preparePinnedEffectSourceSet({
         throw new TypeError('InvalidEffectCommandWorkspaces');
       }
       workspaces.push(slot.value);
+      hasCommandWorkspace ||= slot.value !== undefined;
     }
     Object.freeze(workspaces);
   }
@@ -188,7 +190,8 @@ export async function preparePinnedEffectSourceSet({
       return moon.clientProgramEffectResultImportCount(options.checkedOwner, stage) > 0;
     }).some(Boolean);
   if (options.localEvidenceContext?.acquiredEvidence !== undefined || importedSourceFree) {
-    return prepareDependentEffectSourceSet({...options, commandWorkspaces: workspaces}, count, maxGroupingWork);
+    return prepareDependentEffectSourceSet({...options, commandWorkspaces: workspaces},
+      count, maxGroupingWork, hasCommandWorkspace);
   }
   const groups = [];
   const duplicateManifestMembers = new Set();
@@ -314,11 +317,13 @@ export async function preparePinnedEffectSourceSet({
 // Produce complete required local Manifests in checked producer order. The
 // retained read owner, rather than these JS coordinates, proves every edge.
 // All prepared payloads stay under the existing publication cleanup owner.
-async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
+async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
+  hasCommandWorkspace) {
   const {moon, inputs, control, checkedOwner, signal, contractLimits} = options;
-  if (options.commandWorkspaces?.some(value => value !== undefined)) {
-    // Local dependency exports require their own original capacity receiver.
-    // Keep the prior unavailable boundary; a member phase cannot fund it.
+  if (hasCommandWorkspace &&
+      typeof moon.clientProgramBeginEffectLocalCommandKeyWorkspace !== 'function') {
+    // No substitution of a member import or caller-supplied byte allowance
+    // for the original Local Result receiver.
     throw new TypeError('EffectCommandDependencyWorkspaceUnavailable');
   }
   if (!Array.isArray(options.localEvidenceContext.retentionDependencies)) {
@@ -404,6 +409,33 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
   if (memberIndexes.size !== memberCount) {
     throw new TypeError('IncompleteEffectDependencyMembers');
   }
+  // Complete original membership/grouping before any Store writer. A key
+  // scope belongs to exactly one member even when the original view is shared.
+  // Separate physical exports retain one original logical Manifest entry.
+  for (const entry of selected) {
+    const groups = [];
+    let unkeyed;
+    for (const member of hasCommandWorkspace ? entry.members : []) {
+      spend();
+      const commandWorkspace = options.commandWorkspaces?.[member];
+      if (commandWorkspace !== undefined && entry.tableInput) {
+        throw new TypeError('EffectCommandDependencyWorkspaceUnavailable');
+      }
+      spend();
+      if (moon.clientProgramEffectInputsShareView(inputs, entry.members[0], member) !== true) {
+        throw new TypeError('ForeignEffectProposalSource');
+      }
+      if (commandWorkspace !== undefined) groups.push([member]);
+      else if (unkeyed === undefined) {
+        unkeyed = [member];
+        groups.push(unkeyed);
+      } else unkeyed.push(member);
+    }
+    entry.groups = !hasCommandWorkspace ? [entry.members]
+      : groups.length === 0 ? [[]] : groups;
+    entry.payloads = [];
+    entry.memberPayloads = new Map();
+  }
   const owned = {...options,
     contractLimits: Object.freeze({...contractLimits}),
     localEvidenceContext: Object.freeze({...options.localEvidenceContext}),
@@ -480,31 +512,45 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
       const unit = {invocation: dependency.invocation, artifacts: []};
       const manifestSet = new Map([[unitIndex, unit]]);
       for (const entry of entries) {
-        const proposes = owned.onProposalRow !== undefined &&
-          entry.members.length > 0;
-        entry.payload = await preparePinnedEffectSourcePayloadOwned({
-          ...owned, memberIndex: entry.members[0],
-          onProposalRow: proposes ? owned.onProposalRow : undefined,
-          ...(proposes ? {proposalMemberIndexes: entry.members} : {}),
-        }, manifestSet, {resultIndex: entry.resultIndex, tableInput: entry.tableInput, dependency,
-          dependencyText, staticBodies});
-        payloads.push(entry.payload);
+        for (const indexes of entry.groups) {
+          signal?.throwIfAborted();
+          const proposes = owned.onProposalRow !== undefined && indexes.length > 0;
+          const payload = await preparePinnedEffectSourcePayloadOwned({
+            ...owned, memberIndex: indexes[0],
+            commandWorkspace: owned.commandWorkspaces?.[indexes[0]],
+            onProposalRow: proposes ? owned.onProposalRow : undefined,
+            ...(proposes ? {proposalMemberIndexes: indexes} : {}),
+          }, manifestSet, {resultIndex: entry.resultIndex, tableInput: entry.tableInput, dependency,
+            dependencyText, staticBodies}, entry.payloads.length > 0);
+          payloads.push(payload);
+          entry.payloads.push(payload);
+          entry.payload ??= payload;
+          for (const member of indexes) entry.memberPayloads.set(member, payload);
+        }
       }
       const manifest = control.issueLocalEffectResultManifest(checkedOwner,
         unit.invocation, unit.artifacts, owned.contractLimits);
       manifests.set(unitIndex, manifest);
       for (const entry of entries) {
-        const previous = entry.payload;
-        entry.payload = Object.freeze({...previous, localManifest: manifest});
-        preparedEffectSourceOwners.set(entry.payload,
-          preparedEffectSourceOwners.get(previous));
+        const finalized = new Map();
+        entry.payloads = entry.payloads.map(previous => {
+          const value = Object.freeze({...previous, localManifest: manifest});
+          preparedEffectSourceOwners.set(value, preparedEffectSourceOwners.get(previous));
+          finalized.set(previous, value);
+          return value;
+        });
+        entry.payload = finalized.get(entry.payload);
+        for (const [member, previous] of entry.memberPayloads) {
+          entry.memberPayloads.set(member, finalized.get(previous));
+        }
       }
     }
     signal?.throwIfAborted();
     const members = new Array(memberCount);
     for (const entry of selected) {
       for (const memberIndex of entry.members) {
-        members[memberIndex] = Object.freeze({memberIndex, payload: entry.payload});
+        members[memberIndex] = Object.freeze({memberIndex,
+          payload: entry.memberPayloads.get(memberIndex)});
       }
     }
     // Complete Manifests are needed while issuing consumer import evidence.
@@ -530,14 +576,14 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
     if (temporary.length > 0) {
       const released = new Error('TemporaryEffectManifestPayloadsReleased');
       try {
-        await releasePreparedResults(temporary.map(entry => entry.payload),
+        await releasePreparedResults(temporary.flatMap(entry => entry.payloads),
           released, control);
       } catch (error) {
         if (error !== released) throw error;
       }
     }
     const result = Object.freeze({
-      payloads: Object.freeze(retained.map(entry => entry.payload)),
+      payloads: Object.freeze(retained.flatMap(entry => entry.payloads)),
       members: Object.freeze(members),
       dependencies: Object.freeze(retained.map(entry => Object.freeze({
         resultIndex: entry.resultIndex, unitIndex: entry.unitIndex,
@@ -799,8 +845,10 @@ async function preparePinnedEffectSourcePayloadOwned({
     throw new TypeError('ForeignEffectProposalSource');
   }
   if (commandWorkspace !== undefined &&
-      (local !== undefined || proposalMembers?.length !== 1 ||
-        proposalMembers[0] !== memberIndex)) {
+      (proposalMembers?.length !== 1 || proposalMembers[0] !== memberIndex ||
+        local?.tableInput === true ||
+        (local !== undefined && moon.clientProgramEffectLocalResultMatchesMember(
+          inputs, local.resultIndex, memberIndex) !== true))) {
     throw new TypeError('ForeignEffectCommandWorkspaceRoute');
   }
   signal?.throwIfAborted();

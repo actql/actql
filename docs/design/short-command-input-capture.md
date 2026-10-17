@@ -194,6 +194,17 @@ phase implicitly; their own overlapping supply remains required. Missing supply
 stays unavailable, not a language prohibition or permission to bypass the
 original key refusal.
 
+For a dependent Local Result, the same original member-to-Result proof selects
+the scope's sealed Local index. Each keyed member has its own managed export,
+completed key and prepared physical payload. The existing live-view proof keeps
+one logical Manifest entry; matching bytes or CIDs do not establish that sharing.
+The original first payload remains the import producer, while every member keeps
+its own payload/holding for subsequent capture. Table and missing-physical paths
+without an original receiver remain unavailable. Per-entry grouping records,
+member/payload maps, finalized aliases and all simultaneously retained sibling
+payloads overlap the existing parent inventory; they are not free controls or a
+substitute numerical supplier.
+
 The parent capture retains phase views and completed-key aliases alongside
 source pins, prepared payloads, original Content artifacts and request children.
 Frozen phase-vector snapshots, key-slot arrays, projection callbacks and promise
