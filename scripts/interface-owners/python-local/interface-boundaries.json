@@ -1,6 +1,6 @@
 {
-  "source": "e58c51323f28289bf5fea4b2b0d7c6091d7fe160",
-  "syntaxProjectionSha256": "2bb4ceba038d76b3bc37f7dd4362c2f2bd665fe286db601ed48be9377f26c3b4",
+  "source": "775145885f4a4fc03b867cc3242b9836d6cfa6ec",
+  "syntaxProjectionSha256": "eb87cd1172f90f01726e4bee59e1f93dac4b0f26b53d9aee50dc709ad9606e3b",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -29,7 +29,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
-      "sha256": "a54b70f881535458d1ecf7733039f2eb373f06fb615d1fc76f786dd931ee1d3a",
+      "sha256": "ea27c5b7d9e11353c786a07190b6e925a9fe2f80295093c4dd87c562ae9db7e2",
       "generator": {
         "path": "scripts/generate-local-native-memory-binding.py",
         "anchor": "def outputs("
@@ -33866,7 +33866,7 @@
           ]
         }
       ],
-      "sha256": "a54b70f881535458d1ecf7733039f2eb373f06fb615d1fc76f786dd931ee1d3a",
+      "sha256": "ea27c5b7d9e11353c786a07190b6e925a9fe2f80295093c4dd87c562ae9db7e2",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

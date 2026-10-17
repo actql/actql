@@ -816,3 +816,28 @@ Engine or thread close does not acknowledge that storage, original region
 retirement or an external operation. A derived allocator/runtime identity and
 successful compilation do not establish normal funding or final image, workspace
 and Result acceptance.
+
+
+#### Physical occupancy observation
+
+The same provider may expose a read-only census of the current original
+holding. Occupied and peak bytes count physical allocator pages, including its
+control records and pending retirement. Allocation raises the counters only
+for pages actually entered by that original provider. Only confirmed physical
+retirement lowers occupied pages; peak never lowers or issues reusable credit.
+These quantities are neither OS RSS nor the size of an outer reservation.
+
+Generic extents, Rust slab pages, large Rust extents and pending-retirement
+pages partition the occupied payload. Slab metadata, occupied slot capacity and
+empty slot capacity are contained within those slab pages, not additional
+charges or grants. Pending payload is not read after uncertain protection.
+Fixed census counters themselves live in the same charged control records.
+The original provider lock makes a census coherent with allocation/retirement;
+foreign, unbound and inherited-process scopes cannot inspect it as current.
+
+A phase census and its peak establish only this physical domain's observation.
+They do not fund separate stacks, loader/VM domains, unrelated allocations,
+external operations or a normal numerical profile. Observations cannot clear
+RuntimeRetained, acknowledge a stop, export a heap alias or replace original
+cleanup responsibility. Matching compiler diagnostics remain outside the
+successful image response protocol.
