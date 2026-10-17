@@ -8115,7 +8115,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "dacaeb4cde3a0adb795b8f03d9b2d3c5f3ab2f46bba198b9d68664be5e81bbbc",
+      "sha256": "d83bc89224a58f3c9a54149cb5622d531804dab534902ea4f0bedcc30759d99a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -8163,47 +8163,55 @@
             "site",
             "authorization",
             "declaration",
+            "declared",
             "recover",
             "discovery",
-            "queryContract",
-            "evidenceContract",
             "environment",
             "generationCid",
             "catalogCid",
-            "connectorId",
-            "sourceRefs",
-            "views"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/acquire",
-          "parameters": [
-            "state",
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "access",
-            "signal",
-            "preparedSource",
-            "retainedRelationOutput",
-            "occurrence",
-            "ledger"
+            "connectorId"
           ],
           "async": true
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire",
+          "name": "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
           "parameters": [
-            "body"
+            "prepared"
           ],
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire#2",
+          "name": "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
+          "parameters": [
+            "prepared",
+            "nonce"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
+          "parameters": [
+            "nonce",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source/describe/describe",
+          "parameters": [
+            "suffix"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source/source",
           "parameters": [
             "page",
             "charge"
@@ -8211,7 +8219,7 @@
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire#3",
+          "name": "installedSalesforceAdapter/source/source/source#2",
           "parameters": [
             "_path",
             "index"
@@ -8219,93 +8227,55 @@
           "async": true
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire#4",
+          "name": "installedSalesforceAdapter/source/source/source#3",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/acquire/describe/describe",
+          "name": "installedSalesforceAdapter/source/source#2",
           "parameters": [
-            "suffix"
+            "decision"
           ],
-          "async": true
+          "async": false
         },
         {
-          "name": "installedSalesforceAdapter/currentRead/currentRead",
+          "name": "installedSalesforceAdapter/source/source#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source#4",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source#5",
           "parameters": [
             "prepared",
-            "access",
+            "acquisition",
+            "decision",
+            "granted",
+            "resource",
+            "nonce",
+            "runInvocationCid",
+            "dispatchRequestCid",
             "signal"
           ],
           "async": true
         },
         {
-          "name": "installedSalesforceAdapter/decideRead/decideRead",
+          "name": "installedSalesforceAdapter/source/source#6",
           "parameters": [
-            "prepared",
-            "access",
+            "preparedRead",
+            "authorizationFor",
+            "chargePage",
+            "rowRun",
             "signal"
           ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/init:ledgerCapacity/init:ledgerCapacity",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/installedSalesforceAdapter",
-          "parameters": [
-            "sourceRef"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/installedSalesforceAdapter#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/open",
-          "parameters": [
-            "options"
-          ],
           "async": true
-        },
-        {
-          "name": "installedSalesforceAdapter/prepare",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "access",
-            "occurrence"
-          ],
-          "async": true
-        },
-        {
-          "name": "installedSalesforceAdapter/prepare/prepare",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/sourceReadAccesses/sourceReadAccesses",
-          "parameters": [
-            "view"
-          ],
-          "async": false
         },
         {
           "name": "installedSalesforceSourceIdentityParts",
@@ -8330,20 +8300,6 @@
             "openCredentialJournal"
           ],
           "async": true
-        },
-        {
-          "name": "loadInstalledSalesforceSource/loadInstalledSalesforceSource",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSource/loadInstalledSalesforceSource#2",
-          "parameters": [
-            "view"
-          ],
-          "async": false
         },
         {
           "name": "loadInstalledSalesforceSource/recover/recover",
@@ -8882,22 +8838,19 @@
         {
           "operations": [
             "installedSalesforceAdapter",
-            "installedSalesforceAdapter/acquire",
-            "installedSalesforceAdapter/acquire/acquire",
-            "installedSalesforceAdapter/acquire/acquire#2",
-            "installedSalesforceAdapter/acquire/acquire#3",
-            "installedSalesforceAdapter/acquire/acquire#4",
-            "installedSalesforceAdapter/acquire/acquire#5",
-            "installedSalesforceAdapter/acquire/describe/describe",
-            "installedSalesforceAdapter/currentRead/currentRead",
-            "installedSalesforceAdapter/decideRead/decideRead",
-            "installedSalesforceAdapter/init:ledgerCapacity/init:ledgerCapacity",
-            "installedSalesforceAdapter/installedSalesforceAdapter",
-            "installedSalesforceAdapter/installedSalesforceAdapter#2",
-            "installedSalesforceAdapter/open",
-            "installedSalesforceAdapter/prepare",
-            "installedSalesforceAdapter/prepare/prepare",
-            "installedSalesforceAdapter/sourceReadAccesses/sourceReadAccesses"
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
+            "installedSalesforceAdapter/source/source",
+            "installedSalesforceAdapter/source/source/describe/describe",
+            "installedSalesforceAdapter/source/source/source",
+            "installedSalesforceAdapter/source/source/source#2",
+            "installedSalesforceAdapter/source/source/source#3",
+            "installedSalesforceAdapter/source/source#2",
+            "installedSalesforceAdapter/source/source#3",
+            "installedSalesforceAdapter/source/source#4",
+            "installedSalesforceAdapter/source/source#5",
+            "installedSalesforceAdapter/source/source#6"
           ],
           "exports": [],
           "attributes": {
@@ -9124,8 +9077,6 @@
         {
           "operations": [
             "loadInstalledSalesforceSource",
-            "loadInstalledSalesforceSource/loadInstalledSalesforceSource",
-            "loadInstalledSalesforceSource/loadInstalledSalesforceSource#2",
             "loadInstalledSalesforceSource/recover/recover"
           ],
           "exports": [
@@ -9804,7 +9755,20 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../site/salesforce-query-read.mjs",
+        "./installed-salesforce-site.mjs",
+        "./salesforce-publication.mjs",
+        "./salesforce-resource-service.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-preview.mjs",
@@ -54328,7 +54292,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2fec5cc67f4e0c6037744d23513f16fda1c42e2a45bebcd3c5c3ae548763d0ef",
+      "sha256": "9a600cdcb29201a4cb0f157d6d9c4a44a93689d6e1096390d0b80948b46201a0",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -54389,7 +54353,10 @@
             "listingPolicy",
             "captureContent",
             "listingReportCapacity",
-            "prepareAcquisition"
+            "prepareAcquisition",
+            "directReadIdentity",
+            "prepareRead",
+            "grantBeforeBegin"
           ],
           "async": true
         },
@@ -54463,21 +54430,33 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource",
-          "parameters": [
-            "name"
-          ],
+          "name": "createInstalledRowSource/acquire/issueGrant/issueGrant",
+          "parameters": [],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#2",
+          "name": "createInstalledRowSource/createInstalledRowSource",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
+          "name": "createInstalledRowSource/createInstalledRowSource#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/createInstalledRowSource#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#4",
           "parameters": [
             "resource",
             "operation"
@@ -54485,14 +54464,14 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#4",
+          "name": "createInstalledRowSource/createInstalledRowSource#5",
           "parameters": [
             "sourceRef"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#5",
+          "name": "createInstalledRowSource/createInstalledRowSource#6",
           "parameters": [],
           "async": false
         },
@@ -54769,6 +54748,13 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/ordinarySubject/ordinarySubject",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/prepare",
           "parameters": [
             "preparedProgram",
@@ -54780,6 +54766,11 @@
             "access",
             "occurrence"
           ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
+          "parameters": [],
           "async": true
         },
         {
@@ -55497,7 +55488,11 @@
             "createInstalledRowSource/sourceRefs/sourceRefs",
             "createInstalledRowSource/verifyKeyedRead",
             "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
-            "createInstalledRowSource/acquire/consumeObservation"
+            "createInstalledRowSource/acquire/consumeObservation",
+            "createInstalledRowSource/acquire/issueGrant/issueGrant",
+            "createInstalledRowSource/createInstalledRowSource#6",
+            "createInstalledRowSource/ordinarySubject/ordinarySubject",
+            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation"
           ],
           "exports": [
             "createInstalledRowSource"
