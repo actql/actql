@@ -17,6 +17,8 @@ pub fn cancel_managed_query(ManagedQuery) -> Bool
 
 pub fn finish_managed_query(ManagedQuery) -> Result[@execution_relation.ManagedOutputValueReceipt, ManagedQueryIssue]
 
+pub fn installed_salesforce_row_declaration(InstalledSalesforceDeclaration) -> Result[@client_row_source_host.RowDeclaration, InstalledSalesforceIssue]
+
 pub fn installed_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[InstalledSalesforceSite, InstalledSalesforceIssue]
 
 pub fn installed_salesforce_source_target(InstalledSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), InstalledSalesforceIssue]
@@ -44,6 +46,8 @@ pub fn restore_installed_salesforce_declaration(InstalledSalesforceSite, @catalo
 pub fn salesforce_read_plan(SalesforceReadPreparation) -> @catalog.ReadProjection
 
 pub fn salesforce_read_requirement(SalesforceReadPreparation) -> @query_planning.QueryRequirement
+
+pub fn salesforce_row_declaration(@catalog.StaticDeclaration) -> Result[@client_row_source_host.RowDeclaration, InstalledSalesforceIssue]
 
 pub fn salesforce_source_evidence_members(@catalog.StaticDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure
 

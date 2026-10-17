@@ -1979,6 +1979,8 @@ pub fn client_program_salesforce_recover_observation(@actql/actql/connectors/sal
 
 pub fn client_program_salesforce_restore_declaration(@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @actql/actql/connectors/salesforce/catalog.CatalogObservation, String, String, Int, Int, Int) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
+pub fn client_program_salesforce_row_declaration(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration) -> Result[@client_row_source_host.RowDeclaration, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
 pub fn client_program_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_salesforce_source_target(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
