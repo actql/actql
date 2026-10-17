@@ -143,6 +143,8 @@ pub fn start_notion_property_item_request(OriginalNotionQueryRow, Int, NotionPro
 
 pub fn start_notion_read_row(NotionDataSourceReadContracts, OriginalNotionQueryPage, Int, NotionReadRowLimits) -> Result[NotionReadRow, NotionReadRowIssue]
 
+pub fn with_notion_source_system_contracts(NotionDataSourceReadContracts, NotionReadContractLimits) -> Result[NotionDataSourceReadContracts, NotionReadContractIssue]
+
 // Errors
 
 // Types and methods
@@ -309,6 +311,7 @@ pub(all) enum NotionReadRowIssue {
   Cell(NotionReadCellIssue)
   Property(NotionPropertyItemIssue)
   InvalidValue
+  InvalidSystemField(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct NotionReadRowLimits {

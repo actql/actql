@@ -64,6 +64,8 @@ pub fn notion_read_row_pending_json(@catalog.NotionReadRow, Int, Int, Int) -> Re
 
 pub fn notion_read_source_index(@catalog.NotionDatabaseReadDeclaration, @catalog.NotionDatabaseCatalog) -> Result[Int, @catalog.NotionReadContractIssue]
 
+pub fn notion_source_system_read_contracts(@catalog.NotionDataSourceReadContracts, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceReadContracts, @catalog.NotionReadContractIssue]
+
 pub fn notion_start_column_property_request(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionPropertyItemRequest, @catalog.NotionPropertyItemIssue]
 
 pub fn notion_start_read_row(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionReadRow, @catalog.NotionReadRowIssue]

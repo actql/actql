@@ -143,3 +143,29 @@ test('actual Notion discovery retains full Source metadata through the same orig
   assert.equal(f.state.requests.length,5);assert.equal(f.journal.recover().filter(x=>x.outcome==='succeeded').length,5);
   assert.equal(read.observe().cleanupConfirmed,false);
 });
+
+test('actual Notion full Source metadata omission refuses before property I/O without publishing rows',async t=>{
+  const f=await fixture(t),original=await f.discover({systemColumns:true}).read();
+  f.state.respond=()=>({object:'list',type:'page_or_data_source',page_or_data_source:{},
+    results:[{object:'page',id:'page',parent:{type:'data_source_id',data_source_id:'s'},
+      created_time:'2026-10-18T01:20:30.000Z',created_by:{object:'user',id:'maker'},
+      last_edited_time:'2026-10-18T01:21:30.000Z',last_edited_by:{object:'user',id:'editor'},
+      properties:{text:{...definition,rich_text:[],has_more:true}}}],has_more:false,next_cursor:null});
+  let published=0;
+  const l={...limits,maxPages:8,pageSize:10,maxTotalRows:100,maxRequestBytes:1024,
+    maxCursorBytes:128,maxRowNodes:128,maxRowDepth:16,maxRowTextBytes:4096,maxRowWork:100000,maxPageWork:100000,
+    maxRowsWireBytes:8192,maxRowsWireNodes:256,maxRowsWireDepth:16,maxPropertyPages:8,maxPropertyItems:128,
+    maxPropertyBytes:65536,maxPropertyNodes:4096,maxPropertyTextBytes:32768,maxPropertyWork:1000000};
+  const reader=createNotionDataSourceReader({moon:provider,...original,
+    initialAuthorization:f.authorize(queryOperation,'missing-query'),propertyAuthorization:f.authorize(propertyOperation,'missing-property'),
+    credential:f.options.credential,authorizationFor:({operation,ordinal})=>f.authorize(operation,`missing-${ordinal}`),
+    current:f.current,chargeResponse:f.options.chargeResponse,consumeObservation:f.options.consumeObservation,
+    consumePage:()=>{published++;},limits:l});
+  let failure;
+  await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDataSourceReadFailed';});
+  assert.equal(published,0);assert.equal(f.state.requests.length,3);
+  assert.equal(failure.observations.length,1);assert.equal(failure.responseCharges.length,1);
+  assert.equal(reader.observe().cleanupConfirmed,false);
+  await assert.rejects(reader.read(),{code:'NotionDataSourceReaderAlreadyStarted'});
+  assert.equal(f.state.requests.length,3);
+});
