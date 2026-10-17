@@ -76,8 +76,8 @@ pub fn strategy_credential_authentication_operation_check(
 ) -> Unit raise NodeHostFailure {
   match
     @credential.check_credential_authentication_operation(
-      operation, request, parent, credential_use, material, http_method, path,
-      media_type, body, trusted_now_ms,
+      operation, request, parent, credential_use, material, http_method, path, media_type,
+      body, trusted_now_ms,
     ) {
     Ok(_) => ()
     Err(issue) => raise RemoteCredential(issue)
