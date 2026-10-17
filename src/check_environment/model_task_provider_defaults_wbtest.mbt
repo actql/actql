@@ -12,13 +12,12 @@ fn default_profile_configuration() -> String {
 
 ///|
 fn default_profile_read(wire : String) -> ModelProviderDefaults {
-  read_model_provider_defaults_configuration(
+  let (profile, _, _, _) = read_model_provider_defaults_configuration(
     @utf8.encode(wire),
     default_profile_limits(),
     100000,
-  )
-  .unwrap()
-  .unwrap()
+  ).unwrap()
+  profile.unwrap()
 }
 
 ///|
@@ -26,12 +25,19 @@ test "provider default DATA selects only its explicit per-model generation" {
   let original = default_profile_read(default_profile_configuration())
   let resolved = resolve_model_provider_defaults(original, None, None, 1000).unwrap()
   assert_eq(resolved_model_provider_defaults_model(resolved), "operator-a")
-  let generation = resolved_model_provider_defaults_generation(resolved)
+  let generation = resolved_model_provider_defaults_generation(
+    resolved, original,
+  ).unwrap()
   assert_eq(generation.temperature, 0.25)
   assert_eq(generation.top_p, 0.875)
   assert_eq(generation.max_output_tokens, 100L)
   assert_eq(generation.seed_requested, None)
   assert_true(physical_equal(resolved.original, original))
+  let equal_original = default_profile_read(default_profile_configuration())
+  assert_true(
+    resolved_model_provider_defaults_generation(resolved, equal_original)
+    is None,
+  )
   // This is still configuration DATA, not a registered Provider or Task.
   assert_eq(original.models.length(), 2)
 }
@@ -46,7 +52,9 @@ test "explicit model and Task token limit override defaults without making defau
     1000,
   ).unwrap()
   assert_eq(resolved_model_provider_defaults_model(explicit), "operator-b")
-  let generation = resolved_model_provider_defaults_generation(explicit)
+  let generation = resolved_model_provider_defaults_generation(
+    explicit, original,
+  ).unwrap()
   assert_eq(generation.temperature, 0.0)
   assert_eq(generation.top_p, 1.0)
   assert_eq(generation.max_output_tokens, 200L)
@@ -64,14 +72,15 @@ test "explicit model and Task token limit override defaults without making defau
 ///|
 test "absent defaults preserve explicit legacy configuration without inventing a model" {
   for wire in ["{}", "null", "17", "{\"selector\":\"legacy-explicit\"}"] {
-    assert_true(
-      read_model_provider_defaults_configuration(
-        @utf8.encode(wire),
-        default_profile_limits(),
-        100000,
-      )
-      is Ok(None),
-    )
+    let (profile, bytes, nodes, work) = read_model_provider_defaults_configuration(
+      @utf8.encode(wire),
+      default_profile_limits(),
+      100000,
+    ).unwrap()
+    assert_true(profile is None)
+    assert_eq(bytes, wire.length())
+    assert_true(nodes > 0)
+    assert_true(work > bytes)
   }
   let original = default_profile_read(
     (
@@ -153,7 +162,7 @@ test "provider default parsing and selection charge their exact independent work
       default_profile_limits(),
       work,
     )
-    is Ok(Some(_)),
+    is Ok((Some(_), _, _, _)),
   )
   assert_true(
     read_model_provider_defaults_configuration(

@@ -4,7 +4,6 @@
 /// The Host must retain this with the same actual registration and original
 /// configuration/revision before adopting a normalized public Task.
 struct ModelProviderDefaults {
-  source : @decode.Cursor
   default_model : String?
   models : Array[(String, ModelGeneration)]
   bytes : Int
@@ -76,7 +75,7 @@ fn model_provider_defaults_read(
   if default_model is Some(model) && !names.contains(model) {
     model_task_fail(ReferenceMismatch, root)
   }
-  { source: root, default_model, models, bytes, nodes, work: budget.work, }
+  { default_model, models, bytes, nodes, work: budget.work, }
 }
 
 ///|
@@ -88,7 +87,7 @@ pub fn read_model_provider_defaults_configuration(
   bytes : Bytes,
   limits : Limits,
   max_work : Int,
-) -> Result[ModelProviderDefaults?, ModelTaskIssue] {
+) -> Result[(ModelProviderDefaults?, Int, Int, Int), ModelTaskIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
     limits.max_depth < 0 ||
@@ -142,25 +141,26 @@ pub fn read_model_provider_defaults_configuration(
     // Parse and decoded-tree traversal are distinct work. The full original
     // remains retained while the selected profile is reconstructed.
     model_task_charge(budget, parsed.usage.nodes, root)
-    guard @decode.object_length(root) is Some(count) else { return Ok(None) }
+    guard @decode.object_length(root) is Some(count) else {
+      return Ok((None, bytes.length(), parsed.usage.nodes, budget.work))
+    }
     model_task_charge(budget, count, root)
     for index in 0..<count {
       let (name, value) = @decode.field_at(root, index).unwrap()
       model_task_charge(budget, name.length(), value)
       if name == "model_defaults" {
+        let selected = model_provider_defaults_read(
+          value,
+          budget,
+          bytes.length(),
+          parsed.usage.nodes,
+        )
         return Ok(
-          Some(
-            model_provider_defaults_read(
-              value,
-              budget,
-              bytes.length(),
-              parsed.usage.nodes,
-            ),
-          ),
+          (Some(selected), bytes.length(), parsed.usage.nodes, budget.work),
         )
       }
     }
-    Ok(None)
+    Ok((None, bytes.length(), parsed.usage.nodes, budget.work))
   } catch {
     ModelTaskStop(issue) => Err(issue)
   }
@@ -233,8 +233,13 @@ pub fn resolved_model_provider_defaults_model(
 ///|
 pub fn resolved_model_provider_defaults_generation(
   value : ResolvedModelProviderDefaults,
-) -> ModelGeneration {
-  value.generation
+  original : ModelProviderDefaults,
+) -> ModelGeneration? {
+  if physical_equal(value.original, original) {
+    Some(value.generation)
+  } else {
+    None
+  }
 }
 
 ///|
