@@ -1,12 +1,17 @@
-/* Actual selected C-API type objects, under one original physical holding.
- * This is private image-compiler conformance, not Engine/VM/worker execution
- * or a normal profile. The 1GiB physical compiler ceiling is not enlarged. */
+/* Actual selected C-API type objects on the original inherited Native domain.
+ * Trusted parent preparation must retain its original child/frame/region and
+ * fund this separate control storage before launch. Arguments are DATA only;
+ * FD4 is the same captured original, never a reason to acquire another root. */
 #include <assert.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "owned_capacity.h"
+#include "owned_domain_borrow.h"
 #include "compiler_module_abi.h"
 #include "compiler_core_abi.generated.h"
 
@@ -64,13 +69,43 @@ static void types(int variant, wasm_importtype_vec_t *imports, wasm_exporttype_v
     assert(exports->data[ACTQL_COMPILER_EXPORTS_COUNT] != NULL);
 }
 
-int main(void) {
-    actql_owned_capacity *original = NULL;
+static int hex(unsigned char value) {
+    if (value >= '0' && value <= '9') return value - '0';
+    if (value >= 'a' && value <= 'f') return value - 'a' + 10;
+    return -1;
+}
+
+int main(int argc, char **argv) {
+    assert(argc == 17 && strlen(argv[1]) == 64);
     unsigned char recipe[32];
-    memset(recipe, 17, sizeof(recipe));
-    assert(actql_native_owned_acquire((size_t)1024 * 1024 * 1024, 7, recipe, &original) == 0);
-    assert(actql_native_owned_transfer(original, 7, recipe) == 0);
-    assert(actql_native_owned_enter(original) == 0);
+    for (size_t i = 0; i < 32; i++) {
+        int high = hex((unsigned char)argv[1][2 * i]), low = hex((unsigned char)argv[1][2 * i + 1]);
+        assert(high >= 0 && low >= 0);
+        recipe[i] = (unsigned char)(16 * high + low);
+    }
+    int64_t material[15];
+    for (size_t i = 0; i < 15; i++) {
+        const char *value = argv[i + 2];
+        assert(*value >= '0' && *value <= '9');
+        char *end = NULL;
+        errno = 0;
+        intmax_t number = strtoimax(value, &end, 10);
+        assert(errno == 0 && end != NULL && *end == '\0' && number >= 0 && number <= INT64_MAX);
+        material[i] = (int64_t)number;
+    }
+    size_t bytes = actql_native_domain_borrow_storage_bytes();
+    size_t alignment = actql_native_domain_borrow_storage_alignment();
+    /* Existing bounded control-copy quantum, not an arena budget or grant.
+     * Exact storage remains original and stable through partial map/close. */
+    assert(bytes > 0 && bytes <= 65536 && alignment > 0 &&
+           alignment <= _Alignof(max_align_t) && _Alignof(max_align_t) % alignment == 0);
+    max_align_t record[(bytes + sizeof(max_align_t) - 1) / sizeof(max_align_t)];
+    memset(record, 0, sizeof(record));
+    assert(actql_native_domain_borrow_open(record, bytes, 4, recipe, material) == 0);
+    actql_owned_capacity *original = NULL;
+    assert(actql_native_domain_borrow_claim_holding(record, &original) == 0);
+    assert(actql_native_domain_borrow_transfer_holding(record, original, (uint64_t)material[0], recipe) == 0);
+    assert(actql_native_domain_borrow_enter(record) == 0);
     int expected[] = {
         ACTQL_COMPILER_ABI_MATCH,
         ACTQL_COMPILER_ABI_IMPORTS, ACTQL_COMPILER_ABI_IMPORTS,
@@ -97,8 +132,8 @@ int main(void) {
         if (result == expected[i]) passed++;
         else fprintf(stderr, "C-API type case %zu returned %d instead of %d\n", i + 1, result, expected[i]);
     }
-    int leave = actql_native_owned_leave(original);
-    int close = leave == 0 ? actql_native_owned_try_close(&original) : ACTQL_OWNED_INVALID;
+    int leave = actql_native_domain_borrow_leave(record);
+    int close = leave == 0 ? actql_native_domain_borrow_close_holding(record, &original) : ACTQL_OWNED_INVALID;
     /* A nonzero close is retained/unconfirmed, never a cleanup acknowledgment
      * manufactured from exit or a repeated acquire at a larger capacity. */
     printf("{\"discovered\":%zu,\"executed\":%zu,\"passed\":%zu,\"failed\":%zu,"
