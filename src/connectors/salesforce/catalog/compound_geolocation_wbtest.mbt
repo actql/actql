@@ -223,7 +223,7 @@ test "geolocation writes stay on the original described component mappings" {
     "Record__c",
     WriteUpdateById,
     ["Location__Latitude__s", "Location__Longitude__s"],
-    1,
+    2,
   ).unwrap()
   let body = prepare_write_body(
     projection,
@@ -248,5 +248,27 @@ test "geolocation writes stay on the original described component mappings" {
       1,
     )
     is Err(_),
+  )
+}
+
+///|
+test "geolocation component writes recheck their original parent association" {
+  let (observation, binding) = declared_observation(geolocation_describe())
+  let plan = prepare_write_projection(
+    observation,
+    binding,
+    "Record__c",
+    WriteUpdateById,
+    ["Location__Latitude__s"],
+    1,
+  ).unwrap()
+  let changed = geolocation_describe().replace_all(
+    old="\"compoundFieldName\":\"Location__c\"",
+    new="\"compoundFieldName\":\"Other__c\"",
+  )
+  let (current, _) = declared_observation(changed)
+  assert_true(
+    recheck_write_projection(plan, current)
+    is Err(SchemaChanged("Location__Latitude__s")),
   )
 }
