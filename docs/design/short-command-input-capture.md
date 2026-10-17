@@ -80,3 +80,25 @@ not a numerical byte-capacity supplier. Retiring this private workspace neither
 retires the Result reader nor releases its physical raw/Artifact custody,
 permits dispatch or confirms cleanup. Existing current authorization, original
 installed issuer, approved Preview and saved-material checks remain necessary.
+
+The Host's managed re-admission bridge is a temporary view of the original
+immutable captured Result. After the entire key traversal completes and its
+private workspace retires, the same captured owner can retain the checked
+correspondence once, before that bridge closes. The transfer requires the exact
+original export, member, Command and local Result occurrence. It drops the
+derived export, field and traversal-session references; it cannot transfer
+partial work or revive a closed bridge. Subsequent proposal and private Preview
+payload verification keep the original capture's pins and current checks. An
+untransferred validation still requires its derived view to remain available.
+
+The private Node receiver starts only from that existing managed completion,
+retained material and exact local Result export. It advances whole-key work and
+incremental private cleanup before proposal rows or Preview payload rows become
+visible. A Preview import may therefore retain its original import before its
+payload verifier is ready; that import alone is neither successful verification
+nor permission to dispatch. Abortion and refusal retain the same private
+cleanup callback until its workspace is retired. Import cancellation, promise
+completion and private cleanup do not acknowledge physical reader retirement.
+The retained capture references, import controls, optional verifier, key owners,
+callbacks and promise handlers overlap the existing holding inventory; no
+normal numerical capacity is inferred from structural traversal limits.

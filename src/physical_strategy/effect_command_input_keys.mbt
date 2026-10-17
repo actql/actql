@@ -187,8 +187,9 @@ pub fn start_captured_effect_command_key_validation(
 ///|
 /// One bounded validation or private-retirement transition for a Host caller.
 /// No row is projected until whole completion, workspace cleanup and the
-/// one-time original-capture transfer all succeed. The second result counts
-/// semantic traversal work, or one private cleanup transition.
+/// one-time original-capture transfer all succeed. The second result reports
+/// continuation progress (including terminal/cleanup transitions), not a new
+/// charge or an override of the original cursor's semantic work accounting.
 pub fn step_captured_effect_command_key_validation(
   value : CapturedEffectCommandKeyValidation,
   quantum : Int,
