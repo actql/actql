@@ -1,0 +1,16 @@
+{
+  "installation": {
+    "registration": "kintone",
+    "revision": "kintone/0.1",
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-kintone-source/0.1",
+      "module": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+      "exports": {
+        "check": "checkInstalledKintoneSourceProfile",
+        "identityParts": "installedKintoneSourceIdentityParts",
+        "load": "loadInstalledKintoneSource"
+      }
+    }
+  }
+}
