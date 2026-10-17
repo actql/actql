@@ -34,10 +34,11 @@ test('same original PATCH exposes effective NULL-to-empty map separately from au
   assert.equal(request.body, body);
   const originalIdentity = JSON.stringify({body, catalog_cid: cid('a'), contract_cid: cid('c'),
     installation_cid: cid('b'), method: 'PATCH',
-    path: '/storage/v1/b/bucket/o/in%2Fa?ifGenerationMatch=1&ifMetagenerationMatch=2',
+    path: '/storage/v1/b/bucket/o/in%2Fa?generation=1&ifGenerationMatch=1&ifMetagenerationMatch=2',
     permissions: ['storage.objects.update'], resource_origin: 'https://storage.googleapis.com',
     version: 'actql-gcs-object-mutation-request/0.1'});
   assert.equal(request.request_cid, `sha256:${createHash('sha256').update(originalIdentity).digest('hex')}`);
+  assert.equal(request.path, '/storage/v1/b/bucket/o/in%2Fa?generation=1&ifGenerationMatch=1&ifMetagenerationMatch=2');
   assert.equal(row.requestCid, request.request_cid);
   assert.ok(Object.isFrozen(row.after.metadata.$json));
   assert.ok(!JSON.stringify(row).includes(cid('d')));
