@@ -334,3 +334,85 @@ test('absent private phase slots retain the original same-view Manifest and payl
   assert.equal(events.manifests[0].length, 1);
   await sources.payloads[0].prepared.release();
 });
+
+test('dependent private key phases require the original Local receiver before Store I/O', async () => {
+  const {options, events} = fixture();
+  options.localEvidenceContext.acquiredEvidence = {};
+  await assert.rejects(preparePinnedEffectSourceSet({...options,
+    commandWorkspaces: Object.freeze([{}, undefined])}),
+  /EffectCommandDependencyWorkspaceUnavailable/);
+  assert.equal(events.writers.length, 0);
+});
+
+test('a dependent Table cannot substitute the Local Result key receiver', async () => {
+  const {options, events} = fixture();
+  options.localEvidenceContext.acquiredEvidence = {};
+  options.moon.clientProgramBeginEffectLocalCommandKeyWorkspace = () => assert.fail('LocalBeginMustNotRun');
+  options.moon.clientProgramEffectLocalResultMatchesMember = () => false;
+  options.moon.clientProgramEffectTableInputAt = () => Object.freeze({});
+  options.moon.clientProgramEffectTableInputStage = () => 0;
+  await assert.rejects(preparePinnedEffectSourceSet({...options,
+    commandWorkspaces: Object.freeze([{}, undefined])}),
+  /EffectCommandDependencyWorkspaceUnavailable/);
+  assert.equal(events.writers.length, 0);
+});
+
+test('dependent same-view members retain separate original key phases and one logical Manifest', async () => {
+  // Sequencing doubles only. Actual Common original Local/foreign/material/key
+  // checks have their independent runtime cases; these values issue no proof.
+  const {options, events} = fixture();
+  const phases = Object.freeze([0, 1].map(member => Object.freeze({member,
+    key: Object.freeze({member, fixtureOnly: true})})));
+  const begun = [], completed = [], proposed = [], retained = [];
+  Object.assign(options.moon, {
+    clientProgramEffectLocalStaticBodies: () => ok([]),
+    clientProgramBeginEffectLocalCommandKeyWorkspace(scope, inputs, member, index) {
+      assert.equal(scope, phases[member]);
+      assert.equal(inputs, options.inputs);
+      assert.equal(index, 0);
+      begun.push(member);
+      return ok({input: inputs[member]});
+    },
+    clientProgramStartEffectCommandKeyWorkspace(scope) { return ok(scope.key); },
+    clientProgramEffectCommandKeyWorkspaceSynchronousEnd() {},
+    clientProgramEffectCommandKeyAdvance(key) {
+      assert.equal(key, phases[key.member].key);
+      completed.push(key.member);
+      return ok({_0: true, _1: 1});
+    },
+    clientProgramEffectProposalBeginWithKey(inputs, member, _fields, _work, key) {
+      assert.equal(inputs, options.inputs);
+      assert.equal(key, phases[member].key);
+      assert(completed.includes(member));
+      assert.equal(retained[member], key);
+      proposed.push(member);
+      return ok({member});
+    },
+    clientProgramEffectProposalFinish: () => ok(undefined),
+    clientProgramEffectProposalCancel() {},
+    clientProgramEffectInputExportSchemaWire: () => '{}',
+    clientProgramCloseEffectCommandKeyWorkspace() { assert.fail('ParentOwnsRetirement'); },
+  });
+  options.control.issueDependentLocalEffectResultArtifact = () =>
+    Object.freeze({identity: 'result-0', wire: '{}'});
+  const sources = await preparePinnedEffectSourceSet({...options,
+    commandWorkspaces: phases,
+    onProposalRow() { assert.fail('NoFixtureRows'); },
+    onCommandKey(member, key) { retained[member] = key; },
+    proposalLimits: {maxFields: 10, maxWork: 100, maxBytes: 100,
+      maxNodes: 100, maxDepth: 10, maxUtf16Units: 100},
+    localEvidenceContext: {...options.localEvidenceContext,
+      retentionDependencies: [], acquiredEvidence: {invocation: {}, bodies: []}},
+  });
+  assert.deepEqual(begun, [0, 1]);
+  assert.deepEqual(completed, [0, 1]);
+  assert.deepEqual(proposed, [0, 1]);
+  assert.equal(sources.payloads.length, 2);
+  assert.notEqual(sources.members[0].payload, sources.members[1].payload);
+  assert.equal(sources.members[0].payload.localManifest, sources.members[1].payload.localManifest);
+  assert.equal(sources.dependencies.length, 1);
+  assert.equal(events.manifests.length, 1);
+  assert.equal(events.manifests[0].length, 1);
+  for (const payload of sources.payloads) await payload.prepared.release();
+  assert(events.writers.every(value => !value.pending));
+});
