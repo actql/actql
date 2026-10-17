@@ -2484,11 +2484,7 @@ test('Salesforce multi-select arrays reach the same Named Result after Host reop
     {Id: 'a00000000000004', Name: 'record-4', External_Key__c: 'key-4', Choices__c: ';a;;'},
   ]});
   await setup.publish();
-  const observations = [];
-  const authorization = checkpointAuthorization({
-    observe(name, detail) { observations.push({name, detail}); },
-  });
-  const {client, close} = await setup.open({authorization});
+  const {client, close} = await setup.open();
   const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Choices__c'));
   document.id = 'salesforce-multi-select';
   document.stages[0].inputs.remote.view = 'records';
@@ -2511,8 +2507,6 @@ test('Salesforce multi-select arrays reach the same Named Result after Host reop
   const execution = await client.startSource(JSON.stringify(document), {format: 'json',
     submissionRef: client.newSubmission({nonce: 'multi-select-original'})});
   const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
-  if (state.status !== 'succeeded') t.diagnostic(JSON.stringify({state,
-    observations, queries: setup.queries()}));
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   assert.deepEqual((await execution.result('records').describe()).columns, [
     {name: 'Id', contract: {type: 'string', nullable: false}},
@@ -2529,7 +2523,7 @@ test('Salesforce multi-select arrays reach the same Named Result after Host reop
   const original = execution.ref, queryCount = setup.queries().length;
   assert.ok(queryCount > 0);
   await close();
-  const reopened = await setup.open({authorization});
+  const reopened = await setup.open();
   const restored = await reopened.client.attach(original);
   assert.deepEqual(await restored.result('records').all(), expected);
   assert.equal(setup.queries().length, queryCount);
