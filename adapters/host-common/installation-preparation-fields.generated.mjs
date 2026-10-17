@@ -21,3 +21,16 @@ export const installationPreparationRequestKeys = Object.freeze([
   'requestPath',
   'resourceOrigin',
 ]);
+export const installationPreparationSubjectKinds = Object.freeze([
+  'String',
+  'String',
+  'String',
+  'String',
+  'String',
+  'String',
+  'String',
+  'String',
+  'String',
+  'Int',
+  'String',
+]);

@@ -714,6 +714,28 @@ the observed originals and generation correspondence; restore does not
 rediscover schema or renew authority. Cold grant/use admission restores DATA
 only, never a live request or permission to resend an Unknown operation.
 
+The private Node metadata view captures the selected Common callbacks and
+their original receiver once. It owns opaque Subject, Scope, Grant, Use and
+SignatureEnvelope aliases; copied or foreign-view values cannot cross it.
+`forSubject` returns a stable control for that same original subject, not a
+control reconstructed from its CID. It selects `installation-metadata`
+explicitly, and its named grant projection is distinct from the old seventeen
+Run fields. The eleven subject and six request fields, their typed constructor
+arguments and field projections are generated together from the existing
+Common declarations. Common owns decoding, canonical bytes, identities and
+scope matching; JavaScript does not rebuild their preimages.
+
+The view performs no asynchronous work, authentication or durable claim.
+The existing physical signer can use its transport-neutral signature methods
+only with independently supplied actual authority and key material. Retiring
+the view cuts its own six maps' original-value references, not a physical
+request, original key/use/Unknown responsibility, journal claim or escaped
+wire bytes. Captured callbacks/receiver and returned closures remain live for
+their actual escaped lifetime; WeakMap/retirement/GC is not a byte refund or
+cleanup acknowledgement. An operational installer must independently retain
+the original Host publication request and its before/after-await current
+authority, actual Site/profile/control/journal/resolver and resource supplier.
+
 ### Original authentication dependencies
 
 A registered Google service-account dependency uses a separate existing

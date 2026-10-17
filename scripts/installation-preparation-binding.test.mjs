@@ -5,7 +5,9 @@ import {dirname, join} from 'node:path';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {checkInstallationPreparationBinding, installationPreparationBindingPath,
-  installationPreparationFields, renderInstallationPreparationBinding} from './generate-credential-scope-binding.mjs';
+  installationPreparationFields, renderInstallationPreparationBinding,
+  checkInstallationPreparationBridge, installationPreparationBridgePath,
+  renderInstallationPreparationBridge} from './generate-credential-scope-binding.mjs';
 import {installationPreparationRequestKeys, installationPreparationSubjectKeys} from
   '../adapters/host-common/installation-preparation-fields.generated.mjs';
 
@@ -28,6 +30,30 @@ test('metadata binding derives actual Common subject and per-use fields without 
   assert(Object.isFrozen(installationPreparationRequestKeys));
   assert(!installationPreparationSubjectKeys.includes('runInvocationCid'));
   assert(!installationPreparationSubjectKeys.includes('hostAdoptionCid'));
+});
+
+test('metadata typed bridge derives constructor and projection together from the same Owner', () => {
+  checkInstallationPreparationBridge(root);
+  const scratch = mkdtempSync(join(tmpdir(), 'installation-preparation-bridge-'));
+  try {
+    const path = join(scratch, installationPreparationBridgePath);
+    const subjectPath = join(scratch, 'src/remote_credential/installation_preparation_subject.mbt');
+    const grantPath = join(scratch, 'src/remote_credential/installation_preparation_grant.mbt');
+    mkdirSync(dirname(path), {recursive: true}); mkdirSync(dirname(subjectPath), {recursive: true});
+    writeFileSync(subjectPath, subject); writeFileSync(grantPath, grant);
+    writeFileSync(path, renderInstallationPreparationBridge(subject, grant));
+    checkInstallationPreparationBridge(scratch);
+    const added = subject.replace('  principal : String', '  additional_original : String\n  principal : String');
+    writeFileSync(subjectPath, added);
+    const actual = renderInstallationPreparationBridge(added, grant);
+    assert(actual.includes('  additional_original : String,'));
+    assert(actual.includes('value.additional_original,'));
+    assert.throws(() => checkInstallationPreparationBridge(scratch), /InstallationPreparationBridgeStale/u);
+    writeFileSync(subjectPath, subject);
+    writeFileSync(path, renderInstallationPreparationBridge(subject, grant)
+      .replace('    value.declaration_source_cid,\n', ''));
+    assert.throws(() => checkInstallationPreparationBridge(scratch), /InstallationPreparationBridgeStale/u);
+  } finally { rmSync(scratch, {recursive: true, force: true}); }
 });
 
 test('new metadata Owner field or missing generated comparison independently fails freshness', () => {

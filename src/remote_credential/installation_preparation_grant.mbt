@@ -22,6 +22,18 @@ struct InstallationPreparationCredentialGrant {
 }
 
 ///|
+/// Admit scope DATA without issuing operational installation custody.
+pub fn admit_installation_preparation_credential_scope(
+  scope : InstallationPreparationCredentialScope,
+) -> Result[InstallationPreparationCredentialScope, RemoteCredentialIssue] {
+  if installation_preparation_scope_valid(scope) {
+    Ok(scope)
+  } else {
+    Err(InvalidCredentialGrant)
+  }
+}
+
+///|
 fn installation_preparation_scope_valid(
   scope : InstallationPreparationCredentialScope,
 ) -> Bool {
@@ -141,6 +153,27 @@ pub fn InstallationPreparationCredentialGrant::scope(
   self : InstallationPreparationCredentialGrant,
 ) -> InstallationPreparationCredentialScope {
   self.scope
+}
+
+///|
+pub fn InstallationPreparationCredentialGrant::issuer_authority(
+  self : InstallationPreparationCredentialGrant,
+) -> String {
+  self.issuer_authority
+}
+
+///|
+pub fn InstallationPreparationCredentialGrant::expires_unix_ms(
+  self : InstallationPreparationCredentialGrant,
+) -> Int64 {
+  self.expires_unix_ms
+}
+
+///|
+pub fn InstallationPreparationCredentialGrant::max_uses(
+  self : InstallationPreparationCredentialGrant,
+) -> Int {
+  self.max_uses
 }
 
 ///|
