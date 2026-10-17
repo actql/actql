@@ -53,10 +53,13 @@ test('actual original Local key and issued Reference project the exact nonempty 
       onChunk(piece) { assert(key); pieces.push(piece); },
     });
     checked(moon.clientProgramEffectProposalFinish(proposal, summary.rowCount));
+    moon.clientProgramEffectProposalCancel(proposal);
     proposal = undefined;
     assert.equal(summary.rowCount, 1);
+    // Existing project_effect_command_row / its independent fixed vector
+    // retains the mutation presence envelope; it is not a bare input object.
     assert.deepEqual(rows, [{index: 0, target: f.rows[0].resource,
-      input: {id: 'one', value: 'original'}}]);
+      input: {state: 'present', value: {id: 'one', value: 'original'}}}]);
     assert.deepEqual(JSON.parse(pieces.join('')), f.rows);
     assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), true);
     const retained = checked(moon.clientProgramEffectProposalBeginWithKey(
