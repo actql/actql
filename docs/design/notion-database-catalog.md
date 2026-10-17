@@ -680,3 +680,125 @@ operational Site issuer, publication persistence or final declaration/Run
 adoption. Those consumers must retain the actual original declaration and
 selected schema; static checking never fetches missing metadata and same-Run
 restoration never rediscovers it from current configuration.
+
+## Exact original page observation
+
+The existing Catalog admits one bounded original Page response for the exact
+requested page id. It snapshots the response bytes before decoding and retains
+the original cursor, properties, response digest and raw version spelling in
+one private-constructor observation. Parent admission preserves the returned
+discriminant and actual coordinates: a data-source parent may also contain its
+database id, while a workspace parent has its actual `true` marker and no
+invented id. Page, database, block and agent parents remain distinct.
+The original `in_trash` and legacy `archived` aliases must be Boolean and agree
+when both occur; absence or malformed metadata never becomes `false`.
+
+The checked metadata projection retains the page id as correlation DATA, the
+original last-edited spelling as version, and exact normalized UTC millisecond
+timestamps using the existing ValueAdmission normalizer. Unknown offsets and
+nonzero submillisecond digits refuse. Properties remain original vendor DATA:
+this observation does not complete paginated titles/properties, infer their
+logical Contracts or issue a ResourceRef, current-version guard or mutation
+identity. The private metadata wire is a bounded projection, not a new public
+Source schema, canonical identity domain or authority-bearing preimage.
+
+The thin exact-page reader captures its original compiled methods and receiver,
+Credential control/scope, current callback and response/observation callbacks
+once. The existing physical Credential port admits only the separately
+authorized page operation, exact GET path and empty body. The original current
+and stop checks surround asynchronous work, secret resolution, response charge
+and observation consumption. An Account change, abort, malformed response,
+foreign page or output-budget refusal preserves the same response and charge.
+Lost replies retain the original use's journal Unknown; neither another reader
+nor repeated `read` can resend that use. Copied JS handles are not originals.
+
+The reader retains its original failure and all raw response aliases after
+success or failure. Its cleanup observation remains unconfirmed; response,
+callback or Promise completion, transport close and GC do not acknowledge
+physical retirement. The bounded raw snapshot, decoded node/key/property
+graph, parent variant, optional database coordinate, normalized timestamp
+backings, digest and opaque observation coexist. Metadata encoding also holds
+a bounded pair vector, Encoder key inventory, text/output backing and the
+original graph. The JS reader adds its request record, compiled methods and
+receiver, Credential/current/callback references, composite signal, abort
+controller, pending Promises and handlers, original error and response/charge
+aliases. Layout, shared references and empty/optional arms are not free.
+Actual installation lifetime funding and confirmed cleanup must cover this
+overlap; parser/transport bounds and fixture observation tickets are not that
+supply.
+
+This exact-page prerequisite does not prove complete workspace membership.
+The vendor [search limitations](https://developers.notion.com/reference/search-optimizations-and-limitations)
+provide no exhaustive or stable workspace index, including trash. A configured
+root traversal proves only its selected collection unless an actual
+authoritative original inventory establishes full membership and coverage,
+including archived pages. The public all-visible-pages target still requires
+that supplier; missing coverage is Unavailable at that boundary. Terminal
+search pagination, first-page selection and this single-page observation do
+not replace it. The selected [Page](https://developers.notion.com/reference/page)
+and [parent](https://developers.notion.com/reference/parent-object) contracts
+also do not issue permission, installation currentness or a write target.
+
+Verification separates bounded portable Catalog cases from the actual
+Common/Account/Credential/SQLite/TLS caller cases. The latter use explicit
+private fixture issuer/material and observation tickets, preserving original
+Unknown journals and keys. They do not establish a normal operational issuer,
+complete page inventory, numerical funding, installed publication or live
+Notion acceptance.
+
+## Checked rows from exact page originals
+
+An exact-page observation can enter the same complete checked row Owner used
+by database queries. The shared private property projection checks its actual
+data-source parent, optional database coordinate, every original property
+name/id/kind and the complete original schema inventory. It does not wrap the
+GET in a fabricated query/list response or infer a missing source from names.
+The historical query-row type holds those checked property occurrences; the
+issued row additionally retains the exact original Page object. A read-only
+matcher requires that same row, schema binding and Page, not equal ids, bytes
+or CIDs. Ordinary query rows retain their existing behavior and output bytes.
+
+The row and its pending-property request share one nominal original occurrence.
+Only its actual completed property page can fill that cell. A separately
+assembled equal row, another query observation or copied row record cannot
+substitute. Scalar admission, exact Decimal conversion, Timestamp/system fields,
+whole-object admission, duplicate completion and cancellation use the existing
+algorithm. The bounded original response/schema scans are charged before the
+new row is assembled, including every name/id/kind occurrence and the actual
+identity bound. Budget exhaustion remains fail closed, without a hidden reset.
+
+The thin parent reader captures the original compiled methods and receiver,
+then holds the exact-page child before its first await. It retains that actual
+response charge for whole-row delivery. For each pending column it obtains a
+separate original property authorization only after Common issues the actual
+row-bound request; page authorization never substitutes for property purpose.
+Current/stop checks surround the supplier await and every physical read. Earlier
+original charges go to observation; exactly the last actual response charge
+accompanies the complete checked row. Synthetic canonical output never becomes
+transfer input. A scalar-only row needs no property operation or speculative
+property grant. Every returned charge remains held in the same parent graph,
+including aggregate-bound refusal after a child returned its actual response.
+
+The existing property reader owns cursor history and completion. The parent
+retains every child before awaiting it, original results/errors and charge
+aliases after success or failure. Lost replies remain the same Credential
+journal Unknown; a new explicit reader cannot resend that original use.
+All child and parent cleanup observations remain unconfirmed. Promise/consume
+callbacks, transport close, array freezing and GC do not prove physical cleanup.
+
+The optional Page reference changes the row's layout even on the legacy None
+path. Its Some path overlaps the original raw/decode/Page graph, projected
+property records and checked schema/cells/output. The parent also retains a
+WeakMap/token/state, compiled method closures and receiver, frozen context and
+schema wire, callbacks and pending authorization/result Promises, composite
+signal/controller, child/result/charge arrays, bounded pending-column DATA and
+returned row wire. Shared aliases, rest-call arrays, Encoder workspace and
+private matcher work are not free. Actual installation/phase funding must cover
+the entire lifetime; per-response/aggregate limits are not its supplier.
+
+This is a full-diff read prerequisite, not an issued target, complete Preview,
+write authorization, snapshot-isolation promise or conditional mutation. The
+actual installed before/apply reread, current original version guard, writes,
+reconciliation, saved-original recovery, complete workspace inventory and
+normal resource supplier remain separate obligations. No public schema,
+canonical preimage, wire/version or permission domain changes here.
