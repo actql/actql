@@ -10,6 +10,11 @@ const wire = value => canonicalJson(value, {dataKeys: true});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const integer = (value, minimum = 1) => Number.isSafeInteger(value) &&
   value >= minimum && value <= 2147483647;
+const viewBacking = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype),
+  'buffer').get;
+const viewLength = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype),
+  'byteLength').get;
+const bufferLength = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength').get;
 const freeze = value => {
   if (value !== null && typeof value === 'object') {
     for (const child of Object.values(value)) freeze(child);
@@ -129,4 +134,32 @@ export async function sendOwnedGcsObjectRequest({request, authorization, credent
   return Object.freeze({observation: Object.freeze({useCid: response.useCid,
     accepted: response.accepted, statusCode: response.statusCode, body: response.body}),
     headers: response.headers});
+}
+
+// A matching metadata body is correlation only. The original Effect/Store
+// still authenticates dispatch and retained response before settlement.
+export function ownedGcsObjectResponseMatches(request, observed, binding) {
+  const original = originalRequest(request, binding);
+  if (typeof original.moon.gcsObjectResponseMatches !== 'function') fail('GcsObjectResponseUnavailable');
+  return original.moon.gcsObjectResponseMatches(original.binding, original.handle, observed);
+}
+
+// Use only with that same authenticated direct response, including retained
+// response recovery. Never pass a later GET failure as a DELETE confirmation.
+export function projectOwnedGcsObjectResponse(request, observation, maxProjectionBytes) {
+  const original = originalRequest(request);
+  if (typeof original.moon.gcsObjectResponseProjection !== 'function') fail('GcsObjectResponseUnavailable');
+  const status = observation?.statusCode;
+  if (!integer(maxProjectionBytes) || !Number.isInteger(status) || status < 100 || status > 599) {
+    fail('InvalidGcsObjectResponse');
+  }
+  const body = observation?.body;
+  try {
+    if (!(body instanceof Uint8Array) || viewLength.call(body) > 2147483647) fail('InvalidGcsObjectResponse');
+    // No concurrent SharedArrayBuffer mutation between admission and meaning.
+    bufferLength.call(viewBacking.call(body));
+  } catch { fail('InvalidGcsObjectResponse'); }
+  return freeze(JSON.parse(gcsOwnedResult(original.moon,
+    original.moon.gcsObjectResponseProjection(original.binding, original.handle,
+      status, body, maxProjectionBytes))));
 }
