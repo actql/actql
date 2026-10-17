@@ -316,7 +316,7 @@ fn execute_native_local_packaged_with_parent(
     }
     matches.values["config-root"] = [configuration_root]
     matches.values["config-file"] = ["config.json"]
-    if operation == "check" || operation == "explain" {
+    if operation == "explain" {
       let observation = execute_native_local(matches)
       // Static metadata discloses only the same selected originals. Recheck
       // their existing custody and current package before returning the copy.
