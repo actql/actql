@@ -14,7 +14,6 @@ import * as provider from '../../../../_build/js/release/build/connectors/gcs/ho
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {connectEmbeddedLocal} from '../../../host-node/embedded-local.mjs';
-import {CapturedRunPublicationError} from '../../../host-node/entry.mjs';
 import {createInstalledConnectorTable} from '../../../host-node/installed-connectors.mjs';
 import {createInstalledRowSource, installRowSourceAuthorization, rowSourceCheckEnvironment}
   from '../../../host-node/installed-row-source.mjs';
@@ -57,27 +56,6 @@ const columns = [
 ];
 
 test('public GCS Named Result preserves exact Decimal and JSON contracts across same-Run Host reopening', async t => {
-  let publicationFailure, executionFailure;
-  const prior = Object.getOwnPropertyDescriptor(CapturedRunPublicationError.prototype, 'primaryFailure');
-  const priorExecution = Object.getOwnPropertyDescriptor(CapturedRunPublicationError.prototype, 'execution');
-  Object.defineProperty(CapturedRunPublicationError.prototype, 'primaryFailure', {configurable: true,
-    set(value) {
-      publicationFailure = value;
-      Object.defineProperty(this, 'primaryFailure',
-        {value, writable: true, configurable: true, enumerable: true});
-    }});
-  Object.defineProperty(CapturedRunPublicationError.prototype, 'execution', {configurable: true,
-    set(value) {
-      executionFailure = value.failure;
-      Object.defineProperty(this, 'execution',
-        {value, writable: true, configurable: true, enumerable: true});
-    }});
-  t.after(() => {
-    if (prior === undefined) delete CapturedRunPublicationError.prototype.primaryFailure;
-    else Object.defineProperty(CapturedRunPublicationError.prototype, 'primaryFailure', prior);
-    if (priorExecution === undefined) delete CapturedRunPublicationError.prototype.execution;
-    else Object.defineProperty(CapturedRunPublicationError.prototype, 'execution', priorExecution);
-  });
   const scratch = await createOwnedScratch({parent: new URL('../../../../_build/', import.meta.url).pathname,
     prefix: 'gcs-public-typed-result-', label: 'GCS public typed Result'});
   const owner = userInfo().username;
@@ -100,7 +78,7 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
       boundary_cid: token('c'), identity_cid: token(String(index + 1))}]));
   const profileVersion = 'actql-installed-gcs-public-result-fixture/0.1';
   const events = [];
-  let calls = 0, acquisitions = 0, referenceChecks = 0, client, sourcePreparationFailure;
+  let calls = 0, acquisitions = 0, referenceChecks = 0, client;
   let allowRead = true;
   const connectorTable = createInstalledConnectorTable([{name: 'gcs', registration: 'gcs', revision: 'gcs/0.1',
     source: {profileVersion, load: async () => ({check: value => value, identityParts: value => [value],
@@ -144,17 +122,13 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
                 assert.equal(operation.path,
                   '/storage/v1/b/actql-fixture/o?prefix=in%2F&maxResults=3&projection=noAcl' +
                   (calls === 1 ? '' : '&pageToken=next'));
+                // Independent provider order is not the final Result order.
                 const page = calls === 1 ? {kind: 'storage#objects', nextPageToken: 'next'}
-                  : {kind: 'storage#objects', items: objects};
+                  : {kind: 'storage#objects', items: [objects[2], objects[0], objects[1]]};
                 return {accepted: true, statusCode: 200, headers: [], body: Buffer.from(JSON.stringify(page))};
               }});
           }});
-        // Preserve the original receiver/result/error; this is diagnostic
-        // observation of the controlled installation, not Source admission.
-        return Object.freeze({...adapter, async prepare(...args) {
-          try { return await Reflect.apply(adapter.prepare, adapter, args); }
-          catch (error) { sourcePreparationFailure = error; throw error; }
-        }});
+        return adapter;
       }})}}]);
   const sourceProfilePath = join(scratch.path, 'source.json');
   await writeFile(sourceProfilePath, canonical({version: profileVersion}));
@@ -184,21 +158,11 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
     'json', checkedEnvironment, undefined);
   assert.ok(moon.clientProgramPreparationReady(preparation),
     inspect(moon.clientProgramPreparationIssue(preparation), {depth: 12, maxArrayLength: 0}));
-  try { checked(moon.clientProgramCompileLocalTasks(moon.clientProgramPreparationReady(preparation))); }
-  catch (error) {
-    t.diagnostic(inspect(error, {depth: 8, maxArrayLength: 3, maxStringLength: 200}).slice(0, 4000));
-    throw error;
-  }
+  checked(moon.clientProgramCompileLocalTasks(moon.clientProgramPreparationReady(preparation)));
   const run = await client.startSource(JSON.stringify(program), {format: 'json',
-    submissionRef: client.newSubmission({nonce: 'gcs-public-original'})}).catch(error => {
-    // All observed values belong to this nonsecret fresh fixture. Retain the
-    // exact refusal; diagnostic presentation does not replace that failure.
-    t.diagnostic(inspect({error, sourcePreparationFailure, events, acquisitions, calls},
-      {depth: 10, maxArrayLength: 20, maxStringLength: 1000}).slice(0, 12000));
-    throw error;
-  });
+    submissionRef: client.newSubmission({nonce: 'gcs-public-original'})});
   const state = await run.wait({signal: AbortSignal.timeout(15000)});
-  assert.equal(state.status, 'succeeded', inspect({state, events, publicationFailure, executionFailure},
+  assert.equal(state.status, 'succeeded', inspect({state, events},
     {depth: 12, maxArrayLength: 8, maxStringLength: 200}).slice(0, 12000));
   assert.equal(state.control.physical_stop, 'confirmed');
   const description = await run.result('r').describe();
