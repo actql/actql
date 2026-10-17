@@ -141,7 +141,8 @@ pub fn project_notion_user_list(
   let mut text_bytes = limits.max_value_text_bytes
   for index in 0..<count {
     guard @decode.open_object(@decode.element_at(results, index).unwrap())
-      is Ok(row) && text_is(row, "object", "user") else {
+      is Ok(row) &&
+      text_is(row, "object", "user") else {
       return Err(InvalidResponse)
     }
     let kind = match @decode.field(row, "type") {
