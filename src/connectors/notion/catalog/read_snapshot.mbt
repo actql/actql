@@ -149,7 +149,7 @@ pub fn capture_notion_database_read_snapshot(
 
 ///|
 fn read_snapshot_text(
-  root : @decode.Cursor,
+  root : @decode.ObjectView,
   key : String,
   max_bytes : Int,
 ) -> Result[String, NotionReadSnapshotIssue] {
@@ -203,12 +203,12 @@ pub fn read_notion_database_read_snapshot(
       "database_response", "declaration_source", "schema_cid", "schema_wire", "selected_data_source_response",
       "system_columns", "version",
     ])
-    is Ok(_) &&
-    @decode.field(cursor, "system_columns") is Present(system) &&
+    is Ok(root) &&
+    @decode.field(root, "system_columns") is Present(system) &&
     @decode.boolean(system) is Ok(system_columns) else {
     return Err(InvalidSnapshot)
   }
-  let version = match read_snapshot_text(cursor, "version", 64) {
+  let version = match read_snapshot_text(root, "version", 64) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -217,7 +217,7 @@ pub fn read_notion_database_read_snapshot(
   }
   let database_wire = match
     read_snapshot_text(
-      cursor,
+      root,
       "database_response",
       read_limits.metadata.max_bytes,
     ) {
@@ -226,7 +226,7 @@ pub fn read_notion_database_read_snapshot(
   }
   let declaration_wire = match
     read_snapshot_text(
-      cursor,
+      root,
       "declaration_source",
       read_limits.metadata.max_bytes,
     ) {
@@ -235,7 +235,7 @@ pub fn read_notion_database_read_snapshot(
   }
   let source_wire = match
     read_snapshot_text(
-      cursor,
+      root,
       "selected_data_source_response",
       read_limits.metadata.max_bytes,
     ) {
@@ -243,11 +243,11 @@ pub fn read_notion_database_read_snapshot(
     Err(issue) => return Err(issue)
   }
   let schema_wire = match
-    read_snapshot_text(cursor, "schema_wire", limits.max_bytes) {
+    read_snapshot_text(root, "schema_wire", limits.max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let schema_cid = match read_snapshot_text(cursor, "schema_cid", 71) {
+  let schema_cid = match read_snapshot_text(root, "schema_cid", 71) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
