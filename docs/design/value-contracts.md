@@ -117,8 +117,9 @@ field access returns `None` outside the field range.
   nullability. Object source order is irrelevant; enum order and repetitions are
   part of the checked preimage and therefore significant.
 - `assignable(actual, expected)` implements directional compatibility without
-  coercion. Actual upper bounds must be no larger, lower bounds no smaller, and
-  absent bounds do not prove a restriction. Non-null can flow to nullable.
+  coercion. Outside the finite Text-enum proof, actual upper bounds must be no
+  larger, lower bounds no smaller, and absent bounds do not prove a restriction.
+  Non-null can flow to nullable.
   An actual finite enum is inspected against its own extents before testing each
   allowed value against the expected extents and enum. Excluded entries remain
   retained data, not actual values. An absent enum cannot by itself prove a finite
