@@ -73,6 +73,30 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_process_region_status(
     return process_region_original(record) ? record->status : ACTQL_OWNED_INVALID;
 }
 
+/* Borrow only the descriptor captured by this original before spawn. The
+ * existing process Owner may duplicate it into its prepared child transport;
+ * this does not transfer close responsibility or grant execution authority. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepared_process_region_descriptor(
+    actql_bootstrap_process_region *record) {
+    if (!process_region_original(record) || record->status != ACTQL_OWNED_OK ||
+        record->closed || record->unmapped || record->close_unknown ||
+        record->child != 0 || record->descriptor < 0 ||
+        record->view->status != ACTQL_OWNED_OK ||
+        record->domain->status != ACTQL_OWNED_OK ||
+        actql_native_owned_domain_unborrowed(record->domain->lease,
+            &record->view->view) != ACTQL_OWNED_OK)
+        return -1;
+    struct stat value;
+    int flags = fcntl(record->descriptor, F_GETFD);
+    if (flags < 0 || !(flags & FD_CLOEXEC) ||
+        !process_region_fd_identity(record->descriptor,
+            record->view->view.extent.capacity, &value) ||
+        (uint64_t)value.st_dev != record->view->view.extent.device ||
+        (uint64_t)value.st_ino != record->view->view.extent.inode)
+        return -1;
+    return record->descriptor;
+}
+
 static int process_region_close_descriptor(actql_bootstrap_process_region *record) {
     if (record->close_unknown) return ACTQL_OWNED_PHYSICAL_FAILURE;
     if (record->descriptor < 0) return ACTQL_OWNED_OK;

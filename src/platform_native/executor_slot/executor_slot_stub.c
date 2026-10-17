@@ -343,7 +343,9 @@ static int32_t actql_executor_slot_spawn_streams(
   int32_t descriptor,
   int32_t target_descriptor,
   int32_t input_descriptor,
-  int32_t output_descriptor
+  int32_t output_descriptor,
+  int32_t backing_descriptor,
+  char *const selected_environment[]
 ) {
   if (descriptor < ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD ||
       target_descriptor < 3 ||
@@ -408,9 +410,14 @@ static int32_t actql_executor_slot_spawn_streams(
     configured =
       posix_spawn_file_actions_adddup2(&actions, output_descriptor, 1) == 0;
   }
+  if (configured && backing_descriptor >= 0) {
+    configured =
+      posix_spawn_file_actions_adddup2(&actions, backing_descriptor, 4) == 0;
+  }
   pid_t pid = -1;
   int spawned = configured
-    ? posix_spawn(&pid, path, &actions, NULL, argv, environ)
+    ? posix_spawn(&pid, path, &actions, NULL, argv,
+        selected_environment == NULL ? environ : selected_environment)
     : -1;
   posix_spawn_file_actions_destroy(&actions);
   free(block);
@@ -426,7 +433,7 @@ int32_t actql_executor_slot_spawn(
 ) {
   return actql_executor_slot_spawn_streams(executable, executable_length,
     arguments, arguments_length, descriptor, target_descriptor,
-    input_descriptor, -1);
+    input_descriptor, -1, -1, NULL);
 }
 
 int32_t actql_executor_slot_spawn_duplex(
@@ -440,7 +447,7 @@ int32_t actql_executor_slot_spawn_duplex(
       input_descriptor == output_descriptor) return -1;
   return actql_executor_slot_spawn_streams(executable, executable_length,
     arguments, arguments_length, descriptor, target_descriptor,
-    input_descriptor, output_descriptor);
+    input_descriptor, output_descriptor, -1, NULL);
 }
 
 // -2 still running (non-blocking), exit status 0..255, 256 + signal when
@@ -783,3 +790,4 @@ int32_t actql_executor_slot_kill_self(void) {
 }
 
 #include "duplex_stub.inc"
+#include "child_launch_stub.inc"

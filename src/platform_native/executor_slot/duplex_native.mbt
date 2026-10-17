@@ -271,6 +271,9 @@ pub fn NativeScopedExecutorHolder::spawn_duplex(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if self.child_launch is Some(_) {
+    return Err(InvalidConfiguration)
+  }
   let transport = match self.duplex {
     Some(value) => value
     None => return Err(InvalidConfiguration)
@@ -350,6 +353,10 @@ fn NativeScopedExecutorHolder::poll_duplex_stop(
   // The returned view can no longer issue I/O. Closing its original writer
   // also permits an EOF-waiting child to stop; exit is still observed below.
   if duplex_close_ffi(transport.resource) != 0 {
+    return Err(LockFailed)
+  }
+  if self.child_launch is Some(launch) &&
+    selected_child_close_ffi(launch.resource) != 0 {
     return Err(LockFailed)
   }
   match child.wait(false) {
