@@ -11,7 +11,6 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import test, {after} from 'node:test';
-import {inspect} from 'node:util';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
 import * as commonMoon from
@@ -1279,9 +1278,9 @@ async function installedAdapter(setup, source, runtime = commonMoon) {
   const environment = runtime.clientProgramCheckEnvironment(
     adapter.environmentWire, JSON.parse(adapter.environmentWire)
       .evidence_bundle_cid, false, false, true, false, false, false, false);
-  const preparationOutcome = runtime.clientProgramPrepareEffectFreeWithParameters(
-    source, 'json', environment, undefined);
-  const preparedProgram = runtime.clientProgramPreparationReady(preparationOutcome);
+  const preparedProgram = runtime.clientProgramPreparationReady(
+    runtime.clientProgramPrepareEffectFreeWithParameters(source, 'json',
+      environment, undefined));
   const aoa = JSON.parse(await spec('spec/contracts/actql-aoa.json'));
   const common = {preparedProgram,
     registry: await spec('spec/dependencies/aoa-pipeline-registry.json'),
@@ -1289,7 +1288,7 @@ async function installedAdapter(setup, source, runtime = commonMoon) {
     fragment: JSON.stringify(
       aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
-  return {adapter, common, preparationOutcome};
+  return {adapter, common};
 }
 
 async function assertEndedRun(setup, client, requestId) {
@@ -2490,17 +2489,18 @@ test('Salesforce multi-select arrays reach the same Named Result after Host reop
   document.id = 'salesforce-multi-select';
   document.stages[0].inputs.remote.view = 'records';
   const before = setup.org.seen.length;
+  // The declaration does not claim an Id key. Array values cannot supply the
+  // projected-fields fallback order; prove uniqueness on the actual rows first.
+  const unordered = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(unordered.report.verdict, 'invalid');
+  assert(unordered.report.reasons.some(reason => reason.code === 'program_invalid' &&
+    reason.location?.pointer === '/stages/0/results/r'));
+  assert.equal(setup.org.seen.length, before);
+  document.stages[0].steps.push(
+    {from: 'captured', assert_rows: {unique_by: ['Id']}, as: 'unique_records'},
+    {from: 'unique_records', sort: [{Id: 'asc'}], as: 'ordered_records'});
+  document.stages[0].results.r.from = 'ordered_records';
   const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
-  if (checked.report.verdict !== 'verified') {
-    const diagnostic = await installedAdapter(setup, JSON.stringify(document));
-    try {
-      await writeFile(join(setup.root, 'multi-select-original-preparation-cause.txt'),
-        inspect(commonMoon.clientProgramPreparationIssue(diagnostic.preparationOutcome),
-          {depth: 18, maxArrayLength: 40, maxStringLength: 256}));
-    } finally {
-      await diagnostic.adapter.close();
-    }
-  }
   assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
   assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
   assert.equal(setup.org.seen.length, before);
