@@ -221,6 +221,37 @@ encoding selector and its retained configuration field are also managed
 controls, not a new capability or a numerical profile. This connection alone
 does not install the same-Site Effect, fund a Content loan, or close Run recovery.
 
+### Original PATCH target Preview
+
+`projectOwnedGcsMetadataPatchTarget` borrows the same private request and its
+retained original metadata GET. The portable GCS owner returns the target
+identity, original response-byte CID, checked changed-field `before`, intended
+`after` and exact typed request value. Initial capture can use that detached
+row without doing a second GET. This is not the currentness/read decision
+required again at apply, and the original generation and metageneration still
+guard the physical request. A metadata-only change changes the response guard
+and fails the original conditional recheck even when generation is unchanged.
+
+Only the PATCH's actual checked fields are projected into this row. Missing
+`content_type` becomes its nullable field value, missing metadata is SQL NULL,
+and present empty metadata is `{"$json":{}}`; none of these states invents a
+provider value. JSON metadata remains the existing typed Value wire, and its
+exact private marker is excluded from logical fields. The projection declares
+the existing marker-assignment behavior but does not export the marker value.
+The original request now retains that same marker String as one optional field
+for the bounded projection; DELETE retains None. This adds no identity field
+or permission and does not alter original request body/path/CID bytes.
+
+Foreign binding/request copies, unsupported raw-map representation, DELETE
+purpose, missing selected ABI and an insufficient projection bound refuse.
+The original child retirement fence also applies to this read-only projection.
+Its additional preserving input cursor/checked Value/map/encoded String and
+detached before/after/value objects overlap the retained original request and
+all escaped capture aliases. They remain in the same preparation inventory;
+reusing the GET, a bounded output or dropping a local projection is not free
+workspace, a reservation or a physical cleanup ACK. The generic same-Site
+driver/capture/Run recovery and normal funding remain separate connections.
+
 ### Retained upload target observations
 
 The upload-target receiver consumes the complete retained before-GET response,

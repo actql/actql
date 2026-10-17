@@ -48,6 +48,8 @@ pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String
 
 pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
+pub fn object_metadata_patch_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]
+
 pub fn object_metadata_response_sha256(ObjectMetadata) -> String
 
 pub fn object_metadata_version(ObjectMetadata) -> String
@@ -215,6 +217,7 @@ pub struct ObjectMutationRequest {
   cid : String
   logical_after : ObjectMetadataFields?
   authored_changes : String
+  marker : String?
 }
 
 pub(all) enum ObjectRequestIssue {
