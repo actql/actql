@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/notion/host_node"
+
+import {
+  "actql/actql/connectors/notion/catalog",
+}
+
+// Values
+pub fn notion_project_user_list(Bytes, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionUserListPage, @catalog.NotionUserListIssue]
+
+pub fn notion_user_list_column_names() -> Array[String]
+
+pub fn notion_user_list_ids(@catalog.NotionUserListPage) -> Array[String]
+
+pub fn notion_user_list_metadata_json(@catalog.NotionUserListPage, Int, Int, Int) -> Result[String, @catalog.NotionUserListIssue]
+
+pub fn notion_user_list_rows_wire(@catalog.NotionUserListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.NotionUserListIssue]
+
+pub fn notion_user_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.NotionUserListIssue]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
