@@ -5493,7 +5493,7 @@
     },
     {
       "module": "src/connectors/gcs/host_node/upload_request.mbt",
-      "sha256": "31f6b1a0018754caf0441b3002719f08efa142c5c80ce6184230a6c9a78e650f",
+      "sha256": "ab9ecfc0ea376521f49d546134670f0031a012c3160a714efceca8a96f280d94",
       "operations": [
         {
           "name": "gcs_upload_binding",
@@ -5538,6 +5538,10 @@
         {
           "name": "gcs_upload_response_projection",
           "declaration": "gcs_upload_response_projection ( binding : @ catalog . ObjectUploadBinding , request : @ catalog . ObjectUploadRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_upload_target_observation",
+          "declaration": "gcs_upload_target_observation ( binding : @ catalog . ObjectUploadBinding , name : String , status : Int , bytes : Bytes , headers : Array [ ( String , String ) ] , ) - > Result [ @ catalog . ObjectUploadObservation , @ catalog . ObjectUploadIssue ]"
         }
       ],
       "exports": [],
@@ -5558,7 +5562,8 @@
             "gcs_upload_projection",
             "gcs_upload_recheck",
             "gcs_upload_response_matches",
-            "gcs_upload_response_projection"
+            "gcs_upload_response_projection",
+            "gcs_upload_target_observation"
           ],
           "exports": [],
           "attributes": {
