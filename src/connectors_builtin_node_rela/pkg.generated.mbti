@@ -756,6 +756,12 @@ pub fn client_program_kintone_delete_body(@actql/actql/connectors/kintone/catalo
 
 pub fn client_program_kintone_delete_count(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> Int
 
+pub fn client_program_kintone_delete_mapping_body(@actql/actql/connectors/kintone/host.RecordDeleteMapping) -> String
+
+pub fn client_program_kintone_delete_mapping_matches_declaration(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Bool
+
+pub fn client_program_kintone_delete_mapping_matches_request(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> Bool
+
 pub fn client_program_kintone_delete_observation_body(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Int, Int, Int, Int) -> Result[String, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
 pub fn client_program_kintone_delete_recheck_form(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
@@ -781,6 +787,8 @@ pub fn client_program_kintone_page_limits(Int, Int, Int, Int, Int, Int, Int) -> 
 pub fn client_program_kintone_page_next_cursor(@actql/actql/connectors/kintone/host.RecordRead, Array[String], Int) -> Result[Array[String], @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_page_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Array[String], Int, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_prepare_delete_mapping(@actql/actql/connectors/kintone/host.RecordDeclaration, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeleteMapping, @client_row_source_host.RowMappingIssue]
 
 pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
