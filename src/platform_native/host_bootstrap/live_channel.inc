@@ -120,6 +120,16 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_live_channel_status(
     return original_live_channel_current(record);
 }
 
+/* Physical correspondence only, after the existing process Owner validated
+ * its same-holder opaque endpoint borrow. These numbers issue no authority. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_match_live_channel_descriptors(
+    actql_bootstrap_live_channel *record, int32_t read_fd, int32_t write_fd) {
+    int status = original_live_channel_current(record);
+    if (status != ACTQL_OWNED_OK) return status;
+    return record->read_fd == read_fd && record->write_fd == write_fd
+        ? ACTQL_OWNED_OK : ACTQL_OWNED_INVALID;
+}
+
 /* Called only by the same private channel after the original child's Core
  * observation. This verifies physical correlation/bounds, not Guest identity
  * or an allocator-table grant. The trusted caller retains the actual frame. */
