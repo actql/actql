@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {writeFile} from 'node:fs/promises';
+import {readFile,writeFile} from 'node:fs/promises';
+import {createPublicKey} from 'node:crypto';
 import {checkInstalledGmailSourceProfile,installedGmailSourceIdentityParts} from '../host/installed-gmail-source.mjs';
 import {installedGmailFixture} from './installed-gmail.fixture.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -87,7 +88,9 @@ test('installed Gmail lost original reply keeps same recovery and journal Unknow
   assert.equal(original.recovery.cleanupPending(),true);
   assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),held);
   await source.close();
-  const journal=openSqliteCredentialJournal(f.site.journalRoot);
+  const publicKey=createPublicKey(await readFile(join(f.root,'credential-authority.pub')));
+  const journal=openSqliteCredentialJournal(f.site.journalRoot,{credentialAuthorities:new Map([
+    [f.site.credentialAuthorityId,new Map([[f.site.credentialKeyId,publicKey]])]])});
   try{const recovered=journal.recover();assert.equal(recovered.length,1);assert.equal(recovered[0].outcome,'unknown');}
   finally{journal.close();}
   assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);
