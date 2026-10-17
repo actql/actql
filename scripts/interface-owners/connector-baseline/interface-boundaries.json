@@ -4106,7 +4106,7 @@
     {
       "module": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fd3db0ec5923f84cccbab83232f812070500189b3cb34907b96763352dcd5710",
+      "sha256": "057db483489a22fbc4038e5e21fd2ae027efb034d650ba9e5546106b4f4017a1",
       "role": "connector-semantics",
       "owner": "GCS profile and declaration inputs; Common RowSource declaration seals catalogs/schema/capabilities",
       "exports": [
@@ -4949,7 +4949,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-file-listing.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f61c0f731236407d346e887f93bfc19379ff1a18255a4474ad4a60ade370c0b0",
+      "sha256": "c5d9aea71f2f24f8a59fb1ed8f8ef573b384a8e1e0f75a6b1e5fe7ad005db41b",
       "role": "physical-io",
       "owner": "Scoped flat GCS listing transport; Common selector/cursor/duplicate/completion owner is not replaced",
       "exports": [
@@ -5327,7 +5327,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c9153f2fea378c340a797ee28c86b3c3995d9b02198eb0f6c9195605ea65d5aa",
+      "sha256": "1fd7a85a0b55fcbc54ef81dc9b60c1b16f08ecb65f44be0cdcb40610dfdfc3fc",
       "role": "physical-io",
       "owner": "Exact GCS generation/metageneration bytes and checksums; original capture owns ContentRef issuance",
       "exports": [

@@ -28,7 +28,10 @@ const cid = value => `sha256:${createHash('sha256').update(canonical(value)).dig
 export function checkInstalledGcsSourceProfile(profile) {
   if (!closed(profile, profileKeys) || profile.version !== INSTALLED_GCS_SOURCE_VERSION ||
       !exact(profile.connectorId, 128) || !exact(profile.project, 128) ||
-      !exact(profile.bucket, 222) || !exact(profile.prefix, 1024, true) ||
+      !exact(profile.bucket, 222) ||
+      // Prefixes are exact query data, not header values or identifiers.
+      typeof profile.prefix !== 'string' || !profile.prefix.isWellFormed() ||
+      Buffer.byteLength(profile.prefix) > 1024 ||
       !exact(profile.mediaType, 1024) ||
       !/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/u.test(profile.mediaType) ||
       !exact(profile.siteProfilePath, 4096) || !isAbsolute(profile.siteProfilePath) ||

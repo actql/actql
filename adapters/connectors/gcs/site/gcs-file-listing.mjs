@@ -19,7 +19,8 @@ function setup(options) {
   const {target, limits, listing, credential, authorizationFor, chargePage,
     resourceFor, callResource = callHttpsCredentialResource} = options;
   if (!object(target) || !text(target.bucket, 222) ||
-      !text(target.prefix, 1024, true) || !object(credential) ||
+      typeof target.prefix !== 'string' || !target.prefix.isWellFormed() ||
+      Buffer.byteLength(target.prefix) > 1024 || !object(credential) ||
       !object(limits) || !positive(limits.maxPageBytes) ||
       !positive(limits.maxPageItems) || limits.maxPageItems > 1000 ||
       !positive(limits.maxRequestBytes) || !positive(limits.maxTimeMs) ||
