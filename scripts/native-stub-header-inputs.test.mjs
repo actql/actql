@@ -48,7 +48,7 @@ test('actual Native incremental build observes a header-only body change', async
   // This is a fresh compiler fixture, not a replacement product success case.
   writeFileSync(join(scratch.path, 'moon.mod'), 'name = "actql/header_probe"\n');
   writeFileSync(join(scratch.path, 'moon.pkg'),
-    'is_main = true\noptions("native-stub": ["probe.c"])\n');
+    'pkgtype(kind: "executable")\noptions("native-stub": ["probe.c"])\n');
   writeFileSync(join(scratch.path, 'main.mbt'),
     'extern "C" fn original_value() -> Int = "actql_header_probe"\nfn main { println(original_value()) }\n');
   writeFileSync(join(scratch.path, 'probe.c'),
