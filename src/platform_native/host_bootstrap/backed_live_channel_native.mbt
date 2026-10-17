@@ -78,6 +78,9 @@ struct NativeBackedLiveChannel[T, C] {
   mut envelope_attempted : Bool
   mut envelope : @resources.CapacityReservation?
   mut envelope_retired : Bool
+  // Ending parent transport use is distinct from child/process or metadata
+  // retirement. Keep the original frame and all cleanup responsibility.
+  mut transport_stopped : Bool
   mut retired : Bool
 }
 
@@ -187,6 +190,7 @@ fn[T, C] NativeHostBootstrap::capture_backed_live_channel(
     envelope_attempted: false,
     envelope: None,
     envelope_retired: false,
+    transport_stopped: false,
     retired: false,
   }
   // Existing domain custody precedes any fallible physical or access capture.
@@ -231,6 +235,52 @@ fn[T, C] NativeHostBootstrap::original_live_channel(
 }
 
 ///|
+fn[T, C] NativeHostBootstrap::require_live_channel_open(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_live_channel(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.transport_stopped {
+    return Err(Bootstrap(Closing))
+  }
+  self.require_domain_current(original, record.domain, record.child)
+}
+
+///|
+/// Restrict fresh transport work before the existing FD Owner takes back its
+/// borrowed endpoints. The serialized caller must separately finish actual
+/// in-flight I/O and return its original endpoint borrow. This does not close
+/// any FD, prove child stop, retire metadata, return backing or settle quota.
+/// Failed logical stop keeps this same restriction and original frame outcome.
+pub fn[T, C] NativeHostBootstrap::stop_backed_live_channel_transport_use(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+) -> Result[Unit, NativeBackedOriginalReadIssue] {
+  match self.original_live_channel(original, record) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  record.transport_stopped = true
+  match record.ledger_frame {
+    Some(frame) =>
+      @resources.stop_imported_child_ledger(frame).map_err(issue => Child(issue))
+    None =>
+      match record.live {
+        None => Ok(())
+        Some(_) =>
+          self.stop_backed_live_channel(original, record).map_err(issue => {
+            Domain(issue)
+          })
+      }
+  }
+}
+
+///|
 /// The same process Owner binds its actual spawned child once. PID DATA does
 /// not prove inherited memory, VM admission, stop or descriptor retirement.
 /// Retain the original channel on response loss; never retry with another PID.
@@ -244,7 +294,7 @@ pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_child(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match self.require_domain_current(original, record.domain, record.child) {
+  match self.require_live_channel_open(original, record) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -259,7 +309,7 @@ pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_child(
   if status != 0 {
     return Err(Bootstrap(Physical(status)))
   }
-  self.require_domain_current(original, record.domain, record.child)
+  self.require_live_channel_open(original, record)
 }
 
 ///|
@@ -276,7 +326,7 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_original_channel_ledger(
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }
-  match self.require_domain_current(original, record.domain, record.child) {
+  match self.require_live_channel_open(original, record) {
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }
@@ -298,7 +348,7 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_original_channel_ledger(
   }
   // Original custody precedes postchecks and the foreign reply boundary.
   record.ledger_frame = Some(frame)
-  match self.require_domain_current(original, record.domain, record.child) {
+  match self.require_live_channel_open(original, record) {
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }
@@ -329,7 +379,7 @@ pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_vm(
   if record.binding_attempted {
     return Err(Bootstrap(AlreadyConsumed))
   }
-  match self.require_domain_current(original, record.domain, record.child) {
+  match self.require_live_channel_open(original, record) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -345,7 +395,7 @@ pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_vm(
     return Err(Bootstrap(Physical(status)))
   }
   record.bound = true
-  self.require_domain_current(original, record.domain, record.child)
+  self.require_live_channel_open(original, record)
 }
 
 ///|
@@ -355,6 +405,10 @@ pub fn[T, C] NativeHostBootstrap::admit_backed_live_channel(
   record : NativeBackedLiveChannel[T, C],
 ) -> Result[Unit, NativeBackedExecutionIssue] {
   match self.original_live_channel(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.require_live_channel_open(original, record) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -385,6 +439,10 @@ pub fn[T, C] NativeHostBootstrap::admit_backed_live_channel(
     }
   }
   record.admitted = true
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let status = live_vm_current_ffi(physical)
   if status != 0 {
     Err(Bootstrap(Physical(status)))
@@ -403,6 +461,10 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_state(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   guard record.physical is Some(physical) && record.live is Some(live) else {
     return Err(Bootstrap(Unavailable))
   }
@@ -416,6 +478,10 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_state(
   let state = match self.backed_live_child_state(original, live, record) {
     Err(issue) => return Err(issue)
     Ok(value) => value
+  }
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   let status = live_vm_current_ffi(physical)
   if status != 0 {

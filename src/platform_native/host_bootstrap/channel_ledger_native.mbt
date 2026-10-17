@@ -43,7 +43,7 @@ fn[T, C] NativeHostBootstrap::require_original_channel_ledger_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match self.require_domain_current(original, record.domain, record.child) {
+  match self.require_live_channel_open(original, record) {
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }

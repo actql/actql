@@ -243,7 +243,56 @@ fn exercise_pre_spawn_channel(
     host.usage() == reported,
     "same original cleanup report releases no parent physical reservation",
   )
+  require(
+    count,
+    host.stop_backed_live_channel_transport_use({ marker: 1, }, channel)
+    is Err(Domain(Bootstrap(ForeignOriginal))) && host.usage() == reported,
+    "foreign original cannot end another channel's transport use",
+  )
+  host.stop_backed_live_channel_transport_use(original, channel).unwrap()
+  require(
+    count,
+    host.usage() == reported,
+    "transport closing issues no physical retirement or quota return",
+  )
+  host.stop_backed_live_channel_transport_use(original, channel).unwrap()
+  require(
+    count,
+    host.usage() == reported,
+    "same original repeated transport stop preserves cumulative accounting",
+  )
+  require(
+    count,
+    host.prepare_backed_original_channel_ledger(original, channel)
+    is Err(Domain(Bootstrap(Closing))),
+    "transport closing prevents another frame before examining physical pipes",
+  )
+  require(
+    count,
+    host.bind_backed_live_channel_child(original, channel, 1)
+    is Err(Bootstrap(Closing)),
+    "transport closing refuses fresh child binding without touching original pipes",
+  )
+  require(
+    count,
+    host.bind_backed_live_channel_vm(original, channel, 7L, page, 16777216L)
+    is Err(Bootstrap(Closing)),
+    "transport closing refuses VM observation without converting it to permission",
+  )
+  require(
+    count,
+    host.backed_live_channel_state(original, channel)
+    is Err(Bootstrap(Closing)),
+    "transport closing fences physical observation before descriptor return",
+  )
   close_fixture_pipes().unwrap()
+  host.report_backed_channel_ledger(original, channel, frame).unwrap()
+  require(
+    count,
+    host.backed_live_channel_state(original, channel)
+    is Err(Bootstrap(Closing)) && host.usage() == reported,
+    "closed endpoints cannot be reobserved while same-original cleanup report remains available",
+  )
   // No spawn occurred. The fixture has now confirmed its exact pipe closes;
   // metadata retirement neither closes the domain nor settles its parent loan.
   host.retire_backed_live_channel_after_owner_ack(original, channel).unwrap()

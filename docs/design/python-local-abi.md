@@ -85,6 +85,15 @@ Foreign child, region or lease observations cannot retire the original region.
 The process Owner's stop pin remains held through physical cleanup; an exit
 code or PID alone is not a substitute for that original scoped observation.
 
+Ending a parent transport borrow is a separate, earlier restriction. The same
+channel first prevents new I/O and physical-current observations and restricts
+its Common child frame. Its serialized physical caller must finish actual
+in-flight uses before returning the original endpoint borrow to the FD Owner.
+Metadata, original frame, Unknown outcomes and backing custody remain retained.
+The FD Owner may then confirm its own child stop and descriptor closes. Neither
+the restriction nor borrow return acknowledges that stop, metadata retirement,
+mapping cleanup, final quota settlement, or the Run's business outcome.
+
 Physical region retirement is separate from conservative quota reconciliation,
 Common borrow settlement and the Run's remote or business outcome. It does not
 prove that an external operation was never sent, acknowledge a commit, permit

@@ -308,7 +308,10 @@ fn main {
     host.usage().reserved_execution_bytes == 0L,
     "actual parent close finally returns its one backing reservation",
   )
+  if count.val != 68 {
+    abort("original live-child conformance discovery must execute exactly68 cases")
+  }
   println(
-    "{\"success\":true,\"discovered\":60,\"executed\":60,\"passed\":60,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
+    "{\"success\":true,\"discovered\":68,\"executed\":68,\"passed\":68,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
   )
 }
