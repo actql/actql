@@ -569,6 +569,31 @@ this implementation authorization. Hosted CI remains stopped. Focused local
 checks cover changed boundaries; heavy cross-target/proof/package campaigns
 remain with the integration verification owner.
 
+## Material delivery and final display
+
+The Native read selection distinguishes the literal `stdout` and `material`
+destinations. Parsing a material choice supplies only original configuration
+DATA. It cannot issue a receiver, read permission or physical capacity. A
+stdout binding and its original preimages never certify internal transfer.
+Their existing bytes and CIDs remain unchanged.
+
+Material acquisition requires the existing trusted installation's actual
+same-Host Store, original read and workspace loan before protected read or
+allocation. Bind that receiver to the original Run, Result, schema, ordering
+and material generation under current data and egress policy. Intake bounds,
+format choices, copied identities and a previous Allow are not substitutes.
+Until this joined supplier exists, material remains explicitly unavailable;
+there is no heap-backed or stdout-permission fallback.
+
+A confirmed material transfer records only the original receiver's actual
+acknowledgement. It does not certify table display. Final table stdout needs
+its own original disclosure selection, current authorization and real
+write/flush facts. A file destination separately needs the actual Writer.
+Keep the session, input, decoder, checked values, escaped aliases and output
+workspace through their respective acknowledgements. Failed or unknown read,
+transfer, display or close retains the same original responsibility; it never
+allocates another attempt or reconstructs a live loan from saved DATA.
+
 ## Finite original Run read roles
 
 The explicit finite read alternative selects `run_policy_profile_cid`, `run_file`,
