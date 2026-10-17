@@ -17786,9 +17786,19 @@
             "runtime",
             "provider"
           ]
+        },
+        {
+          "async": false,
+          "name": "_verify_selected_provider_link",
+          "parameters": [
+            "recipe",
+            "runtime_library",
+            "runtime",
+            "provider"
+          ]
         }
       ],
-      "sha256": "7113706028b437f69b5e90a452e5fb5734804276b08b0287a9d6ee9c8ab238a0",
+      "sha256": "28f22f8d29a2dd1c06ad3dddeb364126fadbf36884327077901c206cfe561f6a",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -18976,6 +18986,138 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "def _verify_original_provider_link(image: _InstalledImageFileInput,"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_verify_selected_provider_link"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Handles are never serialized Client references"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Failed stop or cleanup retains the same"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Interrupted physical bridge calls"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Transfer custody"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_installed_image.py",
+                "anchor": "def test_exact_config_and_unused_pools_without_new_limits("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_image.py",
+                "anchor": "def test_native_pointer_path_has_no_whole_image_copy_and_retires_same_extent("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_provider_link.py",
+                "anchor": "def test_separate_selected_libraries_share_exact_all_provider_addresses_without_calling_them("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,"
               }
             ]
           }
