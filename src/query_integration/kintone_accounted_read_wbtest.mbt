@@ -555,10 +555,18 @@ test "kintone changed current Form refuses with original charge and cleanup resp
       _ => "{"
     }
     let body = @utf8.encode(text)
-    assert_true(
-      @kintone_host.recheck_record_read_form(read, body, kintone_form_limits())
-      is Err(@kintone_host.ForeignDeclaration),
+    let refusal = @kintone_host.recheck_record_read_form(
+      read,
+      body,
+      kintone_form_limits(),
     )
+    if replacement == "malformed" {
+      assert_true(
+        refusal is Err(@kintone_host.Form(@kintone_catalog.InvalidResponse)),
+      )
+    } else {
+      assert_true(refusal is Err(@kintone_host.ForeignDeclaration))
+    }
     assert_eq(
       @resources.ledger_usage(ledger).transferred_bytes,
       body.length().to_int64(),

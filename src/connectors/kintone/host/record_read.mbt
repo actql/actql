@@ -4,6 +4,7 @@ pub enum RecordReadIssue {
   ForeignDeclaration
   Closed
   TransportUnsettled
+  Form(@catalog.FormFieldIssue)
   Catalog(@catalog.RecordValueIssue)
   Page(@catalog.RecordPageIssue)
   Host(@rows.RowHostIssue)
@@ -244,7 +245,7 @@ pub fn recheck_record_read_form(
   let observed = match
     @catalog.project_form_fields(bytes, original.app_id, limits) {
     Ok(value) => value
-    Err(_) => return refuse_record_read(read, ForeignDeclaration)
+    Err(issue) => return refuse_record_read(read, Form(issue))
   }
   read.observed_form = Some(observed)
   let paths = @catalog.form_field_paths(original)
