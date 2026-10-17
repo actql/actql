@@ -486,3 +486,35 @@ writer lifetimes; these bounds do not supply whole-phase funding. This is a
 finite physical write profile, not a restriction on readable fields or a claim
 that the full Connector's remaining carriers and actual installed writes are
 complete.
+
+### Typed original Relation write Mappings
+
+The existing Row Source Owner can project CREATE or ID-selected UPDATE Mapping
+DATA directly from the original RowDeclaration's selected View and retained
+carrier Contract. It checks the original View/CID/schema/manifest correspondence
+using the same bounded reader as DELETE. The complete closed target schema is
+preserved, including Array item contracts, Decimal precision/scale, nullability
+and non-written fields. It is not reconstructed from scalar type names.
+Existing scalar/collection CREATE and DELETE bodies and identities are unchanged.
+
+The connector must separately supply its positively observed writable/required
+field facts and original operation permission. A readable field, an original
+schema or a Mapping permission rule is not a provider write grant. The closed
+operation choice binds CREATE/none versus UPDATE/id, exact writable fields,
+required CREATE fields, source-field references and null/omit choices into the
+existing Mapping preimage. It issues no UPSERT absence decision, claim, Preview,
+current authorization or physical acknowledgement. UPDATE has no CREATE-required
+field list. Original provider validation and actual required-value checks remain
+with their existing caller.
+
+The reader retains its original decoded/JSON/View/Contract material while
+selected field/name arrays, canonical target schema, Mapping writer/preimages
+and hashes overlap. Positive original caller bounds apply before output and
+bound this metadata work; they do not reserve or retire its simultaneous
+holding. Conditional presence that cannot be represented by the existing closed
+object Mapping schema refuses this physical projection, without restricting
+readable Relation schemas. This pure Owner projection is a necessary consuming
+connection, not completion of kintone's original Form/writable/request binding,
+sealed approval/apply/recovery, response funding, numeric history or installed
+write acceptance. A Decimal in an independently declared test schema is not
+proof of a kintone historical Number envelope.
