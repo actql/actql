@@ -59,3 +59,21 @@ The original Host retains finish, capture and close; logical abort does not
 erase the observer. Failed stop keeps the same reservation and cleanup debt.
 Only confirmed physical retirement permits the reader's aliases to disappear
 and the original Owner to release its root.
+
+### Original provider declaration projection
+
+`project_row_declaration` is a typed metadata port for an existing Common
+producer's already-verified canonical Catalog, contracts, declared views and
+manifest. It copies the metadata containers and keeps the exact supplied view
+objects and canonical strings; it does not decode wire, regenerate a neutral
+Catalog, validate a caller-computed CID, or issue permission/current/capacity
+evidence. Salesforce exposes its projection from its original opaque static or
+installed declaration, without a JavaScript entry accepting raw parts.
+
+A new projection of equal canonical parts is not an acquisition's original
+view. `check_row_acquisition_original` still requires that exact stored view
+and checked requirement. The existing acquisition also checks original Source
+evidence; a projection-only requirement lacking it remains refused. The
+provider's already-bounded declaration owns the projection's input extent;
+this metadata port introduces no generic view-count restriction or normal
+numeric-profile adoption.
