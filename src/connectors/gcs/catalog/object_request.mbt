@@ -267,6 +267,103 @@ pub fn prepare_object_metadata_patch(
   changes : Bytes,
   marker : String,
 ) -> Result[ObjectMutationRequest, ObjectRequestIssue] {
+  prepare_object_metadata_patch_input(binding, original, changes, marker, false)
+}
+
+///|
+// Effect rows use the existing Value wire for Json fields, not provider JSON.
+// Keep its authored envelope for requestFacts while producing the same physical
+// metadata replacement. This is not an alternative public JSON interpretation.
+pub fn prepare_object_metadata_patch_value_wire(
+  binding : ObjectMutationBinding,
+  original : ObjectMetadata,
+  changes : Bytes,
+  marker : String,
+) -> Result[ObjectMutationRequest, ObjectRequestIssue] {
+  prepare_object_metadata_patch_input(binding, original, changes, marker, true)
+}
+
+///|
+fn prepare_object_metadata_patch_input(
+  binding : ObjectMutationBinding,
+  original : ObjectMetadata,
+  changes : Bytes,
+  marker : String,
+  effect_wire : Bool,
+) -> Result[ObjectMutationRequest, ObjectRequestIssue] {
+  let (content_type, metadata, authored_changes) = match
+    admit_object_metadata_patch_input(binding, changes, marker, effect_wire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let before = object_metadata_fields(original)
+  let mut after = { ..before, metadata: Some(before.metadata.unwrap_or([])), }
+  let body : Map[String, Json] = Map([])
+  if content_type is Some(value) {
+    body["contentType"] = value.to_json()
+    after = { ..after, content_type: Some(value), }
+  }
+  let patch : Map[String, Json] = Map([])
+  if metadata is Some(entries) {
+    let desired : Map[String, Json] = Map([])
+    for (key, text) in entries {
+      desired[key] = text.to_json()
+    }
+    if original.fields.metadata is Some(previous) {
+      for (key, _) in previous {
+        if key != "actql-request" && !desired.contains(key) {
+          patch[key] = Json::null()
+        }
+      }
+    }
+    for key, value in desired {
+      patch[key] = value
+    }
+    after = { ..after, metadata: Some(entries), }
+  }
+  patch["actql-request"] = marker.to_json()
+  body["metadata"] = Json::object(patch)
+  let body = match
+    mutation_json(
+      Json::object(body),
+      binding.limits.max_body_bytes,
+      binding.limits.metadata,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  mutation_request(
+    binding,
+    original,
+    "PATCH",
+    body,
+    Some(after),
+    authored_changes,
+  )
+}
+
+///|
+// Static authored refusal precedes read approval and physical acquisition.
+// Reusing the same finite decoder at preparation does not authorize I/O or
+// make its transient cursor/Value/map/encoding workspace free to the caller.
+pub fn check_object_metadata_patch_input(
+  binding : ObjectMutationBinding,
+  changes : Bytes,
+  marker : String,
+  effect_wire : Bool,
+) -> Result[Unit, ObjectRequestIssue] {
+  admit_object_metadata_patch_input(binding, changes, marker, effect_wire).map(_ => {
+    ()
+  })
+}
+
+///|
+fn admit_object_metadata_patch_input(
+  binding : ObjectMutationBinding,
+  changes : Bytes,
+  marker : String,
+  effect_wire : Bool,
+) -> Result[(String?, Array[(String, String)]?, String), ObjectRequestIssue] {
   if binding.kind != PatchMetadata || !mutation_cid(marker) {
     return Err(InvalidBinding)
   }
@@ -293,20 +390,41 @@ pub fn prepare_object_metadata_patch(
   guard @decode.closed_object(root, ["content_type", "metadata"]) is Ok(object) else {
     return Err(InvalidChanges)
   }
-  let body : Map[String, Json] = Map([])
   let authored : Map[String, Json] = Map([])
-  let before = object_metadata_fields(original)
-  let mut after = { ..before, metadata: Some(before.metadata.unwrap_or([])), }
-  if @decode.lookup(object, "content_type") is Some(content_type) {
-    guard @decode.text(content_type) is Ok(value) else {
-      return Err(InvalidChanges)
+  let content_type = match @decode.lookup(object, "content_type") {
+    None => None
+    Some(cursor) => {
+      guard @decode.text(cursor) is Ok(value) else {
+        return Err(InvalidChanges)
+      }
+      authored["content_type"] = value.to_json()
+      Some(value)
     }
-    body["contentType"] = value.to_json()
-    authored["content_type"] = value.to_json()
-    after = { ..after, content_type: Some(value), }
   }
-  let patch : Map[String, Json] = Map([])
+  let mut metadata_fields = None
   if @decode.lookup(object, "metadata") is Some(metadata) {
+    let metadata = if effect_wire {
+      // The existing Value Owner checks the complete Json wire before the
+      // provider narrows its payload to an exact string map. SQL NULL, JSON
+      // null, absence and an authored "$json" metadata key stay distinct.
+      guard @admitted.admit_wire(
+          @contract.primitive(@contract.JsonType, nullable=false),
+          metadata,
+          {
+            max_nodes: limits.max_nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: limits.max_bytes,
+          },
+        )
+        is Ok(_) &&
+        @decode.closed_object(metadata, ["$json"]) is Ok(envelope) &&
+        @decode.lookup(envelope, "$json") is Some(payload) else {
+        return Err(InvalidChanges)
+      }
+      payload
+    } else {
+      metadata
+    }
     guard @decode.object_length(metadata) is Some(count) else {
       return Err(InvalidChanges)
     }
@@ -326,43 +444,19 @@ pub fn prepare_object_metadata_patch(
       desired[key] = text.to_json()
       logical.push((key, text))
     }
-    if original.fields.metadata is Some(entries) {
-      for (key, _) in entries {
-        if key != "actql-request" && !desired.contains(key) {
-          patch[key] = Json::null()
-        }
-      }
+    metadata_fields = Some(logical)
+    authored["metadata"] = if effect_wire {
+      { "$json": Json::object(desired) }
+    } else {
+      Json::object(desired)
     }
-    for key, value in desired {
-      patch[key] = value
-    }
-    after = { ..after, metadata: Some(logical), }
-    authored["metadata"] = Json::object(desired)
-  }
-  patch["actql-request"] = marker.to_json()
-  body["metadata"] = Json::object(patch)
-  let body = match
-    mutation_json(
-      Json::object(body),
-      binding.limits.max_body_bytes,
-      binding.limits.metadata,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
   }
   let authored_changes = match
     mutation_json(Json::object(authored), limits.max_bytes, limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  mutation_request(
-    binding,
-    original,
-    "PATCH",
-    body,
-    Some(after),
-    authored_changes,
-  )
+  Ok((content_type, metadata_fields, authored_changes))
 }
 
 ///|

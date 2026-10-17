@@ -249,6 +249,32 @@ pub fn gcs_object_prepare_patch(
 }
 
 ///|
+#export_name("gcsObjectPrepareEffectPatch")
+pub fn gcs_object_prepare_effect_patch(
+  binding : @catalog.ObjectMutationBinding,
+  original : @catalog.ObjectMetadata,
+  changes : Bytes,
+  marker : String,
+) -> Result[@catalog.ObjectMutationRequest, GcsFailure] {
+  @catalog.prepare_object_metadata_patch_value_wire(
+    binding, original, changes, marker,
+  ).map_err(issue => Request(issue))
+}
+
+///|
+#export_name("gcsObjectCheckPatchInput")
+pub fn gcs_object_check_patch_input(
+  binding : @catalog.ObjectMutationBinding,
+  changes : Bytes,
+  marker : String,
+  effect_wire : Bool,
+) -> Result[Unit, GcsFailure] {
+  @catalog.check_object_metadata_patch_input(
+    binding, changes, marker, effect_wire,
+  ).map_err(issue => Request(issue))
+}
+
+///|
 #export_name("gcsObjectPrepareDelete")
 pub fn gcs_object_prepare_delete(
   binding : @catalog.ObjectMutationBinding,

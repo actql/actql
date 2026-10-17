@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as moon from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {prepareGcsObjectBinding, admitGcsObjectMetadata,
-  prepareOwnedGcsMetadataPatch} from '../site/gcs-owned-object-request.mjs';
+  prepareOwnedGcsEffectMetadataPatch} from '../site/gcs-owned-object-request.mjs';
 
 const cid = char => `sha256:${char.repeat(64)}`;
 const metadata = {maxBytes: 8192, maxNodes: 1000, maxDepth: 12, maxEntries: 16};
@@ -16,7 +16,7 @@ const original = () => admitGcsObjectMetadata(moon, {bytes: Buffer.from(
   bucket: 'bucket', prefix: 'in/', name: 'in/é%2F.csv', limits: metadata});
 
 test('GCS Effect JSON wire preserves the original physical PATCH bytes and identity', () => {
-  const request = prepareOwnedGcsMetadataPatch({moon, binding: binding(), original: original(),
+  const request = prepareOwnedGcsEffectMetadataPatch({moon, binding: binding(), original: original(),
     value: {content_type: 'text/csv', metadata: {$json: {keep: 'kept', new: '=é\r\n'}}},
     marker: cid('d'), maxProjectionBytes: 8192});
   assert.equal(request.request_cid,

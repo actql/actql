@@ -87,6 +87,19 @@ export function prepareOwnedGcsMetadataPatch({moon, binding, original, value,
   return projectOwnedGcsObjectRequest(moon, binding, handle, maxProjectionBytes);
 }
 
+// Installed Effect input already carries the existing typed Value wire. Its
+// Json envelope is admitted by the same portable Value/GCS owners, never
+// unwrapped or guessed from arbitrary JavaScript objects at this boundary.
+export function prepareOwnedGcsEffectMetadataPatch({moon, binding, original, value,
+  marker, maxProjectionBytes}) {
+  if (typeof moon?.gcsObjectPrepareEffectPatch !== 'function') {
+    fail('GcsOriginalMutationPreparationUnavailable');
+  }
+  const handle = gcsOwnedResult(moon, moon.gcsObjectPrepareEffectPatch(binding, original,
+    Buffer.from(wire(value), 'utf8'), marker));
+  return projectOwnedGcsObjectRequest(moon, binding, handle, maxProjectionBytes);
+}
+
 export function prepareOwnedGcsObjectDelete({moon, binding, original, maxProjectionBytes}) {
   const handle = gcsOwnedResult(moon, moon.gcsObjectPrepareDelete(binding, original));
   return projectOwnedGcsObjectRequest(moon, binding, handle, maxProjectionBytes);
@@ -158,11 +171,11 @@ function originalRequest(request, binding) {
 // No normal installer selects this child without that original supplier.
 export function createGcsMutationRequestChild({moon, binding, kind, name, value,
   marker, maxProjectionBytes, maxRequestBytes, maxSecretBytes, credential,
-  callResource, authorizationForRow, assertCurrent, signal}) {
+  callResource, authorizationForRow, assertCurrent, signal, valueEncoding = 'source_json'}) {
   const lifetime = {retiring: false};
   let configuration = {moon, binding, kind, name, value, marker,
     maxProjectionBytes, maxRequestBytes, maxSecretBytes, credential,
-    callResource, authorizationForRow, assertCurrent, signal};
+    callResource, authorizationForRow, assertCurrent, signal, valueEncoding};
   let preparing = false, prepared, response, physicalBinding;
   let changes, credentialSnapshot;
   let preparation, releaseFlight, retired = false;
@@ -245,6 +258,7 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
       preparing = true;
       preparation = (async () => {
         if (!['patch_metadata', 'delete'].includes(original.kind) ||
+            !['source_json', 'effect_value'].includes(original.valueEncoding) ||
             ![original.maxRequestBytes, original.maxProjectionBytes, original.maxSecretBytes].every(n => integer(n)) ||
             typeof original.authorizationForRow !== 'function' ||
             typeof original.assertCurrent !== 'function' ||
@@ -252,7 +266,9 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
             ['gcsObjectMutationKind', 'gcsObjectMetadataPath', 'gcsObjectMetadataMaxBytes',
               'gcsObjectTargetObservation', 'gcsObjectFailureCode', 'gcsObjectRequestProjection',
               'gcsObjectRequestBody', 'gcsObjectRequestChanges',
-              original.kind === 'patch_metadata' ? 'gcsObjectPreparePatch' : 'gcsObjectPrepareDelete']
+              ...(original.kind === 'patch_metadata'
+                ? ['gcsObjectCheckPatchInput', original.valueEncoding === 'effect_value'
+                  ? 'gcsObjectPrepareEffectPatch' : 'gcsObjectPreparePatch'] : ['gcsObjectPrepareDelete'])]
               .some(name => typeof original.moon?.[name] !== 'function') ||
             original.moon.gcsObjectMutationKind(original.binding) !== original.kind) unavailable();
         // Path/binding refusal must precede a fresh read decision or secret.
@@ -270,6 +286,8 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
             fail('GcsObjectRequestCapacityExceeded');
           }
           if (!/^sha256:[0-9a-f]{64}$/u.test(original.marker ?? '')) unavailable();
+          gcsOwnedResult(original.moon, original.moon.gcsObjectCheckPatchInput(
+            original.binding, changes, original.marker, original.valueEncoding === 'effect_value'));
         } else if (wire(original.value) !== '{}') fail('GcsInvalidObjectChanges');
         current(original);
         const authorization = await original.authorizationForRow();
@@ -283,7 +301,8 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
         const before = admitGcsObjectTargetObservation(original.moon, original.binding, original.name, response);
         const request = original.kind === 'patch_metadata'
           ? projectOwnedGcsObjectRequest(original.moon, original.binding,
-            gcsOwnedResult(original.moon, original.moon.gcsObjectPreparePatch(original.binding,
+            gcsOwnedResult(original.moon, original.moon[original.valueEncoding === 'effect_value'
+              ? 'gcsObjectPrepareEffectPatch' : 'gcsObjectPreparePatch'](original.binding,
               before, changes, original.marker)), original.maxProjectionBytes)
           : prepareOwnedGcsObjectDelete({moon: original.moon, binding: original.binding,
             original: before, maxProjectionBytes: original.maxProjectionBytes});
