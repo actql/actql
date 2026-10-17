@@ -322,15 +322,12 @@ test "original Result key rejects a missing projected field and a different admi
       completed_output_relation_schema(original.rows.source),
       "n",
     ).unwrap()
-    let selected : @schema.Field = {
-      name: if missing {
-        number.name
-      } else {
-        field.name
-      },
-      contract: number.contract,
-      presence: @schema.Required,
-    }
+    let schema = @schema.from_fields(
+      [(if missing { number.name } else { field.name }, number.contract)],
+      max_fields=1,
+      max_name_bytes=100,
+    ).unwrap()
+    let selected = @schema.field_at(schema, 0).unwrap()
     let validation = start_completed_result_key_validation(
       @bounded.control(),
       original,
@@ -361,6 +358,47 @@ test "original Result key rejects a missing projected field and a different admi
     result_key_cleanup(validation)
     assert_false(
       completed_result_key_validation_matches(validation, original, selected),
+    )
+  }
+}
+
+///|
+test "original Result long UTF8 key charges exact bytes across bounded quanta" {
+  for quantum in [1, 64] {
+    let (original, field) = result_key_fixture(
+      "[{\"n\":1,\"s\":\"" + "😀".repeat(128) + "\"}]",
+    )
+    // Original key/field/schema/type 6 + row/cell 2 + 128*4 UTF8 bytes.
+    let validation = start_completed_result_key_validation(
+      @bounded.control(),
+      original,
+      field,
+      520,
+      1,
+      3,
+    ).unwrap()
+    let mut done = false
+    let mut previous = 0L
+    for _ in 0..<10000 {
+      match
+        advance_completed_result_key_validation(validation, quantum).unwrap() {
+        @bounded.ContinueWith(_, work~, ..) => {
+          assert_true(work > previous && work - previous <= quantum.to_int64())
+          previous = work
+        }
+        @bounded.Completed(remaining, work~, ..) => {
+          assert_eq(remaining, 0)
+          assert_true(work > previous && work - previous <= quantum.to_int64())
+          done = true
+          break
+        }
+        _ => fail("long original key exceeded or hid its typed UTF8 work")
+      }
+    }
+    assert_true(done)
+    result_key_cleanup(validation)
+    assert_true(
+      completed_result_key_validation_matches(validation, original, field),
     )
   }
 }
