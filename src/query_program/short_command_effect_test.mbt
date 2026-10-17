@@ -324,16 +324,25 @@ test "short COMMAND CTE and set inputs use only their actual completed exported 
   let query = @query.parse_query(
     "FROM pair |> SELECT y |> EFFECT COMMAND mail.send ID x INPUT (body = 'same')",
     syntax_limits(),
+    source_path="command-scope.sql",
   ).unwrap()
-  assert_true(
-    compile(
+  // The original ID expression now shares the ordinary expression resolver.
+  // Keep the missing-column refusal and demand its exact authored location.
+  guard compile(
       query,
       pair_context(),
       construction_limits(),
       command_targets=Some(command_publication_bind("installation")),
     )
-    is Err(UnknownColumn),
-  )
+    is Err(
+      Expression({ issue: @expression.UnknownReference, origin: Some(origin), })
+    ) else {
+    fail("missing Command ID must retain the original reference diagnostic")
+  }
+  let span = @origin.span(origin)
+  assert_eq(span.source_path, "command-scope.sql")
+  assert_eq(span.start_byte, 53)
+  assert_eq(span.end_byte, 54)
 }
 
 ///|
