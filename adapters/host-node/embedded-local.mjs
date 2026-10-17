@@ -346,7 +346,10 @@ async function openInstalledHost(originalInstallation) {
   if (registerModelProviders !== undefined && process.version === 'v22.22.0' &&
       process.platform === 'darwin' && process.arch === 'arm64' &&
       process.versions.openssl === '3.5.4') {
-    // Issue before loading the runtime/provider table. This is the selected
+    // Issue before registering the provider table. Local project discovery
+    // may already have imported the same Common module; this view does not
+    // retroactively fund that import or manufacture startup responsibility.
+    // This is the selected
     // Node installation only; module/native lifetime remains process-owned.
     // Managed JS/buffer/holding bounds still require the original Run Ledger.
     modelRuntimeView = issueInferTrustedRuntimeView(runtimeOriginals());

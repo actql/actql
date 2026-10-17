@@ -1,7 +1,7 @@
 ///|
 priv enum PublicTaskEnvironmentMember {
   Original(Entry)
-  Public(NormalizedPublicModelTask)
+  ProjectedTask(NormalizedPublicModelTask)
 }
 
 ///|
@@ -96,7 +96,7 @@ pub fn project_public_model_task_environment(
         Err(_) => model_task_fail(BodyLimit, root)
       }
       let cid = "sha256:" + @sha.hex(@utf8.encode(task.task_wire))
-      entries.push((cid, Public(task)))
+      entries.push((cid, ProjectedTask(task)))
     }
     // Bounded insertion over the existing evidence-member identity order.
     // Count every comparison, including the complete fixed-size CID text.
@@ -159,7 +159,7 @@ fn emit_public_task_environment(
         model_task_charge(budget, 1, environment.root)
         match task {
           Original(entry) => emit_cursor(entry.cursor, writer, false)
-          Public(task) =>
+          ProjectedTask(task) =>
             emit_normalized_public_task(
               task.declaration,
               task.provider,
