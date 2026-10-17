@@ -171,16 +171,20 @@ test "adoption byte copies stay owned after another chunked read and Root close"
   let root = @filesystem.open_private_root(path).unwrap()
   let first = Bytes::makei(65537, i => ((i * 19 + 3) % 256).to_byte())
   let second = Bytes::makei(65537, i => ((i * 53 + 201) % 256).to_byte())
+  let writers : Array[@filesystem.Writer] = []
   for (name, original) in [("copy-first", first), ("copy-second", second)] {
     let writer = root.create_writer(name + ".stage", 65537L).unwrap()
     writer.append(original).unwrap()
     writer.seal(name + ".bin").unwrap() |> ignore
-    writer.cancel().unwrap()
+    writers.push(writer)
   }
   let (retained, _) = local_adoption_read(root, "copy-first.bin", 65537L).unwrap()
   let (next, _) = local_adoption_read(root, "copy-second.bin", 65537L).unwrap()
   assert_eq(retained, first)
   assert_eq(next, second)
+  for writer in writers {
+    writer.cancel().unwrap()
+  }
   root.close().unwrap()
   assert_eq(retained, first)
   assert_eq(next, second)
