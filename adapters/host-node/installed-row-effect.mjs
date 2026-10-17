@@ -5,7 +5,9 @@
 // claims, apply, the Receipt, publication and recovery are the common
 // owners'. The path of a member is selected by its Mapping's checked
 // `effect_kind`: a `create` has no target; an `update` or `upsert` selects
-// an existing target whose observed version guards the write.
+// an original key whose observed presence determines the guarded branch.
+// UPDATE and present-side UPSERT retain their observed version; an explicitly
+// absent UPSERT remains conditional creation through the same provider Owner.
 // A `command` binds its exact ResourceRef and input payload; its row states
 // are not applicable, not an approximation of an update.
 //
@@ -53,7 +55,12 @@
 //   before the Set is applied.
 // - `targetRead` `{operation}` and `observeTargets({member, entries,
 //   current, authorizationForRow, signal})` (update): the observed target of
-//   each row, `{identity, versionCid, before}`. When the Host decides target
+//   each row, `{identity, versionCid, before}`. Only UPSERT also admits explicit
+//   `{identity, state: 'absent'}` without a before value/version. The installed
+//   provider must obtain it under the same original authorized complete lookup
+//   and enforce its unique key atomically at creation, never overwrite a race.
+//   No missing value, HTTP status or empty object is an absence observation.
+//   When the Host decides target
 //   reads through a resumed Checkpoint (`targetReads`), the driver's
 //   `admitTargetReadApproval({member, decision})` admits the approval for
 //   exactly the member's physical binding; the admitted approval grants the
@@ -816,13 +823,22 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const observed = await owned.observeTargets({member, entries, current,
       authorizationForRow: read.authorizationForRow, signal});
     assertCurrent?.();
-    if (!Array.isArray(observed) || observed.length !== entries.length ||
-        observed.some((row, index) => !cidPattern.test(row?.versionCid ?? '') ||
-          !sameValue(row.identity, entries[index].target) ||
-          row.before === null || typeof row.before !== 'object')) {
+    if (!Array.isArray(observed) || observed.length !== entries.length) {
       fail('ForeignInstalledRowEffectObservation');
     }
-    return observed;
+    return Object.freeze(observed.map((row, index) => {
+      const {identity, state, versionCid, before} = row ?? {};
+      if (!sameValue(identity, entries[index].target)) fail('ForeignInstalledRowEffectObservation');
+      if (state === 'absent') {
+        if (member.kind !== 'upsert' || versionCid !== undefined || before !== undefined) {
+          fail('ForeignInstalledRowEffectObservation');
+        }
+        return Object.freeze({identity, state: 'absent'});
+      }
+      if ((state !== undefined && state !== 'present') || !cidPattern.test(versionCid ?? '') ||
+          before === null || typeof before !== 'object') fail('ForeignInstalledRowEffectObservation');
+      return Object.freeze({identity, state: 'present', versionCid, before});
+    }));
   };
 
   const scopeKey = member => JSON.stringify([ownerOf(member).connection, member.resource]);
@@ -947,13 +963,21 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       await checkRows({members, entries, runInvocationCid, dispatches,
         subjectOf: () => subjectCid, signal, assertCurrent});
       assertCurrent?.();
-      const guardVersions = [];
+      const currentVersions = new Map();
       for (const [index, member] of members.entries()) {
         if (!guarded(member.kind)) continue;
         const observed = await observeRows({member, entries: entries[index],
           current: fresh[index], read: reads[index], signal, assertCurrent});
         assertCurrent?.();
-        guardVersions.push(...observed.map(row => row.versionCid));
+        for (const [rowIndex, row] of observed.entries()) {
+          const original = previewRows[index][rowIndex];
+          if ((row.state === 'absent') !== (original.before.state === 'absent')) {
+            // A fresh read cannot switch a sealed creation into an update, or
+            // a sealed update into creation. Nothing has been claimed/sent.
+            fail('InstalledRowEffectTargetPresenceChanged');
+          }
+          if (row.state !== 'absent') currentVersions.set(original.row_preview_cid, row.versionCid);
+        }
       }
       const capabilities = members.map((member, index) => admitCapability(
         member, entries[index], fresh[index], runInvocationCid,
@@ -961,8 +985,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       signal?.throwIfAborted();
       assertCurrent?.();
       currents = fresh;
+      if (currentVersions.size !== preflight.observedRows.length) fail('ForeignInstalledRowEffectObservation');
       return Object.freeze({...preflight,
-        guardVersions: Object.freeze(guardVersions),
+        guardVersions: Object.freeze(preflight.observedRows.map(row => {
+          if (!currentVersions.has(row)) fail('ForeignInstalledRowEffectObservation');
+          return currentVersions.get(row);
+        })),
         capabilities: Object.freeze(capabilities.map(value => value.identity)),
         routes: Object.freeze(capabilities.map(routeOf))});
     };
@@ -1036,8 +1064,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     capabilities: effects.map(member => member.capability_evidence_cid),
     authorities: effects.map(() => moon.clientProgramEffectRequestAuthority(
       requestScope)),
-    observedRows: effects.flatMap(member => guarded(member.effect_kind)
-      ? member.row_order : []),
+    observedRows: effects.flatMap(member => {
+      if (!guarded(member.effect_kind)) return [];
+      const versioned = new Set(member.changes.filter(row => row.target_guard.state === 'version')
+        .map(row => row.row_preview_cid));
+      return member.row_order.filter(row => versioned.has(row));
+    }),
     guardVersions: [], routes: [],
     risk: undefined, reviewProjectionCid: '', authorityScopeCid: '',
     policyCid: '', validityCid: '', issuerCid: '', authenticationCid: '',
@@ -1191,8 +1223,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           row_preview_cid: pendingCid, row_idempotency_key: pendingCid,
         } : {
           target_row_identity: row.entry.target,
-          target_guard: {state: 'version', version_cid: row.versionCid},
-          before: {state: 'present', value: row.before},
+          target_guard: row.state === 'absent' ? {state: 'not_applicable'}
+            : {state: 'version', version_cid: row.versionCid},
+          before: row.state === 'absent' ? {state: 'absent'} : {state: 'present', value: row.before},
           after: {state: 'present', value: row.entry.value},
           intended_changes: {state: 'present', value: row.entry.value},
           row_preview_cid: pendingCid, row_idempotency_key: pendingCid,
@@ -1427,7 +1460,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       assertCurrent?.();
       observations.push(observed);
       rowsOf.push(Object.freeze(entries.map((entry, row) => Object.freeze({
-        entry, versionCid: observed[row].versionCid,
+        entry, state: observed[row].state, versionCid: observed[row].versionCid,
         before: observed[row].before}))));
     }
     const entries = Object.freeze(rowsOf.map(rows =>

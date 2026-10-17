@@ -377,6 +377,14 @@ export interface RowEffectRequestChild<Request extends object> {
   retry(): Awaitable<boolean | void>;
   status(): Readonly<{pending: boolean}>;
 }
+/** Original provider observations, never inferred from a missing value/404.
+ * Only UPSERT has an insert-side absence; the original unique key must remain
+ * enforced at physical creation. Current reads and cleanup stay with the Site. */
+export type RowEffectTargetObservation<Kind extends RowEffectKind = RowEffectValueKind> =
+  Readonly<{identity: ConnectorJsonValue; state?: 'present';
+    versionCid: string; before: ConnectorJsonObject}> |
+  (Kind extends 'upsert' ? Readonly<{identity: ConnectorJsonValue; state: 'absent';
+    versionCid?: never; before?: never}> : never);
 export interface RowEffectDriver<Request extends object, Current = unknown,
   Kind extends RowEffectKind = RowEffectValueKind> {
   readonly kinds: readonly Kind[];
@@ -427,9 +435,7 @@ export interface RowEffectDriver<Request extends object, Current = unknown,
   observeTargets?(options: Readonly<{member: RowEffectMember<Kind>;
     entries: readonly RowEffectEntry<Request, Kind>[]; current: Current | undefined;
     authorizationForRow: (index: number) => Promise<InvocationAuthorization>;
-    signal?: AbortSignal}>): Awaitable<readonly Readonly<{
-      identity: ConnectorJsonValue; versionCid: string;
-      before: ConnectorJsonObject}>[]>;
+    signal?: AbortSignal}>): Awaitable<readonly RowEffectTargetObservation<Kind>[]>;
   admitTargetReadApproval?(options: Readonly<{member: RowEffectMember<Kind>;
     decision: InstallationDecision}>): InstallationDecision;
   recoveryEntry?(options: Readonly<{member: RowEffectMember<Kind>;
