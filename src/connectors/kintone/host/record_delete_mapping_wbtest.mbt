@@ -53,6 +53,7 @@ fn delete_original_declaration(
 ///|
 fn delete_original_request(
   catalog : @catalog.FormFieldCatalog,
+  fields? : Array[String] = ["Subject"],
 ) -> @catalog.RecordDeleteRequest {
   let page = @catalog.project_record_page(
     @utf8.encode(
@@ -61,7 +62,7 @@ fn delete_original_request(
       ),
     ),
     catalog,
-    ["Subject"],
+    fields,
     {
       max_bytes: 8192,
       max_nodes: 1000,
@@ -149,5 +150,23 @@ test "kintone delete Mapping refuses a foreign Resource and invalid approval bef
       delete_declaration_limits(),
     )
     is Err(_),
+  )
+}
+
+///|
+test "kintone delete Mapping refuses an incomplete original page despite equal App and ID" {
+  let catalog = delete_mapping_form()
+  let original = delete_original_declaration(catalog)
+  let owned = prepare_record_delete_mapping(
+    original,
+    "inquiries",
+    "required",
+    delete_declaration_limits(),
+  ).unwrap()
+  assert_true(
+    !record_delete_mapping_matches_request(
+      owned,
+      delete_original_request(catalog, fields=[]),
+    ),
   )
 }

@@ -108,6 +108,16 @@ pub fn prepare_row_delete_mapping(
     ) {
     return Err(InvalidSpecification)
   }
+  guard view is Object(view_fields) &&
+    view_fields.get("output") is Some(Object(output)) &&
+    output.get("schema") is Some(schema_reference) &&
+    ref_cid(schema_reference) == selected.carrier_schema_cid &&
+    spec_text(view, "connector_id") == Some(declaration.connector_id) &&
+    spec_text(view, "connector_version") == Some(declaration.connector_version) &&
+    selected.source_ref ==
+    "connector://" + declaration.connector_id + "/" + resource + "#records" else {
+    return Err(InvalidSpecification)
+  }
   let mut remaining_bytes = limits.max_bytes - view_bytes
   let mut remaining_nodes = limits.max_nodes - view_nodes
   let mut selected_schema : @contract.Contract? = None

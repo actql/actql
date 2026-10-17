@@ -281,14 +281,14 @@ test "DELETE Mapping is admitted by the existing shape and permission Owner only
     entries.push((name, value))
   }
   entries.push(("evidence_bundle_cid", evidence_cid.to_json()))
-  let sealed = object(entries)
+  let environment_body = object(entries)
   let limits : @environment.Limits = {
     max_bytes: 100000,
     max_nodes: 10000,
     max_depth: 32,
     max_members: 100,
   }
-  let wire = canonical_text(sealed, delete_mapping_limits())
+  let wire = canonical_text(environment_body, delete_mapping_limits())
   let environment = @environment.read(@utf8.encode(wire), evidence_cid, limits).unwrap()
   let shapes = @environment.check_mapping_contract_shapes(
     environment, limits, 10000,
@@ -315,4 +315,45 @@ test "DELETE Mapping is admitted by the existing shape and permission Owner only
       is Err(_),
     )
   }
+}
+
+///|
+test "DELETE Mapping preserves a required Array field and refuses invented conditional presence" {
+  let required = "{\"id\":{\"nullable\":false,\"type\":\"string\"},\"choices\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"}}"
+  let conditional = "{\"id\":{\"nullable\":false,\"type\":\"string\"},\"choices\":{\"contract\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"},\"presence\":\"conditional\"}}"
+  let generate = (wire : String) => {
+    let body = @json.parse(wire)
+    let declared = generate_relation_row_declaration(
+      "original-delete",
+      "fixture",
+      "fixture/0.1",
+      [
+        {
+          resource: "records",
+          resource_kind: "record",
+          schema_wire: canonical_text(body, delete_mapping_limits()),
+          schema_cid: canonical_cid(body, delete_mapping_limits()),
+          request_schema_wire: None,
+          facts_wire: None,
+          acquisition_wire: None,
+        },
+      ],
+      delete_mapping_limits(),
+    ).unwrap()
+    prepare_row_delete_mapping(
+      declared,
+      "records",
+      "id",
+      "fixture:delete",
+      "required",
+      delete_mapping_limits(),
+    )
+  }
+  let mapping = generate(required).unwrap()
+  assert_true(
+    mapping.body.contains(
+      "\"choices\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"}",
+    ),
+  )
+  assert_true(generate(conditional) is Err(InvalidSpecification))
 }

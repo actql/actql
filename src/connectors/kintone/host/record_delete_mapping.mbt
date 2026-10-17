@@ -53,10 +53,20 @@ pub fn record_delete_mapping_matches_request(
   mapping : RecordDeleteMapping,
   request : @catalog.RecordDeleteRequest,
 ) -> Bool {
+  guard mapping.original.declaration.views.search_by(view => {
+      view.resource == mapping.mapping.resource
+    })
+    is Some(index) else {
+    return false
+  }
+  let expected = mapping.original.declaration.views[index].fields.filter(name => {
+    name != "$id"
+  })
   @catalog.record_delete_request_targets(request).all(target => {
-    @catalog.record_page_uses_catalog(
-      @catalog.original_record_target_page(target),
-      mapping.original.catalog,
-    )
+    let page = @catalog.original_record_target_page(target)
+    let names = @catalog.record_page_columns(page)
+    names.length() == expected.length() &&
+    names.all(name => expected.contains(name)) &&
+    @catalog.record_page_uses_catalog(page, mapping.original.catalog)
   })
 }
