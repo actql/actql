@@ -432,3 +432,32 @@ pub fn client_program_kintone_update_observation(
 ] {
   @kintone_catalog.record_update_request_observation(request, limits)
 }
+
+///|
+#export_name("clientProgramKintoneCheckedRecordPage")
+pub fn client_program_kintone_checked_record_page(
+  page : @kintone_catalog.OriginalRecordPage,
+  settings : @kintone_catalog.AppNumberSettings?,
+  limits : @kintone_catalog.RecordValueLimits,
+) -> Result[
+  @kintone_catalog.CheckedRecordPage,
+  @kintone_catalog.RecordValueIssue,
+] {
+  @kintone_catalog.project_checked_record_page(page, settings, limits)
+}
+
+///|
+#export_name("clientProgramKintoneCheckedColumns")
+pub fn client_program_kintone_checked_columns(
+  page : @kintone_catalog.CheckedRecordPage,
+) -> Array[String] {
+  @kintone_catalog.checked_record_columns(page)
+}
+
+///|
+#export_name("clientProgramKintoneCheckedRows")
+pub fn client_program_kintone_checked_rows(
+  page : @kintone_catalog.CheckedRecordPage,
+) -> Array[Array[@admitted.CheckedValue]] {
+  @kintone_catalog.checked_record_rows(page)
+}
