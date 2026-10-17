@@ -1,5 +1,5 @@
 {
-  "source": "0396bdeee33999c56fe52209c0cd837ee0700205",
+  "source": "0ade9bec8be61ce030a059a524cabb58c8d06b56",
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
   "declarations": [
     {
@@ -2111,6 +2111,357 @@
               {
                 "path": "src/connectors/notion/catalog/page_observation_wbtest.mbt",
                 "anchor": "test \"Notion page metadata projection keeps original parent tags version and bounded output\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/notion/site/page-properties-read.mjs",
+      "sha256": "8c52bf673920c80b34399764a26a0eb0f7476034f0101fd67de50f0e477e82fe",
+      "exports": [
+        "NotionPagePropertiesReadFailure",
+        "createNotionPagePropertiesReader"
+      ],
+      "operations": [
+        {
+          "name": "count/count",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionPagePropertiesReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionPagePropertiesReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionPagePropertiesReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionPagePropertiesReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead",
+          "parameters": [
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/chargeResponse/chargeResponse",
+          "parameters": [
+            "body"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/child/child",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "executeRead/child/child#2",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/property/property",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/property/property#2",
+          "parameters": [
+            "_wire",
+            "charge",
+            "completedPage"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/propertyAuthorization/propertyAuthorization",
+          "parameters": [
+            "input"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "NotionPagePropertiesReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "originalPage",
+            "originalRow",
+            "children",
+            "responseCharges"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare",
+          "parameters": [
+            "moon",
+            "declaration",
+            "source",
+            "readContracts",
+            "pageId",
+            "initialAuthorization",
+            "credential",
+            "propertyAuthorizationFor",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "consumeRow",
+            "limits",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/provider/provider/provider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "./page-read.mjs",
+        "./property-item-read.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Notion Catalog and physical reader; Common Contract/Value, Account, Credential/Site and Resource retain original authority, capture, accounting and confirmed physical cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "count/count",
+            "createNotionPagePropertiesReader",
+            "createNotionPagePropertiesReader/handle/init:observe/init:observe",
+            "createNotionPagePropertiesReader/handle/init:read/init:read",
+            "createNotionPagePropertiesReader/handle/init:requestStop/init:requestStop",
+            "executeRead",
+            "executeRead/chargeResponse/chargeResponse",
+            "executeRead/child/child",
+            "executeRead/child/child#2",
+            "executeRead/property/property",
+            "executeRead/property/property#2",
+            "executeRead/propertyAuthorization/propertyAuthorization",
+            "executeRead/verify/verify",
+            "fail/fail",
+            "NotionPagePropertiesReadFailure/constructor:constructor/constructor:constructor",
+            "originalReader",
+            "positive/positive",
+            "prepare",
+            "prepare/prepare",
+            "prepare/prepare#2",
+            "prepare/prepare#3",
+            "prepare/provider/provider",
+            "prepare/provider/provider/provider"
+          ],
+          "exports": [
+            "NotionPagePropertiesReadFailure",
+            "createNotionPagePropertiesReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Checked rows from exact page originals"
+              },
+              {
+                "path": "src/connectors/notion/catalog/observed_page_row.mbt",
+                "anchor": "pub fn start_notion_observed_page_read_row("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "function prepare({moon,declaration,source,readContracts,pageId,initialAuthorization,credential,"
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "await context.callbacks.consumeRow(wire,Object.freeze({charge:pendingCharge,originalPage:state.page,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/notion/catalog/observed_page_row.mbt",
+                "anchor": "pub fn notion_read_row_matches_observed_page("
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "if(provider.notionReadRowMatchesObservedPage(state.row,readContracts,state.page)!==true)"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Only its actual completed property page can fill that cell."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "const readers=new WeakMap();"
+              },
+              {
+                "path": "src/connectors/notion/catalog/read_row.mbt",
+                "anchor": "  priv observed_page : OriginalNotionPage?"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The optional Page reference changes the row's layout even on the legacy None"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "await verify(NOTION_PROPERTY_READ_OPERATION);return selected;"
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "state.children.push(child);const result=await child.read();"
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "state.children.push(property);state.results.push(await property.read());"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "state.failure=new NotionPagePropertiesReadFailure(cause,state.page,state.row,state.children,state.charges);"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "anchor": "actual Notion lost dependent property reply stays Unknown across an explicit new reader without resend"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "requestStop(reason){originalReader(this).stop.abort(reason);},"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "anchor": "actual Notion dependent authorization await rechecks current Account and abort before property send"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Shared aliases, rest-call arrays, Encoder workspace and"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Actual installation/phase funding must cover"
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "if(body.byteLength>b.maxTotalResponseBytes-totalBytes)fail("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "This is a full-diff read prerequisite, not an issued target, complete Preview,"
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "anchor": "receivedResponses,receivedBodyBytes,cleanupConfirmed:false"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "anchor": "actual Notion exact GET completes the same checked row and paginated property under separate original uses"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "anchor": "actual scalar-only Notion GET supplies its original ticket with the complete row without property authorization"
+              },
+              {
+                "path": "src/connectors/notion/catalog/observed_page_row_wbtest.mbt",
+                "anchor": "test \"Notion observed row property completion rejects another observation even with equal ids bytes and schema\""
               }
             ]
           }
