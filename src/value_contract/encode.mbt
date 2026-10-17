@@ -369,7 +369,7 @@ pub fn advance_checked_emission(
           _ => ()
         }
         members.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
-        // At most five fixed vocabulary members; never the object's fields.
+        // At most six fixed vocabulary members; never the object's fields.
         push_emission(cursor, End)
         push_emission(cursor, Members(members, 0))
       }

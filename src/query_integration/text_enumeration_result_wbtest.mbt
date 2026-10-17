@@ -118,14 +118,14 @@ test "original Values Text enum survives checked execution and retained Named Re
   let schema_cid = exported.result_schema_cid().unwrap()
   assert_true(
     @publication.validate_result_schema_wire(
-      schema_wire, schema_cid, 10000, 1000, 20,
+      schema_cid, schema_wire, 10000, 1000, 20,
     )
     is Ok(_),
   )
   assert_true(
     @publication.validate_result_schema_wire(
-      schema_wire.replace(old="high", new="other"),
       schema_cid,
+      schema_wire.replace(old="high", new="other"),
       10000,
       1000,
       20,

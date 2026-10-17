@@ -161,6 +161,15 @@ test "Text enumeration assignment intersects original extents and join is conser
 
 ///|
 test "Text enum construction detaches mutable input and checks before copying" {
+  let malformed = String::from_array([(0xd800).unsafe_to_char()])
+  assert_true(
+    string_enum_contract(
+      [malformed],
+      { max_nodes: 3, max_depth: 2, max_text_bytes: 100, },
+      nullable=false,
+    )
+    is None,
+  )
   let values = ["a", "a", "b"]
   let original = string_enum_contract(
     values,
