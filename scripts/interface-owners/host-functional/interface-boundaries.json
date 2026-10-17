@@ -23690,7 +23690,7 @@
     {
       "module": "adapters/host-node/generated-content-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5f54c20676ac76b99d5ff8a40effce8fbe9a417fff4e1d3f7722152d9419874c",
+      "sha256": "fb2374b681b5b9d7a1b90347b5e22267a629c79aea396ce56cf4e3a36f311e69",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
