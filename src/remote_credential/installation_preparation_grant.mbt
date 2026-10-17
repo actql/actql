@@ -52,9 +52,7 @@ fn installation_preparation_scope_valid(
 fn installation_preparation_grant_body(
   grant : InstallationPreparationCredentialGrant,
 ) -> Result[String, RemoteCredentialIssue] {
-  try {
-    Ok(emit_installation_preparation_grant_body(grant))
-  } catch {
+  Ok(emit_installation_preparation_grant_body(grant)) catch {
     _ => Err(InvalidCredentialGrant)
   }
 }
@@ -63,30 +61,31 @@ fn installation_preparation_grant_body(
 fn emit_installation_preparation_grant_body(
   grant : InstallationPreparationCredentialGrant,
 ) -> String raise @encode.EncodeFailure {
-    let writer = @encode.writer(16384, 32, 2)
-    @encode.begin_ordered_object(writer)
-    @encode.ordered_key(writer, "expires_unix_ms")
-    @encode.string_value(writer, grant.expires_unix_ms.to_string())
-    @encode.ordered_key(writer, "issuer_authority")
-    @encode.string_value(writer, grant.issuer_authority)
-    @encode.ordered_key(writer, "max_uses")
-    @encode.number_value(writer, grant.max_uses.to_double())
-    for
-      (key, value) in [
-        ("metadata_occurrence_id", grant.scope.metadata_occurrence_id),
-        ("operation", grant.scope.operation),
-        ("preparation_subject_cid", grant.scope.subject.identity),
-        ("request_body_cid", grant.scope.request_body_cid),
-        ("request_method", grant.scope.request_method),
-        ("request_path", grant.scope.request_path),
-        ("resource_origin", grant.scope.resource_origin),
-        ("subject_kind", "installation_metadata"),
-        ("version", "actql-installation-preparation-credential-grant/0.1"),
-      ] {
-      @encode.ordered_key(writer, key)
-      @encode.string_value(writer, value)
-    }
-    @encode.finish(writer)
+  let writer = @encode.writer(16384, 32, 2)
+  @encode.begin_ordered_object(writer)
+  @encode.ordered_key(writer, "expires_unix_ms")
+  @encode.string_value(writer, grant.expires_unix_ms.to_string())
+  @encode.ordered_key(writer, "issuer_authority")
+  @encode.string_value(writer, grant.issuer_authority)
+  @encode.ordered_key(writer, "max_uses")
+  @encode.number_value(writer, grant.max_uses.to_double())
+  for
+    (key, value) in [
+      ("metadata_occurrence_id", grant.scope.metadata_occurrence_id),
+      ("operation", grant.scope.operation),
+      ("preparation_subject_cid", grant.scope.subject.identity),
+      ("request_body_cid", grant.scope.request_body_cid),
+      ("request_method", grant.scope.request_method),
+      ("request_path", grant.scope.request_path),
+      ("resource_origin", grant.scope.resource_origin),
+      ("subject_kind", "installation_metadata"),
+      ("version", "actql-installation-preparation-credential-grant/0.1"),
+    ] {
+    @encode.ordered_key(writer, key)
+    @encode.string_value(writer, value)
+  }
+  @encode.end_object(writer)
+  @encode.finish(writer)
 }
 
 ///|
@@ -190,7 +189,9 @@ pub fn admit_installation_preparation_credential_grant_json(
         credential_text(object, "issuer_authority"),
         {
           subject,
-          metadata_occurrence_id: credential_text(object, "metadata_occurrence_id"),
+          metadata_occurrence_id: credential_text(
+            object, "metadata_occurrence_id",
+          ),
           operation: credential_text(object, "operation"),
           request_body_cid: credential_text(object, "request_body_cid"),
           request_method: credential_text(object, "request_method"),
