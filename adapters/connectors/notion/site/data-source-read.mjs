@@ -22,10 +22,11 @@ const fields=['maxResponseBytes','maxTotalResponseBytes','maxRequestBytes','maxT
   'maxPropertyPages','maxPropertyItems','maxPropertyBytes','maxPropertyNodes','maxPropertyTextBytes','maxPropertyWork'];
 
 export class NotionDataSourceReadFailure extends Error {
-  constructor(cause,observations,children){
+  constructor(cause,observations,children,responseCharges){
     super('NotionDataSourceReadFailed',{cause});this.code='NotionDataSourceReadFailed';
     Object.defineProperty(this,'observations',{value:Object.freeze(observations.slice())});
     Object.defineProperty(this,'children',{value:Object.freeze(children.slice())});
+    Object.defineProperty(this,'responseCharges',{value:Object.freeze(responseCharges.slice())});
   }
 }
 
@@ -69,6 +70,10 @@ async function executeRead(prepared,state){
   };
   const chargeResponse=async body=>{
     const charge=await context.callbacks.chargeResponse(body);
+    // Retain every actually returned original ticket, including when later
+    // current/admission/output/callback fails. This is not a consumption or
+    // cleanup ACK; the original RowRun/Ledger knows its actual disposition.
+    state.responseCharges.push(charge);
     if(body.byteLength>b.maxTotalResponseBytes-totalBytes)fail('NotionDataSourceResponseLimit');
     totalBytes+=body.byteLength;return charge;
   };
@@ -140,13 +145,14 @@ async function executeRead(prepared,state){
       totalRows+=rows.length;
       await verify(NOTION_DATA_SOURCE_READ_OPERATION);
       if(metadata.nextCursor===null)return Object.freeze({pages:index+1,rowCount:totalRows,schemaWire,
-        observations:Object.freeze(observations.slice()),children:Object.freeze(children.slice())});
+        observations:Object.freeze(observations.slice()),children:Object.freeze(children.slice()),
+        responseCharges:Object.freeze(state.responseCharges.slice())});
       cursor=metadata.nextCursor;
     }
     fail('NotionDataSourcePageLimit');
   }catch(cause){
     for(const response of cause.observations??[])if(!observations.includes(response))observations.push(response);
-    throw new NotionDataSourceReadFailure(cause,observations,children);
+    throw new NotionDataSourceReadFailure(cause,observations,children,state.responseCharges);
   }
 }
 
@@ -155,7 +161,7 @@ function originalReader(handle){const state=readers.get(handle);if(!state)fail('
 export function createNotionDataSourceReader(options){
   const original=prepareRead(options),stop=new AbortController();
   const signal=original.signal===undefined?stop.signal:AbortSignal.any([original.signal,stop.signal]);
-  const state={prepared:Object.freeze({...original,signal}),stop,phase:'ready',children:[],queryResponses:0,queryBytes:0n};
+  const state={prepared:Object.freeze({...original,signal}),stop,phase:'ready',children:[],responseCharges:[],queryResponses:0,queryBytes:0n};
   const handle=Object.freeze({
     async read(){
       const state=originalReader(this);if(state.phase!=='ready')fail('NotionDataSourceReaderAlreadyStarted');state.phase='reading';

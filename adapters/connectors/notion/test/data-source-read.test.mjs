@@ -68,6 +68,7 @@ test('actual Notion query and property operations retain typed rows and original
   assert.deepEqual(f.rows,[{amount:'9007199254740993.25',enabled:true,title:'ab'},
     {amount:'9007199254740993.25',enabled:true,title:'cd'}]);
   assert.equal(result.pages,2);assert.equal(result.rowCount,2);assert.equal(result.observations.length,6);
+  assert.deepEqual(result.responseCharges,f.state.charges);
   assert.equal(f.state.requests.length,6);assert.equal(f.state.charges.length,6);
   assert(f.tickets.every(ticket=>ticket.originalBody.toString().includes('plain_text')));
   assert.equal(f.state.observations.length,6,'each raw ticket consumed exactly once, no output-byte ticket');
@@ -148,7 +149,8 @@ test('actual Notion aggregate page node cap applies to all complete rows togethe
   // The original checked schema fits 20 writer nodes and each row fits four.
   // The complete five-row page needs 1 + 5 * 4 = 21 nodes, including its array.
   const reader=f.create({limits:{...limits,maxRowsWireNodes:20}});
-  await assert.rejects(reader.read(),{code:'NotionDataSourceReadFailed'});
+  await assert.rejects(reader.read(),error=>error.code==='NotionDataSourceReadFailed'&&
+    error.responseCharges.length===6&&error.responseCharges.every((charge,index)=>charge===f.state.charges[index]));
   assert.deepEqual(f.rows,[]);
   assert.equal(f.state.requests.length,6);
   assert.equal(reader.observe().cleanupConfirmed,false);

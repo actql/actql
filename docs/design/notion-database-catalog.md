@@ -272,6 +272,12 @@ coefficient in the logical object. Neither representation passes through a
 rounded JS Number. Writer exhaustion returns no partial row and a completed
 read-only Value may be projected again without replacing its original schema.
 
+Common also aggregates the exact complete row inventory for a query page, in
+the original order and with no missing, duplicated or foreign row occurrence.
+The outer array and every row contribute to whole-page nodes, depth, text, work
+and encoded output bounds. The same Value builder, runtime recheck and Encoder
+make this decision; individually bounded rows never imply a bounded full page.
+
 The physical caller queries the exact selected data-source id with the existing
 vendor POST operation. It checks cross-page ids, opaque cursor progress and
 aggregate page/row/response/output bounds before delivering each complete page.
@@ -315,6 +321,12 @@ configuration/revision/current-schema suppliers, ordinary Source/Run integration
 standard system columns, saved-Run recovery, confirmed raw retirement and normal
 numerical funding remain required; this property-row caller does not claim those
 capabilities from a private Catalog pair or explicit fixture observation tickets.
+
+Every returned response charge is also retained by the parent and on its result
+or error, even after a later admission/output/current/callback failure. This
+inventory contains original tickets, including ones already passed to callbacks;
+only the original RowRun/Ledger determines their actual disposition. It cannot
+be read as consumption, an ACK, a new charge or permission to retry consumption.
 
 The private Node bridge forwards the same originals and existing checked writer;
 no compiler representation fields, new shim, issuer or public wire are exposed.
