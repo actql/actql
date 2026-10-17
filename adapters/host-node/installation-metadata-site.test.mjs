@@ -116,7 +116,9 @@ async function fixture(t, body, {outcome = 'allow', journal, authorization, inpu
     revision: 'fixture/0.1', source: {profileVersion: version, load: async () => module}}]);
   t.after(() => {site?.close(); originalGate.close();});
   return {state, run: () => publishInstalledSourceProfile(profilePath, {root,
-    principalId: 'original-principal', moon, connectorTable, resolveSecret})};
+    principalId: 'original-principal', moon, connectorTable, resolveSecret,
+    runtimeUrl: new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+      import.meta.url)})};
 }
 
 test('same publication, Account and original issuer sign two exact metadata scopes into the original Journal', async t => {
