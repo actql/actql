@@ -51,10 +51,15 @@ def review_bytes_match_cid(raw, cid):
         return True
     try:
         value = decode_json(raw)
-        if (value.get('version') != 'actql-run-review-projection/0.1'
-                or value.get('review_projection_cid') != cid or canonical_bytes(value) != raw):
+        # Effect display DATA preserves exact member keys. Model reviews keep
+        # their existing identifier-key domain; neither path issues approval.
+        effect = value.get('version') == 'actql-review-projection/0.1'
+        if (not (effect or value.get('version') == 'actql-run-review-projection/0.1')
+                or value.get('review_projection_cid') != cid
+                or canonical_bytes(value, data_keys=effect) != raw):
             return False
-        return content_cid({key: item for key, item in value.items() if key != 'review_projection_cid'}) == cid
+        return content_cid({key: item for key, item in value.items() if key != 'review_projection_cid'},
+                           data_keys=effect) == cid
     except (ClientError, AttributeError):
         return False
 
