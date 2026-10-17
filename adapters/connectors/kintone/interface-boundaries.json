@@ -1,5 +1,5 @@
 {
-  "source": "22ee9201a7f3b5418a0496838e141327f9fb6737",
+  "source": "74ed37aed61cb7528abe8f6425405f22b6a557da",
   "qualification": "Existing kintone original Catalog, Row Source, Account and Credential Site physical boundary references; not another Owner, permission, artifact or numerical admission",
   "declarations": [
     {
@@ -1054,6 +1054,153 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-delete-preview.test.mjs",
                 "anchor": "actual original before refuses equal foreign Form, incomplete selection and missing output bound"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/record_lookup.mbt",
+      "sha256": "f9d628ccbdeb9270984933da7a670b1e1abe12df4dacbdebf46584cd32282ddc",
+      "exports": [],
+      "operations": [
+        {
+          "name": "match_record_key_lookup",
+          "declaration": "match_record_key_lookup ( original : RecordLookupObservation , observed : RecordLookupObservation , ) - > Result [ Unit , RecordLookupIssue ]"
+        },
+        {
+          "name": "prepare_record_text_key_lookup",
+          "declaration": "prepare_record_text_key_lookup ( catalog : FormFieldCatalog , key : String , value : String , names : Array [ String ] , limits : RecordLookupLimits , ) - > Result [ RecordLookupRequest , RecordLookupIssue ]"
+        },
+        {
+          "name": "project_record_key_lookup",
+          "declaration": "project_record_key_lookup ( request : RecordLookupRequest , status : Int , bytes : Bytes , limits : RecordPageLimits , ) - > Result [ RecordLookupObservation , RecordLookupIssue ]"
+        },
+        {
+          "name": "record_key_lookup_page",
+          "declaration": "record_key_lookup_page ( observation : RecordLookupObservation , ) - > OriginalRecordPage"
+        },
+        {
+          "name": "record_key_lookup_uses_request",
+          "declaration": "record_key_lookup_uses_request ( observation : RecordLookupObservation , request : RecordLookupRequest , ) - > Bool"
+        },
+        {
+          "name": "record_lookup_count_is",
+          "declaration": "record_lookup_count_is ( text : String , count : Int ) - > Bool"
+        },
+        {
+          "name": "record_lookup_field_token",
+          "declaration": "record_lookup_field_token ( code : String ) - > Bool"
+        },
+        {
+          "name": "record_lookup_limits_valid",
+          "declaration": "record_lookup_limits_valid ( limits : RecordLookupLimits ) - > Bool"
+        },
+        {
+          "name": "record_lookup_request_body",
+          "declaration": "record_lookup_request_body ( request : RecordLookupRequest ) - > String"
+        },
+        {
+          "name": "record_lookup_request_uses_catalog",
+          "declaration": "record_lookup_request_uses_catalog ( request : RecordLookupRequest , catalog : FormFieldCatalog , ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original kintone Catalog; original unique Text-key request and complete response DATA",
+      "rationale": "Nominal original request/page correspondence only, not global absence, current authority, conditional write, grant or cleanup ACK.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "match_record_key_lookup",
+            "prepare_record_text_key_lookup",
+            "project_record_key_lookup",
+            "record_key_lookup_page",
+            "record_key_lookup_uses_request",
+            "record_lookup_count_is",
+            "record_lookup_field_token",
+            "record_lookup_limits_valid",
+            "record_lookup_request_body",
+            "record_lookup_request_uses_catalog"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Responsibility: the existing vendor Catalog projects request/response DATA;"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Inputs and outputs: one original Form, unique Text key/value, field selection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Identity: request, Form and observed page remain physically associated;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Ownership: the original Form, field selection, query/document, retained page,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Synchronization: synchronous matching is not current authorization. The same"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Failure: absent/false uniqueness, empty key, unknown fields, malformed or"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Cancellation: DATA completion neither stops transport nor acknowledges"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Resources: positive key/comparison/column/writer and original page limits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Extension: this private Text-key projection introduces no public wire, grant,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Verification: `record_lookup_wbtest.mbt` checks independent request bytes,"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_lookup_wbtest.mbt",
+                "anchor": "unique Text lookup pins exact original value with separate query and JSON escaping"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_lookup_wbtest.mbt",
+                "anchor": "404 partial missing count contradictory counts and duplicate records never produce absence"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_lookup_wbtest.mbt",
+                "anchor": "reobservation compares the same original request and refuses changed presence locator or revision"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_lookup_wbtest.mbt",
+                "anchor": "positive byte column comparison request and page bounds refuse without partial lookup material"
               }
             ]
           }
