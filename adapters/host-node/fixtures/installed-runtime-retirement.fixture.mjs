@@ -16,6 +16,7 @@ const originals = [];
 const counts = {registration: 0, startupRetire: 0, runtimeRetire: 0, childRetry: 0};
 let childPending = true, blockRuntime = mode === 'partial-finalization';
 let startupRetired = false, pendingFailure, host, outcome;
+let observedFailure;
 const startup = {};
 const primary = Object.assign(new Error('OriginalInstallationFailure'), {code: 'OriginalInstallationFailure'});
 const closeFault = Object.assign(new Error('OriginalRuntimeRetirementFailure'), {code: 'OriginalRuntimeRetirementFailure'});
@@ -71,6 +72,10 @@ try {
   if (mode !== 'partial-finalization') {
     await assert.rejects(openInstalledRemoteHttpHost(options), error => {
       pendingFailure = error;
+      observedFailure = {name: error.name, code: error.code ?? null, message: error.message,
+        samePrimary: error.primaryFailure === primary, pending: error.cleanupPending ?? null,
+        hasHandle: typeof error.cleanupHandle?.retry === 'function', counts: {...counts}};
+      console.error(JSON.stringify({mode, observedFailure}));
       assert.equal(error.primaryFailure, primary);
       assert.equal(error.code, primary.code);
       assert.equal(error.cleanupPending, true);
@@ -99,6 +104,10 @@ try {
     assert.equal(originals.length, 1, 'this focused counter uses the selected runtime-view branch');
     await assert.rejects(host.close(), error => {
       pendingFailure = error;
+      observedFailure = {name: error.name, code: error.code ?? null, message: error.message,
+        samePrimary: error.primaryFailure === closeFault, pending: error.cleanupPending ?? null,
+        hasHandle: typeof error.cleanupHandle?.retry === 'function', counts: {...counts}};
+      console.error(JSON.stringify({mode, observedFailure}));
       assert.equal(error.primaryFailure, closeFault);
       assert.equal(error.cleanupPending, true);
       assert.ok(error.cleanupHandle.status().pending.includes('finalize'));
@@ -131,7 +140,7 @@ try {
     catch (error) { if (error.code !== 'InferTrustedRuntimeViewRetired') throw error; }
   }
   modelView.restore();
-  await writeFile(join(scratch.path, 'counter.json'), JSON.stringify({mode, counts,
+  await writeFile(join(scratch.path, 'counter.json'), JSON.stringify({mode, counts, observedFailure,
     checked: outcome?.checked ?? false, scratch: scratch.path,
     qualification: 'Original red/green counter state; not a physical startup, scope funding or Model send proof.'}, null, 2) + '\n', {flag: 'wx'});
 }
