@@ -27,6 +27,7 @@ pub(all) enum ClientEffectComputationIssue {
 /// share one Program owner. This is not an executable Effect Run or permit.
 struct PreparedClientEffectComputation {
   target_selections : ClientEffectUpdateTargetSelections?
+  command_targets : @update_targets.CommandTargetPublication?
   mut normalization : ClientEffectNormalization?
   mut normalization_custody : ClientEffectNormalizationMaterialCustody?
   source : @syntax.Program
@@ -62,6 +63,7 @@ pub fn prepare_client_effect_computation(
   limits : ClientEffectComputationLimits,
   update_targets? : @update_targets.UpdateTargetPublication? = None,
   store_targets? : @update_targets.StoreTargetPublication? = None,
+  command_targets? : @update_targets.CommandTargetPublication? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let parsed = match
     @syntax.parse(document, limits.program.checking.input, format~) {
@@ -76,6 +78,7 @@ pub fn prepare_client_effect_computation(
     limits,
     update_targets~,
     store_targets~,
+    command_targets~,
   )
 }
 
@@ -91,7 +94,15 @@ pub fn prepare_parsed_client_effect_computation(
   limits : ClientEffectComputationLimits,
   update_targets? : @update_targets.UpdateTargetPublication? = None,
   store_targets? : @update_targets.StoreTargetPublication? = None,
+  command_targets? : @update_targets.CommandTargetPublication? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
+  if command_targets is Some(publication) &&
+    !physical_equal(
+      @checked.checking_environment_wire(environment),
+      @update_targets.command_target_publication_environment(publication),
+    ) {
+    return Err(TargetSelection(ForeignEnvironment))
+  }
   let computation = match
     @checked.prepare_effect_computation_candidate(
       parsed,
@@ -155,6 +166,7 @@ pub fn prepare_parsed_client_effect_computation(
   }
   Ok({
     target_selections,
+    command_targets,
     normalization: None,
     normalization_custody: None,
     source: parsed,
@@ -163,6 +175,16 @@ pub fn prepare_parsed_client_effect_computation(
     graph,
     check_environment_cid: @checked.checking_environment_cid(environment),
   })
+}
+
+///|
+/// Borrow the same publication admitted at this preparation boundary. This
+/// does not resolve aliases, issue a captured target, or authenticate saved
+/// material. Restored DATA cannot reconstruct this original publication.
+pub fn prepared_client_effect_command_target_publication(
+  value : PreparedClientEffectComputation,
+) -> @update_targets.CommandTargetPublication? {
+  value.command_targets
 }
 
 ///|

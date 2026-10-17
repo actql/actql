@@ -1107,6 +1107,10 @@ pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_
 
 pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
+pub fn client_program_installed_provider_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
+
+pub fn client_program_installed_provider_row_capture_capacity_matches(@client_local_host.ClientInstalledCaptureCapacity, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity) -> Bool
+
 pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_issue_acquired_effect_evidence(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
@@ -1921,6 +1925,8 @@ pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.Row
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
+pub fn client_program_row_source_provider_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_row_source_request_wire(@client_row_source_host.RowAcquisition) -> Result[String, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_restore_declaration(String, String, String, String, String?) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
@@ -1934,6 +1940,8 @@ pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, S
 pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_start_listing_accounted(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_start_provider_accounted(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 
@@ -1978,6 +1986,8 @@ pub fn client_program_salesforce_recheck_read_projection(@actql/actql/connectors
 pub fn client_program_salesforce_recover_observation(@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, String, String, String, String, Array[String], Array[Bytes?], Array[Int], Array[String?], Array[String?], Int, Int, Int, Int, Int, Int, String?) -> Result[@actql/actql/connectors/salesforce/catalog.CatalogObservation, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_salesforce_restore_declaration(@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @actql/actql/connectors/salesforce/catalog.CatalogObservation, String, String, Int, Int, Int) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
+pub fn client_program_salesforce_row_declaration(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration) -> Result[@client_row_source_host.RowDeclaration, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
@@ -2500,6 +2510,12 @@ pub fn strategy_captured_run_fixture_phase(@run_publication.CapturedRunIssuanceP
 pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
+
+pub fn strategy_credential_authentication_operation_check(@remote_credential.CredentialAuthenticationOperation[OriginalCredentialAuthenticationMaterial], @remote_credential.CredentialAuthenticationRequest[OriginalCredentialAuthenticationMaterial], @remote_credential.RemoteCredentialUse, @remote_credential.RemoteCredentialUse, OriginalCredentialAuthenticationMaterial, String, String, String, Bytes, Int64) -> Unit raise NodeHostFailure
+
+pub fn strategy_credential_authentication_request(@remote_credential.RemoteCredentialUse, @remote_credential.RemoteCredentialGrant, OriginalCredentialAuthenticationMaterial, String, String, String, Bytes, Int, Int64) -> @remote_credential.CredentialAuthenticationRequest[OriginalCredentialAuthenticationMaterial] raise NodeHostFailure
+
+pub fn strategy_credential_authentication_use_bind(@remote_credential.CredentialAuthenticationRequest[OriginalCredentialAuthenticationMaterial], @remote_credential.RemoteCredentialUse, @remote_credential.RemoteCredentialUse, OriginalCredentialAuthenticationMaterial, String, String, String, Bytes, Int64) -> @remote_credential.CredentialAuthenticationOperation[OriginalCredentialAuthenticationMaterial] raise NodeHostFailure
 
 pub fn strategy_delivery_failure_terminal_action(Bool) -> Int
 
@@ -4100,6 +4116,8 @@ pub(all) enum ClientSourcePreparationIssue {
   Frontend(@source_frontend.Issue)
   ArrayProfile(@source_frontend.ArrayProfileIssue)
 }
+
+type OriginalCredentialAuthenticationMaterial
 
 type OriginalModelJournalReference
 

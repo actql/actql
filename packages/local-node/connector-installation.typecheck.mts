@@ -7,6 +7,7 @@ import {
 import type {
   ConnectorJsonObject, ConnectorRuntimeHandle, ConnectorRuntimeOwner,
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
+  InstalledRowProviderReader, RowProviderReaderRequest,
 } from '@actql/local-node/connector-installation';
 import type {HostRequestValuePolicyVerifier} from './host-policy.js';
 
@@ -36,6 +37,25 @@ declare const accountConfiguration: string;
 declare const runtimeBundleCid: string;
 declare const bindingCid: string;
 declare const writesJson: string;
+declare const providerReaderCapacity: ConnectorRuntimeHandle;
+
+const originalReaderPreparer = (request: RowProviderReaderRequest): InstalledRowProviderReader => ({
+  async read() {await request.verifyRead(); return request.rowRun.acquisition;},
+  requestStop() {},
+  observe() {return {cleanupConfirmed: false};},
+});
+type SourceOptions = Parameters<typeof createInstalledRowSource>[0];
+const selectedReader: NonNullable<SourceOptions['providerReader']> = {
+  capacity: providerReaderCapacity, prepare: originalReaderPreparer,
+};
+const unavailableAsyncReader: NonNullable<SourceOptions['providerReader']> = {
+  capacity: providerReaderCapacity,
+  // @ts-expect-error Reader preparation is synchronous and cannot hide I/O.
+  prepare: async request => originalReaderPreparer(request),
+};
+// @ts-expect-error A reader factory cannot omit its original capacity declaration.
+const unboundedReader: NonNullable<SourceOptions['providerReader']> = {prepare: originalReaderPreparer};
+void [selectedReader, unavailableAsyncReader, unboundedReader];
 
 const authorization = await installRowSourceAuthorization({
   accountConfiguration, principalId: 'operator', root: '/host',

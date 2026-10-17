@@ -59,7 +59,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     localMetadata = await prepareNativeLocalRuntime(destination, localRuntime);
   }
   const buildArgs = ['build', ...(verbose ? ['--verbose'] : []),
-    '--target', 'native', '--release', 'src/cmd/native_client'];
+    '--target', 'native', '--release', '-j', '1', 'src/cmd/native_client'];
   const startedAt = performance.now();
   if (verbose) console.log(JSON.stringify({phase: 'native-cli-build-start',
     sourceSha: source.revision, command: ['moon', ...buildArgs], timeoutMs: 300_000}));

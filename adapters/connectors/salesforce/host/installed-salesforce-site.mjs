@@ -3,20 +3,17 @@
 // installed once for all its Sites. Programs and callers supply none of them.
 // Credential grants are issued only for a protected decision that installed
 // gate returned as dispatch.
-import {createHash, createPrivateKey, createPublicKey} from 'node:crypto';
+import {createHash, createPrivateKey} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
 import {isAbsolute} from 'node:path';
-import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {canonicalJson as canonicalValueJson} from '../../../../packages/sdk/host-port.mjs';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
-import {installRowSourceAuthorization} from
+import {installRowSourceAuthorization, openRowSourceCredentialCustody} from
   '../../../host-node/installed-row-source.mjs';
 import {openSqliteCredentialJournal} from
   '../../../site-node/sqlite-credential-journal.mjs';
-import {signRemoteCredentialGrant} from
-  '../../../site-node/remote-credential-signature.mjs';
 import {createSalesforceCliSecretResolver} from
   '../site/salesforce-cli-secret.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -200,47 +197,17 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     environment: profile.environment, siteKey: profile.siteKey,
     siteGeneration: profile.siteGeneration,
   });
-  const control = runtimeCore(commonMoon).remoteCredentialControl;
-  const journal = openCredentialJournal(profile.journalRoot, {
-    credentialAuthorities: new Map([[profile.credentialAuthorityId,
-      new Map([[profile.credentialKeyId, createPublicKey(privateKey)]])]]),
-  });
-  // Closing refuses every new operation at once; the Site is released only
-  // once its credential journal has actually closed. A failed journal close
-  // leaves the Site closing and unreleased, and the next close retries it.
-  let closing = false;
-  let released = false;
-  const ensureOpen = () => {
-    if (closing) fail('SalesforceSiteClosed');
-  };
-  const credential = Object.freeze({orgId: profile.orgId, control, journal,
-    resolveSecret: secret, ca, now});
-
-  function sign({operation, runInvocationCid, taskAttempt,
-    dispatchRequestCid, maxUses}) {
-    ensureOpen();
-    if (!cidPattern.test(runInvocationCid ?? '') ||
-        !cidPattern.test(dispatchRequestCid ?? '') ||
-        !Number.isSafeInteger(taskAttempt) || taskAttempt < 1 ||
-        !Number.isSafeInteger(maxUses) || maxUses < 1 || maxUses > 10_000) {
-      fail('InvalidSalesforceCredentialGrantRequest');
-    }
-    const scope = Object.freeze({
-      issuerAuthority: profile.credentialAuthorityId,
-      principal: principalId, namespaceId: profile.namespaceId,
-      environment: profile.environment, siteKey: profile.siteKey,
-      siteGeneration: profile.siteGeneration, runtimeBundleCid,
-      connectorRegistration: 'salesforce',
-      connectorRevision: 'salesforce/0.1',
-      resourceOrigin: profile.instanceOrigin, operation, runInvocationCid,
-      taskAttempt, dispatchRequestCid,
-      expiresUnixMilliseconds: BigInt(now() + grantLifetimeMs), maxUses,
-    });
-    const grant = control.prepare(scope);
-    journal.acceptGrant(signRemoteCredentialGrant(grant, control, {
-      keyId: profile.credentialKeyId, privateKey}), control);
-    return Object.freeze({grant, scope});
-  }
+  // Keep the original Salesforce origin, task attempt and diagnostic names;
+  // credential journal/signing/retirement are the shared Row Site's one path.
+  const custody = openRowSourceCredentialCustody({
+    profile: Object.freeze({...profile, resourceOrigin: profile.instanceOrigin}),
+    principalId, connectorRegistration: 'salesforce',
+    connectorRevision: 'salesforce/0.1', runtimeBundleCid, commonMoon,
+    privateKey, resolveSecret: secret, ca, now, grantLifetimeMs,
+    openCredentialJournal, credentialFacts: Object.freeze({orgId: profile.orgId}),
+    closedCode: 'SalesforceSiteClosed',
+    grantCode: 'InvalidSalesforceCredentialGrantRequest'});
+  const {credential, ensureOpen, sign} = custody;
 
   // Issue one credential grant for a record operation on `resource`. The
   // decision must be the installed gate's dispatch for the same connection,
@@ -833,14 +800,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     ownsDeclaration: declaration => declarations.has(declaration),
     // Stop new operations, then release the credential journal. Returns
     // once released; a failed release throws and stays retryable.
-    close() {
-      closing = true;
-      if (released) return;
-      journal.close();
-      released = true;
-    },
+    close: custody.closeOnce,
     // Whether this Site was closed but its journal is not yet released.
-    cleanupPending: () => closing && !released,
+    cleanupPending: custody.cleanupPending,
   });
 }
 
