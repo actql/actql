@@ -328,7 +328,10 @@ test "kintone cancellation retains original page until actual cleanup and never 
   let stopped = Ref(false)
   let checks = Ref(0)
   let read = kintone_borrow(prepared, run, stopped, checks)
-  @kintone_host.accept_record_read_page(read, kintone_original_page()).unwrap()
+  assert_eq(
+    @kintone_host.accept_record_read_page(read, kintone_original_page()).unwrap(),
+    2,
+  )
   let original = @kintone_host.record_read_original(read).unwrap()
   @row_host.abort_row_run(run)
   assert_true(
