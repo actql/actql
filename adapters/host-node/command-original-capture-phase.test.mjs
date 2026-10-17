@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {moon, originalCommandKeyFixture} from './fixtures/command-original-key.fixture.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {originalFieldCommandKeyFixture} from './fixtures/command-original-field-key.fixture.mjs';
 import {preparePinnedEffectSourceSet} from './effect-input-export.mjs';
 import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 
@@ -55,7 +56,7 @@ function options(fixture, doubled, scope, onKey, onRow) {
 }
 
 test('ordinary Source set finishes the original funded whole key before proposing any row', async () => {
-  const fixture = await originalCommandKeyFixture();
+  const fixture = await originalFieldCommandKeyFixture();
   const doubled = publicationDoubles();
   let scope, key, sources;
   const rows = [];
@@ -68,7 +69,7 @@ test('ordinary Source set finishes the original funded whole key before proposin
       (member, index, row) => { assert(key); rows.push([member, index, JSON.parse(row.changesWire)]); }));
     assert.equal(rows.length, 1);
     assert.deepEqual(rows[0].slice(0, 2), [0, 0]);
-    assert.deepEqual(JSON.parse(doubled.events.chunks.join('')), [{id: 'one', value: 'original'}]);
+    assert.deepEqual(JSON.parse(doubled.events.chunks.join('')), fixture.rows);
     assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), true,
       'temporary exporter close does not release the capture borrower');
     const plan = checked(moon.clientProgramEffectProposalBeginWithKey(fixture.inputs, 0, 10, 10000, key));
@@ -94,6 +95,24 @@ test('ordinary Source set duplicate input rejects before proposal or output and 
     await assert.rejects(preparePinnedEffectSourceSet(options(fixture, doubled, scope,
       () => keys++, () => rows++)), {code: 'MoonBitHostFailure'});
     assert.equal(keys, 0); assert.equal(rows, 0); assert.equal(doubled.events.chunks.length, 0);
+    assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), true);
+    await close(scope);
+    assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), false);
+  } finally { await close(scope); await fixture.close(); }
+});
+
+
+test('completed key correspondence does not invent a missing original published target', async () => {
+  const fixture = await originalCommandKeyFixture();
+  const doubled = publicationDoubles();
+  let scope, key, rows = 0;
+  try {
+    scope = checked(moon.clientProgramPlanEffectCommandKeyWorkspace(fixture.owned,
+      fixture.inputs, 0, fixture.limits, 10000));
+    await assert.rejects(preparePinnedEffectSourceSet(options(fixture, doubled, scope,
+      (_member, original) => { key = original; }, () => rows++)), {code: 'MoonBitHostFailure'});
+    assert(key, 'the original whole key completed before target projection refused');
+    assert.equal(rows, 0); assert.equal(doubled.events.chunks.length, 0);
     assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), true);
     await close(scope);
     assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), false);

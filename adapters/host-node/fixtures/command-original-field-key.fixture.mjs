@@ -1,0 +1,96 @@
+// Independent legacy field-target counter: the target is issued by the same
+// actual RowRun ReferenceIssuer and retained source. No Ref appears in the
+// authored Program, and no published target or Mapping is synthesized.
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {checked} from '../../host-common/runtime-result.mjs';
+import {rowSourceCheckEnvironment} from '../installed-row-source.mjs';
+import {runCapturedEffectComputation} from '../entry.mjs';
+import {canonical, cid, resource} from './file-listing-source.fixture.mjs';
+import {moon, publicationEvidence} from './command-original-key.fixture.mjs';
+
+export async function originalFieldCommandKeyFixture({duplicate = false, inputKey = true} = {}) {
+  const read = path => readFile(new URL(`../../../${path}`, import.meta.url), 'utf8');
+  const original = await read('src/query_integration/published_store_capture_wbtest.mbt');
+  const literals = [...original.matchAll(/^\s*#\|(.+)$/gmu)].map(match => JSON.parse(match[1]));
+  const commandEnvironment = literals.find(value => Array.isArray(value.command_contracts));
+  assert(commandEnvironment);
+  const base = JSON.parse(await read('spec/local-check-environment.json'));
+  commandEnvironment.host_policy_profile = base.host_policy_profile;
+  const schema = {id: {type: 'string', nullable: false}, value: {type: 'string', nullable: false},
+    resource: {type: 'resource_ref', resource_kind: 'file', nullable: false}};
+  const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+    'fixture', 'storage', 'fixture-1', canonical({views: [{resource: 'rows', resource_kind: 'file',
+      schema_wire: canonical(schema), schema_cid: cid(schema), facts_wire: '{}'}]}), undefined));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
+  const supplied = rowSourceCheckEnvironment(canonical(commandEnvironment), declared);
+  const environment = moon.clientProgramCheckEnvironment(supplied.wire, supplied.evidenceCid,
+    false, false, true, false, false, false, false);
+  assert(environment, 'original command Catalog plus actual Source declaration');
+  const program = {version: 'actql/0.1', id: 'original-field-command-key', stages: [{id: 'capture',
+    inputs: {original: {connector: 'fixture', resource: 'rows', view: 'records'}},
+    steps: [{from: 'original', select: ['resource', 'id', 'value'], as: 'selected'}],
+    results: {out: {from: 'selected', fields: ['resource', 'id', 'value']}},
+    effects: {save: {command: {contract: 'command:fixture.upload.v1', target: {field: 'resource'},
+      from: {result: 'out'}, input: {id: {field: 'id'}, value: {field: 'value'}},
+      ...(inputKey ? {input_key: 'id'} : {})}}},
+  }], results: {published: {from: {stage: 'capture', result: 'out'}}}};
+  const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+    canonical(program), 'json', environment, undefined, []);
+  const prepared = moon.clientProgramEffectPreparationReady(outcome);
+  assert(prepared, moon.clientProgramEffectPreparationIssueCode(outcome));
+  const evidence = publicationEvidence(prepared);
+  const admission = moon.clientProgramAdmitEffectPublication(prepared, ...evidence);
+  assert(admission);
+  const definition = checked(moon.strategyIssueRunDefinition(admission, 'key-fixture-scope',
+    'key-fixture', `sha256:${'c'.repeat(64)}`, '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z', 100000, 10000, 64));
+  const bound = moon.clientProgramBindEffectRun(prepared, admission, definition);
+  assert(bound);
+  const registry = await read('spec/dependencies/aoa-pipeline-registry.json');
+  const contracts = JSON.parse(await read('spec/contracts/actql-aoa.json')).execution_contracts;
+  const values = JSON.stringify(contracts['REL.values']);
+  const fragment = JSON.stringify(contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(contracts['REL.derive.ordered']);
+  const requirement = checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
+    prepared, 0, 0, registry, values, fragment, ordered));
+  const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(declaration,
+    requirement, await read('spec/contracts/actql-query-acquisition.json'),
+    await read('spec/contracts/actql-query-process-evidence.json'), undefined));
+  const rows = [{id: 'one', value: 'original', resource: resource('d')},
+    ...(duplicate ? [{id: 'one', value: 'duplicate', resource: resource('e')}] : [])];
+  let current = true, physical, execution, inputs;
+  const issuer = moon.clientProgramResourceReferenceIssuer((kind, wire) =>
+    current && kind === 'file' && rows.some(row => canonical(row.resource) === wire), () => current);
+  try {
+    physical = checked(moon.clientProgramRowSourceStart(acquisition, 'original-field-target', () => current));
+    checked(moon.clientProgramRowSourceBegin(physical, 8192, 10, 10, issuer));
+    assert.equal(checked(moon.clientProgramRowSourceAcceptPage(physical, Buffer.from(canonical(rows)))), rows.length);
+    checked(moon.clientProgramRowSourceFinish(physical));
+    const captured = checked(moon.clientProgramRowSourceCapture(physical));
+    const source = checked(moon.clientProgramRowSourceCaptureSource(captured));
+    const owned = moon.clientProgramOpenCapturedLocalEffectHost(bound, source, registry, values,
+      1n, 0n, 0n, 0n, fragment, ordered);
+    assert(owned, 'same captured source feeds the original checked Effect Host');
+    execution = await runCapturedEffectComputation(owned);
+    assert.equal(execution.status, 'host-tasks-completed');
+    inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+    const limits = moon.clientProgramEffectInputExportLimits(
+      10, 1000, 10000, 100, 100, 10000, 100000, 64, 100000,
+      100000, 10000, 64, 10, 10000, 100000, 10003, 66, 10, 100000, 10000, 64, 4096);
+    assert(limits);
+    return {prepared, owned, execution, inputs, limits, rows, revoke() { current = false; },
+      async close() {
+        moon.clientProgramReleaseEffectInputs(inputs);
+        await execution.close();
+        moon.clientProgramRowSourceClose(physical);
+        current = false;
+        assert.equal(execution.cleanupPending(), false);
+      }};
+  } catch (error) {
+    if (inputs !== undefined) moon.clientProgramReleaseEffectInputs(inputs);
+    if (execution !== undefined) await execution.close();
+    if (physical !== undefined) moon.clientProgramRowSourceClose(physical);
+    current = false;
+    throw error;
+  }
+}
