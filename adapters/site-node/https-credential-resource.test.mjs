@@ -459,6 +459,51 @@ function deferred() {
   return {promise, resolve};
 }
 
+test('kintone token presentation uses the retained secret for separately authorized form and page requests',
+  async t => {
+    const seen = [];
+    const setup = await fixture(t, {onRequest(request, response) {
+      const originalToken = request.headers['x-cybozu-api-token'] === 'provider-secret';
+      const otherCredential = request.headers.authorization !== undefined ||
+        request.headers['x-cybozu-authorization'] !== undefined;
+      seen.push({path: request.url, originalToken, otherCredential});
+      response.writeHead(originalToken && !otherCredential ? 200 : 401,
+        {'content-type': 'application/json'});
+      response.end('{"records":[]}');
+      return true;
+    }});
+    const original = Object.freeze({...scope(setup.origin, 'form:read'),
+      connectorRegistration: 'kintone', connectorRevision: 'kintone/1'});
+    let resolutions = 0;
+    const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+    const binding = openHttpsCredentialBinding({scope: original, control,
+      journal: setup.journal, resolveSecret, maxSecretBytes: 64,
+      secretPresentation: 'kintone-api-token'});
+    t.after(() => assert.equal(closeHttpsCredentialBinding(binding), 'closed'));
+    assert.deepEqual(Reflect.ownKeys(binding), []);
+    for (const [operation, path] of [['form:read', '/k/v1/app/form/fields.json?app=7'],
+      ['records:read', '/k/v1/records.json?app=7']]) {
+      const selected = Object.freeze({...original, operation});
+      const grant = control.prepare(selected);
+      setup.journal.acceptGrant(setup.sign(grant), control);
+      const response = await call(setup, grant, selected, `kintone-${operation}`, {
+        binding, resolveSecret,
+        operations: new Map([[operation, {method: 'GET', path}]]),
+      });
+      assert.equal(response.accepted, true);
+      assert.equal(response.body.toString(), '{"records":[]}');
+      assert.equal(JSON.stringify(response).includes('provider-secret'), false);
+    }
+    assert.deepEqual(seen, [
+      {path: '/k/v1/app/form/fields.json?app=7', originalToken: true, otherCredential: false},
+      {path: '/k/v1/records.json?app=7', originalToken: true, otherCredential: false},
+    ]);
+    assert.equal(resolutions, 2);
+    assert.deepEqual(setup.journal.recover().map(use => use.outcome),
+      ['succeeded', 'succeeded']);
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+  });
+
 test('bound identity and page are separate authorized uses without exposing credential material',
   async t => {
     const seen = [];
