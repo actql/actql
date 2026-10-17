@@ -3,6 +3,7 @@
  * fund this separate control storage before launch. Arguments are DATA only;
  * FD4 is the same captured original, never a reason to acquire another root. */
 #include <assert.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stddef.h>
@@ -114,6 +115,15 @@ int main(int argc, char **argv) {
     assert(actql_native_domain_borrow_claim_holding(record, &original) == 0);
     assert(actql_native_domain_borrow_transfer_holding(record, original, (uint64_t)material[0], recipe) == 0);
     assert(actql_native_domain_borrow_enter(record) == 0);
+    /* Inspect the selected Runtime's actual dependency resolution. The Runtime
+     * must use the same imported provider function as this original domain;
+     * matching filenames or independently linked capacity copies do not pass. */
+    void *runtime = dlopen("@rpath/_libwasmtime.dylib", RTLD_NOW | RTLD_NOLOAD);
+    assert(runtime != NULL);
+    void *provider_current = dlsym(runtime, "actql_native_owned_current");
+    assert(provider_current != NULL &&
+           provider_current == dlsym(RTLD_DEFAULT, "actql_native_owned_current"));
+    assert(dlclose(runtime) == 0);
     int expected[] = {
         ACTQL_COMPILER_ABI_MATCH,
         ACTQL_COMPILER_ABI_IMPORTS, ACTQL_COMPILER_ABI_IMPORTS,
@@ -146,7 +156,7 @@ int main(int argc, char **argv) {
      * manufactured from exit or a repeated acquire at a larger capacity. */
     printf("{\"discovered\":%zu,\"executed\":%zu,\"passed\":%zu,\"failed\":%zu,"
            "\"leave\":%d,\"holding_close\":%d,\"holding_closed\":%s,"
-           "\"Engine\":0,\"Module\":0,\"VM\":0,\"normal_profile\":null}\n",
+           "\"same_provider_symbol\":true,\"Engine\":0,\"Module\":0,\"VM\":0,\"normal_profile\":null}\n",
            total, total, passed, total - passed, leave, close, original == NULL ? "true" : "false");
     return passed == total && leave == 0 && close == 0 && original == NULL ? 0 : 1;
 }
