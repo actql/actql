@@ -72,6 +72,7 @@ pub fn operate_installed_arena_process_reply(
       }
     7 => host.close_prepared_process(domain, process)
     8 => host.retire_stopped_process(domain, process)
+    11 => host.spawn_prepared_process_child(domain, process)
     9 =>
       match host.process_backing_descriptor(domain, process) {
         Err(issue) => Err(issue)
@@ -197,4 +198,24 @@ pub fn InstalledArenaProcessReply::issue_description(
     None => ""
     Some(issue) => @debug.to_string(issue)
   }
+}
+
+///|
+/// Retain original custody and the typed preparation result before projecting
+/// DATA. A false or lost reply never supplies a new process or permission.
+pub fn prepare_installed_arena_process_child_reply(
+  host : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  process : InstalledArenaProcess,
+  executable : String,
+  arguments : Array[String],
+  environment : Array[(String, String)],
+) -> InstalledArenaProcessReply {
+  let issue = match host.prepare_process_child(domain, process, executable, arguments, environment) {
+    Ok(_) => None
+    Err(issue) => Some(issue)
+  }
+  { host: process.domain.host, domain: process.domain, process: Some(process),
+    operation: 10, issue, descriptors: None, backing_descriptor: -1,
+    stop_observation: 0, }
 }
