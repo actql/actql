@@ -22,8 +22,8 @@ pub(all) enum RecordValueIssue {
 ///|
 pub struct CheckedRecordPage {
   priv original : OriginalRecordPage
+  priv settings : AppNumberSettings?
   priv columns : Array[String]
-  priv contracts : Array[@contract.Contract]
   priv rows : Array[Array[@admitted.CheckedValue]]
 }
 
@@ -246,7 +246,7 @@ fn record_value_node(
     return Err(BudgetExceeded)
   }
   budget.nodes -= 1
-  let source = if @decode.is_null(cursor) {
+  let source : @source.Value = if @decode.is_null(cursor) {
     @source.Null
   } else {
     match field.metadata.native_type {
@@ -259,7 +259,7 @@ fn record_value_node(
         if rows.length() > budget.nodes {
           return Err(BudgetExceeded)
         }
-        let values = []
+        let values : Array[@source.Node] = []
         for row in rows {
           if budget.nodes < 2 || depth + 1 > budget.depth {
             return Err(BudgetExceeded)
@@ -314,7 +314,7 @@ fn record_value_node(
         if count > budget.nodes || (count > 0 && depth >= budget.depth) {
           return Err(BudgetExceeded)
         }
-        let values = []
+        let values : Array[@source.Node] = []
         for index in 0..<count {
           let item = @decode.element_at(cursor, index).unwrap()
           let value = match @decode.text(item) {
@@ -467,7 +467,7 @@ pub fn project_checked_record_page(
     }
     rows.push(values)
   }
-  Ok({ original: page, columns, contracts, rows, })
+  Ok({ original: page, settings, columns, rows, })
 }
 
 ///|
@@ -485,6 +485,11 @@ pub fn checked_record_rows(
 ///|
 pub fn checked_record_original(page : CheckedRecordPage) -> OriginalRecordPage {
   page.original
+}
+
+///|
+pub fn checked_record_settings(page : CheckedRecordPage) -> AppNumberSettings? {
+  page.settings
 }
 
 ///|

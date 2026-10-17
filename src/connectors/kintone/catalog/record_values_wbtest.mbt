@@ -334,7 +334,8 @@ test "unsupported shared logical types and original field collisions remain unav
         values_test_limits(),
         20000,
       )
-      is Err(FieldUnavailable(name)),
+      is Err(FieldUnavailable(actual)) &&
+      actual == name,
     )
   }
   let catalog = form_test_catalog(
