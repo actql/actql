@@ -6684,13 +6684,14 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "9f4a2cb5889a5742d1aa3e78a3bf2e3e28055f9bd7c3ce8820c8e628d751b689",
+      "sha256": "39f79fe62f048364de7aceaf6598e475871573ad91768415ce20df0b3e18278b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
       "exports": [
         "createInstalledRowSource",
         "installRowSourceAuthorization",
+        "openRowSourceCredentialCustody",
         "openRowSourceCredentialSite",
         "rowSourceCheckEnvironment",
         "rowSourceMapping"
@@ -7291,6 +7292,73 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody",
+          "parameters": [
+            "profile",
+            "principalId",
+            "connectorRegistration",
+            "connectorRevision",
+            "runtimeBundleCid",
+            "commonMoon",
+            "privateKey",
+            "resolveSecret",
+            "ca",
+            "now",
+            "grantLifetimeMs",
+            "openCredentialJournal",
+            "credentialFacts",
+            "closedCode",
+            "grantCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/checkGrantRequest",
+          "parameters": [
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses",
+            "taskAttempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/sign",
+          "parameters": [
+            "operation",
+            "runInvocationCid",
+            "taskAttempt",
+            "dispatchRequestCid",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialSite",
           "parameters": [
             "profile",
@@ -7327,15 +7395,6 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialSite/checkGrantRequest",
-          "parameters": [
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
           "name": "openRowSourceCredentialSite/currentEffectRead",
           "parameters": [
             "approved"
@@ -7344,11 +7403,6 @@
         },
         {
           "name": "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/ensureOpen/ensureOpen",
           "parameters": [],
           "async": false
         },
@@ -7373,11 +7427,6 @@
           "parameters": [
             "decision"
           ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:close/init:close",
-          "parameters": [],
           "async": false
         },
         {
@@ -7413,21 +7462,6 @@
           "name": "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/sign",
-          "parameters": [
-            "operation",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxUses"
           ],
           "async": false
         },
@@ -7559,20 +7593,15 @@
             "openRowSourceCredentialSite",
             "openRowSourceCredentialSite/bindingWire/bindingWire",
             "openRowSourceCredentialSite/callResource/callResource",
-            "openRowSourceCredentialSite/checkGrantRequest",
             "openRowSourceCredentialSite/currentEffectRead",
             "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
-            "openRowSourceCredentialSite/ensureOpen/ensureOpen",
             "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
             "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
             "openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-            "openRowSourceCredentialSite/init:close/init:close",
             "openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
             "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
             "openRowSourceCredentialSite/openRowSourceCredentialSite",
             "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
-            "openRowSourceCredentialSite/openRowSourceCredentialSite#3",
-            "openRowSourceCredentialSite/sign",
             "openRowSourceCredentialSite/synchronous",
             "openRowSourceCredentialSite/synchronous/synchronous",
             "rowSourceCheckEnvironment",
@@ -7582,14 +7611,23 @@
             "createInstalledRowSource/acquire/issueGrant/issueGrant",
             "createInstalledRowSource/createInstalledRowSource#6",
             "createInstalledRowSource/ordinarySubject/ordinarySubject",
-            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation"
+            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
+            "openRowSourceCredentialCustody",
+            "openRowSourceCredentialCustody/checkGrantRequest",
+            "openRowSourceCredentialCustody/close",
+            "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+            "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+            "openRowSourceCredentialCustody/sign"
           ],
           "exports": [
             "createInstalledRowSource",
             "installRowSourceAuthorization",
             "openRowSourceCredentialSite",
             "rowSourceCheckEnvironment",
-            "rowSourceMapping"
+            "rowSourceMapping",
+            "openRowSourceCredentialCustody"
           ],
           "attributes": {
             "responsibility": [
@@ -7632,6 +7670,10 @@
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
                 "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "ownership": [
@@ -7650,6 +7692,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "kind: 'effect_target'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "synchronization": [
@@ -7668,6 +7714,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "currentEffectRead(approved)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "failure": [
@@ -7686,6 +7736,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "cancellation": [
@@ -7722,6 +7776,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "Each such approval adds a seven-field record"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Installed Row Site physical custody"
               }
             ],
             "extension": [
@@ -7766,6 +7824,10 @@
               {
                 "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
                 "anchor": "shared installer retains its default context"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.test.mjs",
+                "anchor": "shared generic credential custody preserves its original task"
               }
             ]
           }

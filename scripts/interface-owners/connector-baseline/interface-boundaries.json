@@ -8424,7 +8424,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0d057ab3a061b913dc3aa1895777530ffb5ed753ba54c59a2d1271ca76bed886",
+      "sha256": "3c3ca2ceeeab30c0e3440c030aef9f80436b88fbec6a78031c91a52b2fb18b0f",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -8664,11 +8664,6 @@
           "async": true
         },
         {
-          "name": "loadInstalledSalesforceSite/ensureOpen/ensureOpen",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/generate/generate",
           "parameters": [
             "observation",
@@ -8676,11 +8671,6 @@
             "resources",
             "limits"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/init:close/init:close",
-          "parameters": [],
           "async": false
         },
         {
@@ -8707,11 +8697,6 @@
           "parameters": [
             "declaration"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/loadInstalledSalesforceSite#3",
-          "parameters": [],
           "async": false
         },
         {
@@ -8810,17 +8795,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/sign",
-          "parameters": [
-            "operation",
-            "runInvocationCid",
-            "taskAttempt",
-            "dispatchRequestCid",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/siteBinding/siteBinding",
           "parameters": [],
           "async": false
@@ -8913,13 +8887,10 @@
             "loadInstalledSalesforceSite/describeForAcquisition",
             "loadInstalledSalesforceSite/describeNamed",
             "loadInstalledSalesforceSite/describeNamed/describeNamed",
-            "loadInstalledSalesforceSite/ensureOpen/ensureOpen",
             "loadInstalledSalesforceSite/generate/generate",
-            "loadInstalledSalesforceSite/init:close/init:close",
             "loadInstalledSalesforceSite/issueGrant",
             "loadInstalledSalesforceSite/loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/loadInstalledSalesforceSite#2",
-            "loadInstalledSalesforceSite/loadInstalledSalesforceSite#3",
             "loadInstalledSalesforceSite/peek",
             "loadInstalledSalesforceSite/peek/describe/describe",
             "loadInstalledSalesforceSite/peek/result/result",
@@ -8932,7 +8903,6 @@
             "loadInstalledSalesforceSite/refreshCatalog",
             "loadInstalledSalesforceSite/restoreDeclaration",
             "loadInstalledSalesforceSite/restoreDeclaration/mismatch/mismatch",
-            "loadInstalledSalesforceSite/sign",
             "loadInstalledSalesforceSite/siteBinding/siteBinding",
             "releaseSalesforceSite",
             "retainSalesforceSiteCleanup",
@@ -8981,6 +8951,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "ownership": [
@@ -8991,6 +8965,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "synchronization": [
@@ -9001,6 +8979,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "failure": [
@@ -9011,6 +8993,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "cancellation": [
@@ -9023,6 +9009,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "DEFAULT_SALESFORCE_CATALOG_LIMITS"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Installed Row Site physical custody"
               }
             ],
             "extension": [
@@ -9055,11 +9045,35 @@
               {
                 "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
                 "anchor": "Salesforce compatibility installer preserves original context"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
+                "anchor": "shared credential custody preserves every original Salesforce scope member"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/authorization-gate.mjs",
+        "../../../host-common/checkpoint-approval.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/local-account-config.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/sqlite-credential-journal.mjs",
+        "../site/salesforce-catalog-sync.mjs",
+        "../site/salesforce-cli-secret.mjs",
+        "../site/salesforce-effect-capability.mjs",
+        "../site/salesforce-named-describe.mjs",
+        "../site/salesforce-query-read.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
