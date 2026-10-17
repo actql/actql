@@ -1,13 +1,7 @@
 ///|
-fn client_infer_prefix_test_program(
-  result_fields? : String = "[\"id\",\"outcome\",\"value\"]",
-  strict? : Bool = false,
+fn client_infer_prefix_test_environment(
   host_items? : Int = 1000,
-  item_guard? : String = "",
-  input_rows? : String = "[{\"id\":\"a\",\"text\":\"hello\"}]",
-  parameters? : String = "",
-  supplied? : @decode.Cursor? = None,
-) -> PreparedClientProgram {
+) -> (String, @checked.CheckEnvironment) {
   // Reuse the independently hashed ModelTask typing vector. These dependency
   // CIDs prove installation identity, not provider or egress authority.
   let task =
@@ -36,6 +30,20 @@ fn client_infer_prefix_test_program(
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
+  (wire, environment)
+}
+
+///|
+fn client_infer_prefix_test_program(
+  result_fields? : String = "[\"id\",\"outcome\",\"value\"]",
+  strict? : Bool = false,
+  host_items? : Int = 1000,
+  item_guard? : String = "",
+  input_rows? : String = "[{\"id\":\"a\",\"text\":\"hello\"}]",
+  parameters? : String = "",
+  supplied? : @decode.Cursor? = None,
+) -> PreparedClientProgram {
+  let (_, environment) = client_infer_prefix_test_environment(host_items~)
   let source =
     #|{"version":"actql/0.1","id":"infer-prefix","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"hello"}]},"as":"input"},{"assert_rows":{"unique_by":["id"]},"as":"unique"},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"captured"}],"results":{"captured":{"from":"captured","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"captured"}}}}
   prepare_effect_free_client_program(
