@@ -68,6 +68,85 @@ pub fn client_project_configuration_mock_answer_count(
 }
 
 ///|
+/// Original project/profile selection only. No mock records, Provider,
+/// authorization or execution resource is installed by these DATA ports.
+#export_name("clientProjectProfileSelect")
+pub fn client_project_profile_select(
+  configuration : @publication_host.ClientProjectConfiguration?,
+  requested : String?,
+  max_work : Int,
+) -> Result[
+  @publication_host.ClientProjectProfileSelection,
+  @publication_host.ClientProjectProfileIssue,
+] {
+  @publication_host.select_client_project_profile(
+    configuration, requested, max_work,
+  )
+}
+
+///|
+#export_name("clientProjectProfileMatches")
+pub fn client_project_profile_matches(
+  value : @publication_host.ClientProjectProfileSelection,
+  configuration : @publication_host.ClientProjectConfiguration?,
+  requested : String?,
+) -> Bool {
+  @publication_host.client_project_profile_matches(
+    value, configuration, requested,
+  )
+}
+
+///|
+#export_name("clientProjectProfileSelectedName")
+pub fn client_project_profile_selected_name(
+  value : @publication_host.ClientProjectProfileSelection,
+) -> Result[String?, @publication_host.ClientProjectProfileIssue] {
+  value.selected_profile()
+}
+
+///|
+#export_name("clientProjectProfileMockDataFile")
+pub fn client_project_profile_mock_data_file(
+  value : @publication_host.ClientProjectProfileSelection,
+) -> Result[String?, @publication_host.ClientProjectProfileIssue] {
+  value.mock_data_file()
+}
+
+///|
+#export_name("clientProjectProfileMockAnswerCount")
+pub fn client_project_profile_mock_answer_count(
+  value : @publication_host.ClientProjectProfileSelection,
+) -> Result[Int, @publication_host.ClientProjectProfileIssue] {
+  value.mock_answer_count()
+}
+
+///|
+#export_name("clientProjectProfileMockAnswerTask")
+pub fn client_project_profile_mock_answer_task(
+  value : @publication_host.ClientProjectProfileSelection,
+  index : Int,
+) -> Result[String?, @publication_host.ClientProjectProfileIssue] {
+  value.mock_answer_at(index).map(pair => pair.map(value => value.0))
+}
+
+///|
+#export_name("clientProjectProfileMockAnswerFile")
+pub fn client_project_profile_mock_answer_file(
+  value : @publication_host.ClientProjectProfileSelection,
+  index : Int,
+) -> Result[String?, @publication_host.ClientProjectProfileIssue] {
+  value.mock_answer_at(index).map(pair => pair.map(value => value.1))
+}
+
+///|
+#export_name("clientProjectProfileRetire")
+pub fn client_project_profile_retire(
+  value : @publication_host.ClientProjectProfileSelection,
+) -> Result[Unit, @publication_host.ClientProjectProfileIssue] {
+  @publication_host.retire_client_project_profile(value)
+}
+
+///|
 #export_name("clientProjectModelRegistryOriginalWire")
 pub fn client_project_model_registry_original_wire(
   value : @publication_host.ClientProjectModelRegistry,
