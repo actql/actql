@@ -25,8 +25,11 @@ Every declared cell and same-page id is checked before projection. Unknown
 vendor fields are still included in the bounded parsed original, but do not
 become columns, permissions or ActQL contracts. `ok` must be true, `members`
 must be an array, and an error envelope cannot be relabelled an empty page.
-The original opaque cursor is preserved; null, malformed or oversized cursors
-are refusals. Supplied field values pass the existing typed validator without
+The original nonempty opaque cursor is preserved. Slack's
+[pagination contract](https://docs.slack.dev/apis/web-api/pagination/) defines
+absent, empty and null `next_cursor` as terminal, including when member rows
+are present. This does not admit a null `response_metadata` object, an error
+envelope or other malformed/oversized cursor values. Supplied field values pass the existing typed validator without
 string/number/boolean coercion. Value and row/cursor/output bounds fail instead
 of returning a partial page or silently deduplicating ids.
 

@@ -110,7 +110,8 @@ pub fn project_slack_user_list(
   }
   // Unknown bounded vendor fields are retained in the original response by
   // the physical owner. They are not interpreted as ActQL columns or grants.
-  // An absent/empty next_cursor is terminal; null/wrong type is not terminal.
+  // Slack documents absent, empty and null next_cursor as terminal. The
+  // containing metadata must still be an object; other cursor types refuse.
   let next = match @decode.field(root, "response_metadata") {
     Missing => None
     ExplicitNull => return Err(InvalidCursor)
@@ -119,8 +120,7 @@ pub fn project_slack_user_list(
         return Err(InvalidCursor)
       }
       match @decode.field(metadata, "next_cursor") {
-        Missing => None
-        ExplicitNull => return Err(InvalidCursor)
+        Missing | ExplicitNull => None
         Present(value) => {
           guard @decode.text(value) is Ok(text) else {
             return Err(InvalidCursor)

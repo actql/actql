@@ -63,6 +63,7 @@ test "Slack user terminal empty page is distinct from a page with an opaque next
     body in [
       "{\"ok\":true,\"members\":[]}", "{\"ok\":true,\"members\":[],\"response_metadata\":{}}",
       "{\"ok\":true,\"members\":[],\"response_metadata\":{\"next_cursor\":\"\"}}",
+      "{\"ok\":true,\"members\":[],\"response_metadata\":{\"next_cursor\":null}}",
     ] {
     let page = project(body).unwrap()
     assert_eq(page.next_cursor, None)
@@ -72,6 +73,11 @@ test "Slack user terminal empty page is distinct from a page with an opaque next
     "{\"ok\":true,\"members\":[],\"response_metadata\":{\"next_cursor\":\"original\"}}",
   ).unwrap()
   assert_eq(page.next_cursor, Some("original"))
+  let terminal = project(
+    "{\"ok\":true,\"members\":[{\"id\":\"U1\",\"name\":\"original\"}],\"response_metadata\":{\"next_cursor\":null}}",
+  ).unwrap()
+  assert_eq(terminal.next_cursor, None)
+  assert_eq(slack_user_list_ids(terminal), ["U1"])
 }
 
 ///|
@@ -80,7 +86,8 @@ test "Slack API errors malformed members and ambiguous continuation do not becom
     body in [
       "{}", "null", "{\"ok\":false,\"members\":[]}", "{\"ok\":true}", "{\"ok\":true,\"members\":null}",
       "{\"ok\":true,\"members\":{}}", "{\"ok\":true,\"members\":[],\"error\":\"ratelimited\"}",
-      "{\"ok\":true,\"members\":[],\"response_metadata\":null}", "{\"ok\":true,\"members\":[],\"response_metadata\":{\"next_cursor\":null}}",
+      "{\"ok\":true,\"members\":[],\"response_metadata\":null}", "{\"ok\":true,\"members\":[],\"response_metadata\":{\"next_cursor\":false}}",
+      "{\"ok\":true,\"members\":[],\"response_metadata\":{\"next_cursor\":[]}}",
       "{\"ok\":true,\"members\":[],\"response_metadata\":{\"next_cursor\":3}}", "{\"ok\":true,\"members\":[],\"ok\":false}",
       "{\"ok\":true,\"members\":[{\"id\":\"U1\",\"name\":\"one\",\"name\":\"two\"}]}",
       "{\"ok\":true,\"members\":[]}{}",

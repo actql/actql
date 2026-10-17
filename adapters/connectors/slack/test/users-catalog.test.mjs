@@ -36,7 +36,9 @@ test('Slack actual Node nullable absence does not make a name scope or false boo
 test('Slack actual Node errors malformed continuation and duplicate IDs refuse the whole page',()=>{
   for(const body of ['{"ok":false,"members":[]}','{"ok":true}',
     '{"ok":true,"members":[],"error":"ratelimited"}',
-    '{"ok":true,"members":[],"response_metadata":{"next_cursor":null}}',
+    '{"ok":true,"members":[],"response_metadata":null}',
+    '{"ok":true,"members":[],"response_metadata":{"next_cursor":false}}',
+    '{"ok":true,"members":[],"response_metadata":{"next_cursor":[]}}',
     '{"ok":true,"members":[{"id":"U1"},{"id":"U1"}]}',
     '{"ok":true,"members":[{"id":"U1","profile":{"email":true}}]}',
     '{"ok":true,"members":[],"ok":true}'])assert.throws(()=>project(body),{code:'MoonBitHostFailure'});
@@ -60,4 +62,8 @@ test('Slack actual Node documented null continuation is terminal without droppin
   const page=project('{"ok":true,"members":[{"id":"U1","name":"original"}],"response_metadata":{"next_cursor":null}}');
   assert.deepEqual(JSON.parse(provider.slackUserListMetadataJson(page)),{rowCount:1,nextCursor:null});
   assert.deepEqual(rows(page,['id','name']),[{id:'U1',name:'original'}]);
+  for(const metadata of [{},{next_cursor:''},{next_cursor:null}]){
+    const terminal=project(JSON.stringify({ok:true,members:[],response_metadata:metadata}));
+    assert.deepEqual(JSON.parse(provider.slackUserListMetadataJson(terminal)),{rowCount:0,nextCursor:null});
+  }
 });
