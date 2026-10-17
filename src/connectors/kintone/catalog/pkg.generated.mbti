@@ -1,0 +1,60 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/kintone/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn form_field_definition_matches(FormFieldCatalog, FormFieldCatalog, Array[String]) -> Bool
+
+pub fn form_field_named(FormFieldCatalog, Array[String]) -> FormFieldMetadata?
+
+pub fn form_field_options(FormFieldMetadata) -> Array[String]?
+
+pub fn form_field_paths(FormFieldCatalog) -> Array[Array[String]]
+
+pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCatalog, FormFieldIssue]
+
+pub fn require_form_unique_key(FormFieldCatalog, String) -> Result[FormFieldMetadata, FormFieldIssue]
+
+// Errors
+
+// Types and methods
+pub struct FormFieldCatalog {
+  app_id : String
+  revision : String
+  response_sha256 : String
+  // private fields
+}
+
+pub(all) enum FormFieldIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidField(String)
+  FieldUnavailable
+  UniqueKeyUnconfirmed
+} derive(Eq, @debug.Debug)
+
+pub(all) struct FormFieldLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_fields : Int
+  max_name_units : Int
+}
+
+pub struct FormFieldMetadata {
+  code : String
+  native_type : String
+  required : Bool?
+  unique : Bool?
+  display_scale : String?
+  calculation_format : String?
+  // private fields
+} derive(Eq)
+
+// Type aliases
+
+// Traits
