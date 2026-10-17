@@ -57,7 +57,28 @@ test "installed child stop request retains the original region until separate ty
     process.closed || process.holder_closed || process.channel_retired,
   )
   assert_true(fixture.domain.loan is Some(_))
-  installed_child_stop_and_finish(fixture, process)
+  fixture.host.restrict_process_transport(fixture.domain, process).unwrap()
+  fixture.host.return_process_transport(fixture.domain, process).unwrap()
+  for index = 0; index < 200 && process.stop is None; index = index + 1 {
+    fixture.host.poll_process_stop(fixture.domain, process).unwrap() |> ignore
+    if process.stop is None {
+      assert_eq(process_test_sleep(1000), 0)
+    }
+  }
+  assert_true(process.stop is Some(_))
+  let stopped_request = operate_installed_arena_process_reply(
+    fixture.host,
+    fixture.domain,
+    process,
+    12,
+  )
+  assert_eq(stopped_request.issue_family(), 0)
+  assert_eq(stopped_request.stop_request_observation(), 0)
+  assert_eq(stopped_request.stop_observation(), 0)
+  assert_true(process.region is Some(_) && !process.closed)
+  fixture.host.retire_stopped_process(fixture.domain, process).unwrap()
+  assert_true(process.closed && fixture.domain.loan is Some(_))
+  installed_process_finish(fixture)
   assert_true(
     fixture.host.request_process_child_stop(fixture.domain, process) is Err(_),
   )
