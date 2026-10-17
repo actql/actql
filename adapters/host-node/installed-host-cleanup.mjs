@@ -6,8 +6,14 @@ export async function retainInstalledHostInitializationFailure(cause,
   // Retain the original receiver and methods before the first cleanup await.
   // A changed error property cannot acknowledge a different physical owner.
   const originalCleanup = cause?.cleanupHandle;
-  const originalRetry = originalCleanup?.retry;
-  const originalStatus = originalCleanup?.status;
+  let originalRetry, originalStatus;
+  let retryCaptured = false, statusCaptured = false;
+  function captureOriginalStatus() {
+    if (!statusCaptured) {
+      originalStatus = originalCleanup?.status;
+      statusCaptured = true;
+    }
+  }
   const pending = new Set();
   if (originalCleanup !== undefined || cause?.cleanupPending === true) {
     pending.add('initialization');
@@ -29,6 +35,7 @@ export async function retainInstalledHostInitializationFailure(cause,
   let observationFailure;
   function observeOriginalCleanup() {
     try {
+      captureOriginalStatus();
       const observed = originalStatus?.call(originalCleanup);
       const observedPending = observed?.pending !== false;
       originalErrors = [...(observed?.errors ?? cause?.cleanupErrors ?? [])];
@@ -57,6 +64,13 @@ export async function retainInstalledHostInitializationFailure(cause,
   let flight;
   async function drain() {
     await attempt('initialization', async () => {
+      // Property access can itself fail. Keep it inside this original Owner's
+      // attempt; only an unobserved method may be captured on a later retry.
+      if (!retryCaptured) {
+        originalRetry = originalCleanup?.retry;
+        retryCaptured = true;
+      }
+      captureOriginalStatus();
       if (typeof originalRetry !== 'function' ||
           typeof originalStatus !== 'function') {
         throw new Error('InstalledHostInitializationCleanupOwnerMissing');

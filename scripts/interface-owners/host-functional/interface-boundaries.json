@@ -31073,7 +31073,7 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bf4f87903611ff7722d7eaac21b5c2eb09d5d694715fee6eb9b96c14b171eca9",
+      "sha256": "49cfca73af2a9e976fe9dd3b5956982ad05439727b5bf10f277ab94284d5882e",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -31227,6 +31227,11 @@
           "async": true
         },
         {
+          "name": "retainInstalledHostInitializationFailure/captureOriginalStatus",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "retainInstalledHostInitializationFailure/drain",
           "parameters": [],
           "async": true
@@ -31362,6 +31367,7 @@
             "createInstalledHostShutdown/status/status/status",
             "retainInstalledHostInitializationFailure",
             "retainInstalledHostInitializationFailure/attempt",
+            "retainInstalledHostInitializationFailure/captureOriginalStatus",
             "retainInstalledHostInitializationFailure/drain",
             "retainInstalledHostInitializationFailure/drain/drain",
             "retainInstalledHostInitializationFailure/drain/drain#10",
@@ -31463,6 +31469,10 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "const originalCleanup = cause?.cleanupHandle;"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "function captureOriginalStatus() {"
               }
             ],
             "failure": [
@@ -31481,6 +31491,10 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "function observeOriginalCleanup() {"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "Property access can itself fail."
               }
             ],
             "cancellation": [
@@ -31541,6 +31555,10 @@
               {
                 "path": "adapters/host-node/installed-original-cleanup-observation.test.mjs",
                 "anchor": "for (const variant of ['status unavailable', 'handle replaced during retry']) {"
+              },
+              {
+                "path": "adapters/host-node/installed-original-cleanup-method-capture.test.mjs",
+                "anchor": "for (const property of ['retry', 'status']) {"
               }
             ]
           }
