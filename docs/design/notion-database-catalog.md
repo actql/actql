@@ -341,3 +341,24 @@ The reviewed wrapper and completion protocol is the existing
 and [retrieve property endpoint](https://developers.notion.com/reference/retrieve-a-page-property),
 under the already selected vendor API version. No ActQL version or identity domain
 changes for this implementation.
+
+### Provider-declared query incompleteness
+
+The selected query response's optional `request_status` is admitted by the
+existing Common query-page Owner before any row is exposed. Absent status remains
+valid. A present status has the documented `complete` or `incomplete` type and
+only the optional known `query_result_limit_reached` reason. Unknown or malformed
+status is refused. A declared incomplete result is refused on every page, even
+with `has_more: false` and a null cursor. The vendor may cap a query while
+reporting cursor exhaustion; cursor exhaustion by itself is not completeness.
+The official SDK permits the known reason with either status type, so the
+reason is validated without manufacturing a contradiction or replacing type.
+
+The physical caller consumes only successfully admitted original pages. Failure
+keeps the actual response, original charge tickets, previous child readers and
+unconfirmed cleanup custody. Earlier successful page observations remain
+retained, but a later incomplete response cannot finish the whole acquisition
+or publish that page. This correction introduces no automatic partitioning,
+retry, replacement authorization or permanent product-wide row ceiling. A future
+complete partition strategy still requires its original planning/acquisition
+contract; it is not supplied by rejecting a capped query.

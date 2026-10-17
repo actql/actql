@@ -17,6 +17,7 @@ pub(all) enum NotionQueryIssue {
   SchemaChanged(String)
   InvalidProperty(String)
   UnsupportedEntry(String)
+  IncompleteQuery
 } derive(Eq, Debug)
 
 ///|
@@ -58,6 +59,39 @@ fn query_metadata_text(
     Ok(value) => Ok(value)
     Err(BudgetExceeded) => Err(BudgetExceeded)
     Err(_) => Err(InvalidResponse)
+  }
+}
+
+///|
+// Provider completeness is independent of cursor exhaustion. The vendor status
+// object is optional; present fields retain their exact documented types.
+fn check_query_request_status(
+  root : @decode.ObjectView,
+) -> Result[Unit, NotionQueryIssue] {
+  match @decode.field(root, "request_status") {
+    Missing => Ok(())
+    Present(value) => {
+      guard @decode.closed_object(value, ["type", "incomplete_reason"])
+        is Ok(status) &&
+        @decode.lookup(status, "type") is Some(kind) &&
+        @decode.text(kind) is Ok(kind) else {
+        return Err(InvalidResponse)
+      }
+      match @decode.field(status, "incomplete_reason") {
+        Missing => ()
+        Present(reason) =>
+          if @decode.text(reason) != Ok("query_result_limit_reached") {
+            return Err(InvalidResponse)
+          }
+        _ => return Err(InvalidResponse)
+      }
+      match kind {
+        "complete" => Ok(())
+        "incomplete" => Err(IncompleteQuery)
+        _ => Err(InvalidResponse)
+      }
+    }
+    _ => Err(InvalidResponse)
   }
 }
 
@@ -155,6 +189,12 @@ pub fn project_notion_query_page(
     @decode.lookup(root, "has_more") is Some(has_more) &&
     @decode.boolean(has_more) is Ok(has_more) else {
     return Err(InvalidResponse)
+  }
+  // Refuse a capped query on every response before exposing rows or starting
+  // any dependent property read, even when its terminal cursor is null.
+  match check_query_request_status(root) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   if count > 100 {
     return Err(InvalidResponse)

@@ -94,6 +94,9 @@ async function executeRead(prepared,state){
       await verify(NOTION_DATA_SOURCE_READ_OPERATION);
       if(!response.accepted||response.statusCode!==200)fail('NotionDataSourceReadRejected');
       const metadataLimits=[b.maxResponseBytes,b.maxNodes,b.maxDepth,b.maxDataSources,b.maxProperties,b.maxIdentityBytes,b.maxNameBytes];
+      // The original Common response Owner refuses provider-declared incomplete
+      // or malformed status before any row/property work. Cursor exhaustion
+      // below only ends an already admitted, non-capped query response.
       const page=checked(provider.notionProjectQueryPage(source,response.body,...metadataLimits,b.pageSize,b.maxCursorBytes));
       const metadata=JSON.parse(checked(provider.notionQueryPageMetadataJson(page,b.maxRowsWireBytes,b.maxRowsWireNodes,b.maxRowsWireDepth)));
       if(metadata.ids.length>b.maxTotalRows-totalRows)fail('NotionDataSourceRowLimit');
