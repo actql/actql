@@ -121,5 +121,45 @@ pub fn resolve_client_project_model_task_defaults(
     selection.model,
     tokens,
     max_work,
-  ).map_err(issue => ClientProjectModelTaskSelectionIssue::InvalidDefaults(issue))
+  ).map_err(issue => {
+    ClientProjectModelTaskSelectionIssue::InvalidDefaults(issue)
+  })
+}
+
+///|
+/// The same original selection and installed configuration DATA supply all
+/// normalization inputs. A Host cannot splice a different provider's profile
+/// or re-resolve a current registry while emitting the saved Task materials.
+pub fn normalize_client_project_model_task(
+  selection : ClientProjectModelTaskSelection,
+  registry : ClientProjectModelRegistry,
+  task : @environment.PublicModelTaskDeclaration,
+  defaults : ClientModelProviderDefaults,
+  limits : @environment.ModelTaskLimits,
+) -> Result[@environment.NormalizedPublicModelTask, @environment.ModelTaskIssue] {
+  let root = @environment.public_model_task_declaration_original(task)
+  let resolved = match
+    resolve_client_project_model_task_defaults(
+      selection,
+      registry,
+      task,
+      defaults,
+      limits.max_work,
+    ) {
+    Ok(value) => value
+    Err(_) =>
+      return Err({ kind: @environment.ReferenceMismatch, source: Some(root), })
+  }
+  guard defaults.profile is Some(profile) else {
+    return Err({ kind: @environment.ReferenceMismatch, source: Some(root), })
+  }
+  let work = @environment.resolved_model_provider_defaults_work(resolved)
+  let remaining = { ..limits, max_work: limits.max_work - work, }
+  @environment.normalize_public_model_task(
+    task,
+    profile,
+    resolved,
+    selection.provider,
+    remaining,
+  )
 }
