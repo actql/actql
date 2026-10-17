@@ -2007,9 +2007,14 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
   await setup.publish();
   let pages = 0;
   const acquisitions = [], captures = [];
+  let legacyPreparations = 0;
   const runtime = {...commonMoon,
     clientProgramPrepareSalesforceDeclaredRowAcquisition(...args) {
-      const result = commonMoon.clientProgramPrepareSalesforceDeclaredRowAcquisition(...args);
+      legacyPreparations++;
+      return commonMoon.clientProgramPrepareSalesforceDeclaredRowAcquisition(...args);
+    },
+    clientProgramRowSourcePrepareAcquisition(...args) {
+      const result = commonMoon.clientProgramRowSourcePrepareAcquisition(...args);
       acquisitions.push(result._0);
       return result;
     },
@@ -2032,6 +2037,8 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
   const first = await adapter.open(common);
   const second = await adapter.open(common);
   try {
+    assert.equal(legacyPreparations, 0);
+    assert.equal(acquisitions.length, 2);
     assert.equal(pages, 2);
     assert.equal(typeof await first.issueSourceEvidence({authorityScopeCid: cid('a'),
       effectiveDataPolicyCid: first.checkedSource.sourceDataPolicyCid}), 'string');
