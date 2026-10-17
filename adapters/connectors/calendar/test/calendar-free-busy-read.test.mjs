@@ -1,0 +1,122 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {CalendarFreeBusyReadFailure, createCalendarFreeBusyReader} from '../site/calendar-free-busy-read.mjs';
+import {freeBusyFixture, freeBusyResponse} from './calendar-free-busy.fixture.mjs';
+
+const expectedRows = [
+  {calendar_id:'sales@example.test',start:'2026-10-17T01:00:00.000Z',end:'2026-10-17T01:30:00.000Z'},
+  {calendar_id:'private',start:'2026-10-17T02:00:00.000Z',end:'2026-10-17T02:15:00.000Z'},
+];
+
+test('Calendar free busy actual TLS POST binds original query signed use Account and accounted RowRun',async t=>{
+  const f=await freeBusyFixture(t);const result=await f.read();
+  assert.equal(result.pages,1);assert.equal(result.rowCount,2);assert.deepEqual(f.state.rows,expectedRows);
+  assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);assert.equal(f.state.charges,1);
+  const request=f.state.requests[0];assert.equal(request.path,'/calendar/v3/freeBusy');
+  assert.equal(request.method,'POST');assert.equal(request.authorization,'Bearer calendar-fixture-secret');
+  assert.equal(request.contentType,'application/json');
+  assert.deepEqual(JSON.parse(request.body),{timeMin:'2026-10-17T00:00:00.000Z',timeMax:'2026-10-18T00:00:00.000Z',
+    timeZone:'UTC',calendarExpansionMax:2,items:[{id:'sales@example.test'},{id:'private'}]});
+  assert.equal(f.row.usage()[3],BigInt(result.observations[0].body.length));
+  f.row.finish();assert.equal(f.row.captureCount(),2);
+});
+
+test('Calendar free busy original operation and invalid preparation refuse before physical I/O',async t=>{
+  const f=await freeBusyFixture(t);
+  for(const override of [{names:['foreign']},{names:['start','start']},{current:undefined},
+    {chargeResponse:undefined},{consumePage:undefined},{limits:{...f.options.limits,maxCalendars:51}},
+    {credential:{...f.options.credential,binding:undefined}}]){
+    await assert.rejects(f.read(override),{code:'InvalidCalendarFreeBusyRead'});
+  }
+  await assert.rejects(f.read({initialAuthorization:{...f.options.initialAuthorization,
+    scope:{...f.scope,operation:'calendar:calendars:list'}}}),{code:'ForeignCalendarFreeBusyOperation'});
+  await assert.rejects(f.read({limits:{...f.options.limits,maxBodyBytes:1}}),{code:'CalendarFreeBusyRequestLimit'});
+  await assert.rejects(f.read({authorizationFor:()=>({...f.options.initialAuthorization,
+    scope:{...f.scope,dispatchRequestCid:`sha256:${'d'.repeat(64)}`}})}),
+    error=>error.cause.code==='ForeignCalendarFreeBusyAuthorization');
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);f.row.assertNoCapture();
+});
+
+test('Calendar free busy per-calendar refusal never publishes partial availability and retains exact body',async t=>{
+  const f=await freeBusyFixture(t);const body=freeBusyResponse();body.calendars.private.errors=[{domain:'calendar',reason:'notFound'}];
+  f.state.pages=[JSON.stringify(body)];
+  await assert.rejects(f.read(),error=>{
+    assert.ok(error instanceof CalendarFreeBusyReadFailure);assert.equal(error.observations.length,1);
+    assert.equal(error.observations[0].body.toString(),f.state.pages[0]);return true;
+  });
+  assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
+});
+
+test('Calendar free busy rejected HTTP retains and charges original without retry',async t=>{
+  for(const status of [403,429]){
+    const f=await freeBusyFixture(t);f.state.status=status;
+    await assert.rejects(f.read(),error=>error.cause.code==='CalendarFreeBusyReadRejected'&&
+      error.observations.length===1&&error.observations[0].statusCode===status);
+    assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
+  }
+});
+
+test('Calendar free busy response substitution and whole-row bounds refuse before any row escapes',async t=>{
+  for(const kind of ['calendar','window','rowlimit','precision']){
+    const f=await freeBusyFixture(t);const body=freeBusyResponse();let options={};
+    if(kind==='calendar'){body.calendars.other=body.calendars.private;delete body.calendars.private;}
+    if(kind==='window')body.timeMax='2026-10-19T00:00:00Z';
+    if(kind==='rowlimit')options={limits:{...f.options.limits,maxRows:1}};
+    if(kind==='precision')body.calendars.private.busy[0].start='2026-10-17T02:00:00.0001Z';
+    f.state.pages=[JSON.stringify(body)];
+    await assert.rejects(f.read(options),error=>error.observations.length===1);
+    assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
+  }
+});
+
+test('Calendar free busy current Account is checked before I/O and after original secret resolution',async t=>{
+  const denied=await freeBusyFixture(t,{account:'deny'});
+  await assert.rejects(denied.read(),error=>error.cause.code==='CalendarReadDenied');
+  assert.equal(denied.state.requests.length,0);assert.equal(denied.state.resolutions,0);
+  const changed=await freeBusyFixture(t);changed.state.resolved=()=>changed.writeAccount('deny');
+  await assert.rejects(changed.read(),error=>error.cause.code==='AuthorizationCurrentAccountChanged');
+  assert.equal(changed.state.requests.length,0);assert.equal(changed.state.resolutions,1);changed.row.assertNoCapture();
+});
+
+test('Calendar free busy cancellation after received response retains original cause charge and raw custody',async t=>{
+  const f=await freeBusyFixture(t);const controller=new AbortController(), reason=new Error('owned stop');
+  const charge=f.options.chargeResponse;
+  await assert.rejects(f.read({signal:controller.signal,chargeResponse:async body=>{
+    const original=await charge(body);controller.abort(reason);return original;
+  }}),error=>error.cause===reason&&error.observations.length===1);
+  assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
+});
+
+test('Calendar free busy snapshots implementation limits and callbacks once across secret await',async t=>{
+  const f=await freeBusyFixture(t);const moon={...f.options.moon},limits={...f.options.limits};
+  const options={...f.options,moon,limits,names:['start']};
+  let reads=0;const original=moon.calendarProjectFreeBusy;
+  Object.defineProperty(moon,'calendarProjectFreeBusy',{get(){reads++;return reads===1?original:()=>{throw new Error('second read');};}});
+  f.state.resolved=async()=>{limits.maxRows=1;options.current=()=>{throw new Error('replaced current');};
+    options.names[0]='foreign';moon.calendarFreeBusyRowsWire=()=>{throw new Error('replaced implementation');};};
+  const result=await f.read(options);assert.equal(reads,1);assert.equal(result.rowCount,2);assert.deepEqual(f.state.rows,expectedRows);
+  f.row.finish();assert.equal(f.row.captureCount(),2);
+});
+
+test('Calendar free busy original reader read-once and retained observation never assert cleanup',async t=>{
+  const f=await freeBusyFixture(t);const reader=createCalendarFreeBusyReader(f.options);
+  const result=await reader.read();assert.equal(result.rowCount,2);
+  assert.deepEqual(reader.observe(),{phase:'succeeded',stopRequested:false,receivedResponses:1,
+    receivedBodyBytes:BigInt(result.observations[0].body.length),observationCustody:'retained',cleanupConfirmed:false});
+  reader.requestStop(new Error('same original stop'));
+  assert.equal(reader.observe().cleanupConfirmed,false);assert.equal(reader.observe().stopRequested,true);
+  await assert.rejects(reader.read(),{code:'CalendarFreeBusyReaderAlreadyStarted'});
+  const copied={...reader};await assert.rejects(copied.read(),{code:'ForeignCalendarFreeBusyReader'});
+  assert.throws(()=>copied.observe(),{code:'ForeignCalendarFreeBusyReader'});
+  assert.throws(()=>copied.requestStop(),{code:'ForeignCalendarFreeBusyReader'});
+  assert.equal(f.state.requests.length,1);f.row.finish();assert.equal(f.row.captureCount(),2);
+});
+
+test('Calendar free busy lost POST reply keeps same journal use Unknown with no resend or new resolution',async t=>{
+  const f=await freeBusyFixture(t);f.state.beforeResponse=(request)=>request.socket.destroy();
+  await assert.rejects(f.read(),error=>error.cause.code==='ECONNRESET');
+  const original=f.journal.recover()[0];assert.equal(original.outcome,'unknown');
+  await assert.rejects(f.read(),error=>error.cause.code==='RemoteCredentialUseAlreadyClaimed');
+  assert.equal(f.journal.recover()[0].useCid,original.useCid);assert.equal(f.journal.recover()[0].outcome,'unknown');
+  assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);assert.equal(f.state.charges,0);f.row.assertNoCapture();
+});
