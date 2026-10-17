@@ -37,6 +37,13 @@
           "async": false
         },
         {
+          "name": "installedConnectors/installedConnectors/installedConnectors#12",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
           "name": "installedConnectors/installedConnectors/installedConnectors#2",
           "parameters": [
             "module"
@@ -103,6 +110,11 @@
           "async": false
         },
         {
+          "name": "installedConnectors/installedConnectors#12",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedConnectors/installedConnectors#2",
           "parameters": [],
           "async": false
@@ -164,6 +176,8 @@
             "installedConnectors/installedConnectors",
             "installedConnectors/installedConnectors/installedConnectors",
             "installedConnectors/installedConnectors/installedConnectors#10",
+            "installedConnectors/installedConnectors/installedConnectors#11",
+            "installedConnectors/installedConnectors/installedConnectors#12",
             "installedConnectors/installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors/installedConnectors#4",
@@ -173,6 +187,8 @@
             "installedConnectors/installedConnectors/installedConnectors#8",
             "installedConnectors/installedConnectors/installedConnectors#9",
             "installedConnectors/installedConnectors#10",
+            "installedConnectors/installedConnectors#11",
+            "installedConnectors/installedConnectors#12",
             "installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors#4",
@@ -180,9 +196,7 @@
             "installedConnectors/installedConnectors#6",
             "installedConnectors/installedConnectors#7",
             "installedConnectors/installedConnectors#8",
-            "installedConnectors/installedConnectors#9",
-            "installedConnectors/installedConnectors/installedConnectors#11",
-            "installedConnectors/installedConnectors#11"
+            "installedConnectors/installedConnectors#9"
           ],
           "exports": [
             "installedConnectors"

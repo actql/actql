@@ -31,7 +31,7 @@ export const labelListReadLimits = Object.freeze({maxResponseBytes:4096,maxNodes
 export const labelListResponse = () => ({labels:[{id:'INBOX',name:'Inbox',type:'system'},
   {id:'Label_1',name:'顧客 / é 📩',type:'user'}]});
 
-async function rowOwner(verifyOriginalTransport, factsWire, format, selection) {
+export async function labelListRowOwner(verifyOriginalTransport, factsWire, format, selection) {
   const wire = '{"id":{"nullable":false,"type":"string"},"name":{"nullable":false,"type":"string"},"type":{"nullable":false,"type":"string"}}';
   assert.deepEqual(JSON.parse(wire),labelListRowSchema);
   assert.equal(checked(provider.gmailLabelListSchemaWire(2048,100,8)),wire);
@@ -135,7 +135,7 @@ export async function labelListFixture(t, {account = 'allow', factsWire = '{"rel
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('GmailReadDenied'),{code:'GmailReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return state.secret;}};
   binding=openHttpsCredentialBinding({...credential,scope,maxSecretBytes:128});
-  if(accounted)row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed', factsWire, format, selection);
+  if(accounted)row=await labelListRowOwner(() => closeHttpsCredentialBinding(binding)==='closed', factsWire, format, selection);
   const initialAuthorization={grant,scope,useId:'initial'};
   const options={moon:provider,mailbox:'support+box@example.test',names:['name'],initialAuthorization,
     credential:{...credential,binding},limits:labelListReadLimits,current,
