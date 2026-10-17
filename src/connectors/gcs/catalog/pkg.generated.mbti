@@ -22,6 +22,8 @@ pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollection
 
 pub fn check_object_metadata_patch_input(ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, ObjectRequestIssue]
 
+pub fn classify_object_mutation_response(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes) -> Result[ObjectMutationOutcome, ObjectRequestIssue]
+
 pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]
 
 pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]
@@ -79,6 +81,10 @@ pub fn object_mutation_path(ObjectMutationRequest) -> String
 pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]
 
 pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?
+
+pub fn object_mutation_response_matches(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Bool
+
+pub fn object_mutation_response_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes, Int) -> Result[String, ObjectRequestIssue]
 
 pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]
 
@@ -206,6 +212,12 @@ pub struct ObjectMutationBinding {
 pub(all) enum ObjectMutationKind {
   PatchMetadata
   DeleteObject
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ObjectMutationOutcome {
+  Applied
+  Conflict
+  Unknown
 } derive(Eq, @debug.Debug)
 
 pub struct ObjectMutationRequest {

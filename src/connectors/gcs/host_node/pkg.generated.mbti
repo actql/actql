@@ -71,6 +71,10 @@ pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.Objec
 
 pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]
 
+pub fn gcs_object_response_matches(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Bool
+
+pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]
+
 pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]
 
 pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]

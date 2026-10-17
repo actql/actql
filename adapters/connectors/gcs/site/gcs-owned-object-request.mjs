@@ -352,6 +352,9 @@ export function recheckOwnedGcsObjectRequest(request, current, binding) {
 // receipt. A lost DELETE reply cannot be repaired by observing object absence.
 export function ownedGcsObjectResponseMatches(request, metadata, binding) {
   const original = originalRequest(request, binding);
+  if (typeof original.moon?.gcsObjectResponseMatches !== 'function') {
+    fail('GcsObjectResponseProjectionUnavailable');
+  }
   return original.moon.gcsObjectResponseMatches(binding ?? original.binding,
     original.handle, metadata);
 }
@@ -361,6 +364,9 @@ export function ownedGcsObjectResponseMatches(request, metadata, binding) {
 // No service read, retry, claim, outcome commit or cleanup ACK occurs here.
 export function projectOwnedGcsObjectResponse(request, observation, maxProjectionBytes) {
   const original = originalRequest(request);
+  if (typeof original.moon?.gcsObjectResponseProjection !== 'function') {
+    fail('GcsObjectResponseProjectionUnavailable');
+  }
   if (!integer(maxProjectionBytes)) fail('InvalidGcsObjectAbiLimits');
   const status = observation?.statusCode, body = observation?.body;
   if (!Number.isInteger(status) || status < 100 || status > 599) {

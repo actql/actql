@@ -23,18 +23,18 @@ const answer = changes => Buffer.from(JSON.stringify({bucket: 'bucket', name: 'i
   generation: '9007199254740993', metageneration: '3', size: '7', contentType: 'text/csv',
   metadata: {'e\u0301': '=exact\r\n', 'actql-request': token('d')}, ...changes}));
 
-function requestOf(kind) {
-  const binding = prepareGcsObjectBinding(provider, {kind, bucket: 'bucket', prefix: 'in/',
+function requestOf(kind, moon = provider) {
+  const binding = prepareGcsObjectBinding(moon, {kind, bucket: 'bucket', prefix: 'in/',
     catalogCid: token('a'), installationCid: token('b'), contractCid: token('c'),
     permissions: [kind === 'patch_metadata' ? 'storage.objects.update' : 'storage.objects.delete'],
     metadata, maxPathBytes: 4096, maxBodyBytes: 8192, maxIdentityBytes: 16384});
-  const original = admitGcsObjectMetadata(provider, {bytes: originalBody, bucket: 'bucket',
+  const original = admitGcsObjectMetadata(moon, {bytes: originalBody, bucket: 'bucket',
     prefix: 'in/', name: 'in/e\u0301.csv', limits: metadata});
   const request = kind === 'patch_metadata'
-    ? prepareOwnedGcsEffectMetadataPatch({moon: provider, binding, original,
+    ? prepareOwnedGcsEffectMetadataPatch({moon, binding, original,
       value: {content_type: 'text/csv', metadata: {$json: {'e\u0301': '=exact\r\n'}}},
       marker: token('d'), maxProjectionBytes: 8192})
-    : prepareOwnedGcsObjectDelete({moon: provider, binding, original, maxProjectionBytes: 8192});
+    : prepareOwnedGcsObjectDelete({moon, binding, original, maxProjectionBytes: 8192});
   return {binding, original, request};
 }
 
@@ -71,6 +71,17 @@ test('original DELETE classifies only direct empty 204 and conditional 412 witho
   assert.deepEqual(projectOwnedGcsObjectResponse(request, {statusCode: 412, body: Buffer.from('{}')}, 1024),
     {kind: 'typed-failure-response', outcome: {state: 'failed', error: {
       code: 'conflict', message: 'The original GCS object precondition failed'}}});
+});
+
+test('missing mutation response ABI refuses without classifying or replacing the original request', () => {
+  const {request, original} = requestOf('patch_metadata', {...provider,
+    gcsObjectResponseProjection: undefined, gcsObjectResponseMatches: undefined});
+  assert.throws(() => projectOwnedGcsObjectResponse(request, {statusCode: 200, body: answer()}, 1024),
+    {code: 'GcsObjectResponseProjectionUnavailable'});
+  assert.throws(() => ownedGcsObjectResponseMatches(request, original),
+    {code: 'GcsObjectResponseProjectionUnavailable'});
+  assert.equal(request.method, 'PATCH');
+  assert.match(request.request_cid, /^sha256:[0-9a-f]{64}$/u);
 });
 
 async function fixture(t, kind) {
