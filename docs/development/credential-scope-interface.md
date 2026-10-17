@@ -480,3 +480,46 @@ The component TLS fixture routes the fixed Google HTTP/TLS server name only to
 its own local server; it uses actual RSA, Common, signed Journal and SQLite while
 issuing no live Google request or installed material authority. That qualification
 does not establish ordinary installed or public authentication acceptance.
+
+### Same-journal installation metadata admission
+
+The existing SQLite Credential Journal selects the closed
+`installation-metadata` control explicitly. Its frozen named grant projection
+retains the same control's original Subject and Scope tokens. The Common
+control checks their membership and same-Subject correspondence; JSON, equal
+CIDs, inherited fields, copied tokens or a legacy array do not substitute those
+originals. The original Run control still uses its exact 17-member projection,
+and both controls retain the existing four-member use projection. Unknown
+control purposes are refused, rather than interpreted as the Run layout.
+
+Signature admission still uses the existing configured issuer/public-key map
+and canonical Common signature reader. The existing tables, bounds,
+transactions, use ordinals, revocation, outcome and close protocol do not
+change. The actual signature-admitted claim grant remains beside its original
+use. Reopening the same Journal does not refund an already claimed or Unknown
+use or make a replay eligible for another physical send. A lost COMMIT reply
+retains the existing typed uncertainty and original cause; it does not trigger
+an automatic second acceptance or claim.
+
+This admission is not an operational Host preparation, Account authorization,
+current Site/material observation, egress decision or resource grant. Each
+metadata operation still needs its own original occurrence and actual current
+authority. The trusted Host must retain the actual publication request and
+original declaration/database selection; later query/property reads use their
+own authority. Retaining signed DATA does not restore a retired preparation or
+create a new request for an old Run.
+
+The named projection, its own-property descriptors, six-field snapshot and
+Common Subject/Scope field projections overlap the original grant/wire,
+signature, original tokens and prepared transaction state. These are bounded
+DATA workspaces, not an adopted normal numerical profile. The existing
+Journal remains the sole persistence/claim Owner; the actual Host/Site and
+resource suppliers retain their independent duties.
+
+The actual Common/SQLite counters are in
+`adapters/site-node/installation-metadata-credential-journal.integration.test.mjs`.
+They exercise original operation correspondence, copied/foreign refusal,
+purpose separation, durable claim/Unknown/reopen, expiry/revocation and COMMIT
+uncertainty. Explicit fixture Subjects and signing keys do not prove physical
+metadata acquisition, installed authentication or the complete publication to
+Run recovery path.
