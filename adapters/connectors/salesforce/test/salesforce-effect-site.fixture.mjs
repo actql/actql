@@ -95,6 +95,8 @@ export async function openSalesforceEffectSiteFixture(t, {
   // Number(16,2) `Wide_Amount__c` in the same Decimal Contract domain. Stored records and
   // target reads carry `numberValues`.
   numberFields = false,
+  // Original Describe native kind; the default Number fixture is unchanged.
+  numberNativeType = 'double',
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
   // An HTTP status selected query requests answer with instead of rows.
@@ -304,10 +306,10 @@ export async function openSalesforceEffectSiteFixture(t, {
             nillable: true, defaultedOnCreate: false, createable: true,
             updateable: true}] : []),
           ...(numberFields ? [
-            {name: 'Amount__c', type: 'double', precision: 15, scale: 2,
+            {name: 'Amount__c', type: numberNativeType, precision: 15, scale: 2,
               nillable: true, defaultedOnCreate: false, createable: true,
               updateable: true},
-            {name: 'Wide_Amount__c', type: 'double', precision: 16,
+            {name: 'Wide_Amount__c', type: numberNativeType, precision: 16,
               scale: 2, nillable: true, defaultedOnCreate: false,
               createable: true, updateable: true},
           ] : []),

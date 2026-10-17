@@ -103,7 +103,7 @@ fn admit_datetime_cell(
 }
 
 ///|
-/// A Salesforce Number (`double`) cell: the value the reply's JSON number
+/// A Salesforce Number, Currency or Percent cell: the value the reply's JSON number
 /// text denotes is admitted as the declared `decimal(P,S)`, computed from
 /// the text's digits, not through binary64. `finite_number` only checks that
 /// the cell is a JSON number; its binary64 result is not used. Text that is
@@ -125,7 +125,7 @@ fn admit_decimal_cell(
       ),
     )
   }
-  guard double_decimal(field) is Some((precision, scale)) &&
+  guard described_decimal(field) is Some((precision, scale)) &&
     source_lexeme(source, cursor) is Some(lexeme) else {
     return Err(InvalidResponse)
   }
@@ -315,7 +315,8 @@ pub fn project_query_page(
           let admitted = if field.native_type == "datetime" &&
             !@decode.is_null(value) {
             admit_datetime_cell(value, contract, field.name, budget)
-          } else if field.native_type == "double" && !@decode.is_null(value) {
+          } else if described_decimal_type(field.native_type) &&
+            !@decode.is_null(value) {
             admit_decimal_cell(value, bytes, field, contract, budget)
           } else {
             admit_query_cell(value, contract, field.name, budget)
