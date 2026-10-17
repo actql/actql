@@ -207,3 +207,36 @@ there is no resend, fresh assertion or reconstruction from current config for
 that same use. Token issuance grants no API rights. A physical or installed
 acceptance receipt must prove these connections independently of the pure
 signature/reference controls.
+
+### Private Google token-response projection
+
+The Google vendor codec in
+`src/connectors/google_service_account/catalog/token_response.mbt` reads a
+received token response through the existing strict, bounded source JSON and
+decode owners. Its private Node projection is for the physical Credential
+supplier, never a Connector-visible Result or token-bearing diagnostic. It
+requires HTTP 200, an explicit Bearer token type, a nonempty header-safe token,
+and a positive, bounded integer `expires_in`. Error envelopes refuse even if
+they also contain success fields. Duplicate decoded JSON keys, malformed UTF8,
+unknown-depth and oversized extension trees refuse before token material is
+returned. Unknown OAuth extension members are ignored only after the complete
+response passes the same byte, node, depth and string admission.
+
+An optional response `scope` is observed as an ordered, unique token array;
+absence remains absent. The codec neither substitutes requested scopes nor
+authorizes a scope appearing in the response. The trusted original issuer must
+check correspondence with its declared dependency. The advertised lifetime is
+not an expiry decision: the physical owner applies its trusted clock and the
+original parent, material, grant, request and current-authority deadlines. No
+default duration, clock, refresh, retry, additional request or grant is created.
+Non-200, malformed or rejected responses do not settle an earlier lost reply;
+the original journal and Unknown semantics remain independent of this codec.
+
+The private response object retains token and optional scope strings. Parsing
+can overlap the original complete response, strict source tree, decode index,
+UTF8 strings and scope array; projection returns the same token string and a
+fresh scope-array wrapper. The installer must fund and retain these with its
+original transport response, material, signing and API lifetime. Local codec
+ceilings are not a normal capacity declaration, physical retirement, release
+ACK or proof that a token is no longer reachable. There is no disposal shortcut
+or public JSON serialization of this material.
