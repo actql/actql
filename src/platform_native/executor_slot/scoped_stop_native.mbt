@@ -56,6 +56,7 @@ struct NativeScopedExecutorHolder {
   mut child : NativeExecutorSlotChild?
   mut channel : NativeHolderChannel?
   mut duplex : NativeScopedDuplexTransport?
+  mut child_launch : NativeScopedDuplexChildLaunch?
   mut input : Int
   mut output : Int
   mut partial_close_unknown : Bool
@@ -130,6 +131,7 @@ pub fn NativeExecutorSlot::prepare_scoped_holder(
     child: None,
     channel: None,
     duplex: None,
+    child_launch: None,
     input: -1,
     output: -1,
     partial_close_unknown: false,
@@ -344,6 +346,10 @@ pub fn NativeScopedExecutorStop::require_current(
   if !scoped_stop_transport_closed(self.transport) {
     return Err(Busy)
   }
+  if expected.child_launch is Some(launch) &&
+    selected_child_closed_ffi(launch.resource) != 0 {
+    return Err(Busy)
+  }
   let path = @utf8.encode(self.original.path)
   let status = scoped_anchor_current_ffi(self.anchor, path, path.length(), 1)
   if status == 0 {
@@ -412,13 +418,18 @@ pub fn NativeScopedExecutorHolder::cleanup(
 fn NativeScopedExecutorHolder::retire_unstarted_transport(
   self : NativeScopedExecutorHolder,
 ) -> Result[Unit, NativeExecutorSlotIssue] {
-  if self.duplex is Some(transport) {
+  let duplex_closed = if self.duplex is Some(transport) {
     if transport.borrowed is Some(borrowed) && !borrowed.returned {
       return Err(Busy)
     }
-    if !transport.cleanup_unstarted(self) {
-      return Err(LockFailed)
-    }
+    transport.cleanup_unstarted(self)
+  } else {
+    true
+  }
+  let child_closed = if self.child_launch is Some(launch) {
+    selected_child_close_ffi(launch.resource) == 0
+  } else {
+    true
   }
   if self.output >= 0 {
     let original = self.output
@@ -434,7 +445,10 @@ fn NativeScopedExecutorHolder::retire_unstarted_transport(
       self.partial_close_unknown = true
     }
   }
-  if self.partial_close_unknown || self.parent_close_unknown {
+  if !duplex_closed ||
+    !child_closed ||
+    self.partial_close_unknown ||
+    self.parent_close_unknown {
     return Err(LockFailed)
   }
   Ok(())
