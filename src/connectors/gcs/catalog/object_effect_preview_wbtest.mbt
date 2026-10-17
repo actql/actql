@@ -86,7 +86,9 @@ test "GCS target Preview keeps changed-field omission missing metadata and empty
 test "GCS target Preview binds protocol NULL to empty without changing intended SET" {
   let binding = mutation_binding()
   let missing = metadata_read(
-    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"2","size":"7"}
+    (
+      #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"2","size":"7"}
+    ),
   ).unwrap()
   let request = prepare_object_metadata_patch_value_wire(
     binding,
@@ -100,7 +102,9 @@ test "GCS target Preview binds protocol NULL to empty without changing intended 
       "\"after\":{\"content_type\":\"text/csv\",\"metadata\":{\"$json\":{}}}",
     ),
   )
-  assert_true(wire.contains("\"before\":{\"content_type\":null,\"metadata\":null}"))
+  assert_true(
+    wire.contains("\"before\":{\"content_type\":null,\"metadata\":null}"),
+  )
   assert_true(wire.contains("\"value\":{\"content_type\":\"text/csv\"}"))
   assert_eq(request.authored_changes, "{\"content_type\":\"text/csv\"}")
   assert_eq(
@@ -115,7 +119,9 @@ test "GCS target Preview binds protocol NULL to empty without changing intended 
     b"{}",
     mutation_marker(),
   ).unwrap()
-  let wire = object_metadata_patch_effect_target_json(binding, marker_only, 8192).unwrap()
+  let wire = object_metadata_patch_effect_target_json(
+    binding, marker_only, 8192,
+  ).unwrap()
   assert_true(wire.contains("\"before\":{\"metadata\":null}"))
   assert_true(wire.contains("\"after\":{\"metadata\":{\"$json\":{}}}"))
   assert_true(wire.contains("\"value\":{}"))
