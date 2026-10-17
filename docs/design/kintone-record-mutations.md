@@ -335,3 +335,30 @@ existing Effect Owner must recheck the original target/version before claim.
   request and locator expectations do not derive from product output. The
   shared response fixture has separate explicit component units; it confers no
   Preview, approved write, live service or normal-profile acceptance.
+
+### Original native write values
+
+The Catalog prepares bounded native field-value DATA from the original Form
+and Common checked cells. It preserves exact field codes, text, selection
+order and duplicates. User, department and group selections project the same
+logical codes into native `code` members; display names are not identifiers.
+Date and Timestamp retain their logical types. Native Timestamp writes require
+whole-second representability; fractional milliseconds are refused rather
+than truncated. Explicit dropdown/date/timestamp null remains a clear request.
+An empty dropdown string cannot represent the same logical string after a
+native read. Radio-button empty strings select the provider default, and radio
+null has no empty write representation, so these inputs are refused before I/O.
+The [provider field contract](https://kintone.dev/en/docs/kintone/overview/field-types/)
+remains the source for these adaptations and its separate validation still
+applies to all supplied options and codes.
+
+This document is held beside the original Form and original checked values.
+It supplies no Resource identity, approval, current authority, dispatch claim,
+revision or provider result. Omitted fields stay omitted. Read-only/process and
+privileged create-only metadata are not ordinary update fields. Number storage
+history, Time, original subtable rows and issued Content remain separate
+carrier/original obligations; this connection does not replace them with text,
+Double, current display settings, guessed row IDs or raw file keys. Required
+create fields and original target/revision correspondence must be checked at
+the subsequent existing request and Effect boundaries. No installed or live
+provider round-trip is inferred from DATA encoding and independent read tests.

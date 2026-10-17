@@ -339,3 +339,61 @@ test "write encoding bounds the whole field inventory and retains no partial doc
     is Err(InvalidValue("memo")),
   )
 }
+
+///|
+test "independent native response returns the same typed carriers through the original read owner" {
+  let catalog = write_test_catalog()
+  let date = @contract.primitive(@contract.DateType, nullable=true)
+  let timestamp = @contract.primitive(@contract.TimestampType, nullable=true)
+  let write = prepare_record_write_values(
+    catalog,
+    [
+      ("text", write_text("é\r\n")),
+      (
+        "drop",
+        write_checked(
+          "null",
+          @contract.primitive(@contract.StringType, nullable=true),
+        ),
+      ),
+      ("date", write_checked("\"2024-02-29\"", date)),
+      ("stamp", write_checked("\"2026-10-17T01:02:03.000Z\"", timestamp)),
+      ("users", write_array("[\"u2\",\"u1\",\"u2\"]")),
+    ],
+    write_test_limits(),
+  ).unwrap()
+  assert_eq(
+    record_write_values_body(write),
+    "{\"text\":{\"value\":\"é\\r\\n\"},\"drop\":{\"value\":null},\"date\":{\"value\":\"2024-02-29\"},\"stamp\":{\"value\":\"2026-10-17T01:02:03Z\"},\"users\":{\"value\":[{\"code\":\"u2\"},{\"code\":\"u1\"},{\"code\":\"u2\"}]}}",
+  )
+  // Independent native response bytes, not expectations derived from write.
+  let bytes = @utf8.encode(
+    (
+      #|{"records":[{"$id":{"type":"__ID__","value":"9007199254740993"},"$revision":{"type":"__REVISION__","value":"9"},"text":{"type":"SINGLE_LINE_TEXT","value":"e\u0301\r\n"},"drop":{"type":"DROP_DOWN","value":null},"date":{"type":"DATE","value":"2024-02-29"},"stamp":{"type":"DATETIME","value":"2026-10-17T01:02:03Z"},"users":{"type":"USER_SELECT","value":[{"code":"u2","name":"second"},{"code":"u1","name":"first"},{"code":"u2","name":"second"}]}}],"totalCount":null}
+    ),
+  )
+  let page = project_record_page(
+    bytes,
+    catalog,
+    ["text", "drop", "date", "stamp", "users"],
+    record_test_limits(),
+  ).unwrap()
+  let checked = project_checked_record_page(page, None, values_test_limits()).unwrap()
+  let rows = checked_record_rows(checked)
+  assert_true(rows[0][0].value is @admitted.Text("9007199254740993"))
+  assert_true(rows[0][1].value is @admitted.Text("é\r\n"))
+  assert_true(rows[0][2].value is @admitted.Null)
+  assert_true(rows[0][3].value is @admitted.Date("2024-02-29"))
+  assert_true(
+    rows[0][4].value is @admitted.Timestamp("2026-10-17T01:02:03.000Z"),
+  )
+  guard rows[0][5].value is @admitted.Array(users) else {
+    abort("expected users")
+  }
+  assert_eq(@admitted.elements(users), [
+    @admitted.Text("u2"),
+    @admitted.Text("u1"),
+    @admitted.Text("u2"),
+  ])
+  assert_true(record_write_values_match_catalog(write, catalog))
+}
