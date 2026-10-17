@@ -13990,7 +13990,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:76162cd46e2b4e58026d47e32b02b3773d9b588d98abd1a529f6ceae0ec76f07",
+  "artifact_registry_cid": "sha256:91849cecfa9c98be1bd43feea4072d21e9347b9a63977f086e0710713eaef277",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -14004,8 +14004,8 @@
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:83add51a9d2c3aa700d512b226f2931e0075304afab4a08e9b32c4da3a31c772",
-    "review_projection": "sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2",
+    "effect_preview": "sha256:d61a28ce5eb88ef7195d0557114339c53af92d93878e1c816882f13720cb208d",
+    "review_projection": "sha256:99680abc66cdaa569fb44ac546fd1f814ed128e5d1ed3002d38d3a885acfe87b",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
     "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
@@ -42858,6 +42858,52 @@
                         "minLength": 1
                       }
                     }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$actql_ref",
+                      "version",
+                      "resource_kind",
+                      "provider_namespace",
+                      "provider_identity_cid",
+                      "authority_scope_cid",
+                      "boundary_cid",
+                      "identity_cid"
+                    ],
+                    "properties": {
+                      "$actql_ref": {
+                        "const": "resource"
+                      },
+                      "version": {
+                        "const": "actql-resource-ref/0.1"
+                      },
+                      "resource_kind": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_namespace": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "authority_scope_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "boundary_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
                   }
                 ]
               },
@@ -43392,6 +43438,52 @@
                             "minLength": 1
                           }
                         }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "$actql_ref",
+                          "version",
+                          "resource_kind",
+                          "provider_namespace",
+                          "provider_identity_cid",
+                          "authority_scope_cid",
+                          "boundary_cid",
+                          "identity_cid"
+                        ],
+                        "properties": {
+                          "$actql_ref": {
+                            "const": "resource"
+                          },
+                          "version": {
+                            "const": "actql-resource-ref/0.1"
+                          },
+                          "resource_kind": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_namespace": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_identity_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "authority_scope_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "boundary_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "identity_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          }
+                        }
                       }
                     ]
                   },
@@ -43506,7 +43598,76 @@
                 ]
               },
               "before": {},
-              "after": {}
+              "after": {},
+              "preview_strength": {
+                "enum": [
+                  "full_diff",
+                  "targeted"
+                ]
+              },
+              "target_guard": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state",
+                      "version_cid"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "version"
+                      },
+                      "version_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "not_applicable"
+                      }
+                    }
+                  }
+                ]
+              },
+              "intended_changes": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state",
+                      "value"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "present"
+                      },
+                      "value": {}
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "not_applicable"
+                      }
+                    }
+                  }
+                ]
+              }
             }
           }
         },
