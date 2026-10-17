@@ -215,10 +215,14 @@ pub fn read_public_model_task_document(
   limits : ModelTaskLimits,
 ) -> Result[PublicModelTaskDeclaration, ModelTaskIssue] {
   if (format != "json" && format != "yaml") ||
-    limits.max_work < 0 || limits.bodies.max_bytes < 0 ||
-    limits.bodies.max_nodes < 0 || limits.bodies.max_depth < 0 ||
-    limits.bodies.max_members < 0 || limits.contracts.max_nodes < 0 ||
-    limits.contracts.max_depth < 0 || limits.contracts.max_text_bytes < 0 {
+    limits.max_work < 0 ||
+    limits.bodies.max_bytes < 0 ||
+    limits.bodies.max_nodes < 0 ||
+    limits.bodies.max_depth < 0 ||
+    limits.bodies.max_members < 0 ||
+    limits.contracts.max_nodes < 0 ||
+    limits.contracts.max_depth < 0 ||
+    limits.contracts.max_text_bytes < 0 {
     return Err({ kind: InvalidLimits, source: None, })
   }
   let bytes = match @scalar.admit_utf8_length(wire, limits.bodies.max_bytes) {
@@ -232,30 +236,35 @@ pub fn read_public_model_task_document(
     }
     remaining_work -= amount
   }
-  let parse_limits = {
+  let parse_limits : @source.ParseLimits = {
     max_input_bytes: limits.bodies.max_bytes,
     max_nodes: limits.bodies.max_nodes,
     max_depth: limits.bodies.max_depth,
   }
-  let source = match
-    if format == "json" {
-      @source.parse_json_bytes_preserving(@utf8.encode(wire), parse_limits)
-    } else {
-      @source.parse_yaml_bytes_preserving(@utf8.encode(wire), parse_limits)
-    } {
+  let parsed = if format == "json" {
+    @source.parse_json_bytes_preserving(@utf8.encode(wire), parse_limits)
+  } else {
+    @source.parse_yaml_bytes_preserving(@utf8.encode(wire), parse_limits)
+  }
+  let source = match parsed {
     Ok(value) => value
     Err(_) => return Err({ kind: InvalidBody, source: None, })
   }
-  let cursor = match @decode.admit(source, {
-    max_nodes: limits.bodies.max_nodes,
-    max_depth: limits.bodies.max_depth,
-    max_string_bytes: limits.bodies.max_bytes,
-    max_total_string_bytes: limits.bodies.max_bytes,
-  }) {
+  let cursor = match
+    @decode.admit(source, {
+      max_nodes: limits.bodies.max_nodes,
+      max_depth: limits.bodies.max_depth,
+      max_string_bytes: limits.bodies.max_bytes,
+      max_total_string_bytes: limits.bodies.max_bytes,
+    }) {
     Ok(value) => value
     Err(_) => return Err({ kind: BodyLimit, source: None, })
   }
-  read_public_model_task_declaration(cursor, { ..limits, max_work: remaining_work, }).map(value => {
-    { ..value, work: value.work + (limits.max_work - remaining_work), }
+  read_public_model_task_declaration(cursor, {
+    ..limits,
+    max_work: remaining_work,
+  }).map(value => {
+    ..value,
+    work: value.work + (limits.max_work - remaining_work),
   })
 }
