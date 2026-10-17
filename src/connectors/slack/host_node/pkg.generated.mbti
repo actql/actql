@@ -8,7 +8,11 @@ import {
 // Values
 pub fn slack_project_user_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackUserListPage, @catalog.SlackUserListIssue]
 
+pub fn slack_project_workspace_identity(Bytes, Int, Int, Int, Int) -> Result[@catalog.SlackWorkspaceIdentity, @catalog.SlackUserListIssue]
+
 pub fn slack_user_list_column_names() -> Array[String]
+
+pub fn slack_user_list_ids(@catalog.SlackUserListPage) -> Array[String]
 
 pub fn slack_user_list_metadata_json(@catalog.SlackUserListPage) -> String
 
@@ -17,6 +21,8 @@ pub fn slack_user_list_relation_facts_wire() -> String
 pub fn slack_user_list_rows_wire(@catalog.SlackUserListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.SlackUserListIssue]
 
 pub fn slack_user_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.SlackUserListIssue]
+
+pub fn slack_workspace_identity_matches(@catalog.SlackWorkspaceIdentity, String) -> Bool
 
 // Errors
 
