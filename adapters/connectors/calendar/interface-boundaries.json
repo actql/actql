@@ -1,0 +1,866 @@
+{
+  "qualification": "existing Calendar Owner source-reference coverage; not normal acquisition, capacity, physical cleanup, credential mint or installed acceptance",
+  "source": "666d7858cb5e26b7c39609b1dee723a9be3aba15",
+  "declarations": [
+    {
+      "module": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+      "sha256": "ad5b3dbdf5cfb0b32f8e551ef9f8a318f696496d38e068f4ea13cbfe311ddef3",
+      "exports": [
+        "CALENDAR_LIST_OPERATION",
+        "CalendarListReadFailure",
+        "createCalendarListReader",
+        "readCalendarList"
+      ],
+      "operations": [
+        {
+          "name": "CalendarListReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCalendarListReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCalendarListReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCalendarListReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createCalendarListReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCalendarListReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeCalendarListRead",
+          "parameters": [
+            "provider",
+            "context",
+            "selected",
+            "signal",
+            "received"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeCalendarListRead/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeCalendarListRead/verify/verify",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarListRead",
+          "parameters": [
+            "moon",
+            "names",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumePage",
+            "signal",
+            "callResource"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarListRead/prepareCalendarListRead",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarListRead/prepareCalendarListRead#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarListRead/prepareCalendarListRead#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarListRead/prepareCalendarListRead#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarListRead/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readCalendarList",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Calendar catalog and physical sequencer; Common RowRun/Account/Credential retain execution, reservation and cleanup authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "executeCalendarListRead",
+            "executeCalendarListRead/response/response",
+            "executeCalendarListRead/verify/verify",
+            "fail/fail",
+            "positive/positive",
+            "prepareCalendarListRead",
+            "prepareCalendarListRead/prepareCalendarListRead",
+            "prepareCalendarListRead/prepareCalendarListRead#2",
+            "prepareCalendarListRead/prepareCalendarListRead#3",
+            "prepareCalendarListRead/prepareCalendarListRead#4",
+            "prepareCalendarListRead/provider/provider",
+            "readCalendarList"
+          ],
+          "exports": [
+            "CALENDAR_LIST_OPERATION",
+            "readCalendarList"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "async function executeCalendarListRead"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Originals and overlap"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "await verify()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "throw new CalendarListReadFailure(cause, observations)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Lifetime and cleanup"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "fn calendar_list_columns()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "anchor": "actual Calendar TLS pages use original signed grants Account and one accounted RowRun"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "CalendarListReadFailure/constructor:constructor/constructor:constructor"
+          ],
+          "exports": [
+            "CalendarListReadFailure"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "export class CalendarListReadFailure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "constructor(cause, observations)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "super('CalendarListReadFailed', {cause})"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Their frozen arrays are shallow"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous wrapping preserves the original cause/body references; it does not stop or acknowledge the original I/O."
+            },
+            "failure": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "Object.freeze(observations.slice())"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Wrapping neither initiates nor clears cancellation; the original cause and caller cleanup responsibility remain."
+            },
+            "resources": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "combined storage"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Missing inventory, placement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "anchor": "Calendar cancellation after a delivered page retains the same cause"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createCalendarListReader",
+            "createCalendarListReader/handle/init:observe/init:observe",
+            "createCalendarListReader/handle/init:read/init:read",
+            "createCalendarListReader/handle/init:read/init:read/result/result",
+            "createCalendarListReader/handle/init:requestStop/init:requestStop",
+            "originalReader"
+          ],
+          "exports": [
+            "createCalendarListReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "export function createCalendarListReader"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "fail('ForeignCalendarListReader')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "returns one private physical-reader handle"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "if (state.phase !== 'ready')"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "If the factory refuses"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "state.stop.abort(reason)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "cleanupConfirmed: false"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "fn calendar_list_columns()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "anchor": "Calendar copied reader receivers cannot read stop or observe the original acquisition"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "anchor": "Calendar original reader observes in-flight custody"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "src/connectors/calendar/catalog/calendar_list.mbt",
+      "sha256": "a43b155e5fcc0cda6b937a9a7ac7ab2725a5e45a9e5812261d9506ada896c8f6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "calendar_list_column_names",
+          "declaration": "calendar_list_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "calendar_list_columns",
+          "declaration": "calendar_list_columns ( ) - > Array [ ( String , String ) ]"
+        },
+        {
+          "name": "calendar_list_facts_wire",
+          "declaration": "calendar_list_facts_wire ( ) - > String"
+        },
+        {
+          "name": "calendar_list_ids",
+          "declaration": "calendar_list_ids ( page : CalendarListPage ) - > Array [ String ]"
+        },
+        {
+          "name": "calendar_list_limits_valid",
+          "declaration": "calendar_list_limits_valid ( limits : CalendarListLimits ) - > Bool"
+        },
+        {
+          "name": "calendar_list_row_count",
+          "declaration": "calendar_list_row_count ( page : CalendarListPage ) - > Int"
+        },
+        {
+          "name": "calendar_list_rows_wire",
+          "declaration": "calendar_list_rows_wire ( page : CalendarListPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , CalendarListIssue ]"
+        },
+        {
+          "name": "calendar_list_schema_wire",
+          "declaration": "calendar_list_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , CalendarListIssue ]"
+        },
+        {
+          "name": "project_calendar_list",
+          "declaration": "project_calendar_list ( bytes : Bytes , limits : CalendarListLimits , ) - > Result [ CalendarListPage , CalendarListIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar catalog and physical sequencer; Common RowRun/Account/Credential retain execution, reservation and cleanup authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_list_column_names",
+            "calendar_list_columns",
+            "calendar_list_facts_wire",
+            "calendar_list_ids",
+            "calendar_list_limits_valid",
+            "calendar_list_row_count",
+            "calendar_list_rows_wire",
+            "calendar_list_schema_wire",
+            "project_calendar_list"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The Calendar catalog owns the declared columns"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "pub fn project_calendar_list("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "priv rows : Array[Array[@admitted.CheckedValue]]"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded projection from original response bytes or opaque page; no physical effect, reservation, current check or cleanup ACK is performed."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "CalendarListIssue"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Projection is synchronous with explicit parser/value/writer bounds; the physical caller owns cancellation around calls and awaits."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "max_value_nodes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "fn calendar_list_columns()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list_wbtest.mbt",
+                "anchor": "test "
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/calendar/catalog/pkg.generated.mbti",
+      "sha256": "9a4b569114964e4328b65d00c66da2c0418ed32772a20337be84332c8d7b0376",
+      "exports": [
+        "pub fn calendar_list_column_names() -> Array[String]",
+        "pub fn calendar_list_facts_wire() -> String",
+        "pub fn calendar_list_ids(CalendarListPage) -> Array[String]",
+        "pub fn calendar_list_row_count(CalendarListPage) -> Int",
+        "pub fn calendar_list_rows_wire(CalendarListPage, Array[String], Int, Int, Int) -> Result[String, CalendarListIssue]",
+        "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]",
+        "pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPage, CalendarListIssue]",
+        "pub struct CalendarListPage {"
+      ],
+      "operations": [
+        {
+          "name": "calendar_list_column_names",
+          "declaration": "pub fn calendar_list_column_names() -> Array[String]"
+        },
+        {
+          "name": "calendar_list_facts_wire",
+          "declaration": "pub fn calendar_list_facts_wire() -> String"
+        },
+        {
+          "name": "calendar_list_ids",
+          "declaration": "pub fn calendar_list_ids(CalendarListPage) -> Array[String]"
+        },
+        {
+          "name": "calendar_list_row_count",
+          "declaration": "pub fn calendar_list_row_count(CalendarListPage) -> Int"
+        },
+        {
+          "name": "calendar_list_rows_wire",
+          "declaration": "pub fn calendar_list_rows_wire(CalendarListPage, Array[String], Int, Int, Int) -> Result[String, CalendarListIssue]"
+        },
+        {
+          "name": "calendar_list_schema_wire",
+          "declaration": "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]"
+        },
+        {
+          "name": "project_calendar_list",
+          "declaration": "pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPage, CalendarListIssue]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar catalog and physical sequencer; Common RowRun/Account/Credential retain execution, reservation and cleanup authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_list_column_names",
+            "calendar_list_facts_wire",
+            "calendar_list_ids",
+            "calendar_list_row_count",
+            "calendar_list_rows_wire",
+            "calendar_list_schema_wire",
+            "project_calendar_list"
+          ],
+          "exports": [
+            "pub fn calendar_list_column_names() -> Array[String]",
+            "pub fn calendar_list_facts_wire() -> String",
+            "pub fn calendar_list_ids(CalendarListPage) -> Array[String]",
+            "pub fn calendar_list_row_count(CalendarListPage) -> Int",
+            "pub fn calendar_list_rows_wire(CalendarListPage, Array[String], Int, Int, Int) -> Result[String, CalendarListIssue]",
+            "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]",
+            "pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPage, CalendarListIssue]",
+            "pub struct CalendarListPage {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The Calendar catalog owns the declared columns"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "pub fn project_calendar_list("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "priv rows : Array[Array[@admitted.CheckedValue]]"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded projection from original response bytes or opaque page; no physical effect, reservation, current check or cleanup ACK is performed."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "CalendarListIssue"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Projection is synchronous with explicit parser/value/writer bounds; the physical caller owns cancellation around calls and awaits."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "max_value_nodes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "fn calendar_list_columns()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list_wbtest.mbt",
+                "anchor": "test "
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/calendar/host_node/calendar_list_bridge.mbt",
+      "sha256": "e2794911093d5fd501ecf61c88fa1452277105b9adcdeb279b5b351401d78477",
+      "exports": [],
+      "operations": [
+        {
+          "name": "calendar_list_column_names",
+          "declaration": "calendar_list_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "calendar_list_metadata_json",
+          "declaration": "calendar_list_metadata_json ( page : @ catalog . CalendarListPage ) - > String"
+        },
+        {
+          "name": "calendar_list_relation_facts_wire",
+          "declaration": "calendar_list_relation_facts_wire ( ) - > String"
+        },
+        {
+          "name": "calendar_list_rows_wire",
+          "declaration": "calendar_list_rows_wire ( page : @ catalog . CalendarListPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . CalendarListIssue ]"
+        },
+        {
+          "name": "calendar_list_schema_wire",
+          "declaration": "calendar_list_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . CalendarListIssue ]"
+        },
+        {
+          "name": "calendar_project_calendar_list",
+          "declaration": "calendar_project_calendar_list ( bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_units : Int , max_value_nodes : Int , max_value_text_bytes : Int , ) - > Result [ @ catalog . CalendarListPage , @ catalog . CalendarListIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar catalog and physical sequencer; Common RowRun/Account/Credential retain execution, reservation and cleanup authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_list_column_names",
+            "calendar_list_metadata_json",
+            "calendar_list_relation_facts_wire",
+            "calendar_list_rows_wire",
+            "calendar_list_schema_wire",
+            "calendar_project_calendar_list"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The Calendar catalog owns the declared columns"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "pub fn project_calendar_list("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "priv rows : Array[Array[@admitted.CheckedValue]]"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded projection from original response bytes or opaque page; no physical effect, reservation, current check or cleanup ACK is performed."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "CalendarListIssue"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Projection is synchronous with explicit parser/value/writer bounds; the physical caller owns cancellation around calls and awaits."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "max_value_nodes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "fn calendar_list_columns()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list_wbtest.mbt",
+                "anchor": "test "
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/calendar/host_node/pkg.generated.mbti",
+      "sha256": "883730d2a845c36921787f83b46fb9c2f43625fe3f7a4cb4e0a16911dc49dc3c",
+      "exports": [
+        "pub fn calendar_list_column_names() -> Array[String]",
+        "pub fn calendar_list_metadata_json(@catalog.CalendarListPage) -> String",
+        "pub fn calendar_list_relation_facts_wire() -> String",
+        "pub fn calendar_list_rows_wire(@catalog.CalendarListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]",
+        "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]",
+        "pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]"
+      ],
+      "operations": [
+        {
+          "name": "calendar_list_column_names",
+          "declaration": "pub fn calendar_list_column_names() -> Array[String]"
+        },
+        {
+          "name": "calendar_list_metadata_json",
+          "declaration": "pub fn calendar_list_metadata_json(@catalog.CalendarListPage) -> String"
+        },
+        {
+          "name": "calendar_list_relation_facts_wire",
+          "declaration": "pub fn calendar_list_relation_facts_wire() -> String"
+        },
+        {
+          "name": "calendar_list_rows_wire",
+          "declaration": "pub fn calendar_list_rows_wire(@catalog.CalendarListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]"
+        },
+        {
+          "name": "calendar_list_schema_wire",
+          "declaration": "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]"
+        },
+        {
+          "name": "calendar_project_calendar_list",
+          "declaration": "pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar catalog and physical sequencer; Common RowRun/Account/Credential retain execution, reservation and cleanup authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_list_column_names",
+            "calendar_list_metadata_json",
+            "calendar_list_relation_facts_wire",
+            "calendar_list_rows_wire",
+            "calendar_list_schema_wire",
+            "calendar_project_calendar_list"
+          ],
+          "exports": [
+            "pub fn calendar_list_column_names() -> Array[String]",
+            "pub fn calendar_list_metadata_json(@catalog.CalendarListPage) -> String",
+            "pub fn calendar_list_relation_facts_wire() -> String",
+            "pub fn calendar_list_rows_wire(@catalog.CalendarListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]",
+            "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]",
+            "pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The Calendar catalog owns the declared columns"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "pub fn project_calendar_list("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "priv rows : Array[Array[@admitted.CheckedValue]]"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded projection from original response bytes or opaque page; no physical effect, reservation, current check or cleanup ACK is performed."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "CalendarListIssue"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Projection is synchronous with explicit parser/value/writer bounds; the physical caller owns cancellation around calls and awaits."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "max_value_nodes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "fn calendar_list_columns()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list_wbtest.mbt",
+                "anchor": "test "
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

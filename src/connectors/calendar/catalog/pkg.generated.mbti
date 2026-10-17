@@ -1,0 +1,54 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/calendar/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn calendar_list_column_names() -> Array[String]
+
+pub fn calendar_list_facts_wire() -> String
+
+pub fn calendar_list_ids(CalendarListPage) -> Array[String]
+
+pub fn calendar_list_row_count(CalendarListPage) -> Int
+
+pub fn calendar_list_rows_wire(CalendarListPage, Array[String], Int, Int, Int) -> Result[String, CalendarListIssue]
+
+pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]
+
+pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPage, CalendarListIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum CalendarListIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidCursor
+  InvalidSelection(String)
+  DuplicateCalendar(String)
+  InvalidCell(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CalendarListLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_cursor_units : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+}
+
+pub struct CalendarListPage {
+  response_sha256 : String
+  next_page_token : String?
+  // private fields
+}
+
+// Type aliases
+
+// Traits

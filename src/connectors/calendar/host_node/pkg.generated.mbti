@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/calendar/host_node"
+
+import {
+  "actql/actql/connectors/calendar/catalog",
+}
+
+// Values
+pub fn calendar_list_column_names() -> Array[String]
+
+pub fn calendar_list_metadata_json(@catalog.CalendarListPage) -> String
+
+pub fn calendar_list_relation_facts_wire() -> String
+
+pub fn calendar_list_rows_wire(@catalog.CalendarListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]
+
+pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]
+
+pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
