@@ -206,6 +206,17 @@ member/payload maps, finalized aliases and all simultaneously retained sibling
 payloads overlap the existing parent inventory; they are not free controls or a
 substitute numerical supplier.
 
+The ordinary caller uses its existing finite Host `maxWork` for the complete
+Source-set grouping traversal: Result-to-member membership, Table comparisons,
+distinct keyed/target groups and dependency-import scans consume the same
+remaining counter. Member and pinned-Result ceilings bound inventory counts;
+their sum does not bound these cross-product comparisons or per-member groups.
+Exhaustion remains a refusal, including before any Store writer when membership
+or grouping exhausts the counter. Later import exhaustion retains the original
+prepared-payload and input cleanup path. This structural work allowance changes
+no key-phase allocation, Ledger quantity, target selection, permission or normal
+numerical supplier, and does not acknowledge physical retirement.
+
 The preceding Unit's Result must be exported with its original acquisition,
 retention and import evidence before the consumer can inspect its complete
 input. The key barrier applies before that consumer's proposal and payload

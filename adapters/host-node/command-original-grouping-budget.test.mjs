@@ -23,7 +23,7 @@ const outputLimits=Object.freeze({maxResultFields:10,maxResultMappingWork:1000,
 for(const maxWork of [8,10000]) test(`ordinary capture uses finite Host grouping work ${maxWork}`,async()=>{
   const f=await originalFieldCommandKeyFixture({secondMember:true,published:false});
   let factory;
-  const events={writers:[],descriptions:0};
+  const events={writers:[],pending:[],descriptions:0};
   const control=runtimeCore(moon).publicationControl;
   const stop=new Error('ReachedOrdinaryCommandDescription');
   try {
@@ -36,6 +36,7 @@ for(const maxWork of [8,10000]) test(`ordinary capture uses finite Host grouping
     const c=f.publicationContext(control),unexpected=()=>assert.fail('No provider grant or send');
     const store={storeAuthorityCid:cid('a'),createPreparedObjectWriter(){
       const chunks=[];events.writers.push(chunks);let bytes=0,pending=true;
+      events.pending.push(()=>pending);
       const release=async()=>{pending=false;};
       return {async append(chunk){chunks.push(chunk);bytes+=Buffer.byteLength(chunk);},
         async seal(cid){return {cid,bytes,prepared:{release,retry:release,status:()=>({pending})}};},
@@ -69,6 +70,7 @@ for(const maxWork of [8,10000]) test(`ordinary capture uses finite Host grouping
       assert.equal(events.writers.length,3,'original producer plus two distinct keyed member exports');
       for(const chunks of events.writers)assert.deepEqual(JSON.parse(chunks.join('')),f.rows);
     }
+    assert(events.pending.every(pending=>!pending()),'ordinary failure releases all prepared Store payloads');
     assert.equal(f.execution.cleanupPending(),false,'ordinary failure releases its own pins/phase borrowers');
   } finally {await factory?.close();await f.close();}
 });
