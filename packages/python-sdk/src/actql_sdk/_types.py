@@ -2,6 +2,108 @@
 from __future__ import annotations
 from typing import Any, Literal, NotRequired, Required, TypedDict
 
+SubmissionName = str
+
+NamedSubmissionAttempt0AttemptRef = TypedDict("NamedSubmissionAttempt0AttemptRef", {"operation": Required["Literal[\"submit\"]"], "attemptId": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome0SubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome0SubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome0SubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome0SubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome0SubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome0AdmissionRef = TypedDict("NamedSubmissionAttempt0Outcome0AdmissionRef", {"namespaceId": Required["str"], "authorityScopeCid": Required["str"], "runDefinitionCid": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome0Admission = TypedDict("NamedSubmissionAttempt0Outcome0Admission", {"ref": Required["NamedSubmissionAttempt0Outcome0AdmissionRef"], "durability": Required["Literal[\"volatile\", \"durable\"]"], "revision": Required["int"]}, total=False)
+
+NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome0UnresolvedHistory = TypedDict("NamedSubmissionAttempt0Outcome0UnresolvedHistory", {"submissionRef": Required["NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRef"], "acknowledgement": Required["Literal[\"possible_prior_execution_and_effects\"]"]}, total=False)
+
+NamedSubmissionAttempt0Outcome0 = TypedDict("NamedSubmissionAttempt0Outcome0", {"kind": Required["Literal[\"ready\"]"], "submissionRef": Required["NamedSubmissionAttempt0Outcome0SubmissionRef"], "intentCid": Required["str"], "admission": Required["NamedSubmissionAttempt0Outcome0Admission"], "unresolvedHistory": NotRequired["NamedSubmissionAttempt0Outcome0UnresolvedHistory"]}, total=False)
+
+NamedSubmissionAttempt0Outcome1SubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome1SubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome1SubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome1SubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome1SubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome1HeldCheckpoint = TypedDict("NamedSubmissionAttempt0Outcome1HeldCheckpoint", {"checkpointId": Required["str"], "checkpointCid": Required["str"], "kind": Required["Literal[\"run_scope\", \"read_access\", \"data_egress\", \"cost_scope\", \"effect_set\"]"], "expiresAt": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome1Held = TypedDict("NamedSubmissionAttempt0Outcome1Held", {"kind": Required["Literal[\"held\"]"], "requestId": Required["str"], "prepareAttemptId": Required["str"], "state": Required["Literal[\"waiting_checkpoint\", \"resuming\", \"ended\"]"], "durability": Required["Literal[\"durable\"]"], "lookupExpiresAt": Required["str"], "checkpoint": NotRequired["NamedSubmissionAttempt0Outcome1HeldCheckpoint"], "endReason": NotRequired["str"], "terminalErrorCode": NotRequired["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome1UnresolvedHistory = TypedDict("NamedSubmissionAttempt0Outcome1UnresolvedHistory", {"submissionRef": Required["NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRef"], "acknowledgement": Required["Literal[\"possible_prior_execution_and_effects\"]"]}, total=False)
+
+NamedSubmissionAttempt0Outcome1 = TypedDict("NamedSubmissionAttempt0Outcome1", {"kind": Required["Literal[\"held\"]"], "submissionRef": Required["NamedSubmissionAttempt0Outcome1SubmissionRef"], "intentCid": Required["str"], "held": Required["NamedSubmissionAttempt0Outcome1Held"], "unresolvedHistory": NotRequired["NamedSubmissionAttempt0Outcome1UnresolvedHistory"]}, total=False)
+
+NamedSubmissionAttempt0Outcome2SubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome2SubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome2SubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome2SubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome2SubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome2UnresolvedHistory = TypedDict("NamedSubmissionAttempt0Outcome2UnresolvedHistory", {"submissionRef": Required["NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRef"], "acknowledgement": Required["Literal[\"possible_prior_execution_and_effects\"]"]}, total=False)
+
+NamedSubmissionAttempt0Outcome2 = TypedDict("NamedSubmissionAttempt0Outcome2", {"kind": Required["Literal[\"preparing\"]"], "submissionRef": Required["NamedSubmissionAttempt0Outcome2SubmissionRef"], "intentCid": Required["str"], "unresolvedHistory": NotRequired["NamedSubmissionAttempt0Outcome2UnresolvedHistory"]}, total=False)
+
+NamedSubmissionAttempt0Outcome3SubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome3SubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome3SubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome3SubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome3SubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome3Problem = TypedDict("NamedSubmissionAttempt0Outcome3Problem", {"code": Required["str"], "classification": Required["Literal[\"invalid_input\", \"requirements\", \"implementation_limit\", \"authorization\", \"operation_failed\"]"]}, total=False)
+
+NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome3UnresolvedHistory = TypedDict("NamedSubmissionAttempt0Outcome3UnresolvedHistory", {"submissionRef": Required["NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRef"], "acknowledgement": Required["Literal[\"possible_prior_execution_and_effects\"]"]}, total=False)
+
+NamedSubmissionAttempt0Outcome3 = TypedDict("NamedSubmissionAttempt0Outcome3", {"kind": Required["Literal[\"not_accepted\"]"], "submissionRef": Required["NamedSubmissionAttempt0Outcome3SubmissionRef"], "intentCid": Required["str"], "checkObservation": NotRequired["Any"], "problem": Required["NamedSubmissionAttempt0Outcome3Problem"], "unresolvedHistory": NotRequired["NamedSubmissionAttempt0Outcome3UnresolvedHistory"]}, total=False)
+
+NamedSubmissionAttempt0Outcome4SubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome4SubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome4SubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome4SubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome4SubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome4Problem = TypedDict("NamedSubmissionAttempt0Outcome4Problem", {"code": Required["str"], "classification": Required["Literal[\"invalid_input\", \"requirements\", \"implementation_limit\", \"authorization\", \"operation_failed\"]"]}, total=False)
+
+NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome4UnresolvedHistory = TypedDict("NamedSubmissionAttempt0Outcome4UnresolvedHistory", {"submissionRef": Required["NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRef"], "acknowledgement": Required["Literal[\"possible_prior_execution_and_effects\"]"]}, total=False)
+
+NamedSubmissionAttempt0Outcome4 = TypedDict("NamedSubmissionAttempt0Outcome4", {"kind": Required["Literal[\"preparation_failed\"]"], "submissionRef": Required["NamedSubmissionAttempt0Outcome4SubmissionRef"], "intentCid": Required["str"], "checkObservation": NotRequired["Any"], "problem": Required["NamedSubmissionAttempt0Outcome4Problem"], "unresolvedHistory": NotRequired["NamedSubmissionAttempt0Outcome4UnresolvedHistory"]}, total=False)
+
+NamedSubmissionAttempt0Outcome5SubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome5SubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome5SubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome5SubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome5SubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome5Problem = TypedDict("NamedSubmissionAttempt0Outcome5Problem", {"code": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRefEpoch = TypedDict("NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRefEpoch", {"version": Required["Literal[\"actql-submission-epoch/0.1\"]"], "authorityScopeCid": Required["str"], "epochNonce": Required["str"], "notBefore": Required["int"], "expiresAt": Required["int"], "authenticator": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRef = TypedDict("NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRef", {"epoch": Required["NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
+
+NamedSubmissionAttempt0Outcome5UnresolvedHistory = TypedDict("NamedSubmissionAttempt0Outcome5UnresolvedHistory", {"submissionRef": Required["NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRef"], "acknowledgement": Required["Literal[\"possible_prior_execution_and_effects\"]"]}, total=False)
+
+NamedSubmissionAttempt0Outcome5 = TypedDict("NamedSubmissionAttempt0Outcome5", {"kind": Required["Literal[\"unresolvable\"]"], "submissionRef": Required["NamedSubmissionAttempt0Outcome5SubmissionRef"], "problem": Required["NamedSubmissionAttempt0Outcome5Problem"], "unresolvedHistory": NotRequired["NamedSubmissionAttempt0Outcome5UnresolvedHistory"]}, total=False)
+
+NamedSubmissionAttempt0 = TypedDict("NamedSubmissionAttempt0", {"kind": Required["Literal[\"observed\"]"], "requestName": Required["str"], "intentCid": Required["str"], "attemptRef": Required["NamedSubmissionAttempt0AttemptRef"], "outcome": Required["NamedSubmissionAttempt0Outcome0 | NamedSubmissionAttempt0Outcome1 | NamedSubmissionAttempt0Outcome2 | NamedSubmissionAttempt0Outcome3 | NamedSubmissionAttempt0Outcome4 | NamedSubmissionAttempt0Outcome5"]}, total=False)
+
+NamedSubmissionAttempt1AttemptRef = TypedDict("NamedSubmissionAttempt1AttemptRef", {"operation": Required["Literal[\"submit\"]"], "attemptId": Required["str"]}, total=False)
+
+NamedSubmissionAttempt1 = TypedDict("NamedSubmissionAttempt1", {"kind": Required["Literal[\"refused\"]"], "requestName": Required["str"], "intentCid": Required["str"], "attemptRef": Required["NamedSubmissionAttempt1AttemptRef"], "guarantee": Required["Literal[\"attempt_uncommitted_unconsumed\"]"], "reason": Required["Literal[\"authorization\", \"admission_capacity\", \"epoch_expired\", \"epoch_not_yet_valid\"]"]}, total=False)
+
+NamedSubmissionAttempt2AttemptRef = TypedDict("NamedSubmissionAttempt2AttemptRef", {"operation": Required["Literal[\"submit\"]"], "attemptId": Required["str"]}, total=False)
+
+NamedSubmissionAttempt2 = TypedDict("NamedSubmissionAttempt2", {"kind": Required["Literal[\"conflict\"]"], "requestName": Required["str"], "intentCid": Required["str"], "attemptRef": Required["NamedSubmissionAttempt2AttemptRef"], "reason": Required["Literal[\"intent\"]"]}, total=False)
+
+NamedSubmissionAttempt = NamedSubmissionAttempt0 | NamedSubmissionAttempt1 | NamedSubmissionAttempt2
+
 SubmittedIntent = TypedDict("SubmittedIntent", {"kind": Required["Literal[\"program\", \"aql\"]"], "input": Required["dict[str, Any]"], "parameters": Required["None | dict[str, Any]"], "stopBefore": NotRequired["Literal[\"commit\"]"], "readOnly": NotRequired["Literal[True]"]}, total=False)
 
 InstalledEffectContinuationRequestedStop = TypedDict("InstalledEffectContinuationRequestedStop", {"intent_cid": Required["str"]}, total=False)
