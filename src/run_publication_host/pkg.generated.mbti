@@ -71,6 +71,8 @@ pub fn admit_client_local_run_policy_upgrade(Bytes, ClientLocalRunPolicyProfile,
 
 pub fn admit_client_local_runtime_policy_upgrade(Bytes, ClientLocalRunPolicyProfile, String, String, String, String, Array[(String, String)], ClientNativeLocalScalarRuntimePair) -> Result[ClientLocalRuntimePolicyUpgrade, ClientLocalRunPolicyProfileIssue]
 
+pub fn admit_client_local_signing_bootstrap_policy(String, String) -> Result[ClientLocalSigningBootstrapPolicy, ClientLocalSigningBootstrapIssueError]
+
 pub fn admit_client_native_local_runtime(String, String, String, String) -> Result[ClientNativeLocalRuntime, ClientNativeLocalRuntimeIssue]
 
 pub fn admit_client_native_product_members(String, String, String, String) -> Result[ClientNativeProductMembers, ClientNativeLocalRuntimeIssue]
@@ -712,6 +714,8 @@ pub fn client_local_configuration_custody_body(Bytes, (UInt64, UInt64, Int64)) -
 pub fn client_local_configuration_custody_record(String, (UInt64, UInt64, Int64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
 pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_default_signing_bootstrap_policy() -> ClientLocalSigningBootstrapPolicy
 
 pub fn client_local_finite_read_selection_wire(String, ClientLocalRunPolicyProfile, String, String, String) -> Result[String, ClientLocalRunPolicyProfileIssue]
 
@@ -2973,6 +2977,23 @@ pub(all) enum ClientLocalRuntimeSuccessorIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientLocalRuntimeSuccessorMetadata
+
+type ClientLocalSigningBootstrapIssue
+pub fn ClientLocalSigningBootstrapIssue::expires_at(Self) -> Int64
+pub fn ClientLocalSigningBootstrapIssue::sampled_at(Self) -> Int64
+
+pub(all) enum ClientLocalSigningBootstrapIssueError {
+  ForeignPolicy
+  InvalidInitializationIdentity
+  InvalidIssueTime
+} derive(Eq, @debug.Debug)
+
+type ClientLocalSigningBootstrapPolicy
+pub fn ClientLocalSigningBootstrapPolicy::cid(Self) -> String
+pub fn ClientLocalSigningBootstrapPolicy::issuer_identity(Self, String) -> Result[String, ClientLocalSigningBootstrapIssueError]
+pub fn ClientLocalSigningBootstrapPolicy::max_uses(Self) -> Int
+pub fn ClientLocalSigningBootstrapPolicy::original_wire(Self) -> String
+pub fn ClientLocalSigningBootstrapPolicy::prepare_first_issue(Self, Int64, Int64?) -> Result[ClientLocalSigningBootstrapIssue, ClientLocalSigningBootstrapIssueError]
 
 pub struct ClientLocalWorkerRunJournalKey[Store, E] {
   material : ClientLocalAdoptedHostMaterial[Store, E]
