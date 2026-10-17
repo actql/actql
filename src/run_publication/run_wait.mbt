@@ -5,11 +5,32 @@ pub(all) enum RunWaitIssue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum RunWaitUntil {
+  Stable
+  Final
+} derive(Eq, Debug)
+
+///|
 /// Observe only the existing Run projection. Readiness grants no authority,
 /// starts no work and acknowledges no cancellation or physical cleanup.
 pub fn run_wait_ready(
   wire : String,
   since : Int64?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Bool, RunWaitIssue] {
+  run_wait_ready_until(wire, since, Stable, max_bytes, max_nodes, max_depth)
+}
+
+///|
+/// The final variant follows the original Run outcome through waiting phases.
+/// It acknowledges no physical close, Result availability or current authority.
+/// The original default readiness and its wire/ABI remain unchanged above.
+pub fn run_wait_ready_until(
+  wire : String,
+  since : Int64?,
+  until : RunWaitUntil,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -46,5 +67,20 @@ pub fn run_wait_ready(
     None => true
     Some(prior) => revision > prior
   }
-  Ok(generated_run_wait_stable(status) && newer)
+  let reached = match until {
+    Stable => generated_run_wait_stable(status)
+    Final =>
+      match read_run_outcome_status(status) {
+        Some(Succeeded | Failed | Cancelled) => true
+        Some(
+          Preparing
+          | Running
+          | WaitingCheckpoint
+          | Resuming
+          | NeedsReconciliation
+        ) => false
+        None => return Err(InvalidState)
+      }
+  }
+  Ok(reached && newer)
 }
