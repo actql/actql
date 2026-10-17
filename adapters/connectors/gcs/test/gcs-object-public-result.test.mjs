@@ -157,7 +157,7 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
   const preparation = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
     'json', checkedEnvironment, undefined);
   assert.ok(moon.clientProgramPreparationReady(preparation),
-    inspect(moon.clientProgramPreparationIssue(preparation), {depth: 5, maxArrayLength: 3}));
+    inspect(moon.clientProgramPreparationIssue(preparation), {depth: 12, maxArrayLength: 0}));
   try { checked(moon.clientProgramCompileLocalTasks(moon.clientProgramPreparationReady(preparation))); }
   catch (error) {
     t.diagnostic(inspect(error, {depth: 8, maxArrayLength: 3, maxStringLength: 200}).slice(0, 4000));
