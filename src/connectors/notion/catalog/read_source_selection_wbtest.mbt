@@ -1,6 +1,6 @@
 ///|
 test "Notion declaration source identity retains exact raw bytes and never changes its semantic domain" {
-  let source = b"\"db\"".copy()
+  let source = b"\"db\""
   let declaration = read_notion_database_read_declaration(
     source,
     read_test_limits(),
@@ -10,7 +10,6 @@ test "Notion declaration source identity retains exact raw bytes and never chang
     "sha256:41a21b0d157a935f20927c113a08a883fe32359b747efa20b52a4622d6c41519",
   )
   assert_eq(notion_database_read_declaration_source_bytes(declaration), 4)
-  source[1] = b'x'
   assert_eq(declaration.database_id, "db")
   assert_eq(
     notion_database_read_declaration_source_cid(declaration),

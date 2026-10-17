@@ -125,7 +125,7 @@ pub fn read_notion_database_read_declaration(
   }
   // Capture once before decoding/hash. Never retain a mutable caller Buffer
   // as the declaration's original source or reinterpret its canonical domain.
-  let original_bytes = bytes.copy()
+  let original_bytes = Bytes::makei(bytes.length(), index => bytes[index])
   let original = match database_cursor(original_bytes, limits.metadata) {
     Ok(value) => value
     Err(issue) => return Err(Metadata(issue))
