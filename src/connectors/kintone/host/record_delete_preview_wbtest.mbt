@@ -193,3 +193,57 @@ test "kintone before preserves checked array order duplicates and exact selected
     record_delete_preview_version_cid(view),
   )
 }
+
+///|
+test "kintone revision guard distinguishes exact wide revisions without changed before values" {
+  let catalog = delete_mapping_form()
+  let mapping = delete_preview_mapping(catalog)
+  let first = @catalog.record_delete_request_targets(
+      delete_original_request(catalog),
+    )[0]
+  let page = @catalog.project_record_page(
+    @utf8.encode(
+      "{\"records\":[{\"$id\":{\"type\":\"__ID__\",\"value\":\"9007199254740993\"},\"$revision\":{\"type\":\"__REVISION__\",\"value\":\"9007199254740995\"},\"Subject\":{\"type\":\"SINGLE_LINE_TEXT\",\"value\":\"original\"}}],\"totalCount\":null}",
+    ),
+    catalog,
+    ["Subject"],
+    {
+      max_bytes: 8192,
+      max_nodes: 1000,
+      max_depth: 16,
+      max_rows: 4,
+      max_columns: 8,
+      max_cells: 32,
+      max_table_rows: 16,
+    },
+  ).unwrap()
+  let second = @catalog.prepare_original_record_target(page, 0, 1000).unwrap()
+  let before = prepare_record_delete_preview(
+    mapping,
+    first,
+    delete_preview_values(),
+    delete_preview_limits(),
+  ).unwrap()
+  let after = prepare_record_delete_preview(
+    mapping,
+    second,
+    delete_preview_values(),
+    delete_preview_limits(),
+  ).unwrap()
+  assert_eq(
+    record_delete_preview_before_wire(before),
+    record_delete_preview_before_wire(after),
+  )
+  assert_eq(
+    record_delete_preview_identity(before),
+    record_delete_preview_identity(after),
+  )
+  assert_eq(
+    record_delete_preview_version_cid(after),
+    "sha256:7c1ea0d5a4f3329938d79f6d5157b2a5c3d489a418f95ac3c30cd36686bbf86c",
+  )
+  assert_true(
+    record_delete_preview_version_cid(before) !=
+    record_delete_preview_version_cid(after),
+  )
+}
