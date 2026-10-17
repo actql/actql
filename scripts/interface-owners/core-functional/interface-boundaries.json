@@ -164,7 +164,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "3e332c3569f9e7b82d88e73b05b03cf60234e247adffcd65067370e16a9bdffb",
+      "sha256": "1bdf79563e3d826e228767407f0565f97d19f7fe8c5bdcf419131a308e89c2a8",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1552,6 +1552,25 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+          "parameters": [
+            "original",
+            "definition",
+            "request",
+            "evidence",
+            "profiles",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
           "parameters": [
             "preview",
@@ -2077,6 +2096,18 @@
           "name": "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition",
+            "request",
+            "environment",
+            "parameters"
           ],
           "async": false
         },
@@ -3522,6 +3553,16 @@
           "name": "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
           "parameters": [
             "writer"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence",
+          "parameters": [
+            "selected",
+            "definition",
+            "request",
+            "evidence"
           ],
           "async": false
         },
@@ -8216,6 +8257,113 @@
               {
                 "path": "scripts/installation-preparation-binding.test.mjs",
                 "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+            "publicationControl/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
+            "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private Node binding projects the Program from the actual compiled owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const retained = originalInferRunTokens.get(selected);"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('first Infer journal admission refuses copied or other-control tickets and raw evidence'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const originalInferRunTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (originalInferRun !== undefined) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer material and Run roll back together when original journal custody COMMIT fails'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('saved Infer reader refuses altered original Task materials Run program and admission correspondence'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing stop, Unknown and cleanup obligations are unchanged."
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "assert.equal(saved.physicalStartReserved, false);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The Node ticket, its WeakMap entry, saved material/Result-policy Strings, journal"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer original copies use the existing aggregate evidence bound before durable acceptance'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "That returned pair is not itself Host restoration:"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('original Infer codec restores one nominal preparation graph and same complete Run without current defaults'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
               }
             ]
           }
