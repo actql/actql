@@ -296,11 +296,13 @@ test "multi-select expanded Array limits cover each row and target observation" 
     max_locator_units: 128,
   }
   let records = @utf8.encode(
-    "{\"totalSize\":2,\"done\":true,\"records\":[{\"Choices__c\":\"a;b;c\"},{\"Choices__c\":\"d;e;f\"}]}",
+    "{\"totalSize\":2,\"done\":true,\"records\":[{\"Choices__c\":\"a;b;c;d\"},{\"Choices__c\":\"e;f;g;h\"}]}",
   )
   assert_true(
     project_query_page(records, plan, "v62.0", small) is Err(BudgetExceeded),
   )
+  let exact = @utf8.encode("{\"totalSize\":2,\"done\":true,\"records\":[{\"Choices__c\":\"a;b;c\"},{\"Choices__c\":\"d;e;f\"}]}")
+  assert_true(project_query_page(exact, plan, "v62.0", small) is Ok(_))
   let request = prepare_single_write_request(
     choices_body(choices_write(), "[\"new\"]").unwrap(),
     "v62.0",
