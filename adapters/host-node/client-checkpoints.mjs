@@ -1865,13 +1865,13 @@ export async function installRemoteCheckpoints({root, namespaceId,
         'actql-remote-review-redaction/0.1', redacted: []});
       const originalReview = (subjectCid, claims) => {
         if (typeof projectReview !== 'function') fail('OriginalEffectReviewUnavailable');
-        const projected = projectReview(Object.freeze({authorityScopeCid,
+        const {wire, identity} = projectReview(Object.freeze({authorityScopeCid,
           approvalClaims: Object.freeze([...claims]),
           redactionPolicyCid: reviewPolicyCid}), reviewLimits);
         const review = contractControl.admitRunEvidence('review_projection',
-          projected?.wire, reviewLimits);
+          wire, reviewLimits);
         const body = JSON.parse(review.wire);
-        if (review.identity !== projected.identity || review.wire !== projected.wire ||
+        if (review.identity !== identity || review.wire !== wire ||
             body.effect_preview_cid !== subjectCid ||
             body.authority_scope_cid !== authorityScopeCid ||
             body.redaction_policy_cid !== reviewPolicyCid ||

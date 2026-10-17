@@ -39,8 +39,8 @@ test "private review identity is bounded optional DATA only on the original revi
   let field = ",\"artifact_cid\":\"sha256:" + "5".repeat(64) + "\""
   let entry = private_retention_test_entry(name="review_projection", tail=field)
   let wire = private_retention_test_wire("[" + entry + "]")
-  assert_eq(private_retention_test_check(wire, 1), Ok(()))
-  assert_eq(private_retention_test_check(wire, 0), Err(EntriesLimit))
+  assert_true(private_retention_test_check(wire, 1) is Ok(_))
+  assert_true(private_retention_test_check(wire, 0) is Err(EntriesLimit))
   for
     invalid in [
       private_retention_test_entry(tail=field),
@@ -54,12 +54,12 @@ test "private review identity is bounded optional DATA only on the original revi
       ),
       private_retention_test_entry(name="review_projection", tail=field + field),
     ] {
-    assert_eq(
+    assert_true(
       private_retention_test_check(
         private_retention_test_wire("[" + invalid + "]"),
         1,
-      ),
-      Err(InvalidLedger),
+      )
+      is Err(InvalidLedger),
     )
   }
 }
