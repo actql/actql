@@ -67,12 +67,14 @@ test "kintone original App declaration seals only the API ID conditional key" {
   let original = kintone_original_declaration()
   let declaration = @kintone_host.record_declaration(original)
   assert_true(
-    declaration.contracts.any(wire =>
-      wire.contains("\"relation_keys\":{\"candidate_keys\":[[\"$id\"]]}")),
+    declaration.contracts.any(wire => {
+      wire.contains("\"relation_keys\":{\"candidate_keys\":[[\"$id\"]]}")
+    }),
   )
   assert_false(
-    declaration.contracts.any(wire =>
-      wire.contains("\"candidate_keys\":[[\"RecordNumber\"]]")),
+    declaration.contracts.any(wire => {
+      wire.contains("\"candidate_keys\":[[\"RecordNumber\"]]")
+    }),
   )
 }
 
