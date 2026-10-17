@@ -677,6 +677,46 @@ a generic environment map. Redirects are reauthorized and do not receive a
 credential unless the target is admitted. A durable use claim is not refunded
 when a crash makes pre-send use uncertain.
 
+### Original authentication dependencies
+
+A registered Google service-account dependency uses a separate existing
+credential grant/use for `https://oauth2.googleapis.com`, `POST /token` and the
+`application/x-www-form-urlencoded` body. It never changes the API grant's
+origin or operation. Both grants retain the same issuer, principal, namespace,
+environment, Site/generation, runtime/Connector, Run, attempt and original
+dispatch. The authentication deadline cannot extend either original grant.
+No additional dispatch identity is inferred from the assertion or token.
+
+The Credential Owner's private `CredentialAuthenticationRequest[Material]`
+retains the original parent use, authentication grant and actual supplier
+material. It checks the explicit byte ceiling before hashing the actual form
+bytes, retaining only their private digest and length. The separately claimed
+authentication use must retain that exact grant object. The resulting operation
+and every later check require the same request, parent use, authentication use
+and material references; re-admitted equal JSON/CIDs cannot replace them. There
+is no public body/hash projection or serialized reconstruction of this pair.
+
+This is correspondence, not issuance or a new permission plane. The installed
+Credential supplier must admit the real material's membership and selected
+service-account, delegated subject, exact scopes, key generation and assertion
+expiry. An external reference, `kid`, Site generation or equal native key does
+not prove those facts. Missing original material remains unavailable. Current
+authority/signature, the existing journal's original claim and use ordinal,
+and final sign/send authorization remain independent requirements, checked
+again after awaits. Token issuance is not API authorization. An uncertain auth
+response retains the original use and cleanup responsibility without resend,
+refresh or reconstruction from current configuration.
+
+The pair adds two retained records, parent/grant/use/material references, a
+digest string and scalar fields. Caller-owned form bytes, encoding/hash
+workspace, signer/key backing, transport, response/token and callbacks may
+overlap. Their original Ledger/holding must cover those lifetimes; a byte
+ceiling or digest is not funding. The supplier drops references only through
+its existing confirmed cleanup; this correspondence layer issues no release
+or physical ACK. Canonical grant/use bodies and their initial identities are
+unchanged. Physical auth transport, material admission and ordinary numerical
+capacity are separate acceptance boundaries.
+
 Runtime bundles support package, signature verification, installation,
 activation, drain, rollback, and reclamation through standard operations. The
 verified component is bound to the loaded component. Old code is retained
