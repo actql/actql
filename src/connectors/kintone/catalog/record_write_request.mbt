@@ -134,8 +134,6 @@ pub fn prepare_record_update_request(
     @encode.begin_ordered_object(writer)
     @encode.ordered_key(writer, "app")
     @encode.string_value(writer, catalog.app_id)
-    @encode.ordered_key(writer, "upsert")
-    @encode.bool_value(writer, false)
     @encode.ordered_key(writer, "records")
     @encode.begin_array(writer)
     for (target, values) in records {
@@ -149,6 +147,8 @@ pub fn prepare_record_update_request(
       @encode.end_object(writer)
     }
     @encode.end_array(writer)
+    @encode.ordered_key(writer, "upsert")
+    @encode.bool_value(writer, false)
     @encode.end_object(writer)
     @encode.finish_document(writer)
   } catch {
