@@ -419,6 +419,8 @@ fn execute_native_local_adoption(
       local_delivery_attempt_lookup(
         host, settings, crypto, sqlite, input_root, child,
       )
+    } else if operation == "result" {
+      local_public_result(host, settings, crypto, sqlite, child)
     } else if operation == "read" {
       local_result_stream(host, settings, crypto, sqlite, input_root, child)
     } else if operation == "new-submission" {
