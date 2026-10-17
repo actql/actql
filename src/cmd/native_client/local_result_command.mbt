@@ -28,7 +28,7 @@ fn local_result_name(
       name
     }
     None => {
-      if names.size() != 1 {
+      if names.length() != 1 {
         stop("LocalResultNameRequired")
       }
       sole
@@ -121,9 +121,10 @@ fn local_public_result(
     file~,
     selected~,
   )
-  let parameters = binding
-    .disclosure_parameters()
-    .unwrap_or_else(issue => stop(local_read_issue(issue)))
+  let parameters = match binding.disclosure_parameters() {
+    Ok(value) => value
+    Err(issue) => stop(local_read_issue(issue))
+  }
   let purpose = parameters.purpose
   let max_output = parameters.max_output_bytes
   // One fresh correlation value for this invocation; never retry an attempt.

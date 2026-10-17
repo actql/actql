@@ -176,13 +176,15 @@ test "Result Store wrapper closes only its original and waits for confirmed clea
   let store = result_command_store("result-store-success")
   let other = result_command_store("result-store-independent")
   let reply = local_with_result_store(store, "original-attempt", () => {
-    assert_true(store.capacity_usage() is Ok(_))
+    if !(store.capacity_usage() is Ok(_)) {
+      stop("OriginalStoreUnavailable")
+    }
     "original response"
   })
   assert_eq(reply, "original response")
   assert_true(store.capacity_usage() is Err(@local_store.Closed))
   assert_true(other.capacity_usage() is Ok(_))
-  assert_eq(other.close(), Ok(true))
+  assert_true(other.close() is Ok(true))
 }
 
 ///|
@@ -222,5 +224,5 @@ test "Result Store wrapper cannot turn a pending original Writer into a reply" {
   // The same original Writer remains usable/owned, not replaced or discarded.
   writer.append(b"held").unwrap()
   writer.cancel().unwrap()
-  assert_eq(store.close(), Ok(true))
+  assert_true(store.close() is Ok(true))
 }
