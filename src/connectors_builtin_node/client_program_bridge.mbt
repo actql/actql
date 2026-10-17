@@ -2967,6 +2967,11 @@ pub fn client_program_prepare_published_effect_computation_with_parameters(
     Ok(value) => value
     Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
   }
+  let command_targets = match
+    @source_publication.published_command_targets(environment, publication) {
+    Ok(value) => value
+    Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
+  }
   let (selected, supplied) = match client_program_input(format, parameters) {
     Ok(value) => value
     Err(issue) => return EffectRejected(Input(issue))
@@ -2981,6 +2986,7 @@ pub fn client_program_prepare_published_effect_computation_with_parameters(
       client_program_effect_limits(),
       update_targets~,
       store_targets~,
+      command_targets~,
     ) {
     Ok(value) => EffectPrepared(value)
     Err(issue) => EffectRejected(Preparation(issue))
