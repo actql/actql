@@ -18,6 +18,12 @@ pub fn check_target(Bytes, String, GridRange, Int, Array[Column], Limits) -> Res
 
 pub fn classify_append(Int, Bytes, String, Limits) -> AppendOutcome
 
+pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOutcome
+
+pub fn clear_request(GridRange, Array[Column], String, Limits) -> Result[String, Issue]
+
+pub fn clear_request_identity(String, String, String, String) -> Result[String, RangeFailure]
+
 pub fn excluded_blank_rows(Page) -> Int
 
 pub fn page_rows(Page) -> Array[Json]
