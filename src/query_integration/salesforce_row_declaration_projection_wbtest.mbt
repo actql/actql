@@ -120,8 +120,20 @@ test "Salesforce row projection preserves every original declaration and evidenc
 test "Salesforce row acquisition requires the same projected view and checked requirement" {
   let original = salesforce_row_declaration()
   let projected = @salesforce_host.salesforce_row_declaration(original).unwrap()
-  let requirement = salesforce_row_requirement()
+  let requirement = row_page_requirement()
   let (query, evidence) = query_evidence_test_bodies()
+  // The older projection-only requirement deliberately omits Source evidence.
+  // Keep that refusal; use the existing complete evidence fixture for a real
+  // acquisition instead of weakening the Row Owner's evidence admission.
+  assert_true(
+    @row_host.prepare_row_acquisition(
+      projected,
+      salesforce_row_requirement(),
+      @identity.stringify_value(query, 100000, 10000, 100),
+      @identity.stringify_value(evidence, 100000, 10000, 100),
+    )
+    is Err(SourceEvidence(_)),
+  )
   let acquisition = @row_host.prepare_row_acquisition(
     projected,
     requirement,
@@ -156,7 +168,7 @@ test "Salesforce row acquisition requires the same projected view and checked re
     )
     is Err(ForeignDeclaration),
   )
-  let equal_requirement = salesforce_row_requirement()
+  let equal_requirement = row_page_requirement()
   assert_true(
     @row_host.check_row_acquisition_original(
       acquisition, projected, equal_requirement,
