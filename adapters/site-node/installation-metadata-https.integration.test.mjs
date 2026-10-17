@@ -181,17 +181,25 @@ test('metadata outcome COMMIT reply loss does not repeat finish or send another 
   const f = await fixture(t);
   await f.run(async x => {
     const authorization = x.authorization(0), exec = DatabaseSync.prototype.exec;
-    let commits = 0;
+    let commits = 0, outcomeCommits = 0;
     DatabaseSync.prototype.exec = function(sql) {
+      // Claim and read-only authorize are also real transactions. Select the
+      // actual succeeded outcome transaction, rather than guessing its ordinal.
+      const outcome = sql === 'COMMIT' ? this.prepare(
+        'SELECT outcome FROM credential_uses ORDER BY rowid DESC LIMIT 1').get()?.outcome : undefined;
       const result = Reflect.apply(exec, this, [sql]);
-      if (sql === 'COMMIT' && ++commits === 2) throw new Error('OriginalMetadataOutcomeReplyLost');
+      if (sql === 'COMMIT') {
+        commits++;
+        if (outcome === 1 && ++outcomeCommits === 1) throw new Error('OriginalMetadataOutcomeReplyLost');
+      }
       return result;
     };
     let original;
     try {await assert.rejects(x.call(0, {}, authorization), error => {
       original = error; return error.code === 'RemoteCredentialJournalCommitOutcomeUnknown';
     });} finally {DatabaseSync.prototype.exec = exec;}
-    assert.equal(commits, 2);
+    assert.equal(outcomeCommits, 1);
+    t.diagnostic('Original outcome COMMITs: ' + outcomeCommits + '; all COMMITs: ' + commits);
     await assert.rejects(x.call(0, {}, authorization), error => error === original);
     assert.equal(x.requests().length, 1);
   });
