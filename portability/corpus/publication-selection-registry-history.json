@@ -1,0 +1,4241 @@
+{
+  "version": "actql-publication-selection-registry-history/0.1",
+  "source_commit": "fde035cf745d4885f8c2b9bcf2a583961ca0a956",
+  "source_path": "spec/contracts/actql-protocol-schemas.json",
+  "source_blob": "bd43e186d9cd0fe3a655155f886650ca840cb4b1",
+  "current_source_commit": "9fb3fd7dbaf3de68bb1e341725b28a75476d38c2",
+  "artifact_registry_cid": "sha256:91eae8fde531981454099a7cd60fafd59818c38af947791d3c20566adb4ff8f4",
+  "changes": [
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "reason_schema_cid",
+        "const"
+      ],
+      "current": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e",
+      "historical": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        0,
+        "if",
+        "properties",
+        "verdict",
+        "const"
+      ],
+      "current": "invalid",
+      "historical": "verified"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        0,
+        "then",
+        "allOf"
+      ],
+      "current_present": false,
+      "historical": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "properties": {
+                  "kind": {
+                    "const": "bound_input"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requirements": {
+                "type": "array",
+                "items": {},
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "properties": {
+                  "kind": {
+                    "const": "template_only"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requirements": {
+                "items": {
+                  "properties": {
+                    "code": {
+                      "const": "parameter_value_required"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        0,
+        "then",
+        "not"
+      ],
+      "current_present": false,
+      "historical": {
+        "required": [
+          "omissions"
+        ]
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        0,
+        "then",
+        "properties",
+        "coverage"
+      ],
+      "current_present": false,
+      "historical": {
+        "properties": {
+          "limits": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          },
+          "unresolved": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        0,
+        "then",
+        "properties",
+        "reasons"
+      ],
+      "current_present": false,
+      "historical": {
+        "type": "array",
+        "items": {},
+        "maxItems": 0
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        0,
+        "then",
+        "properties",
+        "runnable"
+      ],
+      "current": {
+        "properties": {
+          "verdict": {
+            "const": "no"
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        1,
+        "if",
+        "properties",
+        "verdict",
+        "const"
+      ],
+      "current": "undetermined",
+      "historical": "invalid"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        1,
+        "then",
+        "properties",
+        "reasons"
+      ],
+      "current_present": false,
+      "historical": {
+        "type": "array",
+        "items": {},
+        "minItems": 1
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        1,
+        "then",
+        "properties",
+        "runnable"
+      ],
+      "current": {
+        "properties": {
+          "verdict": {
+            "const": "no"
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        2,
+        "if",
+        "properties",
+        "verdict",
+        "const"
+      ],
+      "current": "verified",
+      "historical": "undetermined"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        2,
+        "then",
+        "allOf"
+      ],
+      "current": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "properties": {
+                  "kind": {
+                    "const": "bound_input"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requirements": {
+                "type": "array",
+                "items": {},
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "properties": {
+                  "kind": {
+                    "const": "template_only"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requirements": {
+                "items": {
+                  "properties": {
+                    "code": {
+                      "const": "parameter_value_required"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        2,
+        "then",
+        "not"
+      ],
+      "current": {
+        "required": [
+          "omissions"
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        2,
+        "then",
+        "properties",
+        "coverage",
+        "not"
+      ],
+      "current_present": false,
+      "historical": {
+        "properties": {
+          "limits": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          },
+          "unresolved": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        2,
+        "then",
+        "properties",
+        "coverage",
+        "properties"
+      ],
+      "current": {
+        "limits": {
+          "type": "array",
+          "items": {},
+          "maxItems": 0
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {},
+          "maxItems": 0
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        4
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "verdict": {
+              "const": "undetermined"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "reasons": {
+              "type": "array",
+              "items": {},
+              "maxItems": 0
+            },
+            "coverage": {
+              "not": {
+                "properties": {
+                  "limits": {
+                    "type": "array",
+                    "items": {},
+                    "maxItems": 0
+                  },
+                  "unresolved": {
+                    "type": "array",
+                    "items": {},
+                    "maxItems": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "allOf",
+        3
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "verdict": {
+              "const": "invalid"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "reasons": {
+              "type": "array",
+              "items": {},
+              "minItems": 1
+            }
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "admission",
+        "properties",
+        "contract_schema_cid",
+        "const"
+      ],
+      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "admission",
+        "properties",
+        "contract_schema_cid",
+        "const"
+      ],
+      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "runnable"
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "verdict",
+          "reasons"
+        ],
+        "properties": {
+          "verdict": {
+            "enum": [
+              "yes",
+              "no"
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "code"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "verdict": {
+                  "const": "yes"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "reasons": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "verdict": {
+                  "const": "no"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "reasons": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "required",
+        5
+      ],
+      "current": "runnable",
+      "historical": "scope"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "required",
+        6
+      ],
+      "current": "scope",
+      "historical": "verdict"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "required",
+        7
+      ],
+      "current": "verdict",
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        0,
+        "if",
+        "properties",
+        "verdict",
+        "const"
+      ],
+      "current": "invalid",
+      "historical": "verified"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        0,
+        "then",
+        "allOf"
+      ],
+      "current_present": false,
+      "historical": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "properties": {
+                  "kind": {
+                    "const": "bound_input"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requirements": {
+                "type": "array",
+                "items": {},
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "properties": {
+                  "kind": {
+                    "const": "template_only"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requirements": {
+                "items": {
+                  "properties": {
+                    "code": {
+                      "const": "parameter_value_required"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        0,
+        "then",
+        "not"
+      ],
+      "current_present": false,
+      "historical": {
+        "required": [
+          "omissions"
+        ]
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        0,
+        "then",
+        "properties",
+        "coverage"
+      ],
+      "current_present": false,
+      "historical": {
+        "properties": {
+          "limits": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          },
+          "unresolved": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        0,
+        "then",
+        "properties",
+        "reasons"
+      ],
+      "current_present": false,
+      "historical": {
+        "type": "array",
+        "items": {},
+        "maxItems": 0
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        0,
+        "then",
+        "properties",
+        "runnable"
+      ],
+      "current": {
+        "properties": {
+          "verdict": {
+            "const": "no"
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        1,
+        "if",
+        "properties",
+        "verdict",
+        "const"
+      ],
+      "current": "undetermined",
+      "historical": "invalid"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        1,
+        "then",
+        "properties",
+        "reasons"
+      ],
+      "current_present": false,
+      "historical": {
+        "type": "array",
+        "items": {},
+        "minItems": 1
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        1,
+        "then",
+        "properties",
+        "runnable"
+      ],
+      "current": {
+        "properties": {
+          "verdict": {
+            "const": "no"
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        2,
+        "if",
+        "properties",
+        "verdict",
+        "const"
+      ],
+      "current": "verified",
+      "historical": "undetermined"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        2,
+        "then",
+        "allOf"
+      ],
+      "current": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "properties": {
+                  "kind": {
+                    "const": "bound_input"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requirements": {
+                "type": "array",
+                "items": {},
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "properties": {
+                  "kind": {
+                    "const": "template_only"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requirements": {
+                "items": {
+                  "properties": {
+                    "code": {
+                      "const": "parameter_value_required"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        2,
+        "then",
+        "not"
+      ],
+      "current": {
+        "required": [
+          "omissions"
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        2,
+        "then",
+        "properties",
+        "coverage",
+        "not"
+      ],
+      "current_present": false,
+      "historical": {
+        "properties": {
+          "limits": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          },
+          "unresolved": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        2,
+        "then",
+        "properties",
+        "coverage",
+        "properties"
+      ],
+      "current": {
+        "limits": {
+          "type": "array",
+          "items": {},
+          "maxItems": 0
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {},
+          "maxItems": 0
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        4
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "verdict": {
+              "const": "undetermined"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "reasons": {
+              "type": "array",
+              "items": {},
+              "maxItems": 0
+            },
+            "coverage": {
+              "not": {
+                "properties": {
+                  "limits": {
+                    "type": "array",
+                    "items": {},
+                    "maxItems": 0
+                  },
+                  "unresolved": {
+                    "type": "array",
+                    "items": {},
+                    "maxItems": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "allOf",
+        3
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "verdict": {
+              "const": "invalid"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "reasons": {
+              "type": "array",
+              "items": {},
+              "minItems": 1
+            }
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "admission",
+        "properties",
+        "contract_schema_cid",
+        "const"
+      ],
+      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "admission",
+        "properties",
+        "contract_schema_cid",
+        "const"
+      ],
+      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "runnable"
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "verdict",
+          "reasons"
+        ],
+        "properties": {
+          "verdict": {
+            "enum": [
+              "yes",
+              "no"
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "code"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "verdict": {
+                  "const": "yes"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "reasons": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "verdict": {
+                  "const": "no"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "reasons": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "required",
+        5
+      ],
+      "current": "runnable",
+      "historical": "scope"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "required",
+        6
+      ],
+      "current": "scope",
+      "historical": "verdict"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "required",
+        7
+      ],
+      "current": "verdict",
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "reason_schema_cid",
+        "const"
+      ],
+      "current": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e",
+      "historical": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        2,
+        "properties",
+        "reason_schema_cid",
+        "const"
+      ],
+      "current": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e",
+      "historical": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
+    },
+    {
+      "path": [
+        "check_reason",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "admission",
+        "properties",
+        "contract_schema_cid",
+        "const"
+      ],
+      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+    },
+    {
+      "path": [
+        "effect_preview",
+        "properties",
+        "effects",
+        "items",
+        "properties",
+        "preview_strength",
+        "enum",
+        2
+      ],
+      "current_present": false,
+      "historical": "blind"
+    },
+    {
+      "path": [
+        "effect_preview",
+        "properties",
+        "effects",
+        "items",
+        "properties",
+        "target",
+        "oneOf",
+        2
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "$actql_ref",
+          "version",
+          "resource_kind",
+          "provider_namespace",
+          "provider_identity_cid",
+          "authority_scope_cid",
+          "boundary_cid",
+          "identity_cid"
+        ],
+        "properties": {
+          "$actql_ref": {
+            "const": "resource"
+          },
+          "version": {
+            "const": "actql-resource-ref/0.1"
+          },
+          "resource_kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider_namespace": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider_identity_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "authority_scope_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "boundary_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "identity_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "effect_reconciliation_receipt",
+        "properties",
+        "outcome",
+        "oneOf",
+        0,
+        "properties",
+        "action"
+      ],
+      "current": {
+        "enum": [
+          "created",
+          "updated"
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "effect_row_outcome_receipt",
+        "properties",
+        "typed_outcome",
+        "oneOf",
+        0,
+        "$comment"
+      ],
+      "current": "action is required exactly for an applied upsert; admission checks the original dispatch operation. It is included in the typed outcome and receipt identities.",
+      "historical_present": false
+    },
+    {
+      "path": [
+        "effect_row_outcome_receipt",
+        "properties",
+        "typed_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "action"
+      ],
+      "current": {
+        "enum": [
+          "created",
+          "updated"
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "parameter_type",
+        "oneOf",
+        1,
+        "properties",
+        "enum"
+      ],
+      "current": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        0
+      ],
+      "current": "number",
+      "historical": "string"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        1
+      ],
+      "current": "boolean",
+      "historical": "number"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        2
+      ],
+      "current": "timestamp",
+      "historical": "boolean"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        3
+      ],
+      "current": "date",
+      "historical": "timestamp"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        4
+      ],
+      "current": "json",
+      "historical": "date"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        5
+      ],
+      "current_present": false,
+      "historical": "json"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        7
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "properties": {
+          "type": {
+            "const": "string"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "enum": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        0
+      ],
+      "current": "number",
+      "historical": "string"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        1
+      ],
+      "current": "boolean",
+      "historical": "number"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        2
+      ],
+      "current": "timestamp",
+      "historical": "boolean"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        3
+      ],
+      "current": "date",
+      "historical": "timestamp"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        4
+      ],
+      "current_present": false,
+      "historical": "date"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        5
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "properties": {
+          "type": {
+            "const": "string"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "enum": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        0,
+        "properties",
+        "create",
+        "dependentRequired"
+      ],
+      "current": {
+        "values": [
+          "from"
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        0,
+        "properties",
+        "create",
+        "properties",
+        "values"
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "literal"
+              ],
+              "properties": {
+                "literal": {}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "input_key"
+      ],
+      "current": {
+        "type": "string",
+        "minLength": 1
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "additionalProperties"
+      ],
+      "current_present": false,
+      "historical": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "oneOf"
+      ],
+      "current": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "field"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "published_store"
+          ],
+          "properties": {
+            "published_store": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target_ref",
+                "mapping_ref"
+              ],
+              "properties": {
+                "target_ref": {
+                  "type": "string",
+                  "pattern": "^connector://"
+                },
+                "mapping_ref": {
+                  "type": "string",
+                  "pattern": "^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "published_command"
+          ],
+          "properties": {
+            "published_command": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target_ref"
+              ],
+              "properties": {
+                "target_ref": {
+                  "type": "string",
+                  "pattern": "^connector://"
+                },
+                "identifier_field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      ],
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "properties"
+      ],
+      "current_present": false,
+      "historical": {
+        "field": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "required"
+      ],
+      "current_present": false,
+      "historical": [
+        "field"
+      ]
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "type"
+      ],
+      "current_present": false,
+      "historical": "object"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "params",
+        "additionalProperties",
+        "oneOf",
+        1,
+        "properties",
+        "enum"
+      ],
+      "current": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "properties",
+        "by",
+        "default"
+      ],
+      "current": [],
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "properties",
+        "contiguity",
+        "default"
+      ],
+      "current": "adjacent",
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "properties",
+        "overlap",
+        "default"
+      ],
+      "current": "disallow",
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        0
+      ],
+      "current": "id",
+      "historical": "by"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        1
+      ],
+      "current": "time",
+      "historical": "id"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        2
+      ],
+      "current": "pattern",
+      "historical": "time"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        3
+      ],
+      "current": "within",
+      "historical": "pattern"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        4
+      ],
+      "current_present": false,
+      "historical": "within"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        5
+      ],
+      "current_present": false,
+      "historical": "overlap"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        6
+      ],
+      "current_present": false,
+      "historical": "contiguity"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "watermark_events",
+        "properties",
+        "watermark_ms",
+        "oneOf"
+      ],
+      "current": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "$param"
+          ],
+          "properties": {
+            "$param": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            }
+          }
+        }
+      ],
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "watermark_events",
+        "properties",
+        "watermark_ms",
+        "type"
+      ],
+      "current_present": false,
+      "historical": "number"
+    },
+    {
+      "path": [
+        "explanation"
+      ],
+      "current": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://smooth.dev/schemas/actql-explanation-0.1.json",
+        "title": "actql-explanation-0.1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "mode",
+          "program_definition_cid",
+          "compiled_plan_cid",
+          "steps",
+          "placements",
+          "pushdown",
+          "quantities",
+          "transfers",
+          "effects",
+          "inference",
+          "search",
+          "strategy_changes",
+          "information"
+        ],
+        "properties": {
+          "version": {
+            "const": "actql-explanation/0.1"
+          },
+          "mode": {
+            "enum": [
+              "static",
+              "run"
+            ]
+          },
+          "program_definition_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "compiled_plan_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "logical_map_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "run_identity_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/logical_step"
+            }
+          },
+          "placements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/physical_placement"
+            },
+            "$comment": "One entry per step and alternative: the chosen or deferred placement plus candidate and excluded alternatives for the same step_id."
+          },
+          "pushdown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/pushdown"
+            }
+          },
+          "quantities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "step_id",
+                "quantity"
+              ],
+              "properties": {
+                "step_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "quantity": {
+                  "$ref": "#/$defs/quantity"
+                }
+              }
+            }
+          },
+          "transfers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from_site",
+                "to_site",
+                "state",
+                "quantities"
+              ],
+              "properties": {
+                "from_site": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "to_site": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "state": {
+                  "enum": [
+                    "fixed",
+                    "deferred",
+                    "proposed",
+                    "candidate",
+                    "excluded",
+                    "realized"
+                  ]
+                },
+                "quantities": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/quantity"
+                  }
+                }
+              }
+            }
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/effect"
+            }
+          },
+          "inference": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "step_id",
+                "task_ref",
+                "input_columns",
+                "output_contract_cid",
+                "calls"
+              ],
+              "properties": {
+                "step_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "task_ref": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "input_columns": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "output_contract_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "calls": {
+                  "$ref": "#/$defs/quantity"
+                }
+              }
+            }
+          },
+          "search": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "complete",
+                  "bounded_frontier",
+                  "unavailable"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              }
+            }
+          },
+          "strategy_changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "step_id",
+                "before_evidence_cid",
+                "after_evidence_cid",
+                "reason",
+                "changed_at"
+              ],
+              "properties": {
+                "step_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "before_evidence_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "after_evidence_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "reason": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "changed_at": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "$comment": "UTC milliseconds when the Host revised the strategy."
+                }
+              }
+            }
+          },
+          "information": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "section",
+                "state"
+              ],
+              "properties": {
+                "section": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "state": {
+                  "enum": [
+                    "available",
+                    "redacted",
+                    "unavailable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                }
+              }
+            }
+          }
+        },
+        "$defs": {
+          "placement_choice": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "fixed",
+                  "deferred",
+                  "proposed",
+                  "candidate",
+                  "excluded",
+                  "realized"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "reason": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "fixed",
+                        "proposed",
+                        "candidate",
+                        "realized"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            ]
+          },
+          "quantity": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "kind",
+              "state",
+              "unit"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "kind": {
+                "enum": [
+                  "estimate",
+                  "bound",
+                  "actual"
+                ]
+              },
+              "state": {
+                "enum": [
+                  "known",
+                  "unknown",
+                  "unavailable"
+                ]
+              },
+              "value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "unit": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "reason": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "provenance": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "owner_cid",
+                  "scope_cid",
+                  "observed_at"
+                ],
+                "properties": {
+                  "owner_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "scope_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "observed_at": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "const": "known"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "value",
+                    "provenance"
+                  ]
+                },
+                "else": {
+                  "properties": {
+                    "value": false,
+                    "provenance": false
+                  },
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            ]
+          },
+          "logical_step": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step_id",
+              "operation",
+              "inputs",
+              "output_ports"
+            ],
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "operation": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "step_id",
+                    "port"
+                  ],
+                  "properties": {
+                    "step_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "port": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                }
+              },
+              "output_ports": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          },
+          "physical_placement": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step_id",
+              "site",
+              "reason",
+              "required_capabilities"
+            ],
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "site": {
+                "$ref": "#/$defs/placement_choice"
+              },
+              "engine": {
+                "$ref": "#/$defs/placement_choice"
+              },
+              "interface": {
+                "$ref": "#/$defs/placement_choice"
+              },
+              "reason": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "required_capabilities": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "engine"
+                ],
+                "not": {
+                  "required": [
+                    "interface"
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "interface"
+                ],
+                "not": {
+                  "required": [
+                    "engine"
+                  ]
+                }
+              }
+            ]
+          },
+          "pushdown": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step_id",
+              "condition_id",
+              "expression_state",
+              "dependencies",
+              "eligible_sites",
+              "decision",
+              "reason",
+              "residual_condition_ids"
+            ],
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "condition_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "expression": {
+                "type": "string",
+                "maxLength": 4096
+              },
+              "expression_state": {
+                "enum": [
+                  "available",
+                  "redacted",
+                  "unavailable"
+                ]
+              },
+              "dependencies": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "eligible_sites": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "decision": {
+                "enum": [
+                  "selected",
+                  "host"
+                ],
+                "$comment": "selected: built into the Source request; host: kept on the Host. Not eligible is host with no eligible_sites and a reason."
+              },
+              "reason": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "residual_condition_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "expression_state": {
+                      "const": "available"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "expression"
+                  ]
+                },
+                "else": {
+                  "properties": {
+                    "expression": false
+                  }
+                }
+              }
+            ]
+          },
+          "effect": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step_id",
+              "target",
+              "contract_cid",
+              "checkpoint",
+              "preview_state",
+              "outcomes",
+              "evidence_cids",
+              "policy"
+            ],
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "target": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "checkpoint": {
+                "enum": [
+                  "none",
+                  "conditional",
+                  "required"
+                ]
+              },
+              "preview_state": {
+                "enum": [
+                  "unavailable",
+                  "retained",
+                  "redacted"
+                ]
+              },
+              "preview_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "outcomes": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "applied",
+                    "accepted",
+                    "failed",
+                    "unknown"
+                  ]
+                }
+              },
+              "evidence_cids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              },
+              "policy": {
+                "enum": [
+                  "allow",
+                  "review",
+                  "deny",
+                  "runtime"
+                ],
+                "$comment": "A policy decision already made, or runtime when policy is evaluated at run time."
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "preview_state": {
+                      "const": "retained"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "preview_cid"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "static"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "run_identity_cid": false,
+                "strategy_changes": {
+                  "maxItems": 0
+                },
+                "placements": {
+                  "items": {
+                    "properties": {
+                      "site": {
+                        "properties": {
+                          "state": {
+                            "enum": [
+                              "fixed",
+                              "deferred",
+                              "proposed",
+                              "candidate",
+                              "excluded"
+                            ]
+                          }
+                        }
+                      },
+                      "engine": {
+                        "properties": {
+                          "state": {
+                            "enum": [
+                              "fixed",
+                              "deferred",
+                              "proposed",
+                              "candidate",
+                              "excluded"
+                            ]
+                          }
+                        }
+                      },
+                      "interface": {
+                        "properties": {
+                          "state": {
+                            "enum": [
+                              "fixed",
+                              "deferred",
+                              "proposed",
+                              "candidate",
+                              "excluded"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "transfers": {
+                  "items": {
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "fixed",
+                          "deferred",
+                          "proposed",
+                          "candidate",
+                          "excluded"
+                        ]
+                      },
+                      "quantities": {
+                        "items": {
+                          "not": {
+                            "properties": {
+                              "kind": {
+                                "const": "actual"
+                              },
+                              "state": {
+                                "const": "known"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "state"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "quantities": {
+                  "items": {
+                    "properties": {
+                      "quantity": {
+                        "not": {
+                          "properties": {
+                            "kind": {
+                              "const": "actual"
+                            },
+                            "state": {
+                              "const": "known"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "state"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "effects": {
+                  "items": {
+                    "properties": {
+                      "preview_state": {
+                        "const": "unavailable"
+                      },
+                      "preview_cid": false,
+                      "outcomes": {
+                        "maxItems": 0
+                      },
+                      "evidence_cids": {
+                        "maxItems": 0
+                      }
+                    }
+                  }
+                },
+                "inference": {
+                  "items": {
+                    "properties": {
+                      "calls": {
+                        "not": {
+                          "properties": {
+                            "kind": {
+                              "const": "actual"
+                            },
+                            "state": {
+                              "const": "known"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "state"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "else": {
+              "required": [
+                "run_identity_cid"
+              ]
+            }
+          }
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "parameter_type",
+        "oneOf",
+        1,
+        "properties",
+        "enum"
+      ],
+      "current": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        0
+      ],
+      "current": "number",
+      "historical": "string"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        1
+      ],
+      "current": "boolean",
+      "historical": "number"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        2
+      ],
+      "current": "timestamp",
+      "historical": "boolean"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        3
+      ],
+      "current": "date",
+      "historical": "timestamp"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        4
+      ],
+      "current": "json",
+      "historical": "date"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        5
+      ],
+      "current_present": false,
+      "historical": "json"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        7
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "properties": {
+          "type": {
+            "const": "string"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "enum": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        0
+      ],
+      "current": "number",
+      "historical": "string"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        1
+      ],
+      "current": "boolean",
+      "historical": "number"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        2
+      ],
+      "current": "timestamp",
+      "historical": "boolean"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        3
+      ],
+      "current": "date",
+      "historical": "timestamp"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        1,
+        "properties",
+        "type",
+        "enum",
+        4
+      ],
+      "current_present": false,
+      "historical": "date"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        5
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "properties": {
+          "type": {
+            "const": "string"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "enum": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        0,
+        "properties",
+        "create",
+        "dependentRequired"
+      ],
+      "current": {
+        "values": [
+          "from"
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        0,
+        "properties",
+        "create",
+        "properties",
+        "values"
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "literal"
+              ],
+              "properties": {
+                "literal": {}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "input_key"
+      ],
+      "current": {
+        "type": "string",
+        "minLength": 1
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "additionalProperties"
+      ],
+      "current_present": false,
+      "historical": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "oneOf"
+      ],
+      "current": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "field"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "published_store"
+          ],
+          "properties": {
+            "published_store": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target_ref",
+                "mapping_ref"
+              ],
+              "properties": {
+                "target_ref": {
+                  "type": "string",
+                  "pattern": "^connector://"
+                },
+                "mapping_ref": {
+                  "type": "string",
+                  "pattern": "^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "published_command"
+          ],
+          "properties": {
+            "published_command": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target_ref"
+              ],
+              "properties": {
+                "target_ref": {
+                  "type": "string",
+                  "pattern": "^connector://"
+                },
+                "identifier_field": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      ],
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "properties"
+      ],
+      "current_present": false,
+      "historical": {
+        "field": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "required"
+      ],
+      "current_present": false,
+      "historical": [
+        "field"
+      ]
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "effects",
+        "additionalProperties",
+        "oneOf",
+        4,
+        "properties",
+        "command",
+        "properties",
+        "target",
+        "type"
+      ],
+      "current_present": false,
+      "historical": "object"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "params",
+        "additionalProperties",
+        "oneOf",
+        1,
+        "properties",
+        "enum"
+      ],
+      "current": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "properties",
+        "by",
+        "default"
+      ],
+      "current": [],
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "properties",
+        "contiguity",
+        "default"
+      ],
+      "current": "adjacent",
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "properties",
+        "overlap",
+        "default"
+      ],
+      "current": "disallow",
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        0
+      ],
+      "current": "id",
+      "historical": "by"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        1
+      ],
+      "current": "time",
+      "historical": "id"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        2
+      ],
+      "current": "pattern",
+      "historical": "time"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        3
+      ],
+      "current": "within",
+      "historical": "pattern"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        4
+      ],
+      "current_present": false,
+      "historical": "within"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        5
+      ],
+      "current_present": false,
+      "historical": "overlap"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "sequence",
+        "required",
+        6
+      ],
+      "current_present": false,
+      "historical": "contiguity"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "watermark_events",
+        "properties",
+        "watermark_ms",
+        "oneOf"
+      ],
+      "current": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "$param"
+          ],
+          "properties": {
+            "$param": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            }
+          }
+        }
+      ],
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "watermark_events",
+        "properties",
+        "watermark_ms",
+        "type"
+      ],
+      "current_present": false,
+      "historical": "number"
+    },
+    {
+      "path": [
+        "review_projection",
+        "properties",
+        "displayed_rows",
+        "items",
+        "properties",
+        "intended_changes"
+      ],
+      "current": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "value"
+            ],
+            "properties": {
+              "state": {
+                "const": "present"
+              },
+              "value": {}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "const": "not_applicable"
+              }
+            }
+          }
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "review_projection",
+        "properties",
+        "displayed_rows",
+        "items",
+        "properties",
+        "preview_strength"
+      ],
+      "current": {
+        "enum": [
+          "full_diff",
+          "targeted"
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "review_projection",
+        "properties",
+        "displayed_rows",
+        "items",
+        "properties",
+        "target_guard"
+      ],
+      "current": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "version_cid"
+            ],
+            "properties": {
+              "state": {
+                "const": "version"
+              },
+              "version_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "const": "not_applicable"
+              }
+            }
+          }
+        ]
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "review_projection",
+        "properties",
+        "displayed_scope",
+        "properties",
+        "effects",
+        "items",
+        "properties",
+        "target",
+        "oneOf",
+        2
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "$actql_ref",
+          "version",
+          "resource_kind",
+          "provider_namespace",
+          "provider_identity_cid",
+          "authority_scope_cid",
+          "boundary_cid",
+          "identity_cid"
+        ],
+        "properties": {
+          "$actql_ref": {
+            "const": "resource"
+          },
+          "version": {
+            "const": "actql-resource-ref/0.1"
+          },
+          "resource_kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider_namespace": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider_identity_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "authority_scope_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "boundary_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "identity_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "run_state",
+        "properties",
+        "revision"
+      ],
+      "current": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "historical_present": false
+    },
+    {
+      "path": [
+        "run_state",
+        "required",
+        7
+      ],
+      "current": "revision",
+      "historical_present": false
+    }
+  ]
+}

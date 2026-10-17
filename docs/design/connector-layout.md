@@ -305,3 +305,31 @@ shared test assembly preserves the original Run, Store, journal and awaited
 stage disposal, with a Salesforce wrapper selecting its original unit reader.
 Capture evidence alone does not establish physical provider deletion, resolved
 approval, restored application, pristine installed artifacts or full funding.
+
+## Public Row Effect request kinds
+
+The public connector declaration mirrors the existing installed Row Effect:
+DELETE has an absent proposed value (`undefined`); create, update, upsert and
+Command retain their original object input. `RowEffectDriver<Request, Current,
+Kind>` carries the selected kind through preparation, request facts, entries
+and callbacks. Its existing default remains create/update/upsert, preserving
+value-bearing callers. An explicitly selected DELETE driver cannot return a
+null or object value from either preparation or request facts. Unspecialized
+entries cover all actual kinds; consumers requiring an object specialize the
+kind instead of asserting away possible absence.
+
+The existing Command variant has its own original Command contract member,
+not a fabricated Mapping. Its value and optional indexed read context remain
+unchanged. The public declaration adds no Command permission, installation,
+capability or execution fallback. As before, a guarded child is returned
+synchronously before its first awaited preparation and retains original
+release/retry/status custody; the type does not interpret preparation
+completion or a missing ACK as retirement.
+
+Actual public TypeScript consumers cover DELETE, the existing value-bearing
+path and Command. Independent invalid consumers require rejection of dummy
+DELETE values, omitted value-bearing/Command inputs, an asynchronous child
+factory and missing cleanup. These are public type checks, not a runtime
+build, physical Provider operation, installed artifact or numerical-profile
+acceptance; the existing runtime and actual Owner evidence keep their own
+source qualifications.

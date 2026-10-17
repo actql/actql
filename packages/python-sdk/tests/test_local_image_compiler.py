@@ -1,6 +1,9 @@
 """Image compiler preflight/refusal and native doubles; no real compiler or image."""
 from contextlib import ExitStack
+from dataclasses import replace
+import hashlib
 import importlib.util
+import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,8 +12,9 @@ from unittest.mock import patch
 
 import test_local_artifact_producer as originals
 import test_local_installed_image as native
-from image_fixture import PROVIDER
+from image_fixture import PROVIDER, ORIGINAL
 from actql_sdk._local_distribution import LocalInstallationError
+from actql_sdk._local_image_recipe import _recipe_from_original
 from actql_sdk._local_native_holding import NativeHoldingScopeError
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -43,6 +47,56 @@ class ImageCompilerTests(unittest.TestCase):
         original = compiler.verify(self.case.module_file, self.case.head) if original is None else original
         return compiler._CompilerRuntime(original['source'], original['recipe'], self.preparation_root,
             compiler._runtime_files(self.preparation_root, original['recipe']))
+
+    def test_c_configuration_preparation_uses_original_verifier_without_native_import(self):
+        with patch.object(compiler, 'import_module', side_effect=AssertionError('Native import')):
+            result = compiler.prepare_compiler_configuration(self.case.module_file, self.case.head,
+                                                            self.destination.resolve())
+        header = (self.destination / 'compiler_configuration.generated.h').read_bytes()
+        self.assertEqual(result['header_sha256'], hashlib.sha256(header).hexdigest())
+        self.assertEqual(result['source_sha'], self.case.head)
+        self.assertEqual(result['scope'], 'original_compiler_configuration_only')
+        self.assertIs(result['compiled'], False)
+        self.assertIs(result['native_engine_started'], False)
+        self.assertIs(result['physical_acceptance'], False)
+        self.assertIn(self.case.head.encode(), header)
+        with self.assertRaisesRegex(ValueError, 'original physical-boundary Core receipt'):
+            compiler.assembly.verify_original_core(self.case.source, result, self.case.head)
+        with self.assertRaisesRegex(ValueError, 'fresh canonical'):
+            compiler.prepare_compiler_configuration(self.case.module_file, self.case.head,
+                                                   self.destination.resolve())
+
+    def test_c_projection_keeps_original_target_policy_and_pool_width(self):
+        recipe = _recipe_from_original(ORIGINAL, source_sha='a' * 40,
+                                      package_version='0.0.0.dev0', module_sha256='b' * 64)
+        engine = json.loads(recipe.engine_body)
+        engine['pooling']['table_elements'] = 2**64 - 1
+        header = compiler._compiler_configuration_header(replace(recipe,
+            engine_body=json.dumps(engine, sort_keys=True, separators=(',', ':')).encode()))
+        self.assertIn(b'wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_CRANELIFT);', header)
+        self.assertIn(b'wasmtime_config_target_set(config, "aarch64-apple-darwin")', header)
+        self.assertIn(b'wasmtime_pooling_allocation_config_table_elements_set(pool, 18446744073709551615ULL);', header)
+        self.assertIn(b'if (error != NULL) return error;', header)
+        self.assertNotIn(b'wasm_engine_new', header)
+
+    def test_c_projection_rejects_invalid_original_before_output(self):
+        recipe = _recipe_from_original(ORIGINAL, source_sha='a' * 40,
+                                      package_version='0.0.0.dev0', module_sha256='b' * 64)
+        for field, invalid in (('consume_fuel', 1), ('parallel_compilation', True),
+                               ('target', 'aarch64-apple-darwin";foreign();'),
+                               ('memory_reservation', True), ('strategy', 'auto')):
+            with self.subTest(field=field):
+                body = json.loads(recipe.engine_body)
+                body[field] = invalid
+                with self.assertRaises(LocalInstallationError):
+                    compiler._compiler_configuration_header(replace(recipe, engine_body=json.dumps(body).encode()))
+
+    def test_c_configuration_preparation_does_not_admit_changed_module(self):
+        self.case.module_file.write_bytes(b'changed original module receipt')
+        with self.assertRaises((ValueError, LocalInstallationError)):
+            compiler.prepare_compiler_configuration(self.case.module_file, self.case.head,
+                                                   self.destination.resolve())
+        self.assertFalse(self.destination.exists())
 
     def test_verify_only_does_not_import_native_runtime_or_issue_compiled_fact(self):
         with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
