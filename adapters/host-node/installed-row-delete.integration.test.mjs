@@ -107,7 +107,9 @@ async function fixture(t, {valueSubstitution = false, targetSubstitution = false
         return observations;
       },
       footprint: () => ({kind: 'opaque', provider_namespace: 'fixture', resource_kind: 'records',
-        provider_boundary_cid: cid('fixture boundary')}),
+        provider_boundary_cid: cid('fixture boundary'),
+        resource_identity_scheme_cid: cid('fixture original-id scheme'),
+        provider_object_identity_cids: []}),
       requestCid,
       recoveryEntry: ({entries}) => ({kind: 'fixture-delete-originals',
         observationCid: state.version, wire: canonicalJson({requests: entries.map(entry => entry.request)})}),
