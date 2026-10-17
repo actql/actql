@@ -92,3 +92,18 @@ test('actual generated structural type validator keeps enum shape without claimi
   // This checks the shipped structural declaration route only. Common must
   // still check Unicode, actual membership, extents and original value custody.
 });
+
+test('original Text enum vectors and the Values dependency retain independently authored preimages',async()=>{
+  const {verifyIdentity}=await import('./check-canonical-json.mjs');
+  const vectors=JSON.parse(readFileSync('portability/corpus/text-enumeration-identities.json','utf8'));
+  const ids=[];
+  for(const value of vectors.checkedTextContracts){
+    verifyIdentity(value.contract,value.proposedContractCid,value.canonicalPreimage);
+    ids.push(value.proposedContractCid);
+  }
+  assert.equal(new Set(ids).size,ids.length,'absence/order/repetitions/empty preserve distinct originals');
+  const aoa=JSON.parse(readFileSync('spec/contracts/actql-aoa.json','utf8'));
+  const expected=vectors.valuesExecution;
+  verifyIdentity(aoa.execution_contracts['REL.values'],expected.cid,expected.canonicalPreimage);
+  assert.deepEqual(aoa.execution_contracts['REL.values'],expected.body);
+});
