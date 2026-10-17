@@ -46,7 +46,7 @@ async function fixture(t, {valueSubstitution = false, targetSubstitution = false
     fields: {id: {type: 'string', nullable: false}, value: {type: 'string', nullable: false}}};
   const preimage = {schema: 'actql.mapping_contract/0.1', version: 'fixture-1',
     mapping_ref: 'mapping:fixture.delete.v1', target_ref: 'connector://archive/records',
-    connector_manifest_cid: cid(manifest), target_schema: schema,
+    connector_manifest_cid: cid(manifest.connectors[0]), target_schema: schema,
     target_schema_identity: cid(schema), resource_identity_cid: cid('fixture record identities'),
     primary_identity: 'id', required_fields: ['id', 'value'], writable_fields: ['id', 'value'],
     required_permissions: [], minimum_approval: 'required', conversions: [],
