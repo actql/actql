@@ -36,7 +36,11 @@ fn write_test_value(
   contract : String,
   value : String,
 ) -> @admitted.CheckedValue {
-  let limits : @contract.Limits = { max_nodes: 512, max_depth: 16, max_text_bytes: 65536, }
+  let limits : @contract.Limits = {
+    max_nodes: 512,
+    max_depth: 16,
+    max_text_bytes: 65536,
+  }
   let metadata = {
     ..database_test_limits(),
     max_bytes: 65536,
@@ -184,6 +188,48 @@ test "Notion rich text splits without losing Unicode or emitting more than the a
     write_test_wire(source, write_test_text("")),
     "{\"properties\":{\"p%3Ax\":{\"rich_text\":[]}}}",
   )
+}
+
+///|
+test "Notion vendor text limits count complete Unicode scalars and retain exact request text" {
+  let source = write_test_source("title")
+  let text = String::make(2000, '😀')
+  let bounds = { ..write_test_limits(), max_items: 1, }
+  assert_true(
+    prepare_notion_property_write(source, 0, write_test_text(text), bounds)
+    is Ok(_),
+  )
+  assert_eq(
+    prepare_notion_property_write(
+      source,
+      0,
+      write_test_text(text + "x"),
+      bounds,
+    ).unwrap_err(),
+    BudgetExceeded,
+  )
+  for kind in ["url", "email", "phone_number"] {
+    let bound = if kind == "url" { 2000 } else { 200 }
+    let source = write_test_source(kind)
+    assert_true(
+      prepare_notion_property_write(
+        source,
+        0,
+        write_test_text(String::make(bound, 'a')),
+        write_test_limits(),
+      )
+      is Ok(_),
+    )
+    assert_eq(
+      prepare_notion_property_write(
+        source,
+        0,
+        write_test_text(String::make(bound + 1, 'a')),
+        write_test_limits(),
+      ).unwrap_err(),
+      BudgetExceeded,
+    )
+  }
 }
 
 ///|

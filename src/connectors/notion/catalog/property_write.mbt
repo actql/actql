@@ -45,6 +45,20 @@ fn notion_write_limits_valid(limits : NotionPropertyWriteLimits) -> Bool {
 }
 
 ///|
+/// Checked Text is well-formed. Count scalars without splitting a surrogate
+/// pair, allocating a second character vector or normalizing original text.
+fn notion_write_text_end(text : String, start : Int, max_scalars : Int) -> Int {
+  let mut end = start
+  let mut scalars = 0
+  while end < text.length() && scalars < max_scalars {
+    let unit = text.code_unit_at(end).to_int()
+    end += if unit >= 0xd800 && unit <= 0xdbff { 2 } else { 1 }
+    scalars += 1
+  }
+  end
+}
+
+///|
 /// Every option, including unselected options, is checked and charged. An
 /// exact existing label selects its original id; no option is created by name.
 fn notion_write_option(
@@ -73,10 +87,10 @@ fn notion_write_option(
       @decode.text(name) is Ok(name) else {
       return Err(InvalidOptions(property.id))
     }
-    if remaining == 0 || id.length() > remaining - 1 {
+    if remaining == 0 || id.length() > (remaining - 1) / 2 {
       return Err(BudgetExceeded)
     }
-    remaining -= 1 + id.length()
+    remaining -= 1 + 2 * id.length()
     // Include exact label comparison and both hash inventories in the bound.
     if name.length() > remaining / 2 {
       return Err(BudgetExceeded)
@@ -189,16 +203,8 @@ pub fn prepare_notion_property_write(
             valid = false
             break
           }
-          // The vendor permits 2000 characters per text object. This maximum
-          // UTF16 chunk size is also safe for scalar-counting implementations;
-          // a surrogate pair is never split, and the complete value is kept.
-          let mut end = (text.length() - start).min(2000) + start
-          if end < text.length() {
-            let unit = text.code_unit_at(end - 1).to_int()
-            if unit >= 0xd800 && unit <= 0xdbff {
-              end -= 1
-            }
-          }
+          // Preserve the full value within actual per-object/array bounds.
+          let end = notion_write_text_end(text, start, 2000)
           @encode.begin_object(writer)
           @encode.key(writer, "type")
           @encode.string_value(writer, "text")
@@ -222,6 +228,17 @@ pub fn prepare_notion_property_write(
         // These native fields do not preserve empty Text distinctly from null.
         if text.is_empty() {
           Err(InvalidValue(property.id))
+        } else if notion_write_text_end(
+            text,
+            0,
+            if kind == "url" {
+              2000
+            } else {
+              200
+            },
+          ) <
+          text.length() {
+          Err(BudgetExceeded)
         } else {
           @encode.string_value(writer, text)
           Ok(())

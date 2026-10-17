@@ -7,6 +7,51 @@ source id or select the first source, a matching display name or a compatible
 schema. Selection takes an explicit occurrence of the original inventory.
 Empty inventories and repeated display names remain valid metadata.
 
+## Original property write encoding
+
+The Catalog's property write codec accepts one original selected data-source
+observation, its property occurrence and a Common CheckedValue. The opaque
+result retains all three originals with a bounded encoded document. An equal
+reparsed schema or copied equal checked value cannot replace them in its
+correspondence check. Aggregation uses original property ids, preserves encoded
+ids and Unicode, rejects duplicate properties and refuses foreign sources
+before returning a body. This operation does not create a Mapping, write
+capability, target Reference, key evidence or mutation identity.
+
+Decimal uses Common's exact scalar spelling and the bounded Encoder's decimal
+number operation. No binary floating-point intermediate, rounding or text
+relabel is used. Exact request bytes alone do not establish the vendor's storage
+domain or a successful mutation; the physical Effect must independently retain
+its original contract, before/version/overwrite guards, actual response and
+after-value correspondence. It must refuse a missing exact physical supplier.
+
+Title and rich text are plain-text objects split at complete Unicode scalar
+boundaries, retaining the full original text and the vendor's per-object and
+array bounds. Empty text remains an empty rich-text array. URL/email/phone null
+is distinct from empty Text and false. Select/status selects only an exact
+existing label's original option id, checking and charging unselected options
+too; it cannot implicitly create options. People/relation arrays carry original
+checked identifier text, never manufactured ResourceRefs or permissions.
+Computed and audit properties refuse encoding. Temporal range and Content/file
+writes require their own original typed physical projection; their absence is
+an implementation boundary, not a new public language restriction.
+
+Codec work and output limits cover string/option/identifier scans, property
+membership, duplicate detection and bounded Encoder depth/nodes/bytes. Original
+source/decode graphs, property definitions, CheckedValue/contracts, Text slices,
+option maps, per-property encoded documents, aggregate output and caller aliases
+can overlap. Those holdings require the existing Effect/resource supplier;
+structural limits do not reserve capacity, acknowledge physical retirement or
+prove normal numerical funding. Approval/current authority, original captured
+Mapping/input, Run materials, dispatch, Unknown/nonresend and cleanup remain
+with their existing owners.
+
+The physical shapes and limits follow the selected vendor's
+[page properties](https://developers.notion.com/reference/page-property-values),
+[page update](https://developers.notion.com/reference/patch-page) and
+[request limits](https://developers.notion.com/reference/request-limits).
+No API version or ActQL canonical preimage changes here.
+
 ## Original selection and identity
 
 `project_notion_database` admits the original database response. Its opaque
