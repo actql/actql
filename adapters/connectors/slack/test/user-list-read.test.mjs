@@ -24,7 +24,9 @@ test('Slack actual SQL and AQL use distinct identity and page grants on one toke
     assert.equal(f.state.resolutions,3);assert.equal(f.state.charges,3);assert.equal(f.state.observationCharges,1);
     assert.equal(f.row.usage()[3],BigInt(result.observations.reduce((sum,x)=>sum+x.body.length,0)));
     f.row.finish();assert.equal(f.row.captureCount(),2);
-    assert.deepEqual(f.journal.recover().map(x=>x.outcome),['accepted','accepted','accepted']);
+    // Credential Journal success is named succeeded by its original owner;
+    // this is not a public Effect accepted/applied transition.
+    assert.deepEqual(f.journal.recover().map(x=>x.outcome),['succeeded','succeeded','succeeded']);
     assert.equal(new Set(f.journal.recover().map(x=>x.grantCid)).size,2);
     assert.equal(reader.observe().cleanupConfirmed,false);
   }
@@ -77,7 +79,11 @@ test('Slack original nominal auth grant cannot be replaced with users grant or a
 test('Slack all-page IDs remain checked even when the requested projection omits the key',async t=>{
   const f=await userListFixture(t),projected=[];
   f.state.pages=[userPage([{id:'U1',name:'one'}],'next'),userPage([{id:'U1',name:'changed'}],null)];
-  await assert.rejects(f.create({names:['name'],consumePage:rows=>projected.push(...rows)}).read(),
+  // This projection-only control consumes its exact physical tickets as
+  // observations and never finishes/captures rows with the full Source schema.
+  await assert.rejects(f.create({names:['name'],consumePage:(rows,{charge})=>{
+    f.row.observe(charge);projected.push(...rows);
+  }}).read(),
     error=>error.cause.code==='SlackUserListDuplicateUser'&&error.observations.length===3);
   assert.deepEqual(projected,[{name:'one'}]);assert.equal(f.state.requests.length,3);f.row.assertNoCapture();
 });
