@@ -17,6 +17,8 @@ pub fn bind_notion_data_source_read_contracts(NotionDatabaseReadDeclaration, Not
 
 pub fn bind_notion_selected_read_contracts(NotionReadSourceSelection, NotionDataSourceCatalog, NotionReadContractLimits) -> Result[NotionDataSourceReadContracts, NotionReadContractIssue]
 
+pub fn capture_notion_database_read_snapshot(NotionReadSourceSelection, NotionDataSourceCatalog, NotionDataSourceReadContracts, NotionReadSnapshotLimits) -> Result[NotionDatabaseReadSnapshot, NotionReadSnapshotIssue]
+
 pub fn complete_notion_read_row_property(NotionReadRow, Int, NotionPropertyItemPage) -> Result[Unit, NotionReadRowIssue]
 
 pub fn finish_notion_read_row(NotionReadRow) -> Result[(@value_admission.CheckedValue, Int, Int), NotionReadRowIssue]
@@ -32,6 +34,8 @@ pub fn notion_data_source_matches_database(NotionDataSourceCatalog, NotionDataba
 pub fn notion_data_source_metadata_wire(NotionDataSourceCatalog, Int, Int, Int) -> Result[String, NotionDatabaseIssue]
 
 pub fn notion_data_source_original(NotionDataSourceCatalog) -> @decode_core.Cursor
+
+pub fn notion_data_source_original_json(NotionDataSourceCatalog, Int) -> Result[String, NotionDatabaseIssue]
 
 pub fn notion_data_source_property_at(NotionDataSourceCatalog, Int) -> NotionPropertyMetadata?
 
@@ -53,11 +57,27 @@ pub fn notion_database_metadata_wire(NotionDatabaseCatalog, Int, Int, Int) -> Re
 
 pub fn notion_database_original(NotionDatabaseCatalog) -> @decode_core.Cursor
 
+pub fn notion_database_original_json(NotionDatabaseCatalog, Int) -> Result[String, NotionDatabaseIssue]
+
 pub fn notion_database_read_declaration_original(NotionDatabaseReadDeclaration) -> @decode_core.Cursor
+
+pub fn notion_database_read_declaration_original_json(NotionDatabaseReadDeclaration, Int) -> Result[String, NotionReadContractIssue]
 
 pub fn notion_database_read_declaration_source_bytes(NotionDatabaseReadDeclaration) -> Int
 
 pub fn notion_database_read_declaration_source_cid(NotionDatabaseReadDeclaration) -> String
+
+pub fn notion_database_read_snapshot_contracts(NotionDatabaseReadSnapshot) -> Result[NotionDataSourceReadContracts, NotionReadSnapshotIssue]
+
+pub fn notion_database_read_snapshot_declaration(NotionDatabaseReadSnapshot) -> Result[NotionDatabaseReadDeclaration, NotionReadSnapshotIssue]
+
+pub fn notion_database_read_snapshot_matches(NotionDatabaseReadSnapshot, NotionReadSourceSelection, NotionDataSourceCatalog, NotionDataSourceReadContracts) -> Bool
+
+pub fn notion_database_read_snapshot_source(NotionDatabaseReadSnapshot) -> Result[NotionDataSourceCatalog, NotionReadSnapshotIssue]
+
+pub fn notion_database_read_snapshot_source_cid(NotionDatabaseReadSnapshot) -> Result[String, NotionReadSnapshotIssue]
+
+pub fn notion_database_read_snapshot_wire(NotionDatabaseReadSnapshot) -> Result[String, NotionReadSnapshotIssue]
 
 pub fn notion_database_read_source_index(NotionDatabaseReadDeclaration, NotionDatabaseCatalog) -> Result[Int, NotionReadContractIssue]
 
@@ -171,6 +191,8 @@ pub fn project_notion_user_list(Bytes, NotionUserListLimits) -> Result[NotionUse
 
 pub fn read_notion_database_read_declaration(Bytes, NotionReadContractLimits) -> Result[NotionDatabaseReadDeclaration, NotionReadContractIssue]
 
+pub fn read_notion_database_read_snapshot(Bytes, String, NotionReadContractLimits, NotionReadSnapshotLimits) -> Result[NotionDatabaseReadSnapshot, NotionReadSnapshotIssue]
+
 pub fn select_notion_read_source(NotionDatabaseReadDeclaration, NotionDatabaseCatalog, Int) -> Result[NotionReadSourceSelection, NotionReadContractIssue]
 
 pub fn start_notion_column_property_item_request(NotionDataSourceReadContracts, OriginalNotionQueryRow, Int, NotionPropertyItemLimits) -> Result[NotionPropertyItemRequest, NotionPropertyItemIssue]
@@ -227,6 +249,10 @@ pub(all) struct NotionDatabaseLimits {
 
 pub struct NotionDatabaseReadDeclaration {
   database_id : String
+  // private fields
+}
+
+pub struct NotionDatabaseReadSnapshot {
   // private fields
 }
 
@@ -408,6 +434,23 @@ pub(all) struct NotionReadRowLimits {
   values : @value_admission.Limits
   max_columns : Int
   max_work : Int
+}
+
+pub(all) enum NotionReadSnapshotIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidSnapshot
+  ForeignOriginal
+  IdentityMismatch
+  SchemaMismatch
+  Metadata(NotionDatabaseIssue)
+  Declaration(NotionReadContractIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NotionReadSnapshotLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
 }
 
 pub struct NotionReadSourceSelection {

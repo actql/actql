@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {checkNotionReadDeclarationSchema,notionReadDeclarationSchema} from './notion-read-contracts-schema.mjs';
 import {project,structuralValidatorSource} from './generate-client-publication-wire.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
+import {createHash} from 'node:crypto';
 
 const protocol=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'));
 const declaration={id:'db',data_source_id:'source',read_contracts:{'n%3Ax':[
@@ -62,5 +63,49 @@ test('independent declaration preimages preserve old absence and exact checked-c
     const changed=structuredClone(original.declaration);
     changed.read_contracts.s[0].contract.enum=enumeration;
     assert.throws(()=>verifyIdentity(changed,original.bodyCid,original.canonicalPreimage));
+  }
+});
+
+test('saved Notion read snapshot pins a closed representation without admitting its embedded originals',async()=>{
+  checkNotionReadDeclarationSchema(protocol);
+  const schema=protocol.schemas.notion_database_read_snapshot;
+  assert.deepEqual(schema.required,['database_response','declaration_source','schema_cid','schema_wire',
+    'selected_data_source_response','system_columns','version']);
+  assert.equal(schema.additionalProperties,false);
+  const source='const schemas={snapshot:'+JSON.stringify(project(schema))+'};\n'+
+    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.snapshot);';
+  const reader=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  const vectors=JSON.parse(readFileSync('spec/contracts/fixtures/notion-read-snapshot-vectors.json','utf8')).vectors;
+  for(const original of vectors){
+    assert.equal(reader.check(original.body),true);
+    for(const changed of [{...original.body,extra:true},{...original.body,system_columns:null},
+      {...original.body,version:'other'},{...original.body,schema_cid:'sha256:'+'A'.repeat(64)}]){
+      assert.equal(reader.check(changed),false);
+    }
+    for(const key of schema.required){const changed={...original.body};delete changed[key];assert.equal(reader.check(changed),false);}
+  }
+  for(const alter of [p=>delete p.schemas.notion_database_read_snapshot.properties.system_columns,
+    p=>p.schemas.notion_database_read_snapshot.additionalProperties=true,
+    p=>p.schema_cids.notion_database_read_snapshot='sha256:'+'0'.repeat(64)]){
+    const changed=structuredClone(protocol);alter(changed);assert.throws(()=>checkNotionReadDeclarationSchema(changed));
+  }
+});
+
+test('independent saved snapshot vectors preserve exact original text and complete checked schema facts',()=>{
+  const vectors=JSON.parse(readFileSync('spec/contracts/fixtures/notion-read-snapshot-vectors.json','utf8')).vectors;
+  const canonical=value=>value&&typeof value==='object'?(Array.isArray(value)?'['+value.map(canonical).join(',')+']':
+    '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}'):JSON.stringify(value);
+  const hash=text=>'sha256:'+createHash('sha256').update(text,'utf8').digest('hex');
+  for(const item of vectors){
+    assert.equal(canonical(item.body),item.wire);assert.equal(hash(item.wire),item.source_cid);
+    assert.equal(hash(item.body.schema_wire),item.body.schema_cid);
+    const checked=JSON.parse(item.body.schema_wire);assert.equal(checked.additional_properties,false);
+    assert.equal(Object.keys(checked.fields).length,item.body.system_columns?8:0);
+    assert(item.body.database_response.includes('9007199254740993.25'));
+    assert(item.body.database_response.includes('e\u0301😀'));assert(item.body.declaration_source.includes('\r\n'));
+    for(const key of ['declaration_source','database_response','selected_data_source_response']){
+      assert.notEqual(hash(canonical({...item.body,[key]:item.body[key]+' '})),item.source_cid);
+    }
+    assert.notEqual(hash(canonical({...item.body,system_columns:!item.body.system_columns})),item.source_cid);
   }
 });
