@@ -12,7 +12,7 @@ pub fn notion_user_list_column_names() -> Array[String]
 
 pub fn notion_user_list_ids(@catalog.NotionUserListPage) -> Array[String]
 
-pub fn notion_user_list_metadata_json(@catalog.NotionUserListPage) -> String
+pub fn notion_user_list_metadata_json(@catalog.NotionUserListPage, Int, Int, Int) -> Result[String, @catalog.NotionUserListIssue]
 
 pub fn notion_user_list_rows_wire(@catalog.NotionUserListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.NotionUserListIssue]
 

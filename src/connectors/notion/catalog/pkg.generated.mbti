@@ -10,6 +10,8 @@ pub fn notion_user_list_column_names() -> Array[String]
 
 pub fn notion_user_list_ids(NotionUserListPage) -> Array[String]
 
+pub fn notion_user_list_metadata_wire(NotionUserListPage, Int, Int, Int) -> Result[String, NotionUserListIssue]
+
 pub fn notion_user_list_row_count(NotionUserListPage) -> Int
 
 pub fn notion_user_list_rows_wire(NotionUserListPage, Array[String], Int, Int, Int) -> Result[String, NotionUserListIssue]
