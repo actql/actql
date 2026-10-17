@@ -3,98 +3,188 @@
 
 ///|
 test "independent create values header: legacy_from" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   let out = @encode.hashing_writer(10000, 1000, 40)
-  emit_effect_header_semantics(effect_header_at(result.unwrap(), 0).unwrap(), out)
-  assert_eq("sha256:" + @encode.finish_hash(out), "sha256:4d164f5c91779202d13b8c77248ddc75cbafd45a83738eb5488de53b9000accf")
+  emit_effect_header_semantics(
+    effect_header_at(result.unwrap(), 0).unwrap(),
+    out,
+  )
+  assert_eq(
+    "sha256:" + @encode.finish_hash(out),
+    "sha256:4d164f5c91779202d13b8c77248ddc75cbafd45a83738eb5488de53b9000accf",
+  )
 }
 
 ///|
 test "independent create values header: legacy_raw_payload" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":{\"$param\":\"business_data\"},\"values\":{\"field\":\"opaque_business\"}}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":{\"$param\":\"business_data\"},\"values\":{\"field\":\"opaque_business\"}}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   let out = @encode.hashing_writer(10000, 1000, 40)
-  emit_effect_header_semantics(effect_header_at(result.unwrap(), 0).unwrap(), out)
-  assert_eq("sha256:" + @encode.finish_hash(out), "sha256:e24862857e4ab58d531154e55418ee9607e0dee9e75d44f71c8d86fb232bfcda")
+  emit_effect_header_semantics(
+    effect_header_at(result.unwrap(), 0).unwrap(),
+    out,
+  )
+  assert_eq(
+    "sha256:" + @encode.finish_hash(out),
+    "sha256:e24862857e4ab58d531154e55418ee9607e0dee9e75d44f71c8d86fb232bfcda",
+  )
 }
 
 ///|
 test "independent create values header: field_subset" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"field\":\"name\"}}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"field\":\"name\"}}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   let out = @encode.hashing_writer(10000, 1000, 40)
-  emit_effect_header_semantics(effect_header_at(result.unwrap(), 0).unwrap(), out)
-  assert_eq("sha256:" + @encode.finish_hash(out), "sha256:46148e73c6fd44e896c84daac325e4d2d6d1e9bc499a0d5acfc71acc7dffee07")
+  emit_effect_header_semantics(
+    effect_header_at(result.unwrap(), 0).unwrap(),
+    out,
+  )
+  assert_eq(
+    "sha256:" + @encode.finish_hash(out),
+    "sha256:46148e73c6fd44e896c84daac325e4d2d6d1e9bc499a0d5acfc71acc7dffee07",
+  )
 }
 
 ///|
 test "independent create values header: independent_target_values" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"field\":\"name\"},\"City\":{\"literal\":\"Kyoto\"}}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"field\":\"name\"},\"City\":{\"literal\":\"Kyoto\"}}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   let out = @encode.hashing_writer(10000, 1000, 40)
-  emit_effect_header_semantics(effect_header_at(result.unwrap(), 0).unwrap(), out)
-  assert_eq("sha256:" + @encode.finish_hash(out), "sha256:6af9b6765998297a47d28de1f0c3ca31cece612255a1253d5ba3d658eb554013")
+  emit_effect_header_semantics(
+    effect_header_at(result.unwrap(), 0).unwrap(),
+    out,
+  )
+  assert_eq(
+    "sha256:" + @encode.finish_hash(out),
+    "sha256:6af9b6765998297a47d28de1f0c3ca31cece612255a1253d5ba3d658eb554013",
+  )
 }
 
 ///|
 test "independent create values header: empty_map" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   let out = @encode.hashing_writer(10000, 1000, 40)
-  emit_effect_header_semantics(effect_header_at(result.unwrap(), 0).unwrap(), out)
-  assert_eq("sha256:" + @encode.finish_hash(out), "sha256:7a08706c0be636e34383f7dded91b65ca4618257b2091541a5a1de0b3f12c3ce")
+  emit_effect_header_semantics(
+    effect_header_at(result.unwrap(), 0).unwrap(),
+    out,
+  )
+  assert_eq(
+    "sha256:" + @encode.finish_hash(out),
+    "sha256:7a08706c0be636e34383f7dded91b65ca4618257b2091541a5a1de0b3f12c3ce",
+  )
 }
 
 ///|
 test "independent create values header: nullable_literal" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"literal\":null}}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"literal\":null}}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   let out = @encode.hashing_writer(10000, 1000, 40)
-  emit_effect_header_semantics(effect_header_at(result.unwrap(), 0).unwrap(), out)
-  assert_eq("sha256:" + @encode.finish_hash(out), "sha256:8f5d4f907453e0ec10df91e90ec6a44cc5ec140af4b8b6c8db72e5454e741cb0")
+  emit_effect_header_semantics(
+    effect_header_at(result.unwrap(), 0).unwrap(),
+    out,
+  )
+  assert_eq(
+    "sha256:" + @encode.finish_hash(out),
+    "sha256:8f5d4f907453e0ec10df91e90ec6a44cc5ec140af4b8b6c8db72e5454e741cb0",
+  )
 }
 
 ///|
 test "independent create values header: immediate_parameter" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"literal\":{\"$param\":\"name\"}}}}}}}],\"results\":{},\"params\":{\"name\":{\"type\":\"string\",\"nullable\":false}}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"literal\":{\"$param\":\"name\"}}}}}}}],\"results\":{},\"params\":{\"name\":{\"type\":\"string\",\"nullable\":false}}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   let out = @encode.hashing_writer(10000, 1000, 40)
-  emit_effect_header_semantics(effect_header_at(result.unwrap(), 0).unwrap(), out)
-  assert_eq("sha256:" + @encode.finish_hash(out), "sha256:ebb76c93aced99f20e6d265947d88bdc228b235cd9f14a6c33e34d4e9bdc3cc9")
+  emit_effect_header_semantics(
+    effect_header_at(result.unwrap(), 0).unwrap(),
+    out,
+  )
+  assert_eq(
+    "sha256:" + @encode.finish_hash(out),
+    "sha256:ebb76c93aced99f20e6d265947d88bdc228b235cd9f14a6c33e34d4e9bdc3cc9",
+  )
 }
 
 ///|
 test "independent create values header: missing_from" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"values\":{\"Name\":{\"literal\":\"one\"}}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"values\":{\"Name\":{\"literal\":\"one\"}}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   assert_eq(effect_header_issue_kind(result.unwrap_err()), InvalidSourceResult)
 }
 
 ///|
 test "independent create values header: raw_payload_conflict" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"payload\":{\"Name\":\"one\"},\"values\":{}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"payload\":{\"Name\":\"one\"},\"values\":{}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   assert_eq(effect_header_issue_kind(result.unwrap_err()), InvalidSourceResult)
 }
 
 ///|
 test "independent create values header: raw_payload_without_from" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":\"one\"},\"values\":{}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":\"one\"},\"values\":{}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   assert_eq(effect_header_issue_kind(result.unwrap_err()), InvalidSourceResult)
 }
 
 ///|
 test "independent create values header: plain_untyped_value" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":\"one\"}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":\"one\"}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   assert_eq(effect_header_issue_kind(result.unwrap_err()), InvalidBody)
 }
 
 ///|
 test "independent create values header: ambiguous_value_form" {
-  let program = parse("{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"field\":\"name\",\"literal\":\"one\"}}}}}}],\"results\":{}}", limits(), format=Json).unwrap()
+  let program = parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.create_values\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"name\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"name\":\"first\"},{\"name\":\"second\"}]},\"as\":\"original_rows\"}],\"results\":{\"original\":{\"from\":\"original_rows\",\"fields\":[\"name\"]}},\"effects\":{\"save\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"original\"},\"values\":{\"Name\":{\"field\":\"name\",\"literal\":\"one\"}}}}}}],\"results\":{}}",
+    limits(),
+    format=Json,
+  ).unwrap()
   let result = collect_effect_headers(program, 1, 100)
   assert_eq(effect_header_issue_kind(result.unwrap_err()), InvalidBody)
 }
