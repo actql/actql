@@ -2,7 +2,9 @@
 // installation targets do not supply provider authority, egress or funding.
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync} from 'node:crypto';
+import fsPromises from 'node:fs/promises';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -195,6 +197,49 @@ test('same Site profile changed during await refuses without selecting a replace
     await assert.rejects(site.issueMetadataGrant(f.request()), code('RowSourceInstallationMetadataSiteChanged'));
     assert.equal(f.counters().accepted, 0);
   });
+  await f.run();
+});
+
+test('a replacement profile accessor cannot impersonate the captured Site generation', async t => {
+  let reads = 0;
+  const f = await fixture(t, async f => {
+    const site = await f.open();
+    f.beforeObserve(async () => {Object.defineProperty(f.profile, 'siteGeneration', {
+      get() {reads++; return 1;}, configurable: true});});
+    await assert.rejects(site.issueMetadataGrant(f.request()), code('RowSourceInstallationMetadataSiteChanged'));
+    assert.equal(reads, 0); assert.equal(f.counters().accepted, 0);
+  });
+  await f.run();
+});
+
+test('bounded issuer-key close failure stays with the original initialization cleanup Owner', async t => {
+  const originalOpen = fsPromises.open;
+  let closes = 0, originalFile;
+  const failure = new Error('OriginalIssuerKeyCloseFailure');
+  const f = await fixture(t, async f => {
+    fsPromises.open = async (...args) => {
+      const file = await originalOpen(...args);
+      if (args[0] !== f.profile.credentialPrivateKeyPath) return file;
+      assert.equal(originalFile, undefined); originalFile = file;
+      return {read: file.read.bind(file), async close() {
+        if (++closes === 1) throw failure;
+        return file.close();
+      }};
+    };
+    syncBuiltinESMExports();
+    try {
+      await assert.rejects(f.open(), error => {
+        assert.equal(error.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.primaryFailure, failure);
+        assert.equal(error.cleanupHandle.status().pending, false);
+        return true;
+      });
+      assert.equal(closes, 2);
+      assert.equal(f.counters().opens, 0);
+      await assert.rejects(originalFile.stat(), {code: 'EBADF'});
+    } finally {fsPromises.open = originalOpen; syncBuiltinESMExports();}
+  });
+  t.after(() => {fsPromises.open = originalOpen; syncBuiltinESMExports();});
   await f.run();
 });
 

@@ -316,6 +316,8 @@ async function prepareInstallationMetadataSite(options) {
   // runtime, provider, resolver or checked profile across an await.
   const pairNames = ['root', 'principalId', 'moon', 'installation', 'profile',
     'resolveSecret', 'runtimeBundleCid', 'providerMoon'];
+  if (original.originals === null || typeof original.originals !== 'object' ||
+      nodeTypes.isProxy(original.originals)) invalid();
   const descriptors = Object.getOwnPropertyDescriptors(original.originals ?? {});
   const pair = Object.freeze(Object.fromEntries(pairNames.map(name => {
     const descriptor = descriptors[name];
@@ -366,11 +368,16 @@ async function prepareInstallationMetadataSite(options) {
   let closing = false, closed = false, binding, bindingClosed = false;
   let journalClosed = false, retired = false, custody, credential, originalFailure;
   const entries = new Map();
+  const profileCurrent = () => profileKeys.every(key => {
+    const descriptor = Object.getOwnPropertyDescriptor(profile, key);
+    return descriptor !== undefined && Object.hasOwn(descriptor, 'value') &&
+      descriptor.value === selectedProfile[key];
+  });
   const ensureCurrent = operation => { try {
     if (closing) fail('RowSourceSiteClosed');
     if (originalFailure !== undefined) throw originalFailure;
     host.assertInstalledSourcePublicationRequest(original.publicationRequest, pair);
-    if (profileKeys.some(key => profile[key] !== selectedProfile[key])) {
+    if (!profileCurrent()) {
       fail('RowSourceInstallationMetadataSiteChanged');
     }
     synchronous(Reflect.apply(siteCurrent.assertCurrent, original.siteCurrent, []));
@@ -383,7 +390,7 @@ async function prepareInstallationMetadataSite(options) {
     }
     if (closing) fail('RowSourceSiteClosed');
     host.assertInstalledSourcePublicationRequest(original.publicationRequest, pair);
-    if (profileKeys.some(key => profile[key] !== selectedProfile[key])) {
+    if (!profileCurrent()) {
       fail('RowSourceInstallationMetadataSiteChanged');
     }
   } catch (cause) { if (!closing) originalFailure ??= cause; throw cause; } };
@@ -408,6 +415,13 @@ async function prepareInstallationMetadataSite(options) {
   return Object.freeze({maxIssuerKeyBytes: original.maxIssuerKeyBytes,
     privateKeyPath: selectedProfile.credentialPrivateKeyPath,
     assertInitializingCurrent: () => ensureCurrent(),
+    close() {
+      // Before Journal acquisition, the existing initialization Owner may
+      // retain this view behind an original bounded-key FD cleanup duty.
+      if (custody !== undefined) fail('RowSourceMetadataSiteAlreadyAttached');
+      closing = true;
+      if (!retired) {view.retireMetadataView(); retired = true;}
+    },
     attach(originalCustody) {
       custody = originalCustody;
       const retainedJournal = custody.installationMetadataJournal();
@@ -553,6 +567,8 @@ export async function openRowSourceCredentialSite({profile, principalId,
       : await readBoundedConfigurationText(metadata.privateKeyPath,
         {maxBytes: metadata.maxIssuerKeyBytes}));
   } catch (error) {
+    if (metadata !== undefined) throw await retainInstalledHostInitializationFailure(
+      error, {sourceProfile: metadata});
     fail('InvalidRowSourceCredentialSite', error);
   }
   if (privateKey.asymmetricKeyType !== 'ed25519') {
