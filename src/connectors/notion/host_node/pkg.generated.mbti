@@ -6,6 +6,16 @@ import {
 }
 
 // Values
+pub fn notion_data_source_matches_database(@catalog.NotionDataSourceCatalog, @catalog.NotionDatabaseCatalog) -> Bool
+
+pub fn notion_data_source_metadata_json(@catalog.NotionDataSourceCatalog, Int, Int, Int) -> Result[String, @catalog.NotionDatabaseIssue]
+
+pub fn notion_database_metadata_json(@catalog.NotionDatabaseCatalog, Int, Int, Int) -> Result[String, @catalog.NotionDatabaseIssue]
+
+pub fn notion_project_data_source(@catalog.NotionDatabaseCatalog, Int, Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceCatalog, @catalog.NotionDatabaseIssue]
+
+pub fn notion_project_database(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseCatalog, @catalog.NotionDatabaseIssue]
+
 pub fn notion_project_user_list(Bytes, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionUserListPage, @catalog.NotionUserListIssue]
 
 pub fn notion_user_list_column_names() -> Array[String]
