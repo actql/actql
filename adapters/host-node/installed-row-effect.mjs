@@ -1459,8 +1459,19 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         current: description, read: reads[index], signal, assertCurrent});
       assertCurrent?.();
       observations.push(observed);
-      rowsOf.push(Object.freeze(entries.map((entry, row) => Object.freeze({
-        entry, state: observed[row].state, versionCid: observed[row].versionCid,
+      // Canonical dispatch order comes from the Common target inventory.
+      // Keep every original request and its original observation together;
+      // observation/grant ordinals are not used as replacement identities.
+      const order = checked(moon.clientProgramEffectTargetRowInventory(
+        entries.map(entry => canonicalValueJson(entry.target)),
+        limits.maxRows, limits.preview.maxWireBytes, limits.preview.maxNodes,
+        limits.preview.maxDepth));
+      if (order.length !== entries.length || new Set(order).size !== entries.length ||
+          order.some(row => !Number.isSafeInteger(row) || row < 0 || row >= entries.length)) {
+        fail('InvalidInstalledRowEffectInventory');
+      }
+      rowsOf.push(Object.freeze(order.map(row => Object.freeze({
+        entry: entries[row], state: observed[row].state, versionCid: observed[row].versionCid,
         before: observed[row].before}))));
     }
     const entries = Object.freeze(rowsOf.map(rows =>

@@ -357,6 +357,10 @@ source qualifications.
   a presence change refuses before dispatch rather than switching the sealed
   request branch. Version observations stay paired by original row Preview CID
   in its sealed canonical order; existing Common checks reject changed versions.
+  Before capability/Preview identities are derived, the existing Common Owner
+  returns the canonical target inventory for guarded rows. The adapter moves
+  each original request together with its observation using those source indexes;
+  it does not sort display names, partial CIDs or reconstructed locators.
 - Failure: absent observations with before/version fields, unknown presence,
   foreign target identities and absence for UPDATE/DELETE refuse capture.
   Provider conditional creation must enforce the same original unique key and
@@ -366,7 +370,9 @@ source qualifications.
   Unknown outcomes and missing acknowledgements cannot become unsent/success.
 - Resources: bounded observation envelope copies, original before references,
   row identity arrays, temporary version-row Sets and current version Map overlap
-  captured inputs/response material and canonical Preview workspace. Their size
+  captured inputs/response material and canonical Preview workspace. The bounded
+  target inventory additionally overlaps raw/canonical target wires, UTF-8
+  parsing workspace, source-index pairs and the returned original index array. Their size
   follows the admitted row inventory; no history Map, arbitrary cap or numerical
   funding default is added. The temporary collections retire after preflight.
 - Extension: the additive public driver union restricts absence to UPSERT and
