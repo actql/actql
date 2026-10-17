@@ -46,8 +46,16 @@ async function rowOwner(verifyOriginalTransport, factsWire, format, selection) {
   const check = common.clientProgramCheckEnvironment(environment.wire, environment.evidenceCid,
     false, false, true, false, false, false, false);
   assert.ok(check);
-  const preparation = common.clientProgramPrepareEffectFreeWithParameters(
-    `FROM gmail.labels |> SELECT ${selection};`, format, check, undefined);
+  const view = declared.views[0];
+  const publication = JSON.stringify({environmentCid: environment.evidenceCid,
+    aliases: [{name:'gmail.labels',sourceRef:view.source_ref,
+      sourceViewContractCid:view.view_cid,schemaContractCid:view.carrier_schema_cid}]});
+  // Text must enter the original Source binder; the canonical JSON-only
+  // preparation API deliberately refuses SQL and AQL format names.
+  const source = format === 'sql' ? `SELECT ${selection} FROM gmail.labels`
+    : `FROM gmail.labels |> SELECT ${selection}`;
+  const preparation = common.clientProgramPrepareSourceWithParameters(
+    source, format, check, publication, undefined, undefined);
   const program = common.clientProgramPreparationReady(preparation);
   assert.ok(program,common.clientProgramPreparationIssueCode(preparation));
   const [registry, aoa, query, evidence] = await Promise.all([
