@@ -96,3 +96,36 @@ pub fn client_program_normalized_public_model_task_materials(
 ) -> (String, String, String, String) {
   @check_environment.normalized_public_model_task_materials(value)
 }
+
+///|
+/// Canonical outer-Environment DATA only. The installed Host retains every
+/// normalized Task original and uses its ordinary full checker afterward.
+#export_name("clientProgramProjectPublicModelTaskEnvironment")
+pub fn client_program_project_public_model_task_environment(
+  wire : String,
+  evidence_cid : String,
+  tasks : Array[@check_environment.NormalizedPublicModelTask],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_members : Int,
+  contract_nodes : Int,
+  contract_depth : Int,
+  contract_text_bytes : Int,
+  max_work : Int,
+) -> Result[(String, String, Int), @check_environment.ModelTaskIssue] {
+  @check_environment.read_project_public_model_task_environment(
+    wire,
+    evidence_cid,
+    tasks,
+    {
+      bodies: { max_bytes, max_nodes, max_depth, max_members, },
+      contracts: {
+        max_nodes: contract_nodes,
+        max_depth: contract_depth,
+        max_text_bytes: contract_text_bytes,
+      },
+      max_work,
+    },
+  )
+}
