@@ -140,6 +140,24 @@ test "public run returns the original portable State and Result across Host reop
     ClientStop(kind) => fail("public.status: " + kind)
   }
   assert_eq(observed, state)
+  let human_status = command().parse(
+    argv=["--mode", "local", "status", run_id],
+    env=Map([]),
+  )
+  normalize_native_status_arguments(human_status)
+  let human = local_saved_run_status(
+    host,
+    settings,
+    crypto,
+    "must-not-open",
+    human_status.subcommand.unwrap().1,
+  ) catch {
+    ClientStop(kind) => fail("public.human-status: " + kind)
+  }
+  assert_eq(human, local_run_state_display(state).unwrap())
+  assert_true(human.contains("State: \"succeeded\"\n"))
+  assert_true(human.contains("Result \"answer\": \"unknown\"\n"))
+  assert_true(human.contains("Reason: \"verification_pending\"\n"))
   let legacy = command().parse(
       argv=["--mode", "local", "status", "--run-id", run_id, "--json"],
       env=Map([]),
