@@ -431,6 +431,9 @@ priv struct RowPhysical {
   ledger : @resources.Ledger
   reservation : @resources.Reservation
   execution_scratch : Int64
+  // Supplementary provider backing stays in this original reservation through
+  // capture and the reader's real cleanup, never in a separately issued loan.
+  provider_capacity : @execution.ExecutionCapacity?
   mut holding : @resources.Holding?
   mut dag : (@strategy.CapturedDAG, Int)?
   // Keep keyed transport cleanup authority after invalidating issuer access.
@@ -568,11 +571,13 @@ fn install_row_reservation(
   ledger : @resources.Ledger,
   reservation : @resources.Reservation,
   execution_scratch : Int64,
+  provider_capacity? : @execution.ExecutionCapacity? = None,
 ) -> Unit {
   run.physical = Some({
     ledger,
     reservation,
     execution_scratch,
+    provider_capacity,
     holding: None,
     dag: None,
     cleanup_confirmed: None,
@@ -646,6 +651,9 @@ pub fn charge_row_run_page(
 ) -> Result[RowPageCharge, RowHostIssue] {
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
+  }
+  if !row_provider_cleanup_bound(run) {
+    return Err(Evidence(UnverifiedTransport))
   }
   if run.page_charge is Some(_) {
     abort_row_run(run)
@@ -846,6 +854,9 @@ pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
   }
+  if !row_provider_cleanup_bound(run) {
+    return Err(Evidence(UnverifiedTransport))
+  }
   if run.page_charge is Some(_) {
     abort_row_run(run)
     return Err(Physical(InvalidCharge))
@@ -916,7 +927,12 @@ pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
     }
     Err(issue) => return Err(issue)
   }
-  if physical.cleanup_confirmed is Some(confirm) && !confirm() {
+  if (
+      physical.provider_capacity is Some(_) &&
+      run.response_borrowed &&
+      physical.cleanup_confirmed is None
+    ) ||
+    (physical.cleanup_confirmed is Some(confirm) && !confirm()) {
     if @resources.reservation_open(physical.reservation) {
       match
         @resources.mark_cleanup_pending(physical.ledger, physical.reservation) {
@@ -1035,7 +1051,8 @@ pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
     physical.holding = Some(holding)
     match
       settle_row_capture_capacity(
-        configuration.listing_rows is Some(ReportListingRows(_, _)),
+        configuration.listing_rows is Some(ReportListingRows(_, _)) ||
+        physical.provider_capacity is Some(_),
         physical,
       ) {
       Ok(_) => ()

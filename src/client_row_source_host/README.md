@@ -59,3 +59,29 @@ The original Host retains finish, capture and close; logical abort does not
 erase the observer. Failed stop keeps the same reservation and cleanup debt.
 Only confirmed physical retirement permits the reader's aliases to disappear
 and the original Owner to release its root.
+
+### Supplementary provider overlap
+
+`start_accounted_provider_row_acquisition` accepts a trusted installation's
+`ExecutionCapacity` declaration for the same original acquisition, selected
+implementation and target recipe. It checked-adds retained and execution
+overlap, including the existing scratch, to the same Ledger's `reserve_attempt`
+before attempt construction. Missing/unjustified supply remains unavailable;
+declaration construction is not a physical measurement, reservation or grant.
+Ordinary and listing-report entries keep their existing selection semantics.
+
+Before any provider page or completion, this profile requires the exact
+`RowRunResponseBorrow` cleanup binding above. The trusted installer must bind
+the original reader's physical-retirement observer before I/O, not callback
+return, cancellation acceptance or Promise resolution. Capture retains provider
+backing in the original reservation rather than transferring it to a task;
+execution and remaining retention survive evidence generation and pending
+cleanup. False retirement keeps the same debt for retry. Only that observer's
+confirmed retirement allows original close to settle the same reservation.
+No numeric profile or transport implementation follows from this primitive.
+
+The nullable profile reference on every RowPhysical, selected declaration,
+reader/observer aliases and transition overlap belong to the original Host
+inventory. Returned diagnostics, raw history, ID/cursor indexes, parsed page,
+checked rows, output and closures must be covered concurrently by the supplier;
+maxPageBytes and transfer counts are not substitutes for that declaration.
