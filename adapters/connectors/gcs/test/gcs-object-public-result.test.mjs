@@ -138,7 +138,8 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
   const program = {version: 'actql/0.1', id: 'gcs-public-typed-result', stages: [{id: 'scan',
     inputs: {objects: {connector: 'storage', resource: 'objects', view: 'records', request: {prefix: null}}},
     steps: [{from: 'objects', select: fields, as: 'rows'},
-      {from: 'rows', sort: [{name: 'asc'}], as: 'ordered'}],
+      {from: 'rows', assert_rows: {unique_by: ['name']}, as: 'unique_names'},
+      {from: 'unique_names', sort: [{name: 'asc'}], as: 'ordered'}],
     results: {r: {from: 'ordered', fields}}}], results: {r: {from: {stage: 'scan', result: 'r'}}}};
   const checkedEnvironment = moon.clientProgramCheckEnvironment(environment.wire,
     environment.evidenceCid, false, false, true, false, false, false, false);
@@ -146,7 +147,7 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
   const preparation = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
     'json', checkedEnvironment, undefined);
   assert.ok(moon.clientProgramPreparationReady(preparation),
-    inspect(moon.clientProgramPreparationIssue(preparation), {depth: 12}));
+    inspect(moon.clientProgramPreparationIssue(preparation), {depth: 5, maxArrayLength: 3}));
   const run = await client.startSource(JSON.stringify(program), {format: 'json',
     submissionRef: client.newSubmission({nonce: 'gcs-public-original'})}).catch(error => {
     // All observed values belong to this nonsecret fresh fixture. Retain the
