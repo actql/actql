@@ -3979,6 +3979,29 @@ pub fn client_program_bind_table_preview(
 }
 
 ///|
+/// Project review DATA from the same nominal Preview retained by the installed
+/// Call. Policy/claim DATA and the output identity confer no dispatch authority.
+#export_name("clientProgramProjectEffectReview")
+pub fn client_program_project_effect_review(
+  original : @publication.EffectPreviewIdentity,
+  preview_wire : String,
+  authority_scope_cid : String,
+  approval_claims : Array[String],
+  redaction_policy_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.RunEvidenceValue,
+  @publication.EffectReviewProjectionIssue,
+] {
+  @publication.project_effect_review_projection(
+    original, preview_wire, authority_scope_cid, approval_claims, redaction_policy_cid,
+    max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 /// The installed journal supplies its original authenticated reference/intent.
 /// This projection adds no storage, authorization, approval or resume authority.
 #export_name("clientProgramRequestedEffectStop")

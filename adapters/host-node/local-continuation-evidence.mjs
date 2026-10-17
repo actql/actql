@@ -532,6 +532,24 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
           .filter(item => item.name === name && item.state === 'held')
           .map(item => item.semantic_cid)),
         bytes,
+        // A self-addressed review has a different identity from its complete
+        // encrypted plaintext bytes. This is only the same original holding's
+        // private association; the caller must still admit the review with
+        // Common and its sealed Checkpoint. It grants no arbitrary Store read.
+        async artifactBytes(name, artifactCid, options) {
+          if (name !== 'review_projection' ||
+              !/^sha256:[0-9a-f]{64}$/u.test(artifactCid)) {
+            fail('ContinuationEvidenceNotHeld');
+          }
+          const current = await readLedger(prepareAttemptId, acquisition);
+          if (current === undefined) fail('ContinuationEvidenceNotHeld');
+          sameKey(current);
+          if (current.request_cid !== ledger.request_cid) fail('ContinuationRequestMismatch');
+          const entries = current.holdings.filter(item => item.name === name &&
+            item.artifact_cid === artifactCid);
+          if (entries.length !== 1) fail('ContinuationEvidenceNotHeld');
+          return bytes(name, entries[0].semantic_cid, options);
+        },
         record: async (name, cid) => JSON.parse(
           (await bytes(name, cid)).toString('utf8')),
       });
@@ -581,8 +599,15 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     // semantic CIDs in order. The ledger names every holding before the
     // Store commits it, so a crash never leaves unowned evidence.
     async hold(prepareAttemptId, requestCid, items) {
-      const entries = items.map(({name, wire}) =>
-        ({...reference(prepareAttemptId, name, wire), state: 'held'}));
+      const entries = items.map(({name, wire, artifactCid}) => {
+        if (artifactCid !== undefined &&
+            (name !== 'review_projection' ||
+             !/^sha256:[0-9a-f]{64}$/u.test(artifactCid))) {
+          fail('InvalidContinuationEvidence');
+        }
+        return {...reference(prepareAttemptId, name, wire), state: 'held',
+          ...(artifactCid === undefined ? {} : {artifact_cid: artifactCid})};
+      });
       const ledger = await readLedger(prepareAttemptId) ?? {
         version: LEDGER_VERSION, prepare_attempt_id: prepareAttemptId,
         request_cid: requestCid, key_id: keyId, holdings: []};
@@ -593,6 +618,7 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
           item.holding_cid === entry.holding_cid);
         if (existing === undefined) ledger.holdings.push(entry);
         else if (existing.state !== 'held') fail('ContinuationEvidenceRetired');
+        else if (existing.artifact_cid !== entry.artifact_cid) fail('PrivateEvidenceConflict');
       }
       await writeLedger(ledger);
       await withStore(async store => {

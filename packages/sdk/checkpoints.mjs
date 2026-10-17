@@ -69,7 +69,7 @@ export async function bytesCid(bytes) {
 export const contentCid = value =>
   bytesCid(encoder.encode(canonicalJson(value)));
 
-// Model reviews use the common self-addressed artifact identity. Legacy
+// Model and Effect reviews use the common self-addressed artifact identity. Legacy
 // review envelopes retain their full-byte digest. Never strip an arbitrary
 // field or accept a noncanonical encoding as a semantic-CID proof.
 export async function reviewBytesMatchCid(bytes, artifactCid) {
@@ -77,12 +77,14 @@ export async function reviewBytesMatchCid(bytes, artifactCid) {
   try {
     const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
     const value = JSON.parse(wire);
-    if (value?.version !== 'actql-run-review-projection/0.1' ||
+    const effect = value?.version === 'actql-review-projection/0.1';
+    if (!(effect || value?.version === 'actql-run-review-projection/0.1') ||
         value.review_projection_cid !== artifactCid ||
-        canonicalJson(value) !== wire) return false;
+        canonicalJson(value, {dataKeys: effect}) !== wire) return false;
     const {review_projection_cid: ignored, ...body} = value;
     void ignored;
-    return await contentCid(body) === artifactCid;
+    return await bytesCid(encoder.encode(canonicalJson(body,
+      {dataKeys: effect}))) === artifactCid;
   } catch { return false; }
 }
 
