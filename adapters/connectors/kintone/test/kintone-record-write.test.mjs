@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {credentialInvocationBindingKeys} from '../../../host-common/credential-scope-fields.generated.mjs';
 import {closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
 import {projectKintoneWriteObservation, KintoneWriteFailure} from '../site/kintone-record-write.mjs';
 import {writeFixture} from './kintone-record-write.fixture.mjs';
@@ -148,8 +149,24 @@ test('an in-flight physical write holds the same binding and response custody un
     await started;
     assert.equal(closeHttpsCredentialBinding(f.binding), 'pending');
     assert.equal(settled, false); assert.equal(f.state.writes, 1);
+    assert.throws(() => f.closeRoot(), {code: 'MoonBitHostFailure'});
+    assert.ok(f.row.usage().slice(4, 8).some(value => value > 0n));
   } finally {release();}
-  await assert.rejects(result);
+  await assert.rejects(result, {code: 'RemoteCredentialBindingRetiring'});
   assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+  f.closeRoot(); assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
   assert.equal(f.state.writes, 1);
+});
+
+
+test('every generated binding member remains required before original write observation I/O', async t => {
+  const f = await writeFixture(t);
+  for (const key of credentialInvocationBindingKeys) {
+    await assert.rejects(f.send({authorizationFor: async spec => {
+      const original = await f.authorizationFor(spec);
+      const value = original.scope[key];
+      return {...original, scope: {...original.scope, [key]: typeof value === 'number' ? value + 1 : value + '/foreign'}};
+    }}), {code: 'ForeignKintoneWriteAuthorization'}, key);
+  }
+  assert.equal(f.tls.seen().length, 0); assert.equal(f.state.resolutions, 0);
 });
