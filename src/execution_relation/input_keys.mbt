@@ -32,6 +32,7 @@ priv enum InputKeyPhase {
   SchemaNameCharge
   KeyNameCharge
   CompareField
+  CompareKeyType
   RowStart
   CellStart
   AtomCharge
@@ -41,12 +42,56 @@ priv enum InputKeyPhase {
 }
 
 ///|
+/// Private adapters over already admitted original rows. Neither variant is
+/// an input declaration, a key witness or permission to read another owner.
+priv enum InputKeyRows {
+  CapturedKeyRows(CapturedRows)
+  ResultKeyRows(CompletedExportRows)
+}
+
+///|
+fn input_key_rows_schema(rows : InputKeyRows) -> @schema.Schema {
+  match rows {
+    CapturedKeyRows(value) => value.schema
+    ResultKeyRows(value) => value.schema
+  }
+}
+
+///|
+fn input_key_rows_count(rows : InputKeyRows) -> Int {
+  match rows {
+    CapturedKeyRows(value) => captured_row_count(value)
+    ResultKeyRows(value) => IndexedRows::row_count(value)
+  }
+}
+
+///|
+fn input_key_rows_cell(rows : InputKeyRows, row : Int, column : Int) -> Value? {
+  match rows {
+    CapturedKeyRows(value) => captured_cell(value, row, column).map(capture)
+    ResultKeyRows(value) =>
+      if row < 0 ||
+        row >= IndexedRows::row_count(value) ||
+        column < 0 ||
+        column >= IndexedRows::column_count(value) ||
+        !IndexedRows::cell_present(value, row, column) {
+        None
+      } else {
+        Some(IndexedRows::read_cell(value, row, column))
+      }
+  }
+}
+
+///|
 // The original key validator's state. Both the synchronous sequence driver
 // and the supplied-input bounded driver use this same domain and algorithm.
 priv struct InputKeyCursor {
-  mut input : CapturedRows?
+  mut input : InputKeyRows?
   mut supplied : SuppliedRelationRead?
   mut keys : @evidence.KeySet?
+  mut explicit_field : @schema.Field?
+  mut type_equality : @contract.TypeEquality?
+  mut type_frames : Int
   control : ControlBudget
   workspace : RowWorkspace
   baseline : Int
@@ -83,10 +128,30 @@ fn input_key_cursor(
     @lower.bound_preparation(input.owner),
     index,
   )
+  input_key_rows_cursor(CapturedKeyRows(input), keys, None, control, workspace)
+}
+
+///|
+fn input_key_rows_cursor(
+  input : InputKeyRows,
+  keys : @evidence.KeySet?,
+  explicit_field : @schema.Field?,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[InputKeyCursor, InputKeyIssue] {
+  if control.remaining < 0 ||
+    workspace.limit < 0 ||
+    workspace.live < 0 ||
+    workspace.live > workspace.limit {
+    return Err(InvalidLimits)
+  }
   Ok({
     input: Some(input),
     supplied: None,
     keys,
+    explicit_field,
+    type_equality: None,
+    type_frames: 0,
     control,
     workspace,
     baseline: workspace.live,
@@ -98,7 +163,7 @@ fn input_key_cursor(
     field: None,
     atom: None,
     text_charge: { offset: 0, next: 0, remaining: 0, },
-    phase: if keys is None {
+    phase: if keys is None && explicit_field is None {
       KeyDone
     } else {
       KeyStart
@@ -112,7 +177,26 @@ fn input_key_cursor(
 }
 
 ///|
-fn input_key_atom(
+fn input_key_selected_name(state : InputKeyCursor) -> @schema.FieldName {
+  match state.field {
+    Some(field) => field.name
+    None => state.explicit_field.unwrap().name
+  }
+}
+
+///|
+fn input_key_atom(cell : Value, row : Int) -> Result[KeyAtom, InputKeyIssue] {
+  match cell {
+    Null => Err(NullKey(row))
+    Number(n) => Ok(KeyNumber(n))
+    Boolean(b) => Ok(KeyBoolean(b))
+    Text(s) => Ok(KeyText(s))
+    Captured(value) => input_key_admitted_atom(value, row)
+  }
+}
+
+///|
+fn input_key_admitted_atom(
   cell : @admitted.Value,
   row : Int,
 ) -> Result[KeyAtom, InputKeyIssue] {
@@ -182,6 +266,14 @@ fn retire_input_key_entry(state : InputKeyCursor) -> Bool {
   state.retiring_entries = None
   state.seen = Map([])
   state.field = None
+  if state.type_equality is Some(cursor) {
+    @contract.cancel_type_equality(cursor)
+    state.type_equality = None
+  }
+  if state.type_frames > 0 {
+    release_slots(state.workspace, state.type_frames)
+    state.type_frames = 0
+  }
   state.atom = None
   reset_bounded_text_charge(state.text_charge)
   state.workspace.live == state.baseline && workspace_healthy(state.workspace)
@@ -195,6 +287,7 @@ fn clear_input_key_cursor(state : InputKeyCursor) -> Bool {
   state.input = None
   state.supplied = None
   state.keys = None
+  state.explicit_field = None
   state.phase = KeyDone
   true
 }
@@ -207,11 +300,11 @@ fn step_input_key_cursor(state : InputKeyCursor) -> Result[Bool, InputKeyIssue] 
   let input = state.input.unwrap()
   match state.phase {
     KeyStart => {
-      guard state.keys is Some(keys) else {
-        state.phase = KeyDone
-        return Ok(true)
+      let count = match state.keys {
+        Some(keys) => @evidence.key_witness_count(keys)
+        None => if state.explicit_field is Some(_) { 1 } else { 0 }
       }
-      if state.key_index == @evidence.key_witness_count(keys) {
+      if state.key_index == count {
         state.phase = KeyDone
         return Ok(true)
       }
@@ -222,8 +315,14 @@ fn step_input_key_cursor(state : InputKeyCursor) -> Result[Bool, InputKeyIssue] 
       state.phase = FieldStart
     }
     FieldStart => {
-      let key = @evidence.key_witness_at(state.keys.unwrap(), state.key_index).unwrap()
-      if state.field_index == @evidence.key_field_count(key) {
+      let key = state.keys.bind(keys => {
+        @evidence.key_witness_at(keys, state.key_index)
+      })
+      let count = match key {
+        Some(key) => @evidence.key_field_count(key)
+        None => 1
+      }
+      if state.field_index == count {
         state.row_index = 0
         state.phase = RowStart
         return Ok(false)
@@ -231,18 +330,22 @@ fn step_input_key_cursor(state : InputKeyCursor) -> Result[Bool, InputKeyIssue] 
       if !spend_control(state.control, 1) || !reserve_slots(state.workspace, 1) {
         return Err(Limit)
       }
-      let field = @evidence.key_field_at(key, state.field_index).unwrap()
+      let field = key.bind(key => @evidence.key_field_at(key, state.field_index))
       // The field's reserved column slot exists even if schema lookup fails.
       state.columns.push(-1)
-      if field.contract is Some(contract) && contract.nullable {
+      let contract = match field {
+        Some(field) => field.contract
+        None => state.explicit_field.map(field => field.contract)
+      }
+      if contract is Some(contract) && contract.nullable {
         return Err(NullableWitnessPending)
       }
-      state.field = Some(field)
+      state.field = field
       state.schema_index = 0
       state.phase = FindField
     }
     FindField => {
-      if state.schema_index == @schema.field_count(input.schema) {
+      if state.schema_index == @schema.field_count(input_key_rows_schema(input)) {
         return Err(MissingField)
       }
       if !spend_control(state.control, 1) {
@@ -254,10 +357,10 @@ fn step_input_key_cursor(state : InputKeyCursor) -> Result[Bool, InputKeyIssue] 
     SchemaNameCharge | KeyNameCharge => {
       let text = if state.phase is SchemaNameCharge {
         @schema.reference_name(
-          @schema.field_at(input.schema, state.schema_index).unwrap().name,
+          @schema.field_at(input_key_rows_schema(input), state.schema_index).unwrap().name,
         )
       } else {
-        @schema.reference_name(state.field.unwrap().name)
+        @schema.reference_name(input_key_selected_name(state))
       }
       let done = match
         advance_bounded_text_charge(state.text_charge, state.control, text) {
@@ -274,21 +377,69 @@ fn step_input_key_cursor(state : InputKeyCursor) -> Result[Bool, InputKeyIssue] 
       }
     }
     CompareField => {
-      let field = @schema.field_at(input.schema, state.schema_index).unwrap()
-      if field.name == state.field.unwrap().name {
+      let field = @schema.field_at(
+        input_key_rows_schema(input),
+        state.schema_index,
+      ).unwrap()
+      if field.name == input_key_selected_name(state) {
         if field.presence != @schema.Required {
           return Err(MissingField)
         }
         state.columns[state.columns.length() - 1] = state.schema_index
-        state.field_index += 1
-        state.phase = FieldStart
+        if state.explicit_field is Some(selected) {
+          if state.control.max_frames < 1 || !reserve_slots(state.workspace, 1) {
+            return Err(Limit)
+          }
+          state.type_frames = 1
+          let cursor = @contract.start_type_equality(
+            field.contract,
+            selected.contract,
+            state.control.remaining,
+          ) catch {
+            _ => return Err(Limit)
+          }
+          state.type_equality = Some(cursor)
+          state.phase = CompareKeyType
+        } else {
+          state.field_index += 1
+          state.phase = FieldStart
+        }
       } else {
         state.schema_index += 1
         state.phase = FindField
       }
     }
+    CompareKeyType => {
+      if !spend_control(state.control, 1) {
+        return Err(Limit)
+      }
+      let cursor = state.type_equality.unwrap()
+      let frames = @contract.type_equality_next_frames(cursor)
+      if frames > state.control.max_frames ||
+        (
+          frames > state.type_frames &&
+          !reserve_slots(state.workspace, frames - state.type_frames)
+        ) {
+        return Err(Limit)
+      }
+      state.type_frames = Int::max(state.type_frames, frames)
+      let done = @contract.advance_type_equality(cursor) catch {
+        _ => return Err(Limit)
+      }
+      if done is Some(equal) {
+        @contract.cancel_type_equality(cursor)
+        state.type_equality = None
+        release_slots(state.workspace, state.type_frames)
+        state.type_frames = 0
+        if !equal {
+          return Err(UnsupportedKeyDomain)
+        }
+        state.field_index += 1
+        state.phase = FieldStart
+      }
+    }
     RowStart => {
-      if state.row_index == captured_row_count(input) {
+      if state.row_index == input_key_rows_count(input) {
         state.phase = RetireKey
         return Ok(false)
       }
@@ -308,7 +459,7 @@ fn step_input_key_cursor(state : InputKeyCursor) -> Result[Bool, InputKeyIssue] 
       }
       // Keep a reserved slot visible to failure cleanup before cell admission.
       state.tuple.push(KeyBoolean(false))
-      guard captured_cell(
+      guard input_key_rows_cell(
           input,
           state.row_index,
           state.columns[state.cell_index],

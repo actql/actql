@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/gmail/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn gmail_label_list_column_names() -> Array[String]
+
+pub fn gmail_label_list_facts_wire() -> String
+
+pub fn gmail_label_list_ids(GmailLabelListPage) -> Array[String]
+
+pub fn gmail_label_list_row_count(GmailLabelListPage) -> Int
+
+pub fn gmail_label_list_rows_wire(GmailLabelListPage, Array[String], Int, Int, Int) -> Result[String, GmailLabelListIssue]
+
+pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, GmailLabelListIssue]
+
+pub fn project_gmail_label_list(Bytes, GmailLabelListLimits) -> Result[GmailLabelListPage, GmailLabelListIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum GmailLabelListIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidSelection(String)
+  DuplicateLabel
+  InvalidCell(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GmailLabelListLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+}
+
+pub struct GmailLabelListPage {
+  response_sha256 : String
+  // private fields
+}
+
+// Type aliases
+
+// Traits

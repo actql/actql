@@ -726,3 +726,37 @@ omission; equal values do not erase identity differences or justify rewriting
 INSTR as STRPOS. Initial 0.1 schemas, laws, grammar and dependent identities move
 together; published predecessor bodies, profiles, barriers and limits remain
 unchanged. Source admission is not execution conformance for unverified targets.
+
+## Text enumeration remains an original Text constraint
+
+The public task contract uses `level: {type: string, enum: [low, medium, high]}`.
+The earlier closed ValueContract grammar could represent unconstrained Text and
+admitted extents, but not this promised restriction. The adopted initial-0.1
+extension keeps enumeration within the existing type/admission/Values owners;
+it does not create a second scalar kind, Model validator or permission owner.
+The normative owner is [Text enumeration constraints](../spec/language.md#text-enumeration).
+
+Membership is exact Unicode Text intersected with the retained extents. Empty
+and repeated vectors are meaningful: no non-null values in the empty case,
+and unchanged membership for repetitions. Rejecting these declarations merely
+because an implementation uses a unique/nonempty lookup table would invent a
+language restriction. Original vector order and repetitions remain in the
+checked canonical preimage. Type equality is complete checked-contract identity,
+not membership equivalence; a reordered/repeated declaration cannot replace an
+original, issue a reference or acquire authority.
+
+Assignment reasons over the actual admitted finite domain, including extent
+intersection and original nullability. The join is deliberately coordinatewise:
+common extents, nullable OR, and left-vector-preserving union when both enums
+exist. It is a conservative common supertype, not necessarily an exact union or
+global least upper bound. Weakening extents can re-admit an enumerant previously
+excluded by one input. This derived result is never either original contract.
+
+All occurrences and retained/comparison/output workspace remain bounded and
+accounted, including repeats and extent-excluded entries. Provider limitations
+remain explicit unavailability; input/Model/Command constraints cannot be
+stripped to produce success. The absent-enum bytes and legacy bound behavior
+remain unchanged. Signed64 is a separate adopted logical type and this Text
+extension adopts none of its proposed arithmetic overloads. Contract/schema
+registration is not evidence of an actual supplier, installed Model execution,
+normal funding or recovery acceptance.

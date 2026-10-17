@@ -895,7 +895,7 @@
     },
     {
       "requirement_id": "actql.language/value-contracts.type-other-author-members-checked-expansion-or",
-      "statement_sha256": "d319ad73ec6a54aa81378ec6a57a082c82dc1a8b42624bedc82de4c6dff3d545",
+      "statement_sha256": "c3fbf5d0d6ad3587fb70eb3591f56027f28ab73fbc543355d33a18b21ff698c4",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -905,13 +905,288 @@
       }
     },
     {
+      "requirement_id": "actql.language/value-contracts.text-enum-grammar",
+      "statement_sha256": "80b8a947e1dbc6f2758cfa7bdc82db20f595dfb85b853ccbde245bf4abd4fff6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-invalid-declaration",
+      "statement_sha256": "03cd1feecaa23adc9c81d8e2e3a81cd8853acabf63d97de96c19b8b1ee10d370",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-membership",
+      "statement_sha256": "17e9f914c56b496e32dbceab929355834f46a3b49c870254e8ee7caf11a21f7d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-absence",
+      "statement_sha256": "19d5ff5e05097a33deb61fc3fd35630a5d2cd19d9ebb38bc23e6c70163e7e926",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-empty-domain",
+      "statement_sha256": "31c43b5b836cf2f7482c2236786922bd1708f6099761366c832b5e63540beb7d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-repetitions",
+      "statement_sha256": "a77f242b240d7264a259a9963c6c586ef57ec15cdd3dce85a1880c2f18335b2b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-repeated-membership",
+      "statement_sha256": "218c768c962cbcaff6b51538cf05286f445886b02ced0a272b6769a63268b3b6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-original-vector",
+      "statement_sha256": "05307e376864d243514c93188a7527836c57d0bd69f2e368aa8778f43c5a867f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-no-equivalent-original",
+      "statement_sha256": "bb244c288d745ae2c34be93b55ded40388e06f0cca30df63fa765d355ce2d64a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-type-equality",
+      "statement_sha256": "e2abf7590eacd4e45842df700f2533d557e88274916ade83dcad39ac345b654b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-bounded-occurrences",
+      "statement_sha256": "020a79e0041e15e2ab77e71156c10e3483ea3512619ce90acc0ec60a15a72ace",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-retained-workspace",
+      "statement_sha256": "b5a6852025de8b642c28ccf83dce954cc05cdd4cb4382ac45b2b22a0642c2ccd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-no-structural-funding",
+      "statement_sha256": "7fba3be4ff166706179d6b409369e13bb903c0356108ef08c22d087ac7f01a03",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-no-authority",
+      "statement_sha256": "c8f9ba3c9fb3e50f9ce51c9a7fd1d157a8a9e4190b948d56795b3c016d6e963f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-assignment-domain",
+      "statement_sha256": "c95c5a381d08dae22742d46ecd64bfb36f39747ac5b30108d9859319fcbdf212",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-expected-domain",
+      "statement_sha256": "8fe2d45ad76843511d13637b1d32bacb591e5c26e86736665564ab66bdd9566d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-no-sample-proof",
+      "statement_sha256": "dcf8cadc7bd0968c7ef4bac78fab6460442d3cc42d92ec0ab61fd7456bc2f3db",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-common-bounds",
+      "statement_sha256": "801eea3c0c72ed1f2d3530a0a9480a205a9b32eb50d3f8df8d527e7a8705700c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-join-absence",
+      "statement_sha256": "c577c83a95312327c2f7ae1b49ad680a328b71e2c623af9af4af2096faac7d27",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-coordinatewise-join",
+      "statement_sha256": "598bf95854ba299606ff288183779797cccf39138a2cc3e8df5d04f9c0bc3df6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-derived-not-original",
+      "statement_sha256": "bd01cf72a6f3d5d67de9ec6e1f983749fc91cd917399079ae1fa869fef6bf348",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-preserved-admission",
+      "statement_sha256": "eb3a4e685c87bec3d5b37e4ac70dd8525945978ba60e8de52d9aa74b7c5f88b0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-transform-keeps-original",
+      "statement_sha256": "7135ae254153943cf595e1348a7c6b8830369ee5fe5904a19ae5cf6015920ba8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-provider-schema",
+      "statement_sha256": "01ede28d91826b1d0b327fcff5c12253944ac51c6887c762ae8ef9b748177b52",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.text-enum-provider-unavailable",
+      "statement_sha256": "28164898efed359699bba0cb256eb47ae8972464d95690a8716df76776afe352",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-enumeration",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/value-contracts.decimal-output-target-is-not-input-evidence",
       "statement_sha256": "f997c3d578e7780e1c30c4cb321c016dd36c93fec97c410184c62404fcf6d473",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
-        "anchor": "value-contracts",
+        "anchor": "text-enumeration",
         "kind": "prose"
       }
     },
@@ -10168,7 +10443,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "539283364a0329b2f0686db29039ae3a20be045b06651454bf061bbc79a27162",
+      "statement_sha256": "6cf35fa9c521334fe91eea539dbe3f914902b83081b95c2157206b6a6a149195",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -14700,7 +14975,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-shape",
-      "statement_sha256": "a86f2017eceb725849b63441abedb71ae425b26934ed5783e8c75160f0e358c4",
+      "statement_sha256": "997f59373934593ba79727248266dfa538a553c848bc080f580df1e38bda9e06",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -14744,7 +15019,40 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-mixed-purpose",
-      "statement_sha256": "0c0190ad2bea9eb1dd6e4c1c62d43494c6a6222fe33cfeabf1eca0009b17c8b0",
+      "statement_sha256": "d2b4007fdb9b778e8aba53988342b258c2dea3c1117ca58deffb11b61ac9f1e3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-header-purpose",
+      "statement_sha256": "9751f757eb18d848952723764271c4ad1270608d6bf4055e42ad46f91e8bfc2e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-purpose-not-cid",
+      "statement_sha256": "d6f7039e6b6f662c3339d0473c5505f5d96c173fdc0dc5dfdc4f420d88dfdeef",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-delete-support",
+      "statement_sha256": "beb789a3eab3fb98e8ca9a900cf11c002aafdf6623e5b2e83da244ba7ad44c4a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -15547,7 +15855,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "a8f3f5a583f896457a546606652510e775422b3ac317875c0fd4cbe145d91842",
+      "statement_sha256": "a062e474116a2c1e53ec862386043f5e19e3cced197ae2183c102af884b05831",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -17599,6 +17907,39 @@
       "next_action": "Verify the same-original readonly issuer and public installed boundary with independent positive and negative evidence.",
       "source": {
         "anchor": "effectful-static-plan-view",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/named-submission.atomic-original",
+      "statement_sha256": "08f50afd0822b25de5e189e6c6a42ef03e32b0f9eb45b0333bb0a191be7ec8a3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the same-owner atomic binding, independent public consumers and retained original Run across process recovery without repeating preparation.",
+      "source": {
+        "anchor": "scoped-durable-submission-names",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/named-submission.current-correlation",
+      "statement_sha256": "df3eeac6c0d39b8cdb19bf3cb82a227ed5a4ef9f4ed878ecced530bd29b9a8b2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify current authenticated scope and original name/intent/attempt correspondence through installed producer and consumer boundaries.",
+      "source": {
+        "anchor": "scoped-durable-submission-names",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/named-submission.unresolved-custody",
+      "statement_sha256": "6ed6da36227bd944c10a1eee745d337ed01db7f060f1465cd2ad433d0581a806",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify bounded durable name custody, lost reply, conflict, retirement and unknown outcomes without replacement work or credit.",
+      "source": {
+        "anchor": "scoped-durable-submission-names",
         "kind": "prose"
       }
     },

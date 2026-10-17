@@ -2,8 +2,9 @@
 import re
 import weakref
 from ._errors import ClientError
+from ._check_observation import CheckObservation
 from ._values import Observation, freeze, snapshot, thaw, wire_bytes
-from ._wire import CONTRACT, check_outcome, utf16_length, valid
+from ._wire import CONTRACT, utf16_length, valid
 
 _inputs = weakref.WeakKeyDictionary()
 _submission_checks = weakref.WeakKeyDictionary()
@@ -28,9 +29,7 @@ def _node_exists(value, pointer):
 
 
 def bind_check(value, body):
-    if not check_outcome(value):
-        raise ClientError('InvalidHostCheckOutcome')
-    observation = Observation(value)
+    observation = CheckObservation(value)
     report = value.get('report', value.get('partial_report'))
     if report is None:
         return observation

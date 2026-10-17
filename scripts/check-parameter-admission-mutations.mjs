@@ -10,11 +10,11 @@ const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id,
 const admissionTargets = (id, operator) => ['local', 'http'].map(entrance => target(
   `${entrance}: missing parameter Requirements expose admitted recursive declaration conditions`, id, operator));
 const mutations = [
-  {name: 'admitted numeric minimum changed during projection', path: 'src/connectors_builtin_node/client_check_requirements.mbt', file: publicTests,
+  {name: 'admitted numeric minimum changed during projection', path: 'src/client_local_preparation/client_check_requirements.mbt', file: publicTests,
     from: '@encode.key(writer, "minimum")\n          @encode.number_value(writer, bound)',
     to: '@encode.key(writer, "minimum")\n          @encode.number_value(writer, bound + 1.0)',
     targets: admissionTargets('admission-public-facts', 'deepStrictEqual'), build: true},
-  {name: 'private annotation text exposed in a rule path', path: 'src/connectors_builtin_node/client_check_requirements.mbt', file: publicTests,
+  {name: 'private annotation text exposed in a rule path', path: 'src/client_local_preparation/client_check_requirements.mbt', file: publicTests,
     from: '  for part in path {',
     to: '  let exposed = path.copy()\n  exposed.push(Field("private-admission-note"))\n  for part in exposed {',
     targets: admissionTargets('admission-public-disclosure', 'doesNotMatch'), build: true},

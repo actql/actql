@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {valueBodyContract,generateValueKinds,commandInputPresenceBody,commandInputPresenceSchemas} from './protocol-value-contracts.mjs';
+import {valueBodyContract,generateValueKinds,commandInputPresenceBody,commandInputPresenceSchemas,textEnumerationBody} from './protocol-value-contracts.mjs';
 const protocol=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'));
 test('all eight legacy value roles use the checked grammar, never the carrier grammar',()=>{
   const body=valueBodyContract(protocol);
@@ -38,4 +38,72 @@ test('Command presence has one closed domain-specific record and unchanged child
     const drift=structuredClone(protocol);mutate(drift);assert.throws(()=>commandInputPresenceSchemas(drift));
   }
   assert.equal(protocol.schemas.canonical_value_contract.$defs.value_contract.oneOf.find(value=>value.properties?.type?.const==='object').properties.required_fields,undefined);
+});
+
+test('Text enum retains empty and repeated vectors in every current registered type entrance',()=>{
+  const body=textEnumerationBody(protocol);
+  assert.deepEqual(body.grammar,{type:'array',items:{type:'string'}});
+  assert.match(body.join_qualification,/conservative_common_supertype/);
+  let count=0;
+  const visit=value=>{
+    if(!value||typeof value!=='object')return;
+    const kind=value.properties?.type;
+    if(value.type==='object'&&value.properties?.nullable&&
+      (kind?.const==='string'||kind?.enum?.includes('string'))){
+      assert.deepEqual(value.properties.enum,body.grammar,'current Text entrance must retain constraint grammar');
+      assert.equal(value.required.includes('enum'),false);
+      count++;
+    }
+    for(const child of Object.values(value))visit(child);
+  };
+  visit(protocol.schemas);visit(protocol.artifact_schemas);
+  assert.ok(count>0,'actual registered entrances inspected');
+  for(const name of ['author_value_contract','canonical_value_contract']){
+    for(const change of [branch=>delete branch.properties.enum,
+      branch=>branch.properties.enum.uniqueItems=true,
+      branch=>branch.properties.enum.minItems=1,
+      branch=>branch.required.push('enum')]){
+      const changed=structuredClone(protocol);
+      change(changed.schemas[name].$defs.value_contract.oneOf.find(branch=>branch.properties?.type?.const==='string'));
+      assert.throws(()=>textEnumerationBody(changed));
+    }
+  }
+});
+
+test('actual generated structural type validator keeps enum shape without claiming value membership',async()=>{
+  const {project,structuralValidatorSource}=await import('./generate-client-publication-wire.mjs');
+  const schema=project(protocol.schemas.canonical_value_contract.$defs.value_contract);
+  const source='const schemas={value_contract:'+JSON.stringify(schema)+'};\n'+
+    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.value_contract);';
+  const generated=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  for(const enumeration of [[],['low','medium','high'],['high','low','high']]){
+    const original={type:'string',nullable:false,enum:enumeration};
+    assert.equal(generated.check(original),true);
+    assert.deepEqual(original.enum,enumeration,'no source normalization');
+  }
+  assert.equal(generated.check({type:'string',nullable:false}),true,'old absence');
+  for(const original of [
+    {type:'string',nullable:false,enum:null},
+    {type:'string',nullable:false,enum:['low',null]},
+    {type:'string',nullable:false,enum:[1]},
+    {type:'string',nullable:false,enum:['low'],default:'low'},
+    {type:'number',nullable:false,enum:['1']},
+  ])assert.equal(generated.check(original),false);
+  // This checks the shipped structural declaration route only. Common must
+  // still check Unicode, actual membership, extents and original value custody.
+});
+
+test('original Text enum vectors and the Values dependency retain independently authored preimages',async()=>{
+  const {verifyIdentity}=await import('./check-canonical-json.mjs');
+  const vectors=JSON.parse(readFileSync('portability/corpus/text-enumeration-identities.json','utf8'));
+  const ids=[];
+  for(const value of vectors.checkedTextContracts){
+    verifyIdentity(value.contract,value.proposedContractCid,value.canonicalPreimage);
+    ids.push(value.proposedContractCid);
+  }
+  assert.equal(new Set(ids).size,ids.length,'absence/order/repetitions/empty preserve distinct originals');
+  const aoa=JSON.parse(readFileSync('spec/contracts/actql-aoa.json','utf8'));
+  const expected=vectors.valuesExecution;
+  verifyIdentity(aoa.execution_contracts['REL.values'],expected.cid,expected.canonicalPreimage);
+  assert.deepEqual(aoa.execution_contracts['REL.values'],expected.body);
 });

@@ -1,56 +1,87 @@
 import assert from 'node:assert/strict';
-import {mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile}
-  from 'node:fs/promises';
+import fs from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
+import * as loader from './installed-effect.mjs';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {createInstalledConnectorTable} from './installed-connectors.mjs';
 
 // Exercise the actual bounded reader with real files. Only the physical close
-// call is faulted in the isolated import tree; no parser or Owner is replaced.
-async function readerFixture(t, contents) {
-  const root = await mkdtemp(join(tmpdir(), 'actql-effect-profile-close-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
-  const original = fileURLToPath(new URL('./', import.meta.url));
-  const host = join(root, 'adapters', 'host-node');
-  await mkdir(host, {recursive: true});
-  await symlink(fileURLToPath(new URL('../host-common', import.meta.url)),
-    join(root, 'adapters', 'host-common'));
-  await symlink(fileURLToPath(new URL('../connectors', import.meta.url)),
-    join(root, 'adapters', 'connectors'));
-  await symlink(fileURLToPath(new URL('../connectors-builtin', import.meta.url)),
-    join(root, 'adapters', 'connectors-builtin'));
-  for (const entry of await readdir(original, {withFileTypes: true})) {
-    if (entry.isFile() && entry.name.endsWith('.mjs') &&
-        entry.name !== 'installed-effect.mjs') {
-      await symlink(join(original, entry.name), join(host, entry.name));
-    }
-  }
-  const source = await readFile(join(original, 'installed-effect.mjs'), 'utf8');
-  const importLine = "import {open, readFile} from 'node:fs/promises';";
-  assert.equal(source.split(importLine).length, 2);
-  await writeFile(join(host, 'installed-effect.mjs'), source.replace(importLine,
-    "import {open, readFile} from './profile-close-io.fixture.mjs';"));
-  await writeFile(join(host, 'profile-close-io.fixture.mjs'), `
-    import {open as physicalOpen} from 'node:fs/promises';
-    export {readFile} from 'node:fs/promises';
-    export const state = {remaining: 2, calls: 0, released: 0};
-    export const closeFailure = new Error('InjectedProfileCloseFailure');
-    export async function open(...args) {
-      const file = await physicalOpen(...args);
-      return {read: (...values) => file.read(...values), async close() {
-        state.calls++;
-        if (state.remaining > 0) { state.remaining--; throw closeFailure; }
-        await file.close(); state.released++;
-      }};
-    }
-  `);
+// call is faulted on the actual imported reader; no parser or Owner is replaced.
+async function readerFixture(t, contents, falseClose = false) {
+  const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-profile-close-'));
   const path = join(root, 'profile.json');
-  await writeFile(path, contents);
-  const loader = await import(pathToFileURL(join(host, 'installed-effect.mjs')).href);
-  const io = await import(pathToFileURL(join(host, 'profile-close-io.fixture.mjs')).href);
-  return {loader, io, path};
+  await fs.writeFile(path, contents);
+  const open = fs.open;
+  let original;
+  const io = {state: {remaining: 2, calls: 0, released: 0, reads: 0, opens: 0},
+    closeFailure: new Error('InjectedProfileCloseFailure')};
+  fs.open = async (name, ...args) => {
+    const file = await open(name, ...args);
+    if (name !== path) return file;
+    io.state.opens++;
+    original = file;
+    return {read(...values) { io.state.reads++; return file.read(...values); }, async close() {
+      io.state.calls++;
+      if (io.state.remaining-- > 0) {
+        if (falseClose) return false;
+        throw io.closeFailure;
+      }
+      await file.close(); io.state.released++;
+    }};
+  };
+  syncBuiltinESMExports();
+  t.after(async () => {
+    fs.open = open;
+    syncBuiltinESMExports();
+    await original?.close();
+    await fs.rm(root, {recursive: true, force: true});
+  });
+  return {loader, io, path, fd: () => original?.fd};
 }
+
+test('Effect false close remains in same initialization custody without a reread', async t => {
+  const f = await readerFixture(t, '{}', true);
+  let failure;
+  await assert.rejects(f.loader.loadInstalledEffect(f.path, {}), error => {
+    failure = error;
+    assert.equal(error.code, 'InvalidInstalledEffectProfile');
+    assert.equal(error.cleanupHandle.status().pending, true);
+    return true;
+  });
+  assert(f.fd() >= 0);
+  const reads = f.io.state.reads;
+  const outer = await retainInstalledHostInitializationFailure(failure, {});
+  assert.equal(outer.cleanupPending, false);
+  assert.equal(f.fd(), -1);
+  assert.equal(f.io.state.opens, 1);
+  assert.equal(f.io.state.reads, reads);
+  assert.equal(f.io.state.released, 1);
+});
+
+test('Effect identity callback forwards its Connector ceiling to shared acquisition', async t => {
+  const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-identity-limit-'));
+  t.after(() => fs.rm(root, {recursive: true, force: true}));
+  const profilePath = join(root, 'profile.json'), metadataPath = join(root, 'publication.json');
+  const version = 'actql-installed-effect-ceiling-fixture/0.1';
+  const profile = {version, metadataPath};
+  await fs.writeFile(profilePath, JSON.stringify(profile));
+  const connectorTable = createInstalledConnectorTable([{name: 'ceiling_fixture', effect: {
+    profileVersion: version, load: async () => ({check: value => value,
+      identityParts: async (value, read) => [value, await read(value.metadataPath, {maxBytes: 1048576})],
+      load() { assert.fail('identity cannot acquire an Effect adapter'); },
+    }),
+  }}]);
+  await fs.writeFile(metadataPath, '{}');
+  const original = await loader.installedEffectIdentity(profilePath, {connectorTable});
+  await fs.appendFile(metadataPath, ' '.repeat(1048576 - 2));
+  assert.equal(await loader.installedEffectIdentity(profilePath, {connectorTable}), original);
+  await fs.appendFile(metadataPath, ' ');
+  await assert.rejects(loader.installedEffectIdentity(profilePath, {connectorTable}),
+    {code: 'InvalidInstalledEffectProfile'});
+});
 
 for (const malformed of [false, true]) {
   test(`Effect profile close failure retains retry custody after ${malformed ? 'parse refusal' : 'successful read'}`, async t => {

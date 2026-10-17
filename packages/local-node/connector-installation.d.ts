@@ -236,6 +236,26 @@ export interface InstalledConnectorBinding {
   readonly connectorId: string;
   readonly bindingCid: string;
 }
+/** Host-private originals passed to one I/O-free installed reader preparer. */
+export interface RowProviderReaderRequest extends RowPageRequest {
+  readonly requestWire: string;
+  readonly rowRun: Readonly<{
+    acquisition: ConnectorRuntimeHandle;
+    run: ConnectorRuntimeHandle;
+    requestId: string;
+    runInvocationCid: string;
+    dispatchRequestCid: string;
+  }>;
+  verifyRead(): Promise<InstallationDecision>;
+  consumeObservation?: (charge: ConnectorRuntimeHandle) => unknown;
+}
+/** Same original receiver and methods, retained until actual reader/caller
+ * custody retires. Neither read nor requestStop settlement is that ACK. */
+export interface InstalledRowProviderReader {
+  read(): Awaitable<unknown>;
+  requestStop(): Awaitable<void>;
+  observe(): Readonly<{cleanupConfirmed: boolean}>;
+}
 /** The installed Host owns preparation and execution through this object. */
 export interface InstalledRowSource {
   readonly realizationKey: 'row-source-acquired';
@@ -266,6 +286,13 @@ export declare function createInstalledRowSource(options: Readonly<{
    * Core runtime. Not a grant; the original Source Ledger must reserve it
    * before additional report allocations or page I/O. No numeric default. */
   listingReportCapacity?: ConnectorRuntimeHandle;
+  /** Supplemental ordinary reader selection, mutually exclusive with listing
+   * reports. DATA only: same-runtime Core planning/reservation and original
+   * physical/caller retirement are independently required. No fallback. */
+  providerReader?: Readonly<{
+    capacity: ConnectorRuntimeHandle;
+    prepare(request: RowProviderReaderRequest): InstalledRowProviderReader;
+  }>;
 }>): Promise<InstalledRowSource>;
 
 export type RowEffectKind = 'create' | 'update' | 'upsert';
@@ -314,11 +341,33 @@ export type RowEffectFootprint = Readonly<{
   resource_kind: string; resource_identity_scheme_cid: string;
   provider_object_identity_cids: readonly string[];
 }>;
+/** Existing capture-owned child. Preparation completion is not cleanup. */
+export interface RowEffectRequestChild<Request extends object> {
+  prepare(): Awaitable<Readonly<{request: Request; requestCid: string}>>;
+  release(): Awaitable<boolean | void>;
+  retry(): Awaitable<boolean | void>;
+  status(): Readonly<{pending: boolean}>;
+}
 export interface RowEffectDriver<Request extends object, Current = unknown> {
   readonly kinds: readonly RowEffectKind[];
   prepareRequest(options: Readonly<{member: RowEffectMember;
     value: ConnectorJsonObject; selector?: ConnectorJsonValue;
     current: Current | undefined}>): Readonly<{request: Request; requestCid: string}>;
+  /** Synchronous, I/O-free factory retained by the existing capture owner.
+   * Guarded UPDATE/upsert receives the exact row and a zero-argument read
+   * supplier. The existing Command context has no row index/current fence
+   * and may omit its indexed read supplier. No grant is created by the type. */
+  prepareRequestChild?(options: Readonly<{member: RowEffectMember;
+    value: ConnectorJsonObject; selector?: ConnectorJsonValue;
+    current: Current | undefined; signal?: AbortSignal;
+  } & ({rowIndex: number;
+    authorizationForRow: () => Promise<InvocationAuthorization>;
+    /** Existing selected-preparation fence; absence is not a new current proof. */
+    assertCurrent?: () => void;
+  } | {rowIndex?: undefined;
+    authorizationForRow?: (index: number) => Promise<InvocationAuthorization>;
+    assertCurrent?: undefined;
+  })>): RowEffectRequestChild<Request>;
   requestFacts(request: Request): Readonly<{
     value: ConnectorJsonObject; target?: ConnectorJsonValue}>;
   writeOperation(member: RowEffectMember): string;

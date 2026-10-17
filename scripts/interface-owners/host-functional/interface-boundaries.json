@@ -10756,7 +10756,7 @@
     {
       "module": "adapters/host-node/captured-content-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "30d391b800aa9d75ef2527eea3fe4b9d9584782264547a5f4215e99b93efc83c",
+      "sha256": "8d43a1b019001a3728178d42f4129c8d54819876465ada3667ca0a7f001b9ab2",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -10777,7 +10777,8 @@
             "available",
             "authorize",
             "limits",
-            "signal"
+            "signal",
+            "retainOriginal"
           ],
           "async": true
         }
@@ -10804,6 +10805,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "inputsOutputs": [
@@ -10818,6 +10823,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "identity": [
@@ -10832,6 +10841,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "ownership": [
@@ -10846,6 +10859,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "synchronization": [
@@ -10860,6 +10877,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "failure": [
@@ -10874,12 +10895,16 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/captured-content-holding.mjs",
-                "anchor": "available, authorize, limits, signal}) {"
+                "anchor": "available, authorize, limits, signal, retainOriginal}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -10888,6 +10913,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "resources": [
@@ -10902,6 +10931,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "extension": [
@@ -10916,6 +10949,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "verification": [
@@ -10926,6 +10963,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ]
           }
@@ -11483,7 +11524,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fcc7e1e88c01ea44faa7ce9aa0e3dad79e58e08882487371d405743e554990fe",
+      "sha256": "bf0c7f8da35ed4efe4012020aeee7b6db764d8f8120ded3ad32f72c42220ead9",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -14087,7 +14128,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6b924f5d10754ed313b14605bafb83f5bea2e83e886d817a2aa7e817a852e409",
+      "sha256": "366a0c703c0e227c013f41d7f39febfe19ace157ab0af8451375ab87a17b58ac",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -14115,6 +14156,7 @@
             "negotiate",
             "submit",
             "submitIntent",
+            "submitNamedIntent",
             "lookupSubmission",
             "attach",
             "lookupRequest",
@@ -16124,7 +16166,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8207752f6bb47c2d912076e43092076cf6ba3015d0b33183a30e333356b51083",
+      "sha256": "879c7b2ebd0c5a1e1c48577058133f7ba7e98a545a4cfad361c3704caa749e84",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -16346,6 +16388,28 @@
           "async": false
         },
         {
+          "name": "inspectNameStorage",
+          "parameters": [
+            "database",
+            "enabled"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectNameStorage/counters/counters",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectNameStorage/fields/fields",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
           "name": "inspectRestartStorage",
           "parameters": [
             "database",
@@ -16470,6 +16534,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/assertNameCustody/assertNameCustody",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/assertRestartCustody/assertRestartCustody",
           "parameters": [],
           "async": false
@@ -16484,6 +16553,13 @@
           "parameters": [
             "key",
             "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/authenticateName/authenticateName",
+          "parameters": [
+            "row"
           ],
           "async": false
         },
@@ -17064,6 +17140,40 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
+          "parameters": [
+            "name",
+            "intent",
+            "options",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
+          "parameters": [
+            "name",
+            "intent",
+            "namespaceId",
+            "actorId",
+            "authorityScopeCid",
+            "currentAuthorization",
+            "submissionRef",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent",
           "parameters": [
             "submissionRef",
@@ -17114,6 +17224,20 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal#2",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/openClientRequestJournal#2",
           "parameters": [],
           "async": false
@@ -17139,6 +17263,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/openClientRequestJournal#7",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/originalIntent/originalIntent",
           "parameters": [
             "intent",
@@ -17158,6 +17287,21 @@
           "parameters": [
             "ref",
             "requestControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/recordIntentLocked/recordIntentLocked",
+          "parameters": [
+            "submissionRef",
+            "original",
+            "authorityScopeCid",
+            "currentAuthorization",
+            "phase",
+            "outcome",
+            "restartWire",
+            "requestId",
+            "control"
           ],
           "async": false
         },
@@ -17940,6 +18084,130 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "inspectNameStorage",
+            "inspectNameStorage/counters/counters",
+            "inspectNameStorage/fields/fields",
+            "openClientRequestJournal/assertNameCustody/assertNameCustody",
+            "openClientRequestJournal/authenticateName/authenticateName",
+            "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
+            "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
+            "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
+            "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result",
+            "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal",
+            "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal#2",
+            "openClientRequestJournal/openClientRequestJournal#7",
+            "openClientRequestJournal/recordIntentLocked/recordIntentLocked"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Scoped durable submission names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"submit-named-intent\": ["
+              },
+              {
+                "path": "packages/client-wire/index.d.ts",
+                "anchor": "export declare function validNamedSubmissionAttempt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "original workspace, actor and authority"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "a newly supplied connection epoch is not its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The physical index belongs to this same Journal and transaction owner."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only the first confirmed insertion can enter preparation."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named unresolved and refused replies remain distinct from committed original admission'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Missing retained outcome, formal retirement,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names are not"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names have finite admission capacity under the existing Journal limit."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named packet identities pin new projections without changing old submission bodies'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The old explicit-epoch submission response still requires its original exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named observations correlate the original reference without weakening explicit epochs'"
+              },
+              {
+                "path": "adapters/host-node/client-named-submission-host.integration.test.mjs",
+                "anchor": "actual Host named submission survives a new process"
+              },
+              {
+                "path": "packages/client-wire/named-submission.typecheck.mts",
+                "anchor": "const retained: WireNamedSubmissionAttempt = value;"
               }
             ]
           }
@@ -18950,7 +19218,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cc084d425dfd3db5fd29c7888bbe54dd0d86017684661e34fb0e31c979c211aa",
+      "sha256": "47827d28cfadacb6cfc1f846f4621e361254f6693f8684d6f6ce0cd17fce7dc2",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -19182,6 +19450,20 @@
           "async": false
         },
         {
+          "name": "installNodeClientSubmission/submitNamedAttempt/submitNamedAttempt",
+          "parameters": [
+            "request"
+          ],
+          "async": true
+        },
+        {
+          "name": "installNodeClientSubmission/submittedInput/submittedInput",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientSubmission/unresolved/unresolved",
           "parameters": [
             "submissionRef",
@@ -19286,7 +19568,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "isClientSubmitRejection, validCheckOutcome, validOperationAttemptRef} from '../../packages/client-wire/index.mjs';"
+                "anchor": "validSubmissionName, validNamedSubmissionAttempt} from"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -19461,6 +19743,119 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientSubmission/submitNamedAttempt/submitNamedAttempt",
+            "installNodeClientSubmission/submittedInput/submittedInput"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Scoped durable submission names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"submit-named-intent\": ["
+              },
+              {
+                "path": "packages/client-wire/index.d.ts",
+                "anchor": "export declare function validNamedSubmissionAttempt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "original workspace, actor and authority"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "a newly supplied connection epoch is not its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The physical index belongs to this same Journal and transaction owner."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only the first confirmed insertion can enter preparation."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named unresolved and refused replies remain distinct from committed original admission'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Missing retained outcome, formal retirement,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names are not"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names have finite admission capacity under the existing Journal limit."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named packet identities pin new projections without changing old submission bodies'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The old explicit-epoch submission response still requires its original exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named observations correlate the original reference without weakening explicit epochs'"
+              },
+              {
+                "path": "adapters/host-node/client-named-submission-host.integration.test.mjs",
+                "anchor": "actual Host named submission survives a new process"
+              },
+              {
+                "path": "packages/client-wire/named-submission.typecheck.mts",
+                "anchor": "const retained: WireNamedSubmissionAttempt = value;"
               }
             ]
           }
@@ -22607,7 +23002,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "39c395b4b8b5bb43889c6a11a6c5917380c8abacf7003cb732f774c07f07f651",
+      "sha256": "fc590adb688523a465da93342355425b6c5a87b4806998f034b149378952c436",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -22721,11 +23116,6 @@
           "async": false
         },
         {
-          "name": "installedHostShutdown/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "installedHostShutdown/shutdown/shutdown",
           "parameters": [],
           "async": false
@@ -22739,6 +23129,11 @@
           "name": "installedHostShutdown/shutdown/shutdown#11",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "installedHostShutdown/shutdown/shutdown#12",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "installedHostShutdown/shutdown/shutdown#2",
@@ -22802,7 +23197,6 @@
             "createEmbeddedHostRegistry/init:connect/init:connect/seal",
             "createEmbeddedHostRegistry/init:connect/init:connect/status/status",
             "installedHostShutdown",
-            "installedHostShutdown/init:close/init:close",
             "installedHostShutdown/shutdown/shutdown",
             "installedHostShutdown/shutdown/shutdown#10",
             "installedHostShutdown/shutdown/shutdown#11",
@@ -22813,7 +23207,8 @@
             "installedHostShutdown/shutdown/shutdown#6",
             "installedHostShutdown/shutdown/shutdown#7",
             "installedHostShutdown/shutdown/shutdown#8",
-            "installedHostShutdown/shutdown/shutdown#9"
+            "installedHostShutdown/shutdown/shutdown#9",
+            "installedHostShutdown/shutdown/shutdown#12"
           ],
           "exports": [
             "createEmbeddedHostRegistry",
@@ -22851,7 +23246,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "// close retains its retry state and the original runtime view unchanged."
+                "anchor": "// A failed/partial retirement still owns the original callback."
               },
               {
                 "path": "docs/spec/execution.md",
@@ -23336,7 +23731,7 @@
     {
       "module": "adapters/host-node/generated-content-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5f54c20676ac76b99d5ff8a40effce8fbe9a417fff4e1d3f7722152d9419874c",
+      "sha256": "5a1f910809c3b7cd7860d193089e3180715e40b03407a4493e73a92d5cdaf90b",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -23364,6 +23759,7 @@
             "available",
             "authorize",
             "limits",
+            "retainOriginal",
             "prefix"
           ],
           "async": true
@@ -23406,7 +23802,8 @@
             "effectiveDataPolicyCid",
             "available",
             "authorize",
-            "limits"
+            "limits",
+            "retainOriginal"
           ],
           "async": true
         },
@@ -23493,6 +23890,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "inputsOutputs": [
@@ -23507,6 +23908,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "identity": [
@@ -23521,6 +23926,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "ownership": [
@@ -23535,6 +23944,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "synchronization": [
@@ -23549,6 +23962,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "failure": [
@@ -23563,6 +23980,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "cancellation": [
@@ -23577,6 +23998,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "resources": [
@@ -23591,6 +24016,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "extension": [
@@ -23605,6 +24034,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "verification": [
@@ -23615,6 +24048,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ]
           }
@@ -24078,7 +24515,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0c38ddb850aa0af7882f2b5da030e1151170c77a814f9dba4f66c9699e6f2043",
+      "sha256": "69500df2ce61d55bb415e00c0a58f2a50af62f3aa0d475bf28cdffcab8f776bc",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -24095,6 +24532,7 @@
             "prepareSubmit",
             "submit",
             "submitIntent",
+            "submitNamedIntent",
             "lookupSubmission",
             "attach",
             "lookupRequest",
@@ -30189,7 +30627,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "68cc7356ec4b3c9af9375c27ea4947b72726160a8ce81f1b0a47612272d32eec",
+      "sha256": "5e3abaccab1c47ce4bea59cece044fe8c7417d1072ed6ecdd95353b2da21c757",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -30301,13 +30739,9 @@
         {
           "name": "readProfileJson",
           "parameters": [
-            "path"
+            "path",
+            "maxBytes"
           ],
-          "async": true
-        },
-        {
-          "name": "readProfileJson/release/release",
-          "parameters": [],
           "async": true
         },
         {
@@ -30363,7 +30797,6 @@
             "publishInstalledEffectProfile",
             "readProfile",
             "readProfileJson",
-            "readProfileJson/release/release",
             "refuse/refuse",
             "runtimeBundleCid/runtimeBundleCid",
             "selectInstallation",
@@ -30453,7 +30886,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {open, readFile} from 'node:fs/promises';"
+                "anchor": "import {readSourceProfileJson} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -30626,7 +31059,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {open, readFile} from 'node:fs/promises';"
+                "anchor": "import {readSourceProfileJson} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -30723,12 +31156,15 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "757e9025bbe4ccee30ec52a2c36189d391c1361c4eaa2145f2ea862c4ee8c925",
+      "sha256": "9251263c6e0836332350cc1b524d8e3de6595ffbda6707e8fbce43fa8a8b474e",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "createInstalledHostShutdown",
-        "retainInstalledHostInitializationFailure"
+        "releaseInstalledCredentialSite",
+        "retainInstalledCredentialSiteCleanup",
+        "retainInstalledHostInitializationFailure",
+        "retainInstalledHostRuntimeFailure"
       ],
       "operations": [
         {
@@ -30744,7 +31180,8 @@
             "store",
             "diagnostic",
             "observation",
-            "ownerViews"
+            "ownerViews",
+            "finalize"
           ],
           "async": false
         },
@@ -30808,6 +31245,53 @@
           "async": false
         },
         {
+          "name": "handOverCredentialSiteRelease",
+          "parameters": [
+            "site",
+            "primary",
+            "errors",
+            "ownerFailureCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "handOverCredentialSiteRelease/captureEarlierMethods",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "handOverCredentialSiteRelease/earlierStatus/earlierStatus",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "handOverCredentialSiteRelease/handle/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "handOverCredentialSiteRelease/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledCredentialSite",
+          "parameters": [
+            "site",
+            "ownerFailureCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledCredentialSiteCleanup",
+          "parameters": [
+            "site",
+            "primary",
+            "ownerFailureCode"
+          ],
+          "async": false
+        },
+        {
           "name": "retainInstalledHostInitializationFailure",
           "parameters": [
             "cause",
@@ -30829,6 +31313,11 @@
             "close"
           ],
           "async": true
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/captureOriginalStatus",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "retainInstalledHostInitializationFailure/drain",
@@ -30886,6 +31375,11 @@
           "async": false
         },
         {
+          "name": "retainInstalledHostInitializationFailure/observeOriginalCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "retainInstalledHostInitializationFailure/retry",
           "parameters": [],
           "async": false
@@ -30897,6 +31391,49 @@
         },
         {
           "name": "retainInstalledHostInitializationFailure/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure",
+          "parameters": [
+            "cause",
+            "retire"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/observeChild/observeChild",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/retireOnce/retireOnce",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/retry/retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/retry/retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/update/update",
           "parameters": [],
           "async": false
         }
@@ -30918,6 +31455,7 @@
             "createInstalledHostShutdown/status/status/status",
             "retainInstalledHostInitializationFailure",
             "retainInstalledHostInitializationFailure/attempt",
+            "retainInstalledHostInitializationFailure/captureOriginalStatus",
             "retainInstalledHostInitializationFailure/drain",
             "retainInstalledHostInitializationFailure/drain/drain",
             "retainInstalledHostInitializationFailure/drain/drain#10",
@@ -30929,6 +31467,7 @@
             "retainInstalledHostInitializationFailure/drain/drain#7",
             "retainInstalledHostInitializationFailure/drain/drain#8",
             "retainInstalledHostInitializationFailure/drain/drain#9",
+            "retainInstalledHostInitializationFailure/observeOriginalCleanup",
             "retainInstalledHostInitializationFailure/retry",
             "retainInstalledHostInitializationFailure/retry/retry",
             "retainInstalledHostInitializationFailure/status/status"
@@ -30978,6 +31517,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const originalCleanup = cause?.cleanupHandle;"
               }
             ],
             "ownership": [
@@ -30992,6 +31535,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const originalCleanup = cause?.cleanupHandle;"
               }
             ],
             "synchronization": [
@@ -31006,6 +31553,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const originalCleanup = cause?.cleanupHandle;"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "function captureOriginalStatus() {"
               }
             ],
             "failure": [
@@ -31020,6 +31575,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "function observeOriginalCleanup() {"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "Property access can itself fail."
               }
             ],
             "cancellation": [
@@ -31048,6 +31611,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "let observationFailure;"
               }
             ],
             "extension": [
@@ -31072,12 +31639,225 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-original-cleanup-observation.test.mjs",
+                "anchor": "for (const variant of ['status unavailable', 'handle replaced during retry']) {"
+              },
+              {
+                "path": "adapters/host-node/installed-original-cleanup-method-capture.test.mjs",
+                "anchor": "for (const property of ['retry', 'status']) {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainInstalledHostRuntimeFailure",
+            "retainInstalledHostRuntimeFailure/observeChild/observeChild",
+            "retainInstalledHostRuntimeFailure/retireOnce/retireOnce",
+            "retainInstalledHostRuntimeFailure/retry",
+            "retainInstalledHostRuntimeFailure/retry/retry",
+            "retainInstalledHostRuntimeFailure/retry/retry#2",
+            "retainInstalledHostRuntimeFailure/status/status",
+            "retainInstalledHostRuntimeFailure/update/update"
+          ],
+          "exports": [
+            "retainInstalledHostRuntimeFailure"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "export function retainInstalledHostRuntimeFailure(cause, retire) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "failure.cleanupHandle = Object.freeze({status, retry});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const observed = Reflect.apply(childStatus, child, []);"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "test('same original child methods and receiver remain captured across retry'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "child = childStatus = childRetry = undefined;"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "finalize = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "if (flight !== undefined) return flight;"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "assert.equal(first, failure.cleanupHandle.retry());"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "primaryFailure: cause?.primaryFailure ?? cause,"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "test('failed child retry retains primary facts and only its latest local failure'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "if (observed?.pending !== false) return false;"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-store-lifetime.test.mjs",
+                "anchor": "assert.equal(retired, 0);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "let retirementComplete = false, finalize = retire, flight, lastError;"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "let childErrors = Array.isArray(originalErrors) ? originalErrors : [];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "Never mutate a borrowed/frozen exception"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "test('missing cleanup owner cannot become a successful runtime retirement'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "test('runtime retirement failure does not repeat confirmed child cleanup'"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement.test.mjs",
+                "anchor": "installed Host retains original runtime cleanup after"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "handOverCredentialSiteRelease",
+            "handOverCredentialSiteRelease/earlierStatus/earlierStatus",
+            "handOverCredentialSiteRelease/handle/init:retry/init:retry",
+            "handOverCredentialSiteRelease/status/status",
+            "releaseInstalledCredentialSite",
+            "retainInstalledCredentialSiteCleanup",
+            "handOverCredentialSiteRelease/captureEarlierMethods"
+          ],
+          "exports": [
+            "releaseInstalledCredentialSite",
+            "retainInstalledCredentialSiteCleanup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "export function retainInstalledCredentialSiteCleanup(site, primary,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "return handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const earlier = primary?.cleanupHandle;"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "'SalesforceSiteOwnerFailed'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "originalStatus.call(earlier)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "function handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "if (site.cleanupPending() === true) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "An unavailable observation cannot replace the primary failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "earlierOwned && before?.pending !== false,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Credential Site failure handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "Compatibility entries delegate the same Site and primary failure"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-credential-site-cleanup.test.mjs",
+                "anchor": "shared Site cleanup retains an independent original Reader"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-site-cleanup.test.mjs",
+                "anchor": "an unavailable earlier status retains custody"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-site-original-methods.test.mjs",
+                "anchor": "a replacement status during the original retry cannot acknowledge the held original child"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
@@ -31498,23 +32278,137 @@
     {
       "module": "adapters/host-node/installed-row-capture-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7c5c25655f875f4bc6173cb95a423e27ba6d5c5b0192adca9865d2e85a3f1fbd",
+      "sha256": "02893d1aa2a10d7162448da54f567e20386ebda53dc7990aa2ebbb670bc5f1eb",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
+        "prepareInstalledRowCaptureChild",
         "releaseInstalledRowCapture"
       ],
       "operations": [
         {
+          "name": "prepareInstalledRowCaptureChild",
+          "parameters": [
+            "children",
+            "create",
+            "assertCurrent",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/drain/drain",
+          "parameters": [
+            "retry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/drain/drain/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/drain/drain/drain#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#4",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
           "name": "releaseInstalledRowCapture",
           "parameters": [
             "payloads",
+            "children",
             "releaseResults",
             "releaseInputs",
             "control",
             "primary"
           ],
           "async": true
+        },
+        {
+          "name": "releaseInstalledRowCapture/childPending/childPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/childPending/childPending/childPending",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/dependent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/dependent#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/dependent#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/drain/drain",
+          "parameters": [
+            "retry"
+          ],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/drain/drain/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "releaseInstalledRowCapture/dependent/dependent/drain/drain/drain#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledRowCapture/releaseInstalledRowCapture",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         },
         {
           "name": "releaseInstalledRowCapture/retain/retain",
@@ -31553,146 +32447,102 @@
             "releaseInstalledRowCapture/retain/retain/drain/drain",
             "releaseInstalledRowCapture/retain/retain/drain/drain/drain",
             "releaseInstalledRowCapture/retain/retain/drain/drain/drain#2",
-            "releaseInstalledRowCapture/retain/retain/retain"
+            "releaseInstalledRowCapture/retain/retain/retain",
+            "prepareInstalledRowCaptureChild",
+            "prepareInstalledRowCaptureChild/drain/drain",
+            "prepareInstalledRowCaptureChild/drain/drain/drain",
+            "prepareInstalledRowCaptureChild/drain/drain/drain#2",
+            "prepareInstalledRowCaptureChild/invalid/invalid",
+            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild",
+            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#2",
+            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#3",
+            "prepareInstalledRowCaptureChild/prepareInstalledRowCaptureChild#4",
+            "releaseInstalledRowCapture/childPending/childPending",
+            "releaseInstalledRowCapture/childPending/childPending/childPending",
+            "releaseInstalledRowCapture/dependent/dependent",
+            "releaseInstalledRowCapture/dependent/dependent/dependent",
+            "releaseInstalledRowCapture/dependent/dependent/dependent#2",
+            "releaseInstalledRowCapture/dependent/dependent/dependent#3",
+            "releaseInstalledRowCapture/dependent/dependent/drain/drain",
+            "releaseInstalledRowCapture/dependent/dependent/drain/drain/drain",
+            "releaseInstalledRowCapture/dependent/dependent/drain/drain/drain#2",
+            "releaseInstalledRowCapture/releaseInstalledRowCapture"
           ],
           "exports": [
-            "releaseInstalledRowCapture"
+            "releaseInstalledRowCapture",
+            "prepareInstalledRowCaptureChild"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "anchor": "// The existing capture retains this original child before any fallible current"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
+                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "// Adapt the original capture's existing Result and input-release owners into"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "anchor": "let child = create();"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "// Adapt the original capture's existing Result and input-release owners into"
+                "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "export async function releasePreparedResults(exported, primary, control)"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "if (await release() !== false) pending = false;"
+                "anchor": "if (result !== false && !preparing &&"
               },
               {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "path": "src/run_publication/cleanup_progress.mbt",
+                "anchor": "pub fn publication_cleanup_owner_action_code("
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "import {releasePreparedResults} from '../host-common/completed-run-publication.mjs';"
-              },
-              {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
+                "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
+                "anchor": "if (childPending()) return false;"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function releaseInstalledRowCapture({payloads = [], releaseResults,"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "# Completion and physical Relation storage"
-              },
-              {
-                "path": "docs/spec/protocols/artifacts.md",
-                "anchor": "### Content generation evidence"
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.test.mjs",
-                "anchor": "test('failed first payload does not skip siblings, public Results or input pins', async () => {"
+                "anchor": "test('request child is retained before current refusal"
               },
               {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
+                "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
               }
             ]
           }
@@ -32071,7 +32921,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1fc5d88a504dfbe9c237a1659efd845128ea1a30c71113908c09fb8e58c4043c",
+      "sha256": "9130a723051b79a5d83c941a9945b85030e657f54367f29c61b1e50004c59614",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -38842,13 +39692,82 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9be651d1b6b3240d927e0f47b36cebba620224ada6a8387f996d6486b5aa14af",
+      "sha256": "ba9f0773e3a7f899a8bbfabe4ae853e7e947a3f635a5daea8f41f4fee391a502",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
+        "readBoundedConfigurationText",
+        "readBoundedConfigurationUtf8",
         "readSourceProfileJson"
       ],
       "operations": [
+        {
+          "name": "readBoundedConfigurationText",
+          "parameters": [
+            "path",
+            "maxBytes",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "readBoundedConfigurationText/readBoundedConfigurationText",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedConfigurationUtf8",
+          "parameters": [
+            "path",
+            "maxBytes",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "readBoundedConfigurationUtf8/readBoundedConfigurationUtf8",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "readConfiguration",
+          "parameters": [
+            "path",
+            "maxBytes",
+            "openFile",
+            "project"
+          ],
+          "async": true
+        },
+        {
+          "name": "readConfiguration/descriptors/descriptors",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/retry/retry/retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "readConfiguration/retry/retry/retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/status/status",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "readSourceProfileJson",
           "parameters": [
@@ -38857,15 +39776,35 @@
             "openFile"
           ],
           "async": true
+        },
+        {
+          "name": "readSourceProfileJson/readSourceProfileJson",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "readSourceProfileJson"
+            "readBoundedConfigurationText",
+            "readBoundedConfigurationText/readBoundedConfigurationText",
+            "readBoundedConfigurationUtf8",
+            "readBoundedConfigurationUtf8/readBoundedConfigurationUtf8",
+            "readConfiguration",
+            "readConfiguration/descriptors/descriptors",
+            "readConfiguration/retry/retry",
+            "readConfiguration/retry/retry/retry",
+            "readConfiguration/retry/retry/retry#2",
+            "readConfiguration/status/status",
+            "readSourceProfileJson",
+            "readSourceProfileJson/readSourceProfileJson"
           ],
           "exports": [
+            "readBoundedConfigurationText",
+            "readBoundedConfigurationUtf8",
             "readSourceProfileJson"
           ],
           "attributes": {
@@ -38881,6 +39820,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private installed Host acquisition stage searches the selected directory"
               }
             ],
             "inputsOutputs": [
@@ -38895,6 +39838,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export async function loadInstalledProjectConfiguration(moon,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export async function readBoundedConfigurationUtf8(path,"
               }
             ],
             "identity": [
@@ -38909,12 +39860,20 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "try { await file.close(); }"
+                "anchor": "if (await original.close() === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -38923,6 +39882,14 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "let original = await openFile(path, 'r');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "const original = Object.freeze({configuration, modelRegistry,"
               }
             ],
             "synchronization": [
@@ -38937,6 +39904,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// These original callbacks and their receiver remain fixed across file I/O."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "await readBoundedConfigurationUtf8(registryPath,"
               }
             ],
             "failure": [
@@ -38951,12 +39926,20 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "try { await file.close(); }"
+                "anchor": "if (await original.close() === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -38965,6 +39948,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "A pending read remains pending; caller"
               }
             ],
             "resources": [
@@ -38979,6 +39966,14 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The acquisition envelope includes the current read backing, lookahead byte,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
               }
             ],
             "extension": [
@@ -38993,6 +39988,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_project_configuration_bridge.mbt",
+                "anchor": "#export_name(\"clientProjectConfigurationAdmit\")"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
               }
             ],
             "verification": [
@@ -39003,12 +40006,25 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('project close pending retains the same FD and retries without reread or admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
+                "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
@@ -49177,6 +50193,204 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-project-configuration.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "d0d265779ff04b16aa18b3b09ca805cf0cf8aa3c51c99cb8cba9e615f76ac14f",
+      "exports": [
+        "admitInstalledProjectConfiguration",
+        "loadInstalledProjectConfiguration"
+      ],
+      "operations": [
+        {
+          "name": "admitInstalledProjectConfiguration",
+          "parameters": [
+            "moon",
+            "configurationWire",
+            "modelRegistryWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectConfiguration",
+          "parameters": [
+            "moon",
+            "directory",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledProjectConfiguration/loadInstalledProjectConfiguration",
+          "parameters": [
+            "args"
+          ],
+          "async": true
+        },
+        {
+          "name": "readConfiguration",
+          "parameters": [
+            "moon",
+            "configurationWire",
+            "readers"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainConfiguration",
+          "parameters": [
+            "moon",
+            "configurationWire",
+            "modelRegistryWire",
+            "configuration",
+            "selected",
+            "readers"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainConfiguration/init:originalsForRuntime/init:originalsForRuntime",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./source-profile-json.mjs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "existing Common project admission and installed Host material lifetime",
+      "rationale": "Existing Common project admission with sequential bounded physical acquisition of exact configuration/registry originals. No task elaboration, currentness, Host/Run authority or numerical funding is issued.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitInstalledProjectConfiguration",
+            "fail/fail",
+            "loadInstalledProjectConfiguration",
+            "loadInstalledProjectConfiguration/loadInstalledProjectConfiguration",
+            "readConfiguration",
+            "retainConfiguration",
+            "retainConfiguration/init:originalsForRuntime/init:originalsForRuntime"
+          ],
+          "exports": [
+            "admitInstalledProjectConfiguration",
+            "loadInstalledProjectConfiguration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private installed Host acquisition stage searches the selected directory"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export async function loadInstalledProjectConfiguration(moon,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export async function readBoundedConfigurationUtf8(path,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "let original = await openFile(path, 'r');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "const original = Object.freeze({configuration, modelRegistry,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// These original callbacks and their receiver remain fixed across file I/O."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "await readBoundedConfigurationUtf8(registryPath,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const cleanupHandle = Object.freeze({status, retry,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "A pending read remains pending; caller"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "if (await original.close() === false) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The acquisition envelope includes the current read backing, lookahead byte,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_project_configuration_bridge.mbt",
+                "anchor": "#export_name(\"clientProjectConfigurationAdmit\")"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('project close pending retains the same FD and retries without reread or admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
+                "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               }
             ]
           }

@@ -700,6 +700,10 @@ pub fn project_publication_request_context(PublicationContract) -> Result[Public
 
 pub fn project_publication_snapshot(PublicationContract?, PublicationIndexObservation) -> Result[PublicationSnapshot, PublicationSnapshotIssue]
 
+pub fn public_index_manifest_result_names_json(PublicationContract, PublicationContract, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn public_index_run_observation_cids(PublicationContract) -> Result[(String, String), DeliveryIssuanceIssue]
+
 pub fn public_index_same_committed_content(PublicationContract, PublicationContract) -> Bool
 
 pub fn publication_attempt_runtime_action_code(PublicationAttemptRuntimeAction) -> Int
@@ -785,6 +789,10 @@ pub fn restore_model_source_observation(ModelSourceObservation, RunEvidenceValue
 pub fn result_access_progress_action(ResultAccessProgress) -> ResultAccessProgressAction
 
 pub fn result_access_progress_action_code(ResultAccessProgress) -> Int
+
+pub fn result_artifact_provenance_at(PublicationContract, Int) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn result_artifact_provenance_count(PublicationContract) -> Result[Int, DeliveryIssuanceIssue]
 
 pub fn result_definition_cid(ResultDefinition) -> String
 
@@ -875,6 +883,8 @@ pub fn run_publication_start_current(RunPublicationAdmission, PublicationContrac
 pub fn run_publication_template_cid(RunPublicationAdmission) -> String
 
 pub fn run_wait_ready(String, Int64?, Int, Int, Int) -> Result[Bool, RunWaitIssue]
+
+pub fn run_wait_ready_until(String, Int64?, RunWaitUntil, Int, Int, Int) -> Result[Bool, RunWaitIssue]
 
 pub fn seal_completed_file_listing_observation(CompletedSourceObservationBody, Int, Array[CompletedFileListingReportRow]) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
@@ -2132,6 +2142,11 @@ pub(all) enum RunStateObservationIssue {
 pub(all) enum RunWaitIssue {
   InvalidState
   InvalidSince
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunWaitUntil {
+  Stable
+  Final
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SourceInputLogicalIssue {

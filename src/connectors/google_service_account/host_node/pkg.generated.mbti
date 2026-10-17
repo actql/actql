@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/google_service_account/host_node"
+
+import {
+  "actql/actql/connectors/google_service_account/catalog",
+}
+
+// Values
+pub fn google_service_account_read_token_response(Int, Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.TokenResponse, @catalog.TokenResponseIssue]
+
+pub fn google_service_account_token_response_access_token(@catalog.TokenResponse) -> String
+
+pub fn google_service_account_token_response_lifetime_seconds(@catalog.TokenResponse) -> Int
+
+pub fn google_service_account_token_response_scopes(@catalog.TokenResponse) -> Array[String]?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

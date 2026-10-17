@@ -66,7 +66,10 @@ test "an approved decimal must be its canonical ActQL spelling" {
 ///|
 /// A synthetic Resource with a Number(12,2), a Number(16,2) and a
 /// Number(15,0); no real org.
-fn number_observation() -> (CatalogObservation, CatalogObservationBinding) {
+fn number_observation(
+  wide_precision? : Int = 16,
+  wide_scale? : Int = 2,
+) -> (CatalogObservation, CatalogObservationBinding) {
   let listing_body =
     #|{"sobjects":[{"name":"Order__c","queryable":true,"createable":true,"updateable":true}]}
   let listing = project_resource_listing(@utf8.encode(listing_body), {
@@ -84,6 +87,13 @@ fn number_observation() -> (CatalogObservation, CatalogObservationBinding) {
     #|{"name":"Amount__c","type":"double","precision":12,"scale":2,"nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true},
     #|{"name":"Units__c","type":"double","precision":15,"scale":0,"nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true},
     #|{"name":"Wide__c","type":"double","precision":16,"scale":2,"nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true}]}
+  let describe_body = describe_body.replace_all(
+    old="\"precision\":16,\"scale\":2",
+    new="\"precision\":" +
+      wide_precision.to_string() +
+      ",\"scale\":" +
+      wide_scale.to_string(),
+  )
   catalog_sync_describe(sync, "Order__c", @utf8.encode(describe_body), {
     max_bytes: 4096,
     max_nodes: 100,
@@ -165,11 +175,11 @@ test "a Number reply is admitted as its declared decimal, exponent form included
   assert_eq(decimal_cell(largest, 2), Some("999999999999999e-0"))
   let null = number_page("null", "0").unwrap()
   assert_true(query_page_cell(null, 0, 1).unwrap().value is @admitted.Null)
-  // A Number above precision 15 is not readable.
+  // The same declared Number(16,2) is within the Decimal Contract domain.
   let (observation, binding) = number_observation()
   assert_true(
     prepare_read_projection(observation, binding, "Order__c", ["Wide__c"], 256)
-    is Err(UnsupportedReadType("Wide__c")),
+    is Ok(_),
   )
 }
 
@@ -255,7 +265,7 @@ test "an approved decimal is sent as the same number text, never through binary6
   // A digit beyond the scale is refused, never rounded.
   assert_eq(refused("\"12.505\""), ValueBeyondScale("Amount__c"))
   assert_eq(refused("\"12345678901.00\""), ValueOutOfRange("Amount__c"))
-  // A Number above precision 15 is not writable.
+  // The same declared Number(16,2) has an exact decimal write projection.
   let (observation, binding) = number_observation()
   assert_true(
     prepare_write_projection(
@@ -266,7 +276,7 @@ test "an approved decimal is sent as the same number text, never through binary6
       ["Wide__c"],
       1,
     )
-    is Err(UnsupportedWriteType("Wide__c")),
+    is Ok(_),
   )
 }
 

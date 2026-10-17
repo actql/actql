@@ -1,0 +1,34 @@
+///|
+// Public presentation reads the same authenticated original. A publication
+// reply, start claim or index is never converted into completed Run state.
+// Legacy intake retains its exact response and performs no additional lookup.
+fn local_public_run_state_reply(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  reference : @local_host.NativeClientSubmissionReference,
+  public_run : Bool,
+  legacy_reply : String,
+) -> String raise ClientStop {
+  if !public_run {
+    return legacy_reply
+  }
+  let selected = match
+    host.lookup_submitted_run_state_by_id(
+      crypto,
+      settings.principal,
+      settings.connection,
+      @local_host.native_client_submission_request_id(reference),
+      @env.now().to_double(),
+    ) {
+    Ok(value) => value
+    Err(issue) => stop(local_saved_state_issue(issue))
+  }
+  if @local_host.native_client_submission_reference_wire(selected.reference()) !=
+    @local_host.native_client_submission_reference_wire(reference) {
+    stop("LocalOriginalRunReferenceMismatch")
+  }
+  // No callback follows the existing terminal current fence. The observed
+  // revision is the saved State owner's value, never SQL/control metadata.
+  selected.state().wire()
+}

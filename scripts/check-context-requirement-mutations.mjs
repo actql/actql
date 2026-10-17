@@ -4,7 +4,7 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 const file = 'adapters/host-node/client-check.test.mjs';
-const core = 'src/connectors_builtin_node/client_check.mbt';
+const core = 'src/client_local_preparation/client_check.mbt';
 const factsCase = 'known context requirements retain Owner conditions without input blame';
 const protectedCase = 'protected resolution cannot fabricate context requirements or positions';
 const targets = (name, id, operator) => ['local', 'http'].map(entrance => ({

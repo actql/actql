@@ -95,7 +95,8 @@ async function mappingEnvironment(payloadContract = {nullable: false, type: 'jso
 }
 
 async function installationFor(t, {changeRequestValue, payloadContract, beforePayload,
-  stopBeforeProjection = false, responsePayload = {ok: true}} = {}) {
+  stopBeforeProjection = false, responsePayload = {ok: true},
+  requestChildMode, targetReadOutcome = 'allow'} = {}) {
   const {environmentWire, mapping} = await mappingEnvironment(payloadContract);
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-row-json-'));
   const closers = [];
@@ -103,6 +104,8 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
   const preparedValues = [];
   const sends = [];
   const projections = [];
+  const requestChildren = [];
+  const preparedBefore = new WeakMap();
   let writeGrants = 0;
   let readGrants = 0;
   let before = {payload: beforePayload ?? {$json: {previous: true}}};
@@ -111,8 +114,9 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
     writable_fields: ['payload']};
   const observationCid = cid(description);
   const requestCid = request => cid({operation: 'update', target,
-    selector: request.target, value: request.value});
-  const requestFor = (value, selector) => {
+    selector: request.target, value: request.value,
+    ...(request.beforeVersionCid === undefined ? {} : {before_version_cid: request.beforeVersionCid})});
+  const requestFor = (value, selector, beforeVersionCid) => {
     assert.equal(selector, recordId);
     preparedValues.push(structuredClone(value));
     const requestValue = changeRequestValue === undefined
@@ -120,7 +124,8 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
     const wire = dataJson(requestValue);
     assert.ok(Buffer.byteLength(wire, 'utf8') <= transportLimit,
       'fixture request exceeds the explicit provider byte limit');
-    return Object.freeze({value: requestValue, target: selector, wire});
+    return Object.freeze({value: requestValue, target: selector, wire,
+      ...(beforeVersionCid === undefined ? {} : {beforeVersionCid})});
   };
   t.after(async () => {
     try {
@@ -135,8 +140,13 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
     account_id: 'installed-json-fixture', entries: [{
       entry_id: 'update-json', outcome: 'allow', exclusions: [],
       principal: {all: true}, connection: {any_of: [connection]},
-      resource: {any_of: ['records']}, operation: {any_of: ['effect', 'read']},
-    }],
+      resource: {any_of: ['records']}, operation: {any_of:
+        targetReadOutcome === 'allow' ? ['effect', 'read'] : ['effect']},
+    }, ...(targetReadOutcome === 'allow' ? [] : [{
+      entry_id: 'z-read-refusal', outcome: targetReadOutcome, exclusions: [],
+      principal: {all: true}, connection: {any_of: [connection]},
+      resource: {any_of: ['records']}, operation: {any_of: ['read']},
+    }])],
   });
   const load = async () => {
     const authorization = await createLocalAuthorizationGate({
@@ -183,9 +193,46 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
             const request = requestFor(value, selector);
             return {request, requestCid: requestCid(request)};
           },
+          ...(requestChildMode === undefined ? {} : {prepareRequestChild(context) {
+            const original = {context, pending: true, prepares: 0, releases: 0,
+              allowRetire: requestChildMode !== 'pending-failure'};
+            requestChildren.push(original);
+            const retire = () => {
+              original.releases++;
+              if (!original.allowRetire) return false;
+              original.pending = false;
+            };
+            return Object.freeze({
+              async prepare() {
+                original.prepares++;
+                assert.equal(context.rowIndex, 0);
+                context.assertCurrent?.();
+                // A substituted argument cannot choose another row's grant.
+                const authorization = await context.authorizationForRow(999);
+                context.assertCurrent?.();
+                assert.match(authorization.useId, /-0-\d+$/u,
+                  'the child cannot substitute another row index into its read use');
+                const observed = structuredClone(before);
+                if (requestChildMode === 'failure' || requestChildMode === 'pending-failure') {
+                  throw Object.assign(new Error('FixtureGuardedPrepareFailed'),
+                    {code: 'FixtureGuardedPrepareFailed'});
+                }
+                const request = requestFor(context.value, context.selector, cid(observed));
+                preparedBefore.set(request, observed);
+                return {request, requestCid: requestCid(request)};
+              },
+              release: retire, retry: retire,
+              status: () => ({pending: original.pending}),
+            });
+          }}),
           requestFacts: request => ({value: request.value, target: request.target}),
           async observeTargets({entries, authorizationForRow}) {
             assert.equal(entries.length, 1, 'fixture target reads are bounded');
+            const original = preparedBefore.get(entries[0].request);
+            if (original !== undefined) {
+              preparedBefore.delete(entries[0].request);
+              return [{identity: recordId, versionCid: cid(original), before: original}];
+            }
             await authorizationForRow(0);
             assert.equal(entries[0].target, recordId);
             return [{identity: recordId, versionCid: cid(before),
@@ -240,9 +287,91 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
     }
   };
   return {root, load, preparedValues, sends, projections,
+    requestChildren,
     writeGrants: () => writeGrants, readGrants: () => readGrants,
     onClose: close => closers.push(close)};
 }
+
+test('guarded request child binds the authorized before read before request Preview and apply', async t => {
+  const installation = await installationFor(t, {requestChildMode: 'normal'});
+  const host = await effectHost(t, installation, join(installation.root, 'host'),
+    {effect: await installation.load()});
+  const run = await host.run(programFor({next: true}), 'guarded-child');
+  assert.equal(run.started.value.status, 'published');
+  assert.equal(installation.requestChildren.length, 1,
+    'guarded capture must use its installed original child rather than the pure fallback');
+  const child = installation.requestChildren[0];
+  assert.equal(child.prepares, 1);
+  assert.equal(child.pending, true, 'request/GET backing remains held until original capture cleanup');
+  assert.equal(installation.sends.length, 1);
+  assert.equal(installation.writeGrants(), 1);
+  const {stage} = host.outcomes[0];
+  const change = JSON.parse(host.control.effectComputationPreviewWire(stage.preview)).effects[0].changes[0];
+  assert.equal(change.target_guard.version_cid, cid({payload: {$json: {previous: true}}}));
+  assert.deepEqual(change.before.value, {payload: {$json: {previous: true}}});
+  await stage.releaseInputs();
+  assert.equal(child.pending, false);
+  assert.equal(child.releases, 1);
+});
+
+test('guarded request child preparation failure retains its original cleanup and sends nothing', async t => {
+  const installation = await installationFor(t, {requestChildMode: 'failure'});
+  const host = await effectHost(t, installation, join(installation.root, 'host'),
+    {effect: await installation.load()});
+  const failed = await host.run(programFor({next: true}), 'guarded-child-failure')
+    .then(() => undefined, error => error);
+  assert.equal(failed?.code, 'FixtureGuardedPrepareFailed', diagnostic(failed));
+  assert.equal(installation.requestChildren.length, 1);
+  assert.equal(installation.requestChildren[0].prepares, 1);
+  assert.equal(installation.requestChildren[0].pending, false);
+  assert.equal(installation.requestChildren[0].releases, 1);
+  assert.deepEqual(installation.sends, []);
+  assert.equal(installation.writeGrants(), 0);
+});
+
+test('guarded request child is not created when the original target read is denied', async t => {
+  const installation = await installationFor(t, {requestChildMode: 'normal', targetReadOutcome: 'deny'});
+  const host = await effectHost(t, installation, join(installation.root, 'host'),
+    {effect: await installation.load()});
+  const failed = await host.run(programFor({next: true}), 'guarded-child-denied')
+    .then(() => undefined, error => error);
+  assert.equal(failed?.code, 'InstalledRowEffectCheckNotAuthorized', diagnostic(failed));
+  assert.deepEqual(installation.requestChildren, []);
+  assert.equal(installation.readGrants(), 0);
+  assert.equal(installation.writeGrants(), 0);
+  assert.deepEqual(installation.sends, []);
+});
+
+test('guarded child cleanup pending retains the same failure and original cleanup handle', async t => {
+  const installation = await installationFor(t, {requestChildMode: 'pending-failure'});
+  const host = await effectHost(t, installation, join(installation.root, 'host'),
+    {effect: await installation.load()});
+  const failed = await host.run(programFor({next: true}), 'guarded-child-pending')
+    .then(() => undefined, error => error);
+  assert.equal(failed?.cleanupPending, true, diagnostic(failed));
+  assert.equal(failed.primaryFailure?.code, 'FixtureGuardedPrepareFailed');
+  assert.equal(installation.requestChildren.length, 1);
+  const child = installation.requestChildren[0];
+  assert.equal(child.pending, true);
+  const handle = failed.cleanupHandle;
+  assert.ok(handle);
+  try {
+    const held = await handle.retry();
+    assert.equal(held.pending, true);
+    assert.equal(failed.cleanupHandle, handle);
+    assert.equal(child.pending, true);
+    assert.equal(child.prepares, 1);
+    assert.equal(installation.readGrants(), 1);
+    assert.equal(installation.writeGrants(), 0);
+    assert.deepEqual(installation.sends, []);
+  } finally {
+    child.allowRetire = true;
+    const closed = await handle.retry();
+    assert.equal(closed.pending, false);
+    assert.equal(child.pending, false);
+    assert.equal(child.prepares, 1);
+  }
+});
 
 test('installed JSON update preserves approved value and exact recovered outcome keys',
   async t => {

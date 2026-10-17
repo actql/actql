@@ -55,6 +55,37 @@ const selections = JSON.parse(readFileSync(
 const publishedStore = JSON.parse(readFileSync(
   'portability/corpus/effect-target-selection-published-store.json', 'utf8',
 ));
+const deleteSelections = JSON.parse(readFileSync(
+  'portability/corpus/effect-target-selection-delete.json', 'utf8',
+));
+
+test('independent DELETE and mixed selection identities retain eight fields and original environment', () => {
+  const corpus = JSON.parse(readFileSync(
+    'portability/corpus/effect-target-selection-delete.json', 'utf8'));
+  assert.equal(corpus.version, selections.version);
+  const keys = Object.keys(selections.cases[0].preimage[0]);
+  for (const item of corpus.cases) {
+    verifyIdentity(item.preimage, item.expected_cid, item.expected_canonical_bytes);
+    for (const entry of item.preimage) assert.deepEqual(Object.keys(entry), keys);
+  }
+  assert.deepEqual(corpus.cases.map(item => item.preimage.map(entry => entry.effect_id)),
+    [['save'], ['save'], ['remove', 'save', 'update']]);
+  for (const item of corpus.environments) {
+    verifyIdentity(item.preimage, item.expected_cid, item.expected_canonical_bytes);
+    const {mapping_contract_cid, ...mapping} = item.preimage.mapping_contracts[0];
+    verifyIdentity(mapping, mapping_contract_cid, canonicalText(mapping));
+    assert(item.preimage.mapping_contracts[0].permission_rules.some(rule =>
+      rule.effect_kind === 'delete' && rule.write_fields.length === 0));
+  }
+  assert(!corpus.environments[1].preimage.mapping_contracts[0].permission_rules
+    .some(rule => rule.effect_kind === 'update'));
+  const source = readFileSync(
+    'src/run_publication_host/client_delete_target_selection_wbtest.mbt', 'utf8');
+  const wire = JSON.parse(source.match(/^    #\|(.+)$/mu)[1]);
+  const {evidence_bundle_cid, ...preimage} = wire;
+  assert.equal(evidence_bundle_cid, corpus.environments[0].expected_cid);
+  assert.deepEqual(preimage, corpus.environments[0].preimage);
+});
 
 test('independent published-STORE and mixed identities preserve the same eight-field schema', () => {
   const corpus = JSON.parse(readFileSync(
@@ -113,14 +144,17 @@ test('original UPDATE selection is optional in both closed Plan schemas', () => 
     // Keep the earlier UPDATE corpus and its original whole-schema identities.
     // The adopted published-store target alternative changed the containing
     // Program schema before this scope-only selection extension.
-    const current = publishedStore.current_schema_pins[key];
+    const current = deleteSelections.current_schema_pins[key];
+    const normative = readFileSync('docs/spec/protocols/contracts.md', 'utf8');
+    assert(normative.includes(`actql-protocol-schemas.json#/artifact_schemas/${key} ${current}`));
     assert.equal(machineCid(registry.artifact_schemas[key]), current);
     assert.equal(registry.artifact_schema_cids[key], current);
     assert.notEqual(pins.before, pins.after);
     assert.notEqual(pins.after, current);
   }
   assert.equal(registry.artifact_registry_cid,
-    publishedStore.current_schema_pins.artifact_registry);
+    deleteSelections.current_schema_pins.artifact_registry);
+  assert.equal(registry.artifact_registry_cid, machineCid(registry.artifact_schemas));
 });
 
 test('independent original UPDATE vectors bind every selection and owner field', () => {
