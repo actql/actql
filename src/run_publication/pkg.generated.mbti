@@ -42,6 +42,8 @@ pub fn admit_effect_preview_identity(String, String, String, Int, Int, Int) -> R
 
 pub fn admit_effect_reconciliation_receipt_for_row(EffectPreviewIdentity, Int, Int, PublicationContract, PublicationContract, PublicationContract?, String, Int, Int, Int) -> Result[PublicationContract, EffectRowReconciliationIssue]
 
+pub fn admit_effect_review_projection(EffectPreviewIdentity, String, String, String, Array[String], String, Int, Int, Int) -> Result[RunEvidenceValue, EffectReviewProjectionIssue]
+
 pub fn admit_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
 pub fn admit_effect_row_outcome_receipt_from_response(EffectPreviewIdentity, Int, Int, String, EffectSavedResponseEvidence, String, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
@@ -691,6 +693,8 @@ pub fn project_current_interactive_run_view(PublicationContract, RunEvidenceValu
 pub fn project_delivery_record(PublicationContract) -> Result[DeliveryRecordProjection, DeliveryIssuanceIssue]
 
 pub fn project_durable_result_binding_read(PublicationContract) -> Result[DurableResultBindingRead, DeliveryIssuanceIssue]
+
+pub fn project_effect_review_projection(EffectPreviewIdentity, String, String, Array[String], String, Int, Int, Int) -> Result[RunEvidenceValue, EffectReviewProjectionIssue]
 
 pub fn project_interactive_legacy_state(String, Int, Int, Int) -> Result[String, RunControlReadIssue]
 
@@ -1428,6 +1432,16 @@ pub(all) enum EffectPreviewRunBindingIssue {
   PreviewRunForeignRun
   PreviewRunForeignPlan
   PreviewRunForeignInvocation
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectReviewProjectionIssue {
+  InvalidLimits
+  InvalidPolicy
+  ForeignPreview
+  InsufficientEvidence(Int, Int)
+  Preview(EffectPreviewIdentityIssue)
+  Evidence(RunEvidenceValueIssue)
+  Encoding
 } derive(Eq, @debug.Debug)
 
 pub(all) enum EffectRowOutcomeIssue {

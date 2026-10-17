@@ -1,0 +1,69 @@
+{
+  "qualification": "Independent literal configuration-body canonical examples; not a new identity domain, installation original, authority or admission evidence.",
+  "values": [
+    {
+      "name": "legacy-id",
+      "declaration": "db",
+      "canonicalPreimage": "\"db\"",
+      "bodyCid": "sha256:41a21b0d157a935f20927c113a08a883fe32359b747efa20b52a4622d6c41519"
+    },
+    {
+      "name": "legacy-object",
+      "declaration": {
+        "id": "db",
+        "marker": "marker",
+        "unique": "key"
+      },
+      "canonicalPreimage": "{\"id\":\"db\",\"marker\":\"marker\",\"unique\":\"key\"}",
+      "bodyCid": "sha256:a6eeb590783bbfe22fdf02af90c9079b1b74189af2f294018d737bae0ed61ee2"
+    },
+    {
+      "name": "decimal-original",
+      "declaration": {
+        "data_source_id": "s",
+        "id": "db",
+        "read_contracts": {
+          "n%3Ax": [
+            {
+              "column": "amount",
+              "contract": {
+                "nullable": false,
+                "precision": 20,
+                "scale": 2,
+                "type": "decimal"
+              },
+              "projection": "value"
+            }
+          ]
+        }
+      },
+      "canonicalPreimage": "{\"data_source_id\":\"s\",\"id\":\"db\",\"read_contracts\":{\"n%3Ax\":[{\"column\":\"amount\",\"contract\":{\"nullable\":false,\"precision\":20,\"scale\":2,\"type\":\"decimal\"},\"projection\":\"value\"}]}}",
+      "bodyCid": "sha256:12a29ff5cefa8d1b34dc1913a1bd91204ebaac4943b48d1b8de908fe63ca7dad"
+    },
+    {
+      "name": "ordered-text-constraints",
+      "declaration": {
+        "id": "db",
+        "read_contracts": {
+          "s": [
+            {
+              "column": "state",
+              "contract": {
+                "enum": [
+                  "low",
+                  "medium",
+                  "low"
+                ],
+                "nullable": true,
+                "type": "string"
+              },
+              "projection": "value"
+            }
+          ]
+        }
+      },
+      "canonicalPreimage": "{\"id\":\"db\",\"read_contracts\":{\"s\":[{\"column\":\"state\",\"contract\":{\"enum\":[\"low\",\"medium\",\"low\"],\"nullable\":true,\"type\":\"string\"},\"projection\":\"value\"}]}}",
+      "bodyCid": "sha256:addb7f13940802e3b0efb3539089f15691ffe385f07bc9ee70698c8d797902f5"
+    }
+  ]
+}

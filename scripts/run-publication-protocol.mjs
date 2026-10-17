@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 import {resolveControlSchema} from './interactive-run-control-schema.mjs';
 import {amountMicroPattern} from './interactive-run-control-contract.mjs';
+import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, 'spec/contracts/actql-protocol-schemas.json');
@@ -169,7 +170,8 @@ function patternTag(schema) {
     case '^[A-Za-z_][A-Za-z0-9_]*$': return 7;
     case '^(0|[1-9][0-9]*)$':
     case '^(0|[1-9][0-9]*)$(?![\\s\\S])': return 8;
-    case '^[^\\u0000-\\u001f\\u007f]+$': return 9;
+    case '^[^\\u0000-\\u001f\\u007f]+$':
+    case '^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])': return 9;
     case '^ACTQL_E_[A-Z0-9_]+$': return 10;
     case '^[A-Z]{3}$(?![\\s\\S])': return 13;
     case '^(0|-?[1-9][0-9]*)$(?![\\s\\S])': return 14;
@@ -580,6 +582,12 @@ for (const name of ['model_journal_entry', 'model_journal_settlement']) {
 // closed pinned schema for persisted metadata without changing any wire/pin.
 roots.set('run_state:true', emitSchema(document.artifact_schemas.run_state));
 
+// The Effect review is the existing self-addressed artifact, not its private
+// Preview or the full-byte digest used by the physical evidence Store.
+registerArtifactSchema('review_projection', {
+  schema: 'review_projection', identity: 'review_projection_cid',
+});
+
 // Keep compiler text segments finite without concatenating temporary rule
 // arrays. Each helper borrows the same destination. Capacity uses the pinned
 // target's existing constructor semantics (a hint only on JS), not a new
@@ -629,6 +637,13 @@ generated = execFileSync(formatter, ['-'], {
 if (process.argv.includes('--write')) writeFileSync(output, generated);
 else if (readFileSync(output, 'utf8') !== generated) {
   throw new Error(`Run publication protocol descriptors are stale: ${output}`);
+}
+// Existing protocol freshness also checks the independent review preimages.
+// This never rewrites an expected CID from a product runtime observation.
+const reviewVectors = join(root,
+  'src/run_publication/effect_review_projection.generated_wbtest.mbt');
+if (readFileSync(reviewVectors, 'utf8') !== generateEffectReviewVectors()) {
+  throw new Error(`Independent Effect review vectors are stale: ${reviewVectors}`);
 }
 // EffectOutcome plus the append-only response profile are outside selected.
 console.log(`${Object.keys(selected).length + 2} Run and Effect schemas and ` +
