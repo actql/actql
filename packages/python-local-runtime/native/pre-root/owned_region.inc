@@ -45,6 +45,7 @@ int actql_native_owned_acquire_fd(int fd, size_t capacity, uint64_t generation,
     lease->page_size = page;
     lease->page_count = count;
     lease->control_pages = control_pages;
+    lease->first_free_page = control_pages;
     lease->backing_device = (uint64_t)before.st_dev;
     lease->backing_inode = (uint64_t)before.st_ino;
     lease->fd_backed = true;
@@ -273,6 +274,7 @@ int actql_native_owned_acquire_extent_domain(actql_owned_extent_view *view,
     lease->page_size = page;
     lease->page_count = count;
     lease->control_pages = control_pages;
+    lease->first_free_page = control_pages;
     lease->backing_device = view->extent.device;
     lease->backing_inode = view->extent.inode;
     lease->fd_backed = true;

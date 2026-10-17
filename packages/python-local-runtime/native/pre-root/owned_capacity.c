@@ -27,6 +27,9 @@ struct actql_owned_capacity {
     size_t page_size;
     size_t page_count;
     size_t control_pages;
+    /* Search cache only: the lowest free page, or page_count when full.
+     * It issues no capacity and stays inside this original control region. */
+    size_t first_free_page;
     uint64_t backing_device;
     uint64_t backing_inode;
     bool fd_backed;
@@ -116,6 +119,7 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
     lease->page_size = page;
     lease->page_count = count;
     lease->control_pages = control_pages;
+    lease->first_free_page = control_pages;
     lease->backing_device = 0;
     lease->backing_inode = 0;
     lease->fd_backed = false;
@@ -264,8 +268,13 @@ int actql_native_owned_allocate(actql_owned_capacity *lease, size_t bytes,
         unlock_capacity(lease);
         return ACTQL_OWNED_BUSY;
     }
+    if (lease->first_free_page < lease->control_pages ||
+        lease->first_free_page > lease->page_count) {
+        unlock_capacity(lease);
+        return ACTQL_OWNED_INVALID;
+    }
     int status = ACTQL_OWNED_EXHAUSTED;
-    size_t start = lease->control_pages;
+    size_t start = lease->first_free_page;
     while (start < lease->page_count && pages <= lease->page_count - start) {
         uintptr_t address = (uintptr_t)lease + start * lease->page_size;
         if (address % alignment != 0 || lease->extents[start].pages != 0) {
@@ -288,6 +297,14 @@ int actql_native_owned_allocate(actql_owned_capacity *lease, size_t bytes,
         lease->extents[start].pages = pages;
         lease->extents[start].retired = false;
         for (size_t i = 1; i < pages; i++) lease->extents[start + i].pages = SIZE_MAX;
+        /* Preserve first-fit, including earlier holes skipped for alignment or
+         * size. Only a consumed first free page advances this cached prefix. */
+        if (start == lease->first_free_page) {
+            size_t next = start + pages;
+            while (next < lease->page_count && lease->extents[next].pages != 0)
+                next++;
+            lease->first_free_page = next;
+        }
         *out = base;
         status = ACTQL_OWNED_OK;
         break;
@@ -398,6 +415,9 @@ static int clean_retired(actql_owned_capacity *lease, size_t start) {
     if (mprotect(base, pages * lease->page_size, PROT_NONE) != 0)
         return ACTQL_OWNED_PHYSICAL_FAILURE;
     memset(&lease->extents[start], 0, pages * sizeof(struct extent));
+    /* Failed retirement never publishes free storage. Only the same confirmed
+     * physical cleanup makes this earlier hole eligible for first-fit reuse. */
+    if (start < lease->first_free_page) lease->first_free_page = start;
     return ACTQL_OWNED_OK;
 }
 
