@@ -560,3 +560,18 @@ test "collation remains provider metadata without granting comparison pushdown" 
     is Err(InvalidColumn("text")),
   )
 }
+
+///|
+test "parameterized SQL decimal permits zero integer digits without widening" {
+  // GoogleSQL's semantic type range is max(1,S) <= P <= S+29/S+38.
+  // The REST field reference's stricter P-S >= 1 disagrees at P=S. Keep an
+  // independent counter instead of inheriting either current implementation.
+  let value = describe([
+    field("fraction", "NUMERIC", precision=Some("9".to_json()), scale=Some("9".to_json())),
+    field("big_fraction", "BIGNUMERIC", precision=Some("38".to_json()), scale=Some("38".to_json())),
+  ])
+  assert_true(column_contract(description_column(value, 0).unwrap()).unwrap().shape
+    is @contract.Decimal(precision=9, scale=9))
+  assert_true(column_contract(description_column(value, 1).unwrap()).unwrap().shape
+    is @contract.Decimal(precision=38, scale=38))
+}
