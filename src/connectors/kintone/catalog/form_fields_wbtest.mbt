@@ -68,6 +68,22 @@ test "original subtable paths and exact Unicode options survive immutable projec
 }
 
 ///|
+test "provider dictionary keys remain exact original data rather than normalized source identifiers" {
+  let catalog = form_test_catalog(
+    body=(
+      #|{"revision":"7","properties":{"e\u0301":{"type":"SINGLE_LINE_TEXT","code":"e\u0301"},"é":{"type":"SINGLE_LINE_TEXT","code":"é"}}}
+    ),
+  )
+  assert_eq(form_field_paths(catalog), [["é"], ["é"]])
+  assert_eq(form_field_named(catalog, ["é"]).unwrap().code, "é")
+  assert_eq(form_field_named(catalog, ["é"]).unwrap().code, "é")
+  assert_true(
+    project_form_fields(b"\xff", "12", form_test_limits())
+    is Err(InvalidResponse),
+  )
+}
+
+///|
 test "only positively enforced original top level field metadata supplies a unique key" {
   let catalog = form_test_catalog()
   assert_true(require_form_unique_key(catalog, "customer_code") is Ok(_))
