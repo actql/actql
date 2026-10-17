@@ -140,7 +140,7 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
         const observation = control.sealRunEvidence('observation_set', canonical({
           version: 'actql-observation-set/0.1', invocation_template_cid: template.identity,
           source_evidence_cids: [sourceEvidence.identity], captured_input_artifact_cids: [],
-          consistency: 'best_effort', capture_started_at: '2026-09-24T00:00:00.000Z',
+          consistency: 'independent_snapshots', capture_started_at: '2026-09-24T00:00:00.000Z',
           capture_completed_at: '2026-09-24T00:00:00.000Z',
           replayability: {materialized: false, availability_evidence_cids: []},
           data_policy_cid: dataPolicyCid,
