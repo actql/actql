@@ -496,17 +496,18 @@ async function acquireStoreOwnership(root, bootstrap) {
       return Object.freeze({
         async release() {
           if (released) return false;
+          // This FD is already owned independently of the current pathname.
+          // Drain it even if root has vanished or names a foreign directory;
+          // successful FD close alone does not retire the Store or its key.
+          if (retirementDirectory !== undefined) {
+            if (await retirementDirectory.close() === false) fail('PublicationStoreCleanupPending');
+            retirementDirectory = undefined;
+          }
           let currentRoot;
           try { currentRoot = await lstat(root, {bigint: true}); }
           catch (error) { if (error?.code === 'ENOENT') return false; throw error; }
           if (!currentRoot.isDirectory() || currentRoot.dev !== rootDevice ||
               currentRoot.ino !== rootInode) fail('PublicationStoreOwnershipLost');
-          // The same Store still owns a directory whose close was not ACKed.
-          // Drain only that FD before any replacement durability acquisition.
-          if (retirementDirectory !== undefined) {
-            if (await retirementDirectory.close() === false) fail('PublicationStoreCleanupPending');
-            retirementDirectory = undefined;
-          }
           if (retirementSynced) {
             released = true;
             return true;

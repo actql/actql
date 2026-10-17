@@ -31,6 +31,10 @@ FD close, without opening or syncing another directory or touching a successor
 owner. If sync itself failed, its original failure and any close failure remain
 distinct; only after that FD closes may original-root durability be attempted
 again. The acquired FD's device/inode is checked against the original root.
+An already-owned pending FD drains before pathname-dependent refusal, even
+after the original root is renamed or replaced. The foreign/missing-root
+refusal still keeps the Store unclosed and its key held; no replacement open,
+sync or ownership operation is allowed without the original root check.
 
 One nullable FD reference and one acknowledged-sync Boolean extend the existing
 handle. The transient FD Stats, sync-failure flag/reference, close cause and
