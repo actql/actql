@@ -495,7 +495,8 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       try { await close(); } catch (error) { errors.push(error); }
     }
     setDefaultCACertificates(originalCAs);
-    if (failure === undefined && errors.length === 0 && profile !== 'checkpoint-review') {
+    if (failure === undefined && errors.length === 0 && profile !== 'checkpoint-review'
+      && process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
       try { await rm(root, {recursive: true, force: true}); }
       catch (error) { errors.push(error); }
     } else {
