@@ -1473,6 +1473,8 @@ pub fn issue_prepared_client_infer_plan_graph(PreparedClientProgram, Int, @check
 
 pub fn issue_prepared_client_infer_prefix_fragment(PreparedClientProgram, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue]
 
+pub fn issue_prepared_client_infer_run_materials(ClientCompiledRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String?, ClientValuesRunMaterialsLimits) -> Result[String, ClientTaskRunMaterialsIssue]
+
 pub fn issue_prepared_client_local_normalization(PreparedClientProgram) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
 
 pub fn issue_prepared_client_multi_infer_compilation(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
