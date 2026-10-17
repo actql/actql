@@ -834,6 +834,387 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+      "sha256": "153e24032d82527b84d596154265c88aab94c412b31bdc7afd88efd611b1ea69",
+      "exports": [
+        "INSTALLED_GMAIL_SITE_VERSION",
+        "INSTALLED_GMAIL_SOURCE_VERSION",
+        "checkInstalledGmailSourceProfile",
+        "installedGmailSourceIdentityParts",
+        "loadInstalledGmailSource"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledGmailSourceProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite",
+          "parameters": [
+            "site"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite/checkSite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedGmailSourceIdentityParts",
+          "parameters": [
+            "profile",
+            "providerProfile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledGmailSource",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "moon",
+            "provider",
+            "baseEnvironmentWire",
+            "runtimeBundleCid",
+            "resolveSecret",
+            "readerCapacity"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "value",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGmailSource/init:readPages/init:readPages",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGmailSource/target/target",
+          "parameters": [
+            "selected",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory",
+          "parameters": [
+            "provider",
+            "site",
+            "installed",
+            "capacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+          "parameters": [
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
+        },
+        {
+          "name": "sha/sha",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/gmail-label-list-read.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Gmail installed Source adapter; Common/Account/Site/RowRun retain original selection, permission, capture, reservation and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "absolute/absolute",
+            "checkInstalledGmailSourceProfile",
+            "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile",
+            "checkSite",
+            "checkSite/checkSite",
+            "cid/cid",
+            "closed/closed",
+            "fail/fail",
+            "installedGmailSourceIdentityParts",
+            "loadInstalledGmailSource",
+            "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledGmailSource/init:readPages/init:readPages",
+            "loadInstalledGmailSource/target/target",
+            "originalReaderFactory",
+            "originalReaderFactory/init:prepare/init:prepare",
+            "originalReaderFactory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "positive/positive",
+            "readInputs",
+            "sha/sha",
+            "text/text"
+          ],
+          "exports": [
+            "INSTALLED_GMAIL_SITE_VERSION",
+            "INSTALLED_GMAIL_SOURCE_VERSION",
+            "checkInstalledGmailSourceProfile",
+            "installedGmailSourceIdentityParts",
+            "loadInstalledGmailSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Installed label preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "export function checkInstalledGmailSourceProfile(profile)"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "export async function loadInstalledGmailSource("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "mailboxBytesCid:sha(Buffer.from(installed.mailbox))"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const admitsApprovalTarget="
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Their ordinary identity parts retain a digest of the exact mailbox bytes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "function originalReaderFactory("
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The wrapper retains its child, original binding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const original=await options.authorizationFor(0);"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "current:async operation=>"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const result=await child.read();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "fail('GmailReaderCapacityUnavailable')"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "originalFailure=cause;throw cause;"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail lost original reply"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "stop.abort(reason);child?.requestStop(reason);closeTransport();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const limitKeys="
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "neither a public profile amount nor transfer/page ceilings issue this declaration."
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The wrapper retains its child, original binding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "No factory-local ledger, cleanup acknowledgement or token-based"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "readPages(){fail('InstalledGmailLegacyReaderUnavailable');}"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail actual text Source"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('ordinary installed Gmail entrance"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail copied preparation"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail lost original reply"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "13739fc2ff9e95625e99b8eed4980a425a8d3c681bd21a9f1d0eff5f9ae5a11b",
+      "sha256": "b6971d37fe4ced9b549bb20ddd529b8029a382ea4aeb909a7c29c0f58b2311e2",
       "exports": [
         "installedConnectors"
       ],
@@ -31,6 +31,13 @@
         },
         {
           "name": "installedConnectors/installedConnectors/installedConnectors#11",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#12",
           "parameters": [
             "module"
           ],
@@ -103,6 +110,11 @@
           "async": false
         },
         {
+          "name": "installedConnectors/installedConnectors#12",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedConnectors/installedConnectors#2",
           "parameters": [],
           "async": false
@@ -147,10 +159,13 @@
         "../connectors/gcs/host/installed-gcs-source.mjs",
         "../connectors/github/host/installed-github-effect.mjs",
         "../connectors/github/host/installed-github-source.mjs",
+        "../connectors/gmail/host/installed-gmail-source.mjs",
+        "../connectors/hubspot/host/installed-hubspot-source.mjs",
         "../connectors/local/host/installed-local-table.mjs",
         "../connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
         "../connectors/salesforce/host/installed-salesforce-source.mjs",
-        "../connectors/sheets/host/installed-sheets.mjs"
+        "../connectors/sheets/host/installed-sheets.mjs",
+        "../connectors/snowflake/host/installed-snowflake-source.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -164,6 +179,8 @@
             "installedConnectors/installedConnectors",
             "installedConnectors/installedConnectors/installedConnectors",
             "installedConnectors/installedConnectors/installedConnectors#10",
+            "installedConnectors/installedConnectors/installedConnectors#11",
+            "installedConnectors/installedConnectors/installedConnectors#12",
             "installedConnectors/installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors/installedConnectors#4",
@@ -173,6 +190,8 @@
             "installedConnectors/installedConnectors/installedConnectors#8",
             "installedConnectors/installedConnectors/installedConnectors#9",
             "installedConnectors/installedConnectors#10",
+            "installedConnectors/installedConnectors#11",
+            "installedConnectors/installedConnectors#12",
             "installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors#4",
@@ -180,9 +199,7 @@
             "installedConnectors/installedConnectors#6",
             "installedConnectors/installedConnectors#7",
             "installedConnectors/installedConnectors#8",
-            "installedConnectors/installedConnectors#9",
-            "installedConnectors/installedConnectors/installedConnectors#11",
-            "installedConnectors/installedConnectors#11"
+            "installedConnectors/installedConnectors#9"
           ],
           "exports": [
             "installedConnectors"
