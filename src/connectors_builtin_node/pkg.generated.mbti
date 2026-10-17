@@ -2482,6 +2482,22 @@ pub fn client_project_model_registry_task_file(@run_publication_host.ClientProje
 
 pub fn client_project_model_registry_task_name(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
 
+pub fn client_project_profile_matches(@run_publication_host.ClientProjectProfileSelection, @run_publication_host.ClientProjectConfiguration?, String?) -> Bool
+
+pub fn client_project_profile_mock_answer_count(@run_publication_host.ClientProjectProfileSelection) -> Result[Int, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_mock_answer_file(@run_publication_host.ClientProjectProfileSelection, Int) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_mock_answer_task(@run_publication_host.ClientProjectProfileSelection, Int) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_mock_data_file(@run_publication_host.ClientProjectProfileSelection) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_retire(@run_publication_host.ClientProjectProfileSelection) -> Result[Unit, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_select(@run_publication_host.ClientProjectConfiguration?, String?, Int) -> Result[@run_publication_host.ClientProjectProfileSelection, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_selected_name(@run_publication_host.ClientProjectProfileSelection) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
+
 pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String

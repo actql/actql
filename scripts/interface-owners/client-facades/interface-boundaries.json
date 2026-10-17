@@ -1451,7 +1451,7 @@
     {
       "module": "packages/local-node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "41c2927ae71fd295e50e4f18b3efbe63427ead4774e5d7cc856902aab920e4f0",
+      "sha256": "875c1a72120930053757d8e644024f872d437ead1161d2486f68d1586e027f1a",
       "exports": [
         "CalendarArtifactInstallation",
         "EffectProfilePaths",
@@ -1525,7 +1525,7 @@
         {
           "name": "connect",
           "parameters": [
-            "options: Readonly<{\n  mode: 'local'; owner?: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';\n  consentRefs?: readonly string[]; installation?: HostInstallation;\n}>"
+            "options: Readonly<{\n  mode: 'local'; owner?: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';\n  consentRefs?: readonly string[]; profile?: string; installation?: HostInstallation;\n}>"
           ],
           "result": "Promise<Client>"
         },
@@ -1599,12 +1599,28 @@
               {
                 "path": "packages/local-node/index.d.ts",
                 "anchor": "import type {Client} from '@actql/sdk';"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original project profile choice"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn select_client_project_profile("
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/local-node/index.d.ts",
                 "anchor": "import type {Client} from '@actql/sdk';"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn client_project_profile_matches("
               }
             ],
             "identity": [
@@ -1615,6 +1631,18 @@
               {
                 "path": "packages/local-node/index.d.ts",
                 "anchor": "import type {Client} from '@actql/sdk';"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "physical_equal(original, candidate)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               }
             ],
             "ownership": [
@@ -1625,6 +1653,18 @@
               {
                 "path": "packages/local-node/index.d.ts",
                 "anchor": "import type {Client} from '@actql/sdk';"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "original=configuration=selection=project=requested=ports=undefined;"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "selection.configuration = None"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
             "synchronization": [
@@ -1635,6 +1675,14 @@
               {
                 "path": "packages/local-node/index.d.ts",
                 "anchor": "import type {Client} from '@actql/sdk';"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
             "failure": [
@@ -1645,6 +1693,14 @@
               {
                 "path": "packages/local-node/index.d.ts",
                 "anchor": "import type {Client} from '@actql/sdk';"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               }
             ],
             "cancellation": [
@@ -1655,6 +1711,14 @@
               {
                 "path": "packages/local-node/index.d.ts",
                 "anchor": "import type {Client} from '@actql/sdk';"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
               }
             ],
             "resources": [
@@ -1665,6 +1729,18 @@
               {
                 "path": "packages/local-node/index.d.ts",
                 "anchor": "import type {Client} from '@actql/sdk';"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The installation envelope includes the Common selection's four reference"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "it does not add a profile field to the public connection wire."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "requestedProfile.length > 65536"
               }
             ],
             "extension": [
@@ -1675,6 +1751,14 @@
               {
                 "path": "packages/local-node/index.d.ts",
                 "anchor": "import type {Client} from '@actql/sdk';"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn retire_client_project_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "An unavailable"
               }
             ],
             "verification": [
@@ -1689,6 +1773,22 @@
               {
                 "path": "packages/node/local-owner.typecheck.mts",
                 "anchor": "const embedded: EmbeddedLocalOptions"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile_wbtest.mbt",
+                "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual absent project profile issues no mock record or answer original'"
+              },
+              {
+                "path": "adapters/host-node/project-profile-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])"
+              },
+              {
+                "path": "packages/node/project-profile.typecheck.mts",
+                "anchor": "const selected={mode:"
               }
             ]
           }
@@ -2136,7 +2236,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "48c70aeef4198a44021c3ce989e7e2ee1430cbefac32716f553df7885ec5fd66",
+      "sha256": "6b747f7e90a5e67f0853788263a20921861cdbc58d3cb30820ce238e34b4c36b",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
@@ -2268,12 +2368,28 @@
               {
                 "path": "packages/node/index.d.ts",
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original project profile choice"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn select_client_project_profile("
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/node/index.d.ts",
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn client_project_profile_matches("
               }
             ],
             "identity": [
@@ -2284,6 +2400,18 @@
               {
                 "path": "packages/node/index.d.ts",
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "physical_equal(original, candidate)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               }
             ],
             "ownership": [
@@ -2294,6 +2422,18 @@
               {
                 "path": "packages/node/index.d.ts",
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "original=configuration=selection=project=requested=ports=undefined;"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "selection.configuration = None"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
             "synchronization": [
@@ -2304,6 +2444,14 @@
               {
                 "path": "packages/node/index.d.ts",
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
             "failure": [
@@ -2314,6 +2462,14 @@
               {
                 "path": "packages/node/index.d.ts",
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               }
             ],
             "cancellation": [
@@ -2324,6 +2480,14 @@
               {
                 "path": "packages/node/index.d.ts",
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
               }
             ],
             "resources": [
@@ -2334,6 +2498,18 @@
               {
                 "path": "packages/node/index.d.ts",
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The installation envelope includes the Common selection's four reference"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "it does not add a profile field to the public connection wire."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "requestedProfile.length > 65536"
               }
             ],
             "extension": [
@@ -2344,6 +2520,14 @@
               {
                 "path": "packages/node/index.d.ts",
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn retire_client_project_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "An unavailable"
               }
             ],
             "verification": [
@@ -2358,6 +2542,22 @@
               {
                 "path": "packages/node/local-owner.typecheck.mts",
                 "anchor": "const embedded: EmbeddedLocalOptions"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile_wbtest.mbt",
+                "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual absent project profile issues no mock record or answer original'"
+              },
+              {
+                "path": "adapters/host-node/project-profile-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])"
+              },
+              {
+                "path": "packages/node/project-profile.typecheck.mts",
+                "anchor": "const selected={mode:"
               }
             ]
           }

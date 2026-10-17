@@ -243,3 +243,43 @@ The existing Host shutdown drops project/Task aliases only after its original
 child duties complete; Unknown or pending child cleanup retains responsibility.
 This connection supplies static checked materials, not execution dependencies,
 same-Run recovery, a physical Model supplier, permission or whole-phase funding.
+
+### Original project profile choice
+
+The same project configuration Owner selects an explicit profile override or
+the original project's default without changing either original. Selection
+retains the exact String and nominal configuration, including original absence.
+An equal separately read project, a copied selection or another override does
+not supply that pair. No profile name supplies a Catalog, records, Model
+answers, handling policy, authorization, resource allowance or current physical
+installation. In particular, a mock choice cannot inherit production Provider
+configuration or silently continue through configured live connections.
+
+Only the original mock choice projects its same configuration's explicit
+`mock.data` and `mock.answers` locators. Other named profiles retain their exact
+name without acquiring those fixtures. Missing mock locators are declared
+absence, not undiscovered files or permission to invent records or answers.
+The existing physical Source/Model Owners must acquire and admit the selected
+originals before accepting a supported mock installation. An unavailable
+physical profile refuses before Source/Effect installation identity reads,
+credentials, Provider registration or Store opening. Rejecting that missing
+supplier is not implementation or public acceptance of the full mock journey.
+
+The Local entry detaches this Host-only choice from the SDK transport options;
+it does not add a profile field to the public connection wire. It captures the
+original requested value once before awaits, under an explicit 65536-code-unit
+installation ceiling. This ceiling is not a normalization, byte bound, Model
+fuel or capacity reservation. General connected-Host options are unchanged.
+
+The installation envelope includes the Common selection's four reference
+fields/self identity, eight captured runtime ports, callback/receiver and view
+closures, original project/configuration/name references, returned locator
+snapshots and any escaped original snapshots. Managed retirement severs the
+selection's own configuration/name/self references and the view's original
+captures only. The retired auxiliary view still identifies its same immutable
+runtime namespace; it does not retain a physical Host through a currentness
+callback. Neither its completion nor dropping aliases proves GC, physical
+cleanup or numerical release. The existing Host retains the view from before
+fallible initialization through its original shutdown; new setup refusal and
+successful finalization use that same runtime even before local import
+initialization completes. Existing Unknown and child cleanup remain owned.

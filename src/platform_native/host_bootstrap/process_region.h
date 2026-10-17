@@ -111,6 +111,22 @@ static int process_region_close_descriptor(actql_bootstrap_process_region *recor
     return ACTQL_OWNED_OK;
 }
 
+/* A successful child borrow return publishes zero only after releasing its
+ * allocator lock. Its closing/attempted state deliberately remains sticky.
+ * This is original-header correspondence, never a stop or cleanup proof: the
+ * Native process Owner must still validate its same Holder's typed stop, and
+ * ordinary allocation-level close below must confirm every remaining user. */
+static bool process_region_domain_returned(actql_bootstrap_process_region *record) {
+    if (current_capacity != NULL || record->view->view.domain_borrowed)
+        return false;
+    actql_owned_capacity *lease = record->domain->lease;
+    if (actql_native_owned_domain_matches_view(lease, &record->view->view,
+            (int64_t)getpid()) != ACTQL_OWNED_OK)
+        return false;
+    return atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire) == 0 &&
+        lease->domain_borrow_attempted && lease->closing;
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_abandon_prepared_process_region(
     actql_bootstrap_process_region *record) {
     /* The Native caller also requires its original unstarted holder. This
@@ -143,11 +159,12 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_retire_stopped_process_region(
             return ACTQL_OWNED_BUSY;
 #endif
         if (record->child == 0) {
-            /* A stopped startup may never have entered the original borrow.
-             * The typed stop still precedes cleanup. Such a domain follows
-             * ordinary allocation-level close, never whole-region bypass. */
+            /* Never-borrowed startup and confirmed normal borrow return both
+             * use ordinary allocation-level close. A returned child's sticky
+             * closing state must not force the retained-borrow bypass. */
             if (actql_native_owned_domain_unborrowed(record->domain->lease,
-                    &record->view->view) == ACTQL_OWNED_OK)
+                    &record->view->view) == ACTQL_OWNED_OK ||
+                process_region_domain_returned(record))
                 record->unborrowed_cleanup = true;
             else if (actql_native_owned_domain_has_child(record->domain->lease,
                     (int64_t)getpid(), child) != ACTQL_OWNED_OK)

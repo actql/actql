@@ -2244,3 +2244,33 @@ This private transport requires separately funded original process, descriptor,
 control and runtime responsibilities. An arena domain or compiler declaration
 does not cover unrelated allocations, admit a VM or supply an ordinary funding
 profile. Missing complete normal funding remains unavailable.
+
+## Native image-compiler ABI inspection
+
+The image compiler consumes the same generated scalar declarations as the
+Python Core wrapper. Its C signature tables are another projection from the
+existing Wasm ABI generator, not a hand-maintained export list or permission
+owner. The C-API inspection uses official opaque import/export/type accessors;
+it does not depend on Rust or MoonBit managed object layouts. Imports remain
+closed to their original module, name and signature, and exports remain closed
+to the declared functions and the single bounded, unshared32-bit memory.
+
+Inspecting a compiled module's type shape does not instantiate it or call its
+ABI-version export. The original module/compiler/source/link provenance still
+binds the image preparation. Successful serialization or type inspection cannot
+substitute for the final producer's same-module physical/workspace/Result
+evidence. All C-API handles and returned type vectors require the same original
+provider scope and keep their original ownership through deletion; process
+retirement and any process-static runtime allocations remain with the existing
+process Owner. A C header projection or syntax check supplies none of these
+physical acknowledgments or missing normal funding.
+
+A normal child borrow return leaves the original allocator closing and its
+one-shot borrow history intact. After the same process Owner confirms typed
+stop in the original empty physical scope, both never-borrowed startup and
+normally returned custody follow the existing allocation-level domain close,
+then view and descriptor cleanup.
+Returned metadata does not bypass live-allocation or scope checks. A retained
+original child borrow continues to use the separate stopped-region path; PID
+absence cannot select either path or clear responsibility. Failed view cleanup
+retains the same process record and its completed domain-close phase.

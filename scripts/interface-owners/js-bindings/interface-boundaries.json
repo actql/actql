@@ -35591,7 +35591,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8545b34340ecbde8cd63c17d72fcf309ce6710d200819d191d09e59afdc95b18",
+      "sha256": "e842a937bf3b333ebef98e6ca9e6dc8cd390c8267855bb98ad685b8bb768befd",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -37890,6 +37890,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original project profile choice"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn select_client_project_profile("
               }
             ],
             "inputsOutputs": [
@@ -37912,6 +37920,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn client_project_profile_matches("
               }
             ],
             "identity": [
@@ -37938,6 +37954,18 @@
               {
                 "path": "src/run_publication_host/client_project_model_task_selection.mbt",
                 "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "physical_equal(original, candidate)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               }
             ],
             "ownership": [
@@ -37964,6 +37992,18 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "original=configuration=selection=project=requested=ports=undefined;"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "selection.configuration = None"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
             "synchronization": [
@@ -37990,6 +38030,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
             "failure": [
@@ -38012,6 +38060,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               }
             ],
             "cancellation": [
@@ -38034,6 +38090,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
               }
             ],
             "resources": [
@@ -38060,6 +38124,18 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The installation envelope includes the Common selection's four reference"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "it does not add a profile field to the public connection wire."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "requestedProfile.length > 65536"
               }
             ],
             "extension": [
@@ -38082,6 +38158,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn retire_client_project_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "An unavailable"
               }
             ],
             "verification": [
@@ -38116,6 +38200,22 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile_wbtest.mbt",
+                "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual absent project profile issues no mock record or answer original'"
+              },
+              {
+                "path": "adapters/host-node/project-profile-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])"
+              },
+              {
+                "path": "packages/node/project-profile.typecheck.mts",
+                "anchor": "const selected={mode:"
               }
             ]
           }
@@ -38911,6 +39011,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original project profile choice"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn select_client_project_profile("
               }
             ],
             "inputsOutputs": [
@@ -38937,6 +39045,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn client_project_profile_matches("
               }
             ],
             "identity": [
@@ -38967,6 +39083,18 @@
               {
                 "path": "src/run_publication_host/client_project_model_task_selection.mbt",
                 "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "physical_equal(original, candidate)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               }
             ],
             "ownership": [
@@ -38997,6 +39125,18 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "original=configuration=selection=project=requested=ports=undefined;"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "selection.configuration = None"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
             "synchronization": [
@@ -39027,6 +39167,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
             "failure": [
@@ -39053,6 +39201,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               }
             ],
             "cancellation": [
@@ -39079,6 +39235,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
               }
             ],
             "resources": [
@@ -39113,6 +39277,18 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The installation envelope includes the Common selection's four reference"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "it does not add a profile field to the public connection wire."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "requestedProfile.length > 65536"
               }
             ],
             "extension": [
@@ -39139,6 +39315,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn retire_client_project_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "An unavailable"
               }
             ],
             "verification": [
@@ -39181,6 +39365,22 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile_wbtest.mbt",
+                "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual absent project profile issues no mock record or answer original'"
+              },
+              {
+                "path": "adapters/host-node/project-profile-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])"
+              },
+              {
+                "path": "packages/node/project-profile.typecheck.mts",
+                "anchor": "const selected={mode:"
               }
             ]
           }
@@ -40798,6 +40998,7 @@
         "./installed-model.mjs",
         "./installed-project-configuration.mjs",
         "./installed-project-model-tasks.mjs",
+        "./installed-project-profile.mjs",
         "./installed-row-effect.mjs",
         "./installed-source.mjs",
         "./installed-update-originals.mjs",

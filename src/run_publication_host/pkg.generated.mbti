@@ -877,6 +877,8 @@ pub fn client_project_model_task_selection_for(ClientProjectModelTaskSelection, 
 
 pub fn client_project_model_task_selection_usage(ClientProjectModelTaskSelection) -> Int
 
+pub fn client_project_profile_matches(ClientProjectProfileSelection, ClientProjectConfiguration?, String?) -> Bool
+
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]
@@ -1883,6 +1885,8 @@ pub fn retire_client_model_current_state_match(@physical_resources.OriginalCurre
 
 pub fn retire_client_model_resource_park(@physical_resources.OriginalResourcePark[ClientModelReadOrigin]) -> Result[Unit, ClientModelReadPreparationIssue]
 
+pub fn retire_client_project_profile(ClientProjectProfileSelection) -> Result[Unit, ClientProjectProfileIssue]
+
 pub fn reuse_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest, Int) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_runtime.CheckpointRequest, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientRequestedEffectStopIssue]
@@ -1890,6 +1894,8 @@ pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_
 pub fn seal_client_requested_effect_stop_body(ClientRequestedEffectStop, String, String, @checkpoint_runtime.WireLimits) -> Result[String, ClientRequestedEffectStopIssue]
 
 pub fn select_client_project_model_task(ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, Int) -> Result[ClientProjectModelTaskSelection, ClientProjectModelTaskSelectionIssue]
+
+pub fn select_client_project_profile(ClientProjectConfiguration?, String?, Int) -> Result[ClientProjectProfileSelection, ClientProjectProfileIssue]
 
 pub fn select_client_single_keyed_acquisition(PreparedClientProgram) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue]
 
@@ -3177,6 +3183,20 @@ pub(all) enum ClientProjectModelTaskSelectionIssue {
   ForeignOriginal
   InvalidDefaults(@check_environment.ModelProviderDefaultsResolutionIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ClientProjectProfileIssue {
+  InvalidLimits
+  InvalidProfile
+  WorkLimit
+  ForeignOriginal
+  Retired
+} derive(Eq, @debug.Debug)
+
+type ClientProjectProfileSelection
+pub fn ClientProjectProfileSelection::mock_answer_at(Self, Int) -> Result[(String, String)?, ClientProjectProfileIssue]
+pub fn ClientProjectProfileSelection::mock_answer_count(Self) -> Result[Int, ClientProjectProfileIssue]
+pub fn ClientProjectProfileSelection::mock_data_file(Self) -> Result[String?, ClientProjectProfileIssue]
+pub fn ClientProjectProfileSelection::selected_profile(Self) -> Result[String?, ClientProjectProfileIssue]
 
 pub(all) enum ClientPublicationBindingAdmissionIssue {
   MissingPublication
