@@ -129,9 +129,6 @@ fn local_status_watch_loop(
   options : LocalStatusWatchOptions,
   operations : LocalStatusWatchOperations,
 ) -> String raise ClientStop {
-  if options.final_only {
-    stop("LocalStatusFinalWaitUnavailable")
-  }
   let start = (operations.now_ms)()
   if start < 0L {
     stop("LocalStatusClockUnavailable")
@@ -161,10 +158,18 @@ fn local_status_watch_loop(
     }
     // Reuse the full public-state validator and original stable-state rule.
     // Missing legacy state/revision never becomes a fresh counter or progress.
-    let ready = @publication.run_wait_ready(wire, None, 65536, 8192, 64).unwrap_or_else(() => {
-        stop("LocalOriginalRunStateUnavailable")
+    let ready = @publication.run_wait_ready_until(
+      wire,
+      None,
+      if options.final_only {
+        @publication.Final
+      } else {
+        @publication.Stable
       },
-    )
+      65536,
+      8192,
+      64,
+    ).unwrap_or_else(() => stop("LocalOriginalRunStateUnavailable"))
     let object = local_run_display_object(local_input_cursor(wire))
     let id = local_run_display_text(local_run_display_field(object, "run_id"))
     let revision = @decode.safe_integer(
@@ -239,9 +244,6 @@ fn local_saved_run_status_command(
 ) -> String raise ClientStop {
   guard local_status_watch_options(child) is Some(options) else {
     return local_saved_run_status(host, settings, crypto, input_root, child)
-  }
-  if options.final_only {
-    stop("LocalStatusFinalWaitUnavailable")
   }
   let scope = local_host_result(
     host.authority_scope_cid(settings.principal, settings.connection, crypto),

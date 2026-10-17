@@ -278,3 +278,32 @@ test "watch refuses unavailable backwards clock and post-progress current loss" 
   )
   assert_eq(invalidated.reads.val, 1)
 }
+
+///|
+test "final watch passes original Checkpoint and reconciliation without changing their meaning" {
+  let checkpoint =
+    #|{"version":"actql-run-state/0.1","run_id":"original-run","status":"waiting_checkpoint","revision":5,"updated_at":"2026-10-17T00:00:00.000Z","checkpoint":{"checkpoint_id":"original-checkpoint","checkpoint_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"effect_set"},"next_action":{"kind":"resolve_checkpoint","checkpoint_id":"original-checkpoint"},"result_available":false,"result_availability":{}}
+  let reconciliation =
+    #|{"version":"actql-run-state/0.1","run_id":"original-run","status":"needs_reconciliation","revision":6,"updated_at":"2026-10-17T00:00:00.000Z","next_action":{"kind":"reconcile_run","reason":"execution_unknown"},"result_available":false,"result_availability":{}}
+  let succeeded = run_display_minimal.replace(
+    old="\"running\"",
+    new="\"succeeded\"",
+  )
+  let final = local_status_watch_probe([checkpoint, reconciliation, succeeded])
+  assert_eq(
+    local_status_watch_loop(
+      { ..local_watch_test_options, final_only: true, },
+      final.operations,
+    ),
+    succeeded,
+  )
+  assert_eq(final.reads.val, 3)
+  assert_eq(final.emitted, [checkpoint, reconciliation])
+  let stable = local_status_watch_probe([checkpoint])
+  assert_eq(
+    local_status_watch_loop(local_watch_test_options, stable.operations),
+    checkpoint,
+  )
+  assert_eq(stable.reads.val, 1)
+  assert_eq(stable.emitted, [])
+}

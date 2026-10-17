@@ -142,7 +142,8 @@ test "public run returns the original portable State and Result across Host reop
   assert_eq(observed, state)
   let watch = command().parse(
     argv=[
-      "--mode", "local", "status", run_id, "--watch", "--timeout", "30s", "--json",
+      "--mode", "local", "status", run_id, "--watch", "--until", "final", "--timeout",
+      "30s", "--json",
     ],
     env=Map([]),
   )
