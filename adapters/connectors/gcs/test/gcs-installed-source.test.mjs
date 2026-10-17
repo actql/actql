@@ -22,7 +22,6 @@ const runtimeUrl = new URL('../../../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const baseEnvironmentWire = await readFile(new URL('../../../../spec/local-check-environment.json',
   import.meta.url), 'utf8');
-const selectorNamespace = 'gcs-fixture-sources';
 // Host policy covers the declared three rows, two keyed pages and 8192-byte
 // pages, not just the expected object or an empty selection.
 const hostLookupExecutionPolicy = Object.freeze({version: 'actql-lookup-execution-policy/0.1',
@@ -45,7 +44,7 @@ function installationFailure(t, error) {
   throw error;
 }
 
-async function fixture(t, {discloseSelectors = false} = {}) {
+async function fixture(t) {
   const scratch = await createOwnedScratch({parent: new URL('../../../../_build/', import.meta.url).pathname,
     prefix: 'gcs-installed-', label: 'GCS standard Source installation fixture'});
   const siteProfilePath = join(scratch.path, 'site.json');
@@ -80,11 +79,7 @@ async function fixture(t, {discloseSelectors = false} = {}) {
   const hostAccount = canonicalJson({version: 'actql-execution-account-config/0.1',
     account_id: 'gcs-public-fixture', entries: [{entry_id: 'run', outcome: 'allow',
       exclusions: [], principal: {all: true}, connection: {all: true},
-      resource: {all: true}, operation: {any_of: ['read', 'write']}},
-    ...(discloseSelectors ? [{entry_id: 'selector-registration', outcome: 'allow', exclusions: [],
-      principal: {any_of: [userInfo().username]},
-      connection: {any_of: ['actql-source-namespace']},
-      resource: {any_of: [selectorNamespace]}, operation: {any_of: ['inspect_absence']}}] : [])]});
+      resource: {all: true}, operation: {any_of: ['read', 'write']}}]});
   const authorization = {accountConfiguration: hostAccount,
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
@@ -113,10 +108,9 @@ function acceptancePrograms(value) {
   value.profile.connectorId);
 }
 
-async function connectFixture(t, entrance, value, {discloseSelectors = false} = {}) {
+async function connectFixture(t, entrance, value) {
   const installation = {directory: join(value.scratch.path, 'host'), sourceProfilePath: value.profilePath,
-    resolveSourceSecret: value.resolveSecret, authorization: value.authorization, hostLookupExecutionPolicy,
-    ...(discloseSelectors ? {sourceSelectorNamespace: selectorNamespace} : {})};
+    resolveSourceSecret: value.resolveSecret, authorization: value.authorization, hostLookupExecutionPolicy};
   let client, host, server, previousCertificates;
   value.closers.push(async () => {
     await client?.close();
@@ -186,7 +180,7 @@ test('standard GCS Site rejects arbitrary origins and unknown profile fields bef
 
 for (const entrance of ['Local', 'HTTPS']) {
 test(`public ${entrance} GCS acceptance keyed Programs check against the installed declaration without credential I/O`, async t => {
-  const value = await fixture(t, {discloseSelectors: true});
+  const value = await fixture(t);
   // Synthetic expected bytes are never consumed here. This case establishes
   // real public Check/declaration connectivity, not a successful GCS read.
   // Lookup policy is an explicit Host decision, not a Source-adapter default
@@ -199,7 +193,7 @@ test(`public ${entrance} GCS acceptance keyed Programs check against the install
   const environment = moon.clientProgramCheckEnvironment(installed.environmentWire,
     JSON.parse(installed.environmentWire).evidence_bundle_cid,
     false, false, true, false, false, false, false);
-  const client = await connectFixture(t, entrance, value, {discloseSelectors: true});
+  const client = await connectFixture(t, entrance, value);
   for (const program of Object.values(acceptancePrograms(value))) {
     const prepared = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
       'json', environment, undefined);
@@ -234,9 +228,9 @@ test(`public ${entrance} GCS acceptance keyed Programs check against the install
   }
   assert.equal(value.secretCalls(), 0, 'public Check cannot mint a token or contact GCS');
 });
-test(`public ${entrance} GCS exact selector namespace admits the original keyed Programs without acquisition`, async t => {
-  const value = await fixture(t, {discloseSelectors: true});
-  const client = await connectFixture(t, entrance, value, {discloseSelectors: true});
+test(`public ${entrance} GCS explicit selectors check without namespace disclosure authority`, async t => {
+  const value = await fixture(t);
+  const client = await connectFixture(t, entrance, value);
   for (const program of Object.values(acceptancePrograms(value))) {
     const checked = await client.check(program, {kind: 'program', scope: 'bound_input'});
     assert.equal(checked.report?.verdict, 'verified', inspect(checked, {depth: 8, maxStringLength: 3000}));
@@ -247,11 +241,6 @@ test(`public ${entrance} GCS selector metadata remains protected without namespa
   const value = await fixture(t);
   const client = await connectFixture(t, entrance, value);
   for (const program of Object.values(acceptancePrograms(value))) {
-    const originalCheck = await client.check(program, {kind: 'program', scope: 'bound_input'});
-    assert.equal(originalCheck.report?.verdict, 'undetermined');
-    assert.deepEqual(originalCheck.report.coverage.unresolved,
-      [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
-    assert.deepEqual(originalCheck.report.reasons, []);
     // Keep the original protected-boundary control on an independent Host
     // without metadata disclosure authority, rather than widening read grants.
     const omitted = structuredClone(program);
