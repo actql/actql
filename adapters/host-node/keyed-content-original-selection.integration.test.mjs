@@ -67,7 +67,7 @@ async function fixture(t, {matcher = moon.clientProgramEffectCommandContentMatch
     execution: () => execution};
 }
 
-async function runAtPreparation(t, f, value, inspect) {
+async function runAtPreparation(t, f, value, inspect, expectedStatus = 'waiting_checkpoint') {
   let failure, preparations = 0;
   const host = await openContentCommandHost({scratch: f.scratch, generated: f.generated,
     originalContentValue: value, keys: generateKeyPairSync('ed25519'), entrance: 'Local',
@@ -79,7 +79,7 @@ async function runAtPreparation(t, f, value, inspect) {
   const run = await host.client.start(host.fixture.program);
   const state = await run.wait({signal: AbortSignal.timeout(15000)});
   if (failure !== undefined) throw failure;
-  assert.equal(state.status, 'waiting_checkpoint');
+  assert.equal(state.status, expectedStatus);
   assert.equal(preparations, 1);
   assert.equal(host.reads(), 1);
   assert.equal(host.sends(), 0, 'original selection issues no dispatch or read permission');
@@ -140,7 +140,9 @@ test('keyed inventory refences original custody after an explicit matcher-return
     assert.equal(f.owner.issuedForContent(view.binding), undefined,
       'a prior real Core match cannot export a Source whose cleanup has started');
     assert.equal(f.execution().cleanupPending(), true);
-  });
+  // The deliberately retired original also makes the actual consumer refuse
+  // Preview publication. It must not be labelled a successful waiting capture.
+  }, 'needs_reconciliation');
   assert.equal(observed, 1);
   assert.equal(await cleanupFlight, true);
   assert.equal(f.counters.releases(), 1);
