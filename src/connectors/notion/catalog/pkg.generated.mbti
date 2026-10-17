@@ -33,6 +33,8 @@ pub fn notion_data_source_metadata_wire(NotionDataSourceCatalog, Int, Int, Int) 
 
 pub fn notion_data_source_original(NotionDataSourceCatalog) -> @decode_core.Cursor
 
+pub fn notion_data_source_original_json(NotionDataSourceCatalog, Int) -> Result[String, NotionDatabaseIssue]
+
 pub fn notion_data_source_property_at(NotionDataSourceCatalog, Int) -> NotionPropertyMetadata?
 
 pub fn notion_data_source_property_count(NotionDataSourceCatalog) -> Int
@@ -53,7 +55,11 @@ pub fn notion_database_metadata_wire(NotionDatabaseCatalog, Int, Int, Int) -> Re
 
 pub fn notion_database_original(NotionDatabaseCatalog) -> @decode_core.Cursor
 
+pub fn notion_database_original_json(NotionDatabaseCatalog, Int) -> Result[String, NotionDatabaseIssue]
+
 pub fn notion_database_read_declaration_original(NotionDatabaseReadDeclaration) -> @decode_core.Cursor
+
+pub fn notion_database_read_declaration_original_json(NotionDatabaseReadDeclaration, Int) -> Result[String, NotionReadContractIssue]
 
 pub fn notion_database_read_declaration_source_bytes(NotionDatabaseReadDeclaration) -> Int
 

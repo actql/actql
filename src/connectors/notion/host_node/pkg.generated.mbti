@@ -18,11 +18,17 @@ pub fn notion_data_source_matches_database(@catalog.NotionDataSourceCatalog, @ca
 
 pub fn notion_data_source_metadata_json(@catalog.NotionDataSourceCatalog, Int, Int, Int) -> Result[String, @catalog.NotionDatabaseIssue]
 
+pub fn notion_data_source_original_json(@catalog.NotionDataSourceCatalog, Int) -> Result[String, @catalog.NotionDatabaseIssue]
+
 pub fn notion_data_source_read_matches(@catalog.NotionDataSourceReadContracts, @catalog.NotionDatabaseReadDeclaration, @catalog.NotionDataSourceCatalog) -> Bool
 
 pub fn notion_data_source_read_schema_json(@catalog.NotionDataSourceReadContracts, Int, Int, Int) -> Result[String, @catalog.NotionReadContractIssue]
 
 pub fn notion_database_metadata_json(@catalog.NotionDatabaseCatalog, Int, Int, Int) -> Result[String, @catalog.NotionDatabaseIssue]
+
+pub fn notion_database_original_json(@catalog.NotionDatabaseCatalog, Int) -> Result[String, @catalog.NotionDatabaseIssue]
+
+pub fn notion_database_read_declaration_original_json(@catalog.NotionDatabaseReadDeclaration, Int) -> Result[String, @catalog.NotionReadContractIssue]
 
 pub fn notion_next_property_request(@catalog.NotionPropertyItemPage) -> Result[@catalog.NotionPropertyItemRequest, @catalog.NotionPropertyItemIssue]
 
