@@ -919,6 +919,8 @@ pub fn[T] managed_publication_bridge_matches_result_export(ManagedPublicationBri
 
 pub fn[T] managed_publication_bridge_matches_table_input_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedTableInputRelationExportPreparation, ManagedTableInputOccurrence) -> Bool
 
+pub fn[T] managed_publication_bridge_retained(ManagedPublicationBridge[T]) -> Bool
+
 pub fn[T] managed_relation_input_binding(ManagedProducerRead[T]) -> ManagedInputBinding
 
 pub fn managed_result_occurrence_name(ManagedResultOccurrence) -> String
