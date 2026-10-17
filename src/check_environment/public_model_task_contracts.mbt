@@ -77,20 +77,34 @@ fn public_task_type_wire(
               Some(n) => n
               None => model_task_fail(InvalidBody, source)
             }
-            let view = match @decode.open_object(source) {
-              Ok(v) => v
-              Err(_) => model_task_fail(InvalidBody, source)
-            }
-            let kind = match @decode.lookup(view, "type") {
-              Some(c) => @decode.text(c).to_option()
-              None => None
+            // Snapshot only the two structural discriminants. Do not allocate
+            // a field map or detach an array of all caller-owned children.
+            model_task_charge(b, length, source)
+            let mut kind = None
+            let mut nullable_present = false
+            for i in 0..<length {
+              let (key, child) = @decode.field_at(source, i).unwrap()
+              model_task_charge(b, key.length(), child)
+              if key == "type" {
+                kind = @decode.text(child).to_option()
+              } else if key == "nullable" {
+                nullable_present = true
+              }
             }
             @encode.begin_object(writer)
-            if @decode.lookup(view, "nullable") is None {
+            if !nullable_present {
               @encode.key(writer, "nullable")
               @encode.bool_value(writer, false)
             }
-            pending.push(Members(source, 0, length, kind == Some("object"), kind == Some("array")))
+            pending.push(
+              Members(
+                source,
+                0,
+                length,
+                kind == Some("object"),
+                kind == Some("array"),
+              ),
+            )
           }
         Members(source, index, length, object_type, array_type) =>
           if index == length {
@@ -99,8 +113,12 @@ fn public_task_type_wire(
             let (key, child) = @decode.field_at(source, index).unwrap()
             model_task_charge(b, key.length(), child)
             @encode.key(writer, key)
-            pending.push(Members(source, index + 1, length, object_type, array_type))
-            if object_type && key == "fields" && @decode.object_length(child) is Some(n) {
+            pending.push(
+              Members(source, index + 1, length, object_type, array_type),
+            )
+            if object_type &&
+              key == "fields" &&
+              @decode.object_length(child) is Some(n) {
               @encode.begin_object(writer)
               pending.push(Fields(child, 0, n))
             } else if array_type && key == "items" {
@@ -163,10 +181,14 @@ pub fn read_public_model_task_contract(
   root : @decode.Cursor,
   limits : ModelTaskLimits,
 ) -> Result[PublicModelTaskContract, ModelTaskIssue] {
-  if limits.max_work < 0 || limits.bodies.max_bytes < 0 ||
-    limits.bodies.max_nodes < 0 || limits.bodies.max_depth < 0 ||
-    limits.bodies.max_members < 0 || limits.contracts.max_nodes < 0 ||
-    limits.contracts.max_depth < 0 || limits.contracts.max_text_bytes < 0 {
+  if limits.max_work < 0 ||
+    limits.bodies.max_bytes < 0 ||
+    limits.bodies.max_nodes < 0 ||
+    limits.bodies.max_depth < 0 ||
+    limits.bodies.max_members < 0 ||
+    limits.contracts.max_nodes < 0 ||
+    limits.contracts.max_depth < 0 ||
+    limits.contracts.max_text_bytes < 0 {
     return Err({ kind: InvalidLimits, source: Some(root), })
   }
   let b = { limits, work: 0, contract_nodes: 0, contract_text: 0, }
@@ -178,26 +200,29 @@ pub fn read_public_model_task_contract(
       model_task_charge(b, limits.bodies.max_bytes, root)
       model_task_charge(b, limits.bodies.max_nodes, root)
     }
-    let syntax = match @source.parse_json(normalized, {
-      max_input_bytes: limits.bodies.max_bytes,
-      max_nodes: limits.bodies.max_nodes,
-      max_depth: limits.bodies.max_depth,
-    }) {
+    let syntax = match
+      @source.parse_json(normalized, {
+        max_input_bytes: limits.bodies.max_bytes,
+        max_nodes: limits.bodies.max_nodes,
+        max_depth: limits.bodies.max_depth,
+      }) {
       Ok(v) => v
       Err(_) => model_task_fail(BodyLimit, root)
     }
-    let cursor = match @decode.admit(syntax, {
-      max_nodes: limits.bodies.max_nodes,
-      max_depth: limits.bodies.max_depth,
-      max_string_bytes: limits.bodies.max_bytes,
-      max_total_string_bytes: limits.bodies.max_bytes,
-    }) {
+    let cursor = match
+      @decode.admit(syntax, {
+        max_nodes: limits.bodies.max_nodes,
+        max_depth: limits.bodies.max_depth,
+        max_string_bytes: limits.bodies.max_bytes,
+        max_total_string_bytes: limits.bodies.max_bytes,
+      }) {
       Ok(v) => v
       Err(_) => model_task_fail(BodyLimit, root)
     }
     model_task_charge(b, limits.bodies.max_bytes, root)
     model_task_charge(b, limits.bodies.max_nodes, root)
-    let (contract, nodes, text) = match @value_contract.read_author_usage(cursor, limits.contracts) {
+    let (contract, nodes, text) = match
+      @value_contract.read_author_usage(cursor, limits.contracts) {
       Ok(v) => v
       Err(e) => model_task_fail(InvalidValueContract(e), root)
     }
@@ -222,21 +247,29 @@ pub fn read_public_model_task_contract(
 }
 
 ///|
-pub fn public_model_task_contract(value : PublicModelTaskContract) -> @value_contract.Contract {
+pub fn public_model_task_contract(
+  value : PublicModelTaskContract,
+) -> @value_contract.Contract {
   value.contract
 }
 
 ///|
-pub fn public_model_task_contract_schema(value : PublicModelTaskContract) -> (String, String) {
+pub fn public_model_task_contract_schema(
+  value : PublicModelTaskContract,
+) -> (String, String) {
   (value.wire, value.cid)
 }
 
 ///|
-pub fn public_model_task_contract_usage(value : PublicModelTaskContract) -> (Int, Int, Int) {
+pub fn public_model_task_contract_usage(
+  value : PublicModelTaskContract,
+) -> (Int, Int, Int) {
   (value.work, value.nodes, value.text)
 }
 
 ///|
-pub fn public_model_task_contract_original(value : PublicModelTaskContract) -> @decode.Cursor {
+pub fn public_model_task_contract_original(
+  value : PublicModelTaskContract,
+) -> @decode.Cursor {
   value.original
 }
