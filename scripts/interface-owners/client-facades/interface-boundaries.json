@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "e23018785a9502fde12af8a16feaa75f547762ff2fcefff62355993052e8ae0f",
+      "sha256": "4285cf05e4748db6fa9eef350711c1ff0a67fcff85a1aee14275291005652e5b",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -35,6 +35,7 @@
         "InstallationFailure",
         "InstalledConnectorBinding",
         "InstalledRowEffect",
+        "InstalledRowProviderReader",
         "InstalledRowSource",
         "InvocationAuthorization",
         "InvocationPrimitive",
@@ -50,6 +51,7 @@
         "RowEffectProjection",
         "RowMappingSource",
         "RowPageRequest",
+        "RowProviderReaderRequest",
         "RowSourceCredentialProfile",
         "RowSourceCredentialSite",
         "RowSourceDeclarationFacts",
@@ -98,7 +100,7 @@
         {
           "name": "createInstalledRowSource",
           "parameters": [
-            "options: Readonly<{\n  moon: ConnectorRuntimeOwner;\n  declaration: ConnectorRuntimeHandle;\n  declared: RowSourceDeclarationFacts;\n  environmentWire: string;\n  connectorId: string;\n  connectorRegistration: string;\n  connectorRevision: string;\n  site: RowSourceCredentialSite;\n  authorization: InstallationAuthorization;\n  readOperation: string;\n  physicalTarget: (resource: string, fields: readonly string[]) => ConnectorJsonObject;\n  readPages: (request: RowPageRequest) => Awaitable<unknown>;\n  bindingCid: string;\n  limits: RowSourceLimits;\n  /** Trusted target-bound ExecutionCapacity declaration from the selected\n   * Core runtime. Not a grant; the original Source Ledger must reserve it\n   * before additional report allocations or page I/O. No numeric default. */\n  listingReportCapacity?: ConnectorRuntimeHandle;\n}>"
+            "options: Readonly<{\n  moon: ConnectorRuntimeOwner;\n  declaration: ConnectorRuntimeHandle;\n  declared: RowSourceDeclarationFacts;\n  environmentWire: string;\n  connectorId: string;\n  connectorRegistration: string;\n  connectorRevision: string;\n  site: RowSourceCredentialSite;\n  authorization: InstallationAuthorization;\n  readOperation: string;\n  physicalTarget: (resource: string, fields: readonly string[]) => ConnectorJsonObject;\n  readPages: (request: RowPageRequest) => Awaitable<unknown>;\n  bindingCid: string;\n  limits: RowSourceLimits;\n  /** Trusted target-bound ExecutionCapacity declaration from the selected\n   * Core runtime. Not a grant; the original Source Ledger must reserve it\n   * before additional report allocations or page I/O. No numeric default. */\n  listingReportCapacity?: ConnectorRuntimeHandle;\n  /** Supplemental ordinary reader selection, mutually exclusive with listing\n   * reports. DATA only: same-runtime Core planning/reservation and original\n   * physical/caller retirement are independently required. No fallback. */\n  providerReader?: Readonly<{\n    capacity: ConnectorRuntimeHandle;\n    prepare(request: RowProviderReaderRequest): InstalledRowProviderReader;\n  }>;\n}>"
           ],
           "result": "Promise<InstalledRowSource>"
         },
@@ -116,6 +118,13 @@
             "request: RowPageRequest"
           ],
           "result": "Awaitable<unknown>"
+        },
+        {
+          "name": "createInstalledRowSource/prepare",
+          "parameters": [
+            "request: RowProviderReaderRequest"
+          ],
+          "result": "InstalledRowProviderReader"
         },
         {
           "name": "CredentialContext/<call>",
@@ -209,6 +218,21 @@
           "name": "InstalledRowEffect/close",
           "parameters": [],
           "result": "void"
+        },
+        {
+          "name": "InstalledRowProviderReader/observe",
+          "parameters": [],
+          "result": "Readonly<{cleanupConfirmed: boolean}>"
+        },
+        {
+          "name": "InstalledRowProviderReader/read",
+          "parameters": [],
+          "result": "Awaitable<unknown>"
+        },
+        {
+          "name": "InstalledRowProviderReader/requestStop",
+          "parameters": [],
+          "result": "Awaitable<void>"
         },
         {
           "name": "InstalledRowSource/admitsSource",
@@ -417,6 +441,18 @@
           "result": "number"
         },
         {
+          "name": "RowProviderReaderRequest/<call>",
+          "parameters": [
+            "charge: ConnectorRuntimeHandle"
+          ],
+          "result": "unknown"
+        },
+        {
+          "name": "RowProviderReaderRequest/verifyRead",
+          "parameters": [],
+          "result": "Promise<InstallationDecision>"
+        },
+        {
           "name": "rowSourceCheckEnvironment",
           "parameters": [
             "baseWire: string",
@@ -479,6 +515,7 @@
             "createInstalledRowSource",
             "createInstalledRowSource/<call>",
             "createInstalledRowSource/<call>#2",
+            "createInstalledRowSource/prepare",
             "CredentialContext/<call>",
             "CredentialJournalOwner/acceptGrant",
             "CredentialJournalOwner/close",
@@ -494,6 +531,9 @@
             "InstallationFailure/retry",
             "InstallationFailure/status",
             "InstalledRowEffect/close",
+            "InstalledRowProviderReader/observe",
+            "InstalledRowProviderReader/read",
+            "InstalledRowProviderReader/requestStop",
             "InstalledRowSource/admitsSource",
             "InstalledRowSource/close",
             "installRowSourceAuthorization",
@@ -524,6 +564,8 @@
             "RowPageRequest/authorizationFor",
             "RowPageRequest/chargePage",
             "RowPageRequest/consumePage",
+            "RowProviderReaderRequest/<call>",
+            "RowProviderReaderRequest/verifyRead",
             "rowSourceCheckEnvironment",
             "RowSourceCredentialSite/admitCheckpointReadApproval",
             "RowSourceCredentialSite/close",
@@ -560,6 +602,7 @@
             "InstallationFailure",
             "InstalledConnectorBinding",
             "InstalledRowEffect",
+            "InstalledRowProviderReader",
             "InstalledRowSource",
             "InvocationAuthorization",
             "InvocationPrimitive",
@@ -575,6 +618,7 @@
             "RowEffectProjection",
             "RowMappingSource",
             "RowPageRequest",
+            "RowProviderReaderRequest",
             "RowSourceCredentialProfile",
             "RowSourceCredentialSite",
             "RowSourceDeclarationFacts",
@@ -596,12 +640,20 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
               }
             ],
             "identity": [
@@ -612,6 +664,14 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               }
             ],
             "ownership": [
@@ -622,6 +682,14 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               }
             ],
             "synchronization": [
@@ -632,6 +700,14 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
               }
             ],
             "failure": [
@@ -642,6 +718,10 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
               }
             ],
             "cancellation": [
@@ -652,6 +732,14 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
               }
             ],
             "resources": [
@@ -662,6 +750,14 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
               }
             ],
             "extension": [
@@ -672,12 +768,28 @@
               {
                 "path": "packages/local-node/connector-installation.d.ts",
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-row-source.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "Reader preparation is synchronous and cannot hide I/O."
               }
             ]
           }

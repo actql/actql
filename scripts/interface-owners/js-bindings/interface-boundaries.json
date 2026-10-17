@@ -53842,7 +53842,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "20870a94b493c1c4cd89bf11691a78ca6fe5a54f9dae90c10146dd790de8955d",
+      "sha256": "f18ab580c3fe35e6eaa2ba15241588bc99d492be99b2e81d1cecc944ab5059ea",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -53962,6 +53962,34 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/readerRetired/readerRetired",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readProvider",
+          "parameters": [
+            "prepare",
+            "receiver",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "startInstalledRowRun/readProvider/readProvider",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readProvider/readProvider#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/run/run",
           "parameters": [
             "attempt"
@@ -53991,6 +54019,37 @@
           "name": "startInstalledRowRun/run/run#5",
           "parameters": [
             "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#6",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/startInstalledRowRun",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/stopReader/stopReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/stopReader/stopReader/stopReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/stopReader/stopReader/stopReader#2",
+          "parameters": [
+            "error"
           ],
           "async": false
         }
@@ -54240,7 +54299,16 @@
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
             "startInstalledRowRun/run/run#4",
-            "startInstalledRowRun/run/run#5"
+            "startInstalledRowRun/run/run#5",
+            "startInstalledRowRun/readProvider",
+            "startInstalledRowRun/readProvider/readProvider",
+            "startInstalledRowRun/readProvider/readProvider#2",
+            "startInstalledRowRun/readerRetired/readerRetired",
+            "startInstalledRowRun/run/run#6",
+            "startInstalledRowRun/startInstalledRowRun",
+            "startInstalledRowRun/stopReader/stopReader",
+            "startInstalledRowRun/stopReader/stopReader/stopReader",
+            "startInstalledRowRun/stopReader/stopReader/stopReader#2"
           ],
           "exports": [
             "startInstalledRowRun"
@@ -54254,6 +54322,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
               }
             ],
             "inputsOutputs": [
@@ -54264,6 +54336,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
               }
             ],
             "identity": [
@@ -54274,6 +54350,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               }
             ],
             "ownership": [
@@ -54284,6 +54368,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               }
             ],
             "synchronization": [
@@ -54294,6 +54386,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
               }
             ],
             "failure": [
@@ -54304,6 +54404,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
               }
             ],
             "cancellation": [
@@ -54314,6 +54418,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
               }
             ],
             "resources": [
@@ -54324,6 +54436,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
               }
             ],
             "extension": [
@@ -54334,6 +54454,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
               }
             ],
             "verification": [
@@ -54348,6 +54472,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
               }
             ]
           }
@@ -54364,7 +54496,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "39f79fe62f048364de7aceaf6598e475871573ad91768415ce20df0b3e18278b",
+      "sha256": "52a77e2461feaa8cb08edff9302ff2d60d1e3e4ccb98afbaeecbd0902f6abd7e",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -54430,7 +54562,8 @@
             "directReadIdentity",
             "prepareRead",
             "grantBeforeBegin",
-            "originalSourceAccess"
+            "originalSourceAccess",
+            "providerReader"
           ],
           "async": true
         },
@@ -54455,38 +54588,6 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/acquire/acquire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#3",
-          "parameters": [
-            "index"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#4",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#5",
-          "parameters": [
-            "rows",
-            "charge"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/acquire/complete/complete",
           "parameters": [],
           "async": true
@@ -54497,15 +54598,54 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/acquire/consumeObservation",
+          "name": "createInstalledRowSource/acquire/issueGrant/issueGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/consumeObservation",
           "parameters": [
             "charge"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/acquire/issueGrant/issueGrant",
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
+          "parameters": [
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+          "parameters": [
+            "rows",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/captureCapacity/captureCapacity",
+          "parameters": [
+            "owner"
+          ],
           "async": false
         },
         {
@@ -54525,12 +54665,19 @@
         {
           "name": "createInstalledRowSource/createInstalledRowSource#3",
           "parameters": [
-            "key"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#4",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#5",
           "parameters": [
             "resource",
             "operation"
@@ -54538,14 +54685,14 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#5",
+          "name": "createInstalledRowSource/createInstalledRowSource#6",
           "parameters": [
             "sourceRef"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#6",
+          "name": "createInstalledRowSource/createInstalledRowSource#7",
           "parameters": [],
           "async": false
         },
@@ -55194,8 +55341,7 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "createInstalledRowSource/acquire/acquire#5"
+            "<module>"
           ],
           "exports": [],
           "attributes": {
@@ -55535,10 +55681,6 @@
           "operations": [
             "createInstalledRowSource",
             "createInstalledRowSource/acquire",
-            "createInstalledRowSource/acquire/acquire",
-            "createInstalledRowSource/acquire/acquire#2",
-            "createInstalledRowSource/acquire/acquire#3",
-            "createInstalledRowSource/acquire/acquire#4",
             "createInstalledRowSource/acquire/complete/complete",
             "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
             "createInstalledRowSource/createInstalledRowSource",
@@ -55595,11 +55737,18 @@
             "createInstalledRowSource/sourceRefs/sourceRefs",
             "createInstalledRowSource/verifyKeyedRead",
             "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
-            "createInstalledRowSource/acquire/consumeObservation",
             "createInstalledRowSource/acquire/issueGrant/issueGrant",
             "createInstalledRowSource/createInstalledRowSource#6",
             "createInstalledRowSource/ordinarySubject/ordinarySubject",
-            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation"
+            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
+            "createInstalledRowSource/acquire/readerOptions/consumeObservation",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/captureCapacity/captureCapacity",
+            "createInstalledRowSource/createInstalledRowSource#7"
           ],
           "exports": [
             "createInstalledRowSource"
@@ -55613,6 +55762,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
               }
             ],
             "inputsOutputs": [
@@ -55623,6 +55776,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
               }
             ],
             "identity": [
@@ -55633,6 +55790,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               }
             ],
             "ownership": [
@@ -55643,6 +55808,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               }
             ],
             "synchronization": [
@@ -55653,6 +55826,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
               }
             ],
             "failure": [
@@ -55663,6 +55844,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
               }
             ],
             "cancellation": [
@@ -55673,6 +55858,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
               }
             ],
             "resources": [
@@ -55683,6 +55876,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
               }
             ],
             "extension": [
@@ -55693,6 +55894,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
               }
             ],
             "verification": [
@@ -55707,6 +55912,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
               }
             ]
           }
