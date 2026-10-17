@@ -370,10 +370,12 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       }
     }
     const candidate = control.recoveryCandidate(original.referenceWire, binding, referenceLimits);
+    let storedOriginal;
     const content = await issueStoredGeneratedContent({store, control, candidate,
       holdingCid: original.byteHoldingCid, workspaceScopeCid: authorityScopeCid,
       effectiveDataPolicyCid: graphPolicy.cid, available: live,
-      authorize: () => live(), limits: referenceLimits});
+      authorize: () => live(), limits: referenceLimits,
+      retainOriginal: value => { storedOriginal = value; }});
     recheck();
     const generation = control.recover(plan.compiled, plan.runDefinition, plan.inferGraph,
       restoredInput.savedScope, original.bindings[2].semanticCid,
@@ -392,7 +394,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       holdingCid: original.byteHoldingCid,
     });
     recheck();
-    return Object.freeze({generation, recovery: original, completion,
+    return Object.freeze({generation, recovery: original, completion, storedOriginal,
       capturedContentRecovery: restoredInput.capturedContent,
       capturedContentBinding: restoredInput.capturedContentBinding});
   };
