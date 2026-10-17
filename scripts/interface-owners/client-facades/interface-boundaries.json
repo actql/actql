@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "81c7de22ab47aa17f1c2e68e606d7d6dd54572e2e36ecc186d3d867517baa66a",
+      "sha256": "71e76b7e343cd463b2c03ede07d2c3afbccf9c2a89e07f00c3eaf059cef5ba16",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -366,7 +366,7 @@
         {
           "name": "RowEffectDriver/prepareRequestChild",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    value: ConnectorJsonObject; selector?: ConnectorJsonValue;\n    current: Current | undefined; rowIndex: number;\n    authorizationForRow: () => Promise<InvocationAuthorization>;\n    /** Existing selected-preparation fence; absence is not a new current proof. */\n    assertCurrent?: () => void;\n    signal?: AbortSignal}>"
+            "options: Readonly<{member: RowEffectMember;\n    value: ConnectorJsonObject; selector?: ConnectorJsonValue;\n    current: Current | undefined; signal?: AbortSignal;\n  } & ({rowIndex: number;\n    authorizationForRow: () => Promise<InvocationAuthorization>;\n    /** Existing selected-preparation fence; absence is not a new current proof. */\n    assertCurrent?: () => void;\n  } | {rowIndex?: undefined;\n    authorizationForRow?: (index: number) => Promise<InvocationAuthorization>;\n    assertCurrent?: undefined;\n  })>"
           ],
           "result": "RowEffectRequestChild<Request>"
         },
@@ -379,6 +379,13 @@
           "name": "RowEffectDriver/prepareRequestChild/<call>#2",
           "parameters": [],
           "result": "void"
+        },
+        {
+          "name": "RowEffectDriver/prepareRequestChild/<call>#3",
+          "parameters": [
+            "index: number"
+          ],
+          "result": "Promise<InvocationAuthorization>"
         },
         {
           "name": "RowEffectDriver/project",
@@ -545,7 +552,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "<call>",
             "checked",
             "checked#2",
@@ -594,6 +600,7 @@
             "RowEffectDriver/prepareRequestChild",
             "RowEffectDriver/prepareRequestChild/<call>",
             "RowEffectDriver/prepareRequestChild/<call>#2",
+            "RowEffectDriver/prepareRequestChild/<call>#3",
             "RowEffectDriver/project",
             "RowEffectDriver/recheckRequests",
             "RowEffectDriver/recoverRequests",

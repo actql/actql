@@ -353,16 +353,21 @@ export interface RowEffectDriver<Request extends object, Current = unknown> {
   prepareRequest(options: Readonly<{member: RowEffectMember;
     value: ConnectorJsonObject; selector?: ConnectorJsonValue;
     current: Current | undefined}>): Readonly<{request: Request; requestCid: string}>;
-  /** Synchronous, I/O-free factory for UPDATE/upsert preparation. Its child
-   * performs the original authorized target read before deriving request bytes.
-   * The row-bound grant supplier cannot select another row or a write grant. */
+  /** Synchronous, I/O-free factory retained by the existing capture owner.
+   * Guarded UPDATE/upsert receives the exact row and a zero-argument read
+   * supplier. The existing Command context has no row index/current fence
+   * and may omit its indexed read supplier. No grant is created by the type. */
   prepareRequestChild?(options: Readonly<{member: RowEffectMember;
     value: ConnectorJsonObject; selector?: ConnectorJsonValue;
-    current: Current | undefined; rowIndex: number;
+    current: Current | undefined; signal?: AbortSignal;
+  } & ({rowIndex: number;
     authorizationForRow: () => Promise<InvocationAuthorization>;
     /** Existing selected-preparation fence; absence is not a new current proof. */
     assertCurrent?: () => void;
-    signal?: AbortSignal}>): RowEffectRequestChild<Request>;
+  } | {rowIndex?: undefined;
+    authorizationForRow?: (index: number) => Promise<InvocationAuthorization>;
+    assertCurrent?: undefined;
+  })>): RowEffectRequestChild<Request>;
   requestFacts(request: Request): Readonly<{
     value: ConnectorJsonObject; target?: ConnectorJsonValue}>;
   writeOperation(member: RowEffectMember): string;

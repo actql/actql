@@ -136,6 +136,7 @@ declare const originalDriver: RowEffectDriver<Request>;
 const guardedDriver: RowEffectDriver<Request> = {
   ...originalDriver, kinds: ['update'],
   prepareRequestChild(context): RowEffectRequestChild<Request> {
+    if (context.rowIndex === undefined) throw new Error('GuardedContextRequired');
     const row: number = context.rowIndex;
     // @ts-expect-error The original row cannot be replaced by the child.
     context.rowIndex = row + 1;
@@ -162,3 +163,25 @@ const missingCleanup: RowEffectDriver<Request> = {...guardedDriver,
     status: () => ({pending: true})}),
 };
 void [guardedDriver, asynchronousFactory, missingCleanup];
+
+// These are the two contexts actually passed by the existing capture caller.
+// Command has neither a synthetic row index nor a fabricated read grant.
+type ChildContext = Parameters<NonNullable<RowEffectDriver<Request>['prepareRequestChild']>>[0];
+declare const childMember: ChildContext['member'];
+declare const indexedRead: (index: number) => Promise<import('@actql/local-node/connector-installation').InvocationAuthorization>;
+const commandWithoutRead: ChildContext = {
+  member: childMember, value: {}, current: undefined,
+};
+const commandWithRead: ChildContext = {...commandWithoutRead, authorizationForRow: indexedRead};
+if (commandWithRead.rowIndex === undefined) {
+  // @ts-expect-error The optional Command callback cannot be used as a required grant.
+  commandWithRead.authorizationForRow(0);
+  commandWithRead.authorizationForRow?.(0);
+  // @ts-expect-error The original indexed Command callback still requires its index.
+  commandWithRead.authorizationForRow?.();
+}
+// @ts-expect-error A guarded row cannot omit its original read supplier.
+const missingGuardedRead: ChildContext = {
+  member: childMember, value: {}, current: undefined, rowIndex: 0,
+};
+void [commandWithoutRead, commandWithRead, missingGuardedRead];
