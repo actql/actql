@@ -125,3 +125,31 @@ material, two canonical decimal strings, converted Object nodes and checked
 values can overlap. Original byte/node/depth limits still apply, but these
 bounds are neither a reservation nor an adopted normal capacity profile. The
 original caller's custody and cleanup own their lifetime.
+
+## Compound Address projection
+
+An Address parent uses the same original Describe association boundary as
+geolocation. Its documented component roles are selected only after
+`compoundFieldName` identifies that exact parent. The scalar components keep
+original API names, native types, declared Decimal digits and nullability.
+Standard country/state integration values and country/state ISO codes are
+separate text properties. The observed configuration selects standard label,
+custom code, or combined properties; neither a code-to-name lookup nor a missing
+component supplies another field or an executable grant.
+
+The parent is one closed Object Contract. Its JSON and checked Contract reader
+agree on the original fields, and caller binding compares the Object plus every
+retained scalar component. Response projection keeps original text (including
+whitespace, Unicode and leading postal zeros), explicit nulls and numeric source
+lexemes. Missing/extra properties, coerced values, unsupported or ambiguous
+roles and changed current metadata are refused, never truncated or re-probed.
+Parent writes remain unsupported; mutations use only the originally declared
+component mappings with the same target observation, Preview, authority and
+cleanup responsibilities.
+
+The existing ReadProjection retains the component references and bounded role
+names. The original Describe fields, response bytes, decoded nodes, converted
+text/decimal cells, Object nodes and checked values may overlap. Their original
+byte/node/depth and caller lifetime bounds still apply; deriving the Object's
+comparison work from the observed component count is not a new capacity grant,
+normal numerical profile or claim that the entire whole-phase envelope is funded.

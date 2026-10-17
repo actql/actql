@@ -49,6 +49,9 @@ fn read_field_contract(
   if field.native_type == "location" {
     return geolocation_contract(field, components)
   }
+  if field.native_type == "address" {
+    return address_contract(field, components)
+  }
   let kind = match field.native_type {
     "id"
     | "reference"
@@ -115,8 +118,9 @@ pub fn prepare_read_projection(
     if !field.nullability_confirmed {
       return Err(UnconfirmedNullability(field.name))
     }
-    let components = if field.native_type == "location" {
-      guard geolocation_components(field, resource.fields) is Some(parts) else {
+    let components = if field.native_type == "location" ||
+      field.native_type == "address" {
+      guard compound_read_components(field, resource.fields) is Some(parts) else {
         return Err(UnsupportedReadType(field.name))
       }
       parts
@@ -325,8 +329,8 @@ pub fn recheck_read_projection(
     if !same_read_field_meaning(before, after) {
       return Err(SchemaChanged(before.name))
     }
-    if before.native_type == "location" {
-      guard geolocation_components(after, resource.fields) is Some(parts) &&
+    if before.native_type == "location" || before.native_type == "address" {
+      guard compound_read_components(after, resource.fields) is Some(parts) &&
         parts.length() == plan.field_components[index].length() else {
         return Err(SchemaChanged(before.name))
       }
@@ -394,9 +398,10 @@ pub fn bind_read_projection_contracts(
     return None
   }
   for index in 0..<contracts.length() {
-    // A geolocation is the original Object plus its two Decimal children.
+    // A compound value is the original Object plus its described scalar children.
     // Scalar and Array plans retain their existing two-pair comparison bound.
-    let pairs = if plan.fields[index].native_type == "location" {
+    let pairs = if plan.fields[index].native_type == "location" ||
+      plan.fields[index].native_type == "address" {
       1 + plan.field_components[index].length()
     } else {
       2
