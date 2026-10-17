@@ -114,6 +114,29 @@ function retainModelQuantityCapacity(capacity) {
   return Object.freeze({limits: Object.freeze(limits), perAttempt: Object.freeze(perAttempt)});
 }
 
+// These are bounded DATA-reader limits, not a capacity reservation. Snapshot
+// before Core calls; a later getter cannot replace the bounds used for the
+// same retained configuration. Actual Host startup still owns this workspace.
+function retainModelDefaultsLimits(value) {
+  const fields = ['maxBytes', 'maxDepth', 'maxMembers', 'maxNodes', 'maxWork'];
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError('InvalidInstalledModelDefaultsLimits');
+  }
+  const keys = Object.keys(value).sort();
+  if (keys.length !== fields.length || keys.some((key, index) => key !== fields[index])) {
+    throw new TypeError('InvalidInstalledModelDefaultsLimits');
+  }
+  const snapshot = {};
+  for (const key of fields) {
+    const amount = value[key];
+    if (!Number.isSafeInteger(amount) || amount < 0 || amount > 2147483647) {
+      throw new TypeError('InvalidInstalledModelDefaultsLimits');
+    }
+    snapshot[key] = amount;
+  }
+  return Object.freeze(snapshot);
+}
+
 // Registration remains physical Host capability. The common admission owner
 // subsequently binds the selected callback to its exact Task and prompt.
 export function installModelProviders(moon, register, assertHostRuntime,
@@ -156,6 +179,13 @@ export function installModelProviders(moon, register, assertHostRuntime,
     const originalReadSource = entry.originalReadInstallation, rawSource = entry.rawCaptureSelection;
     const bindingSource = entry.bindingOriginals, quantitySource = entry.quantityCapacity;
     const sdkStaticOriginals = entry.sdkStaticOriginals;
+    // Capture the actual callback runtime and receiver, not whichever exports
+    // a later Task caller happens to supply. Missing support keeps defaults
+    // unavailable without changing legacy explicit-Task registrations.
+    const defaultsReader = moon.clientProgramReadInstalledModelDefaults;
+    const defaultsResolver = moon.clientProgramResolveInstalledModelDefaults;
+    const defaultsBinding = moon.clientProgramInstalledModelDefaultsBinding;
+    const defaultsUsage = moon.clientProgramInstalledModelDefaultsUsage;
     let requireOriginalEagerStartup;
     // The Host supplies this private connection, not registration DATA or a
     // packet flag. Missing selected startup is Unavailable, never coverage.
@@ -220,6 +250,51 @@ export function installModelProviders(moon, register, assertHostRuntime,
       requireOriginalEagerStartup();
       assertTrustedRuntime();
     };
+    let defaultsOriginal, defaultsBounds;
+    function resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits) {
+      if (this !== retained) {
+        throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
+          {code: 'InstalledModelDefaultsForeignOriginal'});
+      }
+      if (assertNewTrustedRuntime === undefined || bindingOriginals === undefined ||
+          ![defaultsReader, defaultsResolver, defaultsBinding, defaultsUsage]
+            .every(value => typeof value === 'function')) {
+        throw Object.assign(new Error('InstalledModelDefaultsUnavailable'),
+          {code: 'InstalledModelDefaultsUnavailable'});
+      }
+      assertNewTrustedRuntime();
+      const bounds = retainModelDefaultsLimits(limits);
+      if (selectedModel !== undefined && typeof selectedModel !== 'string' ||
+          taskMaxOutputTokens !== undefined && typeof taskMaxOutputTokens !== 'bigint') {
+        throw new TypeError('InvalidInstalledModelDefaultsSelection');
+      }
+      if (defaultsBounds !== undefined && Object.keys(bounds)
+        .some(key => bounds[key] !== defaultsBounds[key])) {
+        throw Object.assign(new Error('InstalledModelDefaultsLimitsChanged'),
+          {code: 'InstalledModelDefaultsLimitsChanged'});
+      }
+      if (defaultsOriginal === undefined) {
+        defaultsOriginal = checked(Reflect.apply(defaultsReader, moon, [providerId,
+          bindingOriginals.installationRevision.wire,
+          bindingOriginals.configurationContract.wire,
+          bindingOriginals.configuration.wire,
+          bounds.maxBytes, bounds.maxNodes, bounds.maxDepth, bounds.maxMembers,
+          bounds.maxWork]));
+        defaultsBounds = bounds;
+      }
+      // Keep the already read original through a current refusal. Do not
+      // reparse a replacement configuration to rescue another registration.
+      assertNewTrustedRuntime();
+      const binding = retainAdmittedProviderBinding(moon, providerId,
+        bindingOriginals, Reflect.apply(defaultsBinding, moon, [defaultsOriginal]));
+      const resolved = checked(Reflect.apply(defaultsResolver, moon,
+        [defaultsOriginal, selectedModel, taskMaxOutputTokens, bounds.maxWork]));
+      const usage = Reflect.apply(defaultsUsage, moon, [defaultsOriginal]);
+      const readUsage = Object.freeze({bytes: runtimeField(usage, 0),
+        nodes: runtimeField(usage, 1), work: runtimeField(usage, 2)});
+      assertNewTrustedRuntime();
+      return Object.freeze({value: defaultsOriginal, resolved, binding, readUsage});
+    }
     retained = Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
       assertTrustedRuntime, assertNewTrustedRuntime, requireEagerSdkStartup,
       bindingOriginals,
@@ -227,6 +302,7 @@ export function installModelProviders(moon, register, assertHostRuntime,
       entryPersistence,
       reconcileResponse,
       quantityCapacity,
+      resolveTaskDefaults,
       observeEgress: typeof observeEgress !== 'function' ? undefined : () => {
         try { return Reflect.apply(observeEgress, entry, []); }
         catch { return undefined; }
@@ -284,6 +360,10 @@ export function admitInstalledModelProviderBinding(moon, providerId, physical) {
   const value = checked(moon.clientProgramModelProviderBinding(providerId,
     originals.installationRevision.wire, originals.configurationContract.wire,
     originals.configuration.wire));
+  return retainAdmittedProviderBinding(moon, providerId, originals, value);
+}
+
+function retainAdmittedProviderBinding(moon, providerId, originals, value) {
   const wire = moon.strategyRunEvidenceJson(value);
   const identity = moon.strategyRunEvidenceIdentity(value);
   const body = JSON.parse(wire);
