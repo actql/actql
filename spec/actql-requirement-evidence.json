@@ -17548,6 +17548,39 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/named-submission.atomic-original",
+      "statement_sha256": "08f50afd0822b25de5e189e6c6a42ef03e32b0f9eb45b0333bb0a191be7ec8a3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the same-owner atomic binding, independent public consumers and retained original Run across process recovery without repeating preparation.",
+      "source": {
+        "anchor": "scoped-durable-submission-names",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/named-submission.current-correlation",
+      "statement_sha256": "df3eeac6c0d39b8cdb19bf3cb82a227ed5a4ef9f4ed878ecced530bd29b9a8b2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify current authenticated scope and original name/intent/attempt correspondence through installed producer and consumer boundaries.",
+      "source": {
+        "anchor": "scoped-durable-submission-names",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/named-submission.unresolved-custody",
+      "statement_sha256": "6ed6da36227bd944c10a1eee745d337ed01db7f060f1465cd2ad433d0581a806",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify bounded durable name custody, lost reply, conflict, retirement and unknown outcomes without replacement work or credit.",
+      "source": {
+        "anchor": "scoped-durable-submission-names",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.discovery/exact-artifact-surface",
       "statement_sha256": "2808e9bed429a9e716df89549b1cd1c9add615cfb9f56c0451c0fdf851111ad0",
       "status": "pending",

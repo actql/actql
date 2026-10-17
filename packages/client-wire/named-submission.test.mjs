@@ -65,7 +65,9 @@ test('named request packets are closed and do not reinterpret old submissions', 
   const prepared = prepareClientHostRequest('submit-named-intent', request);
   assert.notEqual(prepared.body, request);
   assert.notEqual(prepared.body.submissionRef, request.submissionRef);
-  assert.equal(Object.isFrozen(prepared.body.submissionRef), true);
+  prepared.body.submissionRef.nonce = 'changed-snapshot';
+  assert.equal(request.submissionRef.nonce, 'new-connection-candidate');
+  assert.equal(Object.isFrozen(prepared.connection), true);
 });
 
 test('named observations correlate the original reference without weakening explicit epochs', () => {
@@ -89,9 +91,12 @@ test('named observations correlate the original reference without weakening expl
 
 test('named initial replies validate original check observations rather than dropping them', () => {
   const checkObservation = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
-  assert.equal(valid({...observed, outcome: {...outcome, checkObservation}}), true);
-  assert.equal(valid({...observed, outcome: {...outcome, checkObservation: {}}}), false);
-  assert.equal(valid({...observed, outcome: {...outcome, checkObservation: {
+  const initialFailure = {kind: 'preparation_failed', submissionRef: original,
+    intentCid, problem: {code: 'OriginalPreparationFailure', classification: 'operation_failed'}};
+  assert.equal(valid({...observed, outcome: {...initialFailure, checkObservation}}), true);
+  assert.equal(valid({...observed, outcome: {...outcome, checkObservation}}), false);
+  assert.equal(valid({...observed, outcome: {...initialFailure, checkObservation: {}}}), false);
+  assert.equal(valid({...observed, outcome: {...initialFailure, checkObservation: {
     ...checkObservation, outcome_schema_cid: cid('0')}}}), false);
 });
 
