@@ -68,7 +68,7 @@ test "described Number precision uses the existing Decimal Contract range" {
       precision: Some(precision),
       scale: Some(scale),
     }
-    assert_eq(double_decimal(described), Some((precision, scale)))
+    assert_eq(described_decimal(described), Some((precision, scale)))
     assert_true(
       @contract.decimal_contract(precision, scale, nullable=true) is Some(_),
     )
@@ -79,11 +79,11 @@ test "described Number precision uses the existing Decimal Contract range" {
       precision: Some(precision),
       scale: Some(scale),
     }
-    assert_eq(double_decimal(described), None)
+    assert_eq(described_decimal(described), None)
   }
-  assert_eq(double_decimal({ ..original, precision: None, }), None)
-  assert_eq(double_decimal({ ..original, scale: None, }), None)
-  assert_eq(double_decimal({ ..original, native_type: "currency", }), None)
+  assert_eq(described_decimal({ ..original, precision: None, }), None)
+  assert_eq(described_decimal({ ..original, scale: None, }), None)
+  assert_eq(described_decimal({ ..original, native_type: "anyType", }), None)
 }
 
 ///|

@@ -1,11 +1,18 @@
 ///|
-/// The ActQL `decimal(P,S)` a Salesforce Number (`double`) field is declared
-/// as, from its described precision and scale, or none. The existing Decimal
-/// Contract Owner supplies the supported precision/scale domain. Reading and
-/// writing preserve the provider/approved number text without binary64; neither
-/// step recovers precision already lost by Salesforce before its reply.
-fn double_decimal(field : FieldMetadata) -> (Int, Int)? {
-  guard field.native_type == "double" &&
+/// The provider native kinds whose numeric values use a described Decimal.
+fn described_decimal_type(native_type : String) -> Bool {
+  native_type == "double" ||
+  native_type == "currency" ||
+  native_type == "percent"
+}
+
+///|
+/// The ActQL `decimal(P,S)` from the original described precision and scale.
+/// The existing Decimal Owner supplies the supported domain. Read and write
+/// preserve number text without binary64, currency conversion or percent
+/// scaling; neither recovers precision lost before the provider reply.
+fn described_decimal(field : FieldMetadata) -> (Int, Int)? {
+  guard described_decimal_type(field.native_type) &&
     field.precision is Some(precision) &&
     field.scale is Some(scale) &&
     @contract.decimal_contract(precision, scale, nullable=field.nullable)

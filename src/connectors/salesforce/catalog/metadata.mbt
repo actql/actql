@@ -35,7 +35,7 @@ pub struct FieldMetadata {
   unique : Bool
   case_sensitive : Bool?
   reference_to : Array[String]
-  // The described total digits and fractional digits of a `double` field;
+  // The described total digits and fractional digits of a Number, Currency or Percent field;
   // none for any other type.
   precision : Int?
   scale : Int?
@@ -162,7 +162,7 @@ fn project_field(
     references(object, limits) is Some(reference_to) else {
     return Err(InvalidField(name))
   }
-  let (precision, scale) = if native_type == "double" {
+  let (precision, scale) = if described_decimal_type(native_type) {
     guard digit_count(object, "precision") is Some(precision) &&
       digit_count(object, "scale") is Some(scale) else {
       return Err(InvalidField(name))
