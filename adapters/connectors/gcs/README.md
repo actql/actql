@@ -206,11 +206,14 @@ the original read or metadata has been acquired. Preparation checks the same
 input again against the original observation before sealing the conditional
 request. No read/write authority or reservation follows from this projection.
 
-Omission preserves the logical user metadata, an empty map replaces it with
+Omission preserves existing user keys, an empty map replaces them with
 an empty user map, and SQL NULL/JSON null/non-string entries refuse rather than
 becoming empty. A user's literal `$json` key lives inside the payload and is
 not a second envelope. Exact NFD/NFC keys and CR/LF values remain distinct.
 The private marker stays in physical requests and retained evidence only.
+When provider metadata was absent, assigning that marker makes the effective
+logical user map present and empty. This NULL-to-empty change is not an
+authored metadata assignment and must be included separately in Preview.
 
 The bounded preserving parse/cursor, transient checked Json Value graph,
 declared/logical metadata array and maps, re-encoding writer/String/Buffer,
@@ -225,14 +228,20 @@ does not install the same-Site Effect, fund a Content loan, or close Run recover
 
 `projectOwnedGcsMetadataPatchTarget` borrows the same private request and its
 retained original metadata GET. The portable GCS owner returns the target
-identity, original response-byte CID, checked changed-field `before`, intended
-`after` and exact typed request value. Initial capture can use that detached
+identity, original response-byte CID, checked `before`, effective `after` and
+unchanged authored typed request value. Initial capture can use that detached
 row without doing a second GET. This is not the currentness/read decision
 required again at apply, and the original generation and metageneration still
 guard the physical request. A metadata-only change changes the response guard
 and fails the original conditional recheck even when generation is unchanged.
 
-Only the PATCH's actual checked fields are projected into this row. Missing
+The PATCH's authored fields and additional effective logical metadata change
+are projected separately. A content-type-only PATCH on absent metadata has
+`before.metadata: null` and `after.metadata: {"$json":{}}`, while its authored
+`value` still contains only `content_type`. An already-present empty user map
+is not substituted with NULL; an unchanged omitted field need not be added.
+The effective values come from the same sealed request/before, not a second
+read or a proposed row's self-reported `after`. Missing
 `content_type` becomes its nullable field value, missing metadata is SQL NULL,
 and present empty metadata is `{"$json":{}}`; none of these states invents a
 provider value. JSON metadata remains the existing typed Value wire, and its
@@ -241,6 +250,23 @@ the existing marker-assignment behavior but does not export the marker value.
 The original request now retains that same marker String as one optional field
 for the bounded projection; DELETE retains None. This adds no identity field
 or permission and does not alter original request body/path/CID bytes.
+
+`borrowOwnedGcsMetadataPatchTarget` supplies a private original projection view
+only for a request retained by the existing preparation child. Its `readFor`
+requires the same original request and view receiver, then checks that child's
+saved current/lifetime closure before and after the bounded projection. A copy,
+equal-CID request, missing actual current closure or retired child cannot be
+used instead. `retire` only drops the view's request/binding references; it
+does not close the child, acknowledge raw/FD retirement or release capacity.
+The extra current callback, view/self/method closures and aliases remain in
+the original preparation inventory through their actual lifetime.
+
+These facts alone do not bind a full-diff approval. The existing installed
+Preview/capture/restore owner must bind effective before/after separately from
+unchanged authored intended changes, and check original Mapping/operation/field
+permission, request, occurrence and current installation. A description string
+or this view is not permission. Until that same-owner connection is complete,
+the unsupported installed path remains unavailable before dispatch.
 
 Foreign binding/request copies, unsupported raw-map representation, DELETE
 purpose, missing selected ABI and an insufficient projection bound refuse.
