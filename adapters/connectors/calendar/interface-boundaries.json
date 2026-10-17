@@ -1172,7 +1172,7 @@
     },
     {
       "module": "src/connectors/calendar/catalog/free_busy.mbt",
-      "sha256": "3d5ffc2359d0f165718afd6f3f155fb034be834cc27e179aed236605a6a0d870",
+      "sha256": "5e4a87bbfa7c0b14edb88c8aac1192b37f16e7c9648a6ee2889be990be0c9423",
       "exports": [],
       "operations": [
         {
@@ -1476,6 +1476,610 @@
               {
                 "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
                 "anchor": "test('actual Calendar projection binds original query"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+      "sha256": "7a9143be70d76dc3c7200ebc00faf877c68a7cf557c95923eca0e16f726f3aaa",
+      "exports": [
+        "CALENDAR_FREE_BUSY_OPERATION",
+        "CalendarFreeBusyReadFailure",
+        "createCalendarFreeBusyReader",
+        "readCalendarFreeBusy"
+      ],
+      "operations": [
+        {
+          "name": "CalendarFreeBusyReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCalendarFreeBusyReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCalendarFreeBusyReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCalendarFreeBusyReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createCalendarFreeBusyReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCalendarFreeBusyReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "execute",
+          "parameters": [
+            "original",
+            "received"
+          ],
+          "async": true
+        },
+        {
+          "name": "execute/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "execute/verify/verify",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare",
+          "parameters": [
+            "moon",
+            "query",
+            "names",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "current",
+            "chargeResponse",
+            "consumePage",
+            "limits",
+            "signal",
+            "callResource"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare",
+          "parameters": [
+            "fn"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readCalendarFreeBusy",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Calendar catalog and physical sequencer; Common RowRun/Account/Credential retain execution, reservation and cleanup authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "positive/positive",
+            "prepare",
+            "prepare/prepare",
+            "prepare/prepare#2",
+            "prepare/prepare#3",
+            "prepare/prepare#4",
+            "prepare/provider/provider"
+          ],
+          "exports": [
+            "CALENDAR_FREE_BUSY_OPERATION"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Free/busy physical sequencing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "function prepare({moon, query, names"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "async function execute(original, received)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The private reader's `read`, `requestStop` and `observe` require the original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "currentBeforeSend: verify"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A lost POST reply remains the original Credential journal use's"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "const limitFields = ["
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "In addition to the Catalog graph, the invocation snapshots"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A normal"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A real installation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "anchor": "test('Calendar free busy actual TLS POST"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "anchor": "test('Calendar free busy lost POST reply"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "execute",
+            "execute/response/response",
+            "execute/verify/verify",
+            "readCalendarFreeBusy"
+          ],
+          "exports": [
+            "readCalendarFreeBusy"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Free/busy physical sequencing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "function prepare({moon, query, names"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "async function execute(original, received)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The private reader's `read`, `requestStop` and `observe` require the original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "currentBeforeSend: verify"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A lost POST reply remains the original Credential journal use's"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "const limitFields = ["
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "In addition to the Catalog graph, the invocation snapshots"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A normal"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A real installation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "anchor": "test('Calendar free busy actual TLS POST"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "anchor": "test('Calendar free busy lost POST reply"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createCalendarFreeBusyReader",
+            "createCalendarFreeBusyReader/handle/init:observe/init:observe",
+            "createCalendarFreeBusyReader/handle/init:read/init:read",
+            "createCalendarFreeBusyReader/handle/init:read/init:read/result/result",
+            "createCalendarFreeBusyReader/handle/init:requestStop/init:requestStop",
+            "originalReader"
+          ],
+          "exports": [
+            "createCalendarFreeBusyReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Free/busy physical sequencing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "function prepare({moon, query, names"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "async function execute(original, received)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The private reader's `read`, `requestStop` and `observe` require the original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "currentBeforeSend: verify"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A lost POST reply remains the original Credential journal use's"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "const limitFields = ["
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "In addition to the Catalog graph, the invocation snapshots"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A normal"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A real installation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "anchor": "test('Calendar free busy actual TLS POST"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "anchor": "test('Calendar free busy lost POST reply"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "CalendarFreeBusyReadFailure/constructor:constructor/constructor:constructor"
+          ],
+          "exports": [
+            "CalendarFreeBusyReadFailure"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Free/busy physical sequencing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "function prepare({moon, query, names"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "async function execute(original, received)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The private reader's `read`, `requestStop` and `observe` require the original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "currentBeforeSend: verify"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A lost POST reply remains the original Credential journal use's"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "anchor": "const limitFields = ["
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "In addition to the Catalog graph, the invocation snapshots"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A normal"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "A real installation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "anchor": "test('Calendar free busy actual TLS POST"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "anchor": "test('Calendar free busy lost POST reply"
               }
             ]
           }
