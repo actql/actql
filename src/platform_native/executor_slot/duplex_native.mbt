@@ -288,14 +288,17 @@ pub fn NativeScopedExecutorHolder::spawn_duplex(
     return Err(Closed)
   }
   self.attempted = true
-  match
-    self.original.spawn_holder_reading(
-      executable,
-      arguments,
-      input,
-      scoped=Some(self),
-      output~,
-    ) {
+  let spawned = self.original.spawn_holder_reading(
+    executable,
+    arguments,
+    input,
+    scoped=Some(self),
+    output~,
+  )
+  // A returned synchronous call is distinct from an unresolved attempt. The
+  // actual child is retained by spawn_holder_reading before this observation.
+  self.duplex_spawn_returned = true
+  match spawned {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
