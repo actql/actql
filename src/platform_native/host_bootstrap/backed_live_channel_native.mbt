@@ -33,6 +33,14 @@ extern "C" fn live_channel_status_ffi(channel : PhysicalLiveChannel) -> Int = "a
 
 ///|
 #borrow(channel)
+extern "C" fn match_live_channel_descriptors_ffi(
+  channel : PhysicalLiveChannel,
+  read_fd : Int,
+  write_fd : Int,
+) -> Int = "actql_bootstrap_match_live_channel_descriptors"
+
+///|
+#borrow(channel)
 extern "C" fn bind_live_span_ffi(
   channel : PhysicalLiveChannel,
   nonce : Int64,
@@ -247,7 +255,36 @@ fn[T, C] NativeHostBootstrap::require_live_channel_open(
   if record.transport_stopped {
     return Err(Bootstrap(Closing))
   }
-  self.require_domain_current(original, record.domain, record.child)
+  match record.domain.process_region {
+    Some(process) => self.require_process_channel_current(original, record, process)
+    None => self.require_domain_current(original, record.domain, record.child)
+  }
+}
+
+///|
+// Reuse the same Common projection under the exact associated process check.
+// Independent live-child/domain callers keep their original generic refusal.
+fn[T, C] NativeHostBootstrap::live_channel_accounting_state(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+) -> Result[@resources.BackedExecutionLiveState, NativeBackedExecutionIssue] {
+  guard record.live is Some(live) else { return Err(Bootstrap(Unavailable)) }
+  if record.domain.process_region is None {
+    return self.backed_live_child_state(original, live, record)
+  }
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.original_live_child(original, live, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard live.projection is Some(projection) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  @resources.backed_execution_live_state(projection, record).map_err(issue => Accounting(issue))
 }
 
 ///|
@@ -427,7 +464,7 @@ pub fn[T, C] NativeHostBootstrap::admit_backed_live_channel(
   if record.ledger_frame is Some(_) {
     // Its resource projection already exists; this step still requires the
     // actual original child/VM observation above and cannot readmit Common.
-    match self.backed_live_child_state(original, live, record) {
+    match self.live_channel_accounting_state(original, record) {
       Err(issue) => return Err(issue)
       Ok(@resources.LiveClosing) => return Err(Bootstrap(Closing))
       Ok(@resources.LiveOpen) => ()
@@ -465,7 +502,7 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_state(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard record.physical is Some(physical) && record.live is Some(live) else {
+  guard record.physical is Some(physical) && record.live is Some(_) else {
     return Err(Bootstrap(Unavailable))
   }
   let status = live_vm_current_ffi(physical)
@@ -475,7 +512,7 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_state(
   if !record.admitted {
     return Err(Bootstrap(Unavailable))
   }
-  let state = match self.backed_live_child_state(original, live, record) {
+  let state = match self.live_channel_accounting_state(original, record) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
@@ -502,7 +539,13 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_limits(
     Ok(@resources.LiveClosing) => return Err(Bootstrap(Closing))
     Ok(@resources.LiveOpen) => ()
   }
-  self.backed_live_child_limits(original, record.live.unwrap(), record)
+  if record.domain.process_region is None {
+    return self.backed_live_child_limits(original, record.live.unwrap(), record)
+  }
+  guard record.live is Some(live) && live.projection is Some(projection) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  @resources.backed_execution_live_limits(projection, record).map_err(issue => Accounting(issue))
 }
 
 ///|
