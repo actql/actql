@@ -7,6 +7,24 @@ const path = 'spec/contracts/actql-protocol-schemas.json';
 const pointer = '/schemas/model_provider_defaults';
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 
+// Existing contract-envelope identity, narrowed to its installed Model role.
+// Body/CID correspondence and actual installation scope remain Common and Host
+// obligations; the schema is not their proof.
+export function modelProviderHandlingSchema() {
+  const text = {type: 'string', minLength: 1};
+  return {type: 'object', additionalProperties: false,
+    required: ['schema', 'id', 'version', 'kind', 'body', 'cid'],
+    properties: {schema: {const: 'actql.contract/0.1'}, id: text, version: text,
+      kind: {const: 'request_data_handling'},
+      body: {type: 'object', additionalProperties: false,
+        required: ['accepted_classifications', 'allowed_regions', 'retention', 'training_use'],
+        properties: {accepted_classifications: {type: 'array', minItems: 1,
+          uniqueItems: true, items: {enum: ['public', 'internal', 'confidential', 'restricted']}},
+        allowed_regions: {type: 'array', minItems: 1, uniqueItems: true, items: text},
+        retention: {enum: ['none', 'provider_contract']}, training_use: {const: 'forbidden'}}},
+      cid: {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'}}};
+}
+
 // A closed DATA subrecord of the original Provider configuration, not a new
 // binding/evidence domain or a substitute for that configuration's contract.
 export function modelProviderDefaultsSchema() {
@@ -16,6 +34,7 @@ export function modelProviderDefaultsSchema() {
     properties: {default_model: text, models: {type: 'array', items: {
       type: 'object', additionalProperties: false,
       required: ['model', 'generation_config'], properties: {model: text,
+        data_handling: modelProviderHandlingSchema(),
         generation_config: {type: 'object', additionalProperties: false,
           required: ['temperature', 'top_p', 'max_output_tokens'], properties: {
             temperature: {type: 'number'},

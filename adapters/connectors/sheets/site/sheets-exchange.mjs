@@ -6,10 +6,13 @@ import {refusedEffectPreparation} from
   '../../../host-common/effect-preparation-result.mjs';
 import {canonicalJson as valueJson} from '../../../../packages/sdk/host-port.mjs';
 import {prepareOwnedSheetsRequest, ownedSheetsRequestCid, sheetsOwnedResult} from './sheets-owned-request.mjs';
+import {prepareOwnedSheetsClearRequest, ownedSheetsClearRequestCid,
+  ownedSheetsClearOutcome} from './sheets-clear-request.mjs';
 
 export const SHEETS_READ_OPERATION = 'sheets:grid:read';
 export const SHEETS_APPEND_OPERATION = 'sheets:cells:append';
 export const SHEETS_UPDATE_OPERATION = 'sheets:cells:update';
+export const SHEETS_CLEAR_OPERATION = 'sheets:cells:clear';
 export const SHEETS_LIMITS = Object.freeze({maxRequestBytes: 300_000,
   maxResponseBytes: 2_000_000, maxNodes: 200_000, maxDepth: 32,
   maxCells: 6_400, maxRows: 100});
@@ -181,4 +184,30 @@ export function projectSheetsUpdate({moon, request, observation}) {
   return {kind: 'typed-success-response', outcome: {state: 'applied', result: {
     spreadsheet_id: request.spreadsheetId, sheet_id: request.sheetId,
     acknowledged_rows: request.acknowledgedRows}}};
+}
+
+export function prepareSheetsClear({moon, binding, value, target, marker}) {
+  try {
+    return prepareOwnedSheetsClearRequest(moon, binding, value, target, marker);
+  } catch (cause) {
+    throw ['InvalidSheetsClearInput', 'SheetsContractRefused'].includes(cause?.code)
+      ? refusedEffectPreparation(cause) : cause;
+  }
+}
+
+export async function sendSheetsClear({request, authorization, credential, callResource, signal}) {
+  if (authorization?.scope?.resourceOrigin !== request.origin ||
+      request.requestCid !== ownedSheetsClearRequestCid(request)) fail('InvalidSheetsClearBinding');
+  const response = await exchange({authorization, credential, callResource,
+    operation: SHEETS_CLEAR_OPERATION, path: request.path, body: request.body, signal});
+  return Object.freeze({observation: Object.freeze({useCid: response.useCid,
+    statusCode: response.statusCode, body: response.body}), headers: response.headers});
+}
+
+export function projectSheetsClear({moon, request, observation}) {
+  const answer = ownedSheetsClearOutcome(moon, request, observation.statusCode, observation.body);
+  if (answer.outcome !== 'Applied') return {kind: 'provider-response'};
+  return {kind: 'typed-success-response', outcome: {state: 'applied', result: {
+    spreadsheet_id: request.spreadsheetId, sheet_id: request.sheetId,
+    cleared_rows: request.clearedRows}}};
 }

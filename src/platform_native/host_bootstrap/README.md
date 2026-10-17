@@ -219,3 +219,12 @@ After the caller confirms the same original scoped stop, Host/Store cleanup and
 parent-descriptor closes, it retains the successful frame bootstrap-retirement
 and channel-retirement replies together before releasing extra managed aliases.
 A lost release response remains Unknown even if the C output slots were cleared.
+# Local C build inputs
+
+The split implementation bodies use package-local `.h` files. The pinned Moon
+build discovers those files as C-stub inputs; `.inc` files are not discovered.
+Keeping these bodies as tracked headers makes an include-only edit rebuild the
+original stub object and archive through the ordinary incremental build. This
+does not change C contents, optimization flags or runtime ownership. Imported
+provider sources still require their existing separate producer correspondence;
+local header discovery does not establish that external input closure.

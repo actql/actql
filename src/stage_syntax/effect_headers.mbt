@@ -85,6 +85,17 @@ pub fn effect_header_body(value : EffectHeader) -> @wire.Cursor {
 }
 
 ///|
+/// Original per-row target values only. Mapping, captured-input admission and
+/// execution remain with the existing Effect owners; absence is legacy create.
+pub fn effect_header_create_values(value : EffectHeader) -> @wire.Cursor? {
+  if value.kind != "create" {
+    None
+  } else {
+    @wire.lookup(@wire.open_object(value.body).unwrap(), "values")
+  }
+}
+
+///|
 /// Structural references only. The existing Environment owner must resolve the
 /// original Mapping/Command pair; this does not issue a target or permission.
 pub fn effect_header_published_store_target(
@@ -482,7 +493,9 @@ fn header_member(
   let source = @wire.lookup(outer, selected).unwrap()
   let fields = match selected {
     "create" =>
-      ["target", "mapping", "from", "payload", "max_items", "on_item_failure"]
+      [
+        "target", "mapping", "from", "payload", "values", "max_items", "on_item_failure",
+      ]
     "update" =>
       [
         "target", "mapping", "from", "id", "match", "ids", "external_id", "where",
@@ -606,6 +619,14 @@ fn header_member(
       }
       if payload is Some(node) {
         header_object_shape(node)
+      }
+      if @wire.lookup(body, "values") is Some(values) {
+        if value is None {
+          header_fail(values, InvalidSourceResult)
+        }
+        // Empty maps are structural input; original Mapping requirements,
+        // rather than UPDATE's nonempty SET rule, decide their admissibility.
+        header_value_map(values, false, true, budget)
       }
       value
     }

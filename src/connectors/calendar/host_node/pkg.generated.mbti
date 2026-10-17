@@ -1,0 +1,45 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/calendar/host_node"
+
+import {
+  "actql/actql/connectors/calendar/catalog",
+}
+
+// Values
+pub fn calendar_free_busy_column_names() -> Array[String]
+
+pub fn calendar_free_busy_matches_query(@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyQuery) -> Bool
+
+pub fn calendar_free_busy_metadata_json(@catalog.CalendarFreeBusyPage) -> String
+
+pub fn calendar_free_busy_relation_facts_wire() -> String
+
+pub fn calendar_free_busy_request_wire(@catalog.CalendarFreeBusyQuery) -> String
+
+pub fn calendar_free_busy_rows_wire(@catalog.CalendarFreeBusyPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarFreeBusyIssue]
+
+pub fn calendar_free_busy_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarFreeBusyIssue]
+
+pub fn calendar_list_column_names() -> Array[String]
+
+pub fn calendar_list_metadata_json(@catalog.CalendarListPage) -> String
+
+pub fn calendar_list_relation_facts_wire() -> String
+
+pub fn calendar_list_rows_wire(@catalog.CalendarListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]
+
+pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]
+
+pub fn calendar_prepare_free_busy_query(Array[String], String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyQuery, @catalog.CalendarFreeBusyIssue]
+
+pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]
+
+pub fn calendar_project_free_busy(Bytes, @catalog.CalendarFreeBusyQuery, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyIssue]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

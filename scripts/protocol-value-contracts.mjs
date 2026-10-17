@@ -5,6 +5,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {commandTargetBindingSchemas} from './command-target-bindings.mjs';
 import {publishedCommandTargetSchemas} from './published-command-target.mjs';
 import {commandInputKeySchemas} from './command-input-key.mjs';
+import {createValuesSchemas, checkCreateValuesVectors} from './create-values.mjs';
 
 export const valueKinds=['request_schema','command_input','command_output','idempotency_key','checkpoint',
   'lookup_request_key','lookup_batch_request','lookup_response_key'];
@@ -119,6 +120,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
     publishedCommandTargetSchemas(protocol,true);
     commandInputKeySchemas(protocol,true);
     commandInputPresenceSchemas(protocol,true);
+    createValuesSchemas(protocol,true);
     writeFileSync('spec/contracts/actql-protocol-schemas.json',JSON.stringify(protocol,null,2)+'\n');
     console.log('Command presence inline structural copies and initial-0.1 pins updated.');
   }else{
@@ -126,6 +128,9 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
     publishedCommandTargetSchemas(protocol);
     commandInputKeySchemas(protocol);
     commandInputPresenceSchemas(protocol);
+    createValuesSchemas(protocol);
+    assert.equal(readFileSync('src/stage_syntax/create_values.generated_test.mbt','utf8'),
+      checkCreateValuesVectors(read('portability/corpus/create-values.json')));
     assert.deepEqual(read('spec/contracts/actql-check-environment.json').value_contract_bodies,valueBodyContract(protocol));
     const path='src/check_environment/value_roles.generated.mbt',text=generateValueKinds(protocol);
     if(process.argv.includes('--write'))writeFileSync(path,text);

@@ -3706,7 +3706,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "b21dd346c3c71dba8805e60a3e9fdd91f20e0a893969bb34922e30718bcaab1d",
+      "sha256": "8545b34340ecbde8cd63c17d72fcf309ce6710d200819d191d09e59afdc95b18",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -3752,7 +3752,9 @@
           "name": "embeddedInstallationIdentity",
           "parameters": [
             "root",
-            "installation"
+            "installation",
+            "project",
+            "moon"
           ],
           "async": true
         },
@@ -3845,6 +3847,11 @@
         },
         {
           "name": "openInstalledHost/assertNewModelRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/assertProjectRuntime",
           "parameters": [],
           "async": false
         },
@@ -5590,6 +5597,14 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
               }
             ],
             "inputsOutputs": [
@@ -5612,6 +5627,14 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
               }
             ],
             "identity": [
@@ -5630,6 +5653,18 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
               }
             ],
             "ownership": [
@@ -5648,6 +5683,18 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
               }
             ],
             "synchronization": [
@@ -5670,6 +5717,18 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
               }
             ],
             "failure": [
@@ -5688,6 +5747,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               }
             ],
             "cancellation": [
@@ -5706,6 +5773,14 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               }
             ],
             "resources": [
@@ -5732,6 +5807,18 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
               }
             ],
             "extension": [
@@ -5750,6 +5837,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
               }
             ],
             "verification": [
@@ -5784,6 +5879,18 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
               }
             ]
           }
@@ -5905,7 +6012,216 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/assertProjectRuntime"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              }
+            ]
+          }
         }
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/observation.mjs",
+        "../host-common/run-state-access.mjs",
+        "../host-common/run-state-observation.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "../local-node/retained-store.mjs",
+        "../store-local/files.mjs",
+        "../store-local/publication-store.mjs",
+        "./acquired-effect-computation.mjs",
+        "./acquired-effect-continuation.mjs",
+        "./acquired-effect-sources.mjs",
+        "./captured-duckdb-source.mjs",
+        "./client-check.mjs",
+        "./client-checkpoints.mjs",
+        "./client-dispatch-owner.mjs",
+        "./client-effect-observations.mjs",
+        "./client-effect-run.mjs",
+        "./client-http.mjs",
+        "./client-interactive-plan.mjs",
+        "./client-owner-cursor.mjs",
+        "./client-owner-observations.mjs",
+        "./client-program-preparation.mjs",
+        "./client-request-journal.mjs",
+        "./client-request-lookup.mjs",
+        "./client-run-attach.mjs",
+        "./client-run-inspect.mjs",
+        "./client-run-plan.mjs",
+        "./client-run-start.mjs",
+        "./client-submission.mjs",
+        "./effect-run-recovery.mjs",
+        "./effect-target-read-continuation.mjs",
+        "./effect-target-read-inventory.mjs",
+        "./embedded-local-lifecycle.mjs",
+        "./entry.mjs",
+        "./host-root-format.mjs",
+        "./in-process-client.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-trusted-runtime-view.mjs",
+        "./installed-calendar.mjs",
+        "./installed-check-environment.mjs",
+        "./installed-connectors.mjs",
+        "./installed-content-run.mjs",
+        "./installed-effect-inventory.mjs",
+        "./installed-effect-site.mjs",
+        "./installed-effect.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-host-policy.mjs",
+        "./installed-infer-run.mjs",
+        "./installed-model-continuation.mjs",
+        "./installed-model-originals.mjs",
+        "./installed-model.mjs",
+        "./installed-project-configuration.mjs",
+        "./installed-project-model-tasks.mjs",
+        "./installed-row-effect.mjs",
+        "./installed-source.mjs",
+        "./installed-update-originals.mjs",
+        "./local-account-config.mjs",
+        "./local-continuation-evidence.mjs",
+        "./local-values-plan.mjs",
+        "./ordinary-source-binding.mjs",
+        "./result-access.mjs",
+        "./source-alias-publication.mjs",
+        "./update-target-original-shape.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
       ]
     },
     {

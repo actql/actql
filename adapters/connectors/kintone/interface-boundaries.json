@@ -1,0 +1,580 @@
+{
+  "source": "22ee9201a7f3b5418a0496838e141327f9fb6737",
+  "qualification": "Existing kintone original Catalog, Row Source, Account and Credential Site physical boundary references; not another Owner, permission, artifact or numerical admission",
+  "declarations": [
+    {
+      "module": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+      "sha256": "7ff64b287b93140f5e80d8ca196d992bb69cb13621f1eb62959039277e95b6b2",
+      "exports": [
+        "INSTALLED_KINTONE_SITE_VERSION",
+        "INSTALLED_KINTONE_SOURCE_VERSION",
+        "checkInstalledKintoneSourceProfile",
+        "installedKintoneSourceIdentityParts",
+        "loadInstalledKintoneSource"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledKintoneSourceProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledKintoneSourceProfile/checkInstalledKintoneSourceProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledKintoneSourceProfile/checkInstalledKintoneSourceProfile#2",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite/checkSite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "inputs",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedKintoneSourceIdentityParts",
+          "parameters": [
+            "profile",
+            "providerProfile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledKintoneSource",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "moon",
+            "baseEnvironmentWire",
+            "runtimeBundleCid",
+            "resolveSecret"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledKintoneSource/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "binding",
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource",
+          "parameters": [
+            "requirement",
+            "queryContract",
+            "evidenceContract"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource/authorize/authorize",
+          "parameters": [
+            "operation",
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource/current/current",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource#2",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledKintoneSource/site/site",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledKintoneSource/target/target",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../site/kintone-record-read.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing original kintone Catalog/RowRun, Account and Credential Site owners; vendor request/response and installed physical projection only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "absolute/absolute",
+            "canonical/canonical",
+            "checkInstalledKintoneSourceProfile",
+            "checkInstalledKintoneSourceProfile/checkInstalledKintoneSourceProfile",
+            "checkInstalledKintoneSourceProfile/checkInstalledKintoneSourceProfile#2",
+            "checkSite",
+            "checkSite/checkSite",
+            "cid/cid",
+            "closed/closed",
+            "fail/fail",
+            "inputs",
+            "installedKintoneSourceIdentityParts",
+            "loadInstalledKintoneSource",
+            "loadInstalledKintoneSource/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledKintoneSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledKintoneSource/loadInstalledKintoneSource",
+            "loadInstalledKintoneSource/loadInstalledKintoneSource/authorize/authorize",
+            "loadInstalledKintoneSource/loadInstalledKintoneSource/current/current",
+            "loadInstalledKintoneSource/loadInstalledKintoneSource#2",
+            "loadInstalledKintoneSource/site/site",
+            "loadInstalledKintoneSource/target/target",
+            "positive/positive",
+            "text/text"
+          ],
+          "exports": [
+            "INSTALLED_KINTONE_SITE_VERSION",
+            "INSTALLED_KINTONE_SOURCE_VERSION",
+            "checkInstalledKintoneSourceProfile",
+            "installedKintoneSourceIdentityParts",
+            "loadInstalledKintoneSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "## Installed Credential Site"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "export async function createInstalledRowSource"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+                "anchor": "client_program_kintone_prepare_read"
+              },
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "export function checkInstalledKintoneSourceProfile"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "anchor": "export function invocationBindingsMatch"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/host/record_read.mbt",
+                "anchor": "pub fn bind_record_read_cleanup"
+              },
+              {
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "anchor": "processing = false;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "a changed final Form refuses capture after real record bytes without a replacement lookup"
+              },
+              {
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "anchor": "currentBeforeSend: () => current(operation)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "a kintone reply loss remains Unknown with one physical request and no automatic retry"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "a rejected kintone response is charged on the original RowRun without another request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "canceling an awaited kintone page retains its original reservation until transport retirement"
+              },
+              {
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_read.mbt",
+                "anchor": "pub fn recheck_record_read_form"
+              },
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "All decoder/request/page/request-count and secret ceilings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host-bundle.json",
+                "anchor": "actql-installed-kintone-source/0.1"
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "export function checkHostBundle"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "a changed kintone resolver cannot replace the original token between Form and records"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "kintone repeated cross-page IDs abort instead of treating totalCount as completion"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+      "sha256": "46c49f762008b2c617686af1312ee69b961aa1c204e5166157a969fe495faa5c",
+      "exports": [
+        "KINTONE_FORM_READ_OPERATION",
+        "KINTONE_RECORD_READ_OPERATION",
+        "readKintoneRecords"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBounds",
+          "parameters": [
+            "moon",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "readKintoneRecords",
+          "parameters": [
+            "moon",
+            "prepared",
+            "rowRun",
+            "limits",
+            "guestSpaceId",
+            "authorizationFor",
+            "credential",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "readKintoneRecords/exchange/exchange",
+          "parameters": [
+            "operation",
+            "path",
+            "body"
+          ],
+          "async": true
+        },
+        {
+          "name": "readKintoneRecords/exchange/exchange/exchange",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readKintoneRecords/form/form",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readKintoneRecords/readKintoneRecords",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readKintoneRecords/readKintoneRecords#2",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/acquisition-outcome.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing original kintone Catalog/RowRun, Account and Credential Site owners; vendor request/response and installed physical projection only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "positive/positive",
+            "readBounds",
+            "readKintoneRecords",
+            "readKintoneRecords/exchange/exchange",
+            "readKintoneRecords/exchange/exchange/exchange",
+            "readKintoneRecords/form/form",
+            "readKintoneRecords/readKintoneRecords",
+            "readKintoneRecords/readKintoneRecords#2"
+          ],
+          "exports": [
+            "KINTONE_FORM_READ_OPERATION",
+            "KINTONE_RECORD_READ_OPERATION",
+            "readKintoneRecords"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "## Installed Credential Site"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "export async function createInstalledRowSource"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+                "anchor": "client_program_kintone_prepare_read"
+              },
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "export function checkInstalledKintoneSourceProfile"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "anchor": "export function invocationBindingsMatch"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/host/record_read.mbt",
+                "anchor": "pub fn bind_record_read_cleanup"
+              },
+              {
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "anchor": "processing = false;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "a changed final Form refuses capture after real record bytes without a replacement lookup"
+              },
+              {
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "anchor": "currentBeforeSend: () => current(operation)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "a kintone reply loss remains Unknown with one physical request and no automatic retry"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "a rejected kintone response is charged on the original RowRun without another request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "canceling an awaited kintone page retains its original reservation until transport retirement"
+              },
+              {
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_read.mbt",
+                "anchor": "pub fn recheck_record_read_form"
+              },
+              {
+                "path": "docs/design/kintone-record-acquisition.md",
+                "anchor": "All decoder/request/page/request-count and secret ceilings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host-bundle.json",
+                "anchor": "actql-installed-kintone-source/0.1"
+              },
+              {
+                "path": "scripts/connector-host-bundles.mjs",
+                "anchor": "export function checkHostBundle"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "a changed kintone resolver cannot replace the original token between Form and records"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "anchor": "kintone repeated cross-page IDs abort instead of treating totalCount as completion"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

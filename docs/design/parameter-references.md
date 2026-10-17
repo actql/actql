@@ -61,6 +61,26 @@ selected names are complete for a Program, stage or unit. The enclosing
 compiler still has to collect the normative slots and bind their owners before
 placing the selected-value identity in the appropriate semantic envelope.
 
+`bound_value_for_cursor` is a bounded read of that same selected binding, not
+lookup by a caller-provided name. The Cursor must belong to the indexed source
+subtree and its exact normalized reference location. The Owner reuses its
+pointer encoding and charges path construction, reference comparisons and
+selected-name inspection. A copied source, an unindexed position or an ancestor
+does not select a value; equal text and equal CIDs supply no correspondence.
+The result retains the original BoundParameter and reports consumed logical
+work. It neither re-admits a declaration nor proves execution permission.
+
+The checked Effect closure uses this projection for the immediate Parameter
+literal in the adopted relation-backed `create.values` form. It supplies the
+existing checked Program's stage BoundIndices, not a separate parameter map.
+The selected value is checked against the exact original Mapping target
+Contract under the remaining value limits. Nested business data and legacy raw
+create payloads are not recursively substituted. The original Mapping remains
+unchanged: explicit values select the exact permitted target-field set rather
+than applying unselected row-mapping defaults or null policies. Omitted fields
+are absent, while an explicit null must satisfy its target Contract. Legacy
+`from` without `values` continues to use its complete original row mapping.
+
 For multiple indices, `prepare_values` builds one immutable shared name lookup
 from an admitted BoundValues owner. `bind_prepared` enforces the same exact
 declaration ownership and charges only selected-entry work; the caller charges

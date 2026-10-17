@@ -72,3 +72,66 @@ Vendor meaning follows Notion's [list-users endpoint](https://developers.notion.
 [pagination conventions](https://developers.notion.com/reference/intro#pagination).
 The physical request must pin its reviewed Notion-Version; this catalog does not
 claim that a version header or an authorization operation has already been sent.
+
+## Credential-bound paging
+
+The private physical user reader sends `GET /v1/users` with the reviewed
+`Notion-Version: 2026-03-11` and bounded `page_size`. It passes the original
+opaque `next_cursor` back as `start_cursor`; a short or empty continued page
+is not terminal. The Catalog alone interprets the original response, validates
+every declared cell before projection and emits its bounded metadata/rows.
+Whole-acquisition checks reject repeated cursors, duplicate user identities,
+incomplete final pages and exceeded total row/body limits without finishing
+or capturing a partial Source. No page is sorted, normalized or retried.
+
+The same original installed Credential binding retains token identity across
+pages. Every request independently claims its own existing operation use and
+rechecks current Account/authority before dispatch and after each await. A
+replacement token, foreign invocation, nominally different grant or changed
+current Account refuses. The user-list response is not an original workspace
+issuer, permission proof or an email capability: the trusted installation must
+bind the selected workspace/integration and information capabilities itself.
+The reader does not infer those bindings from a user's name, id or bot fields.
+
+Rejected and malformed responses are charged before projection and their exact
+original raw bodies remain on the failure. A lost response retains the original
+Credential Journal use as Unknown; another `read()` or reuse of that claim
+cannot resend or resolve a replacement token. Cancellation also retains the
+same failure, raw observations and cleanup responsibility. No retry queue,
+additional authorization Owner or OAuth exchange is introduced.
+
+## Reader graph and physical retirement
+
+Before I/O the trusted caller must supply the complete simultaneous retained
+and workspace envelope through the existing original acquisition/Resource
+owner. Per-page limits, canonical RowRun transfer charge and an explicit
+component reservation are not that complete numerical supplier. The graph
+includes original options and callback/credential references, AbortController
+and combined signal, frozen projection/limit/export tables, the reader state
+and its three methods, original raw response/body aliases across all pages,
+metadata and parsed Catalog/checked-cell graphs, complete id/cursor sets,
+request target/query encoding, bounded row output/JSON parse and the escaped
+success/failure observation arrays. Shared objects and cloned arrays still
+have reference/layout costs; they do not make overlapping holdings free.
+Pending I/O, signing/secret resolution, callback Promises and their handlers
+may overlap this graph. Retention lasts through the original consuming
+acquisition, not merely through the last physical socket read.
+
+The same reader is single-use. Its private WeakMap rejects copied receivers;
+`read`, `requestStop` and `observe` retain the original phase and stop handle.
+`observe().cleanupConfirmed` remains false because raw, row, closure and error
+aliases can escape. Transport close, fulfilled Promise, canonical RowRun close,
+freezing or GC does not manufacture a retirement receipt. The existing
+provider-reader caller must keep the same Resource/RowRun borrower pending
+until a genuine transfer/retirement supplier exists. Normal installation,
+complete reader funding, actual physical retirement and public Notion
+read/write acceptance remain separate outstanding boundaries.
+
+The actual physical counters use original Common SQL/AQL preparation, Account,
+signed Credential grants, SQLite claims, loopback TLS and canonical RowRun.
+Their independent component bounds do not qualify a normal reader supplier;
+legacy RowRun close settles its own base account, not the unregistered whole
+reader graph. These counters preserve original raw/journal/key/Unknown state.
+No live Notion workspace or credential is used. Endpoint versioning follows
+Notion's [version policy](https://developers.notion.com/reference/versioning);
+request parameters and capabilities follow the existing list-users reference.

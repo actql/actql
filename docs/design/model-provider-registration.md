@@ -153,3 +153,93 @@ This representation does not advertise normal numerical startup, an installable
 public Provider package or live Model support. Host-specific layout and all
 simultaneous holdings still require the original resource supplier. Public
 execution and package acceptance remain separate from private registration.
+
+## Public Task originals and applicable handling
+
+Public Task admission retains the original decoded document, exact identifier,
+instructions and checked input/output contracts. Its internal version is that
+same identifier String; it does not parse a suffix or change legacy explicit
+Task versions. The original project registry must name the same Task. Selection
+uses either the complete authored provider/model pair or the same registry's
+default provider and its actual registration's original model default.
+
+The original installed configuration may supply an explicit `data_handling`
+Envelope in each model profile. The existing contract-envelope identity reader
+checks its original body/CID, and the existing Task handling constraints check
+no-training, classifications, regions and retention. Every supplied profile is
+checked, including unused policies. The containing actual configuration contract
+must explicitly admit this extension and cover that model/endpoint. Integrity
+and applicability are separate: canonical bytes alone do not establish policy
+provenance, current installation, geographic processing or permission.
+
+No policy is inferred from a provider type, SDK default or another model.
+Missing applicable policy remains unavailable for public normalization; legacy
+generation-only DATA stays valid without acquiring a policy. Mock must supply
+its own original fixture policy, not a physical provider grant. Preparation and
+saved Run materials retain the selected original policy/configuration and Task;
+current replacements cannot rewrite the original Task identity. Existing Account,
+egress, capability, reservation, Unknown and cleanup checks remain independent.
+
+The installed project acquisition retains the exact issued project/runtime pair
+in a private membership index. A copied project object or a different runtime
+cannot supply that pair to the Task-file stage. The stage captures the original
+Common readers and their receiver before sequential file I/O, reads each named
+file with the existing bounded strict-UTF8/FD cleanup owner, and rechecks the
+same installation currentness after the awaited read and close. A file declaring
+another registered Task cannot replace the original named occurrence, including
+when two registry entries name the same path. Common owns the declaration,
+selection, applicable configuration/policy and normalized material identities;
+the adapter neither computes a Task CID nor supplies an opaque constructor.
+
+The finite Task count and per-document bounds limit acquisition and traversal;
+they are not a simultaneous retained/workspace envelope or a numerical lease.
+The existing installation must account for the project membership record,
+captured callbacks, bounds, task inventory, raw UTF8 text, checked declaration,
+selection, original Provider/default references, normalized Task/prompt material,
+the checked-material name projection and current read/decode/hash workspace.
+Previously loaded entries coexist with the next read. A pending close keeps the
+same original FD/error cleanup handle; current refusal does not acknowledge
+cleanup, substitute a Provider, or reread replacement configuration. The retained
+Task material is not by itself an installed Environment, saved Run, execution
+contract, physical supplier, permission or send admission. Those existing Host
+assembly and Run owners must consume the same originals and retain them until
+their original duties retire; recovery never regenerates them from current files.
+
+### Project Task Host assembly
+
+The existing embedded Local entry discovers the original project before its
+Host registry lookup. Configuration and registry bytes, their project directory,
+and the actual registration callback are part of that existing installation
+identity. Equal bytes do not manufacture an opaque project or Task. A live Host
+retains the admitted Task files; another connection cannot replace its materials
+by changing a file. A newly opened generation must acquire and admit its own
+originals. This is not a filesystem watcher or a fresh current-file assertion.
+
+The same Common runtime receives the actual Provider registration, resolves its
+original profile, and projects those normalized Task members into the original
+outer Check Environment. Common owns member ordering, complete member hashes,
+Task emission and the outer evidence identity. The Host does not parse/rebuild
+Task preimages. It applies this projection after existing Host policy encoding
+so exact Task identifiers and instructions are not normalized by configuration
+encoding. The existing complete Environment checker then admits the result;
+the projection itself does not accept duplicate Task selectors or issue a Run.
+
+The initial Local reader selection is explicit: at most 128 Task files, each
+at most 65536 UTF8 bytes, 4096 decode nodes, depth 64 and 256 members; each
+contract uses at most 4096 nodes, depth 64 and 65536 text bytes. Each bounded
+normalization/projection has a 2097152 work ceiling. These are installation
+reader ceilings, not Model execution fuel, capacity reservations or normal
+numerical profile admission. The final aggregate Environment retains its own
+existing limits, which may refuse a collection of individually admitted files.
+
+The installation inventory additionally retains the project membership record,
+one Provider reference in each normalized Task, captured runtime/current
+callbacks, the full Task inventory and the existing Host backreferences.
+Projection overlaps the old Environment, sorted member references/CIDs, hash
+UTF8 workspace, canonical preimage, final wire and ordinary Environment decode.
+The project identity index's V8 backing and all managed controls remain explicit
+Host/runtime responsibilities, not zero-byte or physical-release claims.
+The existing Host shutdown drops project/Task aliases only after its original
+child duties complete; Unknown or pending child cleanup retains responsibility.
+This connection supplies static checked materials, not execution dependencies,
+same-Run recovery, a physical Model supplier, permission or whole-phase funding.

@@ -873,6 +873,10 @@ pub fn client_original_keyed_lookup_available(ClientModelReadScope, ClientCompil
 
 pub fn client_original_keyed_prefix_lookup_input(ClientOriginalKeyedPrefixLookup) -> ClientKeyedLookupInput?
 
+pub fn client_project_model_task_selection_for(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
+
+pub fn client_project_model_task_selection_usage(ClientProjectModelTaskSelection) -> Int
+
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]
@@ -1093,6 +1097,10 @@ pub fn client_submitted_intent_wire(ClientSubmittedIntent) -> String
 
 pub fn client_submitted_journal_append_rows(ClientSubmittedJournalAppend) -> (String, Bytes, Int64, Bytes)
 
+pub fn client_submitted_name_authentication_input(ClientSubmittedNameBinding, Int) -> Result[String, ClientSubmittedNameIssue]
+
+pub fn client_submitted_name_key_fields(ClientSubmittedNameKey) -> (String, String, String)
+
 pub fn client_submitted_run_admission_wire(ClientRequestIdentity, String, Int64) -> Result[String, ClientSubmittedRunRecordIssue]
 
 pub fn client_table_input_mapping(ClientTableInput) -> @effect_application.StorageMappingReference
@@ -1276,6 +1284,8 @@ pub fn handoff_client_model_read_consumer_input_capacity(ClientModelReadConsumer
 pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
 
 pub fn[E] inspect_client_empty_cancellation_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], E, E) -> Result[Unit, E]
+
+pub fn inspect_client_named_submitted_original(ClientSubmittedNameKey, String, ClientSubmittedIntent, ClientSubmittedNameBinding, ClientSubmissionReferenceRecord?, ClientSubmittedIntent?) -> Result[ClientSubmissionReferenceRecord, ClientSubmittedNameIssue]
 
 pub fn inspect_client_native_local_scalar_runtime_pair(ClientNativeLocalRuntime, ClientNativeLocalRuntime, ClientLocalProductAssets, ClientLocalProductAssets) -> Result[ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarRuntimePairIssue]
 
@@ -1519,6 +1529,8 @@ pub fn issue_source_free_client_effect_local_table_artifact(PreparedClientEffect
 
 pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
+pub fn normalize_client_project_model_task(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, ClientModelProviderDefaults, @check_environment.ModelTaskLimits) -> Result[@check_environment.NormalizedPublicModelTask, @check_environment.ModelTaskIssue]
+
 pub fn observe_client_keyed_request_attempt(ClientKeyedRequest, Int64, Int64) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn observe_client_keyed_response(ClientKeyedRequest, Int64, Int64, Int64) -> Result[Unit, ClientKeyedRequestIssue]
@@ -1664,6 +1676,10 @@ pub fn prepare_client_submission_reference_record(ClientSubmissionEpochToken, St
 pub fn prepare_client_submitted_intent(String, Int, Int, Int) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue]
 
 pub fn[E] prepare_client_submitted_journal_append(ClientSubmissionReferenceRecord, ClientSubmittedIntent, @logical_request_scope.SubmissionEpochValidity, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientSubmittedJournalEncoding, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientSubmittedJournalAppendPlan, ClientSubmittedJournalAppendIssue[E]]
+
+pub fn prepare_client_submitted_name_binding(ClientSubmittedNameKey, String, String, String) -> Result[ClientSubmittedNameBinding, ClientSubmittedNameIssue]
+
+pub fn prepare_client_submitted_name_key(String, String, String, String) -> Result[ClientSubmittedNameKey, ClientSubmittedNameIssue]
 
 pub fn prepare_client_task_dispatch(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, ClientRequestIdentity, Int, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientTaskDispatchIssue]
 
@@ -1837,6 +1853,8 @@ pub fn[A] reserve_client_keyed_acquisition_attempt(@query_planning.QueryEvidence
 
 pub fn resolve_client_model_provider_defaults(ClientModelProviderDefaults, String?, Int64?, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, @check_environment.ModelProviderDefaultsResolutionIssue]
 
+pub fn resolve_client_project_model_task_defaults(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, ClientModelProviderDefaults, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, ClientProjectModelTaskSelectionIssue]
+
 pub fn restore_client_effect_run_normalization(ClientEffectRunMaterials) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
 pub fn restore_client_effect_run_target_selections(ClientEffectRunMaterials) -> Result[String?, ClientEffectUpdateTargetIssue]
@@ -1870,6 +1888,8 @@ pub fn reuse_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedReq
 pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_runtime.CheckpointRequest, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientRequestedEffectStopIssue]
 
 pub fn seal_client_requested_effect_stop_body(ClientRequestedEffectStop, String, String, @checkpoint_runtime.WireLimits) -> Result[String, ClientRequestedEffectStopIssue]
+
+pub fn select_client_project_model_task(ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, Int) -> Result[ClientProjectModelTaskSelection, ClientProjectModelTaskSelectionIssue]
 
 pub fn select_client_single_keyed_acquisition(PreparedClientProgram) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue]
 
@@ -3147,6 +3167,17 @@ pub fn ClientProjectModelRegistry::selected_default_provider(Self) -> String?
 pub fn ClientProjectModelRegistry::task_at(Self, Int) -> (String, String)?
 pub fn ClientProjectModelRegistry::task_count(Self) -> Int
 
+type ClientProjectModelTaskSelection
+
+pub(all) enum ClientProjectModelTaskSelectionIssue {
+  InvalidLimits
+  WorkLimit
+  TaskUnavailable
+  ProviderUnavailable
+  ForeignOriginal
+  InvalidDefaults(@check_environment.ModelProviderDefaultsResolutionIssue)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ClientPublicationBindingAdmissionIssue {
   MissingPublication
   InvalidBinding
@@ -3801,6 +3832,29 @@ pub(all) struct ClientSubmittedJournalEncoding {
   run_state_original : String?
   run_state_observation : (Int64, String?)?
 }
+
+pub struct ClientSubmittedNameBinding {
+  key : ClientSubmittedNameKey
+  authority_scope_cid : String
+  submission_id : String
+  intent_cid : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientSubmittedNameIssue {
+  InvalidName
+  InvalidContext
+  Encoding
+  CapacityExceeded
+  ChangedIntent
+  CustodyLost
+  OriginalUnavailable
+} derive(Eq, @debug.Debug)
+
+pub struct ClientSubmittedNameKey {
+  namespace_id : String
+  actor : String
+  name : String
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientSubmittedRunRecordIssue {
   Encoding

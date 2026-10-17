@@ -30,6 +30,21 @@ struct ContractRegistry {
 }
 
 ///|
+/// Integrity-checked DATA before registry membership is assigned. The existing
+/// registry and installed Model configuration share this reader; this record
+/// itself never proves Environment membership, issuer truth or authority.
+priv struct ContractEnvelopeData {
+  original : @decode.Cursor
+  id : String
+  version : String
+  kind : String
+  cid : String
+  body : @decode.Cursor
+  bytes : Int
+  nodes : Int
+}
+
+///|
 fn contract_kind(kind : String) -> Bool {
   match kind {
     "request_schema"
@@ -51,6 +66,67 @@ fn contract_kind(kind : String) -> Bool {
     | "provider_execution_capability" => true
     _ => false
   }
+}
+
+///|
+fn read_contract_envelope_data(
+  root : @decode.Cursor,
+  limits : Limits,
+  index : Int,
+) -> Result[ContractEnvelopeData, ContractIssue] {
+  let object = match
+    @decode.closed_object(root, [
+      "schema", "id", "version", "kind", "body", "cid",
+    ]) {
+    Ok(v) => v
+    Err(_) => return Err(InvalidEnvelope(index))
+  }
+  let fields = try {
+    let schema = string(object, "schema")
+    let id = string(object, "id")
+    let version = string(object, "version")
+    let kind = string(object, "kind")
+    let cid = string(object, "cid")
+    // Null is legal envelope DATA; each semantic role owns its body grammar.
+    let body = match @decode.lookup(object, "body") {
+      Some(v) => v
+      None => raise Stop(InvalidEnvelope)
+    }
+    Some((schema, id, version, kind, cid, body))
+  } catch {
+    _ => None
+  }
+  guard fields is Some((schema, id, version, kind, cid, body)) else {
+    return Err(InvalidEnvelope(index))
+  }
+  if schema != "actql.contract/0.1" ||
+    id == "" ||
+    version == "" ||
+    !contract_kind(kind) {
+    return Err(InvalidEnvelope(index))
+  }
+  let hashed = try {
+    // Charge the complete original, including the supplied self-CID, before
+    // excluding only that member from the existing canonical preimage.
+    let (_, size, count) = hash(root, limits, false)
+    let writer = @encode.hashing_writer(
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    emit_except(root, writer, Some("cid"))
+    let (digest, _, _) = @encode.finish_hash_usage(writer)
+    Some(("sha256:" + digest, size, count))
+  } catch {
+    _ => None
+  }
+  guard hashed is Some((expected, bytes, nodes)) else {
+    return Err(BudgetExceeded)
+  }
+  if cid != expected {
+    return Err(IdentityMismatch(index))
+  }
+  Ok({ original: root, id, version, kind, cid, body, bytes, nodes, })
 }
 
 ///|
@@ -77,62 +153,16 @@ pub fn check_contract_registry(
   for i in 0..<count {
     let item = member_at(environment, ContractRegistry, i).unwrap()
     let root = member_body(item)
-    let object = match
-      @decode.closed_object(root, [
-        "schema", "id", "version", "kind", "body", "cid",
-      ]) {
-      Ok(v) => v
-      Err(_) => return Err(InvalidEnvelope(i))
-    }
-    let fields = try {
-      let schema = string(object, "schema")
-      let id = string(object, "id")
-      let version = string(object, "version")
-      let kind = string(object, "kind")
-      let cid = string(object, "cid")
-      // body may be null; required() deliberately rejects null, lookup does not.
-      let body = match @decode.lookup(object, "body") {
-        Some(v) => v
-        None => raise Stop(InvalidEnvelope)
-      }
-      Some((schema, id, version, kind, cid, body))
-    } catch {
-      _ => None
-    }
-    guard fields is Some((schema, id, version, kind, cid, body)) else {
-      return Err(InvalidEnvelope(i))
-    }
-    if schema != "actql.contract/0.1" ||
-      id == "" ||
-      version == "" ||
-      !contract_kind(kind) {
-      return Err(InvalidEnvelope(i))
-    }
-    // Charge the complete supplied envelope, including its self-CID.
     let remaining = {
       ..limits,
       max_bytes: limits.max_bytes - bytes,
       max_nodes: limits.max_nodes - nodes,
     }
-    let hashed = try {
-      let (_, size, count) = hash(root, remaining, false)
-      let writer = @encode.hashing_writer(
-        remaining.max_bytes,
-        remaining.max_nodes,
-        remaining.max_depth,
-      )
-      emit_except(root, writer, Some("cid"))
-      let (digest, _, _) = @encode.finish_hash_usage(writer)
-      Some(("sha256:" + digest, size, count))
-    } catch {
-      _ => None
+    let data = match read_contract_envelope_data(root, remaining, i) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
-    guard hashed is Some((expected, size, count)) else {
-      return Err(BudgetExceeded)
-    }
-    if cid != expected {
-      return Err(IdentityMismatch(i))
-    }
+    let { id, version, kind, cid, body, bytes: size, nodes: count, .. } = data
     if names.contains((id, version)) {
       return Err(ConflictingIdentity(id, version))
     }

@@ -58,7 +58,7 @@
 //   `admitTargetReadApproval({member, decision})` admits the approval for
 //   exactly the member's physical binding; the admitted approval grants the
 //   reads and the describe.
-// - `recoveryEntry({member, current})`: data retained with the captured
+// - `recoveryEntry({member, current, entries})`: data retained with the captured
 //   computation to rebuild requests on recovery, and `recoverRequests({durable,
 //   recorded, previewWire, body})`, with `requestCid(request)`, a rebuilt
 //   request's identity. The three come together. Retained data is checked,
@@ -1493,7 +1493,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const connectorRecovery = members.flatMap((member, index) => {
       const {owned} = ownerOf(member);
       if (owned.recoveryEntry === undefined) return [];
-      const entry = owned.recoveryEntry({member, current: currents[index]});
+      const entry = owned.recoveryEntry({member, current: currents[index], entries: entries[index]});
       return [{memberIndex: index, kind: entry?.kind,
         observationCid: entry?.observationCid, wire: entry?.wire}];
     });
