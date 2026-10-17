@@ -390,10 +390,9 @@ test "independent native response returns the same typed carriers through the or
   guard rows[0][5].value is @admitted.Array(users) else {
     abort("expected users")
   }
-  assert_eq(@admitted.elements(users), [
-    @admitted.Text("u2"),
-    @admitted.Text("u1"),
-    @admitted.Text("u2"),
-  ])
+  assert_eq(@admitted.element_count(users), 3)
+  assert_true(@admitted.element_at(users, 0) is Some(@admitted.Text("u2")))
+  assert_true(@admitted.element_at(users, 1) is Some(@admitted.Text("u1")))
+  assert_true(@admitted.element_at(users, 2) is Some(@admitted.Text("u2")))
   assert_true(record_write_values_match_catalog(write, catalog))
 }
