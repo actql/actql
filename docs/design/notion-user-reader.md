@@ -36,7 +36,7 @@ id-array accessors return new arrays, not mutable aliases to the checked backing
 The response hash describes original bytes; equal hashes do not establish the
 same physical issuer, installation, response borrow or current authority.
 Nullable String contracts describe the public columns without inventing grants
-from an observed person/bot label. Schema and row output use the existing bounded
+from an observed person/bot label. Metadata, schema and row output use the existing bounded
 writers, and failure returns no partial wire result.
 
 ## Physical caller and retained resources

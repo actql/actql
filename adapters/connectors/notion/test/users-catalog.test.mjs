@@ -9,6 +9,7 @@ const project=(body,bounds=limits)=>checked(provider.notionProjectUserList(
   typeof body==='string'?Buffer.from(body):body,...bounds));
 const rows=(page,names=provider.notionUserListColumnNames())=>JSON.parse(checked(
   provider.notionUserListRowsWire(page,names,8192,100,8)));
+const metadata=page=>JSON.parse(checked(provider.notionUserListMetadataJson(page,4096,20,8)));
 
 test('Notion actual Catalog exports keep original person bot and nullable partial values',()=>{
   const page=project(wire([
@@ -19,7 +20,7 @@ test('Notion actual Catalog exports keep original person bot and nullable partia
     {id:'3c90c3cc-0d44-4b50-8888-8dd25736052a',name:'観測 é',type:'person',email:'a@example.test'},
     {id:'9188c6a5-7381-452f-b3dc-d4865aa89bdf',name:null,type:'bot',email:null},
   ]);
-  assert.deepEqual(JSON.parse(provider.notionUserListMetadataJson(page)),{rowCount:2,nextCursor:'original+/= é'});
+  assert.deepEqual(metadata(page),{rowCount:2,nextCursor:'original+/= é'});
   assert.deepEqual(provider.notionUserListColumnNames(),['id','name','type','email']);
   const copy=provider.notionUserListIds(page);copy[0]='not original';
   assert.equal(provider.notionUserListIds(page)[0],'3c90c3cc-0d44-4b50-8888-8dd25736052a');
@@ -44,8 +45,8 @@ test('Notion actual inconsistent continuation and errors cannot become an empty 
     '{"object":"list","type":"user","user":{},"results":[],"has_more":false,"next_cursor":null,"has_more":false}']){
     assert.throws(()=>project(body),{code:'MoonBitHostFailure'});
   }
-  assert.deepEqual(JSON.parse(provider.notionUserListMetadataJson(project(wire()))),{rowCount:0,nextCursor:null});
-  assert.deepEqual(JSON.parse(provider.notionUserListMetadataJson(project(wire([],true,'next')))),{rowCount:0,nextCursor:'next'});
+  assert.deepEqual(metadata(project(wire())),{rowCount:0,nextCursor:null});
+  assert.deepEqual(metadata(project(wire([],true,'next'))),{rowCount:0,nextCursor:'next'});
   assert.throws(()=>project(wire([{object:'user',id:'same'},{object:'user',id:'same'}])),{code:'MoonBitHostFailure'});
 });
 
@@ -59,6 +60,7 @@ test('Notion actual raw cursor identity and selected-output limits reject withou
   assert.throws(()=>project(wire([],true,'é'),bound),{code:'MoonBitHostFailure'});
   assert.throws(()=>project(Buffer.from([0xff,0x80])),{code:'MoonBitHostFailure'});
   const page=project(body);
+  assert.throws(()=>checked(provider.notionUserListMetadataJson(page,1,20,8)),{code:'MoonBitHostFailure'});
   assert.throws(()=>checked(provider.notionUserListRowsWire(page,['id'],1,100,8)),{code:'MoonBitHostFailure'});
   assert.throws(()=>checked(provider.notionUserListRowsWire(page,['id','id'],8192,100,8)),{code:'MoonBitHostFailure'});
   assert.throws(()=>checked(provider.notionUserListRowsWire(page,['grant'],8192,100,8)),{code:'MoonBitHostFailure'});

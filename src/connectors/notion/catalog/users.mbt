@@ -249,6 +249,38 @@ pub fn notion_user_list_row_count(page : NotionUserListPage) -> Int {
 }
 
 ///|
+pub fn notion_user_list_metadata_wire(
+  page : NotionUserListPage,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, NotionUserListIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    @encode.begin_ordered_object(writer)
+    @encode.ordered_key(writer, "nextCursor")
+    match page.next_cursor {
+      Some(cursor) => @encode.string_value(writer, cursor)
+      None => @encode.null_value(writer)
+    }
+    @encode.ordered_key(writer, "rowCount")
+    @encode.number_value(writer, page.rows.length().to_double())
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
+}
+
+///|
 pub fn notion_user_list_rows_wire(
   page : NotionUserListPage,
   names : Array[String],

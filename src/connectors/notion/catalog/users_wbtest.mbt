@@ -258,3 +258,26 @@ test "Notion schema and output budgets are owned contracts not caller-selected c
   )
   assert_eq(notion_user_list_schema_wire(1, 100, 8), Err(BudgetExceeded))
 }
+
+///|
+test "Notion cursor metadata uses exact bounded writer output" {
+  let page = project(
+    (
+      #|{"object":"list","type":"user","user":{},"results":[],"has_more":true,"next_cursor":"é"}
+    ),
+  ).unwrap()
+  let expected = "{\"nextCursor\":\"é\",\"rowCount\":0}"
+  let bytes = @utf8.encode(expected).length()
+  assert_eq(
+    notion_user_list_metadata_wire(page, bytes, 20, 8).unwrap(),
+    expected,
+  )
+  assert_eq(
+    notion_user_list_metadata_wire(page, bytes - 1, 20, 8),
+    Err(BudgetExceeded),
+  )
+  assert_eq(
+    notion_user_list_metadata_wire(page, bytes, 1, 8),
+    Err(BudgetExceeded),
+  )
+}

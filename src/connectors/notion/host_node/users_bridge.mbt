@@ -41,16 +41,11 @@ pub fn notion_user_list_rows_wire(
 #export_name("notionUserListMetadataJson")
 pub fn notion_user_list_metadata_json(
   page : @catalog.NotionUserListPage,
-) -> String {
-  let next : Json = match page.next_cursor {
-    Some(cursor) => cursor.to_json()
-    None => Json::null()
-  }
-  (
-    {
-      "rowCount": @catalog.notion_user_list_row_count(page).to_json(),
-      "nextCursor": next,
-    } : Json).stringify()
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @catalog.NotionUserListIssue] {
+  @catalog.notion_user_list_metadata_wire(page, max_bytes, max_nodes, max_depth)
 }
 
 ///|
