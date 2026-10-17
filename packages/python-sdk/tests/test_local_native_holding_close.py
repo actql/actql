@@ -22,6 +22,34 @@ class _CloseCall:
 
 
 class NativeHoldingCloseTests(unittest.TestCase):
+    def test_direct_provider_slot_uses_only_canonical_c_entry_without_rust_loading(self):
+        case = fixture.InstalledImageTests(); case.setUp()
+        _, library = case._holding([(0, True)])
+        direct = SimpleNamespace(**{
+            'actql_native_owned_' + suffix: getattr(library, 'actql_owned_' + suffix)
+            for suffix in ('try_close', 'enter', 'leave', 'capacity_bytes', 'contains_live_span', 'transfer')})
+        pointer = c_void_p(456)
+        holding = _NativeHoldingLease._from_native_provider(pointer, direct,
+                                                           generation=7, recipe=b'r' * 32)
+        self.assertIsNone(pointer.value)
+        self.assertIs(holding._library, direct)
+        self.assertEqual(holding._capacity_bytes(), 16777216 + 4096)
+        with holding._scope():
+            self.assertEqual(library.scope.depth, 1)
+        holding._require_live_span(c_void_p(789), 32)
+        holding.close(); holding.close()
+        self.assertEqual([event for event in case.events if event[0] == 'retire'], [('retire', 456)])
+        self.assertIsNone(holding._pointer.value)
+        self.assertIsNone(holding._core_identity)
+        self.assertFalse(holding._transfer_attempted)
+
+    def test_direct_provider_binding_failure_preserves_original_supplier_slot(self):
+        pointer = c_void_p(456)
+        with self.assertRaises(AttributeError):
+            _NativeHoldingLease._from_native_provider(pointer, SimpleNamespace(),
+                                                       generation=7, recipe=b'r' * 32)
+        self.assertEqual(pointer.value, 456)
+
     def holding(self, callback):
         call = _CloseCall(callback)
         library = SimpleNamespace(actql_owned_try_close=call)

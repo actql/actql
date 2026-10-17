@@ -10,7 +10,8 @@ from urllib.parse import urlsplit, urljoin
 import weakref
 import httpx
 from . import _wire as wire
-from ._errors import ClientError
+from ._errors import ClientError, RequestConflict
+from ._connection import NO_TOKEN as _NO_TOKEN, remote_connection as _remote_connection, valid_dsn_credential as _valid_dsn_credential
 from ._run_state import RunState
 from ._values import Observation, content_cid, decode_json, freeze, snapshot, thaw, wire_bytes
 from ._diagnostics import bind_check, retain_submission_check
@@ -18,6 +19,14 @@ from ._checkpoints import capture_signer, signed_answer, review_bytes_match_cid
 
 _submission_inputs = weakref.WeakKeyDictionary()
 _MISSING = object()
+
+
+def _submission_context(body, original=None):
+    context = {'submission_ref': freeze(snapshot(thaw(body['submissionRef'] if original is None else original))),
+               'attempt_ref': freeze(snapshot(body['attemptRef']))}
+    if 'requestName' in body:
+        context['request_id'] = body['requestName']
+    return context
 
 
 def get_submission_input(result):
@@ -48,15 +57,20 @@ class _LocalCoreCleanupPort:
 
 class AsyncClient:
     """Use open() for installed Local or connect() for an existing HTTPS Host."""
-    def __init__(self, endpoint, token, *, workspace_id=None, durability='durable',
+    def __init__(self, endpoint, token=_NO_TOKEN, *, workspace_id=None, durability='durable',
                  verify=True, timeout=30.0, transport=None, signer=None):
-        parsed = urlsplit(endpoint)
+        endpoint, token, workspace_id, self._dsn = _remote_connection(endpoint, token, workspace_id)
+        try:
+            parsed = urlsplit(endpoint)
+        except (ValueError, TypeError, AttributeError):
+            raise ClientError('InvalidConnectionEndpoint') from None
         if (parsed.scheme != 'https' or not parsed.hostname or parsed.username is not None
                 or parsed.password is not None or parsed.query or parsed.fragment):
             raise ClientError('InvalidConnectionEndpoint')
         if verify is False or not isinstance(verify, (bool, ssl.SSLContext)):
             raise ClientError('InvalidConnectionTrust')
-        if not callable(token) and not self._valid_token(token):
+        self._credential_valid = _valid_dsn_credential if self._dsn else self._valid_token
+        if not callable(token) and not self._credential_valid(token):
             raise ClientError('InvalidConnectionToken')
         selected = {'mode': 'remote', 'owner': 'remote', 'durability': durability, 'consentRefs': [], 'runners': []}
         if workspace_id is not None:
@@ -117,7 +131,7 @@ class AsyncClient:
         return await cls._connect_local(host, signer=selected_signer)
 
     @classmethod
-    async def connect(cls, endpoint, token, **options):
+    async def connect(cls, endpoint, token=_NO_TOKEN, **options):
         client = cls(endpoint, token, **options)
         try:
             profile = await client._request('connect', {})
@@ -190,8 +204,12 @@ class AsyncClient:
 
     async def aclose(self):
         self._closed = True
-        async with self._cleanup_lock:
-            await self._release()
+        try:
+            async with self._cleanup_lock:
+                await self._release()
+        except ClientError as failure:
+            self._redact_connection_failure(failure)
+            raise
 
     async def _release(self):
         # Failed resources remain owned for an explicit retry. This never cancels a Run.
@@ -272,12 +290,12 @@ class AsyncClient:
             raise
         except Exception:
             raise _ExchangeFailure('ClientCredentialUnavailable', False) from None
-        if not self._valid_token(credential):
+        if not self._credential_valid(credential):
             raise _ExchangeFailure('InvalidConnectionToken', False)
         if self._closed:
             raise _ExchangeFailure('ClientClosed', False)
         request = self._http.build_request('POST', urljoin(self._endpoint, 'actql/client/0.1/' + operation),
-            headers={'authorization': 'Bearer ' + credential, 'content-type': 'application/json',
+            headers={'authorization': ('Bearer ' + credential).encode('latin-1') if self._dsn else 'Bearer ' + credential, 'content-type': 'application/json',
                      'accept-encoding': 'identity'}, content=payload)
         try:
             response = await self._http.send(request, stream=True)
@@ -322,11 +340,36 @@ class AsyncClient:
             raise ClientError('InvalidHostResponse') from None
 
     async def _request(self, operation, body, max_bytes=1048576):
-        response = await self._open(operation, body)
         try:
-            return await self._json(response, max_bytes)
-        finally:
-            await self._close_response(response)
+            response = await self._open(operation, body)
+            try:
+                return await self._json(response, max_bytes)
+            finally:
+                await self._close_response(response)
+        except ClientError as failure:
+            self._redact_connection_failure(failure)
+            raise
+
+    def _redact_connection_failure(self, failure):
+        if not getattr(self, '_dsn', False):
+            return
+        # Preserve owned outcome/identity/cleanup carriers. A borrowed HTTP,
+        # credential or application exception is not safe DSN diagnostic data.
+        pending, seen = [failure], set()
+        while pending:
+            error = pending.pop()
+            if id(error) in seen:
+                continue
+            seen.add(id(error))
+            error.__cause__ = error.__context__ = None
+            for field in ('original_error', 'cleanup_error', 'validation_error'):
+                cause = getattr(error, field, None)
+                if cause is None:
+                    continue
+                if field != 'validation_error' and isinstance(cause, ClientError):
+                    pending.append(cause)
+                else:
+                    setattr(error, field, ClientError('ConnectionDiagnosticUnavailable'))
 
     def new_submission(self, *, nonce=None):
         if self._closed:
@@ -360,19 +403,32 @@ class AsyncClient:
         value = await self._request('check', body)
         return bind_check(value, body)
 
-    def start(self, program, *, submission_ref, parameters=None, attempt_id=None, stop_before=_MISSING, read_only=_MISSING):
-        return self._prepare_start('program', program, submission_ref, parameters, attempt_id, stop_before, read_only)
+    def start(self, program, *, submission_ref=None, request_id=None, parameters=None, attempt_id=None, stop_before=_MISSING, read_only=_MISSING):
+        reference = self._submission_candidate(submission_ref, request_id)
+        return self._prepare_start('program', program, reference, parameters, attempt_id, stop_before, read_only,
+                                   request_name=_MISSING if request_id is None else request_id)
 
-    def start_source(self, text, *, format, submission_ref, parameters=None, parameter_declarations=_MISSING, attempt_id=None, stop_before=_MISSING, read_only=_MISSING):
+    def start_source(self, text, *, format, submission_ref=None, request_id=None, parameters=None, parameter_declarations=_MISSING, attempt_id=None, stop_before=_MISSING, read_only=_MISSING):
         item = {'text': text, 'format': format}
         if parameter_declarations is not _MISSING:
             item['parameterDeclarations'] = parameter_declarations
-        return self._prepare_start('aql', item, submission_ref, parameters, attempt_id, stop_before, read_only)
+        reference = self._submission_candidate(submission_ref, request_id)
+        return self._prepare_start('aql', item, reference, parameters, attempt_id, stop_before, read_only,
+                                   request_name=_MISSING if request_id is None else request_id)
 
-    def _prepare_start(self, kind, input, reference, parameters, attempt_id, stop_before, read_only=_MISSING):
-        return self._start(self._capture_start(kind, input, reference, parameters, attempt_id, stop_before, read_only))
+    def _submission_candidate(self, reference, request_id):
+        if reference is not None and request_id is not None:
+            raise ClientError('ConflictingSubmissionIdentity')
+        # A fresh candidate is only a proposal to the same Host. The scoped
+        # Journal atomically selects an original; the name never becomes an
+        # epoch nonce, client cache or permission to repeat preparation.
+        return self.new_submission() if reference is None else reference
 
-    def _capture_start(self, kind, input, reference, parameters, attempt_id, stop_before, read_only):
+    def _prepare_start(self, kind, input, reference, parameters, attempt_id, stop_before, read_only=_MISSING, *, request_name=_MISSING):
+        return self._start(self._capture_start(kind, input, reference, parameters, attempt_id, stop_before, read_only,
+                                              request_name=request_name))
+
+    def _capture_start(self, kind, input, reference, parameters, attempt_id, stop_before, read_only, *, request_name=_MISSING):
         body = snapshot({'kind': kind, 'input': input, 'submissionRef': thaw(reference), 'parameters': parameters,
                          'attemptRef': {'operation': 'submit', 'attemptId': str(uuid.uuid4()) if attempt_id is None else attempt_id}})
         intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
@@ -382,7 +438,9 @@ class AsyncClient:
             body['readOnly'] = intent['readOnly'] = snapshot(read_only)
         body['intentCid'] = content_cid({'version': 'actql-submitted-intent/0.1',
                                       'intent': intent}, data_keys=True)
-        self._body('submit-intent', body)
+        if request_name is not _MISSING:
+            body['requestName'] = snapshot(request_name)
+        self._body('submit-named-intent' if request_name is not _MISSING else 'submit-intent', body)
         return body
 
     def sql(self, text, parameters=None, **options):
@@ -398,38 +456,44 @@ class AsyncClient:
             raise ClientError('InvalidResultName')
         if parameters is not None and type(parameters) is not dict:
             raise ClientError('InvalidQueryParameters')
-        if submission_ref is not None and request_id is not None:
-            raise ClientError('ConflictingSubmissionIdentity')
-        reference = self.new_submission(nonce=request_id) if submission_ref is None else submission_ref
+        reference = self._submission_candidate(submission_ref, request_id)
         item = {'text': text, 'format': format}
         if parameter_declarations is not _MISSING:
             item['parameterDeclarations'] = parameter_declarations
-        body = self._capture_start('aql', item, reference, parameters, attempt_id, _MISSING, True)
+        body = self._capture_start('aql', item, reference, parameters, attempt_id, _MISSING, True,
+                                   request_name=_MISSING if request_id is None else request_id)
         query = AsyncQuery(self, body, result)
         _submission_inputs[query] = freeze(snapshot(body))
         return query
 
     async def _start(self, body):
-        context = {'submission_ref': freeze(body['submissionRef']), 'attempt_ref': freeze(body['attemptRef'])}
+        context = _submission_context(body)
+        named = 'requestName' in body
         try:
-            value = await self._request('submit-intent', body)
-            if not wire.submission_attempt(value, thaw(self._selected), body):
+            value = await self._request('submit-named-intent' if named else 'submit-intent', body)
+            if not (wire.named_submission_attempt(value, thaw(self._selected), body) if named
+                    else wire.submission_attempt(value, thaw(self._selected), body)):
                 raise ClientError('InvalidHostSubmissionOutcome')
             if 'outcome' not in value:
-                result = ClientError('SubmissionRefused' if value['kind'] == 'refused' else 'SubmissionConflict',
-                                     outcome=Observation(value), **context)
+                result = (RequestConflict(outcome=Observation(value), **context)
+                          if named and value['kind'] == 'conflict' else
+                          ClientError('SubmissionRefused' if value['kind'] == 'refused' else 'SubmissionConflict',
+                                      outcome=Observation(value), **context))
             else:
                 outcome = value['outcome']
+                context = _submission_context(body, outcome['submissionRef'])
                 if outcome['kind'] == 'ready':
                     result = AsyncExecution(self, outcome['admission'], Observation(outcome))
                 else:
                     code = {'held': 'RequestHeld', 'not_accepted': 'SubmissionNotAccepted',
-                            'preparation_failed': 'SubmissionPreparationFailed', 'preparing': 'SubmissionPreparing'}[outcome['kind']]
+                            'preparation_failed': 'SubmissionPreparationFailed', 'preparing': 'SubmissionPreparing',
+                            'unresolvable': 'SubmissionUnresolvable'}[outcome['kind']]
                     result = ClientError(code, outcome=Observation({key: child for key, child in outcome.items() if key != 'checkObservation'}), **context)
                     if 'checkObservation' in outcome:
                         retain_submission_check(result, outcome['checkObservation'], body)
         except asyncio.CancelledError as error:
-            error.submission_ref, error.attempt_ref = context['submission_ref'], context['attempt_ref']
+            for key, value in context.items():
+                setattr(error, key, value)
             raise
         except ClientError as failure:
             result = ClientError('SubmissionNotSent' if isinstance(failure, _ExchangeFailure) and not failure.sent else 'SubmissionUnknown', **context)

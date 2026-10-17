@@ -1,5 +1,5 @@
 """Generated private C/Rust memory declarations; do not edit."""
-from ctypes import POINTER, c_int, c_int64, c_uint64, c_size_t, c_ubyte, c_void_p
+from ctypes import CFUNCTYPE as _CFUNCTYPE, POINTER, c_int, c_int64, c_uint64, c_size_t, c_ubyte, c_void_p
 from typing import Any
 
 SIGNATURES: dict[str, tuple[list[Any], Any]] = {
@@ -31,6 +31,11 @@ SIGNATURES: dict[str, tuple[list[Any], Any]] = {
     'actql_native_owned_retire': ([c_void_p, c_void_p], c_int),
     'actql_native_owned_rounded_bytes': ([c_void_p, c_size_t, POINTER(c_uint64)], c_int),
     'actql_native_owned_seal_readonly': ([c_void_p, c_void_p], c_int),
+    'actql_native_owned_thread_control_alignment': ([], c_size_t),
+    'actql_native_owned_thread_control_bytes': ([], c_size_t),
+    'actql_native_owned_thread_join': ([c_void_p, c_void_p], c_int),
+    'actql_native_owned_thread_start': ([c_void_p, c_void_p, c_size_t, _CFUNCTYPE(None, c_void_p), c_void_p], c_int),
+    'actql_native_owned_thread_start_configured': ([c_void_p, c_void_p, c_size_t, c_void_p, _CFUNCTYPE(None, c_void_p), c_void_p], c_int),
     'actql_native_owned_transfer': ([c_void_p, c_uint64, POINTER(c_ubyte)], c_int),
     'actql_native_owned_transfer_original_domain': ([c_void_p], c_int),
     'actql_native_owned_try_close': ([POINTER(c_void_p)], c_int),
@@ -78,6 +83,11 @@ PARAMETERS = {
     'actql_native_owned_retire': (('lease', 'actql_owned_capacity *', None), ('allocation', 'void *', None)),
     'actql_native_owned_rounded_bytes': (('lease', 'actql_owned_capacity *', None), ('bytes', 'size_t', None), ('out', 'uint64_t *', None)),
     'actql_native_owned_seal_readonly': (('lease', 'actql_owned_capacity *', None), ('allocation', 'void *', None)),
+    'actql_native_owned_thread_control_alignment': (),
+    'actql_native_owned_thread_control_bytes': (),
+    'actql_native_owned_thread_join': (('lease', 'actql_owned_capacity *', None), ('storage', 'void *', None)),
+    'actql_native_owned_thread_start': (('lease', 'actql_owned_capacity *', None), ('storage', 'void *', None), ('storage_bytes', 'size_t', None), ('entry', 'actql_owned_thread_entry', None), ('argument', 'void *', None)),
+    'actql_native_owned_thread_start_configured': (('lease', 'actql_owned_capacity *', None), ('storage', 'void *', None), ('storage_bytes', 'size_t', None), ('attributes', 'const void *', None), ('entry', 'actql_owned_thread_entry', None), ('argument', 'void *', None)),
     'actql_native_owned_transfer': (('lease', 'actql_owned_capacity *', None), ('generation', 'uint64_t', None), ('recipe', 'const unsigned char *', '[32]')),
     'actql_native_owned_transfer_original_domain': (('lease', 'actql_owned_capacity *', None),),
     'actql_native_owned_try_close': (('lease', 'actql_owned_capacity **', None),),
@@ -125,6 +135,11 @@ ORIGINS = {
     'actql_native_owned_retire': 'packages/python-local-runtime/native/pre-root/owned_capacity.h',
     'actql_native_owned_rounded_bytes': 'packages/python-local-runtime/native/pre-root/owned_capacity.h',
     'actql_native_owned_seal_readonly': 'packages/python-local-runtime/native/pre-root/owned_capacity.h',
+    'actql_native_owned_thread_control_alignment': 'packages/python-local-runtime/native/pre-root/owned_thread.h',
+    'actql_native_owned_thread_control_bytes': 'packages/python-local-runtime/native/pre-root/owned_thread.h',
+    'actql_native_owned_thread_join': 'packages/python-local-runtime/native/pre-root/owned_thread.h',
+    'actql_native_owned_thread_start': 'packages/python-local-runtime/native/pre-root/owned_thread.h',
+    'actql_native_owned_thread_start_configured': 'packages/python-local-runtime/native/pre-root/owned_thread.h',
     'actql_native_owned_transfer': 'packages/python-local-runtime/native/pre-root/owned_capacity.h',
     'actql_native_owned_transfer_original_domain': 'packages/python-local-runtime/native/pre-root/owned_capacity.h',
     'actql_native_owned_try_close': 'packages/python-local-runtime/native/pre-root/owned_capacity.h',

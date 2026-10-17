@@ -21,8 +21,8 @@
 
 --- a/owned_capacity.c
 +++ b/owned_capacity.c
-@@ -13,12 +13,17 @@
- #include <sys/stat.h>
+@@ -14,12 +14,17 @@
+ #include <pthread.h>
 
  /* An extent is a physical allocator record, not a Run or capacity decision. */
 +struct actql_read_context;
@@ -39,7 +39,7 @@
  };
 
  struct actql_owned_capacity {
-@@ -38,6 +43,7 @@
+@@ -39,6 +44,7 @@
      bool transferred;
      bool closing;
      size_t active_scopes;
@@ -47,7 +47,7 @@
      atomic_flag lock;
      struct extent extents[];
  };
-@@ -412,6 +418,9 @@
+@@ -443,6 +449,9 @@
      if (lease->active_scopes != 0) {
          return ACTQL_OWNED_BUSY;
      }
@@ -57,10 +57,10 @@
      lease->closing = true;
      for (size_t i = lease->control_pages; i < lease->page_count; i++) {
          if (lease->extents[i].pages == 0) continue;
-@@ -452,3 +461,6 @@
-  * domain borrow uses only its original interior relative allocator records. */
- #include "owned_region.inc"
- #include "owned_domain_borrow.inc"
+@@ -486,3 +495,6 @@
+
+ /* Child startup and join reuse this provider's original scope and backing. */
+ #include "owned_thread.inc"
 +
 +/* Private selected read allocator preparation, same physical provider. */
 +#include "scoped_read.inc"

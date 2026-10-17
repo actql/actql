@@ -1,0 +1,53 @@
+{
+  "status": "source-preparation-only",
+  "upstream_git_commit": "399f857f28ee8845d0cfd4ec71680912b5375831",
+  "target": "aarch64-apple-darwin",
+  "runtime_version": "38.0.0",
+  "feature": "actql-owned-capacity",
+  "normal_profile": null,
+  "Engine_executed": false,
+  "runtime_build_executed": false,
+  "patch": {
+    "path": "wasmtime-owned-thread-review.patch",
+    "bytes": 5445,
+    "sha256": "7d591e62ff255cd58fb334f50c33911f199ebfcc2a15f1bc1d31b90d25399254"
+  },
+  "inputs": [
+    {
+      "path": "crates/wasmtime/src/runtime/vm/sys/unix/machports.rs",
+      "bytes": 21311,
+      "sha256": "78c4db7748b629ffe3e7947ea0c88d23f4caa49b2279c47b551721fc94b84902"
+    },
+    {
+      "path": "crates/wasmtime/src/runtime/vm/sys/unix/traphandlers.rs",
+      "bytes": 2134,
+      "sha256": "e712182c96162344baeabb824158653d36d11ad23cd5a6764956fe1967ac7a46"
+    },
+    {
+      "path": "crates/wasmtime/src/runtime/vm/traphandlers/signals.rs",
+      "bytes": 2504,
+      "sha256": "46022bbe06fc451f90194ce8c78f2639be4d7cac5f5ec05384a10e1341a32199"
+    }
+  ],
+  "copy": {
+    "source": "owned_handler_thread.rs",
+    "target": "crates/wasmtime/src/runtime/vm/sys/unix/actql_owned_handler_thread.rs",
+    "bytes": 10194,
+    "sha256": "89e52a0f2ec2fb0f943306ccf810f6935304f41e1f89f816c2361418160e1309"
+  },
+  "outputs": {
+    "crates/wasmtime/src/runtime/vm/sys/unix/machports.rs": {
+      "bytes": 23514,
+      "sha256": "98d8e845d5e8b701590cdf84b9bfcf29531beedc0f136ecb812ce1bfe27ff6aa"
+    },
+    "crates/wasmtime/src/runtime/vm/sys/unix/traphandlers.rs": {
+      "bytes": 2249,
+      "sha256": "41c799d8dac0390a17ff87b1b7ef36304511d784637ba1fe0c990c048d0f7dd9"
+    },
+    "crates/wasmtime/src/runtime/vm/traphandlers/signals.rs": {
+      "bytes": 2818,
+      "sha256": "6c0a284dd641f239d1ee3c4587f5bfae9153544cca4a46353ac754c61bf327f0"
+    }
+  },
+  "retirement": "Existing process/runtime handler lifetime only. Engine close cannot acknowledge global handler, Rust static mutex or holding retirement. Missing original process supplier stays refused."
+}

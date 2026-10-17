@@ -1,4 +1,8 @@
 #include "control_shim.h"
+#include <string.h>
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+extern int32_t actql_bootstrap_control_scope_clear(void);
+#endif
 
 /* Code references only. This neither creates a physical provider/TLS nor
  * adopts a supplier, profile, authority, Root or Run. No DLL constructor. */
@@ -55,6 +59,33 @@ actql_control_reply *actql_control_prepare(
     return callbacks.prepare(source, recipe, generation, bytes, planning,
                              attempts, holdings, transfer, retained, execution,
                              envelope);
+}
+
+int actql_control_prepare_utf16_into(
+    const uint16_t *source, int32_t source_units,
+    const uint8_t *recipe, int32_t recipe_bytes, int64_t generation,
+    int64_t bytes, int32_t planning, int32_t attempts, int32_t holdings,
+    int64_t transfer, int64_t retained, int64_t execution, int64_t envelope,
+    actql_control_reply **reply_slot) {
+    if (!reply_slot || *reply_slot || !source || source_units != 40 ||
+        !recipe || recipe_bytes != 32) return ACTQL_CONTROL_INVALID_SLOT;
+    if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+    if (actql_bootstrap_control_scope_clear() != 1)
+        return ACTQL_CONTROL_UNAVAILABLE;
+#endif
+    /* Code registration and DATA equality are not supplier authority. This
+     * boundary is called only by the trusted, source-bound preparation owner.
+     * Native creates/reserves its own original Ledger before real acquisition. */
+    moonbit_string_t s = moonbit_make_string_raw(source_units);
+    moonbit_bytes_t r = moonbit_make_bytes_raw(recipe_bytes);
+    memcpy(s, source, (size_t)source_units * sizeof(uint16_t));
+    memcpy(r, recipe, (size_t)recipe_bytes);
+    *reply_slot = callbacks.prepare(s, r, generation, bytes, planning, attempts,
+                                    holdings, transfer, retained, execution, envelope);
+    moonbit_decref(r);
+    moonbit_decref(s);
+    return *reply_slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
 }
 
 actql_control_reply *actql_control_acquire(actql_control_host *original) {

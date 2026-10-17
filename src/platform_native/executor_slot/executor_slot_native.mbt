@@ -155,6 +155,7 @@ fn NativeExecutorSlot::spawn_holder_reading(
   executable : String,
   arguments : Array[String],
   input : Int,
+  scoped? : NativeScopedExecutorHolder? = None,
 ) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue] {
   if self.descriptor < 0 {
     return Err(Closed)
@@ -197,10 +198,15 @@ fn NativeExecutorSlot::spawn_holder_reading(
   if pid <= 0 {
     return Err(SpawnFailed)
   }
-  ignore(slot_close_ffi(self.descriptor))
+  let close_status = slot_close_ffi(self.descriptor)
   self.descriptor = -1
   self.acquired = false
-  Ok({ pid, exit: None, })
+  let child = { pid, exit: None, }
+  if scoped is Some(original) {
+    original.child = Some(child)
+    original.parent_close_unknown = close_status != 0
+  }
+  Ok(child)
 }
 
 ///|

@@ -86,6 +86,87 @@ class Fixture:
 
 
 class OriginalControlCustodyTests(unittest.TestCase):
+    def prepare(self, fixture, **changes):
+        arguments = dict(source='a' * 40, recipe=b'r' * 32, generation=1, size=65536,
+                         work=2, attempts=1, holdings=1, transfer=0, retained=0,
+                         execution=65536, envelope=4096)
+        arguments.update(changes)
+        return _OriginalControlCustody._prepare_original(fixture.functions, **arguments)
+
+    def preparation(self, fixture, *, fault=None):
+        def call(source, units, recipe, count, generation, size, work, attempts,
+                 holdings, transfer, retained, execution, envelope, reply):
+            self.assertEqual((''.join(map(chr, source)), units, bytes(recipe), count),
+                             ('a' * 40, 40, b'r' * 32, 32))
+            fixture.events.append(('prepare', generation, size))
+            reply._obj.value = 11
+            if fault is not None:
+                raise fault
+            return 0
+        fixture.library.actql_control_prepare_utf16_into = Function(call)
+
+    def test_preparation_uses_original_owner_before_actual_fd_acquisition(self):
+        f = Fixture(); self.preparation(f)
+        host = self.prepare(f)
+        self.assertEqual(f.events[:2], [('prepare', 1, 65536), ('capture', 11)])
+        self.assertFalse(host._acquire_started)
+        self.assertIsNone(host._borrowed_fd)
+        host.close()
+        self.assertTrue(host._closed)
+
+    def test_lost_preparation_keeps_same_reply_and_never_calls_acquire_or_capture(self):
+        f = Fixture(); primary = OSError('lost prepare reply'); self.preparation(f, fault=primary)
+        with self.assertRaises(_OriginalControlError) as observed:
+            self.prepare(f)
+        host = observed.exception.cleanup_host
+        self.assertIs(observed.exception.__cause__, primary)
+        self.assertEqual(host._incoming.value, 11)
+        self.assertIsNone(host._original.value)
+        self.assertEqual(f.events, [('prepare', 1, 65536)])
+        with self.assertRaises(_OriginalControlError) as retry:
+            host.close()
+        self.assertIs(retry.exception, observed.exception)
+        self.assertEqual(f.events, [('prepare', 1, 65536)])
+
+    def test_preparation_data_rejects_bool_and_foreign_source_before_call(self):
+        f = Fixture(); self.preparation(f)
+        for changes in ({'source': 'g' * 40}, {'work': True}, {'generation': False},
+                        {'size': 2**63}, {'recipe': b'r' * 31}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                self.prepare(f, **changes)
+        self.assertEqual(f.events, [])
+
+    def test_missing_preparation_abi_and_slot_failure_do_not_call_native(self):
+        f = Fixture()
+        with self.assertRaises(AttributeError):
+            self.prepare(f)
+        self.preparation(f)
+        with patch('actql_sdk._local_native_control_custody._new_control_slots', side_effect=MemoryError):
+            with self.assertRaises(MemoryError):
+                self.prepare(f)
+        self.assertEqual(f.events, [])
+
+    def test_typed_refused_preparation_drops_only_empty_original_data(self):
+        f = Fixture(); self.preparation(f); f.replies[11] = (1, 1)
+        with self.assertRaises(_OriginalControlError) as observed:
+            self.prepare(f)
+        host = observed.exception.cleanup_host
+        self.assertFalse(observed.exception.unknown)
+        self.assertTrue(host._closed)
+        self.assertIsNone(host._incoming.value)
+        self.assertEqual(f.events, [('prepare', 1, 65536), ('drop', 11, None)])
+        host.close()
+
+    def test_refusal_with_inconsistent_partial_reply_is_unknown_and_kept(self):
+        f = Fixture(); self.preparation(f); f.replies[11] = (1, 1)
+        f.functions.drop.call = lambda *_: -2
+        with self.assertRaises(_OriginalControlError) as observed:
+            self.prepare(f)
+        host = observed.exception.cleanup_host
+        self.assertTrue(observed.exception.unknown)
+        self.assertEqual(host._incoming.value, 11)
+        self.assertFalse(host._closed)
+
     def test_lost_original_reply_keeps_carrier_when_late_error_metadata_is_unavailable(self):
         f = Fixture(); slot = c_void_p(11)
         primary = OSError('lost original capture response')
