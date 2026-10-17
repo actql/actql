@@ -208,10 +208,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
   }
   if operation == "explain" {
     let wire = local_static_plan_view(prepared)
-    if child.flags.get("json").unwrap_or(false) {
-      return wire
-    }
-    return "Local static Plan; no Run has been admitted.\n" + wire
+    return local_explain_reply(wire, child.flags.get("json").unwrap_or(false))
   }
   // Only static identity is returned. No Run or Result grant is fabricated.
   let (identity, effectful) = match prepared {
