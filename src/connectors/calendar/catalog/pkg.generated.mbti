@@ -1,0 +1,103 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/calendar/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn calendar_free_busy_column_names() -> Array[String]
+
+pub fn calendar_free_busy_facts_wire() -> String
+
+pub fn calendar_free_busy_matches_query(CalendarFreeBusyPage, CalendarFreeBusyQuery) -> Bool
+
+pub fn calendar_free_busy_request_wire(CalendarFreeBusyQuery) -> String
+
+pub fn calendar_free_busy_row_count(CalendarFreeBusyPage) -> Int
+
+pub fn calendar_free_busy_rows_wire(CalendarFreeBusyPage, Array[String], Int, Int, Int) -> Result[String, CalendarFreeBusyIssue]
+
+pub fn calendar_free_busy_schema_wire(Int, Int, Int) -> Result[String, CalendarFreeBusyIssue]
+
+pub fn calendar_list_column_names() -> Array[String]
+
+pub fn calendar_list_facts_wire() -> String
+
+pub fn calendar_list_ids(CalendarListPage) -> Array[String]
+
+pub fn calendar_list_row_count(CalendarListPage) -> Int
+
+pub fn calendar_list_rows_wire(CalendarListPage, Array[String], Int, Int, Int) -> Result[String, CalendarListIssue]
+
+pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]
+
+pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]
+
+pub fn project_calendar_free_busy(Bytes, CalendarFreeBusyQuery, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyPage, CalendarFreeBusyIssue]
+
+pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPage, CalendarListIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum CalendarFreeBusyIssue {
+  InvalidLimits
+  InvalidQuery
+  BudgetExceeded
+  InvalidResponse
+  ForeignCalendars
+  CalendarRejected(String)
+  InvalidInterval
+  InvalidSelection(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CalendarFreeBusyLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_calendars : Int
+  max_rows : Int
+  max_request_bytes : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+}
+
+pub struct CalendarFreeBusyPage {
+  response_sha256 : String
+  // private fields
+}
+
+pub struct CalendarFreeBusyQuery {
+  // private fields
+}
+
+pub(all) enum CalendarListIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidCursor
+  InvalidSelection(String)
+  DuplicateCalendar(String)
+  InvalidCell(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CalendarListLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_cursor_units : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+}
+
+pub struct CalendarListPage {
+  response_sha256 : String
+  next_page_token : String?
+  // private fields
+}
+
+// Type aliases
+
+// Traits

@@ -13,12 +13,13 @@ pub struct EffectPlanTerminal {
 }
 
 ///|
-/// A result-backed create's checked row mapping. This is a proposal source,
-/// not a Preview, physical payload proof, or apply permit.
+/// A result-backed create's checked original row mapping or explicit value
+/// projection. This is not a Preview, physical payload proof, or apply permit.
 pub struct EffectCreateRowTerminal {
   rule : EffectMappingRuleBinding
   source_result : String
-  row_fields : @environment.MappingRowFields
+  row_fields : @environment.MappingRowFields?
+  values : @decode.Cursor?
 }
 
 ///|
@@ -118,13 +119,17 @@ pub fn effect_create_row_terminal_for_member(
   guard @syntax.effect_header_source_result(header) is Some(source_result) else {
     return Ok(None)
   }
-  guard effect_mapping_rule_row_fields(rule) is Some(row_fields) else {
-    return Ok(None)
+  let row_fields = effect_mapping_rule_row_fields(rule)
+  let values = @syntax.effect_header_create_values(header)
+  let count = match (row_fields, values) {
+    (Some(fields), None) => @environment.mapping_row_fields_count(fields)
+    (None, Some(values)) => @decode.object_length(values).unwrap()
+    _ => return Ok(None)
   }
-  if @environment.mapping_row_fields_count(row_fields) > max_fields {
+  if count > max_fields {
     return Err(Terminal(FieldLimit))
   }
-  Ok(Some({ rule, source_result, row_fields, }))
+  Ok(Some({ rule, source_result, row_fields, values, }))
 }
 
 ///|

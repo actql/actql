@@ -168,6 +168,21 @@ pub fn parse_yaml_bytes(
 }
 
 ///|
+/// Strict restricted YAML with exact decoded object keys. Domain readers must
+/// admit those names; no noncanonical external name is repaired during intake.
+/// Existing normalized-key Program/YAML entry points are unchanged.
+pub fn parse_yaml_bytes_preserving(
+  source : Bytes,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[Node, ParseError] {
+  parse_bytes_input(source, limits, source_path, true, normalize_text=false).map(parsed => {
+      parsed.node
+    },
+  )
+}
+
+///|
 pub fn parse_json_measured(
   source : String,
   limits : ParseLimits,

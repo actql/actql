@@ -401,6 +401,17 @@ pub fn bind_effect_mapping_rules(
         }
       }
       "delete" => []
+      "create" if @syntax.effect_header_create_values(header) is Some(values) => {
+        let fields = match
+          effect_mapping_rule_fields(values, remaining, header) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        match effect_mapping_rule_required(mapping, fields, remaining, header) {
+          Ok(_) => fields
+          Err(issue) => return Err(issue)
+        }
+      }
       "create" if @decode.lookup(object, "payload") is Some(payload) => {
         let fields = match
           effect_mapping_rule_fields(payload, remaining, header) {

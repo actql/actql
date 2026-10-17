@@ -27,6 +27,8 @@ pub(all) struct Lowered {
   store_targets : @query.StoreTargetPublication?
   command_targets : @query.CommandTargetPublication?
   command_selection : @query.ShortCommandSelection?
+  keyed_effect_kind : @syntax.KeyedEffectKind?
+  insert_effect : Bool
 }
 
 ///|
@@ -301,6 +303,8 @@ fn emit(
   store_targets : @query.StoreTargetPublication?,
   command_targets : @query.CommandTargetPublication?,
   command_selection : @query.ShortCommandSelection?,
+  keyed_effect_kind : @syntax.KeyedEffectKind?,
+  insert_effect : Bool,
 ) -> Result[Lowered, Issue] {
   let document = try {
     let writer = @encode.writer(65536, 8192, 64)
@@ -317,6 +321,8 @@ fn emit(
     store_targets,
     command_targets,
     command_selection,
+    keyed_effect_kind,
+    insert_effect,
   })
 }
 
@@ -392,6 +398,8 @@ pub fn lower_with_source(
             store_targets: None,
             command_targets: None,
             command_selection: None,
+            keyed_effect_kind: None,
+            insert_effect: false,
           },
           None,
         ),
@@ -407,6 +415,8 @@ pub fn lower_with_source(
             store_targets: None,
             command_targets: None,
             command_selection: None,
+            keyed_effect_kind: None,
+            insert_effect: false,
           },
           None,
         ),
@@ -451,7 +461,13 @@ pub fn lower_with_source(
         }
       }
       emit(
-        program, update_targets, store_targets, command_targets, command_selection,
+        program,
+        update_targets,
+        store_targets,
+        command_targets,
+        command_selection,
+        @syntax.terminal_effect(parsed).map(clause => clause.kind),
+        @syntax.terminal_insert_effect(parsed) is Some(_),
       ).map(lowered => (lowered, Some(source)))
     }
   }

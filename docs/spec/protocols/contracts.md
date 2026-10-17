@@ -1347,7 +1347,7 @@ alone does not prove exactly-once.
 
 <a id="model-task"></a>
 
-<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_provider_defaults sha256:5aa89d89b0f91d52402179597140ef3f9e7f4d1752fcd3df5dd03f7eecfa721b -->
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_provider_defaults sha256:35258db20dca538d6889ac34789becea8c4a62858127848b1419d19a93b144e6 -->
 
 ### ModelTask outcomes and attachments
 
@@ -1390,10 +1390,16 @@ original invocation-evidence or embedded capture-bundle bodies and readers.
 
 ### Original installed ModelTask defaults
 
-<!-- requirement-block: model-task-defaults.original-selection model-task-defaults.closed-profile model-task-defaults.settings model-task-defaults.task-limit model-task-defaults.recovery model-task-defaults.mock -->
+<!-- requirement-block: model-task-defaults.original-selection model-task-defaults.closed-profile model-task-defaults.handling-envelope model-task-defaults.handling-inventory model-task-defaults.handling-applicability model-task-defaults.handling-original-pair model-task-defaults.public-version model-task-defaults.retained-public-originals model-task-defaults.immutable-saved-originals model-task-defaults.settings model-task-defaults.task-limit model-task-defaults.recovery model-task-defaults.mock -->
 Public Task normalization MUST select the exact original installed provider and model pair, using the original project registry's default provider only when the public model pair is absent and then that registration's explicit default model. A provider type, environment-variable name, equal configuration CID or current alias is not an installed model original, and missing applicable originals refuse before Source, Model or Effect I/O.
 
-An installed provider choosing `model_defaults` in its original configuration MUST admit the closed profile grammar owned here, check every profile including unused entries, reject duplicate model names and require any explicit `default_model` to name a profile in that same original. The optional subrecord contains `models: [{model, generation_config}]` and optional nonempty `default_model`, with no null or unknown fields, and its containing configuration still needs its own original configuration contract. Absence leaves existing explicit Task/configuration bodies unchanged and supplies no model default.
+An installed provider choosing `model_defaults` in its original configuration MUST admit the closed profile grammar owned here, check every profile including unused entries, reject duplicate model names and require any explicit `default_model` to name a profile in that same original. The optional subrecord contains `models: [{model, generation_config, data_handling?}]` and optional nonempty `default_model`, with no null or unknown fields, and its containing configuration still needs its own original configuration contract. Absence leaves existing explicit Task/configuration bodies unchanged and supplies no model default.
+
+For new public Task normalization, the selected model's `data_handling`, when present, MUST be the exact complete existing `actql.contract/0.1` Envelope with kind `request_data_handling`, whose canonical preimage excludes only its own `cid`. Its closed body contains `accepted_classifications`, `allowed_regions`, `retention` and `training_use`, retaining the existing nonempty duplicate-free classification/region lists, supported retention values and `training_use: forbidden`. Every supplied policy, including an unused model's policy, MUST be checked. Missing policy remains unavailable for public normalization; a generation-only legacy profile remains valid DATA and does not acquire a policy by default.
+
+The trusted installed Provider's actual configuration contract/configuration/revision MUST explicitly cover that policy and the selected model/endpoint. Body/CID integrity alone establishes neither this applicability nor policy provenance or operational truth. Per-model originals MUST not substitute across profiles, equal separately read configurations, installations or saved Runs. Current egress, Account authority and physical compatibility remain independent.
+
+For the new public Task form only, Common MUST retain the exact admitted `task` String as both its task identifier and internal version String, without suffix parsing, trimming or Unicode/text normalization. Legacy explicit Task versions and bytes remain unchanged. Public normalization MUST retain its original checked input/output contracts, instructions, registry selection and applicable original policy/configuration with the resulting Task and Run; replacement policy/defaults MUST NOT rewrite those saved originals.
 
 Normalization MUST use temperature, top-p and optional seed only from the selected model's applicable original profile, without vendor or SDK fallback. The existing generation grammar retains finite temperature, top-p in `(0, 1]`, positive safe-integer token count and an optional signed safe-integer seed.
 
@@ -2534,11 +2540,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:60ac5c1260e83fe6a10668a84fce4b450380edcd50b80c5b3dfd51be3684d509
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:1233ea18fefe024c7ededda918ace41c0a0ece305a0fae2699b047179c708924
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:815ca0589661557d8548cea7afbb5088ae5827ed8d1e0ae2eefca5a00292092a
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:c2ccbe439bebe37794c2771b5435a788d8315d4a1543c52d3cae6856fc315714
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:988a8893ede0e64a351f077f28c7b7c82a9b2988467b8eb8a02755ad3530ca7b
