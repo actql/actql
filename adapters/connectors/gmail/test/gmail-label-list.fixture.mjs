@@ -82,7 +82,7 @@ async function rowOwner(verifyOriginalTransport, factsWire, format, selection) {
     close: () => checked(common.clientProgramRowSourceCloseAccounted(run))};
 }
 
-export async function labelListFixture(t, {account = 'allow', factsWire = '{"relation_keys":{"candidate_keys":[["id"]]}}', format='sql', selection='id, name, type'} = {}) {
+export async function labelListFixture(t, {account = 'allow', factsWire = '{"relation_keys":{"candidate_keys":[["id"]]}}', format='sql', selection='id, name, type', accounted=true} = {}) {
   const parent = join(repo, '_build', 'gmail-label-list-fixtures'); await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent, 'query-'));
   execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', 'server.key',
@@ -135,7 +135,7 @@ export async function labelListFixture(t, {account = 'allow', factsWire = '{"rel
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('GmailReadDenied'),{code:'GmailReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return state.secret;}};
   binding=openHttpsCredentialBinding({...credential,scope,maxSecretBytes:128});
-  row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed', factsWire, format, selection);
+  if(accounted)row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed', factsWire, format, selection);
   const initialAuthorization={grant,scope,useId:'initial'};
   const options={moon:provider,mailbox:'support+box@example.test',names:['name'],initialAuthorization,
     credential:{...credential,binding},limits:labelListReadLimits,current,
@@ -143,5 +143,6 @@ export async function labelListFixture(t, {account = 'allow', factsWire = '{"rel
     chargeResponse:body => {state.charges++;return row.charge(body);},
     consumePage:(rows,{charge}) => {row.page(rows,charge);state.rows.push(...rows);}};
   return {root,state,row,journal,binding,scope,grant,control,sign,current,writeAccount,options,
-    read:overrides=>readGmailLabelList({...options,...overrides})};
+    read:overrides=>{assert.ok(row,'the direct reader fixture requires its original RowRun');
+      return readGmailLabelList({...options,...overrides});}};
 }
