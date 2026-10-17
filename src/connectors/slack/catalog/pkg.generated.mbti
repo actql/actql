@@ -8,6 +8,8 @@ import {
 // Values
 pub fn project_slack_user_list(Bytes, SlackUserListLimits) -> Result[SlackUserListPage, SlackUserListIssue]
 
+pub fn project_slack_workspace_identity(Bytes, Int, Int, Int, Int) -> Result[SlackWorkspaceIdentity, SlackUserListIssue]
+
 pub fn slack_user_list_column_names() -> Array[String]
 
 pub fn slack_user_list_facts_wire() -> String
@@ -19,6 +21,8 @@ pub fn slack_user_list_row_count(SlackUserListPage) -> Int
 pub fn slack_user_list_rows_wire(SlackUserListPage, Array[String], Int, Int, Int) -> Result[String, SlackUserListIssue]
 
 pub fn slack_user_list_schema_wire(Int, Int, Int) -> Result[String, SlackUserListIssue]
+
+pub fn slack_workspace_identity_matches(SlackWorkspaceIdentity, String) -> Bool
 
 // Errors
 
@@ -46,6 +50,12 @@ pub(all) struct SlackUserListLimits {
 pub struct SlackUserListPage {
   response_sha256 : String
   next_cursor : String?
+  // private fields
+}
+
+pub struct SlackWorkspaceIdentity {
+  user_id : String
+  response_sha256 : String
   // private fields
 }
 
