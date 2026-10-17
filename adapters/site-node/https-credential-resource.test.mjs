@@ -29,7 +29,8 @@ function openssl(root, ...arguments_) {
   execFileSync('openssl', arguments_, {cwd: root, stdio: 'ignore'});
 }
 
-async function fixture(t, {onRequest, retain = false} = {}) {
+async function fixture(t, {onRequest,
+  retain = process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-credential-resource-'));
   openssl(root, 'genrsa', '-out', 'ca.key', '2048');
   openssl(
