@@ -29625,7 +29625,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-duckdb-source.mjs",
-                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';"
+                "anchor": "import {readFile} from 'node:fs/promises';"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -34067,7 +34067,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "import {readFile} from 'node:fs/promises';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
