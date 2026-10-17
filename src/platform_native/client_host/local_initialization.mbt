@@ -51,8 +51,9 @@ fn initialize_native_local_client_rows(
       "client_run_custody", "client_runs", "client_effect_custody", "client_effect_response_meta",
       "client_effect_response_bytes", "client_effect_row_receipt", "client_cancellations",
       "client_cancel_custody", "client_cancel_originals", "client_submitted_intent_custody",
-      "client_submitted_intents", "client_local_read_custody", "client_local_read_evidence",
-      "client_local_grant_custody", "client_local_grant_originals", "client_local_preparation_target_originals",
+      "client_submitted_intents", "client_submission_names", "client_submission_name_custody",
+      "client_local_read_custody", "client_local_read_evidence", "client_local_grant_custody",
+      "client_local_grant_originals", "client_local_preparation_target_originals",
       "client_local_installation_custody", "client_local_installation_originals",
       "client_worker_provisioning_custody", "client_worker_provisioning",
     ] {
@@ -87,6 +88,10 @@ fn initialize_native_local_client_rows(
     Err(issue) => return Err(Journal(issue))
   }
   match initialize_native_client_submitted_intents(database) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  match initialize_native_client_submitted_names(database) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
