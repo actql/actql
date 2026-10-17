@@ -2071,7 +2071,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "b7c5731d6449824ba699c3fdc545a20d07a14969ace38e56122fe30376dc6235",
+      "sha256": "7d17cd93b4cee8403d581399e570d8fe0f7d28c29681b22ad24f29d9f7537650",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
