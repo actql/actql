@@ -149,3 +149,45 @@ pub fn client_program_kintone_delete_response_request(
 ) -> @kintone_catalog.RecordDeleteRequest {
   @kintone_catalog.record_delete_acknowledgement_request(response)
 }
+
+///|
+#export_name("clientProgramKintonePrepareDeleteMapping")
+pub fn client_program_kintone_prepare_delete_mapping(
+  original : @kintone_host.RecordDeclaration,
+  resource : String,
+  approval : String,
+  limits : @client_row_source_host.RowDeclarationLimits,
+) -> Result[
+  @kintone_host.RecordDeleteMapping,
+  @client_row_source_host.RowMappingIssue,
+] {
+  @kintone_host.prepare_record_delete_mapping(
+    original, resource, approval, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteMappingBody")
+pub fn client_program_kintone_delete_mapping_body(
+  original : @kintone_host.RecordDeleteMapping,
+) -> String {
+  @kintone_host.record_delete_mapping(original).body
+}
+
+///|
+#export_name("clientProgramKintoneDeleteMappingMatchesDeclaration")
+pub fn client_program_kintone_delete_mapping_matches_declaration(
+  mapping : @kintone_host.RecordDeleteMapping,
+  original : @kintone_host.RecordDeclaration,
+) -> Bool {
+  @kintone_host.record_delete_mapping_matches_declaration(mapping, original)
+}
+
+///|
+#export_name("clientProgramKintoneDeleteMappingMatchesRequest")
+pub fn client_program_kintone_delete_mapping_matches_request(
+  mapping : @kintone_host.RecordDeleteMapping,
+  request : @kintone_catalog.RecordDeleteRequest,
+) -> Bool {
+  @kintone_host.record_delete_mapping_matches_request(mapping, request)
+}
