@@ -17,6 +17,7 @@ import stat
 from pathlib import Path
 import subprocess
 import sys
+from threading import current_thread
 from typing import Any, NamedTuple
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +41,7 @@ from actql_sdk._local_native_process_custody import (  # noqa: E402
     _OriginalInstalledProcessCustody, _OriginalInstalledProcessFunctions,
     _OriginalInstalledProcessError,
 )
+from actql_sdk._local_native_shim_abi import bind as bind_native  # noqa: E402
 from actql_sdk._local_worker_slot import _OriginalDescriptor  # noqa: E402
 
 spec = importlib.util.spec_from_file_location('image_component_assembly', ROOT / 'scripts/produce-python-local-runtime.py')
@@ -203,6 +205,88 @@ class CompilerParentAcquisitionError(RuntimeError):
         super().__init__('Original compiler parent acquisition is pending')
 
 
+class CompilerControlInitializationError(RuntimeError):
+    """Keep the same selected component and original initialization slot.
+
+    This carrier never unloads, repeats initialization or claims process
+    retirement. The existing process/runtime responsibility outlives arenas.
+    """
+
+    def __init__(self, runtime: _CompilerControlRuntime) -> None:
+        self.cleanup_runtime = runtime
+        super().__init__('Original compiler control initialization is unavailable or unconfirmed')
+
+
+class _CompilerControlRuntime:
+    """Thin original process record, not another resource or permission Owner."""
+
+    def __init__(self, original: _CompilerHoldingOriginal) -> None:
+        self.original = original
+        self.library: Any = None
+        self.slot = c_void_p()
+        self._process, self._thread = os.getpid(), current_thread()
+        self._current: Any = None
+        self._initialized = False
+        self._unknown: CompilerControlInitializationError | None = None
+        self.failure = CompilerControlInitializationError(self)
+
+    def __copy__(self) -> _CompilerControlRuntime:
+        raise TypeError('Original compiler control cannot be copied')
+
+    def __deepcopy__(self, memo: dict[int, object]) -> _CompilerControlRuntime:
+        raise TypeError('Original compiler control cannot be copied')
+
+    def __reduce__(self) -> Any:
+        raise TypeError('Original compiler control cannot be serialized')
+
+    def current(self) -> None:
+        if self._unknown is not None:
+            raise self._unknown
+        if (os.getpid() != self._process or current_thread() is not self._thread
+                or not self._initialized):
+            raise ValueError('Original compiler control process/thread is unavailable')
+        try:
+            code = self._current(self.slot)
+            if type(code) is not int or code != 0:
+                raise self.failure
+        except BaseException as primary:
+            self._unknown = self.failure
+            raise self.failure from primary
+
+
+def _prepare_compiler_control(original: dict[str, Any],
+                              selected: _CompilerHoldingOriginal) -> _CompilerControlRuntime:
+    """One same-component initializer within the trusted control envelope.
+
+    This is neither arena funding nor a loader fallback. Native publishes its
+    process-lifetime original before invoking its own emitted initializer.
+    Every failure keeps this carrier, including a loaded library without a
+    confirmed initialization reply. Nothing here issues or closes a Ledger.
+    """
+    if type(selected) is not _CompilerHoldingOriginal or selected != _compiler_holding_original(original):
+        raise ValueError('Foreign original compiler control selection')
+    recipe = original['recipe']
+    provider = original['provider_library']
+    _read_file(provider, maximum=recipe.provider_library_bytes,
+               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
+    runtime = _CompilerControlRuntime(selected)
+    try:
+        runtime.library = CDLL(str(provider))
+        _read_file(provider, maximum=recipe.provider_library_bytes,
+                   expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
+        initialize = bind_native(runtime.library, 'actql_control_runtime_initialize_into')
+        runtime._current = bind_native(runtime.library, 'actql_control_runtime_current')
+        code = initialize(byref(runtime.slot))
+        if type(code) is not int or code != 0 or runtime.slot.value is None:
+            raise runtime.failure
+        runtime._initialized = True
+        runtime.current()
+        return runtime
+    except BaseException as primary:
+        runtime._unknown = runtime.failure
+        raise runtime.failure from primary
+
+
 class _CompilerParent:
     """Private assembly of existing Native owners, not OriginalWorkerFunding.
 
@@ -211,9 +295,10 @@ class _CompilerParent:
     actual child/delegation and process/descriptor/region confirmations.
     """
 
-    def __init__(self, original: _CompilerParentOriginal, library: CDLL,
+    def __init__(self, original: _CompilerParentOriginal, runtime: _CompilerControlRuntime,
                  descriptor: _OriginalDescriptor) -> None:
-        self.original, self.library, self.descriptor = original, library, descriptor
+        self.original, self.runtime, self.descriptor = original, runtime, descriptor
+        self.library = runtime.library
         self.host: _OriginalControlCustody | None = None
         self.backing: _OriginalBackingCustody | None = None
         self.domain: _OriginalDomainCustody | None = None
@@ -242,6 +327,12 @@ class _CompilerParent:
                 or domain._descriptor is not self.descriptor
                 or domain._functions.library is not self.library):
             raise ValueError('Original compiler parent domain is unavailable')
+        for carrier in (self.host, self.backing, domain):
+            if carrier._unknown is not None:
+                raise carrier._unknown
+        if self.host._busy:
+            raise ValueError('Original compiler parent is busy')
+        self.runtime.current()
         functions = _OriginalInstalledProcessFunctions(self.library)
         try:
             return _OriginalInstalledProcessCustody._prepare_original(domain, functions,
@@ -267,6 +358,7 @@ class _CompilerParent:
         if (self.domain is not None and (self.domain._worker_process_original is not None
                 or self.domain._installed_process_original is not None)):
             raise ValueError('Original compiler domain still has process custody')
+        self.runtime.current()
         if self.backing is not None:
             self.backing.return_after_stop()
         if self.domain is not None:
@@ -280,7 +372,7 @@ def _acquire_compiler_parent(original: dict[str, Any], selected: _CompilerHoldin
                              descriptor: _OriginalDescriptor) -> _CompilerParent:
     """Connect trusted compiler preparation to real Native bootstrap/domain.
 
-    The matching library is already initialized by the trusted control runtime.
+    The matching component initializes once in its original process custody.
     The Native bootstrap creates/reserves the original Ledger before acquiring
     this actual FD backing. Python neither exposes it nor creates a substitute.
     Missing declaration/new private ABI refuses before physical acquisition.
@@ -293,19 +385,14 @@ def _acquire_compiler_parent(original: dict[str, Any], selected: _CompilerHoldin
     opened = os.fstat(descriptor.value)
     if not stat.S_ISREG(opened.st_mode) or opened.st_size != declaration.parent[0]:
         raise ValueError('Original compiler descriptor differs from its selected backing')
-    recipe = original['recipe']
-    provider = original['provider_library']
-    _read_file(provider, maximum=recipe.provider_library_bytes,
-               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
-    library = CDLL(str(provider))
-    _read_file(provider, maximum=recipe.provider_library_bytes,
-               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
-    control = _OriginalControlFunctions(library)
-    backing = _OriginalBackingFunctions(library)
-    domain = _OriginalDomainFunctions(library)
-    parent = _CompilerParent(declaration, library, descriptor)
+    runtime = _prepare_compiler_control(original, selected)
+    parent = _CompilerParent(declaration, runtime, descriptor)
     size, work, attempts, holdings, transfer, retained, execution, envelope = declaration.parent
     try:
+        runtime.current()
+        control = _OriginalControlFunctions(parent.library)
+        backing = _OriginalBackingFunctions(parent.library)
+        domain = _OriginalDomainFunctions(parent.library)
         parent.host = _OriginalControlCustody._prepare_original(control,
             source=selected.source_sha, recipe=declaration.recipe, generation=selected.generation,
             size=size, work=work, attempts=attempts, holdings=holdings, transfer=transfer,

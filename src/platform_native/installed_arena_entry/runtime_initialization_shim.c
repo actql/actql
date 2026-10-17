@@ -1,0 +1,43 @@
+#include "runtime_initialization_shim.h"
+#include <pthread.h>
+#include <stdatomic.h>
+#include <unistd.h>
+
+/* This is the same emitted main renamed by the existing private producer.
+ * No function supplied by a caller or alternate initializer is accepted. */
+extern int actql_original_control_initialize(int argc, char **argv);
+
+struct actql_control_runtime_origin {
+    pid_t process;
+    pthread_t thread;
+};
+static struct actql_control_runtime_origin origin;
+/* 0 untouched, 1 initializing/unconfirmed, 2 returned successfully, 3 failed.
+ * No phase represents physical retirement and no transition returns to zero. */
+static _Atomic int phase;
+
+int actql_control_runtime_initialize_into(actql_control_runtime_origin **slot) {
+    if (slot == NULL || *slot != NULL) return ACTQL_CONTROL_INVALID_SLOT;
+    int untouched = 0;
+    if (!atomic_compare_exchange_strong_explicit(&phase, &untouched, 1,
+            memory_order_acq_rel, memory_order_acquire))
+        return ACTQL_CONTROL_UNAVAILABLE;
+    origin.process = getpid();
+    origin.thread = pthread_self();
+    *slot = &origin;
+    char name[] = "actql-private-compiler-control";
+    char *arguments[] = {name, NULL};
+    int result = actql_original_control_initialize(1, arguments);
+    atomic_store_explicit(&phase, result == 0 ? 2 : 3, memory_order_release);
+    return result == 0 ? ACTQL_CONTROL_OK : ACTQL_CONTROL_CLEANUP_PENDING;
+}
+
+int actql_control_runtime_current(actql_control_runtime_origin *original) {
+    /* Check identity before dereferencing any pointer supplied by a caller. */
+    if (original != &origin ||
+        atomic_load_explicit(&phase, memory_order_acquire) != 2)
+        return ACTQL_CONTROL_UNAVAILABLE;
+    if (origin.process != getpid() || !pthread_equal(origin.thread, pthread_self()))
+        return ACTQL_CONTROL_UNAVAILABLE;
+    return ACTQL_CONTROL_OK;
+}

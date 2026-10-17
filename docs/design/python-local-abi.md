@@ -2300,3 +2300,25 @@ Returned metadata does not bypass live-allocation or scope checks. A retained
 original child borrow continues to use the separate stopped-region path; PID
 absence cannot select either path or clear responsibility. Failed view cleanup
 retains the same process record and its completed domain-close phase.
+
+The maintainer compiler's parent preparation explicitly initializes its selected
+Native component before requesting a Host or domain. The component publishes an
+opaque process-lifetime record into the caller's original empty slot before
+calling its own emitted initializer. This one-shot entry admits no replacement
+callback. An occupied slot, another attempt, reentry, a foreign thread or an
+inherited record after fork cannot initialize or adopt that original again.
+Initializer failure and lost response retain the same slot and library; neither
+the Python assembly nor C resets the component and retries its initializer.
+
+This control storage remains in the already declared initial control envelope.
+Its existence or successful initialization issues no Ledger, capacity, arena,
+permission, process-stop fact or numerical profile. The subsequent Native
+bootstrap still creates and reserves the original resources before acquiring
+the actual backing descriptor. Missing initialization ABI refuses; it cannot
+fall back to assuming that an already loaded component was initialized.
+
+Closing the compiler parent retires only its confirmed Host/backing/domain
+responsibility. It keeps the original process record and library alias; there
+is no initialization-record close that could acknowledge process-global Runtime
+storage on Engine deletion or arena retirement. That storage remains the
+existing process/runtime Owner's responsibility through actual process stop.

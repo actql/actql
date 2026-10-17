@@ -16,7 +16,7 @@ OUTPUT = Path('packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py')
 HEADER = ENTRY / 'shim_abi.generated.h'
 SHIMS = ('control', 'backing', 'domain', 'domain_read', 'worker_selection',
          'original_read', 'live_channel', 'process', 'sqlite', 'sqlite_database',
-         'packaged_product')
+         'packaged_product', 'runtime_initialization')
 SCALARS = {'int': 'c_int', 'int32_t': 'c_int32', 'int64_t': 'c_int64',
            'uint64_t': 'c_uint64', 'size_t': 'c_size_t', 'uint16_t': 'c_uint16',
            'uint8_t': 'c_ubyte', 'unsigned char': 'c_ubyte'}
