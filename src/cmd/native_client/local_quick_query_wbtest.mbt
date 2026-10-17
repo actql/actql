@@ -56,14 +56,12 @@ test "public quick queries select literal SQL and Pipe inputs without reading a 
     assert_eq(run_text(input, "text"), text)
     assert_eq(run_text(input, "format"), format)
     assert_eq(run_text(intent, "kind"), "aql")
-    assert_true(
-      @decode.is_null(
-        effect_finite_cli_ok(
-          @decode.required(intent, "parameters"),
-          "quick.parameters.required",
-        ),
-      ),
-    )
+    // required intentionally refuses explicit null; this original optional
+    // parameter input must be present and null rather than absent.
+    guard @decode.lookup(intent, "parameters") is Some(parameters) else {
+      fail("quick.parameters.lookup")
+    }
+    assert_true(@decode.is_null(parameters))
   }
 }
 
@@ -149,7 +147,7 @@ test "the existing file-backed AQL route retains original format and correlation
   assert_eq(
     local_intent_wire(root, "aql", child),
     (
-      #|{"input":{"format":"sql","text":"SELECT 1 AS id\n"},"kind":"aql","parameters":null}
+      #|{"kind":"aql","input":{"text":"SELECT 1 AS id\n","format":"sql"},"parameters":null}
     ),
   )
   assert_eq(required(child, "submission-ref-file"), "original-submission.json")
