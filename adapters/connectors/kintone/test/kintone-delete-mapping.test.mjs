@@ -39,7 +39,7 @@ test('actual Common runtime derives delete Mapping from the original declared Ap
   assert.equal(value.target_ref, 'connector://kintone/inquiries');
   assert.equal(value.primary_identity, '$id');
   assert.deepEqual(value.target_schema.fields, {$id: {nullable: false, type: 'string'},
-    Subject: {nullable: false, type: 'string'}});
+    Subject: {nullable: true, type: 'string'}});
   assert.deepEqual(value.writable_fields, []);
   assert.deepEqual(value.row_mapping, {});
   assert.deepEqual(value.permission_rules, [{effect_kind: 'delete',
