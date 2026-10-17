@@ -963,3 +963,34 @@ test('approved geolocation component decimals preserve original Preview and phys
   assert.deepEqual(preview.effects[0].changes.map(change => change.after.value), [
     {Location__Latitude__s: rows[0].latitude, Location__Longitude__s: rows[0].longitude}]);
 });
+
+
+test('approved Address component writes preserve original values and physical PATCH text', async t => {
+  for (const custom of [false, true]) {
+    const fields = custom ? ['Address__CountryCode__s', 'Address__StateCode__s']
+      : ['BillingCity', 'BillingStreet'];
+    const original = custom ? ['JP', '13'] : ['東京', 'line 1\nline 2'];
+    const installation = await installedEffect(t, {writes: [{
+      resource: 'Test_Record__c', kind: 'update', fields}],
+    org: {addressFields: true, addressCustom: custom, patchFields: fields}});
+    const host = await effectHost(t, installation, join(installation.root, 'host'));
+    const [mapping] = host.installed.mappings;
+    const document = effectProgram({save: {update: {
+      target: mapping.target, mapping: mapping.mappingRef, from: {result: 'rows'},
+      id: 'id', set: {[fields[0]]: {field: 'first'}, [fields[1]]: {field: 'second'}}}}},
+    [{id: ids[0], first: original[0], second: original[1]}],
+    {id: {type: 'string', nullable: false}, first: {type: 'string', nullable: false},
+      second: {type: 'string', nullable: false}});
+    const {started} = await host.run(document, `address-components-${custom}`);
+    assert.equal(started.value.status, 'published');
+    const expected = custom ? '{"Address__CountryCode__s":"JP","Address__StateCode__s":"13"}'
+      : '{"BillingCity":"東京","BillingStreet":"line 1\\nline 2"}';
+    assert.deepEqual(writesOf(installation.org).map(item => item.body), [expected]);
+    const preview = JSON.parse(host.control.effectComputationPreviewWire(host.outcomes[0].stage.preview));
+    assert.deepEqual(preview.effects[0].changes.map(change => change.before), [
+      {state: 'present', value: custom ? {Address__CountryCode__s: 'JP', Address__StateCode__s: '13'}
+        : {BillingCity: 'old city', BillingStreet: 'old street'}}]);
+    assert.deepEqual(preview.effects[0].changes.map(change => change.after.value), [
+      {[fields[0]]: original[0], [fields[1]]: original[1]}]);
+  }
+});

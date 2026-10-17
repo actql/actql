@@ -350,13 +350,14 @@ fn read_field_contract_json(
   field : FieldMetadata,
   components? : Array[(String, FieldMetadata)] = [],
 ) -> Json? {
-  if field.native_type == "location" {
-    if components.length() != 2 {
+  if field.native_type == "location" || field.native_type == "address" {
+    if components.is_empty() {
       return None
     }
     let fields = []
     for (name, component) in components {
-      guard typed_contract(component, Some("decimal")) is Some(contract) else {
+      guard typed_contract(component, read_value_type(component.native_type))
+        is Some(contract) else {
         return None
       }
       fields.push((name, contract))
@@ -531,7 +532,7 @@ fn generate_owned_static_declaration(
       let fields : Array[(String, Json)] = []
       let field_names = []
       for field in resource.fields {
-        let components = geolocation_components(field, resource.fields).unwrap_or([],
+        let components = compound_read_components(field, resource.fields).unwrap_or([],
         )
         match read_field_contract_json(field, components~) {
           Some(contract) => {
