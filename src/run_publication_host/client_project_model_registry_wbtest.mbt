@@ -58,6 +58,34 @@ test "project model registry admits empty declarations but never an unresolved d
 }
 
 ///|
+test "project registries retain independent original choices without replacing prior snapshots" {
+  let first = admit_client_project_model_registry(
+    (
+      #|{"version":"actql-model-tasks/0.1","tasks":{"model-task:risk.v1":"old.yaml"},"providers":{"first":{"type":"openai","api_key_env":"FIRST_KEY"}},"default_provider":"first"}
+    ),
+  ).unwrap()
+  let second = admit_client_project_model_registry(
+    (
+      #|{"version":"actql-model-tasks/0.1","tasks":{"model-task:risk.v1":"new.yaml"},"providers":{"second":{"type":"anthropic","api_key_env":"SECOND_KEY"}},"default_provider":"second"}
+    ),
+  ).unwrap()
+  assert_eq(first.task_at(0), Some(("model-task:risk.v1", "old.yaml")))
+  assert_eq(second.task_at(0), Some(("model-task:risk.v1", "new.yaml")))
+  assert_eq(first.selected_default_provider(), Some("first"))
+  assert_eq(second.selected_default_provider(), Some("second"))
+  assert_true(first.original_wire() != second.original_wire())
+  // A selector/name in one registry must not resolve the other's provider.
+  assert_true(
+    admit_client_project_model_registry(
+      (
+        #|{"version":"actql-model-tasks/0.1","tasks":{},"providers":{"second":{"type":"anthropic"}},"default_provider":"first"}
+      ),
+    )
+    is Err(InvalidBindings),
+  )
+}
+
+///|
 test "project registry rejects malformed unused entries and credential or authority substitution" {
   for
     body in [
