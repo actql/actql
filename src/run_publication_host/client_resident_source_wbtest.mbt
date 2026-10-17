@@ -8,7 +8,7 @@ test "resident Source fixture has canonical ordered Environment evidence" {
   match
     @environment.read(
       @utf8.encode(multi_source_environment),
-      "sha256:806cd2ad9e32c71ac2a5879c896385a55d9ce388e7b782cb79209d93e556c771",
+      "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505",
       {
         max_bytes: 65536,
         max_nodes: 4096,
@@ -64,7 +64,7 @@ test "resident Source Result compiles its exact acquisition task without Compute
 
 ///|
 test "resident task materials preserve original Source and Values Run evidence" {
-  let environment_cid = "sha256:4cfc3a08514b254c76ac810df9153072a3f0edbf0f211c18b85298aa0c51a92e"
+  let environment_cid = "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505"
   let environment = admit_client_check_environment(
     multi_source_environment,
     environment_cid,
