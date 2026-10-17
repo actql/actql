@@ -160,13 +160,8 @@ test "public run returns the original portable State and Result across Host reop
     "local_saved_run_state",
   )
   result_fresh_host_marker("ACTQL_PUBLIC_RUN_RESULT_BEGIN")
-  let _ = local_public_result(
-    host,
-    settings,
-    crypto,
-    sqlite,
-    result_command_child(["result", run_id]),
-  ) catch {
+  let result_child = result_command_child(["result", run_id])
+  let _ = local_public_result(host, settings, crypto, sqlite, result_child) catch {
     ClientStop(kind) => fail("public.result: " + kind)
   }
   result_fresh_host_marker("ACTQL_PUBLIC_RUN_RESULT_END")
