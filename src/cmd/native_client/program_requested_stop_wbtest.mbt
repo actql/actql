@@ -172,7 +172,7 @@ test "Native requested stop remote packet and intent CID retain the same origina
       ) catch {
         _ => fail("stop.remote.json")
       }
-      let local = @run_host.prepare_client_submitted_intent(
+      let original_intent = @run_host.prepare_client_submitted_intent(
         local_intent_wire(root, operation, child),
         65536,
         8192,
@@ -180,12 +180,12 @@ test "Native requested stop remote packet and intent CID retain the same origina
       ).unwrap()
       assert_eq(
         local_explain_field(remote, "intentCid"),
-        Json::string(@run_host.client_submitted_intent_cid(local)),
+        Json::string(@run_host.client_submitted_intent_cid(original_intent)),
       )
       guard remote is Object(fields) else { fail("stop.remote.object") }
       assert_eq(fields.get("stopBefore"), boundary.map(Json::string))
       assert_eq(
-        @run_host.client_submitted_intent_requests_commit_stop(local),
+        @run_host.client_submitted_intent_requests_commit_stop(original_intent),
         boundary is Some(_),
       )
       if operation == "aql" && boundary is Some(_) {
@@ -210,16 +210,17 @@ test "Native requested stop survives original preparation refusal and actual Hos
   let child = requested_stop_arguments("run", Some("commit")).subcommand.unwrap().1
   let input_root = @env.current_dir().unwrap() +
     "/scripts/fixtures/native-local-cli"
+  let sqlite = request_lookup_ok(
+    @local_sqlite.load_library(settings.sqlite_library),
+    "stop.sqlite",
+  )
   let failure = try {
     ignore(
       local_submission_start(
         host,
         settings,
         crypto,
-        request_lookup_ok(
-          @local_sqlite.load_library(settings.sqlite_library),
-          "stop.sqlite",
-        ),
+        sqlite,
         explain_fixture_environment(),
         input_root,
         "aql",
