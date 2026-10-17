@@ -51963,10 +51963,6 @@
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "rowIndex, authorizationForRow})` (command or guarded write)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
               }
             ],

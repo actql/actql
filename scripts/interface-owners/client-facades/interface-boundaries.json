@@ -655,10 +655,6 @@
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "rowIndex, authorizationForRow})` (command or guarded write)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
               }
             ],
@@ -772,10 +768,6 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "the child cannot substitute another row index into its read use"
-              },
-              {
-                "path": "packages/local-node/connector-installation.typecheck.mts",
-                "anchor": "Read authorization is closed over the original row."
               },
               {
                 "path": "packages/local-node/connector-installation.typecheck.mts",
