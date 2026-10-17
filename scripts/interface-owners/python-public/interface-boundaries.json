@@ -907,6 +907,7 @@
         "._run_state",
         "._types",
         "collections.abc",
+        "dataclasses",
         "httpx",
         "ssl",
         "typing"
@@ -1298,6 +1299,19 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "CheckObservation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "CheckObservation/__init__",
+          "parameters": [
+            "self",
+            "value"
           ],
           "async": false
         },
@@ -1844,7 +1858,7 @@
           "async": false
         }
       ],
-      "sha256": "808365c4e3fc62d02bb5c831b219f4e0f2ac0501b5146673dc1f3416b9d5654e",
+      "sha256": "80b16750db1cf08fa5cf5801ebd9f32c1f09dfc9933c95158d49dabc83279a16",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2177,6 +2191,115 @@
             "CheckReason",
             "CheckReport"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Resources: the already bounded immutable response backs nested views."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Extension: new wire variants must first pass the same generated codec."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Verification: public facade, detached-copy and original-location tests."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "CheckObservation",
+            "CheckObservation/__init__"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {

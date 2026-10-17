@@ -1,8 +1,9 @@
+from dataclasses import dataclass as _dataclass
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Mapping
 from typing import Any, Generic, Literal, Protocol, TypeAlias, TypeVar, overload
 from ssl import SSLContext
 from ._run_state import RunState as RunState
-from ._check_observation import CheckObservation as CheckObservation, CheckReport as CheckReport, CheckReason as CheckReason
+from ._check_observation import CheckReport as CheckReport, CheckReason as CheckReason
 from httpx import AsyncBaseTransport
 from ._types import CheckOutcome, Profile, SubmissionLookup, CancellationAttempt, CancellationLookup
 
@@ -43,6 +44,20 @@ class Observation(Mapping[str, Any], Generic[_T]):
     def __iter__(self) -> Iterator[str]: ...
     def __len__(self) -> int: ...
     def to_dict(self) -> _T: ...
+
+
+@_dataclass(frozen=True, slots=True, eq=False, init=False)
+class CheckObservation(Observation[CheckOutcome]):
+    version: Literal["actql-check-outcome/0.1"]
+    outcome: Literal["completed", "failed", "unavailable"]
+    reason_schema_cid: str
+    outcome_schema_cid: str
+    report: CheckReport | None
+    partial_report: CheckReport | None
+    problem: Mapping[str, Any] | None
+    correlation_ref: str | None
+    def __init__(self, value: CheckOutcome) -> None: ...
+
 
 class Signer:
     key_id: str
