@@ -29941,10 +29941,33 @@
         },
         {
           "async": false,
+          "name": "_NativeHoldingLease/_from_native_provider",
+          "parameters": [
+            "cls",
+            "pointer",
+            "library",
+            "generation",
+            "recipe"
+          ]
+        },
+        {
+          "async": false,
           "name": "_NativeHoldingLease/_from_original_borrow",
           "parameters": [
             "cls",
             "borrow"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_NativeHoldingLease/_initialize_original",
+          "parameters": [
+            "self",
+            "pointer",
+            "library",
+            "generation",
+            "recipe",
+            "prefix"
           ]
         },
         {
@@ -30004,7 +30027,7 @@
           ]
         }
       ],
-      "sha256": "0b08b85d9a153d5a8cf43909302de43be3d7c8119315d6ffcc21f70a2e753de9",
+      "sha256": "da8dcd74603860ba2b837c8a3b47742f53868026b368a9870a81c8913c542aad",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -31045,6 +31068,302 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
                 "anchor": "\"\"\"Retirement of an original native holding; no capacity or Run decisions."
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_NativeHoldingLease/_from_native_provider"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
+                "anchor": "#define ACTQL_OWNED_CAPACITY_H"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/main_native.mbt",
+                "anchor": "extern \"C\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
+                "anchor": "#define ACTQL_OWNED_CAPACITY_H"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/main_native.mbt",
+                "anchor": "extern \"C\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Handles are never serialized Client references"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Failed stop or cleanup retains the same"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Interrupted physical bridge calls"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Transfer custody"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_borrowed_native_holding.py",
+                "anchor": "def test_move_scope_span_and_retirement_use_one_original_record("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installed_image.py",
+                "anchor": "def test_exact_config_and_unused_pools_without_new_limits("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_live_import_boundary.py",
+                "anchor": "def test_closed_original_import_signatures_include_i64_nonce_and_usage("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_NativeHoldingLease/_initialize_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
+                "anchor": "#define ACTQL_OWNED_CAPACITY_H"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/main_native.mbt",
+                "anchor": "extern \"C\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
+                "anchor": "#define ACTQL_OWNED_CAPACITY_H"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/main_native.mbt",
+                "anchor": "extern \"C\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Handles are never serialized Client references"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Failed stop or cleanup retains the same"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Interrupted physical bridge calls"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Transfer custody"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_borrowed_native_holding.py",
+                "anchor": "def test_move_scope_span_and_retirement_use_one_original_record("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installed_image.py",
+                "anchor": "def test_exact_config_and_unused_pools_without_new_limits("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_live_import_boundary.py",
+                "anchor": "def test_closed_original_import_signatures_include_i64_nonce_and_usage("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
+                "anchor": "class _NativeHoldingLease:"
               }
             ]
           }
