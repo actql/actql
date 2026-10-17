@@ -1901,8 +1901,133 @@
       ]
     },
     {
+      "module": "adapters/host-node/effect-command-key.mjs",
+      "sha256": "aaab7bedc83c35a58871e4ee94265e0892216308782384553aa8a3b6bbcbbf89",
+      "exports": [
+        "advanceEffectCommandKey",
+        "retireEffectCommandKeyWorkspace"
+      ],
+      "operations": [
+        {
+          "name": "advanceEffectCommandKey",
+          "parameters": [
+            "moon",
+            "key",
+            "signal",
+            "quantum"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace",
+          "parameters": [
+            "cleanup",
+            "cause"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace/retireEffectCommandKeyWorkspace",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace/retry/retry",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing captured Effect/Result and bounded key Owner with installed Node Host continuation and retained cleanup custody; no independent permission or retry issuance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advanceEffectCommandKey",
+            "retireEffectCommandKeyWorkspace",
+            "retireEffectCommandKeyWorkspace/retireEffectCommandKeyWorkspace",
+            "retireEffectCommandKeyWorkspace/retry/retry"
+          ],
+          "exports": [
+            "advanceEffectCommandKey",
+            "retireEffectCommandKeyWorkspace"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "The original Common continuation owns traversal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "advanceEffectCommandKey"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "advance.call(moon, key, quantum)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "Keep the exact original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "await yieldEventLoop"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "EffectCommandKeyCleanupPending"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "callbacks and promise handlers overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy/effect_command_input_keys.mbt",
+                "anchor": "step_captured_effect_command_key_validation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-command-key.test.mjs",
+                "anchor": "failed private retirement preserves"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "c334db7fe27376f9db92a304a96004e01e2e74c686bc6e4f580bb028335b41a4",
+      "sha256": "432e03be0441043f52ccf5dabcfc324abd23ac731e9cfe73a6e8d9e8450b905c",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -1963,6 +2088,7 @@
             "onReceipt",
             "onCanonicalRow",
             "canonicalRowLimits",
+            "prepareProposal",
             "signal",
             "advanceQuantum",
             "localResultIndex"
@@ -2171,6 +2297,18 @@
           "async": true
         },
         {
+          "name": "preparePinnedEffectSourcePayloadOwned/cleanupKeys/cleanupKeys",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparePinnedEffectSourcePayloadOwned/cleanupKeys/cleanupKeys/cleanupKeys",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
           "parameters": [],
           "async": true
@@ -2268,13 +2406,21 @@
         {
           "name": "preparePinnedEffectSourcePayloadOwned/summary/summary",
           "parameters": [
+            "exportOwner",
+            "importing"
+          ],
+          "async": true
+        },
+        {
+          "name": "preparePinnedEffectSourcePayloadOwned/summary/summary#2",
+          "parameters": [
             "index",
             "row"
           ],
           "async": true
         },
         {
-          "name": "preparePinnedEffectSourcePayloadOwned/summary/summary#2",
+          "name": "preparePinnedEffectSourcePayloadOwned/summary/summary#3",
           "parameters": [
             "input",
             "receipt",
@@ -2494,7 +2640,10 @@
             "readRetainedTableRows",
             "readRetainedTableRows/read/read",
             "retainPinnedEffectDependencyPayloads",
-            "retainPinnedEffectDependencyPayloads/bindings/bindings"
+            "retainPinnedEffectDependencyPayloads/bindings/bindings",
+            "preparePinnedEffectSourcePayloadOwned/cleanupKeys/cleanupKeys",
+            "preparePinnedEffectSourcePayloadOwned/cleanupKeys/cleanupKeys/cleanupKeys",
+            "preparePinnedEffectSourcePayloadOwned/summary/summary#3"
           ],
           "exports": [
             "commitPinnedEffectSourceHolding",
@@ -2517,6 +2666,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "inputsOutputs": [
@@ -2531,6 +2684,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "identity": [
@@ -2541,6 +2698,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "ownership": [
@@ -2551,6 +2712,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "synchronization": [
@@ -2561,6 +2726,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "failure": [
@@ -2571,6 +2740,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "cancellation": [
@@ -2581,6 +2754,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "resources": [
@@ -2595,6 +2772,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "extension": [
@@ -2605,6 +2786,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "verification": [
@@ -2619,15 +2804,34 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
+                "anchor": "test \""
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
+        "node:crypto",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
-      "sha256": "33b6b728bc25406b5f1dbef6c697987bca5ba3c1f1f24181fd13e06e3409cc29",
+      "sha256": "44f4e855113ba38898a0065ed498cce4ffd73c1e67073264acdc450239b4883a",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -2665,6 +2869,11 @@
           "name": "verifyPinnedEffectPlan/verifyPinnedEffectPlan#3",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "verifyPinnedEffectPlan/verifyPinnedEffectPlan#4",
+          "parameters": [],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -2677,7 +2886,8 @@
             "verifyPinnedEffectPlan",
             "verifyPinnedEffectPlan/verifyPinnedEffectPlan",
             "verifyPinnedEffectPlan/verifyPinnedEffectPlan#2",
-            "verifyPinnedEffectPlan/verifyPinnedEffectPlan#3"
+            "verifyPinnedEffectPlan/verifyPinnedEffectPlan#3",
+            "verifyPinnedEffectPlan/verifyPinnedEffectPlan#4"
           ],
           "exports": [
             "verifyPinnedEffectPlan"
@@ -2687,6 +2897,10 @@
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "Match an admitted private Preview"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "inputsOutputs": [
@@ -2697,59 +2911,107 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "checked, retained Result view"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "caller owns partial-output cleanup"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "onChunk"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "InvalidEffectPlanVerification"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/effect-plan-verify.mjs",
                 "anchor": "ownedPlanLimits"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
+                "anchor": "test \""
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/effect-run-apply.mjs",

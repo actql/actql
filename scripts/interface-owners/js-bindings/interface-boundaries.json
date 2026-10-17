@@ -29942,9 +29942,174 @@
       ]
     },
     {
+      "module": "adapters/host-node/effect-command-key.mjs",
+      "sha256": "aaab7bedc83c35a58871e4ee94265e0892216308782384553aa8a3b6bbcbbf89",
+      "exports": [
+        "advanceEffectCommandKey",
+        "retireEffectCommandKeyWorkspace"
+      ],
+      "operations": [
+        {
+          "name": "advanceEffectCommandKey",
+          "parameters": [
+            "moon",
+            "key",
+            "signal",
+            "quantum"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace",
+          "parameters": [
+            "cleanup",
+            "cause"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace/retireEffectCommandKeyWorkspace",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace/retry/retry",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "supplemental",
+      "owner": "A — existing JS/Core projection boundary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advanceEffectCommandKey",
+            "retireEffectCommandKeyWorkspace",
+            "retireEffectCommandKeyWorkspace/retireEffectCommandKeyWorkspace",
+            "retireEffectCommandKeyWorkspace/retry/retry"
+          ],
+          "exports": [
+            "advanceEffectCommandKey",
+            "retireEffectCommandKeyWorkspace"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c334db7fe27376f9db92a304a96004e01e2e74c686bc6e4f580bb028335b41a4",
+      "sha256": "432e03be0441043f52ccf5dabcfc324abd23ac731e9cfe73a6e8d9e8450b905c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -30007,6 +30172,7 @@
             "onReceipt",
             "onCanonicalRow",
             "canonicalRowLimits",
+            "prepareProposal",
             "signal",
             "advanceQuantum",
             "localResultIndex"
@@ -30215,6 +30381,18 @@
           "async": true
         },
         {
+          "name": "preparePinnedEffectSourcePayloadOwned/cleanupKeys/cleanupKeys",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparePinnedEffectSourcePayloadOwned/cleanupKeys/cleanupKeys/cleanupKeys",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
           "parameters": [],
           "async": true
@@ -30312,13 +30490,21 @@
         {
           "name": "preparePinnedEffectSourcePayloadOwned/summary/summary",
           "parameters": [
+            "exportOwner",
+            "importing"
+          ],
+          "async": true
+        },
+        {
+          "name": "preparePinnedEffectSourcePayloadOwned/summary/summary#2",
+          "parameters": [
             "index",
             "row"
           ],
           "async": true
         },
         {
-          "name": "preparePinnedEffectSourcePayloadOwned/summary/summary#2",
+          "name": "preparePinnedEffectSourcePayloadOwned/summary/summary#3",
           "parameters": [
             "input",
             "receipt",
@@ -31641,7 +31827,10 @@
             "preparePinnedEffectSourcePayloadOwned/retainText/retainText",
             "preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
             "preparePinnedEffectSourcePayloadOwned/summary/summary",
-            "preparePinnedEffectSourcePayloadOwned/summary/summary#2"
+            "preparePinnedEffectSourcePayloadOwned/summary/summary#2",
+            "preparePinnedEffectSourcePayloadOwned/cleanupKeys/cleanupKeys",
+            "preparePinnedEffectSourcePayloadOwned/cleanupKeys/cleanupKeys/cleanupKeys",
+            "preparePinnedEffectSourcePayloadOwned/summary/summary#3"
           ],
           "exports": [],
           "attributes": {
@@ -32370,12 +32559,23 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
+        "node:crypto",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "33b6b728bc25406b5f1dbef6c697987bca5ba3c1f1f24181fd13e06e3409cc29",
+      "sha256": "44f4e855113ba38898a0065ed498cce4ffd73c1e67073264acdc450239b4883a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32413,6 +32613,11 @@
         },
         {
           "name": "verifyPinnedEffectPlan/verifyPinnedEffectPlan#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "verifyPinnedEffectPlan/verifyPinnedEffectPlan#4",
           "parameters": [],
           "async": false
         }
@@ -32535,7 +32740,8 @@
             "verifyPinnedEffectPlan",
             "verifyPinnedEffectPlan/verifyPinnedEffectPlan",
             "verifyPinnedEffectPlan/verifyPinnedEffectPlan#2",
-            "verifyPinnedEffectPlan/verifyPinnedEffectPlan#3"
+            "verifyPinnedEffectPlan/verifyPinnedEffectPlan#3",
+            "verifyPinnedEffectPlan/verifyPinnedEffectPlan#4"
           ],
           "exports": [
             "verifyPinnedEffectPlan"
@@ -32647,7 +32853,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/effect-run-apply.mjs",
