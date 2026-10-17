@@ -2275,6 +2275,22 @@ pooling settings copies them; it does not transfer ownership of the pool.
 Configuration preparation is not Engine creation, compilation or the final
 same-module physical acceptance required by the producer.
 
+The private C compiler receives the same child backing descriptor and waits
+for its original parent's binding before entering that holding. Module input
+is captured through the existing same-FD bounded digest/seal operation before
+Config construction. Compilation inspects the complete generated ABI before
+serialization; it never constructs a Store or instance. The output is a fresh
+private artifact, not a runtime admission or a replacement physical receipt.
+Target errors, partially captured input, original native handles and failed FD
+close remain with that same call. An unconfirmed close is never replayed.
+
+Engine deletion does not retire process-global Mach/Rust storage. A successful
+compile may therefore report the original allocation-level holding close as
+Busy and retain its actual pointer. This is RuntimeRetained, not Released. Only
+the original process Owner's later confirmed execution/IPC stop and same-region
+mapping/descriptor retirement can discharge that responsibility. Image bytes,
+child exit status and thread join supply none of those acknowledgments.
+
 A normal child borrow return leaves the original allocator closing and its
 one-shot borrow history intact. After the same process Owner confirms typed
 stop in the original empty physical scope, both never-borrowed startup and
