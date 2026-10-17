@@ -20,6 +20,7 @@ test('genuine checked generator outputs qualify original compiler and action pro
   const inputSource = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
   assert.equal(execFileSync('git', ['status', '--porcelain'], {cwd: root, encoding: 'utf8'}), '');
   const checked = interfaceGenerationFreshness(root);
+  assert.equal(new Set(checked.checked).size, checked.checked.length);
   assert(checked.checked.includes('lowering-registry-vectors.mjs'));
   assert(checked.checked.includes('native-cli-default-assets.mjs'));
   assert(checked.checked.includes('compilation-manifests.mjs'));
