@@ -79,7 +79,13 @@ pub fn start_type_equality(Contract, Contract, Int) -> TypeEquality raise Relati
 
 pub fn string_contract(nullable~ : Bool, min_length? : Int64?, max_codepoints? : Int64?, max_utf8_bytes? : Int64?) -> Contract?
 
+pub fn string_enum_contract(Array[String], Limits, nullable~ : Bool, min_length? : Int64?, max_codepoints? : Int64?, max_utf8_bytes? : Int64?) -> Contract?
+
 pub fn stringify_checked(Contract, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn text_enumerant_at(TextLimits, Int) -> String?
+
+pub fn text_enumerant_count(TextLimits) -> Int?
 
 pub fn type_equal(Contract, Contract, Int) -> Bool raise RelationError
 
@@ -198,10 +204,13 @@ pub enum Shape {
   ContentRef(media_type~ : String?)
 }
 
+type TextEnumeration derive(Eq, @debug.Debug)
+
 pub struct TextLimits {
   min_length : Int64?
   max_codepoints : Int64?
   max_utf8_bytes : Int64?
+  enumeration : TextEnumeration?
 } derive(Eq, @debug.Debug)
 
 type TypeEquality
