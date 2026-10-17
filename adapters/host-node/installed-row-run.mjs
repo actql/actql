@@ -175,9 +175,17 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       if (finished === false || transportRecovery.cleanupPending()) return false;
       transportStopped = true;
     }
-    // Recovery owns this same RowRun after close failed/pended. The common
-    // retry refuses any run not already closed, and advances only its stop.
-    if (!checked(moon.clientProgramRowSourceCaptureCleanupAdvance(run, 64))) {
+    // Advance only this original RowRun's stopped child. A prior close may
+    // have failed before the common Owner closed the run; that refusal is not
+    // a release ACK. Retry the same close, which must itself confirm cleanup.
+    let ready;
+    try {
+      ready = checked(moon.clientProgramRowSourceCaptureCleanupAdvance(run, 64));
+    } catch {
+      close();
+      return true;
+    }
+    if (!ready) {
       await yieldEventLoop();
       return false;
     }
