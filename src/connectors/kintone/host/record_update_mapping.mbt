@@ -4,6 +4,9 @@
 pub struct RecordUpdateMapping {
   priv original : RecordDeclaration
   priv mapping : @rows.RowMapping
+  priv before_fields : Array[String]
+  priv written_fields : Array[String]
+  priv omitted_fields : Array[String]
 }
 
 ///|
@@ -42,7 +45,19 @@ pub fn prepare_record_update_mapping(
       sources,
       limits,
     ) {
-    Ok(mapping) => Ok({ original, mapping, })
+    Ok(mapping) => {
+      let names = match @rows.row_mapping_target_fields(mapping, limits) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Ok({
+        original,
+        mapping,
+        before_fields: names.filter(name => name != "$id"),
+        written_fields: mapping.write_fields.copy(),
+        omitted_fields: mapping.omittable.copy(),
+      })
+    }
     Err(issue) => Err(issue)
   }
 }
@@ -67,15 +82,7 @@ pub fn record_update_mapping_matches_request(
   value : RecordUpdateMapping,
   request : @catalog.RecordUpdateRequest,
 ) -> Bool {
-  guard value.original.declaration.views.search_by(view => {
-      view.resource == value.mapping.resource
-    })
-    is Some(index) else {
-    return false
-  }
-  let expected = value.original.declaration.views[index].fields.filter(name => {
-    name != "$id"
-  })
+  let expected = value.before_fields
   @catalog.record_update_request_values(request).all(pair => {
     let (target, write) = pair
     let page = @catalog.original_record_target_page(target)
@@ -85,9 +92,9 @@ pub fn record_update_mapping_matches_request(
     names.length() == expected.length() &&
     names.all(name => expected.contains(name)) &&
     @catalog.record_write_values_match_catalog(write, value.original.catalog) &&
-    written.all(name => value.mapping.write_fields.contains(name)) &&
-    value.mapping.write_fields.all(name => {
-      written.contains(name) || value.mapping.omittable.contains(name)
+    written.all(name => value.written_fields.contains(name)) &&
+    value.written_fields.all(name => {
+      written.contains(name) || value.omitted_fields.contains(name)
     })
   })
 }

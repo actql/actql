@@ -534,3 +534,12 @@ CREATE's connector-specific required/default-field observation and its same
 request custody are a following necessary connection; the common CREATE
 projection does not invent that original vendor evidence. No new bridge or
 runtime capability is advertised by the pure Mapping API alone.
+
+The UPDATE wrapper snapshots its before-field inventory through the same Row
+Owner's bounded projection of the immutable Mapping body. It does not reread
+escaped declaration field arrays after preparation. Written/omittable fields
+are privately copied before exposing the Mapping. Altering those metadata
+arrays cannot weaken complete-before or exact-write correspondence. This
+additional bounded Mapping Source/Decode/JSON/Contract pass overlaps the
+retained body, temporary name projection and three private name arrays; it is
+not a reservation, new parser Owner or acknowledgement of retirement.

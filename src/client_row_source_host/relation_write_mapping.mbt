@@ -19,6 +19,51 @@ pub(all) struct RowRelationWriteSpec {
 } derive(Eq, Debug)
 
 ///|
+/// Copied names from this Owner's immutable Mapping body, not escaped mutable
+/// declaration or metadata arrays. This is schema DATA, not a current grant.
+pub fn row_mapping_target_fields(
+  mapping : RowMapping,
+  limits : RowDeclarationLimits,
+) -> Result[Array[String], RowMappingIssue] {
+  if limits.max_bytes <= 0 ||
+    limits.max_nodes <= 0 ||
+    limits.max_depth <= 0 ||
+    limits.max_fields <= 0 {
+    return Err(InvalidSpecification)
+  }
+  let (_, cursor, _, _) = match
+    mapping_read_original(
+      mapping.body,
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @decode.open_object(cursor) is Ok(object) &&
+    @decode.lookup(object, "target_schema") is Some(target) else {
+    return Err(InvalidSpecification)
+  }
+  let contract = match
+    @contract.read_checked(target, {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_text_bytes: limits.max_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidSpecification)
+  }
+  guard contract.shape is @contract.Object(fields) else {
+    return Err(InvalidSpecification)
+  }
+  if @contract.field_count(fields) > limits.max_fields {
+    return Err(OutputLimit)
+  }
+  Ok(@contract.fields(fields).map(field => field.name))
+}
+
+///|
 /// Preserve the complete original closed Relation Contract, including nested
 /// Array/Decimal meaning, instead of rebuilding it from scalar type labels.
 /// Existing scalar/collection create Mappings keep their original API/bytes.
