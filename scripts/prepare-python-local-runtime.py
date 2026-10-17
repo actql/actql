@@ -165,9 +165,8 @@ def notice_originals() -> dict[str, Path]:
     }
 
 
-def image_recipe_original(root: Path, source: str) -> bytes:
-    """Bounded exact Git-original read; no unbounded git-show capture."""
-    relative = 'packages/python-local-runtime/selected-image-recipe.json'
+def _source_original(root: Path, source: str, relative: str, label: str) -> bytes:
+    """Read a fixed maintainer input against its bounded exact Git original."""
     try:
         original = _read_file(root / relative, maximum=65536)
         expected = subprocess.check_output(['git', 'rev-parse', '--verify',
@@ -175,10 +174,17 @@ def image_recipe_original(root: Path, source: str) -> bytes:
         actual = subprocess.check_output(['git', 'hash-object', '--stdin'],
             cwd=root, input=original).strip()
         if actual != expected:
-            raise ValueError('Selected image recipe differs from its committed original')
+            raise ValueError(f'{label} differs from its committed original')
         return original
     except (OSError, subprocess.CalledProcessError) as failure:
-        raise ValueError('Selected source-original image recipe is unavailable') from failure
+        raise ValueError(f'{label} is unavailable') from failure
+
+
+def image_recipe_original(root: Path, source: str) -> bytes:
+    """Bounded exact Git-original read; no unbounded git-show capture."""
+    return _source_original(root, source,
+        'packages/python-local-runtime/selected-image-recipe.json',
+        'Selected source-original image recipe')
 
 
 def verify_artifact(artifact: Path) -> LocalComponents:

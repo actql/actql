@@ -6,16 +6,17 @@ maintainer supplier. This is not an installed user action or loader fallback.
 from __future__ import annotations
 
 import argparse
-from ctypes import CDLL
+from ctypes import CDLL, byref, c_ubyte, c_void_p
 import hashlib
 from importlib import import_module, metadata
 import importlib.util
 import json
+import os
 import platform
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any
+from typing import Any, NamedTuple
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
@@ -27,12 +28,119 @@ from actql_sdk._local_distribution import WASMTIME_VERSION, _read_file  # noqa: 
 from actql_sdk._local_engine import _configure_selected_engine, _verify_selected_provider_link  # noqa: E402
 from actql_sdk._local_image_recipe import _recipe_from_original  # noqa: E402
 from actql_sdk._local_native_holding import _NativeHoldingLease  # noqa: E402
+from actql_sdk._local_native_memory_abi import bind as bind_memory  # noqa: E402
+from actql_sdk._local_distribution import _closed, _pairs  # noqa: E402
 
 spec = importlib.util.spec_from_file_location('image_component_assembly', ROOT / 'scripts/produce-python-local-runtime.py')
 if spec is None or spec.loader is None:
     raise ValueError('Original image component assembly is unavailable')
 assembly = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(assembly)
+
+
+class _CompilerHoldingOriginal(NamedTuple):
+    """One source-bound maintainer input; never product funding or a grant."""
+
+    source_sha: str
+    module_sha256: str
+    engine_sha256: str
+    runtime_library_sha256: str
+    provider_library_sha256: str
+    capacity_bytes: int
+    generation: int
+    recipe: bytes
+
+
+def _compiler_holding_original(original: dict[str, Any]) -> _CompilerHoldingOriginal:
+    raw = assembly.recipe._source_original(ROOT, original['source'],
+        'packages/python-local-runtime/selected-compiler-holding.json',
+        'Selected source-original compiler holding')
+    body = _closed(json.loads(raw, object_pairs_hook=_pairs), (
+        'scope', 'module_sha256', 'engine_sha256', 'runtime_library_sha256',
+        'provider_library_sha256', 'capacity_bytes', 'generation'))
+    recipe = original['recipe']
+    page = os.sysconf('SC_PAGE_SIZE')
+    if (body['scope'] != 'image_compiler_only'
+            or body['module_sha256'] != original['module_sha256']
+            or body['engine_sha256'] != hashlib.sha256(recipe.engine_body).hexdigest()
+            or body['runtime_library_sha256'] != recipe.runtime_library_sha256
+            or body['provider_library_sha256'] != recipe.provider_library_sha256
+            or type(body['capacity_bytes']) is not int
+            or not 0 < body['capacity_bytes'] <= 2**63 - 1
+            or page <= 0 or body['capacity_bytes'] % page != 0
+            or type(body['generation']) is not int or not 0 < body['generation'] <= 2**64 - 1):
+        raise ValueError('Compiler holding differs from its source/module/recipe original')
+    return _CompilerHoldingOriginal(original['source'], body['module_sha256'],
+        body['engine_sha256'], body['runtime_library_sha256'], body['provider_library_sha256'],
+        body['capacity_bytes'], body['generation'], hashlib.sha256(raw).digest())
+
+
+class CompilerHoldingAcquisitionError(RuntimeError):
+    """Retain the same provider/out-slot; no replay or inferred close ACK.
+
+    A known refusal with an empty slot remains a refusal. A lost reply,
+    nonempty failed slot or inconsistent successful reply is unconfirmed.
+    This carrier does not mint a holding from an uncertain observation.
+    """
+
+    def __init__(self, library: CDLL, slot: c_void_p,
+                 original: _CompilerHoldingOriginal, code: int | None, *,
+                 attempted: bool = True, holding: _NativeHoldingLease | None = None) -> None:
+        self.library, self.slot, self.original, self.code = library, slot, original, code
+        self.attempted, self.holding = attempted, holding
+        self.refused = slot.value is None and (not attempted or (type(code) is int and code != 0))
+        super().__init__('Original compiler holding acquisition refused' if self.refused
+                         else 'Original compiler holding acquisition is unconfirmed')
+
+
+def _acquire_compiler_holding(original: dict[str, Any],
+                             selected: _CompilerHoldingOriginal) -> _NativeHoldingLease:
+    """Physically acquire only this compiler extent through the same provider.
+
+    The declaration is not the backing. Config/import/Engine work remains
+    unavailable until the real C acquire has confirmed a nonempty original
+    slot and the existing holding has consumed it. Provider loading belongs
+    to the separate trusted maintainer control envelope, not this extent.
+    """
+    recipe = original['recipe']
+    if (type(selected) is not _CompilerHoldingOriginal
+            or selected.source_sha != original['source']
+            or selected.module_sha256 != original['module_sha256']
+            or selected.engine_sha256 != hashlib.sha256(recipe.engine_body).hexdigest()
+            or selected.runtime_library_sha256 != recipe.runtime_library_sha256
+            or selected.provider_library_sha256 != recipe.provider_library_sha256):
+        raise ValueError('Compiler holding original belongs to another selected compilation')
+    provider = original['provider_library']
+    _read_file(provider, maximum=recipe.provider_library_bytes,
+               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
+    library = CDLL(str(provider))
+    slot = c_void_p()
+    try:
+        _read_file(provider, maximum=recipe.provider_library_bytes,
+                   expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
+        acquire = bind_memory(library, 'actql_native_owned_acquire')
+    except BaseException as primary:
+        raise CompilerHoldingAcquisitionError(library, slot, selected, None,
+                                              attempted=False) from primary
+    fingerprint = (c_ubyte * 32).from_buffer_copy(selected.recipe)
+    try:
+        code = acquire(selected.capacity_bytes, selected.generation, fingerprint, byref(slot))
+    except BaseException as primary:
+        raise CompilerHoldingAcquisitionError(library, slot, selected, None) from primary
+    if type(code) is not int or code != 0 or slot.value is None:
+        raise CompilerHoldingAcquisitionError(library, slot, selected,
+                                             code if type(code) is int else None)
+    # Retain the object before its existing Owner initializer moves the slot.
+    # Even an exception immediately after that move keeps this same object;
+    # neither the old address nor a cleared out-slot permits another acquire.
+    holding = _NativeHoldingLease.__new__(_NativeHoldingLease)
+    try:
+        holding._initialize_original(slot, library, selected.generation,
+                                     selected.recipe, 'actql_native_owned_')
+    except BaseException as primary:
+        raise CompilerHoldingAcquisitionError(library, slot, selected, code,
+                                              holding=holding) from primary
+    return holding
 
 
 def verify(core_receipt: Path, expected_source: str) -> dict[str, Any]:
@@ -246,6 +354,33 @@ def compile_image(core_receipt: Path, expected_source: str, destination: Path, *
     return result
 
 
+def compile_from_original(core_receipt: Path, expected_source: str,
+                          destination: Path) -> dict[str, object]:
+    """Maintainer-only CLI composition; no normal factory or runtime fallback."""
+    original = verify(core_receipt, expected_source)
+    if destination.exists():
+        raise ValueError('Image compiler destination already exists')
+    selected = _compiler_holding_original(original)
+    holding = _acquire_compiler_holding(original, selected)
+    try:
+        if holding._capacity_bytes() != selected.capacity_bytes:
+            raise ValueError('Physical compiler holding does not match its original extent')
+        return compile_image(core_receipt, expected_source, destination, _holding=holding)
+    except ImageCompilerCleanupError:
+        # The existing carrier retains this same holding and every uncertain
+        # handle. Do not retry its scope, handle close or physical retirement.
+        raise
+    except BaseException as primary:
+        try:
+            # Covers a changed second preflight or destination before the
+            # compiler has taken custody. Already confirmed close is a no-op
+            # in the existing holding; an uncertain close stays sticky there.
+            holding.close()
+        except BaseException as cleanup:
+            raise ImageCompilerCleanupError(_CompilerCustody(holding), primary) from cleanup
+        raise
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', required=True)
@@ -262,4 +397,4 @@ if __name__ == '__main__':
             'image_bytes_limit': checked['recipe'].image_bytes_limit,
             'native_engine_started': False, 'compiled': False, 'public_local_acceptance': False}))
     else:
-        print(json.dumps(compile_image(args.core_receipt, args.source, args.destination)))
+        print(json.dumps(compile_from_original(args.core_receipt, args.source, args.destination)))

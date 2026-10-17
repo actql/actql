@@ -150,10 +150,40 @@ not repeat an unconfirmed call. Confirmed handle cleanup followed by a known
 holding-retirement refusal may retry only that original holding.
 The selected source-original recipe remains unavailable until reviewed; this
 script never supplies fixture values or runtime defaults for missing bounds.
-The standalone CLI has no original-holding supplier yet and refuses `--compile`
-before importing Wasmtime. A declaration or CLI byte count cannot replace that
-supplier. Maintainer compiler budgets and eventual product bootstrap funding
-are separate; neither verify-only nor scalar custody tests establish either.
+The standalone CLI's `--compile` uses the existing C provider acquire, not a
+declaration as a substitute for backing. It first requires the exact clean Git
+original `packages/python-local-runtime/selected-compiler-holding.json`. That
+file is currently absent, so compilation still refuses before loading the
+provider or importing Wasmtime. There is no CLI capacity default or normal
+factory fallback. Its closed fields are `scope: "image_compiler_only"`,
+`module_sha256`, `engine_sha256`, `runtime_library_sha256`,
+`provider_library_sha256`, `capacity_bytes` and `generation`. Capacity is a
+positive signed-64-bit byte count aligned to the actual Host page size;
+generation is a positive unsigned-64-bit value. Booleans are not integers.
+The selected source's exact raw declaration hash is the C holding recipe,
+bound to that source, module, Engine recipe and both libraries.
+
+After file-only verification, the maintainer supplier loads that same selected
+C provider and physically acquires its extent. A confirmed nonempty out-slot
+is moved once through the existing holding Owner initializer, with the object
+retained before the move. The actual capacity observation must match before
+compiler work. A failed or lost acquire keeps the same provider, out-slot,
+original and any partial holding in `CompilerHoldingAcquisitionError`; it does
+not reacquire, close an uncertain slot, issue a Core identity or run Config.
+Known empty refusal remains distinct from response loss or a nonempty failed
+slot. A pre-acquire provider fence failure retains the loaded provider without
+claiming an acquire attempt. Existing compiler cleanup custody then owns the
+confirmed holding through serialization and confirmed retirement. A second
+preflight failure cleans up only that original; an existing unconfirmed
+compiler cleanup carrier is propagated without another close.
+
+This is a maintainer-only physical extent. Loading the provider, including its
+pinned MoonBit process initializer, belongs to the separate trusted maintainer
+control envelope. The extent does not pay for Python, OS loader or unrelated
+VM domains, provide product Host/Run funding, or select normal numerical
+allowances. Maintainer resource-guard reservations and eventual product
+bootstrap funding are separate; neither verify-only nor scalar custody tests
+establish their completeness.
 
 Module preparation precedes physical acceptance. The existing component
 producer can record `--record-module-original --source SOURCE --compiled-source
