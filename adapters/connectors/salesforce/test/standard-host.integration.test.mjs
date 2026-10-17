@@ -2676,3 +2676,36 @@ for (const variant of ['standard', 'standard-codes', 'custom']) {
     assert.equal(setup.queries().length, queryCount);
   });
 }
+
+test('an Address beyond its original component scale fails typed without a Result', async t => {
+  const setup = await installation(t, {addressFields: true, storedRecords: [
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+      BillingAddress: {city: '東京', country: 'Japan integration',
+        geocodeAccuracy: null, latitude: numberText('35.0000000000000001'),
+        longitude: numberText('139.1'), postalCode: '001', state: null, street: ''}},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'BillingAddress'));
+  document.stages[0].inputs.remote.view = 'records';
+  document.stages[0].steps.push(
+    {from: 'captured', assert_rows: {unique_by: ['Id']}, as: 'unique_records'},
+    {from: 'unique_records', sort: [{Id: 'asc'}], as: 'ordered_records'});
+  document.stages[0].results.r.from = 'ordered_records';
+  const program = JSON.stringify(document);
+  const execution = await client.startSource(program, {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'address-value-refusal'})});
+  assert.equal((await execution.wait({signal: AbortSignal.timeout(20_000)})).status, 'failed');
+  await assert.rejects(execution.result('records').all());
+  await close();
+  const {adapter, common} = await installedAdapter(setup, program);
+  try {
+    const failure = await adapter.open(common).then(() => undefined, error => error);
+    assert.equal(failure?.code, 'SalesforceValueViolation', String(failure?.code));
+    assert.equal(failure.outcome, 'stopped');
+    assert.deepEqual(failure.cause.violation, {expected_type: 'object',
+      field: 'BillingAddress', kind: 'scale', resource: 'Test_Record__c'});
+  } finally {
+    adapter.close();
+  }
+});
