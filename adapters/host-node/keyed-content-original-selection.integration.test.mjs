@@ -166,7 +166,7 @@ test('stored original handoff refences Source availability after the original ma
   }});
   retire = () => f.retireAvailability();
   await runAtPreparation(t, f, f.issued(), view => {
-    assert.equal(f.owner.storageForContent(view.binding), undefined,
+    assert.equal(f.owner.storageForContent(view.binding) === undefined, true,
       'prior match is not a current Source holding handoff');
     assert.equal(f.owner.issuedForContent(view.binding), undefined);
     assert.equal(f.execution().cleanupPending(), true,

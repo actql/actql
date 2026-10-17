@@ -117,7 +117,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
       const matched = moon.clientProgramEffectCommandContentMatchesIssued(binding, original.value);
       // Common invokes Host currentness callbacks. They may begin cleanup or
       // replace this inventory; their prior true return is not a handoff fence.
-      if (!selectionCurrent()) return undefined;
+      if (!selectionCurrent() || !live() || !selectionCurrent()) return undefined;
       if (matched === true && inventory.get(original.wire) === original) return original;
     }
     return undefined;

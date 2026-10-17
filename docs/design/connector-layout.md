@@ -181,6 +181,10 @@ looking up a Reference or CID later. The inventory's typed original matcher and
 post-callback entry/current check are also required when selecting this stored
 binding. A copied binding or equal-wire issuance cannot substitute for that
 entry. The immutable observation exposes no Store, path, key or byte buffer.
+The post-matcher fence checks both inventory retirement and the original Source's
+current availability; a callback can change the latter without starting cleanup
+or replacing the entry. It rechecks inventory retirement after that availability
+callback as well. A prior successful match is not a substitute for either fence.
 It is metadata custody, not a physical loan, original phase assignment, read
 authorization or cleanup acknowledgement. Its extra record and aliases remain
 in the Source/Host envelope through their actual lifetimes; temporary Source

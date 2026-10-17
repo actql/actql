@@ -45804,7 +45804,7 @@
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "04ac0867114ec7478dec2f98bcd9cfedbf73cbc9b58f7e37fa843ce649d40e0c",
+      "sha256": "ed59d3b180595a40d021bd3c70ffd66ab517065fb37c10a8bba5cad53daad8b6",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
