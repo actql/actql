@@ -4871,6 +4871,8 @@ fn client_program_configure_local_host(
 struct ClientLocalEffectHost {
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]
   run : @strategy.CapturedEffectRunDAG
+  prepared : @publication_host.PreparedClientEffectRun
+  sequences : Array[@execution.GeneratedSequence]
 }
 
 ///|
@@ -7227,20 +7229,18 @@ fn open_client_local_effect_host(
   let generated = []
   // Source-free tasks also need the same checked expression contexts as
   // acquired tasks. A private Effect input is not a context-free projection.
-  {
-    let sequences = match
-      @client_local_host.prepare_client_effect_local_sequences(
-        computation, registry_body, values_body, fragment_body, ordered_body,
-      ) {
-      Some(value) => value
-      None => {
-        ignore(reject_client_local_run(captured))
-        return None
-      }
+  let sequences = match
+    @client_local_host.prepare_client_effect_local_sequences(
+      computation, registry_body, values_body, fragment_body, ordered_body,
+    ) {
+    Some(value) => value
+    None => {
+      ignore(reject_client_local_run(captured))
+      return None
     }
-    for task in first_compute..<sequences.length() {
-      generated.push(sequences[task])
-    }
+  }
+  for task in first_compute..<sequences.length() {
+    generated.push(sequences[task])
   }
   match
     client_program_configure_local_host(
@@ -7254,7 +7254,7 @@ fn open_client_local_effect_host(
       per_pair_ms,
       component_providers~,
     ) {
-    Some(host) => Some({ host, run, })
+    Some(host) => Some({ host, run, prepared, sequences, })
     None => None
   }
 }

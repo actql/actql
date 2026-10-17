@@ -39,6 +39,7 @@ export function checkRelaClientBridges(root, write = false) {
     'client_source_capture_bridge.mbt',
     'client_pending_capture_capacity_bridge.mbt',
     'client_published_store_target_bridge.mbt',
+    'client_effect_phase_bridge.mbt',
     'client_effect_content_bridge.mbt']) {
     const input = join(root, 'src/connectors_builtin_node', file);
     const output = join(root, 'src/connectors_builtin_node_rela', file);

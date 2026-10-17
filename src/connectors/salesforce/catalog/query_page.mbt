@@ -216,7 +216,7 @@ fn admit_multipicklist_cell(
 }
 
 ///|
-fn admit_geolocation_cell(
+fn admit_compound_cell(
   cursor : @decode.Cursor,
   source : Bytes,
   field : FieldMetadata,
@@ -228,7 +228,7 @@ fn admit_geolocation_cell(
     @decode.object_field_names(cursor) is Ok(names) else {
     return admit_query_cell(cursor, contract, field.name, budget)
   }
-  if components.length() != 2 || names.length() != components.length() {
+  if components.is_empty() || names.length() != components.length() {
     return Err(InvalidResponse)
   }
   for name in names {
@@ -247,7 +247,7 @@ fn admit_geolocation_cell(
     let span = @decode.cursor_span(value)
     let projected = if @decode.is_null(value) {
       @source.Null
-    } else {
+    } else if described_decimal_type(component.native_type) {
       guard @decode.finite_number(value) is Ok(_) &&
         described_decimal(component) is Some((precision, scale)) &&
         source_lexeme(source, value) is Some(lexeme) else {
@@ -267,6 +267,20 @@ fn admit_geolocation_cell(
         Err(DecimalRange) => return Err(ValueOutOfRange(field.name))
         Err(DecimalScale) => return Err(ValueBeyondScale(field.name))
         Err(DecimalFormat) => return Err(InvalidResponse)
+      }
+      @source.String(text)
+    } else {
+      guard @decode.text(value) is Ok(text) else {
+        return Err(
+          ValueAdmission(
+            field.name,
+            @admitted.ValueIssue(
+              @admitted.WrongType,
+              path=[@source.Key(name)],
+              span~,
+            ),
+          ),
+        )
       }
       @source.String(text)
     }
@@ -456,8 +470,11 @@ pub fn project_query_page(
           } else if field.native_type == "multipicklist" &&
             !@decode.is_null(value) {
             admit_multipicklist_cell(value, contract, field.name, budget)
-          } else if field.native_type == "location" && !@decode.is_null(value) {
-            admit_geolocation_cell(
+          } else if (
+              field.native_type == "location" || field.native_type == "address"
+            ) &&
+            !@decode.is_null(value) {
+            admit_compound_cell(
               value,
               bytes,
               field,
@@ -593,7 +610,8 @@ pub fn query_page_value_violation(
   guard plan.fields.search_by(value => value.name == field) is Some(index) else {
     return None
   }
-  let expected_type = if plan.fields[index].native_type == "location" {
+  let expected_type = if plan.fields[index].native_type == "location" ||
+    plan.fields[index].native_type == "address" {
     "object"
   } else {
     guard read_value_type(plan.fields[index].native_type) is Some(value) else {
