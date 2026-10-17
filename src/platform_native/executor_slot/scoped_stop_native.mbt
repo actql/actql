@@ -1,7 +1,7 @@
 ///|
 // The anchor is a distinct open description of the original slot inode. It
 // pins identity without retaining the holder's inherited lock description.
-type NativeExecutorSlotAnchor
+priv type NativeExecutorSlotAnchor
 
 ///|
 #borrow(path)

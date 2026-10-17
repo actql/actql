@@ -155,7 +155,7 @@ fn NativeExecutorSlot::spawn_holder_reading(
   executable : String,
   arguments : Array[String],
   input : Int,
-  scoped : NativeScopedExecutorHolder? = None,
+  scoped? : NativeScopedExecutorHolder? = None,
 ) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue] {
   if self.descriptor < 0 {
     return Err(Closed)
