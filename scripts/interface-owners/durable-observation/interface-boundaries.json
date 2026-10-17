@@ -5065,7 +5065,7 @@
     {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a53884f7d10eedfb5f295f0a43df4ff38179e64f714a5ab7b7e3f9332b3e417b",
+      "sha256": "b60e24a25350f2cf4360e417e8df3ef8f3d88a9b39eabcf103ab7900409f8f1d",
       "exports": [
         "openSqliteCredentialJournal"
       ],
@@ -5255,6 +5255,36 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "validJournalGrantProjection",
+          "parameters": [
+            "control",
+            "projection",
+            "grantCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "validJournalGrantProjection/validJournalGrantProjection",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "validJournalGrantProjection/validJournalGrantProjection#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "validJournalGrantProjection/values/values",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -5289,7 +5319,11 @@
             "openSqliteCredentialJournal/record/record/record",
             "openSqliteCredentialJournal/requireControl/requireControl",
             "syncDirectory",
-            "text/text"
+            "text/text",
+            "validJournalGrantProjection",
+            "validJournalGrantProjection/validJournalGrantProjection",
+            "validJournalGrantProjection/validJournalGrantProjection#2",
+            "validJournalGrantProjection/values/values"
           ],
           "exports": [
             "openSqliteCredentialJournal"
@@ -5315,6 +5349,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original grant of an authentication claim"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same-journal installation metadata admission"
               }
             ],
             "ownership": [
@@ -5361,6 +5399,10 @@
               {
                 "path": "adapters/site-node/credential-authentication-journal.test.mjs",
                 "anchor": "the actual signature-admitted claim grant binds only its own original authentication use"
+              },
+              {
+                "path": "adapters/site-node/installation-metadata-credential-journal.integration.test.mjs",
+                "anchor": "metadata original signed grant enters the existing Journal with the same original claim"
               }
             ]
           }

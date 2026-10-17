@@ -1,5 +1,7 @@
 import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
+import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
+import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
 import {publicationAction} from './publication-action.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {
@@ -6067,6 +6069,10 @@ export function runtimeCore(moon) {
     remoteTransferControl: remoteTransferControl(moon),
     remoteStandardSourceControl: remoteStandardSourceControl(moon),
     remoteCredentialControl: remoteCredentialControl(moon),
+    // Explicit private DATA view, not an installed issuer or signing permit.
+    // Keep older unused runtime routes lazy; actual callers require this ABI.
+    localSigningMetadata: () => createLocalSigningMetadata(moon),
+    installationPreparationMetadata: () => createInstallationPreparationMetadata(moon),
     effectApplicationControl: effectApplicationControl(moon),
     remoteBundleControl: remoteBundleControl(moon),
     publicationControl: publications,

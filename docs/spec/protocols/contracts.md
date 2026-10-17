@@ -37,6 +37,7 @@ This document owns catalog, sourceview, mapping, command, model-task, check-envi
 - [Ranked candidate acquisition contract](#ranked-search-contract)
 - [SourceView transformation profiles](#sourceview-transformations)
 - [Local signing public-key identity](#local-signing-public-key)
+- [Installation metadata preparation credentials](#installation-metadata-preparation)
 - [Machine contracts](#machine-contracts)
 <!-- page-contents:end -->
 
@@ -2541,11 +2542,156 @@ and its pinned independent vectors define the byte framing. Existing Local
 grant/use bodies and pins remain unchanged; Native signing and operational
 caller connection are separate.
 
+<a id="installation-metadata-preparation"></a>
+
+## Installation metadata preparation credentials
+
+<!-- requirement-block: installation-metadata-preparation.original-subject -->
+An installation metadata preparation MUST retain the original explicit trusted
+Host publication request, authenticated actor/Account, selected connection,
+Site/runtime/Connector/credential installation and their current generation;
+the closed subject DATA cannot issue or reconstruct that opaque custody.
+
+<!-- requirement-block: installation-metadata-preparation.closed-data -->
+The subject and grant MUST match the closed machine bodies, exact canonical
+UTF-8 bytes and SHA-256 identities, including UTF-16 code-unit, UTF-8 byte,
+value-node, signed-Int32 generation and positive signed-Int64 expiry bounds;
+schema shape or a matching CID alone is not sufficient admission evidence.
+
+<!-- requirement-block: installation-metadata-preparation.original-declaration -->
+The declaration source CID MUST identify the exact retained declaration UTF-8
+bytes without normalization, not a semantic Contract, selected target, issuer
+or substitute for the original declaration and selected occurrence.
+
+<!-- requirement-block: installation-metadata-preparation.per-operation -->
+Each metadata use MUST retain the same original subject and registered
+metadata occurrence, exact operation, origin, GET path and empty request body,
+with independently current Account/issuer/egress/material authorization and a
+separate durable use claim before physical I/O; database and dependent schema
+retrieval are separate grants, not a query-grant retargeting.
+
+<!-- requirement-block: installation-metadata-preparation.no-run-substitution -->
+The preparation alternative MUST NOT populate Run-bound fields with stand-ins,
+authorize later query/property reads or writes, or accept another subject,
+copied operational preparation, changed installation or cross-purpose use.
+
+<!-- requirement-block: installation-metadata-preparation.funded-lifetime -->
+The original acquisition/resource Owners MUST cover actual metadata request,
+response, decode, contract construction, retained observations, callbacks and
+cleanup independently of a future relational Run; missing actual authority,
+original context or funding refuses as Unavailable rather than falling back.
+
+<!-- requirement-block: installation-metadata-preparation.saved-originals -->
+Publication and Run adoption MUST retain the actual observed schema/declaration
+and resulting original Contracts, metadata dependency and generation; recovery
+consumes those saved originals, never rediscovery or configuration replacement.
+
+<!-- requirement-block: installation-metadata-preparation.nonresend -->
+Cold DATA admission MUST NOT claim an ordinal, renew expiry, issue permission,
+clear Unknown or prove a request unsent; partial response and pending cleanup
+remain with their same original Owner, without automatic resend.
+
+The signature uses the existing transport-neutral
+`actql-remote-credential-grant-signature/0.1` envelope and its preimage:
+version, NUL, grant CID, NUL, original grant bytes. The existing
+`actql-remote-credential-use/0.1` record retains its grant CID, use ID and ordinal.
+The distinct closed grant body and typed reader select this alternative;
+existing Run/Local preparation bodies and their readers remain unchanged.
+These records are DATA and do not acknowledge physical completion or cleanup.
+Static parsing and offline EXPLAIN do not perform metadata acquisition.
+<a id="initial-local-signing-issuer"></a>
+
+## Initial Local signing issuer admission
+
+<!-- requirement-block: initial-local-signing-issuer.authenticated-original -->
+The existing trusted Local Host/installation Owner MUST admit private
+LocalSigning issuance responsibility only from authenticated original explicit
+initialization/adoption for the same physical Store and original installed key
+generation, retaining or durably authenticating the actual installation issuer
+identity and explicit original finite expiry/use policy, refusing general Host
+adoption, signer metadata, PEM, public-key CID, path or current file hash as
+substitutes, and leaving missing originals unavailable without cold
+initialization or reconstruction.
+
+<!-- requirement-block: initial-local-signing-issuer.exact-operation -->
+The admission MUST be confined to the same original Client request, Submission,
+Run definition/invocation, attempt/unit, current Checkpoint/kind, purpose,
+selected key configuration/generation, exact preimage and finite use.
+
+<!-- requirement-block: initial-local-signing-issuer.independent-current-authority -->
+Current actor, Account, Reviewer or Host-attestation purpose, Run-read and
+physical key/sign authority MUST remain independent requirements, refusing
+cancellation, denial, retired/replaced originals and wrong-purpose substitution.
+
+<!-- requirement-block: initial-local-signing-issuer.original-default-identity -->
+Default machine-user identity MUST come from the actual trusted
+installation/current actor, without a named selection falling back to the
+default.
+
+<!-- requirement-block: initial-local-signing-issuer.no-authority-expansion -->
+The admission MUST exclude generic issuance, Source/Model/Effect/dispatch
+grants, changes to the explicit Native issuer route and policy inferred from
+Submission expiry.
+
+<!-- requirement-block: initial-local-signing-issuer.original-durable-use -->
+The existing journal/custody MUST persist/adopt the original grant and durably
+claim its original use before physical signing, with current rechecks around
+asynchronous key access and callbacks, retained original duty on commit/signature
+uncertainty without replacement grant, ordinal, attempt, key, signer, re-signing
+or resend, recovery/saved-outcome authentication of the same original
+key/issuer/grant/use/outcome and current return authority without initialization
+or reissuance, and separate ReviewerProof/HostAttestation key/purpose originals.
+
+The [existing Local signing Owner](../../../spec/contracts/local-signing-credential.md)
+defines the unchanged closed grant/use bodies. This private operational
+extension introduces no public signer field, new Owner, Ledger or approval
+mechanism; structural DATA admission is not operational acceptance.
+
+<a id="local-signing-bootstrap-policy"></a>
+
+## Default Local signing bootstrap policy
+
+<!-- machine-import: ../../../spec/contracts/actql-local-signing-bootstrap-policy.schema.json# sha256:85f15f3cfab03c1cc4e2ea64541027cd9cfa3218e1d430041fd8d04d2cd7cc88 -->
+<!-- machine-import: ../../../spec/contracts/local-signing-bootstrap-policy.json# sha256:8fe727ecd855e06e0bcb07262c31f9b4e2f211292c3393b5e3f4b7e5cf1501e1 -->
+
+<!-- requirement-block: local-signing-bootstrap-policy.pinned-initial-original -->
+Explicit first initialization of the default Local signer MUST retain and
+authenticate the selected closed policy original with max_uses 1 and
+max_issue_interval_ms 300000 through the existing packaged bootstrap assets,
+bound to the same original initialization intent, physical Store, original key
+generation and Host adoption, without treating these values as Submission TTL,
+execution funding or generic issue permission.
+
+<!-- requirement-block: local-signing-bootstrap-policy.original-issuer-identity -->
+The existing Common/Host Owner MUST format the issuer identity as exactly
+`local-signing/` followed by the authenticated original initialization intent CID
+including `sha256:`, retaining its nonce/Store/account/configuration binding
+without a new CID domain, later-Host identity, replacement initialization or
+authority from the identifier string alone.
+
+<!-- requirement-block: local-signing-bootstrap-policy.first-durable-issue -->
+The first durable issue MUST persist its actual trusted current sample and
+absolute expiry capped by the earlier of sample plus 300000 milliseconds or an
+applicable earlier original key/authorization bound, checking arithmetic and
+refusing negative/uncertain time, overflow and expired bounds, with the same
+original policy/grant/use/claim retained without renewal or replacement on
+restore, repeated answer, expiry or Unknown.
+
+<!-- requirement-block: local-signing-bootstrap-policy.default-only-and-no-backfill -->
+Only absent configured signers MUST select this default policy, with missing
+legacy originals unavailable, no cold initialization or backfill from a getter,
+and no configured named signer falling back to the default or changing the
+existing explicit generic Native issuer route.
+
 <a id="machine-contracts"></a>
 
 <!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/compiled_plan sha256:25094bdc116c9edae1f9ea4123e182d9d898f718941527fe466f55bd448fe7b8 -->
 
 ## Machine contracts
+
+<!-- machine-import: ../../../spec/contracts/actql-installation-metadata-credential.json# sha256:3f49e81df4b7e7ba1e4e419010a80f858481f3c8b2b0b0e2f942664aa2a82abc -->
+<!-- machine-import: ../../../spec/contracts/actql-installation-metadata-credential.json#/schemas/subject sha256:1a975b03b9bd3390118acc7dfef1a1a560119752a07910419beb79fc05399057 -->
+<!-- machine-import: ../../../spec/contracts/actql-installation-metadata-credential.json#/schemas/grant sha256:b24e7c6cf90147c8f222b829f8267c35dae1d70a09b334dc45a8dd9385471ce4 -->
 
 These exact schema/law references are owned here. Their identities do not include this document or another owner's aggregate contract.
 

@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -165,6 +166,31 @@ class ThreadPreparationTests(unittest.TestCase):
         self.record['outputs'][next(iter(self.originals))]['sha256'] = '0' * 64
         with self.assertRaisesRegex(ValueError, 'Derived original thread digest'):
             self.verify()
+
+
+class PinnedThreadPatchTests(unittest.TestCase):
+    """Read the real pinned patch, not only a synthetic applicable patch."""
+
+    def test_pinned_patch_parses_strictly_and_names_only_original_three_inputs(self):
+        record = json.loads((CANDIDATE / 'thread-source.json').read_bytes())
+        patch = (CANDIDATE / record['patch']['path']).read_bytes()
+        self.assertEqual(ThreadPreparationTests.digest(patch), {
+            'bytes': record['patch']['bytes'], 'sha256': record['patch']['sha256']})
+        result = subprocess.run(['git', 'apply', '--no-index', '--numstat', '-'],
+                                input=patch, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        rows = [line.split('\t') for line in result.stdout.decode().splitlines()]
+        self.assertEqual({row[2] for row in rows}, {item['path'] for item in record['inputs']})
+        self.assertEqual(len(rows), 3)
+
+    def test_original_wrong_final_hunk_count_is_rejected_without_recount(self):
+        patch = (CANDIDATE / 'wasmtime-owned-thread-review.patch').read_bytes()
+        correct = b'@@ -34,6 +34,12 @@'
+        self.assertEqual(patch.count(correct), 1)
+        corrupt = patch.replace(correct, b'@@ -34,7 +34,13 @@')
+        result = subprocess.run(['git', 'apply', '--no-index', '--numstat', '-'],
+                                input=corrupt, capture_output=True, timeout=10)
+        self.assertNotEqual(result.returncode, 0)
 
 
 if __name__ == '__main__':

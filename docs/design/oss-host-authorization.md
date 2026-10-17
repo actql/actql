@@ -52,6 +52,22 @@ funding. A physical key/use supplier must cover its own additional lifetime.
 
 ## Original public Host signer selections
 
+The Node Host's private Local-signing metadata view delegates exact grant/use
+wire admission, identities, finite limits and full expected-scope comparison to
+the existing Credential Owner. It retains that runtime's opaque values behind
+view-local references; copied or foreign references cannot cross the seam.
+Callbacks and their runtime receiver are captured once. Expected scope is an
+explicit original argument, never inferred as current permission from the
+candidate grant. The view issues no grant and claims no use ordinal.
+
+Retiring this metadata view cuts its own references and refuses escaped
+operations. It does not stop signing, forget a pending claim, acknowledge key
+cleanup or discharge Unknown. The installation must retain physical key,
+Account/issuer, request/Checkpoint/Run, durable original-use and outcome duties
+independently. Its private maps/tokens/callbacks, decoded metadata and writer
+overlap still belong to the original Host/Run resource inventory; no numerical
+coverage follows from bounded metadata or reference retirement.
+
 The existing Common Host configuration boundary projects the `signers` portion
 of an explicitly selected `actql-host/0.1` original. It retains the exact input
 wire and private-constructor selections for each original name, principal, key
@@ -107,6 +123,15 @@ its own root field; a Store byte digest includes the complete wire and is not
 that self CID. Approval binds the review actually shown and cannot discharge
 another Preview, scope, claim set or redaction policy. Neither projection nor
 physical persistence issues an Account grant, apply permit or cleanup ACK.
+
+The Python and Node Clients verify self-addressed Effect review bytes in the
+existing exact DATA-key domain (`actql-review-projection/0.1`), including nested
+row keys. They remove only the root `review_projection_cid` for that digest and
+require the received complete wire to be canonical. Model review integrity
+keeps its existing identifier-key domain (`actql-run-review-projection/0.1`);
+legacy complete-byte digests remain a distinct transport-integrity path. This
+check neither readmits a private Preview nor supplies its semantic correspondence,
+current authorization, signing authority or resolve permission.
 
 The existing private continuation ledger keeps those two identities on the
 same review holding: its historical `semantic_cid` still addresses complete
