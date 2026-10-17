@@ -43,13 +43,14 @@ async function rowOwner(verifyOriginalTransport) {
   const check = common.clientProgramCheckEnvironment(environment.wire, environment.evidenceCid,
     false, false, true, false, false, false, false);
   assert.ok(check);
-  const program = common.clientProgramPreparationReady(common.clientProgramPrepareEffectFreeWithParameters(
+  const preparation = common.clientProgramPrepareEffectFreeWithParameters(
     JSON.stringify({version: 'actql/0.1', id: 'calendar-free-busy-accounting', stages: [{id: 'scan',
       inputs: {remote: {connector: 'fixture', resource: 'free_busy'}},
       steps: [{filter: 'true', as: 'all'}, {select: ['calendar_id','start','end'], as: 'out'}],
       results: {r: {from: 'out', fields: ['calendar_id','start','end']}}}], results: {r: {from: {stage: 'scan', result: 'r'}}}}),
-    'json', check, undefined));
-  assert.ok(program);
+    'json', check, undefined);
+  const program = common.clientProgramPreparationReady(preparation);
+  assert.ok(program,common.clientProgramPreparationIssueCode(preparation));
   const [registry, aoa, query, evidence] = await Promise.all([
     read('spec/dependencies/aoa-pipeline-registry.json'), read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'), read('spec/contracts/actql-query-process-evidence.json')]);
