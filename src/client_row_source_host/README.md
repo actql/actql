@@ -69,6 +69,9 @@ overlap, including the existing scratch, to the same Ledger's `reserve_attempt`
 before attempt construction. Missing/unjustified supply remains unavailable;
 declaration construction is not a physical measurement, reservation or grant.
 Ordinary and listing-report entries keep their existing selection semantics.
+The private Node `clientProgramRowSourceProviderCapacity` translates exact
+Int64 amounts through the existing `execution_capacity` DATA validator only;
+it does not issue an opaque Owner, reservation or physical-cleanup receipt.
 
 Before any provider page or completion, this profile requires the exact
 `RowRunResponseBorrow` cleanup binding above. The trusted installer must bind
@@ -78,6 +81,8 @@ backing in the original reservation rather than transferring it to a task;
 execution and remaining retention survive evidence generation and pending
 cleanup. False retirement keeps the same debt for retry. Only that observer's
 confirmed retirement allows original close to settle the same reservation.
+After successful settlement the closed RowRun detaches that observer and
+provider declaration; repeated close cannot re-enter the retired reader.
 No numeric profile or transport implementation follows from this primitive.
 
 The existing `ClientInstalledCaptureCapacity` Owner's

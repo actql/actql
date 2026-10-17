@@ -3,6 +3,17 @@
 // Same-runtime original row response borrowing; no wire reconstructs these types.
 
 ///|
+/// Host-private declaration DATA only. Selection, justification, actual
+/// reservation and the original reader's physical retirement remain separate.
+#export_name("clientProgramRowSourceProviderCapacity")
+pub fn client_program_row_source_provider_capacity(
+  retained : Int64,
+  execution : Int64,
+) -> @execution.ExecutionCapacity? {
+  @execution.execution_capacity(retained, execution)
+}
+
+///|
 #export_name("clientProgramInstalledProviderRowCaptureCapacity")
 pub fn client_program_installed_provider_row_capture_capacity(
   acquisition : @client_row_source_host.RowAcquisition,

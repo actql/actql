@@ -206,9 +206,17 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "88a914ee04572327f0e4a4838cda174d0862c2e1d31b3ddb495c09358eadc27c",
+      "sha256": "a3d865be1e99261a58c8705968d271c60d8430c7ead825702a0dbd9655f364c8",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_installed_provider_row_capture_capacity",
+          "declaration": "client_program_installed_provider_row_capture_capacity ( acquisition : @ client_row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , ) - > @ client_local_host . ClientInstalledCaptureCapacity ?"
+        },
+        {
+          "name": "client_program_installed_provider_row_capture_capacity_matches",
+          "declaration": "client_program_installed_provider_row_capture_capacity_matches ( capacity : @ client_local_host . ClientInstalledCaptureCapacity , acquisition : @ client_row_source_host . RowAcquisition , declaration : @ execution . ExecutionCapacity , ) - > Bool"
+        },
         {
           "name": "client_program_row_source_bind_response_cleanup",
           "declaration": "client_program_row_source_bind_response_cleanup ( value : @ client_row_source_host . RowRunResponseBorrow , cleanup : ( ) - > Bool , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
@@ -222,6 +230,10 @@
           "declaration": "client_program_row_source_check_original_acquisition ( acquisition : @ client_row_source_host . RowAcquisition , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
         },
         {
+          "name": "client_program_row_source_provider_capacity",
+          "declaration": "client_program_row_source_provider_capacity ( retained : Int64 , execution : Int64 , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_row_source_start_provider_accounted",
           "declaration": "client_program_row_source_start_provider_accounted ( acquisition : @ client_row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , verify : ( @ client_row_source_host . RowAttempt ) - > Bool , ledger : @ resources . Ledger , transfer_bytes : Int64 , execution_scratch : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_row_source_host . RowHostIssue , ]"
         }
@@ -230,9 +242,12 @@
         {
           "operations": [
             "<module>",
+            "client_program_installed_provider_row_capture_capacity",
+            "client_program_installed_provider_row_capture_capacity_matches",
             "client_program_row_source_bind_response_cleanup",
             "client_program_row_source_borrow_responses",
             "client_program_row_source_check_original_acquisition",
+            "client_program_row_source_provider_capacity",
             "client_program_row_source_start_provider_accounted"
           ],
           "exports": [],
@@ -255,6 +270,10 @@
               {
                 "path": "src/client_row_source_host/provider_capacity.mbt",
                 "anchor": "pub fn start_accounted_provider_row_acquisition"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "pub fn installed_provider_row_capture_capacity"
               }
             ],
             "identity": [
@@ -265,6 +284,10 @@
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
                 "anchor": "physical_equal(configuration, acquisition.configuration)"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
               }
             ],
             "ownership": [
@@ -359,6 +382,10 @@
               {
                 "path": "src/query_integration/provider_capacity_wbtest.mbt",
                 "anchor": "provider envelope requires the exact reader cleanup binding"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity_wbtest.mbt",
+                "anchor": "provider capture planner carries its overlap into the same prepared Run ledger"
               }
             ]
           }

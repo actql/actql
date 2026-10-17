@@ -182,6 +182,9 @@ test "provider envelope survives capture callback completion and repeated pendin
   assert_eq(closed.held_bytes, 0L)
   assert_eq(closed.reserved_retention_bytes, 0L)
   assert_eq(closed.reserved_execution_bytes, 0L)
+  @row_host.close_accounted_row_run(run).unwrap()
+  assert_eq(checks.val, 3)
+  assert_eq(@resources.ledger_usage(ledger), closed)
   assert_true(@row_host.charge_row_run_page(run, body) is Err(InvalidState))
   assert_true(
     @row_host.bind_row_run_response_borrow_cleanup(borrow, () => true)

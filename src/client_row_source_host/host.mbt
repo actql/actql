@@ -433,7 +433,7 @@ priv struct RowPhysical {
   execution_scratch : Int64
   // Supplementary provider backing stays in this original reservation through
   // capture and the reader's real cleanup, never in a separately issued loan.
-  provider_capacity : @execution.ExecutionCapacity?
+  mut provider_capacity : @execution.ExecutionCapacity?
   mut holding : @resources.Holding?
   mut dag : (@strategy.CapturedDAG, Int)?
   // Keep keyed transport cleanup authority after invalidating issuer access.
@@ -969,6 +969,13 @@ pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
       Ok(_) => ()
       Err(issue) => return Err(Physical(issue))
     }
+  }
+  if physical.provider_capacity is Some(_) {
+    // The same reader confirmed retirement and this reservation really
+    // settled above. Do not retain its observer/installation aliases forever
+    // on an escaped closed RowRun, or re-observe it on an idempotent close.
+    physical.cleanup_confirmed = None
+    physical.provider_capacity = None
   }
   if run.configuration is OriginalKeyedConfiguration(acquisition) {
     // A failed close/holding/reservation settlement returns above. Only actual
