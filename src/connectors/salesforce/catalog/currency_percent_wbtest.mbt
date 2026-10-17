@@ -127,7 +127,7 @@ test "Currency and Percent read original number digits without conversion roundi
         ("1.234567890123456E13", "1234567890123456e-2"),
         ("12.5", "1250e-2"),
         ("-0.1", "-10e-2"),
-        ("-0.0", "0e-2"),
+        ("0.0", "0e-2"),
       ] {
       let page = money_rate_page(plan, input)
       assert_true(page is Ok(_), msg=native_type + " " + input)
@@ -136,6 +136,8 @@ test "Currency and Percent read original number digits without conversion roundi
         Some(expected),
       )
     }
+    // The original JSON Source Owner rejects negative zero before projection.
+    assert_true(money_rate_page(plan, "-0.0") is Err(InvalidResponse))
     assert_true(
       query_page_cell(money_rate_page(plan, "null").unwrap(), 0, 0).unwrap().value
       is @admitted.Null,
