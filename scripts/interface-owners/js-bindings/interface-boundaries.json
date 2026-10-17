@@ -15618,7 +15618,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9c7b3674a1ccea1c7d60e03e3c75707d5e2e0ae87224761d30a885cf3cf946c6",
+      "sha256": "1bdf79563e3d826e228767407f0565f97d19f7fe8c5bdcf419131a308e89c2a8",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -17011,7 +17011,7 @@
           "parameters": [
             "original",
             "definition",
-            "programCid",
+            "request",
             "evidence",
             "profiles",
             "limits"
@@ -17560,6 +17560,7 @@
             "compiled",
             "checkedProgram",
             "definition",
+            "request",
             "environment",
             "parameters"
           ],
@@ -19015,7 +19016,7 @@
           "parameters": [
             "selected",
             "definition",
-            "programCid",
+            "request",
             "evidence"
           ],
           "async": false
@@ -25287,11 +25288,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, environment, parameters) {"
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, programCid, evidence, profiles, limits) {"
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
               }
             ],
             "identity": [

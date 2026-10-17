@@ -16423,7 +16423,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4dd7987253886940858446e1f84116d8d15bdc0cf2ab48846a5ea66d1990a916",
+      "sha256": "1b4ca5d33e03c17d67701352c8526bacc60f3382c6392fc4d59d626cd4c3203d",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -18072,11 +18072,11 @@
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, environment, parameters) {"
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, programCid, evidence, profiles, limits) {"
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
               }
             ],
             "identity": [
@@ -18568,11 +18568,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, environment, parameters) {"
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, programCid, evidence, profiles, limits) {"
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
               }
             ],
             "identity": [
