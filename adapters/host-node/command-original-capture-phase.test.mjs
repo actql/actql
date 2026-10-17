@@ -8,10 +8,11 @@ import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 // Actual Common captured inputs, managed Result, key continuation and proposals.
-// Publication/Store metadata below are explicit sequencing doubles: these cases
-// do not prove authenticated Preview, physical storage, dispatch or installation.
+// The positive uses original acquisition and publication Owners. Its Store and
+// the two negative publication paths remain explicit sequencing doubles, not
+// physical storage, authenticated Preview, dispatch or installation evidence.
 function publicationDoubles(originalControl) {
-  const events = {chunks: [], releases: 0};
+  const events = {chunks: [], writers: [], releases: 0};
   const control = {
     publicationPreparedReleaseAction(index, _count, inspected, pending, attempted) {
       return index < 0 ? 'finished' : !inspected ? 'inspect'
@@ -28,9 +29,13 @@ function publicationDoubles(originalControl) {
   const store = {
     storeAuthorityCid: `sha256:${'a'.repeat(64)}`,
     createPreparedObjectWriter() {
+      const chunks = [];
+      events.writers.push(chunks);
       let bytes = 0, pending = true;
       const release = async () => { pending = false; events.releases++; };
-      return {async append(chunk) { events.chunks.push(chunk); bytes += Buffer.byteLength(chunk); },
+      return {async append(chunk) {
+        chunks.push(chunk); events.chunks.push(chunk); bytes += Buffer.byteLength(chunk);
+      },
         async seal(cid) { return {cid, bytes, prepared: {release, retry: release, status: () => ({pending})}}; },
         async cancel() { pending = false; }, status: () => ({reservationHeld: pending})};
     },
@@ -67,12 +72,23 @@ test('ordinary Source set finishes the original funded whole key before proposin
       fixture.inputs, 0, fixture.limits, 10000));
     assert(scope);
     sources = await preparePinnedEffectSourceSet({...options(fixture, doubled, scope,
-      (member, original) => { assert.equal(member, 0); assert.equal(doubled.events.chunks.length, 0); key = original; },
+      (member, original) => {
+        assert.equal(member, 0);
+        // The preceding Unit's Result is exported before its consumer can
+        // validate the key. No consumer row or payload precedes that proof.
+        assert.equal(rows.length, 0);
+        assert.equal(doubled.events.writers.length, 2);
+        assert.equal(doubled.events.writers[1].length, 0);
+        key = original;
+      },
       (member, index, row) => { assert(key); rows.push([member, index, JSON.parse(row.changesWire)]); }),
       ...fixture.publicationContext(control)});
     assert.equal(rows.length, 1);
     assert.deepEqual(rows[0].slice(0, 2), [0, 0]);
-    assert.deepEqual(JSON.parse(doubled.events.chunks.join('')), fixture.rows);
+    assert.equal(doubled.events.writers.length, 2);
+    for (const chunks of doubled.events.writers) {
+      assert.deepEqual(JSON.parse(chunks.join('')), fixture.rows);
+    }
     assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), true,
       'temporary exporter close does not release the capture borrower');
     const plan = checked(moon.clientProgramEffectProposalBeginWithKey(fixture.inputs, 0, 10, 10000, key));
