@@ -31,6 +31,7 @@ export function checkRelaClientBridges(root, write = false) {
     throw new Error(`RelA Node bridge is stale: ${outputPath}`);
   }
   for (const file of ['client_row_response_bridge.mbt', 'client_salesforce_row_source_bridge.mbt', 'client_snowflake_read_bridge.mbt', 'client_update_target_bridge.mbt', 'client_table_write_publication.mbt', 'client_multi_source_bridge.mbt',
+    'client_project_configuration_bridge.mbt',
     'client_row_listing_capacity.mbt',
     'client_request_value_policy.mbt',
     'client_multi_source_host_bridge.mbt',
