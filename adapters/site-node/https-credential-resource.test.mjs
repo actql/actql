@@ -441,9 +441,10 @@ test('resource operation attempt and revocation scope stop before HTTPS I/O',
   });
 
 
-function boundFixture(setup, grantScope, resolveSecret, maxSecretBytes = 64) {
+function boundFixture(setup, grantScope, resolveSecret, maxSecretBytes = 64,
+  secretPresentation) {
   const binding = openHttpsCredentialBinding({scope: grantScope, control,
-    journal: setup.journal, resolveSecret, maxSecretBytes});
+    journal: setup.journal, resolveSecret, maxSecretBytes, secretPresentation});
   const invoke = (scope, useId, overrides = {}) => {
     const grant = control.prepare(scope);
     setup.journal.acceptGrant(setup.sign(grant), control);
@@ -502,6 +503,161 @@ test('kintone token presentation uses the retained secret for separately authori
     assert.deepEqual(setup.journal.recover().map(use => use.outcome),
       ['succeeded', 'succeeded']);
     assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+  });
+
+test('kintone presentation refuses foreign registration and unknown presentation before resolution or claim',
+  async t => {
+    const setup = await fixture(t);
+    let resolutions = 0;
+    const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+    const original = {...scope(setup.origin), connectorRegistration: 'kintone'};
+    for (const overrides of [
+      {scope: scope(setup.origin)},
+      {secretPresentation: 'x-cybozu-authorization'},
+      {secretPresentation: 'KINTONE-API-TOKEN'},
+      {secretPresentation: null},
+      {authentication: {}},
+    ]) {
+      assert.throws(() => openHttpsCredentialBinding({scope: original, control,
+        journal: setup.journal, resolveSecret, maxSecretBytes: 64,
+        secretPresentation: 'kintone-api-token', ...overrides}),
+      {code: 'InvalidRemoteCredentialSecretPresentation'});
+    }
+    assert.equal(resolutions, 0);
+    assert.equal(setup.requests(), 0);
+    assert.deepEqual(setup.journal.recover(), []);
+  });
+
+test('kintone credential headers cannot be supplied or observed by the provider before claim',
+  async t => {
+    const setup = await fixture(t);
+    const original = {...scope(setup.origin), connectorRegistration: 'kintone'};
+    let resolutions = 0;
+    const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+    const {binding, invoke} = boundFixture(setup, original, resolveSecret, 64,
+      'kintone-api-token');
+    t.after(() => assert.equal(closeHttpsCredentialBinding(binding), 'closed'));
+    for (const name of ['x-cybozu-api-token', 'x-cybozu-authorization']) {
+      for (const [field, value, code] of [
+        ['headers', [[name, 'replacement-secret']], 'ReservedHttpRequestHeader'],
+        ['responseHeaders', [name], 'ReservedHttpResponseHeader'],
+      ]) {
+        await assert.rejects(invoke(original, `${name}-${field}`, {
+          operations: new Map([[original.operation,
+            {method: 'GET', path: '/records', [field]: value}]]),
+        }), {code});
+      }
+    }
+    assert.equal(resolutions, 0);
+    assert.equal(setup.requests(), 0);
+    assert.deepEqual(setup.journal.recover(), []);
+  });
+
+test('kintone rotation across resolver await refuses replacement and permanently retains the original binding',
+  async t => {
+    const seen = [];
+    const setup = await fixture(t, {onRequest(request, response) {
+      seen.push(request.headers['x-cybozu-api-token'] === 'provider-secret');
+      response.end('{}');
+      return true;
+    }});
+    const original = {...scope(setup.origin), connectorRegistration: 'kintone'};
+    const entered = deferred(), released = deferred();
+    let current = 'provider-secret', resolutions = 0;
+    const resolveSecret = async () => {
+      if (++resolutions === 2) { entered.resolve(); await released.promise; }
+      return current;
+    };
+    const {binding, invoke} = boundFixture(setup, original, resolveSecret, 64,
+      'kintone-api-token');
+    t.after(() => assert.equal(closeHttpsCredentialBinding(binding), 'closed'));
+    await invoke(original, 'form');
+    const pending = invoke(original, 'page');
+    await entered.promise;
+    current = 'other-app-token';
+    released.resolve();
+    await assert.rejects(pending, {code: 'RemoteCredentialBindingChanged'});
+    await assert.rejects(invoke(original, 'no-reprobe'),
+      {code: 'RemoteCredentialBindingChanged'});
+    assert.deepEqual(seen, [true]);
+    assert.equal(resolutions, 2);
+    assert.deepEqual(setup.journal.recover().map(use => use.outcome),
+      ['succeeded', 'failed']);
+  });
+
+test('kintone retained token cannot bypass current revocation or expiry after the Host await',
+  async t => {
+    const setup = await fixture(t);
+    const original = {...scope(setup.origin), connectorRegistration: 'kintone'};
+    for (const mode of ['revoked', 'expired']) {
+      const selected = {...original, operation: mode};
+      const grant = control.prepare(selected);
+      setup.journal.acceptGrant(setup.sign(grant), control);
+      const resolveSecret = async () => 'provider-secret';
+      const {binding, invoke} = boundFixture(setup, selected, resolveSecret, 64,
+        'kintone-api-token');
+      let observed = 1_999_999_999_999;
+      await assert.rejects(invoke(selected, mode, {
+        operations: new Map([[mode, {method: 'GET', path: '/records'}]]),
+        now: () => observed,
+        currentBeforeSend: async () => {
+          await Promise.resolve();
+          if (mode === 'revoked') setup.journal.revoke(control.identity(grant));
+          else observed = 2_000_000_000_000;
+        },
+      }));
+      assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+    }
+    assert.equal(setup.requests(), 0);
+    assert.deepEqual(setup.journal.recover().map(use => use.outcome), ['failed', 'failed']);
+  });
+
+test('kintone lost response retains the original Unknown use and refuses same-use resend',
+  async t => {
+    const setup = await fixture(t, {onRequest(request) {
+      request.socket.destroy();
+      return true;
+    }});
+    const original = {...scope(setup.origin), connectorRegistration: 'kintone'};
+    let resolutions = 0;
+    const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+    const {binding, invoke} = boundFixture(setup, original, resolveSecret, 64,
+      'kintone-api-token');
+    t.after(() => assert.equal(closeHttpsCredentialBinding(binding), 'closed'));
+    await assert.rejects(invoke(original, 'lost-page'), {code: 'ECONNRESET'});
+    const [unknown] = setup.journal.recover();
+    assert.equal(unknown.outcome, 'unknown');
+    await assert.rejects(invoke(original, 'lost-page'),
+      {code: 'RemoteCredentialUseAlreadyClaimed'});
+    assert.equal(setup.journal.recover()[0].useCid, unknown.useCid);
+    assert.equal(setup.journal.recover()[0].outcome, 'unknown');
+    assert.equal(setup.requests(), 1);
+    assert.equal(resolutions, 1);
+  });
+
+test('kintone cleanup remains pending until the original sent request and socket close',
+  async t => {
+    const entered = deferred(), serverClosed = deferred();
+    const setup = await fixture(t, {onRequest(request) {
+      request.socket.once('close', serverClosed.resolve);
+      entered.resolve();
+      return true;
+    }});
+    const original = {...scope(setup.origin), connectorRegistration: 'kintone'};
+    const resolveSecret = async () => 'provider-secret';
+    const {binding, invoke} = boundFixture(setup, original, resolveSecret, 64,
+      'kintone-api-token');
+    const active = invoke(original, 'held-page');
+    await entered.promise;
+    assert.equal(closeHttpsCredentialBinding(binding), 'pending');
+    await assert.rejects(active, {code: 'RemoteCredentialBindingRetiring'});
+    await serverClosed.promise;
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+    assert.equal(setup.journal.recover()[0].outcome, 'unknown');
+    await assert.rejects(invoke(original, 'after-close'),
+      {code: 'RemoteCredentialBindingRetiring'});
+    assert.equal(setup.requests(), 1);
   });
 
 test('bound identity and page are separate authorized uses without exposing credential material',

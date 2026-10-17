@@ -56,7 +56,7 @@ function ownAuthenticationRegistration(value) {
 }
 
 export function openHttpsCredentialBinding({scope, control, journal,
-  resolveSecret, maxSecretBytes, authentication}) {
+  resolveSecret, maxSecretBytes, authentication, secretPresentation = 'bearer'}) {
   if (!scope || typeof scope !== 'object' ||
       typeof control?.identity !== 'function' ||
       typeof journal?.claim !== 'function' ||
@@ -67,11 +67,18 @@ export function openHttpsCredentialBinding({scope, control, journal,
         !['string', 'number', 'bigint'].includes(typeof scope[key]))) {
     fail('InvalidRemoteCredentialBinding');
   }
+  // Installation selects a closed presentation inside this original binding.
+  // It grants no operation and cannot expose a secret to the provider driver.
+  if (secretPresentation !== 'bearer' &&
+      (secretPresentation !== 'kintone-api-token' ||
+        scope.connectorRegistration !== 'kintone' || authentication !== undefined)) {
+    fail('InvalidRemoteCredentialSecretPresentation');
+  }
   const original = Object.freeze(Object.fromEntries(
     credentialInvocationBindingKeys.map(key => [key, scope[key]])));
   const binding = Object.freeze(Object.create(null));
   bindings.set(binding, {original, control, journal, resolveSecret,
-    maxSecretBytes, secret: undefined, active: false, retiring: false,
+    maxSecretBytes, secretPresentation, secret: undefined, active: false, retiring: false,
     closed: false, changed: false, request: undefined,
     authentication: ownAuthenticationRegistration(authentication),
     authenticationAttempted: false, authenticationMaterial: undefined,
@@ -551,7 +558,9 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
       headers: Object.freeze({
         accept: 'application/json',
         ...Object.fromEntries(headers),
-        ...(authenticationForm ? {} : {authorization: `Bearer ${secret}`}),
+        ...(authenticationForm ? {} : binding?.secretPresentation === 'kintone-api-token'
+          ? {'x-cybozu-api-token': secret}
+          : {authorization: `Bearer ${secret}`}),
         ...(body === undefined ? {} : {
           'content-type': bodyMediaType,
           'content-length': requestBytes,

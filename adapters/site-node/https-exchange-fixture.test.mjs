@@ -19,6 +19,38 @@ import {signRemoteCredentialGrant} from './remote-credential-signature.mjs';
 const control = runtimeCore(moon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
+test('the fixture redacts both kintone credential headers from routes and retained observations',
+  async t => {
+    const fixture = await openHttpsExchangeFixture(t, {routes: [{
+      pathname: '/credential-header', handle: exchange => ({body: {
+        authorized: exchange.authorized, headers: exchange.headers,
+      }}),
+    }]});
+    for (const name of ['x-cybozu-api-token', 'x-cybozu-authorization']) {
+      const body = await new Promise((resolve, reject) => {
+        const call = request(`${fixture.origin}/credential-header`, {
+          ca: fixture.ca, headers: {[name]: 'private-test-credential'},
+          agent: false,
+        }, response => {
+          const chunks = [];
+          response.on('data', chunk => chunks.push(chunk));
+          response.once('end', () => resolve(JSON.parse(Buffer.concat(chunks))));
+        });
+        call.once('error', reject);
+        call.end();
+      });
+      assert.equal(body.authorized, true);
+      assert.equal(body.headers[name], undefined);
+      assert.equal(JSON.stringify(body).includes('private-test-credential'), false);
+    }
+    assert.equal(fixture.seen().length, 2);
+    assert.equal(JSON.stringify(fixture.seen()).includes('private-test-credential'), false);
+    for (const seen of fixture.seen()) {
+      assert.equal(seen.headers['x-cybozu-api-token'], undefined);
+      assert.equal(seen.headers['x-cybozu-authorization'], undefined);
+    }
+  });
+
 test('the fixture holds an asynchronous reply until its explicit release', async t => {
   let entered, release;
   const reached = new Promise(resolve => { entered = resolve; });
