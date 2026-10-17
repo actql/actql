@@ -555,6 +555,7 @@ async function exportPinnedResult({
   signal, advanceQuantum = 256, localResultIndex,
 }) {
   if (typeof onChunk !== 'function' ||
+      (prepareProposal !== undefined && typeof prepareProposal !== 'function') ||
       (onReceipt !== undefined && typeof onReceipt !== 'function') ||
       (onCanonicalRow !== undefined &&
         (typeof onCanonicalRow !== 'function' ||
