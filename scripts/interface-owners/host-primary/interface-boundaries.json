@@ -2071,7 +2071,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "3524708e69d6ec9d510c0816941ea510c292f595e7c0a2aca5ac211d02d8e16e",
+      "sha256": "149e6e2e2cf3ec205c0aeab74ff63e4b760d95e035ac301d2e9b21aa65f5fb70",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -2158,7 +2158,8 @@
             "options",
             "memberCount",
             "maxWork",
-            "hasCommandWorkspace"
+            "hasCommandWorkspace",
+            "hasPublishedTarget"
           ],
           "async": true
         },
@@ -2345,6 +2346,7 @@
             "onOriginalArtifact",
             "commandWorkspace",
             "onCommandKey",
+            "publishedTarget",
             "manifestSet",
             "local",
             "duplicateManifestMember"
@@ -2475,6 +2477,7 @@
             "maxGroupingWork",
             "memberSourceBindings",
             "commandWorkspaces",
+            "publishedTargets",
             "options"
           ],
           "async": true
@@ -2714,6 +2717,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -2736,6 +2743,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -2754,6 +2765,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -2772,6 +2787,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -2790,6 +2809,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -2808,6 +2831,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -2826,6 +2853,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -2848,6 +2879,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -2866,6 +2901,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -2900,6 +2939,14 @@
               {
                 "path": "adapters/host-node/command-original-capture-phase.test.mjs",
                 "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
@@ -2919,7 +2966,7 @@
     },
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
-      "sha256": "dc22354a266b1450c9b55d52e017dbc16a9ee7640ee1179201ee97b379f30e6c",
+      "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -2936,6 +2983,7 @@
             "onChunk",
             "signal",
             "inputKey",
+            "publishedTarget",
             "advanceQuantum"
           ],
           "async": true
@@ -2988,6 +3036,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -3006,6 +3058,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -3020,6 +3076,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -3034,6 +3094,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -3048,6 +3112,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -3062,6 +3130,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -3076,6 +3148,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -3090,6 +3166,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -3104,6 +3184,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -3130,6 +3214,14 @@
               {
                 "path": "adapters/host-node/command-original-capture-phase.test.mjs",
                 "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
