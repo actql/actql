@@ -1,11 +1,13 @@
 ///|
-fn binding_check_environment() -> @program_check.CheckEnvironment {
+fn binding_check_environment() -> @checked.CheckEnvironment {
   // Reuse the independently pinned, installed Table environment fixture.
   // These source-free checks do not admit a Run or invoke a provider.
   let wire = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[{\"catalog_cid\":\"sha256:5e08bd4afedbd52e332bff556d21ae024806b40acfdff7d683c63fbfd9c12576\",\"commands\":[],\"connector_id\":\"table\",\"connector_version\":\"fixture\",\"contracts\":[],\"schema\":\"actql.connector_catalog/0.1\",\"source_views\":[]}],\"connector_manifest\":{\"connectors\":[{\"connector\":\"table\",\"connector_id\":\"table\",\"connector_version\":\"fixture\"}],\"version\":\"actql-connectors/0.1\"},\"contract_registry\":[],\"evidence_bundle_cid\":\"sha256:ee8bc2292e30621d67ad36adb1a25987d113448e5b6dd333cbaf5511328e20dc\",\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":1000,\"max_artifact_bytes\":1000,\"max_artifact_rows\":1000,\"max_effect_items\":1000,\"max_graph_input_edges\":1000,\"max_graph_input_nodes\":1000,\"max_graph_output_rows\":1000,\"max_graph_paths\":1000,\"max_infer_items\":1000,\"max_model_input_tokens_per_item\":1000,\"max_model_request_bytes_per_item\":1000,\"max_model_total_duration_ms\":1000,\"max_nested_value_bytes\":1000,\"max_nested_value_depth\":1000,\"max_relation_output_rows\":1000,\"max_temporal_matches_per_key\":1000,\"max_temporal_output_rows\":1000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[{\"connector_manifest_cid\":\"sha256:a1a3727735c1e6af17286d33e4eccf591d11821edb1fbed9bb963284027b9874\",\"conversions\":[],\"mapping_contract_cid\":\"sha256:112eeda664d4f10b1a5c827b49ff301c42366fc831b381919036d2cf81591f1b\",\"mapping_ref\":\"mapping:table.catalog.v1\",\"minimum_approval\":\"required\",\"permission_rules\":[{\"effect_kind\":\"store\",\"permissions\":[\"scope:store\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]}],\"primary_identity\":\"Id\",\"required_fields\":[],\"required_permissions\":[],\"resource_identity_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"row_mapping\":{\"Name\":{\"field\":\"id\",\"null_behavior\":\"reject\"}},\"schema\":\"actql.mapping_contract/0.1\",\"target_ref\":\"connector://table/catalog\",\"target_schema\":{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"number\"},\"Name\":{\"nullable\":true,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"target_schema_identity\":\"sha256:c000fb12383456a0e123e74501d164b96bb886251dbb44f301661070321be8e0\",\"version\":\"reference-v1\",\"writable_fields\":[\"Name\"]}],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
-  client_program_check_environment(
-    wire, "sha256:ee8bc2292e30621d67ad36adb1a25987d113448e5b6dd333cbaf5511328e20dc",
-    false, false, true, false, false, false, false,
+  @host.admit_client_check_environment(
+    wire,
+    "sha256:ee8bc2292e30621d67ad36adb1a25987d113448e5b6dd333cbaf5511328e20dc",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
 }
 
@@ -30,7 +32,7 @@ fn binding_check_report(text : String, format : String) -> String {
 
 ///|
 test "Source request preparation refuses partial forms without misclassifying budgets or foreign owners" {
-  let cases : Array[(@query_program.BindingPreparationIssue, String?, String?)] = [
+  let cases : Array[(@query.BindingPreparationIssue, String?, String?)] = [
     (SourceRequestForm(PartialCorrelation), None, Some("invalid")),
     (SourceRequestForm(WorkLimit), None, Some("undetermined")),
     (SourceRequestForm(InvalidLimits), Some("check_context_invalid"), None),
@@ -117,7 +119,7 @@ test "binding preparation preserves budgets configuration and internal uncertain
     is Program(source_budget) else {
     fail("the diagnostic wrapper must retain its original program cause")
   }
-  let limits : Array[@query_program.BindingPreparationIssue] = [
+  let limits : Array[@query.BindingPreparationIssue] = [
     Demand(WorkLimit),
     LocalProgram(budget),
     SourceProgram(source_budget),
@@ -142,11 +144,7 @@ test "binding preparation preserves budgets configuration and internal uncertain
     is Program(source_invalid) else {
     fail("the diagnostic wrapper must retain its original settings cause")
   }
-  for
-    issue in [
-      @query_program.LocalProgram(invalid),
-      SourceProgram(source_invalid),
-    ] {
+  for issue in [@query.LocalProgram(invalid), SourceProgram(source_invalid)] {
     let findings : Array[CheckFinding] = []
     assert_eq(
       check_binding_preparation_findings(findings, issue, BoundInput),
@@ -156,7 +154,7 @@ test "binding preparation preserves budgets configuration and internal uncertain
   }
   for
     issue in [
-      @query_program.Demand(ForeignStage),
+      @query.Demand(ForeignStage),
       Demand(InvalidRange),
       Demand(MissingImport),
     ] {
@@ -185,7 +183,7 @@ fn private_binding_source(
   connector : String,
   resource : String,
 ) -> @stage_parameters.Source {
-  let program = @stage_syntax.parse(
+  let program = @syntax.parse(
     "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[{\"id\":\"a\",\"inputs\":{\"private_alias\":{\"connector\":\"" +
     connector +
     "\",\"resource\":\"" +

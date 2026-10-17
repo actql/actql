@@ -11,7 +11,7 @@ const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id,
 const publicTargets = (id, operator) => ['local', 'http'].map(entrance => target(
   `${entrance}: bounded Requirement enumeration preserves verdict, scope and protected coverage`, id, operator));
 const mutations = [
-  {name: 'Host omissions summary hidden', path: 'src/connectors_builtin_node/client_check.mbt', file: publicTests,
+  {name: 'Host omissions summary hidden', path: 'src/client_local_preparation/client_check.mbt', file: publicTests,
     from: 'if required_count > requirement_limit {', to: 'if false && required_count > requirement_limit {',
     targets: publicTargets('omissions-public-summary', 'deepStrictEqual'), build: true},
   {name: 'incomplete Requirement prefix accepted as a frontier', path, file: publicTests,
