@@ -2,9 +2,20 @@
 /// Original DATA occurrence, not installation membership/currentness, a Ref,
 /// preparation request, credential grant or permission to observe the schema.
 pub struct NotionReadSourceSelection {
+  priv original_self : Ref[NotionReadSourceSelection?]
   priv declaration : NotionDatabaseReadDeclaration
   priv database : NotionDatabaseCatalog
   priv index : Int
+}
+
+///|
+fn notion_read_source_selection_is_original(
+  selection : NotionReadSourceSelection,
+) -> Bool {
+  match selection.original_self.val {
+    Some(original) => physical_equal(original, selection)
+    None => false
+  }
 }
 
 ///|
@@ -57,7 +68,14 @@ pub fn select_notion_read_source(
     Ok(index) => index
     Err(issue) => return Err(issue)
   }
-  Ok({ declaration, database, index, })
+  let selection : NotionReadSourceSelection = {
+    original_self: Ref(None),
+    declaration,
+    database,
+    index,
+  }
+  selection.original_self.val = Some(selection)
+  Ok(selection)
 }
 
 ///|
@@ -66,6 +84,7 @@ pub fn notion_read_source_selection_matches(
   declaration : NotionDatabaseReadDeclaration,
   database : NotionDatabaseCatalog,
 ) -> Bool {
+  notion_read_source_selection_is_original(selection) &&
   physical_equal(selection.declaration, declaration) &&
   physical_equal(selection.database, database)
 }
@@ -83,6 +102,9 @@ pub fn project_notion_selected_read_source(
   bytes : Bytes,
   limits : NotionDatabaseLimits,
 ) -> Result[NotionDataSourceCatalog, NotionReadContractIssue] {
+  if !notion_read_source_selection_is_original(selection) {
+    return Err(ForeignOriginal)
+  }
   match
     project_notion_data_source(
       selection.database,
@@ -101,7 +123,8 @@ pub fn bind_notion_selected_read_contracts(
   source : NotionDataSourceCatalog,
   limits : NotionReadContractLimits,
 ) -> Result[NotionDataSourceReadContracts, NotionReadContractIssue] {
-  if !physical_equal(selection.database, source.database) ||
+  if !notion_read_source_selection_is_original(selection) ||
+    !physical_equal(selection.database, source.database) ||
     selection.index != source.source_index {
     return Err(ForeignOriginal)
   }

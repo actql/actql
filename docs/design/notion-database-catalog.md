@@ -894,6 +894,13 @@ display name, copied selection or body/CID as a replacement. The selected wrappe
 carries the opaque references; the wrapper's JSON shape alone cannot issue them.
 Selection is one-shot, including when a later Site action fails.
 
+The existing Common selection retains a private self-reference in addition to
+its declaration/database/index. Matching, schema projection, Contract binding
+and snapshot capture require that same original selection record; copying its
+retained fields cannot recreate it. This adds a Ref/record slot and retained
+alias to the existing graph, not a wire field, grant or cleanup receipt. The
+read-only id projection remains DATA and is never sufficient for a Site use.
+
 The thin private adapter projects the fixed retrieve operation, original origin,
 GET method, exactly encoded path and empty body, plus the installation's explicit
 Account resource. It snapshots each existing provider function and its receiver
