@@ -52,6 +52,7 @@ async function fixture(t, options = {}) {
     },
     assertCurrentMaterial(value) {
       checks++;
+      options.onMaterialCurrent?.({checks, journal, grant});
       assert.equal(value, original);
       if (selected !== original) throw Object.assign(new Error('OriginalMaterialRevoked'),
         {code: 'OriginalMaterialRevoked'});
@@ -218,4 +219,14 @@ test('registration missing generation or finite signing limits performs no mater
   }
   assert.equal(f.resolutions(), 0);
   assert.equal(f.journal.recover().length, 1);
+});
+
+
+test('a reentrant material-current revocation still reaches final Journal authorization before signing', async t => {
+  const f = await fixture(t, {onMaterialCurrent: ({checks, journal, grant}) => {
+    if (checks === 2) journal.revoke(control.identity(grant));
+  }});
+  await assert.rejects(f.call());
+  assert.equal(f.resolutions(), 1);
+  assert.equal(f.journal.recover()[0].outcome, 'claimed');
 });
