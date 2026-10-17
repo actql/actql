@@ -162,3 +162,19 @@ test('Calendar reader factory refusal leaves pre-acquired RowRun and credential 
   assert.deepEqual(f.row.usage(),before);assert.equal(f.state.requests.length,0);
   assert.equal(f.state.resolutions,0);f.row.assertNoCapture();
 });
+
+test('Calendar reader factory snapshots each original provider and limit getter once before I/O',async t=>{
+  const f=await calendarFixture(t);const reads=new Map();const moon={}, limits={};
+  for(const name of ['calendarProjectCalendarList','calendarListRowsWire','calendarListMetadataJson','calendarListColumnNames']){
+    Object.defineProperty(moon,name,{enumerable:true,get(){reads.set(name,(reads.get(name)??0)+1);return f.options.moon[name];}});
+  }
+  for(const [name,value] of Object.entries(f.options.limits)){
+    Object.defineProperty(limits,name,{enumerable:true,get(){reads.set(name,(reads.get(name)??0)+1);return value;}});
+  }
+  const reader=createCalendarListReader({...f.options,moon,limits});
+  for(const [name,count] of reads)assert.equal(count,1,`original snapshot getter ${name}`);
+  assert.equal(f.state.requests.length,0);assert.equal(reader.observe().cleanupConfirmed,false);
+  const result=await reader.read();assert.equal(result.rowCount,2);assert.deepEqual(f.state.rows,originalRows);
+  for(const [name,count] of reads)assert.equal(count,1,`retained original getter ${name}`);
+  f.row.finish();assert.equal(f.row.captureCount(),2);
+});
