@@ -11,6 +11,10 @@ import {
 // Values
 pub fn encode_object_page_rows(ObjectPage, Int, Int, Int) -> Result[String, ObjectPageIssue]
 
+pub fn execution_mapping_body(ExecutionMapping) -> String
+
+pub fn execution_mapping_fields(ExecutionMapping) -> Array[String]
+
 pub fn object_page_columns(ObjectPage) -> Array[String]
 
 pub fn object_page_row_count(ObjectPage) -> Int
@@ -21,11 +25,31 @@ pub fn object_row_values(ObjectRow) -> Array[@value_admission.CheckedValue]
 
 pub fn object_schema_wire(PropertyCatalog, Array[String], Int, Int, Int, Int, Int) -> Result[String, ObjectPageIssue]
 
+pub fn prepare_execution_mapping(PropertyCatalog, String, String, String, RecordWriteOperation, Array[String], Array[MappingSource], MappingLimits) -> Result[ExecutionMapping, MappingIssue]
+
+pub fn prepare_execution_write_body(ExecutionMapping, PropertyCatalog, Bytes, Int, WriteBodyLimits) -> Result[WriteBody, MappingIssue]
+
+pub fn prepare_marked_record_batch_request(PropertyCatalog, RecordWriteOperation, Array[RecordWriteInput], RecordRequestMarker, RecordRequestLimits) -> Result[RecordBatchRequest, RecordRequestIssue]
+
+pub fn prepare_record_batch_request(PropertyCatalog, RecordWriteOperation, Array[RecordWriteInput], RecordRequestLimits) -> Result[RecordBatchRequest, RecordRequestIssue]
+
+pub fn prepare_record_read_request(PropertyCatalog, Array[RecordTarget], Array[String], RecordReadLimits) -> Result[RecordReadRequest, RecordReadIssue]
+
+pub fn prepare_record_request_marker(PropertyCatalog, String, String, WriteBodyLimits) -> Result[RecordRequestMarker, RecordRequestIssue]
+
+pub fn prepare_record_target(PropertyCatalog, String, Bytes, WriteBodyLimits) -> Result[RecordTarget, RecordRequestIssue]
+
+pub fn prepare_write_body(PropertyCatalog, Array[String], Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
+
 pub fn project_account_identity(Bytes, @source_value.ParseLimits) -> Result[AccountIdentity, AccountIdentityIssue]
 
 pub fn project_object_page(Bytes, PropertyCatalog, Array[String], ObjectPageLimits) -> Result[ObjectPage, ObjectPageIssue]
 
 pub fn project_properties(Bytes, String, PropertyLimits) -> Result[PropertyCatalog, PropertyIssue]
+
+pub fn project_record_read_observation(RecordReadRequest, Bytes, ObjectPageLimits, Int, Int, Int) -> Result[RecordReadObservation, RecordReadIssue]
+
+pub fn project_record_write_success(RecordBatchRequest, Int, Bytes, Int, Int, Int, Int) -> Result[RecordWriteResponse, RecordWriteResponseIssue]
 
 pub fn property_contract(PropertyCatalog, String) -> Result[@value_contract.Contract, PropertyIssue]
 
@@ -37,11 +61,49 @@ pub fn property_option_values(PropertyMetadata) -> Array[String]
 
 pub fn recheck_account_identity(AccountIdentity, String) -> Result[Unit, AccountIdentityIssue]
 
+pub fn recheck_execution_mapping(ExecutionMapping, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
+
 pub fn recheck_property_catalog(PropertyCatalog, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
+
+pub fn recheck_record_batch_request(RecordBatchRequest, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
+
+pub fn recheck_record_read_observation(RecordReadObservation, RecordReadObservation, Int, Int) -> Result[Unit, RecordReadIssue]
+
+pub fn recheck_record_read_request(RecordReadRequest, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
+
+pub fn recheck_write_body(WriteBody, PropertyCatalog, Int) -> Result[Unit, PropertyIssue]
+
+pub fn record_batch_request_body(RecordBatchRequest) -> String
+
+pub fn record_batch_request_count(RecordBatchRequest) -> Int
+
+pub fn record_batch_request_input(RecordBatchRequest, Int) -> RecordWriteInput?
+
+pub fn record_batch_request_marker(RecordBatchRequest) -> RecordRequestMarker?
+
+pub fn record_batch_request_object_type(RecordBatchRequest) -> String
+
+pub fn record_read_observation_wire(RecordReadObservation) -> String
+
+pub fn record_read_request_body(RecordReadRequest) -> String
+
+pub fn record_read_request_object_type(RecordReadRequest) -> String
+
+pub fn record_write_response_count(RecordWriteResponse) -> Int
+
+pub fn record_write_response_request(RecordWriteResponse) -> RecordBatchRequest
+
+pub fn record_write_response_result(RecordWriteResponse, Int) -> RecordWriteResult?
 
 pub fn require_property_write(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
 
 pub fn require_unique_property(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
+
+pub fn write_body_properties_json(WriteBody) -> String
+
+pub fn write_body_property_names(WriteBody) -> Array[String]
+
+pub fn write_body_value_json(WriteBody) -> String
 
 // Errors
 
@@ -56,6 +118,39 @@ pub(all) enum AccountIdentityIssue {
   BudgetExceeded
   InvalidResponse
   ForeignAccount
+} derive(Eq, @debug.Debug)
+
+pub struct ExecutionMapping {
+  operation : RecordWriteOperation
+  mapping_ref : String
+  mapping_cid : String
+  // private fields
+}
+
+pub(all) enum MappingIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBinding
+  InvalidWrite
+  DuplicateField(String)
+  Property(PropertyIssue)
+  InvalidNullBehavior(String)
+  Body(WriteBodyIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct MappingLimits {
+  max_properties : Int
+  max_fields : Int
+  max_name_bytes : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) struct MappingSource {
+  target : String
+  field : String
+  null_behavior : String
 } derive(Eq, @debug.Debug)
 
 pub struct ObjectPage {
@@ -132,6 +227,146 @@ pub struct PropertyMetadata {
   writable : Bool?
   // private fields
 } derive(Eq)
+
+pub struct RecordBatchRequest {
+  operation : RecordWriteOperation
+  // private fields
+}
+
+pub(all) enum RecordReadIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignCatalog
+  ForeignTargetKey
+  DuplicateTarget
+  Property(PropertyIssue)
+  Page(ObjectPageIssue)
+  InvalidResponse
+  IncompleteResponse
+  ForeignRecord
+  DuplicateRecord
+  InvalidUpdatedAt
+  ChangedObservation
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordReadLimits {
+  max_rows : Int
+  max_properties : Int
+  max_columns : Int
+  max_request_bytes : Int
+  max_request_nodes : Int
+  max_request_depth : Int
+}
+
+pub struct RecordReadObservation {
+  response_sha256 : String
+  // private fields
+}
+
+pub struct RecordReadRequest {
+  // private fields
+}
+
+pub(all) enum RecordRequestIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidTarget
+  Property(PropertyIssue)
+  Value(WriteBodyIssue)
+  ForeignCatalog
+  MissingTarget
+  UnexpectedTarget
+  ForeignTargetKey
+  DuplicateTarget
+  InvalidTrace
+  DuplicateTrace
+  InvalidMarker
+  MarkerConflict
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordRequestLimits {
+  max_rows : Int
+  max_properties : Int
+  max_trace_bytes : Int
+  max_body_bytes : Int
+  max_body_nodes : Int
+  max_body_depth : Int
+}
+
+pub struct RecordRequestMarker {
+  property : String
+  request_id : String
+  // private fields
+}
+
+pub struct RecordTarget {
+  key : String
+  value_wire : String
+  provider_value : String
+  // private fields
+}
+
+pub(all) struct RecordWriteInput {
+  body : WriteBody
+  target : RecordTarget?
+  trace_id : String
+}
+
+pub(all) enum RecordWriteOperation {
+  Create
+  Update
+  Upsert(String)
+}
+
+pub struct RecordWriteResponse {
+  response_sha256 : String
+  // private fields
+}
+
+pub(all) enum RecordWriteResponseIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnexpectedStatus
+  InvalidResponse
+  IncompleteResponse
+  UncorrelatedResult
+  DuplicateRecord
+} derive(Eq, @debug.Debug)
+
+pub struct RecordWriteResult {
+  id : String
+  created : Bool
+}
+
+pub struct WriteBody {
+  // private fields
+}
+
+pub(all) enum WriteBodyIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  MissingField(String)
+  UnexpectedField(String)
+  Property(PropertyIssue)
+  ValueAdmission(String, @value_admission.Issue)
+  UnlistedOption(String)
+  UnrepresentableValue(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteBodyLimits {
+  max_input_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_fields : Int
+  max_name_bytes : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+  max_comparison_work : Int
+  max_output_bytes : Int
+  max_output_nodes : Int
+  max_output_depth : Int
+}
 
 // Type aliases
 
