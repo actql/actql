@@ -74,6 +74,10 @@ struct NativeBackedLiveChannel[T, C] {
   mut admitted : Bool
   mut ledger_attempted : Bool
   mut ledger_frame : @resources.ImportedChildLedger?
+  mut original_ledger : @resources.Ledger?
+  mut envelope_attempted : Bool
+  mut envelope : @resources.Reservation?
+  mut envelope_retired : Bool
   mut retired : Bool
 }
 
@@ -179,6 +183,10 @@ fn[T, C] NativeHostBootstrap::capture_backed_live_channel(
     admitted: false,
     ledger_attempted: false,
     ledger_frame: None,
+    original_ledger: None,
+    envelope_attempted: false,
+    envelope: None,
+    envelope_retired: false,
     retired: false,
   }
   // Existing domain custody precedes any fallible physical or access capture.
@@ -525,6 +533,9 @@ pub fn[T, C] NativeHostBootstrap::retire_backed_live_channel_after_owner_ack(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if record.envelope is Some(_) {
+    return Err(Accounting(@resources.CleanupPending))
+  }
   if record.live is Some(live) {
     match
       self.retire_backed_live_child_after_owner_ack(original, live, record) {
@@ -542,6 +553,7 @@ pub fn[T, C] NativeHostBootstrap::retire_backed_live_channel_after_owner_ack(
   // Common's same-owner ACK retirement invalidates escaped original frames
   // and breaks their callbacks. Dropping this reference alone is never an ACK.
   record.ledger_frame = None
+  record.original_ledger = None
   record.retired = true
   record.domain.live_channel = None
   Ok(())
