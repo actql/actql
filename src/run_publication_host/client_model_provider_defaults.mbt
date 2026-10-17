@@ -87,7 +87,11 @@ pub fn client_model_provider_defaults_generation(
   value : ClientModelProviderDefaults,
   resolved : @environment.ResolvedModelProviderDefaults,
 ) -> @environment.ModelGeneration? {
-  value.profile.flat_map(original => {
-    @environment.resolved_model_provider_defaults_generation(resolved, original)
-  })
+  match value.profile {
+    None => None
+    Some(original) =>
+      @environment.resolved_model_provider_defaults_generation(
+        resolved, original,
+      )
+  }
 }
