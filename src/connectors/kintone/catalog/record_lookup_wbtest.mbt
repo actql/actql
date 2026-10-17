@@ -386,12 +386,24 @@ test "positive byte column comparison request and page bounds refuse without par
     )
     is Err(Page(BudgetExceeded)),
   )
+  let minimal = form_test_catalog(
+    body=(
+      #|{"revision":"7","properties":{"customer_code":{"type":"SINGLE_LINE_TEXT","code":"customer_code","unique":true}}}
+    ),
+  )
+  assert_true(
+    prepare_record_text_key_lookup(catalog, "customer_code", "a", [], {
+      ..limits,
+      max_comparison_work: 32,
+    })
+    is Err(BudgetExceeded),
+  )
   let request = prepare_record_text_key_lookup(
-    catalog,
+    minimal,
     "customer_code",
     "long-original-key",
-    ["memo"],
-    { ..limits, max_comparison_work: 18, },
+    [],
+    { ..limits, max_comparison_work: 32, },
   ).unwrap()
   assert_true(
     lookup_test_response(request, [lookup_test_row(value="long-original-key")])

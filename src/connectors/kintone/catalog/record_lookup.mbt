@@ -106,6 +106,26 @@ pub fn prepare_record_text_key_lookup(
     names.length() > limits.max_columns {
     return Err(BudgetExceeded)
   }
+  // Bound the existing linear original-Catalog name searches as well as the
+  // selected strings. This reserves comparison work only, not physical funds.
+  let mut remaining = limits.max_comparison_work
+  for index in 0..<(names.length() + 1) {
+    let name = if index == 0 { key } else { names[index - 1] }
+    for field in catalog.fields {
+      if remaining <= 0 {
+        return Err(BudgetExceeded)
+      }
+      remaining -= 1
+      if field.path.length() == 1 {
+        for length in [name.length(), field.path[0].length()] {
+          if length > remaining {
+            return Err(BudgetExceeded)
+          }
+          remaining -= length
+        }
+      }
+    }
+  }
   let metadata = match require_form_unique_key(catalog, key) {
     Ok(value) => value
     Err(issue) => return Err(Form(issue))
@@ -127,7 +147,6 @@ pub fn prepare_record_text_key_lookup(
   }
   let selected = []
   let seen : Map[String, Bool] = Map([])
-  let mut remaining = limits.max_comparison_work - key.length()
   for name in names {
     if name.length() > remaining {
       return Err(BudgetExceeded)
