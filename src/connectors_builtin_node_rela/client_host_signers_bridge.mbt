@@ -102,8 +102,5 @@ pub fn client_host_signer_allows_kind(
   value : @publication_host.ClientHostSignerSelection,
   name : String,
 ) -> Bool {
-  match @checkpoint.parse_checkpoint_kind(name) {
-    Some(kind) => value.allows_kind(kind)
-    None => false
-  }
+  value.allows_kind_name(name)
 }

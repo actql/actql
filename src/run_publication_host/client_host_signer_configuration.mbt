@@ -240,3 +240,15 @@ pub fn ClientHostSignerSelection::allows_kind(
 ) -> Bool {
   self.kinds.contains(kind)
 }
+
+///|
+/// The existing Checkpoint Owner decodes spellings; no second kind table.
+pub fn ClientHostSignerSelection::allows_kind_name(
+  self : Self,
+  name : String,
+) -> Bool {
+  match @checkpoint.parse_checkpoint_kind(name) {
+    Some(kind) => self.allows_kind(kind)
+    None => false
+  }
+}
