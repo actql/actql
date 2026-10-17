@@ -53,6 +53,23 @@ export function sheetsRoutes(state) {
     {method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate', handle(exchange) {
       const body = JSON.parse(exchange.body);
       const update = body.requests?.[0]?.updateCells;
+      if (update !== undefined && state.rangeCommand === 'clear') {
+        const range = update.range;
+        const metadata = body.requests?.[1]?.createDeveloperMetadata?.developerMetadata;
+        if (body.requests.length !== 2 || update.fields !== 'userEnteredValue' ||
+            Object.keys(update).sort().join(',') !== 'fields,range,rows' ||
+            range?.sheetId !== 7 || range.startRowIndex !== 2 || range.endRowIndex !== 4 ||
+            range.startColumnIndex !== 0 || range.endColumnIndex !== 3 ||
+            update.rows?.length !== 0 || metadata?.metadataKey !== 'actql_request' ||
+            metadata.visibility !== 'DOCUMENT' || metadata.location?.sheetId !== 7) {
+          return {status: 400, body: {}};
+        }
+        // This Google-shaped fixture records the real request as received; it
+        // does not derive its expected range/mask from the provider encoder.
+        state.cleared.push(structuredClone(body));
+        return {body: {spreadsheetId: 'book', replies: [{}, {createDeveloperMetadata: {
+          developerMetadata: {...metadata, metadataId: state.cleared.length}}}]}};
+      }
       if (update !== undefined && state.rangeCommand) {
         const range = update.range;
         if (body.requests.length !== 1 || update.fields !== 'userEnteredValue' ||

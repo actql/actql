@@ -16,6 +16,7 @@ import {checkSheetsGridConfiguration, checkSheetsTarget, prepareSheetsAppend,
   SHEETS_READ_OPERATION, SHEETS_LIMITS, readSheetsRangeTarget} from '../site/sheets-exchange.mjs';
 import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
   withSheetsRangeCommand} from './sheets-range-command.mjs';
+import {createSheetsClearDriver, sheetsClearCommand} from './sheets-clear-command.mjs';
 
 export const SHEETS_SITE_VERSION = 'actql-installed-sheets-site/0.1';
 export const SHEETS_SOURCE_VERSION = 'actql-installed-sheets-source/0.1';
@@ -37,7 +38,7 @@ const siteKeys = ['apiOrigin', 'spreadsheetId', 'gridRange', 'appendSheetId',
   'journalRoot', 'tokenEnvironment'];
 
 function checkProfile(profile, effect) {
-  const rangeCommand = profile?.rangeCommand === true;
+  const rangeCommand = profile?.rangeCommand === true || profile?.rangeCommand === 'clear';
   if (!exact(profile, rangeCommand ? [...sourceKeys, 'rangeCommand']
     : effect ? [...sourceKeys, 'sources'] : sourceKeys) ||
       profile.version !== (effect ? SHEETS_EFFECT_VERSION : SHEETS_SOURCE_VERSION) ||
@@ -94,7 +95,8 @@ function restore(moon, providerMoon, profile, site, expectedCatalogCid) {
         target: {type: 'resource_ref', resource_kind: 'sheet_range', nullable: false}})]};
     const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
       profile.connectorId, registration, revision, JSON.stringify(views), undefined));
-    const rangeCommand = sheetsRangeCommand(profile.connectorId, site, providerMoon);
+    const rangeCommand = (profile.rangeCommand === 'clear' ? sheetsClearCommand : sheetsRangeCommand)(
+      profile.connectorId, site, providerMoon);
     const declared = withSheetsRangeCommand(
       JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration)), rangeCommand, providerMoon);
     if (expectedCatalogCid !== undefined && expectedCatalogCid !== declared.catalog_cid) {
@@ -287,7 +289,7 @@ async function load(profile, options, effect) {
         close() { closed = true; return opened.site.close(); }}, authorization: opened.authorization,
       runtimeBundleCid: options.runtimeBundleCid, bindingCid: opened.bindingCid,
       ledgerRoot: options.ledgerRoot, installation: options.installation,
-      driver: createSheetsRangeDriver({moon: providerMoon, site,
+      driver: (profile.rangeCommand === 'clear' ? createSheetsClearDriver : createSheetsRangeDriver)({moon: providerMoon, site,
         command: rangeCommand.installed, bindingCid: opened.bindingCid, target,
         isCurrent: () => !closed})});
     const boundaryCid = contentCid({version: 'actql-sheets-append-boundary/0.1',

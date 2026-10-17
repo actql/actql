@@ -824,6 +824,480 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/site/hubspot-target-read.mjs",
+      "sha256": "5d0cabaf9c41e875d7b7ad6dffd8e5f4789f65313045667976e1f023c7b55fb2",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing HubSpot Catalog/Decode, Host current, Credential nominal use and original accounted RowRun owners",
+      "exports": [
+        "HUBSPOT_OBJECT_BATCH_READ_OPERATION",
+        "HubSpotTargetReadFailure",
+        "readHubSpotRecordTargets"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "HubSpotTargetReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotRecordTargets",
+          "parameters": [
+            "moon",
+            "originalPortalId",
+            "originalCatalog",
+            "request",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "readHubSpotRecordTargets/account/account",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readHubSpotRecordTargets/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotRecordTargets/readHubSpotRecordTargets",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotRecordTargets/readHubSpotRecordTargets#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotRecordTargets/readHubSpotRecordTargets#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotRecordTargets/receive/receive",
+          "parameters": [
+            "operation",
+            "path",
+            "method",
+            "requestBody"
+          ],
+          "async": true
+        },
+        {
+          "name": "readHubSpotRecordTargets/receive/receive/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHubSpotRecordTargets/receive/receive/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readHubSpotRecordTargets/recheckProperties/recheckProperties",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "readHubSpotRecordTargets/slot/slot",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readHubSpotRecordTargets/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "segment/segment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment/segment",
+          "parameters": [
+            "unit"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "HubSpotTargetReadFailure/constructor:constructor/constructor:constructor",
+            "positive/positive",
+            "readHubSpotRecordTargets",
+            "readHubSpotRecordTargets/account/account",
+            "readHubSpotRecordTargets/provider/provider",
+            "readHubSpotRecordTargets/readHubSpotRecordTargets",
+            "readHubSpotRecordTargets/readHubSpotRecordTargets#2",
+            "readHubSpotRecordTargets/readHubSpotRecordTargets#3",
+            "readHubSpotRecordTargets/receive/receive",
+            "readHubSpotRecordTargets/receive/receive/response/response",
+            "readHubSpotRecordTargets/receive/receive/response/response/response",
+            "readHubSpotRecordTargets/recheckProperties/recheckProperties",
+            "readHubSpotRecordTargets/slot/slot",
+            "readHubSpotRecordTargets/verify/verify",
+            "segment/segment",
+            "segment/segment/segment"
+          ],
+          "exports": [
+            "HUBSPOT_OBJECT_BATCH_READ_OPERATION",
+            "HubSpotTargetReadFailure",
+            "readHubSpotRecordTargets"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-read.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/site/hubspot-record-write.mjs",
+      "sha256": "5690ec42c8afd973d3344e21feb7b3e9092834d9b26ad3bbe7120a073cca235c",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing HubSpot Catalog and Host Row Effect/Credential/Account owners",
+      "exports": [
+        "HUBSPOT_BATCH_WRITE_OPERATIONS",
+        "HubSpotRecordWriteFailure",
+        "projectHubSpotRecordWriteObservation",
+        "sendRawHubSpotRecordBatch"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "HubSpotRecordWriteFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectHubSpotRecordWriteObservation",
+          "parameters": [
+            "moon",
+            "request",
+            "observation",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectHubSpotRecordWriteObservation/projectHubSpotRecordWriteObservation",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment/segment",
+          "parameters": [
+            "unit"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch",
+          "parameters": [
+            "moon",
+            "originalPortalId",
+            "originalCatalog",
+            "request",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/account/account",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/receive/receive",
+          "parameters": [
+            "selected",
+            "index",
+            "path",
+            "method",
+            "payload"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/receive/receive/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/receive/receive/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawHubSpotRecordBatch/verify/verify",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "HubSpotRecordWriteFailure/constructor:constructor/constructor:constructor",
+            "positive/positive",
+            "projectHubSpotRecordWriteObservation",
+            "projectHubSpotRecordWriteObservation/projectHubSpotRecordWriteObservation",
+            "segment/segment",
+            "segment/segment/segment",
+            "sendRawHubSpotRecordBatch",
+            "sendRawHubSpotRecordBatch/account/account",
+            "sendRawHubSpotRecordBatch/provider/provider",
+            "sendRawHubSpotRecordBatch/receive/receive",
+            "sendRawHubSpotRecordBatch/receive/receive/response/response",
+            "sendRawHubSpotRecordBatch/receive/receive/response/response/response",
+            "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch",
+            "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#2",
+            "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#3",
+            "sendRawHubSpotRecordBatch/verify/verify"
+          ],
+          "exports": [
+            "HUBSPOT_BATCH_WRITE_OPERATIONS",
+            "HubSpotRecordWriteFailure",
+            "projectHubSpotRecordWriteObservation",
+            "sendRawHubSpotRecordBatch"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/record-write-response.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

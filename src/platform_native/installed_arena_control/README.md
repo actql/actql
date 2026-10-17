@@ -170,3 +170,44 @@ and current authority remain the installed caller's separate preconditions.
 The closed C/Python transport and ordinary factory still need their matching
 physical/component acceptance; these typed methods do not provide that supplier
 or a normal numerical profile.
+
+## Original installed process custody
+
+`prepare_process` registers one carrier in the original Host/domain before
+opening the Slot, capturing duplex endpoints, reserving the existing Common
+bootstrap frame or duplicating the original region descriptor. The carrier
+retains every partial result and its original issue. Generic domain work and
+parent retirement remain refused while that process responsibility is live.
+No scalar budget, descriptor or reply issues process/VM funding or permission.
+Independent process, control and descriptor costs still require their original
+trusted funding; the ordinary missing supplier remains unavailable.
+
+`process_backing_descriptor` borrows only the original pre-spawn region's
+captured CLOEXEC descriptor. Native current and physical device/inode/size/
+access checks precede projection. A closed input alias does not substitute a
+new region, and foreign, closing, failed capture or already-started custody
+cannot obtain this descriptor. The recipient must use the existing process
+Owner's own retained duplicate; the borrowed number grants no close or launch.
+
+Logical transport restriction, return of the original endpoint borrow, actual
+child stop, physical mapping/FD cleanup and logical usage reporting remain
+separate. Known synchronous no-child spawn refusal uses the original Holder's
+unstarted cleanup. Successful spawn transfers its Slot descriptor to that
+Holder: `Slot.is_open()` is not a stop or pin-retirement observation. Only the
+same typed stop permits original region retirement. Failed/unknown cleanup
+retains the same carrier, and physical stop does not settle external effects,
+Store commit, final quota or an uncertain operation outcome. Immutable replies
+retain the original Host/domain/process and typed issue even after refusal.
+
+`prepare_process_child` passes that captured descriptor to the same Holder's
+existing `prepare_duplex_child`. The Holder retains its own CLOEXEC duplicate
+and immutable executable/argv/closed environment snapshot; this caller does
+not open a replacement backing or prepare another process Owner. A known
+local preparation refusal leaves the original current carrier available for
+its own cleanup. `spawn_prepared_process_child` invokes the same one-attempt
+Holder and binds only its actual child to the original channel. A failed
+spawn, uncertain close or failed binding retains that original responsibility;
+none is a never-sent proof or permission to launch again. FD4 transport does
+not imply VM/domain admission. The normal supplier and separate process/VM
+funding are still unavailable, and regular C/private Python registration must
+be established from matching emitted signatures before embedding this entry.

@@ -18,6 +18,8 @@ pub fn binding_work(BoundIndex) -> Int
 
 pub fn bound_index(BoundIndex) -> Index
 
+pub fn bound_value_for_cursor(BoundIndex, @decode_core.Cursor, Int) -> Result[(@parameter_binding.BoundParameter?, Int), BindingIssue]
+
 pub fn bound_values(BoundIndex) -> @parameter_binding.BoundValues
 
 pub fn build(@decode_core.Cursor, @parameter_binding.Declarations, Array[@expression_syntax.ParameterOccurrences], Limits) -> Result[Index, Issue]

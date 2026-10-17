@@ -2993,6 +2993,7 @@ pub(all) enum ClientSourcePreparationIssue {
   Limit
   UnsupportedCarrier
   CommandTargetOriginalsUnavailable
+  RecordTargetOriginalsUnavailable
   Declarations
   Alias(@source_frontend.AliasIssue)
   Frontend(@source_frontend.Issue)

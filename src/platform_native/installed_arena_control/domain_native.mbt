@@ -27,6 +27,7 @@ struct InstalledArenaDomain {
   ]?
   mut sqlite_library : InstalledArenaSqliteLibrary?
   mut original_read : InstalledArenaOriginalRead?
+  mut process : InstalledArenaProcess?
   mut closed : Bool
 }
 
@@ -72,6 +73,7 @@ pub fn InstalledArenaHost::prepare_domain(
     live_channel: None,
     sqlite_library: None,
     original_read: None,
+    process: None,
     closed: false,
   }
   self.domains.push(record)
@@ -153,6 +155,7 @@ pub fn InstalledArenaHost::require_domain_current(
 ) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
   if !physical_equal(record.host, self) ||
     record.closed ||
+    record.process is Some(_) ||
     !self.domains.any(original => physical_equal(original, record)) {
     return Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))
   }
@@ -238,6 +241,9 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   if record.closed {
     return Ok(())
   }
+  if record.process is Some(process) && !process.closed {
+    return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
+  }
   if record.sqlite_library is Some(library) && !library.closed {
     return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
   }
@@ -286,6 +292,7 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   // Until here it also prevents a second Library attempt in this live domain.
   record.sqlite_library = None
   record.original_read = None
+  record.process = None
   record.closed = true
   Ok(())
 }

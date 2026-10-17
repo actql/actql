@@ -27,6 +27,8 @@ pub fn effect_header_contract_ref(EffectHeader) -> String
 
 pub fn effect_header_count(EffectHeaders) -> Int
 
+pub fn effect_header_create_values(EffectHeader) -> @decode_core.Cursor?
+
 pub fn effect_header_failure_policy(EffectHeader) -> String
 
 pub fn effect_header_id(EffectHeader) -> String
