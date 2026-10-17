@@ -441,7 +441,7 @@ test('post-response current delay leaves only the remaining original token lifet
     if (++checks === 3) f.advance(nowValue + 59_000);
   }});
   assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'succeeded');
-  assert.equal((await f.resource()).status, 200);
+  assert.equal((await f.resource()).statusCode, 200);
   f.advance(nowValue + 60_000);
   const claimed = f.journal.recover().length;
   await assert.rejects(f.resource({useId: 'page-at-original-token-expiry'}),
@@ -460,7 +460,7 @@ test('token duration starts at the final authorized physical POST rather than ea
     if (checks === 2) f.advance(nowValue + 30_000);
     if (checks === 3) f.advance(nowValue + 89_000);
   }});
-  assert.equal((await f.resource()).status, 200);
+  assert.equal((await f.resource()).statusCode, 200);
   f.advance(nowValue + 90_000);
   await assert.rejects(f.resource({useId: 'page-at-final-post-token-expiry'}),
     {code: 'RemoteCredentialAuthenticationMaterialExpired'});
