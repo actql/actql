@@ -101,6 +101,27 @@ export function installRunKeyedContentCapture({moon, publications, control,
     return inventoryReady && original !== undefined && live() &&
       (media === undefined || media === original.mediaType) ? original.value : undefined;
   });
+  const selectionCurrent = () => inventoryReady && !cleaned && cleanupFlight === undefined &&
+    flight === undefined && inventoryFlight === undefined;
+  // Select an already issued original, not a reference reconstructed from wire
+  // or a caller-provided matching predicate. Nonmatching references short-circuit
+  // in Common before its bounded current/field checks. The existing inventory
+  // count bounds this scan without allocating a second reference index.
+  const issuedForContent = binding => {
+    if (binding === undefined || !selectionCurrent() || !live() ||
+        !selectionCurrent() ||
+        typeof moon.clientProgramEffectCommandContentMatchesIssued !== 'function') return undefined;
+    let remaining = inventoryCount;
+    for (const original of inventory.values()) {
+      if (remaining-- <= 0) return undefined;
+      const matched = moon.clientProgramEffectCommandContentMatchesIssued(binding, original.value);
+      // Common invokes Host currentness callbacks. They may begin cleanup or
+      // replace this inventory; their prior true return is not a handoff fence.
+      if (!selectionCurrent()) return undefined;
+      if (matched === true && inventory.get(original.wire) === original) return original.value;
+    }
+    return undefined;
+  };
   const bindingFor = captureAuthorityCid => ({content_store_id: namespaceId,
     content_store_cid: storeAuthorityCid, workspace_scope_cid: authorityScopeCid,
     storage_scope: 'workspace', retention_class: 'local-content',
@@ -143,7 +164,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
       options.signal?.throwIfAborted();
       if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
       if (!await releaseCurrent()) throw new Error('CapturedContentCleanupPending');
-      remember(Object.freeze({wire: retained.wire, mediaType: description.mediaType,
+      remember(Object.freeze({candidate, wire: retained.wire, mediaType: description.mediaType,
         value: retained.value, captureAuthorityCid: options.readSubjectCid}));
       return JSON.parse(retained.wire);
     })().catch(error => {
@@ -183,7 +204,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
       await options.verifyRead();
       signal?.throwIfAborted();
       if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
-      remember(Object.freeze({wire: description.wire, mediaType: description.mediaType,
+      remember(Object.freeze({candidate, wire: description.wire, mediaType: description.mediaType,
         value, captureAuthorityCid: options.captureAuthorityCid}));
       return JSON.parse(description.wire);
     })().finally(() => { if (flight === operation) flight = undefined; });
@@ -236,6 +257,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
     return operation;
   };
   return Object.freeze({capture, recover: options => recover(options), recoverInventory, referenceIssuer,
+    issuedForContent,
     sourceBinding,
     recoveryInventory: () => !inventoryReady || !live() || cleaned || flight !== undefined ||
         inventoryFlight !== undefined ? undefined : Object.freeze({
