@@ -97,6 +97,7 @@ export function createCheckpointOperations(connection, exchange, responseValue,
     current(signal);
     try { answer = freezeInput(captureResponse(answer)); }
     catch { fail('InvalidCheckpointAnswer'); }
+    if (!validResolveItem(answer)) fail('InvalidCheckpointAnswer');
     if (!await answerMatches(answer, summary, decision, selectedSigner)) {
       // Preserve the actual returned bytes for inspection, not as a retry
       // permission. Never repair a foreign decision or ask for another sign.
