@@ -246,3 +246,79 @@ test "Notion page preserves Unicode names exact numeric tokens and unknown prope
     InvalidResponse,
   )
 }
+
+///|
+test "Notion page metadata projection keeps original parent tags version and bounded output" {
+  let raw = @utf8.encode(page_test_original())
+  let page = project_notion_page(raw, "p", page_test_limits()).unwrap()
+  let expected = "{\"id\":\"p\",\"resource\":\"p\",\"version\":\"2026-10-17T00:00:00.123000Z\",\"url\":\"https://notion.example/p\",\"created_by\":\"creator\",\"last_edited_by\":\"editor\",\"created_time\":\"2026-10-17T01:00:00.000Z\",\"last_edited_time\":\"2026-10-17T00:00:00.123Z\",\"responseSha256\":\"" +
+    @sha.hex(raw) +
+    "\",\"archived\":false,\"parent\":{\"type\":\"data_source_id\",\"data_source_id\":\"source\",\"database_id\":\"database\"}}"
+  let bytes = @utf8.encode(expected).length()
+  assert_eq(notion_page_metadata_wire(page, bytes, 15, 3), Ok(expected))
+  assert_eq(
+    notion_page_metadata_wire(page, bytes - 1, 15, 3),
+    Err(BudgetExceeded),
+  )
+  assert_eq(notion_page_metadata_wire(page, bytes, 14, 3), Err(BudgetExceeded))
+  assert_eq(notion_page_metadata_wire(page, bytes, 15, 2), Err(BudgetExceeded))
+  assert_eq(notion_page_metadata_wire(page, 0, 15, 3), Err(InvalidLimits))
+  for
+    parent in [
+      "{\"type\":\"workspace\",\"workspace\":true}", "{\"type\":\"page_id\",\"page_id\":\"p\"}",
+      "{\"type\":\"database_id\",\"database_id\":\"db\"}", "{\"type\":\"block_id\",\"block_id\":\"b\"}",
+      "{\"type\":\"agent_id\",\"agent_id\":\"a\"}", "{\"type\":\"data_source_id\",\"data_source_id\":\"s\"}",
+    ] {
+    let original = project_notion_page(
+      @utf8.encode(page_test_wire(parent)),
+      "p",
+      page_test_limits(),
+    ).unwrap()
+    assert_true(
+      notion_page_metadata_wire(original, 2048, 15, 3)
+      .unwrap()
+      .contains("\"parent\":" + parent),
+    )
+  }
+}
+
+///|
+test "Notion page retained canonical time and every UTF8 property name remain bounded" {
+  let limits = page_test_limits()
+  let wire = page_test_original()
+    .replace_all(old="https://notion.example/p", new="x")
+    .replace_all(old="2026-10-17T10:00:00+09:00", new="2026-10-17T00:00:00Z")
+    .replace_all(old="2026-10-17T00:00:00.123000Z", new="2026-10-17T00:00:00Z")
+  assert_eq(
+    project_notion_page(@utf8.encode(wire), "p", {
+      ..limits,
+      max_text_bytes: 20,
+    }).unwrap_err(),
+    BudgetExceeded,
+  )
+  assert_true(
+    project_notion_page(@utf8.encode(wire), "p", {
+      ..limits,
+      max_text_bytes: 24,
+    })
+    is Ok(_),
+  )
+  let unicode = page_test_original().replace_all(
+    old="\"Title\"",
+    new="\"é😀\"",
+  )
+  assert_eq(
+    project_notion_page(@utf8.encode(unicode), "p", {
+      ..limits,
+      metadata: { ..limits.metadata, max_name_bytes: 6, },
+    }).unwrap_err(),
+    BudgetExceeded,
+  )
+  assert_true(
+    project_notion_page(@utf8.encode(unicode), "p", {
+      ..limits,
+      metadata: { ..limits.metadata, max_name_bytes: 7, },
+    })
+    is Ok(_),
+  )
+}

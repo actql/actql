@@ -246,6 +246,18 @@ pub fn project_notion_page(
   if count > limits.metadata.max_properties {
     return Err(BudgetExceeded)
   }
+  // Normalized time is retained alongside the exact original spelling.
+  if created_time.length() > limits.max_text_bytes ||
+    last_edited_time.length() > limits.max_text_bytes {
+    return Err(BudgetExceeded)
+  }
+  for index in 0..<count {
+    let (name, _) = @decode.field_at(properties, index).unwrap()
+    if name.length() > limits.metadata.max_name_bytes ||
+      @utf8.encode(name).length() > limits.metadata.max_name_bytes {
+      return Err(BudgetExceeded)
+    }
+  }
   Ok({
     id,
     response_sha256: @sha.hex(raw),
@@ -289,5 +301,82 @@ pub fn notion_page_original_json(
   }
   Ok(@utf8.decode(page.raw)) catch {
     _ => Err(InvalidResponse)
+  }
+}
+
+///|
+/// Bounded private DATA projection, not the public pages schema or target Ref.
+pub fn notion_page_metadata_wire(
+  page : OriginalNotionPage,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, NotionPageIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    @encode.begin_object(writer)
+    for
+      (key, value) in [
+        ("id", page.id),
+        ("resource", page.id),
+        ("version", page.version),
+        ("url", page.url),
+        ("created_by", page.created_by),
+        ("last_edited_by", page.last_edited_by),
+        ("created_time", page.created_time),
+        ("last_edited_time", page.last_edited_time),
+        ("responseSha256", page.response_sha256),
+      ] {
+      @encode.key(writer, key)
+      @encode.string_value(writer, value)
+    }
+    @encode.key(writer, "archived")
+    @encode.bool_value(writer, page.archived)
+    @encode.key(writer, "parent")
+    @encode.begin_object(writer)
+    @encode.key(writer, "type")
+    match page.parent {
+      Workspace => {
+        @encode.string_value(writer, "workspace")
+        @encode.key(writer, "workspace")
+        @encode.bool_value(writer, true)
+      }
+      Page(id) | Database(id) | Block(id) | Agent(id) => {
+        let name = match page.parent {
+          Page(_) => "page_id"
+          Database(_) => "database_id"
+          Block(_) => "block_id"
+          _ => "agent_id"
+        }
+        @encode.string_value(writer, name)
+        @encode.key(writer, name)
+        @encode.string_value(writer, id)
+      }
+      DataSource(id, database) => {
+        @encode.string_value(writer, "data_source_id")
+        @encode.key(writer, "data_source_id")
+        @encode.string_value(writer, id)
+        match database {
+          None => ()
+          Some(id) => {
+            @encode.key(writer, "database_id")
+            @encode.string_value(writer, id)
+          }
+        }
+      }
+    }
+    @encode.end_object(writer)
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
   }
 }
