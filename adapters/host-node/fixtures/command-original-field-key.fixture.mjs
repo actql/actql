@@ -3,6 +3,7 @@
 // authored Program, and no published target or Mapping is synthesized.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {inspect} from 'node:util';
 import {checked} from '../../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../installed-row-source.mjs';
 import {runCapturedEffectComputation} from '../entry.mjs';
@@ -46,14 +47,17 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
     inputs: {original: {connector: 'field-target-source', resource: 'rows', view: 'records'}},
     steps: [{from: 'original', select: ['resource', 'id', 'value'], as: 'selected'}],
     results: {out: {from: 'selected', fields: ['resource', 'id', 'value']}},
+  }, {id: 'save', inputs: {original: {result: {stage: 'capture', result: 'out'}}},
+    steps: [{from: 'original', select: ['resource', 'id', 'value'], as: 'selected'}],
+    results: {out: {from: 'selected', fields: ['resource', 'id', 'value']}},
     effects: {save: {command: {contract: 'command:fixture.upload.v1', target: {field: 'resource'},
       from: {result: 'out'}, input: {id: {field: 'id'}, value: {field: 'value'}},
       ...(inputKey ? {input_key: 'id'} : {})}}},
-  }], results: {published: {from: {stage: 'capture', result: 'out'}}}};
+  }], results: {published: {from: {stage: 'save', result: 'out'}}}};
   const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
     canonical(program), 'json', environment, undefined, []);
   const prepared = moon.clientProgramEffectPreparationReady(outcome);
-  assert(prepared, moon.clientProgramEffectPreparationIssueCode(outcome));
+  assert(prepared, inspect(moon.clientProgramEffectPreparationIssue(outcome), {depth: 12}));
   const evidence = publicationEvidence(prepared);
   const admission = moon.clientProgramAdmitEffectPublication(prepared, ...evidence);
   assert(admission);
