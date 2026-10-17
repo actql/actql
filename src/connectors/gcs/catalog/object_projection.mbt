@@ -125,3 +125,75 @@ pub fn object_mutation_body_for(
 ) -> Result[String, ObjectRequestIssue] {
   admit_object_mutation_request(binding, request).map(_ => request.body)
 }
+
+///|
+// Initial capture reuses the original before-GET; apply still reads/rechecks
+// current metadata through its separate approved path. The guard is the CID
+// of those retained response bytes, not a generation-only or authority proof.
+// Project only the checked fields changed by this PATCH, as the existing
+// Mapping Preview does. Json fields retain the Common Value envelope.
+pub fn object_metadata_patch_effect_target_json(
+  binding : ObjectMutationBinding,
+  request : ObjectMutationRequest,
+  max_bytes : Int,
+) -> Result[String, ObjectRequestIssue] {
+  if admit_object_mutation_request(binding, request) is Err(issue) {
+    return Err(issue)
+  }
+  if binding.kind != PatchMetadata || request.verb != "PATCH" {
+    return Err(InvalidBinding)
+  }
+  if max_bytes < 1 {
+    return Err(CapacityExceeded)
+  }
+  guard request.marker is Some(marker) else { return Err(InvalidChanges) }
+  let (content_type, metadata, changes_wire) = match
+    admit_object_metadata_patch_input(
+      binding,
+      @utf8.encode(request.authored_changes),
+      marker,
+      true,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // This String was emitted by the same bounded request owner and contains
+  // only the checked field names, optional text and a one-level string map.
+  // Retain no new Ref or reconstructed metadata/permission original here.
+  let changes = @json.parse(changes_wire) catch {
+    _ => return Err(InvalidChanges)
+  }
+  let fields = object_metadata_fields(request.original)
+  let before : Map[String, Json] = Map([])
+  if content_type is Some(_) {
+    before["content_type"] = match fields.content_type {
+      Some(text) => text.to_json()
+      None => Json::null()
+    }
+  }
+  if metadata is Some(_) {
+    before["metadata"] = match fields.metadata {
+      None => Json::null()
+      Some(entries) => {
+        let values : Map[String, Json] = Map([])
+        for (name, value) in entries {
+          values[name] = value.to_json()
+        }
+        { "$json": Json::object(values) }
+      }
+    }
+  }
+  mutation_json(
+    {
+      "identity": fields.name.to_json(),
+      "versionCid": ("sha256:" + request.original.response_sha256).to_json(),
+      "before": Json::object(before),
+      "after": changes,
+      "value": changes,
+      "requestCid": request.cid.to_json(),
+      "protocol_behavior": "assign_original_request_marker:actql-request",
+    },
+    max_bytes,
+    binding.limits.metadata,
+  )
+}

@@ -29,12 +29,20 @@ pub fn gcs_object_response_projection(
 pub enum GcsFailure {
   Metadata(@catalog.ObjectMetadataIssue)
   Request(@catalog.ObjectRequestIssue)
+  TargetRead(@catalog.ObjectTargetReadIssue)
 }
 
 ///|
 #export_name("gcsObjectFailureCode")
 pub fn gcs_object_failure_code(issue : GcsFailure) -> String {
   match issue {
+    TargetRead(issue) =>
+      match issue {
+        InvalidName => "GcsInvalidObjectTargetName"
+        InvalidResponse => "GcsInvalidObjectTargetObservation"
+        CapacityExceeded => "GcsObjectTargetCapacityExceeded"
+        Metadata(issue) => gcs_object_failure_code(Metadata(issue))
+      }
     Metadata(issue) =>
       match issue {
         InvalidLimits => "GcsMetadataInvalidLimits"
@@ -52,6 +60,50 @@ pub fn gcs_object_failure_code(issue : GcsFailure) -> String {
         CapacityExceeded => "GcsObjectRequestCapacityExceeded"
       }
   }
+}
+
+///|
+#export_name("gcsObjectMutationKind")
+pub fn gcs_object_mutation_kind(
+  binding : @catalog.ObjectMutationBinding,
+) -> String {
+  match @catalog.object_mutation_kind(binding) {
+    PatchMetadata => "patch_metadata"
+    DeleteObject => "delete"
+  }
+}
+
+///|
+#export_name("gcsObjectMetadataPath")
+pub fn gcs_object_metadata_path(
+  binding : @catalog.ObjectMutationBinding,
+  name : String,
+) -> Result[String, GcsFailure] {
+  @catalog.object_mutation_metadata_path(binding, name).map_err(issue => {
+    TargetRead(issue)
+  })
+}
+
+///|
+#export_name("gcsObjectMetadataMaxBytes")
+pub fn gcs_object_metadata_max_bytes(
+  binding : @catalog.ObjectMutationBinding,
+) -> Int {
+  @catalog.object_mutation_metadata_max_bytes(binding)
+}
+
+///|
+#export_name("gcsObjectTargetObservation")
+pub fn gcs_object_target_observation(
+  binding : @catalog.ObjectMutationBinding,
+  name : String,
+  status : Int,
+  body : Bytes,
+  headers : Array[(String, String)],
+) -> Result[@catalog.ObjectMetadata, GcsFailure] {
+  @catalog.admit_object_mutation_target_observation(
+    binding, name, status, body, headers,
+  ).map_err(issue => TargetRead(issue))
 }
 
 ///|
@@ -221,6 +273,32 @@ pub fn gcs_object_prepare_patch(
 }
 
 ///|
+#export_name("gcsObjectPrepareEffectPatch")
+pub fn gcs_object_prepare_effect_patch(
+  binding : @catalog.ObjectMutationBinding,
+  original : @catalog.ObjectMetadata,
+  changes : Bytes,
+  marker : String,
+) -> Result[@catalog.ObjectMutationRequest, GcsFailure] {
+  @catalog.prepare_object_metadata_patch_value_wire(
+    binding, original, changes, marker,
+  ).map_err(issue => Request(issue))
+}
+
+///|
+#export_name("gcsObjectCheckPatchInput")
+pub fn gcs_object_check_patch_input(
+  binding : @catalog.ObjectMutationBinding,
+  changes : Bytes,
+  marker : String,
+  effect_wire : Bool,
+) -> Result[Unit, GcsFailure] {
+  @catalog.check_object_metadata_patch_input(
+    binding, changes, marker, effect_wire,
+  ).map_err(issue => Request(issue))
+}
+
+///|
 #export_name("gcsObjectPrepareDelete")
 pub fn gcs_object_prepare_delete(
   binding : @catalog.ObjectMutationBinding,
@@ -239,6 +317,19 @@ pub fn gcs_object_request_projection(
   max_bytes : Int,
 ) -> Result[String, GcsFailure] {
   @catalog.object_mutation_projection_json(binding, request, max_bytes).map_err(issue => {
+      Request(issue)
+    },
+  )
+}
+
+///|
+#export_name("gcsObjectPatchEffectTarget")
+pub fn gcs_object_patch_effect_target(
+  binding : @catalog.ObjectMutationBinding,
+  request : @catalog.ObjectMutationRequest,
+  max_bytes : Int,
+) -> Result[String, GcsFailure] {
+  @catalog.object_metadata_patch_effect_target_json(binding, request, max_bytes).map_err(issue => {
       Request(issue)
     },
   )
