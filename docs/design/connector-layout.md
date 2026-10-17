@@ -333,3 +333,48 @@ factory and missing cleanup. These are public type checks, not a runtime
 build, physical Provider operation, installed artifact or numerical-profile
 acceptance; the existing runtime and actual Owner evidence keep their own
 source qualifications.
+
+## Original absent UPSERT observation
+
+- Responsibility: the existing installed Row Effect retains the original
+  provider-observed presence when authoring its sealed Preview and refreshing
+  preflight. The vendor Catalog/Site still obtains and interprets the actual
+  original lookup; a JavaScript discriminant or type is no provenance proof.
+- Inputs and outputs: `observeTargets` retains the original present
+  `{identity, versionCid, before}` form (optional `state: 'present'`). Only an
+  UPSERT may return `{identity, state: 'absent'}` without before/version fields.
+  It yields the existing private before/guard states, not a new public wire.
+- Identity: original request target and observation identity must match; the
+  same sealed row CID, original Mapping, prepared input, Preview and Run remain
+  bound. Empty objects, null, omitted fields, 404 and unavailable observations
+  cannot substitute for an explicit authorized complete lookup observation.
+- Ownership: existing capture/request children retain original reads and their
+  response/material dependencies. The Site retains current access and physical
+  custody; this projection creates no Owner, Ledger, claim or permission.
+- Synchronization: insert-side UPSERT emits before absent and a not-applicable
+  version guard. Present-side UPSERT, UPDATE and DELETE retain version guards.
+  Every apply refresh still reads each original target under its own decision;
+  a presence change refuses before dispatch rather than switching the sealed
+  request branch. Version observations stay paired by original row Preview CID
+  in its sealed canonical order; existing Common checks reject changed versions.
+- Failure: absent observations with before/version fields, unknown presence,
+  foreign target identities and absence for UPDATE/DELETE refuse capture.
+  Provider conditional creation must enforce the same original unique key and
+  reject races; generic Preview support does not authorize blind native upsert.
+- Cancellation: observation completion is not physical stop or release. Original
+  children, response tickets and Store holdings remain under existing cleanup;
+  Unknown outcomes and missing acknowledgements cannot become unsent/success.
+- Resources: bounded observation envelope copies, original before references,
+  row identity arrays, temporary version-row Sets and current version Map overlap
+  captured inputs/response material and canonical Preview workspace. Their size
+  follows the admitted row inventory; no history Map, arbitrary cap or numerical
+  funding default is added. The temporary collections retire after preflight.
+- Extension: the additive public driver union restricts absence to UPSERT and
+  preserves old present/value-bearing/Command callers. Shared physical Effect
+  funding remains a separate original supplier; Source fixture units cannot
+  replace it or unlock installed vendor lookup/create.
+- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual
+  Common/SQLite capture, sealed Preview and target-guard admission with an
+  explicitly trusted finite observation driver, not a physical vendor. Public
+  type checks independently remove expected-error markers. Original guarded
+  UPDATE/DELETE and request-child regression tests remain separate assertions.
