@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import test from 'node:test';
 import {connectInProcess, ClientError} from './index.mjs';
-import {signedAnswer} from './checkpoints.mjs';
+import {canonicalJson, contentCid, signedAnswer} from './checkpoints.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const keys = generateKeyPairSync('ed25519');
@@ -181,6 +181,65 @@ for (const [action, opposite] of [['approve', 'rejected'], ['reject', 'approved'
     assert.equal(calls.filter(call => call.operation === 'resolve').length, 0);
   });
 }
+
+test('valid signatures for another original Summary refuse before resolution', async t => {
+  for (const foreign of [
+    {...original, checkpointId: 'another-checkpoint'},
+    {...original, subject: {...original.subject, runId: 'another-run'}},
+    {...original, subject: {...original.subject, runDefinitionCid: cid('f')}},
+    {...original, requiredArtifact: {...original.requiredArtifact, cid: cid('f')}},
+    {...original, reviewProjectionCid: cid('f')},
+    {...original, requirements: ['effect_scope_approved', 'partial_application_accepted']},
+  ]) {
+    const originalAnswer = await signedAnswer(foreign, 'approved', signer,
+      '2026-10-18T00:01:00.000Z');
+    const {client, calls} = await fixture(t, {async answerCheckpoint() {return originalAnswer;}});
+    const failure = await client.approve(original.checkpointId).catch(error => error);
+    assert.equal(failure.code, 'InvalidCheckpointAnswer');
+    assert.deepEqual(failure.signed, [originalAnswer]);
+    assert.equal(calls.filter(call => call.operation === 'resolve').length, 0);
+  }
+});
+
+test('returned answer artifact grammar and nested evidence bind the original request', async t => {
+  const good = await signedAnswer(original, 'approved', signer, '2026-10-18T00:01:00.000Z');
+  const without = (value, key) => Object.fromEntries(Object.entries(value).filter(([name]) => name !== key));
+  for (const mutate of [
+    resolution => {resolution.unknown = true;},
+    resolution => {resolution.version = 'unregistered';},
+    resolution => {resolution.prepare_attempt_id = 'foreign';},
+    (_resolution, evidence) => {evidence.unknown = true;},
+    (_resolution, evidence) => {evidence.kind = 'read_access';},
+    (_resolution, evidence) => {evidence.compatibility_approval.approver = 'another-reviewer';},
+    (_resolution, evidence) => {evidence.compatibility_approval.proof.key_id = 'another-key';},
+    (_resolution, evidence) => {evidence.compatibility_approval.effect_preview_cid = cid('f');},
+    (_resolution, evidence) => {evidence.compatibility_approval.claims = [];},
+  ]) {
+    const resolution = JSON.parse(good.resolutionWire), evidence = JSON.parse(good.approvalEvidenceWire);
+    mutate(resolution, evidence);
+    const approval = evidence.compatibility_approval;
+    approval.attestation_cid = await contentCid(without(approval, 'attestation_cid'));
+    resolution.approval_evidence_cid = await contentCid(evidence);
+    resolution.resolution_cid = await contentCid(without(resolution, 'resolution_cid'));
+    const returned = {...good, resolutionWire: canonicalJson(resolution),
+      approvalEvidenceWire: canonicalJson(evidence)};
+    const {client, calls} = await fixture(t, {async answerCheckpoint() {return returned;}});
+    const failure = await client.approve(original.checkpointId).catch(error => error);
+    assert.equal(failure.code, 'InvalidCheckpointAnswer');
+    assert.deepEqual(failure.signed, [returned]);
+    assert.equal(calls.filter(call => call.operation === 'resolve').length, 0);
+  }
+  for (const returned of [
+    {...good, resolutionWire: '{}'},
+    {...good, resolutionWire: good.resolutionWire.replace('resolution-action-original-approved', 'resolution-other-approved')},
+    {...good, approvalEvidenceWire: ''},
+    {...good, approvalEvidenceWire: 'null'},
+  ]) {
+    const {client, calls} = await fixture(t, {async answerCheckpoint() {return returned;}});
+    await assert.rejects(client.approve(original.checkpointId), {code: 'InvalidCheckpointAnswer'});
+    assert.equal(calls.filter(call => call.operation === 'resolve').length, 0);
+  }
+});
 
 test('a lost resolution reply preserves exact signed bytes without automatic re-sign or resend', async t => {
   let signatures = 0, lost = true;

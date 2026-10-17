@@ -2,6 +2,15 @@
 
 ## Original Checkpoint ID answers and SDK reference views
 
+An original-answer callback remains responsible for key custody and current
+authority, but cannot change the requested action. Before resolution, the SDK
+admits the returned artifact shapes projected from the existing registered
+Resolution/Evidence contracts and compares their decision, subject, Checkpoint,
+required artifact, review and approval bindings to the captured original
+Summary. Self-addressed identities are checked without changing the signed
+bytes. A mismatch retains those exact returned bytes for inspection and refuses
+resolution; it neither signs again nor treats the bytes as a retry permission.
+
 The SDK's `approve(id)` and `reject(id)` use the existing authorized exact-ID
 Checkpoint lookup with one result. They do not scan pages, select the first
 pending Checkpoint, resolve an alias or submit another Run. The admitted full

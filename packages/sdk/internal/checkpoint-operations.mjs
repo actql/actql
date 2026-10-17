@@ -1,5 +1,6 @@
 // Existing bounded Checkpoint review and signed resolution operations.
-import {checkedSigner, reviewBytesMatchCid, signedAnswer} from '../checkpoints.mjs';
+import {checkedSigner, contentCid, reviewBytesMatchCid, signedAnswer} from '../checkpoints.mjs';
+import {validAnswerEvidence, validAnswerResolution} from './checkpoint-answer-contract.generated.mjs';
 import {captureResponse, freezeInput, positive} from './data.mjs';
 import {ClientError, fail} from './errors.mjs';
 import {reviewEnvelopeBytes} from './transport-response.mjs';
@@ -8,6 +9,46 @@ import {checkpointLimits, validCheckpointLookup, validCheckpointPage, validCheck
 
 export function createCheckpointOperations(connection, exchange, responseValue,
   {answerOriginal, isClosed = () => false} = {}) {
+  const without = (value, name) => Object.fromEntries(Object.entries(value)
+    .filter(([key]) => key !== name));
+  const answerMatches = async (answer, summary, decision, signer) => {
+    try {
+      if (!validResolveItem(answer) || answer.checkpointCid !== summary.checkpointCid) return false;
+      const resolution = JSON.parse(answer.resolutionWire);
+      if (!validAnswerResolution(resolution) || resolution.decision !== decision ||
+          resolution.checkpoint_id !== summary.checkpointId ||
+          resolution.checkpoint_cid !== summary.checkpointCid ||
+          resolution.required_artifact_cid !== summary.requiredArtifact.cid ||
+          resolution.review_projection_cid !== summary.reviewProjectionCid ||
+          signer !== undefined && (resolution.actor !== signer.reviewerId ||
+            resolution.proof.key_id !== signer.keyId)) return false;
+      if (summary.subject.kind === 'run_unit'
+        ? resolution.run_id !== summary.subject.runId ||
+          resolution.run_definition_cid !== summary.subject.runDefinitionCid
+        : resolution.prepare_attempt_id !== summary.subject.prepareAttemptId) return false;
+      if (await contentCid(without(resolution, 'resolution_cid')) !== resolution.resolution_cid) return false;
+      if (decision === 'rejected') return answer.approvalEvidenceWire === '';
+      const evidence = JSON.parse(answer.approvalEvidenceWire);
+      if (!validAnswerEvidence(evidence) || evidence.kind !== summary.kind ||
+          evidence.checkpoint_cid !== summary.checkpointCid ||
+          evidence.review_projection_cid !== summary.reviewProjectionCid ||
+          await contentCid(evidence) !== resolution.approval_evidence_cid) return false;
+      const approval = evidence.compatibility_approval;
+      if (approval.approver !== resolution.actor ||
+          approval.proof.key_id !== resolution.proof.key_id ||
+          approval.review_projection_cid !== summary.reviewProjectionCid) return false;
+      const effect = summary.kind === 'effect_set';
+      if (effect ? approval.effect_preview_cid !== summary.requiredArtifact.cid ||
+          approval.claims.length !== summary.requirements.length ||
+          !approval.claims.every((claim, index) => claim === summary.requirements[index]) ||
+          signer !== undefined && approval.authority_scope_cid !== signer.authorityScopeCid
+        : approval.prepared_invocation_cid !== (summary.kind === 'model_invocation'
+          ? summary.preparedInvocationCid : summary.requiredArtifact.cid) ||
+          approval.expires_at !== summary.expiresAt) return false;
+      const self = effect ? 'attestation_cid' : 'run_scope_approval_cid';
+      return await contentCid(without(approval, self)) === approval[self];
+    } catch { return false; }
+  };
   const current = signal => {
     if (isClosed()) fail('ClientClosed');
     signal?.throwIfAborted();
@@ -56,9 +97,12 @@ export function createCheckpointOperations(connection, exchange, responseValue,
     current(signal);
     try { answer = freezeInput(captureResponse(answer)); }
     catch { fail('InvalidCheckpointAnswer'); }
-    if (!validResolveItem(answer) || answer.checkpointCid !== summary.checkpointCid) {
-      fail('InvalidCheckpointAnswer');
+    if (!await answerMatches(answer, summary, decision, selectedSigner)) {
+      // Preserve the actual returned bytes for inspection, not as a retry
+      // permission. Never repair a foreign decision or ask for another sign.
+      throw new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])});
     }
+    current(signal);
     // Retain the existing response-loss contract: ResolutionUnknown carries
     // these exact signed bytes. No automatic re-sign, retry or resend occurs.
     return operations.resolveCheckpoints([answer], {signal});
