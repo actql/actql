@@ -233,3 +233,85 @@ test('actual Notion lazy property grant follows the original pending request wit
   assert.equal(f.state.requests.length,6);assert.deepEqual(result.responseCharges,f.state.charges);
   assert.equal(reader.observe().cleanupConfirmed,false);
 });
+
+test('actual Notion dependent property selection is exclusive and absent pending work issues no property use',async t=>{
+  const f=await fixture(t);
+  assert.throws(()=>f.create({propertyAuthorizationFor:()=>{}}),{code:'InvalidNotionDataSourceRead'});
+  for(const propertyAuthorizationFor of [null,false,{}])assert.throws(()=>f.create({
+    propertyAuthorization:undefined,propertyAuthorizationFor}),{code:'InvalidNotionDataSourceRead'});
+  assert.equal(f.state.requests.length,0);
+  f.state.respond=()=>{
+    const page=JSON.parse(queryPage(['page1']));
+    page.results[0].properties.title={id:'t%3Ax',type:'rich_text',has_more:false,
+      rich_text:[{type:'text',text:{content:'ab'},plain_text:'ab'}]};
+    return JSON.stringify(page);
+  };
+  let calls=0;
+  const reader=f.create({propertyAuthorization:undefined,propertyAuthorizationFor:()=>{
+    calls++;throw new Error('NoPendingProperty');
+  }});
+  const result=await reader.read();assert.equal(calls,0);assert.equal(result.rowCount,1);
+  assert.equal(f.state.requests.length,1);assert.equal(result.observations.length,1);
+  assert.deepEqual(f.rows,[{amount:'9007199254740993.25',enabled:true,title:'ab'}]);
+});
+
+test('actual Notion lazy property selection refuses query and foreign original grants without fallback',async t=>{
+  for(const foreign of [false,true]){
+    const f=await fixture(t),other=foreign?await fixture(t):undefined;
+    const reader=f.create({propertyAuthorization:undefined,propertyAuthorizationFor:()=>foreign?
+      other.authorize(NOTION_PROPERTY_READ_OPERATION,'foreign-property'):f.options.initialAuthorization});
+    let failure;
+    await assert.rejects(reader.read(),error=>{
+      failure=error;return error.cause.code==='ForeignNotionPropertyAuthorization';
+    });
+    assert.equal(f.state.requests.length,1);assert.equal(other?.state.requests.length??0,0);
+    assert.equal(failure.children.length,0);assert.equal(failure.observations.length,1);
+    assert.equal(failure.responseCharges[0],f.state.charges[0]);assert.deepEqual(f.rows,[]);
+    assert.equal(reader.observe().cleanupConfirmed,false);
+  }
+});
+
+test('actual Notion current denial or stop after the awaited property selection sends no dependent request',async t=>{
+  for(const stop of [false,true]){
+    const f=await fixture(t),controller=new AbortController(),reason=new Error('OriginalPropertySelectionStopped');
+    const reader=f.create({propertyAuthorization:undefined,signal:controller.signal,
+      propertyAuthorizationFor:async()=>{
+        await Promise.resolve();
+        if(stop)controller.abort(reason);else await f.writeAccount('deny');
+        return f.authorize(NOTION_PROPERTY_READ_OPERATION,'late-property');
+      }});
+    let failure;
+    await assert.rejects(reader.read(),error=>{
+      failure=error;return stop?error.cause===reason:error.cause.code==='NotionPropertyDenied';
+    });
+    assert.equal(f.state.requests.length,1);assert.equal(failure.children.length,0);
+    assert.equal(failure.responseCharges[0],f.state.charges[0]);assert.deepEqual(f.rows,[]);
+    assert.equal(reader.observe().cleanupConfirmed,false);
+    await assert.rejects(reader.read(),{code:'NotionDataSourceReaderAlreadyStarted'});
+    assert.equal(f.state.requests.length,1);
+  }
+});
+
+test('actual Notion failed property selection retains its original cause and query observation without another preparation',async t=>{
+  const f=await fixture(t),cause=new Error('OriginalPropertySupplierUnavailable');let calls=0;
+  const reader=f.create({propertyAuthorization:undefined,propertyAuthorizationFor:async()=>{
+    calls++;throw cause;
+  }});let failure;
+  await assert.rejects(reader.read(),error=>{failure=error;return error.cause===cause;});
+  assert.equal(calls,1);assert.equal(f.state.requests.length,1);assert.equal(failure.children.length,0);
+  assert.equal(failure.responseCharges[0],f.state.charges[0]);
+  assert.equal(failure.observations[0].body,f.state.charges[0].originalBody);
+  assert.equal(reader.observe().cleanupConfirmed,false);assert.deepEqual(f.rows,[]);
+  await assert.rejects(reader.read(),{code:'NotionDataSourceReaderAlreadyStarted'});assert.equal(calls,1);
+});
+
+test('actual Notion dependent supplier is captured once and cannot be replaced after reader preparation',async t=>{
+  const f=await fixture(t);let reads=0,calls=0;
+  const options={...f.options,propertyAuthorization:undefined};
+  const supplier=original=>{calls++;return f.authorize(original.operation,`captured-property-${calls}`);};
+  Object.defineProperty(options,'propertyAuthorizationFor',{configurable:true,get(){reads++;return supplier;}});
+  const reader=createNotionDataSourceReader(options);assert.equal(reads,1);
+  Object.defineProperty(options,'propertyAuthorizationFor',{value:()=>{throw new Error('ReplacedSupplier');}});
+  assert.equal((await reader.read()).rowCount,2);assert.equal(calls,2);assert.equal(reads,1);
+  assert.equal(f.state.requests.length,6);assert.equal(reader.observe().cleanupConfirmed,false);
+});
