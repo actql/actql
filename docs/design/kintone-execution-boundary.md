@@ -132,6 +132,47 @@ The existing Site must still bind the actual authenticated same-App live
 requests, generation and current authority. Equal data/revisions are not that
 authority or an ACK.
 
+## Original Common acquisition and checked-contract handoff
+
+The connector's record declaration retains the original Form projection and
+the declaration issued by the existing Common Row Source owner. It generates
+no separate Catalog identity algorithm. Preparation selects the original
+checked QueryRequirement and the same declared view through Common. A matching
+body, field name, App ID or CID does not substitute a different acquisition.
+
+An installed reader borrows an already-begun, accounted Direct RowRun once.
+Before response handling it binds the same physical-stop observation into the
+original cleanup slot. Actual received body bytes are charged before native
+decoding, and the resulting typed cells are admitted using the acquisition's
+exact original input contracts. Equal independently generated CheckedValues
+are refused by Common's nominal input buffer. Contract comparison is bounded;
+it is a data check, never authority to read another App or change a column.
+
+The mandatory physical `$id`/`$revision` observations remain in the original
+native response even when the checked projection does not expose the locator.
+Only the original selected field codes can be handed off, without aliases,
+dropped selected fields, JSON roundtrips or numeric conversion. Unsupported
+numeric-history and shared-carrier projections remain unavailable before
+acquisition preparation, as described above.
+
+The Host remains the sole finish, residual/capture and close owner. Neither
+`totalCount`, a successful page, logical abort nor a callback invocation proves
+that transport stopped or that a scan is complete. Failed decode, admission or
+physical stop retains the same original RowRun/reservation and cleanup debt;
+the reader cannot create a replacement attempt. The actual page protocol and
+same-App credential/current checks remain with the existing physical Site.
+
+The declaration, original Form/settings, acquisition, borrow, current page,
+decode tree, expected contracts, column indexes, checked matrix, residual,
+callbacks and return frame may overlap in the original caller's lifetime.
+Provider overlap must be supplied to that same owner's existing reservation;
+the finite parser limits or byte ticket do not fund these objects. Confirmed
+transport retirement detaches the reader's original page, while Common retains
+its captured input until the original Host closes it. That ACK is not proof of
+GC/RSS reclamation or retirement of all escaped metadata/frames; the caller's
+original holding responsibility persists to its actual alias/frame boundary.
+No normal numerical profile follows from this typed handoff.
+
 ## Provider references
 
 - [Get Form Fields](https://kintone.dev/en/docs/kintone/rest-api/apps/form/get-form-fields/)

@@ -438,3 +438,43 @@ test "kintone declaration cannot infer numeric history or replace a field contra
     is Err(_),
   )
 }
+
+///|
+test "kintone equal independently admitted checked values cannot replace original RowRun contracts" {
+  let (prepared, run, ledger) = kintone_host_run("kintone-foreign-values")
+  let stopped = Ref(false)
+  let checks = Ref(0)
+  let read = kintone_borrow(prepared, run, stopped, checks)
+  let bytes = kintone_original_page()
+  let charge = @row_host.charge_row_run_page(run, bytes).unwrap()
+  let native = @kintone_catalog.project_record_page(
+    bytes,
+    kintone_original_form(),
+    ["Subject", "Tags"],
+    kintone_page_limits(),
+  ).unwrap()
+  let equal_values = @kintone_catalog.project_checked_record_page(
+    native,
+    None,
+    kintone_value_limits(),
+  ).unwrap()
+  assert_true(
+    @row_host.accept_charged_row_run_values(
+      run,
+      charge,
+      @kintone_catalog.checked_record_columns(equal_values),
+      @kintone_catalog.checked_record_rows(equal_values),
+    )
+    is Err(@row_host.Source(@row_host.Capture(_))),
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    bytes.length().to_int64(),
+  )
+  assert_true(@row_host.finish_row_run(run) is Err(_))
+  assert_true(@row_host.close_accounted_row_run(run) is Err(_))
+  assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)
+  stopped.val = true
+  kintone_assert_closed(run, ledger)
+  assert_true(@kintone_host.record_read_original(read) is None)
+}
