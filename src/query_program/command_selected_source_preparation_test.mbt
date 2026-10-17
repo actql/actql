@@ -53,7 +53,21 @@ fn selected_command_preparation_issue(
         Program(_) => "Candidate.Computation.Program"
         CapacityInputs(_) => "Candidate.Computation.CapacityInputs"
         Environment(_) => "Candidate.Computation.Environment"
-        Source(_) => "Candidate.Computation.Source"
+        Source(source) =>
+          "Candidate.Computation.Source." +
+          match source {
+            @check.SourceFailure::DeclarationWorkLimit => "DeclarationWorkLimit"
+            CapacityMetadataBudget => "CapacityMetadataBudget"
+            UnsupportedBindings(_) => "UnsupportedBindings"
+            UnsupportedEffects(_) => "UnsupportedEffects"
+            Requests(_) => "Requests"
+            RequestForm(_) => "RequestForm"
+            Checks(_) => "Checks"
+            Identity(_) => "Identity"
+            Declarations(_) => "Declarations"
+            Registration(_) => "Registration"
+            SourceView(_) => "SourceView"
+          }
         Closure(_) => "Candidate.Computation.Closure"
         Units(_) => "Candidate.Computation.Units"
         Template(_, _) => "Candidate.Computation.Template"
