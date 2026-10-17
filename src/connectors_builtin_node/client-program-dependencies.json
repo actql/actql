@@ -1,6 +1,10 @@
 {
   "imports": [
     {
+      "path": "actql/actql/client_local_preparation",
+      "alias": "local_preparation"
+    },
+    {
       "path": "actql/actql/client_source_publication",
       "alias": "source_publication"
     },

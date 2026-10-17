@@ -2,6 +2,7 @@
 package "actql/actql/client_source_publication"
 
 import {
+  "actql/actql/decode_core",
   "actql/actql/program_check",
   "actql/actql/query_program",
   "actql/actql/source_frontend",
@@ -14,7 +15,11 @@ pub fn published_command_targets(@program_check.CheckEnvironment, String) -> Res
 
 pub fn published_store_targets(@program_check.CheckEnvironment, String) -> Result[@query_program.StoreTargetPublication?, PublicationIssue]
 
+pub fn published_table_writes(@program_check.CheckEnvironment, String) -> Result[Array[@query_program.TableWriteBinding], PublicationIssue]
+
 pub fn published_update_targets(@program_check.CheckEnvironment, String) -> Result[@query_program.UpdateTargetPublication?, PublicationIssue]
+
+pub fn read_publication_data(String) -> Result[@decode_core.Cursor, PublicationIssue]
 
 // Errors
 

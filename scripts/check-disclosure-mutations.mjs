@@ -9,7 +9,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseTestExecution} from './test-execution.mjs';
 
-const path = 'src/connectors_builtin_node/client_check.mbt';
+const path = 'src/client_local_preparation/client_check.mbt';
 const acceptance = 'adapters/host-node/client-check.test.mjs';
 const mutations = [
   ['an expression type rejection loses its owned required type',

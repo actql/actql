@@ -9,7 +9,7 @@ import {nodeTestArguments} from './test-execution.mjs';
 
 const expected = [{name: 'selected', assertions: [{id: 'expected', operator: 'strictEqual'}]}];
 test('an unmatched disclosure mutation selection refuses before changing source', () => {
-  const path = 'src/connectors_builtin_node/client_check.mbt';
+  const path = 'src/client_local_preparation/client_check.mbt';
   const before = readFileSync(path, 'utf8');
   const result = spawnSync(process.execPath,
     ['scripts/check-disclosure-mutations.mjs', '--match', 'nonexistent-mutation-fixture'],
