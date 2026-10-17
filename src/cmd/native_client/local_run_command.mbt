@@ -13,6 +13,8 @@ fn local_run_reply(child : @argparse.Matches, original : String) -> String {
   if child.flags.get("json").unwrap_or(false) {
     original
   } else {
-    "Local run response (original Submission preserved):\n" + original
+    local_run_state_display(original).unwrap_or_else(() => {
+      "Local run response (original Submission preserved):\n" + original
+    })
   }
 }
