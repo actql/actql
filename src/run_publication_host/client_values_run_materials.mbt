@@ -536,6 +536,7 @@ fn admit_client_values_run_materials_input(
     run_id,
     created_at,
     valid_until,
+    ..
   } = input
   let compilation = match
     issue_prepared_client_values_compilation(

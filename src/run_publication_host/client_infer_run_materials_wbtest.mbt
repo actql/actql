@@ -158,8 +158,11 @@ test "saved INFER materials refuse another Run and replaced original contract" {
 test "saved INFER materials do not enter legacy Values or ordinary Task readers" {
   let (_, _, definition, wire) = infer_run_materials_fixture()
   let cid = @publication.publication_contract_identity(definition)
-  let expressions = { text_time: false, veca: false, }
-  let operations = {
+  let expressions : @context.ExpressionProfiles = {
+    text_time: false,
+    veca: false,
+  }
+  let operations : @context.PureOperationProfiles = {
     rela: true,
     sga: false,
     tea: false,
