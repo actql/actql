@@ -113,6 +113,8 @@ pub fn notion_read_row_wire(NotionReadRow, Int, Int, Int) -> Result[String, Noti
 
 pub fn notion_user_list_column_names() -> Array[String]
 
+pub fn notion_user_list_facts_wire() -> String
+
 pub fn notion_user_list_ids(NotionUserListPage) -> Array[String]
 
 pub fn notion_user_list_metadata_wire(NotionUserListPage, Int, Int, Int) -> Result[String, NotionUserListIssue]

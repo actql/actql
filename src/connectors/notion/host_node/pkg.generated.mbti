@@ -74,6 +74,8 @@ pub fn notion_user_list_ids(@catalog.NotionUserListPage) -> Array[String]
 
 pub fn notion_user_list_metadata_json(@catalog.NotionUserListPage, Int, Int, Int) -> Result[String, @catalog.NotionUserListIssue]
 
+pub fn notion_user_list_relation_facts_wire() -> String
+
 pub fn notion_user_list_rows_wire(@catalog.NotionUserListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.NotionUserListIssue]
 
 pub fn notion_user_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.NotionUserListIssue]
