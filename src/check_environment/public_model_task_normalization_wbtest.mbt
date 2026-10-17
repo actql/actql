@@ -64,6 +64,34 @@ test "public Task normalization fixes independent original Task prompt and schem
       normalized, task, defaults, resolved,
     ),
   )
+  // Consume the actual emitted material with the existing Environment/Task
+  // Owner, not only this new normalizer's getters or a JSON shape assertion.
+  let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
+  let suffix = "\"host_policy_profile\":{},\"mapping_contracts\":[],\"model_task_contracts\":[" +
+    wire +
+    "],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+  let environment_cid = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))
+  let environment = read(
+    @utf8.encode(
+      prefix + "\"evidence_bundle_cid\":\"" + environment_cid + "\"," + suffix,
+    ),
+    environment_cid,
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 32, max_members: 100, },
+  ).unwrap()
+  let tasks = check_model_tasks(environment, declaration_limits()).unwrap()
+  let checked = resolve_model_task(tasks, "model-task:public.opaque").unwrap()
+  assert_eq(
+    model_task_identity(checked),
+    ("model-task:public.opaque", "model-task:public.opaque", cid),
+  )
+  assert_eq(
+    model_task_generation_config(checked).unwrap().max_output_tokens,
+    200L,
+  )
+  assert_eq(
+    model_task_data_handling_cid(checked),
+    "sha256:4ae245d55eb9bcb462b0e709d9b7495429918caab5207eb27c3e359428ca3763",
+  )
   assert_false(
     normalized_public_model_task_original_for(
       normalized,
@@ -196,4 +224,26 @@ test "public Task normalization retains prior policy materials when another conf
     })
     is Err({ kind: WorkLimit, .. }),
   )
+}
+
+///|
+test "public Task normalization rejects negative unused limits instead of treating them as free" {
+  let task = normalization_declaration("")
+  let defaults = default_profile_read(
+    handling_configuration(handling_policy_original()),
+  )
+  let resolved = resolve_model_provider_defaults(defaults, None, None, 1000).unwrap()
+  let limits = declaration_limits()
+  for
+    invalid in [
+      { ..limits, bodies: { ..limits.bodies, max_members: -1, }, },
+      { ..limits, contracts: { ..limits.contracts, max_nodes: -1, }, },
+      { ..limits, contracts: { ..limits.contracts, max_depth: -1, }, },
+      { ..limits, contracts: { ..limits.contracts, max_text_bytes: -1, }, },
+    ] {
+    assert_true(
+      normalize_public_model_task(task, defaults, resolved, "operator", invalid)
+      is Err({ kind: InvalidLimits, .. }),
+    )
+  }
 }

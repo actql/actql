@@ -159,7 +159,11 @@ pub fn normalize_public_model_task(
   if limits.max_work < 0 ||
     limits.bodies.max_bytes < 0 ||
     limits.bodies.max_nodes < 0 ||
-    limits.bodies.max_depth < 0 {
+    limits.bodies.max_depth < 0 ||
+    limits.bodies.max_members < 0 ||
+    limits.contracts.max_nodes < 0 ||
+    limits.contracts.max_depth < 0 ||
+    limits.contracts.max_text_bytes < 0 {
     return Err({ kind: InvalidLimits, source: Some(root), })
   }
   if provider.is_empty() || !physical_equal(resolved.original, defaults) {
@@ -275,7 +279,9 @@ pub fn normalized_public_model_task_original_for(
 ) -> Bool {
   physical_equal(value.declaration, declaration) &&
   physical_equal(value.defaults, defaults) &&
-  physical_equal(value.resolved, resolved)
+  physical_equal(value.resolved, resolved) &&
+  resolved.handling is Some(handling) &&
+  physical_equal(value.handling, handling)
 }
 
 ///|
