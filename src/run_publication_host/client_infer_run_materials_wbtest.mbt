@@ -69,6 +69,26 @@ fn infer_run_materials_admit(
 }
 
 ///|
+test "prepared INFER material projection preserves original source Environment and bytes" {
+  let (_, compiled, definition, wire) = infer_run_materials_fixture()
+  let (_, environment) = client_infer_prefix_test_environment()
+  let projected = issue_prepared_client_infer_run_materials(
+    compiled,
+    definition,
+    environment,
+    None,
+    run_materials_limits(),
+  ).unwrap()
+  assert_eq(projected, wire)
+  let restored = infer_run_materials_admit(projected, definition).unwrap()
+  let original = client_task_run_materials_compiled_original(restored).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_json(original.prepared),
+    @publication.run_evidence_value_json(compiled.prepared),
+  )
+}
+
+///|
 test "saved INFER materials retain exact original Task settings and same Run" {
   let (prepared, original, definition, wire) = infer_run_materials_fixture()
   let restored = infer_run_materials_admit(wire, definition).unwrap()

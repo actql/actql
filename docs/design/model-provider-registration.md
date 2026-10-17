@@ -101,11 +101,33 @@ gates remain mandatory at the physical consumer. This codec supplies none of
 those permissions or cleanup acknowledgements. Ordinary Values and Source
 readers keep their previous INFER-field refusal and absent-field encoding.
 
+The private Node binding projects the Program from the actual compiled owner
+and admits the retained check Environment and supplied Parameter Values through
+that same codec. Its first-admission ticket is local to the existing runtime
+control; copied DATA, another control or another preparation cannot supply it.
+The request Journal stores the material bytes and original Result data policy
+in its existing admission-evidence row, atomically with the same Run and custody
+commit. Duplicate acceptance requires identical originals; a legacy missing
+original is not backfilled. The existing aggregate evidence bound also covers
+these bytes, rather than assigning a separate uncharged allowance.
+
+Reading those saved originals reconstructs the preparation, graph, compiled
+admission and original Run as one pair and separately re-admits the saved Result
+policy. The reader never selects current Task defaults or issues a replacement
+authorization. That returned pair is not itself Host restoration: the physical
+caller must still bind its original submitted intent, fixed input/Store/Journal
+custody and independently current installation, authority and resource gates.
+The existing stop, Unknown and cleanup obligations are unchanged.
+
 Projection and admission overlap the retained Environment/Program/parameters,
 execution-contract text, codec output, parsed cursors, checked compilation and
 original admission evidence. Rechecking the installed graph is bounded work,
 not free planning. Those holdings and decode/compile workspace belong to the
 existing Host/Run phase inventory; a material CID supplies no numerical lease.
+The Node ticket, its WeakMap entry, saved material/Result-policy Strings, journal
+JSON/UTF-8 and SQLite copies, parsed saved input, restored compilation, returned
+pair and concurrent original/reader workspace belong to that same inventory.
+Freezing the returned DATA or forgetting a local ticket is not physical release.
 
 The public input/output field maps normalize through the existing ValueContract
 Owner. Their checked schema, not the shorthand text, supplies schema identity.
