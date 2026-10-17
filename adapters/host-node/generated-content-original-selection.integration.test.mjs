@@ -14,13 +14,15 @@ import {installEffectContentFamily} from './installed-content-family.mjs';
 
 const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
-async function fixture(t, {restored = false, omitRestoredOriginal = false, afterMatch, failCompletion} = {}) {
+async function fixture(t, {restored = false, omitRestoredOriginal = false, afterMatch,
+  failCompletion, maxObjectBytes = 10000} = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'generated-original-selection-', label: 'Generated Content original selection'});
   const generatedCleanups = [];
   let owner, holdingCid;
   const generated = await createGeneratedContentFixture({after: fn => generatedCleanups.push(fn)},
-    {directory: join(scratch.path, 'original-publication')});
+    {directory: join(scratch.path, 'original-publication'), maxObjectBytes});
+  assert.equal(generated.configuration.maxObjectBytes, maxObjectBytes);
   t.after(async () => {
     // Drain this same family's temporary duties before the fixture Store closes.
     if (owner !== undefined) assert.equal(await owner.cleanup(), true);
@@ -196,5 +198,18 @@ test('failed generation retains its original cleanup and exports no durable stor
   assert.equal(await f.owner.cleanup(), true);
   assert.equal(await f.generated.store.inspectPhysicalHolding(f.holdingCid), undefined);
   assert.equal(f.generated.store.status().storedBytes, 3, 'unrelated original holding remains');
+  f.scratch.passed();
+});
+
+test('the original smaller Store ceiling still refuses the family writer before acquisition', async t => {
+  // The installed family declares its existing10000-byte writer before I/O.
+  // The prior fixture8192 ceiling correctly refused it, even for a3-byte body.
+  // Keep that real counter beside the explicitly compatible positive Store.
+  const f = await fixture(t, {maxObjectBytes: 8192});
+  await assert.rejects(f.generate(), {code: 'PublicationObjectLimit'});
+  assert.equal(f.owner.generation(), undefined);
+  assert.equal(f.generated.store.status().storedBytes, 3);
+  assert.equal(await f.generated.store.inspectPhysicalHolding(f.holdingCid), undefined);
+  assert.equal(await f.owner.cleanup(), true);
   f.scratch.passed();
 });
