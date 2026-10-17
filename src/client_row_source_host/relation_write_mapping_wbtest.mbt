@@ -1,22 +1,8 @@
 ///|
 fn relation_mapping_declaration() -> RowDeclaration raise {
-  let fields = (
-    {
-      "id": { "type": "string", "nullable": false },
-      "choices": {
-        "type": "array",
-        "nullable": false,
-        "items": { "type": "string", "nullable": false },
-      },
-      "amount": {
-        "type": "decimal",
-        "nullable": true,
-        "precision": 18,
-        "scale": 3,
-      },
-      "label": { "type": "string", "nullable": true },
-    } : Json)
-  let wire = canonical_text(fields, delete_mapping_limits())
+  // Independent canonical original Schema bytes and their literal digest.
+  let wire =
+    #|{"amount":{"nullable":true,"precision":18,"scale":3,"type":"decimal"},"choices":{"items":{"nullable":false,"type":"string"},"nullable":false,"type":"array"},"id":{"nullable":false,"type":"string"},"label":{"nullable":true,"type":"string"}}
   generate_relation_row_declaration(
     "typed-write",
     "fixture",
@@ -26,7 +12,7 @@ fn relation_mapping_declaration() -> RowDeclaration raise {
         resource: "records",
         resource_kind: "record",
         schema_wire: wire,
-        schema_cid: canonical_cid(fields, delete_mapping_limits()),
+        schema_cid: "sha256:2618d0643c294611e48b9b7a5b21a88acf4de645cf0682b064d62f040a71bb8e",
         request_schema_wire: None,
         facts_wire: None,
         acquisition_wire: None,
