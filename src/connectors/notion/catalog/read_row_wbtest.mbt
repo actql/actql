@@ -171,3 +171,29 @@ test "Notion row aggregate depth nodes text columns and work refuse without part
     Err(AlreadySupplied),
   )
 }
+
+///|
+test "Notion row aggregate canonical text budget counts Decimal coefficient rather than input punctuation" {
+  let (binding, page) = row_test_setup()
+  // The complete runtime object has names amount/title (11 bytes), an exact
+  // 18-digit coefficient and seven UTF-8 bytes in the original completed title.
+  let limits = {
+    ..row_test_limits(),
+    values: { ..cell_test_limits(), max_nodes: 3, max_text_bytes: 36, },
+  }
+  let row = start_notion_read_row(binding, page, 0, limits).unwrap()
+  assert_eq(
+    complete_notion_read_row_property(row, 0, row_test_title(binding, page)),
+    Ok(()),
+  )
+  let (_, nodes, text) = finish_notion_read_row(row).unwrap()
+  assert_eq((nodes, text), (3, 36))
+  let short = start_notion_read_row(binding, page, 0, {
+    ..limits,
+    values: { ..limits.values, max_text_bytes: 35, },
+  }).unwrap()
+  assert_eq(
+    complete_notion_read_row_property(short, 0, row_test_title(binding, page)),
+    Err(BudgetExceeded),
+  )
+}
