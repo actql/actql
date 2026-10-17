@@ -51,16 +51,16 @@ test "missing and empty Host signers remain distinct without a fabricated defaul
 test "Host signers reject project and foreign roles rather than relabeling originals" {
   for
     wire in [
-      host_signer_original.replace_all("actql-host/0.1", new="actql-config/0.1"),
+      host_signer_original.replace_all(old="actql-host/0.1", new="actql-config/0.1"),
       host_signer_original.replace_all(
-        "\"account_config\"",
+        old="\"account_config\"",
         new="\"model_tasks\"",
       ),
-      host_signer_original.replace_all("\"public_key\"", new="\"publicKey\""),
-      host_signer_original.replace_all("\"effect_set\"", new="\"foreign\""),
-      host_signer_original.replace_all("[\"effect_set\"]", new="[]"),
+      host_signer_original.replace_all(old="\"public_key\"", new="\"publicKey\""),
+      host_signer_original.replace_all(old="\"effect_set\"", new="\"foreign\""),
+      host_signer_original.replace_all(old="[\"effect_set\"]", new="[]"),
       host_signer_original.replace_all(
-        "[\"effect_set\"]",
+        old="[\"effect_set\"]",
         new="[\"effect_set\",\"effect_set\"]",
       ),
     ] {
@@ -90,7 +90,7 @@ test "Host signers reject missing null and wrong typed fields with no fallback" 
     let field_name = "\"" + field + "\""
     assert_true(
       admit_client_host_signer_configuration(
-        host_signer_original.replace_all(field_name, new="\"missing\""),
+        host_signer_original.replace_all(old=field_name, new="\"missing\""),
         host_signer_read_limits,
       )
       is Err(InvalidHostSignerConfiguration),
@@ -99,7 +99,7 @@ test "Host signers reject missing null and wrong typed fields with no fallback" 
   for value in ["null", "false", "42", "[]", "{}", "\"\"", "\"a\\u0000b\""] {
     assert_true(
       admit_client_host_signer_configuration(
-        host_signer_original.replace_all("\"ops\"", new=value),
+        host_signer_original.replace_all(old="\"ops\"", new=value),
         host_signer_read_limits,
       )
       is Err(InvalidHostSignerConfiguration),
@@ -116,14 +116,14 @@ test "Host signer projection keeps duplicate Unicode and JSON rejection" {
       "[]",
       host_signer_original + "{}",
       host_signer_original.replace_all(
-        "\"principal\":\"ops\"",
+        old="\"principal\":\"ops\"",
         new="\"principal\":\"ops\",\"principal\":\"other\"",
       ),
       host_signer_original.replace_all(
-        "\"principal\":\"ops\"",
+        old="\"principal\":\"ops\"",
         new="\"principal\":\"ops\",\"princi\\u0070al\":\"other\"",
       ),
-      host_signer_original.replace_all("\"ops\"", new="\"\\ud800\""),
+      host_signer_original.replace_all(old="\"ops\"", new="\"\\ud800\""),
     ] {
     assert_true(
       admit_client_host_signer_configuration(wire, host_signer_read_limits)
@@ -131,7 +131,7 @@ test "Host signer projection keeps duplicate Unicode and JSON rejection" {
     )
   }
   let preserved = host_signer_original.replace_all(
-    "./keys/ops.pem",
+    old="./keys/ops.pem",
     new="../鍵/é\r\n.pem",
   )
   // Literal line breaks are not valid JSON; they are never normalized away.
@@ -140,7 +140,7 @@ test "Host signer projection keeps duplicate Unicode and JSON rejection" {
     is Err(InvalidHostSignerConfiguration),
   )
   let wire = host_signer_original.replace_all(
-    "./keys/ops.pem",
+    old="./keys/ops.pem",
     new="../鍵/é\\r\\n.pem",
   )
   let config = admit_client_host_signer_configuration(
@@ -168,7 +168,7 @@ test "Host signer projection enforces explicit byte and cardinality ceilings" {
     is Err(HostSignerConfigurationLimit),
   )
   let two = host_signer_original.replace_all(
-    "\"ops-approver\":",
+    old="\"ops-approver\":",
     new="\"other\":{\"principal\":\"other\",\"key_id\":\"other\",\"private_key\":\"private.pem\",\"public_key\":\"public.pem\",\"checkpoint_kinds\":[\"run_scope\"]},\"ops-approver\":",
   )
   assert_true(
