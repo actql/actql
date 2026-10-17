@@ -89,7 +89,9 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   // Run packet. Install the same-acquisition Core borrow before entering it;
   // even a throwing factory/getter leaves that original reservation pending.
   async function readProvider({prepare, receiver, options}) {
-    if (providerCapacity === undefined || typeof prepare !== 'function') {
+    const verifyRead = options?.verifyRead, signal = options?.signal;
+    if (providerCapacity === undefined || typeof prepare !== 'function' ||
+        typeof verifyRead !== 'function') {
       fail('InstalledProviderSourceUnavailable');
     }
     if (closed || readerPrepared) fail('InstalledSourceReaderAlreadyPrepared');
@@ -110,9 +112,15 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       fail('InvalidInstalledSourceReader');
     }
     // Methods and receiver are captured once before the first physical read.
-    readerStarted = true;
     readerReadPending = true;
-    try { return await Reflect.apply(readerRead, reader, []); }
+    try {
+      signal?.throwIfAborted();
+      await Reflect.apply(verifyRead, options, []);
+      signal?.throwIfAborted();
+      if (closed || readerStopRequested) fail('InstalledSourceClosed');
+      readerStarted = true;
+      return await Reflect.apply(readerRead, reader, []);
+    }
     finally { readerReadPending = false; }
   }
 
@@ -124,7 +132,9 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     signal?.throwIfAborted();
     if (closed) fail('InstalledSourceClosed');
     if (keyed && !transportStopped) fail('InstalledSourceTransportUnconfirmed');
-    if (providerCapacity !== undefined && !readerStarted) fail('InstalledSourceReaderUnavailable');
+    if (providerCapacity !== undefined && (!readerStarted || readerReadPending)) {
+      fail('InstalledSourceReaderUnavailable');
+    }
     checked(moon.clientProgramRowSourceFinish(run));
     settled.add(moon.clientProgramRowSourceAttempt(run));
     if (keyed) return checked(moon.clientProgramKeyedRowRetain(run));
