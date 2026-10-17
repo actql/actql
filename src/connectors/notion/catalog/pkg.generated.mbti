@@ -105,6 +105,8 @@ pub fn notion_query_row_property_at(OriginalNotionQueryRow, Int) -> OriginalNoti
 
 pub fn notion_query_row_property_count(OriginalNotionQueryRow) -> Int
 
+pub fn notion_read_page_rows_wire(NotionDataSourceReadContracts, OriginalNotionQueryPage, Array[NotionReadRow], @value_admission.Limits, Int, Int, Int, Int) -> Result[String, NotionReadRowIssue]
+
 pub fn notion_read_row_pending_wire(NotionReadRow, Int, Int, Int) -> Result[String, NotionReadRowIssue]
 
 pub fn notion_read_row_wire(NotionReadRow, Int, Int, Int) -> Result[String, NotionReadRowIssue]

@@ -1,5 +1,5 @@
 {
-  "source": "b2eaa8b73a184cfb6d263c48a5b338950222f016",
+  "source": "ff798b87cc692436077e7140a44b3ceedfc33c13",
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
   "declarations": [
     {
@@ -602,7 +602,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/data-source-read.mjs",
-      "sha256": "244387ee0bfd79f73aa491bd87a0ee2851da589116614b39f1c06ffd0f50e156",
+      "sha256": "a0b581df94d09a8d2d8d41aeb8aeac49fc7652cb4729e410a412a476d6ace077",
       "exports": [
         "NOTION_DATA_SOURCE_READ_OPERATION",
         "NotionDataSourceReadFailure",
@@ -702,7 +702,8 @@
           "parameters": [
             "cause",
             "observations",
-            "children"
+            "children",
+            "responseCharges"
           ],
           "async": false
         },
@@ -874,6 +875,14 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Each query page also retains raw/decode/row metadata, per-page original assembly"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Every returned response charge is also retained by the parent and on its result"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The outer array and every row contribute to whole-page nodes, depth, text, work"
               }
             ],
             "extension": [
@@ -894,6 +903,10 @@
               {
                 "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
                 "anchor": "actual Notion dependent reply loss remains the original credential Unknown and retained child, without resend"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion aggregate page node cap applies to all complete rows together"
               }
             ]
           }
