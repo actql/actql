@@ -1,5 +1,5 @@
 {
-  "source": "fb5875d31df3d7a827cfa14894b07302b155f236",
+  "source": "fa2c7b6ed5ae73f2e5fbce7e66d9c6be39a006e4",
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
   "declarations": [
     {
@@ -312,6 +312,276 @@
               {
                 "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
                 "anchor": "Notion aggregate raw bound charges and retains"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/notion/site/property-item-read.mjs",
+      "sha256": "ea2c00ea7fbf3c3e89e8b55df695a3ee722785b515aef475bd23b5c36392172f",
+      "exports": [
+        "NOTION_PROPERTY_READ_API_VERSION",
+        "NOTION_PROPERTY_READ_OPERATION",
+        "NotionPropertyReadFailure",
+        "createNotionPropertyReader"
+      ],
+      "operations": [
+        {
+          "name": "createNotionPropertyReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionPropertyReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionPropertyReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionPropertyReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionPropertyReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead",
+          "parameters": [
+            "prepared",
+            "received"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/verify/verify",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "NotionPropertyReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalPathSegment",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead",
+          "parameters": [
+            "moon",
+            "originalRequest",
+            "readContracts",
+            "column",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "consumeValue",
+            "limits",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Notion Catalog/physical reader; Common Contract/Value, Account, Credential/Site, Source RowRun and Resource retain original authority, accounting, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNotionPropertyReader",
+            "createNotionPropertyReader/handle/init:observe/init:observe",
+            "createNotionPropertyReader/handle/init:read/init:read",
+            "createNotionPropertyReader/handle/init:read/init:read/result/result",
+            "createNotionPropertyReader/handle/init:requestStop/init:requestStop",
+            "executeRead",
+            "executeRead/response/response",
+            "executeRead/verify/verify",
+            "fail/fail",
+            "NotionPropertyReadFailure/constructor:constructor/constructor:constructor",
+            "originalPathSegment",
+            "originalReader",
+            "positive/positive",
+            "prepareRead",
+            "prepareRead/prepareRead",
+            "prepareRead/prepareRead#2",
+            "prepareRead/prepareRead#3",
+            "prepareRead/provider/provider"
+          ],
+          "exports": [
+            "NOTION_PROPERTY_READ_API_VERSION",
+            "NOTION_PROPERTY_READ_OPERATION",
+            "NotionPropertyReadFailure",
+            "createNotionPropertyReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original property-item completion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "anchor": "export function createNotionPropertyReader(options)"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Prefix charges go to observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Every response and item must match the original property id and kind."
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "same selected token binding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The request/response records retain the original row/property/schema and prior"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "It rechecks current Account/authorization before every operation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "anchor": "export class NotionPropertyReadFailure"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "A lost reply remains the original journal"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Cancellation/stop and failed current checks retain this same reader"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Completion overlaps that history with a bounded reverse-page inventory,"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "These are finite structural"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Rollup\ncalculation and complete file/Content projection need their own actual supplier;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/notion/catalog/property_items_wbtest.mbt",
+                "anchor": "test \"Notion property item chain admits only complete ordered original rich text\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/property-item-read.test.mjs",
+                "anchor": "actual property lost reply remains original journal Unknown with no resend or replacement token resolution"
               }
             ]
           }
