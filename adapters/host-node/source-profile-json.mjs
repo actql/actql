@@ -1,6 +1,7 @@
 // Bound installed Source configuration and identity metadata before buffering.
 // This does not make separate identity and installation reads one snapshot.
 import {open} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 
 const profileByteLimit = 8 * 1024 * 1024;
 const chunkBytes = 64 * 1024;
@@ -36,10 +37,7 @@ export async function readBoundedConfigurationUtf8(path, {maxBytes, openFile = o
 }
 
 async function readConfiguration(path, maxBytes, openFile, project) {
-  let original = await openFile(path, 'r');
-  let failure;
-  let readFailed = false;
-  try {
+  return withOriginalFile(path, openFile, async original => {
     const chunks = [];
     let bytes = 0;
     let used = 0;
@@ -64,6 +62,33 @@ async function readConfiguration(path, maxBytes, openFile, project) {
         used = 0;
       }
     }
+  });
+}
+
+// Re-read the selected runtime for each installation. Keep the exact byte
+// preimage, without materializing a full runtime Buffer or caching a path,
+// module namespace, timestamp, credential or installation decision. This
+// workspace bound is not a file-size/work limit or a physical funding claim.
+export async function installedRuntimeBundleCid(path, {openFile = open} = {}) {
+  return withOriginalFile(path, openFile, async original => {
+    const digest = createHash('sha256');
+    const buffer = Buffer.allocUnsafe(chunkBytes);
+    for (;;) {
+      const {bytesRead} = await original.read(buffer, 0, buffer.length, null);
+      if (bytesRead === 0) return `sha256:${digest.digest('hex')}`;
+      digest.update(buffer.subarray(0, bytesRead));
+    }
+  });
+}
+
+// Shared physical custody of the original configuration/runtime read. A
+// close failure retains this same handle and retry, never a second read.
+async function withOriginalFile(path, openFile, consume) {
+  let original = await openFile(path, 'r');
+  let failure;
+  let readFailed = false;
+  try {
+    return await consume(original);
   } catch (cause) {
     readFailed = true;
     failure = cause;
