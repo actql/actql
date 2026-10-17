@@ -1,0 +1,549 @@
+///|
+/// Codec bounds only; not an Effect admission, capacity or reservation.
+pub(all) struct NotionPropertyWriteLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_properties : Int
+  max_items : Int
+  max_text_units : Int
+  max_work : Int
+}
+
+///|
+pub(all) enum NotionPropertyWriteIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidSelection
+  ForeignOriginal
+  DuplicateProperty(String)
+  InvalidValue(String)
+  UnsupportedProperty(String)
+  UnknownOption(String)
+  InvalidOptions(String)
+} derive(Eq, Debug)
+
+///|
+/// A provider spelling of this original checked value and property. No write
+/// capability, target identity, Mapping, precondition or mutation is issued.
+pub struct NotionPropertyWrite {
+  priv source : NotionDataSourceCatalog
+  priv property : NotionPropertyMetadata
+  priv value : @admitted.CheckedValue
+  priv range_end : @admitted.CheckedValue?
+  priv document : @encode.EncodedDocument
+}
+
+///|
+fn notion_write_limits_valid(limits : NotionPropertyWriteLimits) -> Bool {
+  limits.max_bytes > 0 &&
+  limits.max_nodes > 0 &&
+  limits.max_depth > 0 &&
+  limits.max_properties >= 0 &&
+  limits.max_items >= 0 &&
+  limits.max_text_units >= 0 &&
+  limits.max_work > 0
+}
+
+///|
+/// Checked Text is well-formed. Count scalars without splitting a surrogate
+/// pair, allocating a second character vector or normalizing original text.
+fn notion_write_text_end(text : String, start : Int, max_scalars : Int) -> Int {
+  let mut end = start
+  let mut scalars = 0
+  while end < text.length() && scalars < max_scalars {
+    let unit = text.code_unit_at(end).to_int()
+    end += if unit >= 0xd800 && unit <= 0xdbff { 2 } else { 1 }
+    scalars += 1
+  }
+  end
+}
+
+///|
+/// Every option, including unselected options, is checked and charged. An
+/// exact existing label selects its original id; no option is created by name.
+fn notion_write_options(
+  property : NotionPropertyMetadata,
+  work : Int,
+) -> Result[(Map[String, String], Int), NotionPropertyWriteIssue] {
+  guard @decode.open_object(property.definition) is Ok(definition) &&
+    @decode.lookup(definition, property.kind) is Some(body) &&
+    @decode.open_object(body) is Ok(body) &&
+    @decode.lookup(body, "options") is Some(options) &&
+    @decode.array_length(options) is Some(count) else {
+    return Err(InvalidOptions(property.id))
+  }
+  let mut remaining = work
+  let ids : Map[String, Bool] = Map([])
+  let names : Map[String, String] = Map([])
+  for index in 0..<count {
+    guard @decode.open_object(@decode.element_at(options, index).unwrap())
+      is Ok(option) &&
+      @decode.lookup(option, "id") is Some(id) &&
+      @decode.text(id) is Ok(id) &&
+      !id.is_empty() &&
+      @decode.lookup(option, "name") is Some(name) &&
+      @decode.text(name) is Ok(name) else {
+      return Err(InvalidOptions(property.id))
+    }
+    if remaining == 0 || id.length() > (remaining - 1) / 2 {
+      return Err(BudgetExceeded)
+    }
+    remaining -= 1 + 2 * id.length()
+    // Include exact label comparison and both hash inventories in the bound.
+    if name.length() > remaining / 2 {
+      return Err(BudgetExceeded)
+    }
+    remaining -= 2 * name.length()
+    if ids.contains(id) || names.contains(name) {
+      return Err(InvalidOptions(property.id))
+    }
+    ids[id] = true
+    names[name] = id
+  }
+  Ok((names, remaining))
+}
+
+///|
+fn notion_write_option(
+  property : NotionPropertyMetadata,
+  selected : String,
+  work : Int,
+) -> Result[(String, Int), NotionPropertyWriteIssue] {
+  let (options, remaining) = match notion_write_options(property, work) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match options.get(selected) {
+    Some(id) => Ok((id, remaining))
+    None => Err(UnknownOption(property.id))
+  }
+}
+
+///|
+/// Only encodes the supplied checked value. The consuming original Mapping
+/// and Effect owner must separately establish writability, target/current,
+/// approval, overwrite guards, whole-input keys and original Run custody.
+pub fn prepare_notion_property_write(
+  source : NotionDataSourceCatalog,
+  property_index : Int,
+  value : @admitted.CheckedValue,
+  limits : NotionPropertyWriteLimits,
+) -> Result[NotionPropertyWrite, NotionPropertyWriteIssue] {
+  if !notion_write_limits_valid(limits) {
+    return Err(InvalidLimits)
+  }
+  guard notion_data_source_property_at(source, property_index) is Some(property) else {
+    return Err(InvalidSelection)
+  }
+  let kind = property.kind
+  if ![
+      "title", "rich_text", "number", "checkbox", "url", "email", "phone_number",
+      "select", "status", "multi_select", "people", "relation", "date",
+    ].contains(kind) {
+    // Computed/created/edited values and Content references cannot acquire a
+    // writable representation from similarly shaped JSON or strings.
+    return Err(UnsupportedProperty(property.id))
+  }
+  let mut remaining = limits.max_work
+  if property.id.length() >= remaining {
+    return Err(BudgetExceeded)
+  }
+  remaining -= 1 + property.id.length()
+  let option = match value.value {
+    @admitted.Text(text) => {
+      if text.length() > limits.max_text_units || text.length() > remaining {
+        return Err(BudgetExceeded)
+      }
+      remaining -= text.length()
+      if kind == "select" || kind == "status" {
+        match notion_write_option(property, text, remaining) {
+          Ok((id, work)) => {
+            remaining = work
+            Some(id)
+          }
+          Err(issue) => return Err(issue)
+        }
+      } else {
+        None
+      }
+    }
+    _ => None
+  }
+  // Validate the complete original option inventory even for an empty array.
+  // Each supplied label is then resolved by exact original name, never sent as
+  // a new name that could mutate the data-source schema.
+  let multi_options = if kind == "multi_select" &&
+    value.value is @admitted.Array(_) {
+    match notion_write_options(property, remaining) {
+      Ok((options, work)) => {
+        remaining = work
+        Some(options)
+      }
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    None
+  }
+  let writer = @encode.writer(
+    limits.max_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  ) catch {
+    _ => return Err(InvalidLimits)
+  }
+  let result : Result[Unit, NotionPropertyWriteIssue] = try {
+    @encode.begin_object(writer)
+    @encode.key(writer, kind)
+    match value.value {
+      // status:null may reset a default; this codec has no default original.
+      @admitted.Null =>
+        if !["number", "url", "email", "phone_number", "select", "date"].contains(
+            kind,
+          ) {
+          Err(InvalidValue(property.id))
+        } else {
+          @encode.null_value(writer)
+          Ok(())
+        }
+      @admitted.Boolean(boolean) if kind == "checkbox" => {
+        @encode.bool_value(writer, boolean)
+        Ok(())
+      }
+      @admitted.Decimal(_) if kind == "number" =>
+        match @admitted.canonical_scalar_text(value, limits.max_text_units) {
+          Some(text) if text.length() <= remaining => {
+            @encode.decimal_number_value(writer, text)
+            Ok(())
+          }
+          _ => Err(BudgetExceeded)
+        }
+      @admitted.Date(text) | @admitted.Timestamp(text) if kind == "date" =>
+        if text.length() > limits.max_text_units || text.length() > remaining {
+          Err(BudgetExceeded)
+        } else {
+          // Common's checked Date/Timestamp spelling is the original typed
+          // scalar. Do not parse a Text value, invent a timezone or ignore an
+          // end field from a supplied range object.
+          @encode.begin_object(writer)
+          @encode.key(writer, "start")
+          @encode.string_value(writer, text)
+          @encode.end_object(writer)
+          Ok(())
+        }
+      @admitted.Text(text) if kind == "title" || kind == "rich_text" => {
+        @encode.begin_array(writer)
+        let mut start = 0
+        let mut items = 0
+        let mut valid = true
+        while start < text.length() {
+          if items >= limits.max_items || items >= 100 {
+            valid = false
+            break
+          }
+          // Preserve the full value within actual per-object/array bounds.
+          let end = notion_write_text_end(text, start, 2000)
+          @encode.begin_object(writer)
+          @encode.key(writer, "type")
+          @encode.string_value(writer, "text")
+          @encode.key(writer, "text")
+          @encode.begin_object(writer)
+          @encode.key(writer, "content")
+          @encode.string_value(writer, text[start:end].to_owned())
+          @encode.end_object(writer)
+          @encode.end_object(writer)
+          items += 1
+          start = end
+        }
+        @encode.end_array(writer)
+        if valid {
+          Ok(())
+        } else {
+          Err(BudgetExceeded)
+        }
+      }
+      @admitted.Text(text) if ["url", "email", "phone_number"].contains(kind) =>
+        // These native fields do not preserve empty Text distinctly from null.
+        if text.is_empty() {
+          Err(InvalidValue(property.id))
+        } else if notion_write_text_end(
+            text,
+            0,
+            if kind == "url" {
+              2000
+            } else {
+              200
+            },
+          ) <
+          text.length() {
+          Err(BudgetExceeded)
+        } else {
+          @encode.string_value(writer, text)
+          Ok(())
+        }
+      @admitted.Text(_) if kind == "select" || kind == "status" => {
+        @encode.begin_object(writer)
+        @encode.key(writer, "id")
+        @encode.string_value(writer, option.unwrap())
+        @encode.end_object(writer)
+        Ok(())
+      }
+      @admitted.Array(values) if ["people", "relation", "multi_select"].contains(
+          kind,
+        ) => {
+        let count = @admitted.element_count(values)
+        if count > limits.max_items || count > 100 || count > remaining {
+          Err(BudgetExceeded)
+        } else {
+          remaining -= count
+          let mut issue : NotionPropertyWriteIssue? = None
+          @encode.begin_array(writer)
+          for index in 0..<count {
+            match @admitted.element_at(values, index).unwrap() {
+              @admitted.Text(text) if kind == "multi_select" || !text.is_empty() => {
+                let scans = if kind == "multi_select" { 2 } else { 1 }
+                if text.length() > limits.max_text_units ||
+                  text.length() > remaining / scans {
+                  issue = Some(BudgetExceeded)
+                  break
+                }
+                remaining -= scans * text.length()
+                let id = if kind == "multi_select" {
+                  match multi_options.unwrap().get(text) {
+                    Some(id) => id
+                    None => {
+                      issue = Some(UnknownOption(property.id))
+                      break
+                    }
+                  }
+                } else {
+                  text
+                }
+                @encode.begin_object(writer)
+                @encode.key(writer, "id")
+                @encode.string_value(writer, id)
+                @encode.end_object(writer)
+              }
+              _ => {
+                issue = Some(InvalidValue(property.id))
+                break
+              }
+            }
+          }
+          @encode.end_array(writer)
+          match issue {
+            Some(issue) => Err(issue)
+            None => Ok(())
+          }
+        }
+      }
+      _ => Err(InvalidValue(property.id))
+    }
+  } catch {
+    _ => Err(BudgetExceeded)
+  }
+  match result {
+    Err(issue) => {
+      @encode.cancel_writer(writer)
+      return Err(issue)
+    }
+    Ok(_) => ()
+  }
+  let document = try {
+    @encode.end_object(writer)
+    @encode.finish_document(writer)
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      return Err(BudgetExceeded)
+    }
+  }
+  Ok({ source, property, value, range_end: None, document, })
+}
+
+///|
+/// The original Mapping supplies both checked projections of one date
+/// property. Neither a Text value nor a copied start/end can stand in for
+/// those originals. This encoding does not establish their captured-row,
+/// permission, target/current, approval or physical Effect correspondence.
+pub fn prepare_notion_date_range_property_write(
+  source : NotionDataSourceCatalog,
+  property_index : Int,
+  start : @admitted.CheckedValue,
+  end : @admitted.CheckedValue,
+  limits : NotionPropertyWriteLimits,
+) -> Result[NotionPropertyWrite, NotionPropertyWriteIssue] {
+  if !notion_write_limits_valid(limits) {
+    return Err(InvalidLimits)
+  }
+  guard notion_data_source_property_at(source, property_index) is Some(property) else {
+    return Err(InvalidSelection)
+  }
+  if property.kind != "date" {
+    return Err(UnsupportedProperty(property.id))
+  }
+  let same_shape = (
+      start.contract.shape is @contract.Date &&
+      end.contract.shape is @contract.Date
+    ) ||
+    (
+      start.contract.shape is @contract.Timestamp &&
+      end.contract.shape is @contract.Timestamp
+    )
+  if !same_shape {
+    return Err(InvalidValue(property.id))
+  }
+  let start_text = match start.value {
+    @admitted.Date(text) | @admitted.Timestamp(text) => text
+    _ => return Err(InvalidValue(property.id))
+  }
+  let end_text = match end.value {
+    @admitted.Date(text) | @admitted.Timestamp(text) => Some(text)
+    @admitted.Null => None
+    _ => return Err(InvalidValue(property.id))
+  }
+  let mut remaining = limits.max_work
+  if property.id.length() >= remaining {
+    return Err(BudgetExceeded)
+  }
+  remaining -= 1 + property.id.length()
+  // Charge both actual original scalars without concatenating, parsing or
+  // normalizing them. An explicit typed null end remains distinct from an
+  // absent end on the legacy scalar constructor.
+  if start_text.length() > limits.max_text_units ||
+    start_text.length() > remaining {
+    return Err(BudgetExceeded)
+  }
+  remaining -= start_text.length()
+  if end_text is Some(text) &&
+    (text.length() > limits.max_text_units || text.length() > remaining) {
+    return Err(BudgetExceeded)
+  }
+  let writer = @encode.writer(
+    limits.max_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  ) catch {
+    _ => return Err(InvalidLimits)
+  }
+  let document = try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "date")
+    @encode.begin_object(writer)
+    @encode.key(writer, "start")
+    @encode.string_value(writer, start_text)
+    @encode.key(writer, "end")
+    match end_text {
+      Some(text) => @encode.string_value(writer, text)
+      None => @encode.null_value(writer)
+    }
+    @encode.end_object(writer)
+    @encode.end_object(writer)
+    @encode.finish_document(writer)
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      return Err(BudgetExceeded)
+    }
+  }
+  Ok({ source, property, value: start, range_end: Some(end), document, })
+}
+
+///|
+fn notion_property_write_original_matches(
+  write : NotionPropertyWrite,
+  source : NotionDataSourceCatalog,
+  property_index : Int,
+) -> Bool {
+  if !physical_equal(write.source, source) {
+    return false
+  }
+  match notion_data_source_property_at(source, property_index) {
+    Some(property) => physical_equal(write.property, property)
+    None => false
+  }
+}
+
+///|
+pub fn notion_property_write_matches(
+  write : NotionPropertyWrite,
+  source : NotionDataSourceCatalog,
+  property_index : Int,
+  value : @admitted.CheckedValue,
+) -> Bool {
+  write.range_end is None &&
+  physical_equal(write.value, value) &&
+  notion_property_write_original_matches(write, source, property_index)
+}
+
+///|
+/// A range cannot match on its start alone. Equal bytes, reversed originals,
+/// another property occurrence or the legacy scalar encoding do not match.
+pub fn notion_date_range_property_write_matches(
+  write : NotionPropertyWrite,
+  source : NotionDataSourceCatalog,
+  property_index : Int,
+  start : @admitted.CheckedValue,
+  end : @admitted.CheckedValue,
+) -> Bool {
+  guard write.range_end is Some(original_end) else { return false }
+  physical_equal(write.value, start) &&
+  physical_equal(original_end, end) &&
+  notion_property_write_original_matches(write, source, property_index)
+}
+
+///|
+/// Original ids, not display names or a representative property. A complete
+/// body is returned only after all members and duplicate ids are checked.
+pub fn notion_page_properties_write_wire(
+  source : NotionDataSourceCatalog,
+  writes : Array[NotionPropertyWrite],
+  limits : NotionPropertyWriteLimits,
+) -> Result[String, NotionPropertyWriteIssue] {
+  if !notion_write_limits_valid(limits) {
+    return Err(InvalidLimits)
+  }
+  if writes.length() > limits.max_properties ||
+    writes.length() > limits.max_work {
+    return Err(BudgetExceeded)
+  }
+  let mut work = limits.max_work - writes.length()
+  let ids : Map[String, Bool] = Map([])
+  for write in writes {
+    if !physical_equal(write.source, source) {
+      return Err(ForeignOriginal)
+    }
+    if write.property.id.length() > work {
+      return Err(BudgetExceeded)
+    }
+    work -= write.property.id.length()
+    if ids.contains(write.property.id) {
+      return Err(DuplicateProperty(write.property.id))
+    }
+    ids[write.property.id] = true
+  }
+  let writer = @encode.writer(
+    limits.max_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  ) catch {
+    _ => return Err(InvalidLimits)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "properties")
+    @encode.begin_object(writer)
+    for write in writes {
+      @encode.key(writer, write.property.id)
+      @encode.emit_document(writer, write.document)
+    }
+    @encode.end_object(writer)
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
+}

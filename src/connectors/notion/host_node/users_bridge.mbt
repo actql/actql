@@ -71,3 +71,9 @@ pub fn notion_user_list_ids(
 ) -> Array[String] {
   @catalog.notion_user_list_ids(page)
 }
+
+///|
+#export_name("notionUserListRelationFactsWire")
+pub fn notion_user_list_relation_facts_wire() -> String {
+  @catalog.notion_user_list_facts_wire()
+}

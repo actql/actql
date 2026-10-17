@@ -281,3 +281,11 @@ test "Notion cursor metadata uses exact bounded writer output" {
     Err(BudgetExceeded),
   )
 }
+
+///|
+test "Notion user key declaration matches the original checked id inventory" {
+  assert_eq(
+    notion_user_list_facts_wire(),
+    "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}",
+  )
+}
